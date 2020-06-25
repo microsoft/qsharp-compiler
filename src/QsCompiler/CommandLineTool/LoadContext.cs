@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler
     public class LoadContext : AssemblyLoadContext
     {
         public readonly string PathToParentAssembly;
-        private AssemblyDependencyResolver _Resolver;
+        private readonly AssemblyDependencyResolver _Resolver;
         private readonly HashSet<string> _FallbackPaths;
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler
             return path == null ? null : LoadFromAssemblyPath(path);
         }
 
-        private static ConcurrentBag<LoadContext> Loaded =
+        private static readonly ConcurrentBag<LoadContext> Loaded =
             new ConcurrentBag<LoadContext>();
 
         /// <summary>

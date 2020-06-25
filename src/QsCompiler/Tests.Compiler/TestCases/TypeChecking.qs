@@ -210,67 +210,116 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return res;
     }
 
-    function CommonBaseType10 () : BigInt {
-        return 1 + 1; 
+    function CommonBaseType10 (
+        op1 : (Unit => Unit is Adj + Ctl),
+        op2 : (Unit => Unit is Ctl + Adj)) 
+    : (Unit => Unit is Ctl + Adj)[] {
+        mutable arr = [op1];
+        set arr += [op2];
+        return arr;
     }
 
     function CommonBaseType11 () : BigInt {
+        return 1 + 1; 
+    }
+
+    function CommonBaseType12 () : BigInt {
         return 1L + 1; 
     }
 
-    function CommonBaseType12 (arg1 : OpTuple, arg2 : OpTuple) : OpTuple[] {
+    function CommonBaseType13 (arg1 : OpTuple, arg2 : OpTuple) : OpTuple[] {
         return [arg1, arg2]; 
     }
 
-    function CommonBaseType13 (arg1 : OpTuple, arg2 : AdjCtlTuple) : ((Unit => Unit), (Unit => Unit))[] {
-        return [arg1!, arg2!]; 
-    }
-
-    function CommonBaseType14 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
+    function CommonBaseType14 (arg1 : OpTuple, arg2 : AdjCtlTuple) : ((Unit => Unit), (Unit => Unit))[] {
         return [arg1!, arg2!]; 
     }
 
     function CommonBaseType15 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
+        return [arg1!, arg2!]; 
+    }
+
+    function CommonBaseType16 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
         return [arg1, arg2]; 
     }
 
-    function CommonBaseType16 () : (Unit => Unit is Adj)[] {
+    function CommonBaseType17 () : (Unit => Unit is Adj)[] {
         return [SelfAdjOp, IntrinsicAdj];
     }
 
-    function CommonBaseType17<'A> (a1 : 'A, a2 : 'A) : 'A[] {
+    function CommonBaseType18<'A> (a1 : 'A, a2 : 'A) : 'A[] {
         return [a1, a2];
     }
 
-    function CommonBaseType18<'A,'B> () : 'A[] {
+    function CommonBaseType19<'A,'B> () : 'A[] {
         return [(new 'A[1])[0], (new 'A[1])[0]];
     }
 
-    function CommonBaseType19<'A,'B> (a : 'A, b : 'B) : 'A[] {
+    function CommonBaseType20<'A,'B> (a : 'A, b : 'B) : 'A[] {
         return [(new 'A[1])[0], (new 'B[1])[0]];
     }
 
-    function CommonBaseType20 () : BigEndian[] {
+    function CommonBaseType21 () : BigEndian[] {
         return [(new BigEndian[1])[0], (new BigEndian[1])[0]];
     }
 
-    function CommonBaseType21 () : (Int -> Unit)[] {
-        return [GenericFunction<Int>, GenericFunction<Int>];
-    }
-
     function CommonBaseType22 () : (Int -> Unit)[] {
-        let fct = GenericFunction<Int>;
-        return [GenericFunction<Int>, fct];
+        return [GenericFunction<Int>, GenericFunction<Int>];
     }
 
     function CommonBaseType23 () : (Int -> Unit)[] {
         let fct = GenericFunction<Int>;
-        return [fct, fct];
+        return [GenericFunction<Int>, fct];
     }
 
     function CommonBaseType24 () : (Int -> Unit)[] {
+        let fct = GenericFunction<Int>;
+        return [fct, fct];
+    }
+
+    function CommonBaseType25 () : (Int -> Unit)[] {
         return [GenericFunction<Int>, GenericFunction<Double>];
     }
+
+
+    // Equality comparison
+
+    function UnitEquality(x : Unit, y : Unit) : Bool { return x == y; }
+    function UnitInequality(x : Unit, y : Unit) : Bool { return x != y; }
+    function IntEquality(x : Int, y : Int) : Bool { return x == y; }
+    function IntInequality(x : Int, y : Int) : Bool { return x != y; }
+    function BigIntEquality(x : BigInt, y : BigInt) : Bool { return x == y; }
+    function BigIntInequality(x : BigInt, y : BigInt) : Bool { return x != y; }
+    function DoubleEquality(x : Double, y : Double) : Bool { return x == y; }
+    function DoubleInequality(x : Double, y : Double) : Bool { return x != y; }
+    function BoolEquality(x : Bool, y : Bool) : Bool { return x == y; }
+    function BoolInequality(x : Bool, y : Bool) : Bool { return true != true; }
+    function StringEquality(x : String, y : String) : Bool { return x == y; }
+    function StringInequality(x : String, y : String) : Bool { return x != y; }
+    function QubitEquality(x : Qubit, y : Qubit) : Bool { return x == y; }
+    function QubitInequality(x : Qubit, y : Qubit) : Bool { return x != y; }
+    function ResultEquality(x : Result, y : Result) : Bool { return x == y; }
+    function ResultInequality(x : Result, y : Result) : Bool { return x != y; }
+    function PauliEquality(x : Pauli, y : Pauli) : Bool { return x == y; }
+    function PauliInequality(x : Pauli, y : Pauli) : Bool { return x != y; }
+    function RangeEquality(x : Range, y : Range) : Bool { return x == y; }
+    function RangeInequality(x : Range, y : Range) : Bool { return x != y; }
+    function ArrayEquality(x : Int[], y : Int[]) : Bool { return x == y; }
+    function ArrayInequality(x : Int[], y : Int[]) : Bool { return x != y; }
+    function TupleEquality(x : (Int, Int), y : (Int, Int)) : Bool { return x == y; }
+    function TupleInequality(x : (Int, Int), y : (Int, Int)) : Bool { return x != y; }
+    function UDTEquality(x : NamedItems1, y : NamedItems1) : Bool { return x == y; }
+    function UDTInequality(x : NamedItems1, y : NamedItems1) : Bool { return x != y; }
+    function GenericEquality<'A>(x : 'A, y : 'A) : Bool { return x == y; }
+    function GenericInequality<'A>(x : 'A, y : 'A) : Bool { return x != y; }
+    function OperationEquality(x : (Unit => Unit), y : (Unit => Unit)) : Bool { return x == y; }
+    function OperationInequality(x : (Unit => Unit), y : (Unit => Unit)) : Bool { return x != y; }
+    function FunctionEquality(x : (Unit -> Unit), y : (Unit -> Unit)) : Bool { return x == y; }
+    function FunctionInequality(x : (Unit -> Unit), y : (Unit -> Unit)) : Bool { return x != y; }
+    function InvalidTypeEquality(x : __Invalid__, y : __Invalid__) : Bool { return x == y; }
+    function InvalidTypeInequality(x : __Invalid__, y : __Invalid__) : Bool { return x != y; }
+    function NoCommonBaseEquality(x : Int, y : String) : Bool { return x == y; }
+    function NoCommonBaseInequality(x : Int, y : String) : Bool { return x != y; }
 
 
     // utils for testing type matching of arguments

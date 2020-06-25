@@ -1,15 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
+module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -18,7 +19,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 /// Represents the internal state of a function evaluation.
 /// The first element is a map that stores the current values of all the local variables.
 /// The second element is a counter that stores the remaining number of statements we evaluate.
-type private EvalState = Map<string, TypedExpression> * int
+type private EvalState = Dictionary<string, TypedExpression> * int
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
@@ -35,23 +36,24 @@ type private FunctionInterrupt =
 /// A shorthand for the specific Imperative type used by several functions in this file
 type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
-/// Represents a computation that decreases the remaining statements counter by 1.
-/// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
-let private incrementState: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    if counter < 1 then yield TooManyStatements
-    do! putState (vars, counter - 1)
-}
-
-/// Represents a computation that sets the given variables to the given values
-let private setVars callables entry: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
-}
-
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCallable>) =
+
+    /// Represents a computation that decreases the remaining statements counter by 1.
+    /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
+    let incrementState: Imp<Unit> = imperative {
+        let! vars, counter = getState
+        if counter < 1 then yield TooManyStatements
+        do! putState (vars, counter - 1)
+    }
+
+    /// Represents a computation that sets the given variables to the given values
+    let setVars callables entry : Imp<Unit> = imperative {
+        let! vars, counter = getState
+        defineVarTuple (isLiteral callables) vars entry
+        do! putState (vars, counter)
+    }
 
     /// Casts a BoolLiteral to the corresponding bool
     let castToBool x: bool =
@@ -60,15 +62,15 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
         | _ -> ArgumentException ("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
-    member internal __.evaluateExpression expr: Imp<TypedExpression> = imperative {
+    member private this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
-        let result = ExpressionEvaluator(callables, vars, counter / 2).Transform expr
+        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
         if isLiteral callables result then return result
         else yield CouldNotEvaluate ("Not a literal: " + result.Expression.ToString())
     }
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (statement: QsStatement): Imp<Unit> = imperative {
+    member private this.EvaluateStatement (statement : QsStatement) = imperative {
         do! incrementState
 
         match statement.Statement with
@@ -77,34 +79,34 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
             // statements inside functions never have side effects, so we can skip evaluating them.
             ()
         | QsReturnStatement expr ->
-            let! value = this.evaluateExpression expr
+            let! value = this.EvaluateExpression expr
             yield Returned value
         | QsFailStatement expr ->
-            let! value = this.evaluateExpression expr
+            let! value = this.EvaluateExpression expr
             yield Failed value
         | QsVariableDeclaration s ->
-            let! value = this.evaluateExpression s.Rhs
+            let! value = this.EvaluateExpression s.Rhs
             do! setVars callables (s.Lhs, value)
         | QsValueUpdate s ->
             match s.Lhs with
             | LocalVarTuple vt ->
-                let! value = this.evaluateExpression s.Rhs
+                let! value = this.EvaluateExpression s.Rhs
                 do! setVars callables (vt, value)
             | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + s.Lhs.Expression.ToString())
         | QsConditionalStatement s ->
             let mutable evalElseCase = true
             for cond, block in s.ConditionalBlocks do
-                let! value = this.evaluateExpression cond <&> castToBool
+                let! value = this.EvaluateExpression cond <&> castToBool
                 if value then
-                    do! this.evaluateScope block.Body
+                    do! this.EvaluateScope block.Body
                     evalElseCase <- false
                     do! Break
             if evalElseCase then
                 match s.Default with
-                | Value block -> do! this.evaluateScope block.Body
+                | Value block -> do! this.EvaluateScope block.Body
                 | _ -> ()
         | QsForStatement stmt ->
-            let! iterExpr = this.evaluateExpression stmt.IterationValues
+            let! iterExpr = this.EvaluateExpression stmt.IterationValues
             let! iterSeq = imperative {
                 match iterExpr.Expression with
                 | RangeLiteral _ when isLiteral callables iterExpr ->
@@ -116,33 +118,34 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
             }
             for loopValue in iterSeq do
                 do! setVars callables (fst stmt.LoopItem, loopValue)
-                do! this.evaluateScope stmt.Body
+                do! this.EvaluateScope stmt.Body
         | QsWhileStatement stmt ->
-            while this.evaluateExpression stmt.Condition <&> castToBool do
-                do! this.evaluateScope stmt.Body
+            while this.EvaluateExpression stmt.Condition <&> castToBool do
+                do! this.EvaluateScope stmt.Body
         | QsRepeatStatement stmt ->
             while true do
-                do! this.evaluateScope stmt.RepeatBlock.Body
-                let! value = this.evaluateExpression stmt.SuccessCondition <&> castToBool
+                do! this.EvaluateScope stmt.RepeatBlock.Body
+                let! value = this.EvaluateExpression stmt.SuccessCondition <&> castToBool
                 if value then do! Break
-                do! this.evaluateScope stmt.FixupBlock.Body
+                do! this.EvaluateScope stmt.FixupBlock.Body
         | QsQubitScope _ ->
             yield CouldNotEvaluate "Cannot allocate qubits in function"
         | QsConjugation _ ->
             yield CouldNotEvaluate "Cannot conjugate in function"
+        | EmptyStatement -> ()
     }
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (scope: QsScope): Imp<Unit> = imperative {
+    member private this.EvaluateScope (scope : QsScope) = imperative {
         for stmt in scope.Statements do
-            do! this.evaluateStatement stmt
+            do! this.EvaluateStatement stmt
     }
 
     /// Evaluates the given Q# function on the given argument.
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
     /// Returns None if we were unable to evaluate the function.
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
-    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>) (stmtsLeft: int): TypedExpression option =
+    member internal this.EvaluateFunction (name : QsQualifiedName) (arg : TypedExpression) (stmtsLeft : int) =
         let callable = callables.[name]
         if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
@@ -151,37 +154,39 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let vars = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
-            match this.evaluateScope scope (vars, stmtsLeft) with
+            let vars = new Dictionary<_,_>()
+            defineVarTuple (isLiteral callables) vars (toSymbolTuple specArgs, arg)
+            match this.EvaluateScope scope (vars, stmtsLeft) with
             | Normal _ ->  None
             | Break _ -> None
             | Interrupt (Returned expr) -> Some expr
             | Interrupt (Failed _) -> None
             | Interrupt TooManyStatements -> None
-            | Interrupt (CouldNotEvaluate reason) -> None
+            | Interrupt (CouldNotEvaluate _) -> None
         | _ -> None
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionTransformation()
+and internal ExpressionEvaluator private (_private_) =
+    inherit SyntaxTreeTransformation() 
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
-        override __.ExpressionTransformation x = this.Transform x
-        override __.TypeTransformation x = this.Type.Transform x }
+    internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
+        new ExpressionEvaluator("_private_") then
+            this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
+            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionKindTransformation()
+and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
+    inherit ExpressionKindTransformation(parent)
 
-    member private this.simplify e1 = this.ExpressionTransformation e1
+    member private this.simplify e1 = this.Expressions.OnTypedExpression e1
 
     member private this.simplify (e1, e2) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2)
+        (this.Expressions.OnTypedExpression e1, this.Expressions.OnTypedExpression e2)
 
     member private this.simplify (e1, e2, e3) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2, this.ExpressionTransformation e3)
+        (this.Expressions.OnTypedExpression e1, this.Expressions.OnTypedExpression e2, this.Expressions.OnTypedExpression e3)
 
     member private this.arithBoolBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
@@ -192,7 +197,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | _ -> qop (lhs, rhs)
 
     member private this.arithNumBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
-        let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (bigIntOp a b)
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (doubleOp a b)
@@ -206,46 +210,49 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | IntLiteral a, IntLiteral b -> IntLiteral (intOp a b)
         | _ -> qop (lhs, rhs)
 
-    override this.onIdentifier (sym, tArgs) =
+    override this.OnIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> Map.tryFind name.Value constants |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
+        | LocalVariable name -> 
+            match constants.TryGetValue name.Value with 
+            | true, ex -> ex.Expression
+            | _ -> Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
-    override this.onFunctionCall (method, arg) =
+    override this.OnFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
-            | Identifier (GlobalCallable qualName, types) ->
+            | Identifier (GlobalCallable qualName, _) ->
                 do! check (stmtsLeft > 0 && isLiteral callables arg)
                 let fe = FunctionEvaluator (callables)
-                return! fe.evaluateFunction qualName arg types stmtsLeft |> Option.map (fun x -> x.Expression)
+                return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                do! check (TypedExpression.IsPartialApplication method.Expression)
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onOperationCall (method, arg) =
+    override this.OnOperationCall (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                do! check (TypedExpression.IsPartialApplication method.Expression)
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onPartialApplication (method, arg) =
+    override this.OnPartialApplication (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                do! check (TypedExpression.IsPartialApplication method.Expression)
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onUnwrapApplication ex =
+    override this.OnUnwrapApplication ex =
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
@@ -260,7 +267,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
                 arg.Expression
         | _ -> UnwrapApplication ex
 
-    override this.onArrayItem (arr, idx) =
+    override this.OnArrayItem (arr, idx) =
         let arr, idx = this.simplify (arr, idx)
         match arr.Expression, idx.Expression with
         | ValueArray va, IntLiteral i -> va.[safeCastInt64 i].Expression
@@ -268,13 +275,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
             rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[safeCastInt64 i]) |> ImmutableArray.CreateRange |> ValueArray
         | _ -> ArrayItem (arr, idx)
 
-    override this.onNewArray (bt, idx) =
+    override this.OnNewArray (bt, idx) =
         let idx = this.simplify idx
         match idx.Expression with
         | IntLiteral i -> constructNewArray bt.Resolution (safeCastInt64 i) |? NewArray (bt, idx)
         | _ -> NewArray (bt, idx)
 
-    override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
+    override this.OnCopyAndUpdateExpression (lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
         match lhs.Expression, accEx.Expression, rhs.Expression with
         | ValueArray va, IntLiteral i, _ -> ValueArray (va.SetItem(safeCastInt64 i, rhs))
@@ -284,71 +291,124 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         // TODO - handle named items in user-defined types
         | _ -> CopyAndUpdate (lhs, accEx, rhs)
 
-    override this.onConditionalExpression (e1, e2, e3) =
+    override this.OnConditionalExpression (e1, e2, e3) =
         let e1 = this.simplify e1
         match e1.Expression with
         | BoolLiteral a -> if a then (this.simplify e2).Expression else (this.simplify e3).Expression
         | _ -> CONDITIONAL (e1, this.simplify e2, this.simplify e3)
 
-    override this.onEquality (lhs, rhs) =
+    override this.OnEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
 
-    override this.onInequality (lhs, rhs) =
+    override this.OnInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
 
-    override this.onLessThan (lhs, rhs) =
+    override this.OnLessThan (lhs, rhs) =
         this.arithBoolBinaryOp LT (<) (<) (<) lhs rhs
 
-    override this.onLessThanOrEqual (lhs, rhs) =
+    override this.OnLessThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp LTE (<=) (<=) (<=) lhs rhs
 
-    override this.onGreaterThan (lhs, rhs) =
+    override this.OnGreaterThan (lhs, rhs) =
         this.arithBoolBinaryOp GT (>) (>) (>) lhs rhs
 
-    override this.onGreaterThanOrEqual (lhs, rhs) =
+    override this.OnGreaterThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp GTE (>=) (>=) (>=) lhs rhs
 
-    override this.onLogicalAnd (lhs, rhs) =
+    override this.OnLogicalAnd (lhs, rhs) =
         let lhs = this.simplify lhs
         match lhs.Expression with
         | BoolLiteral true -> (this.simplify rhs).Expression
         | BoolLiteral false -> BoolLiteral false
         | _ -> AND (lhs, this.simplify rhs)
 
-    override this.onLogicalOr (lhs, rhs) =
+    override this.OnLogicalOr (lhs, rhs) =
         let lhs = this.simplify lhs
         match lhs.Expression with
         | BoolLiteral true -> BoolLiteral true
         | BoolLiteral false -> (this.simplify rhs).Expression
         | _ -> OR (lhs, this.simplify rhs)
 
-    override this.onAddition (lhs, rhs) =
+    // - simplifies addition of two constants (integers, big integers,
+    //   doubles, arrays, and strings) into single constant
+    // - rewrites (integers, big integers, and doubles):
+    //     0 + x = x
+    //     x + 0 = x
+    override this.OnAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (a + b)
-        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a + b)
-        | IntLiteral a, IntLiteral b -> IntLiteral (a + b)
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
         | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
             StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
-        | _ -> ADD (lhs, rhs)
+        | BigIntLiteral zero, op
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | DoubleLiteral 0.0, op
+        | op, DoubleLiteral 0.0
+        | IntLiteral 0L, op
+        | op, IntLiteral 0L -> op
+        | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
 
-    override this.onSubtraction (lhs, rhs) =
-        this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+    // - simplifies subtraction of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x - 0 = x
+    //     0 - x = -x
+    //     x - x = 0
+    override this.OnSubtraction (lhs, rhs) =
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | op, DoubleLiteral 0.0
+        | op, IntLiteral 0L -> op
+        | (BigIntLiteral zero), _ when zero.IsZero -> NEG rhs
+        | (DoubleLiteral 0.0), _
+        | (IntLiteral 0L), _ -> NEG rhs
+        | op1, op2 when op1 = op2 ->
+            match lhs.ResolvedType.Resolution with
+            | BigInt -> BigIntLiteral BigInteger.Zero
+            | Double -> DoubleLiteral 0.0
+            | Int -> IntLiteral 0L
+            | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
 
-    override this.onMultiplication (lhs, rhs) =
-        this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
+    // - simplifies multiplication of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x * 0 = 0
+    //     0 * x = 0
+    //     x * 1 = x
+    //     1 * x = x
+    override this.OnMultiplication (lhs, rhs) =
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | _, (BigIntLiteral zero)
+        | (BigIntLiteral zero), _ when zero.IsZero -> BigIntLiteral BigInteger.Zero
+        | _, (DoubleLiteral 0.0)
+        | (DoubleLiteral 0.0), _ -> DoubleLiteral 0.0
+        | _, (IntLiteral 0L)
+        | (IntLiteral 0L), _ -> IntLiteral 0L
+        | op, (BigIntLiteral one)
+        | (BigIntLiteral one), op when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | (DoubleLiteral 1.0), op
+        | op, (IntLiteral 1L)
+        | (IntLiteral 1L), op -> op
+        | _ -> this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
 
-    override this.onDivision (lhs, rhs) =
-        this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
+    // - simplifies multiplication of two constants into single constant
+    override this.OnDivision (lhs, rhs) =
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, (BigIntLiteral one) when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | op, (IntLiteral 1L) -> op
+        | _ -> this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
 
-    override this.onExponentiate (lhs, rhs) =
+    override this.OnExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, IntLiteral b -> BigIntLiteral (BigInteger.Pow(a, safeCastInt64 b))
@@ -356,31 +416,31 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | IntLiteral a, IntLiteral b -> IntLiteral (longPow a b)
         | _ -> POW (lhs, rhs)
 
-    override this.onModulo (lhs, rhs) =
+    override this.OnModulo (lhs, rhs) =
         this.intBinaryOp MOD (%) (%) lhs rhs
 
-    override this.onLeftShift (lhs, rhs) =
+    override this.OnLeftShift (lhs, rhs) =
         this.intBinaryOp LSHIFT (fun l r -> l <<< safeCastBigInt r) (fun l r -> l <<< safeCastInt64 r) lhs rhs
 
-    override this.onRightShift (lhs, rhs) =
+    override this.OnRightShift (lhs, rhs) =
         this.intBinaryOp RSHIFT (fun l r -> l >>> safeCastBigInt r) (fun l r -> l >>> safeCastInt64 r) lhs rhs
 
-    override this.onBitwiseExclusiveOr (lhs, rhs) =
+    override this.OnBitwiseExclusiveOr (lhs, rhs) =
         this.intBinaryOp BXOR (^^^) (^^^) lhs rhs
 
-    override this.onBitwiseOr (lhs, rhs) =
+    override this.OnBitwiseOr (lhs, rhs) =
         this.intBinaryOp BOR (|||) (|||) lhs rhs
 
-    override this.onBitwiseAnd (lhs, rhs) =
+    override this.OnBitwiseAnd (lhs, rhs) =
         this.intBinaryOp BAND (&&&) (&&&) lhs rhs
 
-    override this.onLogicalNot expr =
+    override this.OnLogicalNot expr =
         let expr = this.simplify expr
         match expr.Expression with
         | BoolLiteral a -> BoolLiteral (not a)
         | _ -> NOT expr
 
-    override this.onNegative expr =
+    override this.OnNegative expr =
         let expr = this.simplify expr
         match expr.Expression with
         | BigIntLiteral a -> BigIntLiteral (-a)
@@ -388,7 +448,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | IntLiteral a -> IntLiteral (-a)
         | _ -> NEG expr
 
-    override this.onBitwiseNot expr =
+    override this.OnBitwiseNot expr =
         let expr = this.simplify expr
         match expr.Expression with
         | IntLiteral a -> IntLiteral (~~~a)

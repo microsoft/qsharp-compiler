@@ -17,6 +17,66 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
+    /// <summary>
+    /// Default values for command line options if nothing is specified. 
+    /// </summary>
+    internal static class DefaultOptions
+    {
+        public const string Verbosity = "normal";
+        public const Options.LogFormat OutputFormat = Options.LogFormat.Default;
+        public const int TrimLevel = 1;
+    }
+
+
+    public class CompilationOptions : Options
+    {
+        [Option("trim", Required = false, Default = DefaultOptions.TrimLevel, SetName = CODE_MODE,
+        HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
+        public int TrimLevel { get; set; }
+
+        [Option("load", Required = false, SetName = CODE_MODE,
+        HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+        public IEnumerable<string> Plugins { get; set; }
+
+        [Option("target-specific-decompositions", Required = false, SetName = CODE_MODE,
+        HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
+        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
+
+        [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
+        public bool ExposeReferencesViaTestNames { get; set; }
+
+        [Option("assembly-properties", Required = false, SetName = CODE_MODE,
+        HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
+        public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
+
+        [Option("runtime", Required = false, SetName = CODE_MODE, 
+        HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
+        public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
+
+        [Option("build-exe", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether to build a Q# command line application.")]
+        public bool MakeExecutable { get; set; }
+
+        /// <summary>
+        /// Returns a dictionary with the specified assembly properties as out parameter. 
+        /// Returns a boolean indicating whether all specified properties were successfully added.
+        /// </summary>
+        internal bool ParseAssemblyProperties(out Dictionary<string, string> parsed)
+        {
+            var success = true;
+            parsed = new Dictionary<string, string>();
+            foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
+            {
+                var pieces = keyValue?.Split(":");
+                var valid = pieces != null && pieces.Length == 2;
+                success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
+            }
+            return success;
+        }
+    }
+
+
     public class Options
     {
         public enum LogFormat
@@ -28,10 +88,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         // Note: items in one set are mutually exclusive with items from other sets
         protected const string CODE_MODE = "codeMode";
         protected const string SNIPPET_MODE = "snippetMode";
+        protected const string RESPONSE_FILES = "responseFiles";
 
-        [Option('v', "verbose", Required = false, Default = false,
-        HelpText = "Specifies whether to compile in verbose mode.")]
-        public bool Verbose { get; set; }
+        [Option('v', "verbosity", Required = false, Default = DefaultOptions.Verbosity,
+        HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
+        public string Verbosity { get; set; }
+
+        [Option("format", Required = false, Default = DefaultOptions.OutputFormat,
+        HelpText = "Specifies the output format of the command line compiler.")]
+        public LogFormat OutputFormat { get; set; }
 
         [Option('i', "input", Required = true, SetName = CODE_MODE,
         HelpText = "Q# code or name of the Q# file to compile.")]
@@ -41,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
         public string CodeSnippet { get; set; }
 
-        [Option('f', "withinFunction", Required = false, Default = false, SetName = SNIPPET_MODE,
+        [Option('f', "within-function", Required = false, Default = false, SetName = SNIPPET_MODE,
         HelpText = "Specifies whether a given Q# snipped occurs within a function")]
         public bool WithinFunction { get; set; }
 
@@ -49,17 +114,27 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Referenced binaries to include in the compilation.")]
         public IEnumerable<string> References { get; set; }
 
-        [Option('n', "noWarn", Required = false, Default = new int[0],
+        [Option('n', "no-warn", Required = false, Default = new int[0],
         HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int> NoWarn { get; set; }
 
-        [Option("format", Required = false, Default = LogFormat.Default,
-        HelpText = "Specifies the output format of the command line compiler.")]
-        public LogFormat OutputFormat { get; set; }
-
         [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
-        HelpText = "Specifies the directories the compiler will search when a rewrite step dependency could not be found.")]
+        HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
         public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+
+
+        /// <summary>
+        /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
+        /// Already specified non-default values are prioritized over the values in the given options, 
+        /// unless overwriteNonDefaultValues is set to true. Sequences are merged. 
+        /// </summary>
+        internal void UpdateSetIndependentSettings(Options updates, bool overwriteNonDefaultValues = false)
+        {
+            this.Verbosity = overwriteNonDefaultValues || this.Verbosity == DefaultOptions.Verbosity ? updates.Verbosity : this.Verbosity;
+            this.OutputFormat = overwriteNonDefaultValues || this.OutputFormat == DefaultOptions.OutputFormat ? updates.OutputFormat : this.OutputFormat;
+            this.NoWarn = (this.NoWarn ?? Array.Empty<int>()).Concat(updates.NoWarn ?? Array.Empty<int>());
+            this.References = (this.References ?? Array.Empty<string>()).Concat(updates.References ?? Array.Empty<string>());
+        }
 
 
         // routines related to logging 
@@ -86,25 +161,33 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Given a LogFormat, returns a suitable routing for formatting diagnostics.
         /// </summary>
-        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format)
-        {
-            switch (format)
+        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format) => 
+            format switch
             {
-                case LogFormat.MsBuild: return Formatting.MsBuildFormat;
-                case LogFormat.Default: return Formatting.HumanReadableFormat;
-                default: throw new NotImplementedException("unknown output format for logger");
-            }
-        }
+                LogFormat.MsBuild => Formatting.MsBuildFormat,
+                LogFormat.Default => Formatting.HumanReadableFormat,
+                _ => throw new NotImplementedException("unknown output format for logger"),
+            };
 
         /// <summary>
         /// Creates a suitable logger for the given command line options, 
         /// logging the given arguments if the verbosity is high enough.
         /// </summary>
-        public ConsoleLogger GetLogger(DiagnosticSeverity minimumVerbosity = DiagnosticSeverity.Warning)
+        public ConsoleLogger GetLogger(DiagnosticSeverity defaultVerbosity = DiagnosticSeverity.Warning)
         {
+            var verbosity =
+                "detailed".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "d".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diagnostic".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diag".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase)
+                ? DiagnosticSeverity.Hint :
+                "quiet".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "q".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase)
+                ? DiagnosticSeverity.Error :
+                defaultVerbosity; 
             var logger = new ConsoleLogger(
                 LoggingFormat(this.OutputFormat),
-                this.Verbose ? DiagnosticSeverity.Hint : minimumVerbosity,
+                verbosity,
                 this.NoWarn,
                 this.CodeSnippet != null ? -2 : 0);
             this.Print(logger);

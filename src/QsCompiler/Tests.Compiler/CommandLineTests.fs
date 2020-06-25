@@ -8,7 +8,9 @@ open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
+
 
 let private pathRoot = 
     Path.GetPathRoot(Directory.GetCurrentDirectory())
@@ -39,7 +41,7 @@ let ``valid snippet`` () =
     [|
         "-s" 
         "let a = 0;" 
-        "-v"
+        "-v n"
     |] 
     |> testSnippet ReturnCode.SUCCESS
 
@@ -57,7 +59,8 @@ let ``one valid file`` () =
     [|
         "-i"
         ("TestCases","General.qs") |> Path.Combine
-        "-v"
+        "--verbosity" 
+        "Diagnostic"
     |]
     |> testInput ReturnCode.SUCCESS
     
@@ -152,6 +155,53 @@ let ``diagnose outputs`` () =
         |]        
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+
+
+[<Fact>]
+let ``options from response files`` () = 
+    let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
+    let configArgs = 
+        [|
+            "-i"
+            ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+        |]        
+    File.WriteAllText(configFile, String.Join (" ", configArgs))
+    let commandLineArgs = 
+        [|
+            "build"
+            "-v"
+            "Detailed"
+            "--format"
+            "MsBuild"
+            "--response-files"
+            configFile
+        |]        
+
+    let result = Program.Main commandLineArgs
+    Assert.Equal(ReturnCode.SUCCESS, result)
+
+
+[<Fact>]
+let ``execute rewrite steps only if validation passes`` () = 
+    let source1 = ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine 
+    let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine 
+    let config = new CompilationLoader.Configuration(GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapabilities = AssemblyConstants.RuntimeCapabilities.QPRGen0)
+    
+    let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source1; source2])
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.Validation)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.FunctorSupport)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization) // no entry point
+
+    let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source2])
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
+    Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.FunctorSupport)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization)
 
 
 [<Fact>]

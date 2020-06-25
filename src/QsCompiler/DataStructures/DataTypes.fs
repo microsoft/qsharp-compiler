@@ -13,11 +13,16 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
 | Null
 | Value of 'T
 
+    /// If the given nullable has a value, applies the given function to it and returns the result, which must be
+    /// another nullable. Returns Null otherwise.
+    static member Bind fct = function
+        | Null -> Null
+        | Value v -> fct v
+
     /// If the given nullable has a value, applies the given function to it and returns the result as Value,
     /// and returns Null otherwise.
-    static member Map fct = function 
-        | Null -> Null
-        | Value v -> Value (fct v)
+    static member Map fct =
+        QsNullable<_>.Bind (fct >> Value)
 
     /// If the given nullable has a value, applies the given function to it.
     static member Iter fct = function 
@@ -111,6 +116,3 @@ type IReaderWriterLock =
     abstract member ExitReadLock : unit -> unit
     abstract member EnterWriteLock : unit -> unit
     abstract member ExitWriteLock : unit -> unit
-
-
-

@@ -33,6 +33,13 @@ drops/
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
+# Visual Studio Code options directory
+.vscode/*
+# Allow extensions.json since it provides suggested VSCode extensions for working with the repo.
+!.vscode/extensions.json
+# Visual Studio Code Ionide-FSharp extension cache directory
+.ionide/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*

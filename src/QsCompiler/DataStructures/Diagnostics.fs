@@ -166,6 +166,7 @@ type ErrorCode =
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
+    | UnsupportedResultComparison = 5023
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -187,6 +188,8 @@ type ErrorCode =
     | AliasForOpenedNamespace = 6019
     | InvalidNamespaceAliasName = 6020 // i.e. the chosen alias already exists
     | ConflictInReferences = 6021
+    | InaccessibleType = 6022
+    | InaccessibleCallable = 6023
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -197,6 +200,8 @@ type ErrorCode =
     | UnknownTypeParameterName = 6107
     | UnknownItemName = 6108
     | NotMarkedAsAttribute = 6109
+    | InaccessibleTypeInNamespace = 6110
+    | InaccessibleCallableInNamespace = 6111
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -230,10 +235,19 @@ type ErrorCode =
     | QubitTypeInEntryPointSignature = 6231
     | CallableTypeInEntryPointSignature = 6232
     | UserDefinedTypeInEntryPointSignature = 6233
-    | MultipleEntryPoints = 6234
-    | InvalidEntryPointSpecialization = 6235
-    | InvalidTestAttributePlacement = 6236
-    | InvalidExecutionTargetForTest = 6237
+    | InnerTupleInEntryPointArgument = 6234
+    | ArrayOfArrayInEntryPointArgument = 6235
+    | OtherEntryPointExists = 6236
+    | MultipleEntryPoints = 6237
+    | MissingEntryPoint = 6238
+    | InvalidEntryPointSpecialization = 6239
+    | DuplicateEntryPointArgumentName = 6240
+    | EntryPointInLibrary = 6241
+    | InvalidTestAttributePlacement = 6242
+    | InvalidExecutionTargetForTest = 6243
+    | ExpectingFullNameAsAttributeArgument = 6244
+    | AttributeInvalidOnSpecialization = 6245
+    | AttributeInvalidOnCallable = 6246
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -251,6 +265,8 @@ type ErrorCode =
     | RUSloopWithinAutoInversion = 6315
     | QuantumDependencyOutsideExprStatement = 6316
     | InvalidReassignmentInApplyBlock = 6317
+    | TypeLessAccessibleThanParentType = 6318
+    | TypeLessAccessibleThanParentCallable = 6319
 
     | UnexpectedCommandLineCompilerException = 7001
     | MissingInputFileOrSnippet = 7002
@@ -265,9 +281,14 @@ type ErrorCode =
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
     | UnknownCompilerPlugin = 7015
-    | CouldNotLoadCompilerPlugin = 7016
-    | CouldNotInstantiateRewriteStep = 7017
-    | UnexpectedCompilerException = 7018
+    | TypeLoadExceptionInCompilerPlugin = 7016
+    | CouldNotLoadCompilerPlugin = 7017
+    | CouldNotInstantiateRewriteStep = 7018
+    | InvalidPathToTargetSpecificDecompositions = 7019
+    | FailedToLoadTargetSpecificDecompositions = 7020
+    | ConflictsInTargetSpecificDecompositions = 7021
+    | UnexpectedCompilerException = 7022
+    | InvalidCommandLineArgsInResponseFiles = 7023
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -281,6 +302,9 @@ type ErrorCode =
     | PreEvaluationFailed = 7111
     | RewriteStepExecutionFailed = 7112
     | PostconditionVerificationFailed = 7113
+
+    | CsharpGenerationGeneratedError = 8001
+    | PublishingPerfResultsFailed = 8101
 
 
 type WarningCode = 
@@ -305,6 +329,10 @@ type WarningCode =
     | NamespaceAliasIsAlreadyDefined = 6004 // same alias for the same namespace, hence (only) a warning
     | MissingBodyDeclaration = 6005
     | DuplicateAttribute = 6201
+    | MissingEntryPoint = 6202
+    | IgnoredEntryPoint = 6203
+    | ReservedEntryPointArgumentName = 6204
+    | NonResultTypeReturnedInEntryPoint = 6205
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -317,9 +345,14 @@ type WarningCode =
     | ReferencesSetToNull = 7009
     | ReferenceCannotBeIncludedInDll = 7010
     | UnresolvedItemsInGeneratedQs = 7101
-    | PreconditionVerificationFailed = 7201
-    | RewriteStepLoadedViaReflection = 7202
-    | FailedToLoadRewriteStepViaReflection = 7203
+
+    | RewriteStepDiagnosticsGenerationFailed = 7201
+    | PreconditionVerificationFailed = 7202
+    | RewriteStepLoadedViaReflection = 7203
+    | FailedToLoadRewriteStepViaReflection = 7204
+
+    | CsharpGenerationGeneratedWarning = 8001
+    | InvalidAssemblyProperties = 8101
 
 
 type InformationCode = 
@@ -336,6 +369,8 @@ type InformationCode =
     | BuiltTokenization = 7202
     | BuiltSyntaxTree = 7203
     | FormattedQsCode = 7204
+
+    | CsharpGenerationGeneratedInfo = 8001
 
 
 type DiagnosticItem = 
@@ -509,13 +544,20 @@ type DiagnosticItem =
             | ErrorCode.ExpectingIterableExpr                     -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
-                                                            
+            | ErrorCode.UnsupportedResultComparison               ->
+                // TODO: When the names of the runtime capabilities are finalized, they can be included in the error
+                // message.
+                "The execution target {0} does not support comparing measurement results. " +
+                "Choose an execution target with additional capabilities or avoid result comparisons."
+
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
             | ErrorCode.TypeRedefinition                          -> "Invalid type declaration. A type with the name \"{0}\" already exists."
             | ErrorCode.TypeConstructorOverlapWithCallable        -> "Invalid type declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.UnknownType                               -> "No type with the name \"{0}\" exists in any of the open namespaces."
             | ErrorCode.AmbiguousType                             -> "Multiple open namespaces contain a type with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a type with that name are {1}."
+            | ErrorCode.InaccessibleType                          -> "The type {0} exists in an open namespace, but is not accessible from here."
+            | ErrorCode.InaccessibleCallable                      -> "The callable {0} exists in an open namespace, but is not accessible from here."
             | ErrorCode.AmbiguousCallable                         -> "Multiple open namespaces contain a callable with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a callable with that name are {1}." 
             | ErrorCode.TypeSpecializationMismatch                -> "Invalid specialization declaration. The type specializations do not match the expected number of type parameters. Expecting {0} type argument(s)."
             | ErrorCode.SpecializationForUnknownCallable          -> "No callable with the name \"{0}\" exists in the current namespace. Specializations need to be declared in the same namespace as the callable they extend."
@@ -540,6 +582,8 @@ type DiagnosticItem =
             | ErrorCode.UnknownTypeParameterName                  -> "No type parameter with the name \"{0}\" exists."
             | ErrorCode.UnknownItemName                           -> "The type {0} does not define an item with name \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute                      -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
+            | ErrorCode.InaccessibleTypeInNamespace               -> "The type {0} in namespace {1} is not accessible from here."
+            | ErrorCode.InaccessibleCallableInNamespace           -> "The callable {0} in namespace {1} is not accessible from here."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch                -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArgumentTupleMismatch                     -> "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
@@ -573,10 +617,19 @@ type DiagnosticItem =
             | ErrorCode.QubitTypeInEntryPointSignature            -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
             | ErrorCode.CallableTypeInEntryPointSignature         -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
             | ErrorCode.UserDefinedTypeInEntryPointSignature      -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
-            | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
+            | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
+            | ErrorCode.OtherEntryPointExists                     -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.MultipleEntryPoints                       -> "The project contains more than one entry point."
+            | ErrorCode.MissingEntryPoint                         -> "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
+            | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."
+            | ErrorCode.EntryPointInLibrary                       -> "Invalid entry point. Only executable Q# projects can have entry points."
             | ErrorCode.InvalidTestAttributePlacement             -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest             -> "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the ToffoliSimulator, or the ResourcesEstimator."
+            | ErrorCode.ExpectingFullNameAsAttributeArgument      -> "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
+            | ErrorCode.AttributeInvalidOnSpecialization          -> "Invalid attribute placement. The attribute {0} cannot be attached to a specialization declaration."
+            | ErrorCode.AttributeInvalidOnCallable                -> "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
@@ -594,6 +647,8 @@ type DiagnosticItem =
             | ErrorCode.RUSloopWithinAutoInversion                -> "Auto-generation of inversions is not supported for operations that contain repeat-until-success-loops."
             | ErrorCode.QuantumDependencyOutsideExprStatement     -> "Auto-generation of inversions is not supported for operations that contain operation calls outside expression statements."
             | ErrorCode.InvalidReassignmentInApplyBlock           -> "Variables that are used in the within-block (specifying the outer transformation) cannot be reassigned in the apply-block (specifying the inner transformation)."
+            | ErrorCode.TypeLessAccessibleThanParentType          -> "The type {0} is less accessible than the parent type {1}."
+            | ErrorCode.TypeLessAccessibleThanParentCallable      -> "The type {0} is less accessible than the callable {1}."
 
             | ErrorCode.UnexpectedCommandLineCompilerException    -> "The command line compiler threw an exception."
             | ErrorCode.MissingInputFileOrSnippet                 -> "The command line compiler needs a list of files or a code snippet to process."
@@ -608,9 +663,14 @@ type DiagnosticItem =
             | ErrorCode.InvalidProjectOutputPath                  -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                        -> "No source files have been specified."
             | ErrorCode.UnknownCompilerPlugin                     -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
+            | ErrorCode.TypeLoadExceptionInCompilerPlugin         -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. Unable to load one or more of the requested types."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
-            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
+            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
+            | ErrorCode.InvalidPathToTargetSpecificDecompositions -> "Could not find the file \"{0}\" that specifies target specific implementations."
+            | ErrorCode.FailedToLoadTargetSpecificDecompositions  -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.ConflictsInTargetSpecificDecompositions   -> "The specified assemblies containing target specific decompositions contain conflicting declarations."
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
+            | ErrorCode.InvalidCommandLineArgsInResponseFiles     -> "Invalid command line arguments in response file(s)."
                                                                   
             | ErrorCode.FunctorGenerationFailed                   -> "Auto-generation of functor specialization(s) failed."
             | ErrorCode.TreeTrimmingFailed                        -> "The generated syntax tree could not be trimmed."
@@ -624,6 +684,10 @@ type DiagnosticItem =
             | ErrorCode.PreEvaluationFailed                       -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed                -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed           -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
+
+            | ErrorCode.CsharpGenerationGeneratedError            -> ""
+            | ErrorCode.PublishingPerfResultsFailed               -> "Performance results failed to be published at \"{0}\"."
+
             | _                                                   -> ""
         code |> ApplyArguments             
              
@@ -650,6 +714,10 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined          -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration                  -> "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.DuplicateAttribute                      -> "The attribute {0} is a duplication and will be ignored."
+            | WarningCode.MissingEntryPoint                       -> "The project is an executable Q# project but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
+            | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
+            | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
+            | WarningCode.NonResultTypeReturnedInEntryPoint       -> "Only values of type Result, Result[], and tuples thereof can be returned when executing on a quantum processor."
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   
@@ -662,9 +730,14 @@ type DiagnosticItem =
             | WarningCode.ReferencesSetToNull                     -> "No references given to include in the compilation."
             | WarningCode.ReferenceCannotBeIncludedInDll          -> "The reference to \"{0}\" could not be included in the generated dll."
             | WarningCode.UnresolvedItemsInGeneratedQs            -> "Some item(s) could not be resolved during compilation."
+
+            | WarningCode.RewriteStepDiagnosticsGenerationFailed  -> "The diagnostics generated by the compilation step \"{0}\" could not be logged. The step may have been compiled against an older compiler version."
             | WarningCode.PreconditionVerificationFailed          -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
             | WarningCode.RewriteStepLoadedViaReflection          -> "The compilation step \"{0}\" defined in \"{1}\" is not fully compatible with this compiler version and may fail on execution. The step may have been compiled against an older compiler version."
             | WarningCode.FailedToLoadRewriteStepViaReflection    -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
+
+            | WarningCode.CsharpGenerationGeneratedWarning        -> ""
+            | WarningCode.InvalidAssemblyProperties               -> "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | _                                                   -> ""
         code |> ApplyArguments
 
@@ -683,7 +756,8 @@ type DiagnosticItem =
             | InformationCode.BuiltTokenization                   -> "Built tokenization"
             | InformationCode.BuiltSyntaxTree                     -> "Built syntax tree"
             | InformationCode.FormattedQsCode                     -> "Q# code generated based on the built syntax tree"
-                                                                  
+
+            | InformationCode.CsharpGenerationGeneratedInfo       -> ""
             | _                                                   -> ""
         code |> ApplyArguments
         

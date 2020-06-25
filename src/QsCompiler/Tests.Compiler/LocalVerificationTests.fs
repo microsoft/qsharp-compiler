@@ -10,16 +10,33 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Xunit.Abstractions
 
 
-type LocalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"; Path.Combine ("LinkingTests", "Core.qs")], output)
+type LocalVerificationTests () =
+    inherit CompilerTests(
+        CompilerTests.Compile ("TestCases", [
+            "General.qs"; "LocalVerification.qs"; "Types.qs"; 
+            Path.Combine ("LinkingTests", "Core.qs");
+        ]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diag)
+
+    
+    [<Fact>]
+    member this.``Variable declarations`` () = 
+        this.Expect "VariableDeclaration1"  []
+        this.Expect "VariableDeclaration2"  []
+        this.Expect "VariableDeclaration3"  []
+        this.Expect "VariableDeclaration4"  []
+        this.Expect "VariableDeclaration5"  []
+        this.Expect "VariableDeclaration6"  []
+        this.Expect "VariableDeclaration7"  []
+        this.Expect "VariableDeclaration8"  []
+        this.Expect "VariableDeclaration9"  [Error ErrorCode.SymbolTupleShapeMismatch]
+        this.Expect "VariableDeclaration10" [Error ErrorCode.SymbolTupleShapeMismatch]
 
 
     [<Fact>]
@@ -41,6 +58,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "CopyAndUpdateArray15" [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
         this.Expect "CopyAndUpdateArray16" [Error ErrorCode.ConstrainsTypeParameter]
 
+
     [<Fact>]
     member this.``Update-and-reassign arrays`` () = 
         this.Expect "UpdateAndReassign1"  []
@@ -53,6 +71,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "UpdateAndReassign8"  []
         this.Expect "UpdateAndReassign9"  [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
         this.Expect "UpdateAndReassign10" [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
+
 
     [<Fact>]
     member this.``Apply-and-reassign`` () = 

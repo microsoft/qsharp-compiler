@@ -1,13 +1,13 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 #nullable enable
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
@@ -34,11 +34,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsVisible(NonNullable<string> qualifiedName, NonNullable<string> source)
+            bool IsVisible(NonNullable<string> source, AccessModifier access, NonNullable<string> qualifiedName)
             {
                 var name = qualifiedName.Value;
                 var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source.Value);
-                return includeInDocs && !(name.StartsWith("_") || name.EndsWith("_") 
+                return includeInDocs && access.IsDefaultAccess && !(name.StartsWith("_") || name.EndsWith("_")
                         || name.EndsWith("Impl", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplA", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplC", StringComparison.InvariantCultureIgnoreCase)
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsVisible(callable.FullName.Name, callable.SourceFile) &&
+                    if (IsVisible(callable.SourceFile, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         items.Add(new DocCallable(name, callable));
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsVisible(udt.FullName.Name, udt.SourceFile))
+                    if (IsVisible(udt.SourceFile, udt.Modifiers.Access, udt.FullName.Name))
                     {
                         items.Add(new DocUdt(name, udt));
                     }
@@ -122,6 +122,17 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else { return null; }
             }
 
+            string? TryGetName(YamlNode node)
+            {
+                if (node is YamlMappingNode mappingNode)
+                {
+                    mappingNode.Children.TryGetValue(Utils.NameKey, out var nameNode);
+                    return (nameNode as YamlScalarNode)?.Value;
+                }
+                else { return null; }
+            }
+
+
             int CompareUids(YamlNode node1, YamlNode node2) =>
                 String.Compare(
                     TryGetUid(node1),
@@ -152,15 +163,32 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 namespaceNode.Add(Utils.ItemsKey, itemListNode);
             }
 
-            foreach (var item in items)
+            var itemsByUid = items
+                .GroupBy(item => item.Uid)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(item => item.Name)
+                        .Single()
+                );
+
+            // Update itemsByUid with any items that may already exist.
+            foreach (var existingChild in itemListNode.Children)
             {
-                if (!itemListNode.Children.Any(c => MatchByUid(c, item.Uid)))
+                var uid = TryGetUid(existingChild);
+                if (uid != null)
                 {
-                    itemListNode.Add(Utils.BuildMappingNode(Utils.NameKey, item.Name, Utils.UidKey, item.Uid));
+                    itemsByUid[uid] = TryGetName(existingChild) ?? "";
                 }
             }
 
-            itemListNode.Children.Sort((node1, node2) => CompareUids(node1, node2));
+            itemListNode.Children.Clear();
+            foreach (var (uid, name) in itemsByUid.OrderBy(item => item.Key))
+            {
+                itemListNode.Add(Utils.BuildMappingNode(
+                    Utils.NameKey, name, Utils.UidKey, uid
+                ));
+            }
         }
 
         /// <summary>
@@ -185,10 +213,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         }
 
         /// <summary>
-        /// Writes the YAML file for this namespace.
+        /// Writes the YAML file for this namespace to a stream.
         /// </summary>
-        /// <param name="directoryPath">The directory to write the file to</param>
-        internal void WriteToFile(string directoryPath)
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="rootNode">
+        /// The mapping node representing the preexisting contents of this namespace's YAML file.
+        /// </param>
+        internal void WriteToStream(Stream stream, YamlMappingNode? rootNode = null)
         {
             string ToSequenceKey(string itemTypeName)
             {
@@ -211,8 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return "";
             }
 
-            var rootNode = Utils.ReadYamlFile(directoryPath, name) as YamlMappingNode ?? new YamlMappingNode();
-
+            rootNode ??= new YamlMappingNode();
             rootNode.AddStringMapping(Utils.UidKey, uid);
             rootNode.AddStringMapping(Utils.NameKey, name);
             if (!String.IsNullOrEmpty(summary))
@@ -223,7 +253,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             var itemTypeNodes = new Dictionary<string, SortedDictionary<string, YamlNode>>();
 
             // Collect existing items
-            foreach (var itemType in new []{Utils.FunctionKind, Utils.OperationKind, Utils.UdtKind})
+            foreach (var itemType in new[] { Utils.FunctionKind, Utils.OperationKind, Utils.UdtKind })
             {
                 var seqKey = ToSequenceKey(itemType);
                 var thisList = new SortedDictionary<string, YamlNode>();
@@ -280,14 +310,22 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             var doc = new YamlDocument(rootNode);
-            var stream = new YamlStream(doc);
+            var yamlStream = new YamlStream(doc);
 
+            using var output = new StreamWriter(stream);
+            output.WriteLine("### " + Utils.QsNamespaceYamlMime + Utils.AutogenerationWarning);
+            yamlStream.Save(output, false);
+        }
+
+        /// <summary>
+        /// Writes the YAML file for this namespace.
+        /// </summary>
+        /// <param name="directoryPath">The directory to write the file to</param>
+        internal void WriteToFile(string directoryPath)
+        {
+            var rootNode = Utils.ReadYamlFile(directoryPath, name) as YamlMappingNode;
             var tocFileName = Path.Combine(directoryPath, name + Utils.YamlExtension);
-            using (var text = new StreamWriter(File.Open(tocFileName, FileMode.Create)))
-            {
-                text.WriteLine("### " + Utils.QsNamespaceYamlMime);
-                stream.Save(text, false);
-            }
+            WriteToStream(File.Open(tocFileName, FileMode.Create), rootNode);
         }
     }
 }

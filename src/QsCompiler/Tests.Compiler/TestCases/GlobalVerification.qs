@@ -1542,12 +1542,6 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ AttType2()
     function ValidAttributes10 () : Unit {}
 
-    @ Attribute() // silently ignored 
-    operation ValidAttributes11 () : Unit {}
-
-    @ Attribute() // silently ignored
-    function ValidAttributes12 () : Unit {}
-
     @ AttType2()
     @ AttType1()
     @ AttType1()
@@ -1613,4 +1607,9 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
         body(...) {}
     }
 
+    @ Attribute() 
+    operation InvalidAttributes13 () : Unit {}
+
+    @ Attribute() 
+    function InvalidAttributes14 () : Unit {}
 }

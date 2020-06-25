@@ -12,13 +12,13 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
-open Xunit.Abstractions
 
 
-type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITestOutputHelper) = 
+type CompilerTests (compilation : CompilationUnitManager.Compilation) = 
 
     let syntaxTree = 
         let mutable compilation = compilation.BuiltCompilation
@@ -90,13 +90,15 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile srcFolder files = 
+    static member Compile (srcFolder, files, ?references, ?capabilities) =
+        let references = defaultArg references []
+        let capabilities = defaultArg capabilities RuntimeCapabilities.Unknown
         let compileFiles (files : IEnumerable<_>) =
-            let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText) 
+            let mgr = new CompilationUnitManager((fun ex -> failwith ex.Message), capabilities = capabilities)
+            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
             |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync 
+            |> mgr.AddOrUpdateSourceFilesAsync
             |> ignore
-            mgr.Build() 
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles 
-
+            mgr.UpdateReferencesAsync(new References(ProjectManager.LoadReferencedAssemblies(references))) |> ignore
+            mgr.Build()
+        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles

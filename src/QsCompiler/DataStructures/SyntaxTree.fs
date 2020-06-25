@@ -364,6 +364,17 @@ type TypedExpression = {
     member this.TypeParameterResolutions = 
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
 
+    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        let rec containsMissing ex = 
+            match ex.Expression with
+            | MissingExpr -> true
+            | ValueTuple items -> items |> Seq.exists containsMissing
+            | _ -> false
+        match kind with
+        | CallLikeExpression (_, args) -> args |> containsMissing
+        | _ -> false
 
 
 /// Fully resolved Q# initializer expression.
@@ -553,6 +564,7 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
+| EmptyStatement 
 
 
 and QsStatement = {
@@ -648,7 +660,10 @@ type QsSpecialization = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithImplementation impl = {this with Implementation = impl}
+    member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// describes a Q# function, operation, or type constructor
@@ -659,6 +674,8 @@ type QsCallable = {
     FullName : QsQualifiedName
     /// contains all attributes associated with the callable
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared callable.
@@ -684,8 +701,10 @@ type QsCallable = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -702,6 +721,8 @@ type QsCustomType = {
     FullName : QsQualifiedName
     /// contains all attributes associated with the type
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared type.
@@ -723,6 +744,9 @@ type QsCustomType = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
+    member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// Describes a valid Q# namespace element.
@@ -768,8 +792,3 @@ type QsCompilation = {
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
 }
-
-
-
-
-

@@ -17,10 +17,15 @@ function Publish-One {
     );
 
     Write-Host "##[info]Publishing $project ..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
     dotnet publish (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+        @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
     if  ($LastExitCode -ne 0) {
@@ -29,16 +34,13 @@ function Publish-One {
     }
 }
 
-Publish-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
-Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
-
 function Pack-One() {
     param(
         [string]$project, 
         [string]$include_references=""
     );
 
-    Write-Host "##[info]Packing $project..."
+    Write-Host "##[info]Packing '$project'..."
     nuget pack (Join-Path $PSScriptRoot $project) `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
@@ -51,11 +53,6 @@ function Pack-One() {
         $script:all_ok = $False
     }
 }
-
-Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
-Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'
 
 ##
 # Q# Language Server (self-contained)
@@ -120,6 +117,11 @@ function Pack-SelfContained() {
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
+            if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+            }  else {
+                $args = @();
+            }
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:ASSEMBLY_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
@@ -127,7 +129,7 @@ function Pack-SelfContained() {
                 --self-contained `
                 --runtime $DotNetRuntimeID `
                 --output $TargetDir `
-                /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+                @args `
                 /property:Version=$Env:ASSEMBLY_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
@@ -150,62 +152,84 @@ function Pack-SelfContained() {
     };
 }
 
-Pack-SelfContained `
-    -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
-    -PackageData "../src/VSCodeExtension/package.json"
-
-Write-Host "Final package.json:"
-Get-Content "../src/VSCodeExtension/package.json" | Write-Host
-
 ##
 # VS Code Extension
 ##
-
-Write-Host "##[info]Packing VS Code extension..."
-Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-if (Get-Command vsce -ErrorAction SilentlyContinue) {
-    Try {
-        vsce package
-
-        if ($LastExitCode -ne 0) {
-            throw;
+function Pack-VSCode() {
+    Write-Host "##[info]Packing VS Code extension..."
+    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    if (Get-Command vsce -ErrorAction SilentlyContinue) {
+        Try {
+            vsce package
+    
+            if ($LastExitCode -ne 0) {
+                throw;
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
+            $all_ok = $False
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
-        $all_ok = $False
+    } else {
+        Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
     }
-} else {
-    Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
+    Pop-Location
 }
-Pop-Location
 
 ##
 # VisualStudioExtension
 ##
+function Pack-VS() {
+    Write-Host "##[info]Packing VisualStudio extension..."
+    Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
+    if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+        Try {
+            msbuild QsharpVSIX.csproj `
+                /t:CreateVsixContainer `
+                /property:Configuration=$Env:BUILD_CONFIGURATION `
+                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
 
-Write-Host "##[info]Packing VisualStudio extension..."
-Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
-if (Get-Command msbuild -ErrorAction SilentlyContinue) {
-    Try {
-        msbuild QsharpVSIX.csproj `
-            /t:CreateVsixContainer `
-            /property:Configuration=$Env:BUILD_CONFIGURATION `
-            /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-
-        if  ($LastExitCode -ne 0) {
-            throw
+            if  ($LastExitCode -ne 0) {
+                throw
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
+            $all_ok = $False
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-        $all_ok = $False
+    } else {    
+        Write-Host "msbuild not installed. Will skip creation of VisualStudio extension package"
     }
-} else {    
-    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
+    Pop-Location
 }
-Pop-Location
 
-if (-not $all_ok) 
-{
+################################
+# Start main execution:
+
+$all_ok = $True
+
+Publish-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
+Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
+
+Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
+Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'
+
+if ($Env:ENABLE_VSIX -ne "false") {
+    Pack-SelfContained `
+        -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
+        -PackageData "../src/VSCodeExtension/package.json"
+
+    Write-Host "Final package.json:"
+    Get-Content "../src/VSCodeExtension/package.json" | Write-Host
+
+    Pack-VSCode
+    Pack-VS
+} else {
+    Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
+    return
+}
+
+if (-not $all_ok) {
     throw "Packing failed. Check the logs."
     exit 1
 } else {

@@ -73,7 +73,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> ()
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> ()
 
     // returns true if all paths in the given scope contain a terminating (i.e. return or fail) statement
     let rec checkTermination (scope : QsScope) = 
@@ -98,7 +99,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> true
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> true
 
         let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
         if returnOrFailAndAfter.Length <> 0 then 
@@ -151,7 +153,8 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
         | QsTypeKind.Function (it, ot) 
         | QsTypeKind.Operation ((it,ot), _) -> [it; ot]
         | QsTypeKind.TupleType vtypeList -> vtypeList |> Seq.toList
-        | QsTypeKind.UserDefinedType udt -> updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
+        | QsTypeKind.UserDefinedType udt ->
+            updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
         | _ -> [] 
 
     let walk_udts () = // builds up containedTypes and containedIn

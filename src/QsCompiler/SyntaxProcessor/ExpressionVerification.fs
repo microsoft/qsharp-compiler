@@ -10,7 +10,7 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SymbolTracker
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -24,12 +24,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 // utils for verifying types in expressions
 
 type private StripInferredInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
-    default this.onCallableInformation opInfo = 
-        let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+    inherit TypeTransformationBase()
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.onRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).Transform
+    override this.OnRangeInformation _ = QsRangeInfo.Null
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
 type private Variance = 
@@ -50,7 +50,7 @@ let private missingFunctors (target : ImmutableHashSet<_>, given) =
 
 /// Return the string representation for a ResolveType. 
 /// User defined types are represented by their full name. 
-let internal toString = (new ExpressionTypeToQs(new ExpressionToQs())).Apply
+let internal toString (t : ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t 
 
 /// Given two resolve types, determines and returns a common base type if such a type exists, 
 /// or pushes adds a suitable error using addError and returns invalid type if a common base type does not exist.
@@ -83,7 +83,7 @@ let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, 
             | Covariant -> CallableInformation.Common [s1; s2]
             | Contravariant -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
                 CallableInformation.New (Union (s1.Characteristics, s2.Characteristics) |> ResolvedCharacteristics.New, InferredCallableInformation.NoInformation)
-            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics = s2.Characteristics -> 
+            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics.GetProperties().SetEquals (s2.Characteristics.GetProperties()) -> 
                 let characteristics = if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
                 let inferred = InferredCallableInformation.Common [s1.InferredInformation; s2.InferredInformation]
                 CallableInformation.New (characteristics, inferred)
@@ -246,11 +246,17 @@ let private VerifyConcatenation parent addError (lhsType : ResolvedType, lhsRang
 /// If a common base type exists, verifies that this base type supports equality comparison, 
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyEqualityComparison parent addError (lhsType : ResolvedType, lhsRange) (rhsType : ResolvedType, rhsRange) =
-    // NOTE: this may not be the behavior that we want (right now it does not matter, since we don't support equality comparison for any derived type)
-    let baseType = CommonBaseType addError (ErrorCode.ArgumentMismatchInBinaryOp, [lhsType |> toString; rhsType |> toString]) parent (lhsType, lhsRange) (rhsType, rhsRange)
-    let expected (t : ResolvedType) = t.supportsEqualityComparison
-    VerifyIsOneOf expected (ErrorCode.InvalidTypeInEqualityComparison, [baseType |> toString]) addError (baseType, rhsRange) |> ignore
+let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsType, rhsRange) =
+    // NOTE: this may not be the behavior that we want (right now it does not matter, since we don't support equality
+    // comparison for any derived type).
+    let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [toString lhsType; toString rhsType]
+    let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
+    match baseType.Resolution with
+    | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
+        addError (ErrorCode.UnsupportedResultComparison, [context.ExecutionTarget.Value]) rhsRange
+    | _ ->
+        let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
+        VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them. 
 /// Adds a MissingExprInArray error with the corresponding range using addError if one of the given types is missing. 
@@ -381,11 +387,11 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
 
 /// Verifies whether an expression of the given argument type can be used as argument to a method (function, operation, or setter)
 /// that expects an argument of the given target type. The given target type may contain a missing type (valid for a setter). 
-/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empyt array otherwise. 
+/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empty array otherwise. 
 /// Note that MissingTypes in the argument type should not occur aside from possibly as array base type of the expression.
 /// A missing type in the given argument type will cause a verification failure in QsCompilerError.
 /// For each type parameter in the target type, calls addTypeParameterResolution with a tuple of the type parameter and the type that is substituted for it.  
-/// IMPORTANT: The consistent (i.e. non-ambiguous and non-contraining) resolution of type parameters is *not* verified by this routine 
+/// IMPORTANT: The consistent (i.e. non-ambiguous and non-constraining) resolution of type parameters is *not* verified by this routine 
 /// and needs to be verified in a separate step!
 let internal TypeMatchArgument addTypeParameterResolution targetType argType =  
     let givenAndExpectedType = [argType |> toString; targetType |> toString]
@@ -547,10 +553,10 @@ type QsExpression with
     /// recursively computes the corresponding typed expression for a Q# expression.
     /// Calls addDiagnostic on each diagnostic generated during the resolution. 
     /// Returns the computed typed expression. 
-    member this.Resolve (symbols : SymbolTracker<_>) addDiagnostic : TypedExpression =
-        
+    member this.Resolve ({ Symbols = symbols } as context) addDiagnostic : TypedExpression =
+
         /// Calls Resolve on the given Q# expression.
-        let InnerExpression (item : QsExpression) = item.Resolve symbols addDiagnostic
+        let InnerExpression (item : QsExpression) = item.Resolve context addDiagnostic
         /// Builds a QsCompilerDiagnostic with the given error code and range.
         let addError code range = range |> QsCompilerDiagnostic.Error code |> addDiagnostic 
         /// Builds a QsCompilerDiagnostic with the given warning code and range.
@@ -797,7 +803,7 @@ type QsExpression with
         /// Resolves and verifies the given left hand side and right hand side of a call expression, 
         /// and returns the corresponding expression as typed expression.
         let buildCall (method, arg) = 
-            let getType (ex : QsExpression) = (ex.Resolve symbols (fun _ -> ())).ResolvedType // don't push resolution errors when tuple matching arguments
+            let getType (ex : QsExpression) = (ex.Resolve context (fun _ -> ())).ResolvedType // don't push resolution errors when tuple matching arguments
             let (resolvedMethod, resolvedArg) = (InnerExpression method, InnerExpression arg)
             let locQdepClassicalEx = resolvedMethod.InferredInformation.HasLocalQuantumDependency || resolvedArg.InferredInformation.HasLocalQuantumDependency
             let exprKind = CallLikeExpression (resolvedMethod, resolvedArg)
@@ -824,7 +830,7 @@ type QsExpression with
                 let localQDependency = if isPartialApplication then locQdepClassicalEx else true
                 let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = localQDependency)
                 let typeParamResolutions, exType = (argT, resT) |> callTypeOrPartial (fun (i,o) -> QsTypeKind.Operation ((i,o), characteristics))
-                if not (symbols.WithinOperation || isPartialApplication) then method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, []); invalidEx
+                if not (context.IsInOperation || isPartialApplication) then method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, []); invalidEx
                 else TypedExpression.New (exprKind, typeParamResolutions, exType, exInfo, this.Range)
             | _ -> method.RangeOrDefault |> addError (ErrorCode.ExpectingCallableExpr, [resolvedMethod.ResolvedType |> toString]); invalidEx
 
@@ -869,10 +875,8 @@ type QsExpression with
         | BXOR (lhs,rhs)                      -> buildIntegralOp BXOR (lhs, rhs)
         | AND (lhs,rhs)                       -> buildBooleanOpWith VerifyAreBooleans true AND (lhs, rhs) 
         | OR (lhs,rhs)                        -> buildBooleanOpWith VerifyAreBooleans true OR (lhs, rhs)
-        | EQ (lhs,rhs)                        -> buildBooleanOpWith (VerifyEqualityComparison symbols.Parent) false EQ (lhs, rhs)
-        | NEQ (lhs,rhs)                       -> buildBooleanOpWith (VerifyEqualityComparison symbols.Parent) false NEQ (lhs, rhs)
+        | EQ (lhs,rhs)                        -> buildBooleanOpWith (VerifyEqualityComparison context) false EQ (lhs, rhs)
+        | NEQ (lhs,rhs)                       -> buildBooleanOpWith (VerifyEqualityComparison context) false NEQ (lhs, rhs)
         | NEG ex                              -> verifyAndBuildWith NEG VerifySupportsArithmetic ex
         | BNOT ex                             -> verifyAndBuildWith BNOT VerifyIsIntegral ex
         | NOT ex                              -> verifyAndBuildWith NOT (fun log arg -> VerifyIsBoolean log arg; ResolvedType.New Bool) ex
-
-

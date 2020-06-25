@@ -14,7 +14,6 @@
   </TemplateData>
   <TemplateContent>
     <Project File="AppProjectTemplate.xml" TargetFileName="$projectname$.csproj" ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Driver.cs</ProjectItem>
       <ProjectItem ReplaceParameters="true" OpenInEditor="true">Program.qs</ProjectItem>
     </Project>
   </TemplateContent>

@@ -9,11 +9,10 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Xunit.Abstractions
 
 
-type GlobalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs";"GlobalVerification.qs";"Types.qs";System.IO.Path.Join("LinkingTests", "Core.qs")], output)
+type GlobalVerificationTests () =
+    inherit CompilerTests(CompilerTests.Compile ("TestCases", ["General.qs"; "GlobalVerification.qs"; "Types.qs"; System.IO.Path.Join("LinkingTests", "Core.qs")]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.GlobalVerification" |> NonNullable<_>.New
@@ -282,8 +281,6 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ValidAttributes8"  []
         this.Expect "ValidAttributes9"  []
         this.Expect "ValidAttributes10" []
-        this.Expect "ValidAttributes11" []
-        this.Expect "ValidAttributes12" []
 
         this.Expect "AttributeDuplication1" [Warning WarningCode.DuplicateAttribute]
         this.Expect "AttributeDuplication2" [Warning WarningCode.DuplicateAttribute]
@@ -300,5 +297,7 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidAttributes10"   [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidAttributes11"   [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidAttributes12"   [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidAttributes13"   [Error ErrorCode.AttributeInvalidOnCallable]
+        this.Expect "InvalidAttributes14"   [Error ErrorCode.AttributeInvalidOnCallable]
         
 

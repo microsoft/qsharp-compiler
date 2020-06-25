@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -12,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -35,13 +37,16 @@ namespace Microsoft.Quantum.QsCompiler
                 // implemented in both F# or C#, and whether they are compiled against the current compiler version or an older one.
                 this._InterfaceMethods?.FirstOrDefault(method => method.Name.Split("-").Last() == name);
 
+            private object GetViaReflection(string name) =>
+                InterfaceMethod($"get_{name}")?.Invoke(_SelfAsObject, null);
+
             private T GetViaReflection<T>(string name) =>
                 (T)InterfaceMethod($"get_{name}")?.Invoke(_SelfAsObject, null);
 
             private void SetViaReflection<T>(string name, T arg) =>
                 InterfaceMethod($"set_{name}")?.Invoke(_SelfAsObject, new object[] { arg });
 
-            private T InvokeViaReflection<T>(string name, params object[] args) => 
+            private T InvokeViaReflection<T>(string name, params object[] args) =>
                 (T)InterfaceMethod(name)?.Invoke(_SelfAsObject, args);
 
 
@@ -64,17 +69,76 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // The Name and Priority need to be fixed throughout the loading, 
                 // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
-                this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name)); 
-                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority)); 
+                this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name));
+                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority));
             }
+
 
             public string Name { get; }
             public int Priority { get; }
-            public IDictionary<string, string> AssemblyConstants 
+            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string> getCode = null)
             {
-                get => _SelfAsStep?.AssemblyConstants 
+                var severity =
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Warning ? DiagnosticSeverity.Warning :
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Info ? DiagnosticSeverity.Information :
+                    DiagnosticSeverity.Hint;
+
+                var startPosition = diagnostic.Start == null ? null : new Position(diagnostic.Start.Item1, diagnostic.Start.Item2);
+                var endPosition = diagnostic.End == null ? startPosition : new Position(diagnostic.End.Item1, diagnostic.End.Item2);
+                var range = startPosition == null || diagnostic.Source == null ? null : new LSP.Range { Start = startPosition, End = endPosition };
+                if (range != null && !Utils.IsValidRange(range)) range = null;
+
+                var stageAnnotation =
+                    diagnostic.Stage == IRewriteStep.Stage.PreconditionVerification ? $"[{diagnostic.Stage}] " :
+                    diagnostic.Stage == IRewriteStep.Stage.PostconditionVerification ? $"[{diagnostic.Stage}] " :
+                    "";
+
+                // NOTE: If we change data structure to add or change properties, 
+                // then the cast below in GeneratedDiagnostics needs to be adapted. 
+                return new Diagnostic
+                {
+                    Code = getCode?.Invoke(severity),
+                    Severity = severity,
+                    Message = $"{stageAnnotation}{diagnostic.Message}",
+                    Source = diagnostic.Source,
+                    Range = range
+                };
+            }
+
+            public IDictionary<string, string> AssemblyConstants
+            {
+                get => _SelfAsStep?.AssemblyConstants
                     ?? this.GetViaReflection<IDictionary<string, string>>(nameof(IRewriteStep.AssemblyConstants));
             }
+
+            public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics
+            {
+                get
+                {
+                    if (_SelfAsStep != null) return _SelfAsStep.GeneratedDiagnostics;
+                    static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+                    var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
+                    var itemType = enumerable?.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments().FirstOrDefault();
+                    if (itemType == null) return null;
+
+                    var diagnostics = ImmutableArray.CreateBuilder<IRewriteStep.Diagnostic>();
+                    foreach (var obj in enumerable)
+                    {
+                        if (obj == null) continue;
+                        diagnostics.Add(new IRewriteStep.Diagnostic
+                        {
+                            Severity = (CodeAnalysis.DiagnosticSeverity)itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Severity)).GetValue(obj, null),
+                            Message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string,
+                            Source = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Source)).GetValue(obj, null) as string,
+                            Start = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Start)).GetValue(obj, null) as Tuple<int, int>,
+                            End = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.End)).GetValue(obj, null) as Tuple<int, int>
+                        });
+                    }
+                    return diagnostics.ToImmutable();
+                }
+            }
+
 
             public bool ImplementsTransformation
             {
@@ -93,6 +157,7 @@ namespace Microsoft.Quantum.QsCompiler
                 get => _SelfAsStep?.ImplementsPostconditionVerification 
                     ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPostconditionVerification));
             }
+
 
             public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
             {
@@ -178,6 +243,24 @@ namespace Microsoft.Quantum.QsCompiler
                     onDiagnostic?.Invoke(LoadError(ErrorCode.FileIsNotAnAssembly, target.LocalPath));
                     onException?.Invoke(ex);
                 }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var exSub in ex.LoaderExceptions)
+                    {
+                        var msg = exSub.ToString();
+                        if (msg != null) sb.AppendLine(msg);
+                        if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
+                        {
+                            sb.AppendLine("Fusion Log:");
+                            sb.AppendLine(exFileNotFound.FusionLog);
+                            sb.AppendLine();
+                        }
+                    }
+
+                    onDiagnostic?.Invoke(LoadError(ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
+                    onException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
+                }
                 catch (Exception ex)
                 {
                     onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
@@ -220,12 +303,13 @@ namespace Microsoft.Quantum.QsCompiler
                     foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
                     { assemblyConstants[kvPair.Key] = kvPair.Value; } 
 
-                    var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null; 
-                    assemblyConstants[AssemblyConstants.OutputPath] = outputFolder ?? defaultOutput ?? config.BuildOutputFolder;
-                    assemblyConstants[AssemblyConstants.AssemblyName] = config.ProjectNameWithoutExtension;
+                    // We don't overwrite assembly properties specified by configuration.
+                    var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
+                    assemblyConstants.TryAdd(AssemblyConstants.OutputPath, outputFolder ?? defaultOutput ?? config.BuildOutputFolder);
+                    assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutExtension);
                 }
 
-                loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);
+                CompilationLoader.SortRewriteSteps(loadedSteps, step => step.Priority);
                 rewriteSteps.AddRange(loadedSteps);
             }
             return rewriteSteps.ToImmutableArray();

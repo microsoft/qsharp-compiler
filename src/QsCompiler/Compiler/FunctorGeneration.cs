@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler
             : null;
 
         /// <summary>
-        /// Given a sequence of specialziations, returns the implementation of the given kind, or null if no such specialization exists.
+        /// Given a sequence of specializations, returns the implementation of the given kind, or null if no such specialization exists.
         /// Throws an ArgumentException if more than one specialization of that kind exist. 
         /// Throws an ArgumentNullException if the sequence of specializations is null, or contains any entries that are null.
         /// </summary>
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a Q# callable, evaluates any functor generator directive given for its adjoint specializiation.
+        /// Given a Q# callable, evaluates any functor generator directive given for its adjoint specialization.
         /// If the body specialization is either intrinsic or external, return the given callable unchanged. 
         /// Otherwise returns a new QsCallable with the adjoint specialization set to the generated implementation if it was generated,
         /// or set to the original specialization if the specialization was not requested to be auto-generated. 
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a Q# callable, evaluates any functor generator directive given for its controlled specializiation.
+        /// Given a Q# callable, evaluates any functor generator directive given for its controlled specialization.
         /// If the body specialization is either intrinsic or external, return the given callable unchanged. 
         /// Otherwise returns a new QsCallable with the controlled specialization set to the generated implementation if it was generated,
         /// or set to the original specialization if the specialization was not requested to be auto-generated. 
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a Q# callable, evaluates any functor generator directive given for its controlled adjoint specializiation.
+        /// Given a Q# callable, evaluates any functor generator directive given for its controlled adjoint specialization.
         /// If the body specialization is either intrinsic or external, return the given callable unchanged. 
         /// Otherwise returns a new QsCallable with the controlled adjoint specialization set to the generated implementation if it was generated,
         /// or set to the original specialization if the specialization was not requested to be auto-generated. 
@@ -153,10 +153,10 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     var ctl = callable.Specializations.GetSpecialization(QsSpecializationKind.QsControlled);
                     var (ctlArg, ctlImpl) = GetContent(ctl?.Implementation) ?? throw new ArgumentException("no implementation provided for controlled specialization");
-                    void SetImplementation(QsScope impl) => ctlAdj = ctlAdj.WithImplementation(SpecializationImplementation.NewProvided(ctlArg, impl));
-
-                    //if (gen.Item.IsSelfInverse) SetImplementation(ctlImpl); -> nothing to do here, we want to keep this information
-                    if (gen.Item.IsInvert) SetImplementation(ctlImpl.GenerateAdjoint());
+                    if (gen.Item.IsInvert)
+                    {
+                        ctlAdj = ctlAdj.WithImplementation(SpecializationImplementation.NewProvided(ctlArg, ctlImpl.GenerateAdjoint()));
+                    }
                 }
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlledAdjoint ? ctlAdj : s).ToImmutableArray());
