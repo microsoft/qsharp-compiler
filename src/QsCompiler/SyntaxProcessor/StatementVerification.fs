@@ -278,35 +278,26 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
     | _ -> false
 
 let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositionedBlock) seq) =
-    let returns (block : QsPositionedBlock) =
+    let returnError (statement : QsStatement) =
+        QsCompilerDiagnostic.Error
+            (ErrorCode.ReturnInResultConditionedBlock, [])
+            (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
+    let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements
         |> findStatements (function | QsReturnStatement -> true | _ -> false)
-        |> Seq.map (fun statement ->
-            QsCompilerDiagnostic.Error
-                (ErrorCode.ReturnInResultConditionedBlock, [])
-                (statement.Location
-                 |> QsNullable<_>.Map (fun location ->
-                     let a, b = location.Range
-                     let newA = { a with Line = a.Line + fst location.Offset
-                                         Column = a.Column + snd location.Offset }
-                     let newB = { b with Line = b.Line + fst location.Offset
-                                         Column = b.Column + snd location.Offset }
-                     newA, newB)
-                 |> (fun nullable -> nullable.ValueOr QsCompilerDiagnostic.DefaultRange)))
-
-    let reassignments (block : QsPositionedBlock) =
-        UpdatedOutsideVariables.Apply block.Body
-        |> Seq.map (fun variable ->
-            QsCompilerDiagnostic.Error
-                (ErrorCode.SetInResultConditionedBlock, [])
-                (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange))
+        |> Seq.map returnError
+    let setError (variable : TypedExpression) =
+        QsCompilerDiagnostic.Error
+            (ErrorCode.SetInResultConditionedBlock, [])
+            (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
+    let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
 
     ((false, Seq.empty), blocks)
     ||> Seq.fold (fun (foundResultEq, diagnostics) (condition, block) ->
         let newFoundResultEq = foundResultEq || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
         let newDiagnostics =
             if newFoundResultEq
-            then Seq.concat [returns block; reassignments block; diagnostics]
+            then Seq.concat [returnErrors block; setErrors block; diagnostics]
             else diagnostics
         (newFoundResultEq, newDiagnostics))
     |> snd

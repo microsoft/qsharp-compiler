@@ -108,4 +108,18 @@ type ResolvedType with
         | ArrayType bt -> Some bt
         | _ -> None
 
+/// Converts the range relative to the QsLocation's offset into a range relative to the root node.
+let private rangeRelativeToRoot (location : QsLocation) =
+    let line, column = location.Offset
+    let start, finish = location.Range
+    let startFromRoot =
+        { Line = start.Line + line
+          Column = start.Column + column }
+    let finishFromRoot =
+        { Line = finish.Line + line
+          Column = if start.Line = finish.Line then finish.Column + column else finish.Column }
+    startFromRoot, finishFromRoot
 
+type QsStatement with
+    /// The range of this statement relative to its root node.
+    member this.RangeRelativeToRoot = QsNullable<_>.Map rangeRelativeToRoot this.Location
