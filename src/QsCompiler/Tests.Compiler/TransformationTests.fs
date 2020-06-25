@@ -138,23 +138,23 @@ let ``attaching attributes to callables`` () =
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, predicate)
     let checker = new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
-    checker.Apply transformed |> ignore
+    checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, null)
     let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
-    checker.Apply transformed |> ignore
+    checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute)
     let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
-    checker.Apply transformed |> ignore
+    checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, struct (testAttribute, new Func<_,_>(predicate)), struct(testAttribute, new Func<_,_>(predicate)))
     let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
-    checker.Apply transformed |> ignore
+    checker.OnCompilation transformed |> ignore
     
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, testAttribute)
     let checker = new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
-    checker.Apply transformed |> ignore
+    checker.OnCompilation transformed |> ignore
     
 
 [<Fact>]
