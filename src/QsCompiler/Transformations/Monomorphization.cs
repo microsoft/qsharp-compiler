@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), intrinsicCallableSet);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return filter.OnCompilation(compilation);
             }
 
             public class TransformationState
@@ -368,7 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
                     // Merge the type params into the current dictionary
-                   
+
                     foreach (var kvp in typeParams.Where(kv => !SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)))
                     {
                         SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
