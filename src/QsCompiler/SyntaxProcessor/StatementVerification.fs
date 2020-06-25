@@ -277,30 +277,29 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
     | NEQ (lhs, rhs) -> bothResult lhs rhs
     | _ -> false
 
-let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositionedBlock) seq) =
+/// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
+/// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
+let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpression * QsPositionedBlock) seq) =
     let returnError (statement : QsStatement) =
         QsCompilerDiagnostic.Error
             (ErrorCode.ReturnInResultConditionedBlock, [])
             (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
-    let returnErrors (block : QsPositionedBlock) =
-        block.Body.Statements
-        |> findStatements (function | QsReturnStatement -> true | _ -> false)
-        |> Seq.map returnError
     let setError (variable : TypedExpression) =
         QsCompilerDiagnostic.Error
             (ErrorCode.SetInResultConditionedBlock, [])
             (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
+    let returnErrors (block : QsPositionedBlock) =
+        block.Body.Statements
+        |> findStatements (function | QsReturnStatement -> true | _ -> false)
+        |> Seq.map returnError
     let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
-
-    ((false, Seq.empty), blocks)
-    ||> Seq.fold (fun (foundResultEq, diagnostics) (condition, block) ->
-        let newFoundResultEq = foundResultEq || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
-        let newDiagnostics =
-            if newFoundResultEq
-            then Seq.concat [returnErrors block; setErrors block; diagnostics]
-            else diagnostics
-        (newFoundResultEq, newDiagnostics))
-    |> snd
+    let folder (dependsOnResult, diagnostics) (condition, block) =
+        if dependsOnResult || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
+        then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
+        else false, diagnostics
+    if capabilities = RuntimeCapabilities.QPRGen1
+    then Seq.fold folder (false, Seq.empty) blocks |> snd
+    else Seq.empty
 
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
@@ -308,22 +307,24 @@ let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositio
 let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBlock)) elifBlocks elseBlock =
     let location =
         match (ifBlock.ToTuple() |> snd).Location with
-        | Null -> ArgumentException "no location is set for the given if-block" |> raise
-        | Value loc -> loc 
+        | Null -> ArgumentException "No location is set for the given if-block." |> raise
+        | Value location -> location
+
+    // A sequence of the blocks that have a conditional expression.
     let condBlocks = Seq.append (ifBlock.ToTuple() |> Seq.singleton) elifBlocks
+
+    // A sequence of all the blocks, with the final else-block treated as an elif-block with an always-true conditional
+    // expression.
     let allBlocks =
         match elseBlock with
-        | Value block -> Seq.append condBlocks (Seq.singleton (SyntaxGenerator.BoolLiteral true, block))
+        | Value block -> (SyntaxGenerator.BoolLiteral true, block) |> Seq.singleton |> Seq.append condBlocks
         | Null -> condBlocks
-    let diagnostics =
-        if context.Capabilities = RuntimeCapabilities.QPRGen1
-        then verifyResultConditionalBlocks allBlocks
-        else Seq.empty
+
     let statement =
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
         |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    statement, diagnostics
+    statement, verifyResultConditionalBlocks context.Capabilities allBlocks
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
