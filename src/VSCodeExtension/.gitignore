@@ -1,6 +1,0 @@
-# Ignore .v.templated files.
-lerna.json
-package-lock.json
-
-# Don't ignore lerna packages
-!packages/*

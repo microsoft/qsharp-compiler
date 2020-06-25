@@ -39,18 +39,11 @@ function Build-One {
 ##
 function Build-VSCode() {
     Write-Host "##[info]Building VS Code extension..."
-    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension/packages/extension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
-            # Use Lerna to bootstrap dependencies between packages,
-            # and to install external packages.
-            npx lerna bootstrap
-
-            # Install common devdependencies hoisted to the Lerna root.
             npm install
-
-            # Compile all npm packages in the VS Code extension.
-            npx lerna run compile
+            npm run compile
     
             if  ($LastExitCode -ne 0) {
                 throw
