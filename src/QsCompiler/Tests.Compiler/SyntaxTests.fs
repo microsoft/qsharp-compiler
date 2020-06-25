@@ -4,14 +4,16 @@
 module Microsoft.Quantum.QsCompiler.Testing.SyntaxTests
 
 open FParsec
-open TestUtils
-open Xunit
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open System
+open System.Collections.Immutable
+open System.Globalization
+open TestUtils
+open Xunit
 
 let private rawString = getStringContent (manyChars anyChar) |>> fst
 
@@ -38,12 +40,17 @@ let ``String parser tests`` () =
             Assert.Equal(offset + 1, parsed.Length)
             Assert.Equal(char, parsed.[offset])
         | _ -> Assert.True(false, "failed to parse")
-    testChar 0 '\t' "\"\t\""
-    testChar 0 '\n' "\"\r\"" // carriage returns will get replace by \n
-    testChar 0 '\n' "\"\n\""
-    testChar 3 '\t' "$\"{0}\t\""
-    testChar 3 '\n' "$\"{0}\r\"" 
-    testChar 3 '\n' "$\"{0}\n\""
+    testChar 0 '\t' "\"\\t\""
+    testChar 0 '\r' "\"\\r\""
+    testChar 0 '\n' "\"\\n\""
+    testChar 0 '\"' "\"\\\"\""
+    testChar 0 '\\' "\"\\\\\""
+    testChar 3 '\t' "$\"{0}\\t\""
+    testChar 3 '\r' "$\"{0}\\r\"" 
+    testChar 3 '\n' "$\"{0}\\n\""
+    testChar 3 '\"' "$\"{0}\\\"\""
+    testChar 3 '\\' "$\"{0}\\\\\""
+    testChar 3 '{' "$\"{0}\\{\""
 
 
 [<Fact>]
@@ -135,12 +142,21 @@ let ``Symbol name tests`` () =
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
         ("__a",                 true,    "__a",            []);
+        ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
+        ("λ",                   true,    "λ",              []); // Greek small letter Lambda
+        ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
+        ("𝑓",                   false,   "",               []); // Mathematical Italic Small F - not supported
+        ("Q#",                  true,    "Q",              []); // 'Q' followed by '#' - only identifier 'Q' is parsed
+        ("notЁ",                true,    "notЁ",           []); // operation 'not' followed by Cyrillic 'Ё' - OK for identifier
+        ("isЖ",                 true,    "isЖ",            []); // reserved word 'is' followed by Cyrillic 'Ж' - OK for identifier
     ]
     |> List.iter (testOne parser)
 
 
 [<Fact>]
 let ``Expression literal tests`` () =
+    let intString (n : IFormattable) = n.ToString ("G", CultureInfo.InvariantCulture)
+    let doubleString (n : IFormattable) = n.ToString ("R", CultureInfo.InvariantCulture)
 
     // constants that should be handled
     let minInt = System.Int64.MinValue // -9223372036854775808L
@@ -151,28 +167,28 @@ let ``Expression literal tests`` () =
 
     // constants that should raise an error
     let absMinIntMinus1 = uint64(-minInt) + 1UL
-    let minIntMinus1Str = absMinIntMinus1.ToString() |> sprintf "-%s"
+    let minIntMinus1Str = absMinIntMinus1 |> intString |> sprintf "-%s"
     let maxIntPlus1 = uint64(maxInt) + 1UL
     let maxIntPlus2 = uint64(maxInt) + 2UL
     let doublePrecBound = "1.79769313486232E+308" // what shows up as out of range in C#
     let minusDoublePrecBound = sprintf "-%s" doublePrecBound
 
-    let noExprs = ([| |] : QsExpression[]).ToImmutableArray()
+    let noExprs = ImmutableArray.Empty
     [
         ("()",                    true,    toExpr UnitValue,                                                      []); 
         ("1",                     true,    toInt 1,                                                               []); 
         ("+1",                    true,    toInt 1,                                                               []); 
         ("-1",                    true,    toExpr (NEG (toInt 1)),                                                []); 
-        (minInt.ToString(),       true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []); 
+        (intString minInt,        true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []);
         (minIntMinus1Str,         true,    toExpr (NEG (IntLiteral ((int64)absMinIntMinus1) |> toExpr)),          [Error ErrorCode.IntOverflow]);
-        (maxIntPlus1.ToString(),  true,    toExpr (NEG (IntLiteral ((int64)maxIntPlus1) |> toExpr)),              []); // no error, will pop up at runtime
-        (maxIntPlus2.ToString(),  true,    toExpr (IntLiteral ((int64)maxIntPlus2)),                              [Error ErrorCode.IntOverflow]);
+        (intString maxIntPlus1,   true,    toExpr (NEG (IntLiteral ((int64)maxIntPlus1) |> toExpr)),              []); // no error, will pop up at runtime
+        (intString maxIntPlus2,   true,    toExpr (IntLiteral ((int64)maxIntPlus2)),                              [Error ErrorCode.IntOverflow]);
         (doublePrecBound,         true,    toExpr (DoubleLiteral System.Double.PositiveInfinity),                 [Error ErrorCode.DoubleOverflow]);
         (minusDoublePrecBound,    true,    toExpr (NEG (DoubleLiteral System.Double.PositiveInfinity |> toExpr)), [Error ErrorCode.DoubleOverflow]);
-        (minInt.ToString(),       true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []); 
-        (maxInt.ToString(),       true,    toExpr (IntLiteral maxInt),                                            []); 
-        (minDouble.ToString("R"), true,    toExpr (NEG (DoubleLiteral -minDouble |> toExpr)),                     []); 
-        (maxDouble.ToString("R"), true,    toExpr (DoubleLiteral maxDouble),                                      []); 
+        (intString minInt,        true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []);
+        (intString maxInt,        true,    toExpr (IntLiteral maxInt),                                            []);
+        (doubleString minDouble,  true,    toExpr (NEG (DoubleLiteral -minDouble |> toExpr)),                     []);
+        (doubleString maxDouble,  true,    toExpr (DoubleLiteral maxDouble),                                      []);
         ("0x1",                   true,    toInt 1,                                                               []); 
         ("+0x1",                  true,    toInt 1,                                                               []); 
         ("1L",                    true,    toBigInt "1",                                                          []); 
@@ -202,6 +218,11 @@ let ``Expression literal tests`` () =
         ("-1.0e-2",               true,    toExpr (NEG (toExpr (DoubleLiteral 0.01))),                            []);
         ("\"\"",                  true,    toExpr (StringLiteral (NonNullable<string>.New "", noExprs)),          []);
         ("\"hello\"",             true,    toExpr (StringLiteral (NonNullable<string>.New "hello", noExprs)),     []);
+        ("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
+        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
+        ("\"hello\\n\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\n", noExprs)),   []);
+        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral (NonNullable<string>.New "hello\r\n", noExprs)), []);
+        ("\"hello\\t\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\t", noExprs)),   []);
         ("One",                   true,    toExpr (ResultLiteral One),                                            []);
         ("Zero",                  true,    toExpr (ResultLiteral Zero),                                           []);
         ("PauliI",                true,    toExpr (PauliLiteral PauliI),                                          []);

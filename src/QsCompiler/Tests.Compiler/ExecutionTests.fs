@@ -41,6 +41,11 @@ type ExecutionTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``Loading via test names`` () = 
+        ExecuteAndCompareOutput "LogViaTestName" "not implemented"
+
+
+    [<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "

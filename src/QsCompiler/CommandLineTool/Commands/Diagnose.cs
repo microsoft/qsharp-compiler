@@ -15,6 +15,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 using Compilation = Microsoft.Quantum.QsCompiler.CompilationBuilder.CompilationUnitManager.Compilation;
 
 
@@ -211,19 +212,22 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
-                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
             }
 
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
+                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                RuntimeCapabilities = options.RuntimeCapabilites,
+                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                ConvertClassicalControl = options.TrimLevel >= 2,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
+                IsExecutable = options.MakeExecutable,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
-                EnableAdditionalChecks = true
+                EnableAdditionalChecks = true,
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);

@@ -213,17 +213,20 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
     abstract member OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnLocation loc = loc
 
-    /// If DisableRebuild is set to true, this method won't walk the local variables declared by the statement.
+    abstract member OnVariableName : NonNullable<string> -> NonNullable<string>
+    default this.OnVariableName name = name
+
     abstract member OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
     default this.OnLocalDeclarations decl = 
         let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
             let loc = local.Position, local.Range
-            let info = this.Expressions.OnExpressionInformation local.InferredInformation
+            let name = this.OnVariableName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type 
-            LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
-        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration 
-        LocalDeclarations.New << ImmutableArray.CreateRange |> Node.BuildOr decl variableDeclarations
-
+            let info = this.Expressions.OnExpressionInformation local.InferredInformation
+            LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
+        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration
+        if options.Rebuild then LocalDeclarations.New (variableDeclarations |> ImmutableArray.CreateRange)
+        else variableDeclarations |> Seq.iter ignore; decl
 
     // transformation roots called on each statement or statement block
 
@@ -240,5 +243,6 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
     default this.OnScope scope = 
         if not options.Enable then scope else
         let parentSymbols = this.OnLocalDeclarations scope.KnownSymbols
-        let statements = scope.Statements |> Seq.map this.OnStatement |> ImmutableArray.CreateRange
-        QsScope.New |> Node.BuildOr scope (statements, parentSymbols)
+        let statements = scope.Statements |> Seq.map this.OnStatement
+        if options.Rebuild then QsScope.New (statements |> ImmutableArray.CreateRange, parentSymbols)
+        else statements |> Seq.iter ignore; scope

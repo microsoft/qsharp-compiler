@@ -9,11 +9,10 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Xunit.Abstractions
 
 
-type TypeCheckingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"] [], output)
+type TypeCheckingTests () =
+    inherit CompilerTests(CompilerTests.Compile ("TestCases", ["General.qs"; "TypeChecking.qs"; "Types.qs"]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
@@ -66,6 +65,50 @@ type TypeCheckingTests (output:ITestOutputHelper) =
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
         this.Expect "CommonBaseType25" [Error ErrorCode.MultipleTypesInArray]
+
+
+    [<Fact>]
+    member this.``Equality comparison`` () =
+        this.Expect "UnitEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UnitInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "IntEquality" []
+        this.Expect "IntInequality" []
+        this.Expect "BigIntEquality" []
+        this.Expect "BigIntInequality" []
+        this.Expect "DoubleEquality" []
+        this.Expect "DoubleInequality" []
+        this.Expect "BoolEquality" []
+        this.Expect "BoolInequality" []
+        this.Expect "StringEquality" []
+        this.Expect "StringInequality" []
+        this.Expect "QubitEquality" []
+        this.Expect "QubitInequality" []
+        this.Expect "ResultEquality" []
+        this.Expect "ResultInequality" []
+        this.Expect "PauliEquality" []
+        this.Expect "PauliInequality" []
+        this.Expect "RangeEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "RangeInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "ArrayEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "ArrayInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "TupleEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "TupleInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UDTEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UDTInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "GenericEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "GenericInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "OperationEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "OperationInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "FunctionEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "FunctionInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "InvalidTypeEquality" [ Error ErrorCode.InvalidUseOfReservedKeyword
+                                            Error ErrorCode.InvalidUseOfReservedKeyword ]
+        this.Expect "InvalidTypeInequality" [ Error ErrorCode.InvalidUseOfReservedKeyword
+                                              Error ErrorCode.InvalidUseOfReservedKeyword ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.ArgumentMismatchInBinaryOp
+                                             Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.ArgumentMismatchInBinaryOp
+                                               Error ErrorCode.ArgumentMismatchInBinaryOp ]
 
 
     [<Fact>]
@@ -194,7 +237,3 @@ type TypeCheckingTests (output:ITestOutputHelper) =
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []
         this.Expect "ArrayType20" []
-
-
-
-
