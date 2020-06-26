@@ -267,8 +267,10 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
 /// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
 let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpression * QsPositionedBlock) seq) =
     // Diagnostics for return statements.
-    let returnStatements (statement : QsStatement) =
-        statement.ExtractAll (fun s -> match s.Statement with QsReturnStatement _ -> [s] | _ -> [])
+    let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
+        match s.Statement with
+        | QsReturnStatement _ -> [s]
+        | _ -> []
     let returnError (statement : QsStatement) =
         QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [])
                                    (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
@@ -282,8 +284,8 @@ let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpressio
                                    (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
     let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
 
-    let accumulateErrors (dependsOnResult, diagnostics) (condition, block) =
-        if dependsOnResult || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
+    let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
+        if dependsOnResult || condition.Exists isResultComparison
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
         else false, diagnostics
     if capabilities = RuntimeCapabilities.QPRGen1
