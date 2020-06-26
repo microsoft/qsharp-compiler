@@ -51,7 +51,7 @@ type SyntaxTreeTransformation<'T> private (state : 'T, options : TransformationO
         and set value = _Namespaces <- value
 
     /// Invokes the transformation for all namespaces in the given compilation.
-    member this.Apply compilation = 
+    member this.OnCompilation compilation = 
         if options.Rebuild then
             let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
             QsCompilation.New (namespaces, compilation.EntryPoints)
@@ -310,7 +310,7 @@ type SyntaxTreeTransformation private (options : TransformationOptions, _interna
         and set value = _Namespaces <- value
 
     /// Invokes the transformation for all namespaces in the given compilation.
-    member this.Apply compilation = 
+    member this.OnCompilation compilation = 
         if options.Rebuild then
             let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
             QsCompilation.New (namespaces, compilation.EntryPoints)

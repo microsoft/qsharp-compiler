@@ -227,7 +227,7 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> ()
 
         let walker = new TypedExpressionWalker<unit>(new Action<_>(onExpr));
-        walker.Transformation.Apply compilation |> ignore
+        walker.Transformation.OnCompilation compilation |> ignore
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
 
@@ -567,7 +567,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 AssertSource (sDecl.Parent, sDecl.SourceFile, None)
                 sDecl
             let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
-            checker.Apply({EntryPoints = ImmutableArray<QsQualifiedName>.Empty; Namespaces = combined}) |> ignore
+            checker.OnCompilation({EntryPoints = ImmutableArray<QsQualifiedName>.Empty; Namespaces = combined}) |> ignore
 
         let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"

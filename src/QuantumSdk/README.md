@@ -92,6 +92,7 @@ The content of the file should be similar to the following, with `Package_Name` 
 
 </Project>
 ```
+This [example](https://github.com/microsoft/qsharp-compiler/tree/master/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension. 
 
 If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
 
