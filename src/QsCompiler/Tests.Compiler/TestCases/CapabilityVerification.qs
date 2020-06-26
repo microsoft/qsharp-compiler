@@ -125,6 +125,27 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         return b;
     }
 
+    operation SetLocal(result : Result) : Unit {
+        if (result == One) {
+            mutable b = false;
+            set b = true;
+        }
+    }
+
+    operation SetReusedName(result : Result) : Unit {
+        mutable b = false;
+        if (result == One) {
+            if (true) {
+                // Redeclaring b is an error, but it should not mask the error below.
+                mutable b = false;
+                // This should not be a capability error.
+                set b = true;
+            }
+            // This should be a capability error.
+            set b = true;
+        }
+    }
+
     function EmptyIf(result : Result) : Unit {
         if (result == Zero) { }
     }

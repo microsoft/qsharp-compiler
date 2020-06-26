@@ -81,19 +81,24 @@ let ``QPRGen1 restricts return from Result if`` () =
     |> List.iter (restricts gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
-let ``QPRGen1 restricts mutable set from Result if`` () =
+let ``QPRGen1 allows local mutable set from Result if`` () =
+    allows gen1 "SetLocal"
+
+[<Fact>]
+let ``QPRGen1 restricts non-local mutable set from Result if`` () =
     [ "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf" ]
     |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
+    restricts gen1 [ErrorCode.LocalVariableAlreadyExists; ErrorCode.SetInResultConditionedBlock] "SetReusedName"
 
 [<Fact>]
-let ``QPRGen1 restricts mutable set from Result elif`` () =
+let ``QPRGen1 restricts non-local mutable set from Result elif`` () =
     [ "ElifSet"
       "ElifElifSet" ]
     |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
-let ``QPRGen1 restricts mutable set from Result else`` () =
+let ``QPRGen1 restricts non-local mutable set from Result else`` () =
     [ "ResultAsBoolOpElseSet"
       "ElifElseSet" ]
     |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
