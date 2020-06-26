@@ -17,24 +17,10 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
-open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
 // some utils for type checking statements
-
-/// Returns all statements matching the statement kind predicate.
-let private findStatements predicate statements =
-    let mutable matches = []
-    let transformation =
-        { new StatementTransformation(TransformationOptions.NoRebuild) with
-            override this.OnStatement statement =
-                if predicate statement.Statement then
-                    matches <- statement :: matches
-                base.OnStatement statement
-        }
-    Seq.iter (transformation.OnStatement >> ignore) statements
-    matches
 
 /// Given a verification function that takes an error logging function as well as an expression type and its range, 
 /// first resolves the given expression, and then verifies its resolved type with the verification function. 
@@ -280,25 +266,28 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
 /// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
 /// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
 let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpression * QsPositionedBlock) seq) =
+    // Diagnostics for return statements.
+    let returnStatements (statement : QsStatement) =
+        statement.ExtractAll (fun s -> match s.Statement with QsReturnStatement _ -> [s] | _ -> [])
     let returnError (statement : QsStatement) =
-        QsCompilerDiagnostic.Error
-            (ErrorCode.ReturnInResultConditionedBlock, [])
-            (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
-    let setError (variable : TypedExpression) =
-        QsCompilerDiagnostic.Error
-            (ErrorCode.SetInResultConditionedBlock, [])
-            (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
+        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [])
+                                   (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
     let returnErrors (block : QsPositionedBlock) =
-        block.Body.Statements
-        |> findStatements (function | QsReturnStatement _ -> true | _ -> false)
-        |> Seq.map returnError
+        block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
+
+    // Diagnostics for variable reassignments.
+    let setError (variable : TypedExpression) =
+        // TODO: Range information is wrong.
+        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, [])
+                                   (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
     let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
-    let folder (dependsOnResult, diagnostics) (condition, block) =
+
+    let accumulateErrors (dependsOnResult, diagnostics) (condition, block) =
         if dependsOnResult || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
         else false, diagnostics
     if capabilities = RuntimeCapabilities.QPRGen1
-    then Seq.fold folder (false, Seq.empty) blocks |> snd
+    then Seq.fold accumulateErrors (false, Seq.empty) blocks |> snd
     else Seq.empty
 
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
