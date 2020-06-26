@@ -39,19 +39,9 @@ function Build-One {
 ##
 function Build-VSCode() {
     Write-Host "##[info]Building VS Code extension..."
-    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension/packages/extension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
-
-            #Build Yeoman templates
-            Push-Location ('src/generator-qsharp')
-            npm install
-            npm run compile
-            Pop-Location
-            if  ($LastExitCode -ne 0) {
-                Write-Host "Yeoman templates failed to build, attempting to continue building VS Code Extension"
-            }
-
             npm install
             npm run compile
     

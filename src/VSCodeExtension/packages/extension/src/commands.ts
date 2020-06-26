@@ -9,7 +9,8 @@ import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { promisify } from 'util';
-import { oc } from 'ts-optchain';
+
+//import * as yeoman from 'yeoman-environment';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
@@ -86,7 +87,11 @@ function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: 
     );
 }
 
-export function createNewProject(dotNetSdk: DotnetInfo) {    
+export function createNewProject(dotNetSdk: DotnetInfo) {
+    // TODO: finish switching over to Yeoman.
+    // let env = yeoman.createEnv();
+    // env.register(require.resolve('generator-qsharp'), 'qsharp:app');
+
     const projectTypes: {[key: string]: string} = {
         "Standalone console application": "console",
         "Quantum library": "classlib",
@@ -127,7 +132,7 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
-        oc(packageInfo).nugetVersion
+        packageInfo?.nugetVersion
         ? `::${packageInfo!.nugetVersion}`
         : "";
     let proc = cp.spawn(

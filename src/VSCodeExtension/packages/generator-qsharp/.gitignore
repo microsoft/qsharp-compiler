@@ -3,3 +3,10 @@ coverage
 app/templates/application/Application.csproj.txt
 app/templates/library/library.csproj.txt
 app/templates/test/test.csproj.txt
+
+# Ignore TypeScript output.
+out/
+
+# Ignore v.templated files.
+package.json
+package-lock.json

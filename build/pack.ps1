@@ -157,7 +157,7 @@ function Pack-SelfContained() {
 ##
 function Pack-VSCode() {
     Write-Host "##[info]Packing VS Code extension..."
-    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension/packages/extension')
     if (Get-Command vsce -ErrorAction SilentlyContinue) {
         Try {
             vsce package
@@ -217,10 +217,10 @@ Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'
 if ($Env:ENABLE_VSIX -ne "false") {
     Pack-SelfContained `
         -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
-        -PackageData "../src/VSCodeExtension/package.json"
+        -PackageData "../src/VSCodeExtension/packages/extension/package.json"
 
     Write-Host "Final package.json:"
-    Get-Content "../src/VSCodeExtension/package.json" | Write-Host
+    Get-Content "../src/VSCodeExtension/packages/extension/package.json" | Write-Host
 
     Pack-VSCode
     Pack-VS
