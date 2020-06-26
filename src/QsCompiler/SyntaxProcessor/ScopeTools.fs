@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.SymbolTracker
+namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 open System
 open System.Collections.Generic
@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -65,17 +66,17 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             InvalidOperationException "the content of the namespace manager associated with this symbol tracker has changed" |> raise
         globals
 
-    /// Denotes a property of the parent callable associated with this symbol tracker,  
-    /// such as information about the kind, the type parameters, the returns type, and the source file it is declared in.
-    /// IMPORTANT: these need to be adapted if we want to support type specializations and/or external specializations!
-    let parentIsOperation, typeParameters, expectedReturnType = 
+    /// The type parameters of the parent callable associated with this symbol tracker.
+    ///
+    /// IMPORTANT: This needs to be adapted if we want to support type specializations and/or external specializations!
+    let typeParameters = 
         match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with 
         | Found decl ->
-            let isOperation = decl.Kind |> function | QsCallableKind.Operation -> true | _ -> false
-            let validTypeParams = decl.Signature.TypeParameters |> Seq.choose (function | ValidName name -> Some name | InvalidName -> None)
-            isOperation, validTypeParams.ToImmutableArray(), decl.Signature.ReturnType |> StripPositionInfo.Apply // NOTE: valid only since we do not yet support external and/or type specializations
+            decl.Signature.TypeParameters
+            |> Seq.choose (function | ValidName name -> Some name | InvalidName -> None)
+            |> fun valid -> valid.ToImmutableArray ()
         | _ -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise
-    
+
     /// If a local variable with the given name is visible on the current scope, 
     /// returns the dictionary that contains its declaration as Value.
     /// Returns Null otherwise. 
@@ -104,12 +105,10 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
 
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
-    /// set to true if the parent callable associated with this symbol tracker is an operation
-    member this.WithinOperation = parentIsOperation
+
     /// the source file within which the Parent (a callable declaration) associated with this SymbolTracker instance is declared
     member this.SourceFile = sourceFile
-    /// the expected type for all values returned within the scope this symbol tracker is used for (contains no range information)
-    member this.ExpectedReturnType = expectedReturnType
+
     /// returns true if no scope is currently open
     member this.AllScopesClosed = pushedScopes.Length = 0
 
@@ -246,7 +245,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it. 
     /// Returns the resolved type, *including* its range information if applicable.
     member internal this.ResolveType addDiagnostic (qsType : QsType) =
-        let resolved, errs = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
+        let resolved, errs = GlobalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType 
         for err in errs do addDiagnostic err
         resolved
 
@@ -280,3 +279,41 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             | LocalVariable name -> decl.TypeItems.Items |> Seq.choose (namedWithName name.Value) |> Seq.toList |> function
                 | [itemDecl] -> itemDecl.Type |> StripPositionInfo.Apply
                 | _ -> addError (ErrorCode.UnknownItemName, [udt.Name.Value; name.Value]); InvalidType |> ResolvedType.New
+
+/// The context used for symbol resolution and type checking within the scope of a callable.
+type ScopeContext<'a> =
+    { /// The symbol tracker for the parent callable.
+      Symbols : SymbolTracker<'a>
+      /// True if the parent callable for the current scope is an operation.
+      IsInOperation : bool
+      /// The return type of the parent callable for the current scope.
+      ReturnType : ResolvedType
+      /// The runtime capabilities for the compilation unit.
+      Capabilities : RuntimeCapabilities
+      /// The name of the execution target for the compilation unit.
+      ExecutionTarget : NonNullable<string> }
+    with
+
+    /// <summary>
+    /// Creates a scope context for the specialization.
+    ///
+    /// The symbol tracker in the context does not make a copy of the given namespace manager. Instead, it throws an
+    /// <see cref="InvalidOperationException"/> if the namespace manager has been modified (i.e. the version number of
+    /// the namespace manager has changed).
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
+    /// not exist in the given namespace manager.
+    /// </exception>
+    static member Create (nsManager : NamespaceManager)
+                         capabilities
+                         executionTarget
+                         (spec : SpecializationDeclarationHeader) =
+        match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
+        | Found declaration ->
+            { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
+              IsInOperation = declaration.Kind = Operation
+              ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
+              Capabilities = capabilities
+              ExecutionTarget = executionTarget }
+        | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."

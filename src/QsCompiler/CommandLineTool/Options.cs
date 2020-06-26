@@ -35,16 +35,28 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public int TrimLevel { get; set; }
 
         [Option("load", Required = false, SetName = CODE_MODE,
-        HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+        HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
         public IEnumerable<string> Plugins { get; set; }
 
-        [Option("target-package", Required = false, SetName = CODE_MODE,
-        HelpText = "Path to the NuGet package containing target specific information and implementations.")]
-        public string TargetPackage { get; set; }
+        [Option("target-specific-decompositions", Required = false, SetName = CODE_MODE,
+        HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
+        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
+
+        [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
+        public bool ExposeReferencesViaTestNames { get; set; }
 
         [Option("assembly-properties", Required = false, SetName = CODE_MODE,
         HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
+
+        [Option("runtime", Required = false, SetName = CODE_MODE, 
+        HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
+        public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
+
+        [Option("build-exe", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether to build a Q# command line application.")]
+        public bool MakeExecutable { get; set; }
 
         /// <summary>
         /// Returns a dictionary with the specified assembly properties as out parameter. 
@@ -54,40 +66,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             var success = true;
             parsed = new Dictionary<string, string>();
-            foreach (var keyValue in this.AdditionalAssemblyProperties ?? new string[0])
+            foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
                 var pieces = keyValue?.Split(":");
                 var valid = pieces != null && pieces.Length == 2;
                 success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
             }
             return success;
-        }
-
-        /// <summary>
-        /// Returns null if TargetPackage is null or empty, and 
-        /// returns the path to the assembly containing target specific implementations otherwise.
-        /// If a logger is specified, logs suitable diagnostics if a TargetPackages is not null or empty,
-        /// but no path to the target package assembly could be determined. 
-        /// This may be the case if no directory at the TargetPackage location exists, or if its files can't be accessed, 
-        /// or more than one dll matches the pattern by which the target package assembly is identified.
-        /// </summary>
-        public string GetTargetPackageAssemblyPath(ILogger logger = null)
-        {
-            if (String.IsNullOrEmpty(this.TargetPackage)) return null;
-            try
-            {
-                // Disclaimer: we may revise that in the future.
-                var targetPackageAssembly = Directory.GetFiles(this.TargetPackage, "*Intrinsics.dll", SearchOption.AllDirectories).SingleOrDefault();
-                if (targetPackageAssembly != null) return targetPackageAssembly;
-            }
-            catch (Exception ex)
-            {
-                if (Directory.Exists(this.TargetPackage)) logger?.Log(ex);
-                else logger?.Log(ErrorCode.CouldNotFindTargetPackage, new[] { this.TargetPackage });
-            }
-
-            logger?.Log(ErrorCode.CouldNotFindTargetPackageAssembly, new[] { this.TargetPackage });
-            return null;
         }
     }
 
@@ -147,8 +132,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             this.Verbosity = overwriteNonDefaultValues || this.Verbosity == DefaultOptions.Verbosity ? updates.Verbosity : this.Verbosity;
             this.OutputFormat = overwriteNonDefaultValues || this.OutputFormat == DefaultOptions.OutputFormat ? updates.OutputFormat : this.OutputFormat;
-            this.NoWarn = (this.NoWarn ?? new int[0]).Concat(updates.NoWarn ?? new int[0]);
-            this.References = (this.References ?? new string[0]).Concat(updates.References ?? new string[0]);
+            this.NoWarn = (this.NoWarn ?? Array.Empty<int>()).Concat(updates.NoWarn ?? Array.Empty<int>());
+            this.References = (this.References ?? Array.Empty<string>()).Concat(updates.References ?? Array.Empty<string>());
         }
 
 

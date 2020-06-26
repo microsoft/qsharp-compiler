@@ -12,7 +12,7 @@ The Sdk includes all \*.qs files within the project directory as well as the Q# 
 
 To use the Quantum Sdk simply list the NuGet package as Sdk at the top of your project file: 
 ```
-<Project Sdk="Microsoft.Quantum.Sdk/0.10.1912.1803-alpha">
+<Project Sdk="Microsoft.Quantum.Sdk/0.11.2006.2118-alpha">
     ...
 </Project>
 ```
@@ -47,9 +47,9 @@ Steps defined within packages or projects with higher priority are executed firs
 
 [comment]: # (TODO: describe how to limit included rewrite steps to a particular execution target)
 
-If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
-
 An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/master/examples). 
+See the [this section](#packaging) for more detail on how to package a Q# compiler extension to distribute it as a NuGet package. 
+
 
 ### Injected C# code ###
 
@@ -73,6 +73,29 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
     </ItemGroup>
   </Target>  
 ```
+
+### <a name="packaging"></a>Distributing Q# compiler extensions as NuGet packages ###
+
+In order to avoid a dependency of the Q# build targets on the Restore target, we require that NuGet packages containing Q# compiler extensions define a property that contains the path to the dll to load. This is done by including a file with MSBuild props in the package, following the instructions [here](https://docs.microsoft.com/en-us/nuget/create-packages/creating-a-package#include-msbuild-props-and-targets-in-a-package). 
+
+The content of the file should be similar to the following, with `Package_Name` being replace by the name of your package after replacing dots by underscore, and `Package.Name` should be replaced by the assembly name of your package:
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <QscRef_Package_Name>
+      $(MSBuildThisFileDirectory)/../lib/netstandard2.1/Package.Name.dll
+    </QscRef_Package_Name>
+  </PropertyGroup>  
+
+</Project>
+```
+This [example](https://github.com/microsoft/qsharp-compiler/tree/master/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension. 
+
+If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
+
 
 ### Troubleshooting compiler extensions ###
 
@@ -109,8 +132,14 @@ May contain additional arguments to pass to the Q# command line compiler. Valid 
 - `CsharpGeneration`:    
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit. 
 
+- `DefaultSimulator`:
+Specifies the simulator to use by default for execution. Valid values are QuantumSimulator, ToffoliSimulator, ResourcesEstimator, or the fully qualified name of a custom simulator. 
+
 - `IncludeQsharpCorePackages`:     
 Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries. 
+
+- `IncludeProviderPackages`:
+Specifies whether the packages for specific hardware providers should be automatically included based on the specified `ExecutionTarget`. This property is set to true by default. If set to false, the Sdk will not automatically reference any provider packages.
 
 - `QscExe`:    
 The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property. 

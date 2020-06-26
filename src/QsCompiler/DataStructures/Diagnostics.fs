@@ -166,6 +166,7 @@ type ErrorCode =
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
+    | UnsupportedResultComparison = 5023
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -234,10 +235,19 @@ type ErrorCode =
     | QubitTypeInEntryPointSignature = 6231
     | CallableTypeInEntryPointSignature = 6232
     | UserDefinedTypeInEntryPointSignature = 6233
-    | MultipleEntryPoints = 6234
-    | InvalidEntryPointSpecialization = 6235
-    | InvalidTestAttributePlacement = 6236
-    | InvalidExecutionTargetForTest = 6237
+    | InnerTupleInEntryPointArgument = 6234
+    | ArrayOfArrayInEntryPointArgument = 6235
+    | OtherEntryPointExists = 6236
+    | MultipleEntryPoints = 6237
+    | MissingEntryPoint = 6238
+    | InvalidEntryPointSpecialization = 6239
+    | DuplicateEntryPointArgumentName = 6240
+    | EntryPointInLibrary = 6241
+    | InvalidTestAttributePlacement = 6242
+    | InvalidExecutionTargetForTest = 6243
+    | ExpectingFullNameAsAttributeArgument = 6244
+    | AttributeInvalidOnSpecialization = 6245
+    | AttributeInvalidOnCallable = 6246
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -271,12 +281,12 @@ type ErrorCode =
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
     | UnknownCompilerPlugin = 7015
-    | CouldNotLoadCompilerPlugin = 7016
-    | CouldNotInstantiateRewriteStep = 7017
-    | CouldNotFindTargetPackage = 7018
-    | CouldNotFindTargetPackageAssembly = 7019
-    | InvalidTargetPackageAssemblyPath = 7020
-    | FailedToLoadTargetPackageAssembly = 7021
+    | TypeLoadExceptionInCompilerPlugin = 7016
+    | CouldNotLoadCompilerPlugin = 7017
+    | CouldNotInstantiateRewriteStep = 7018
+    | InvalidPathToTargetSpecificDecompositions = 7019
+    | FailedToLoadTargetSpecificDecompositions = 7020
+    | ConflictsInTargetSpecificDecompositions = 7021
     | UnexpectedCompilerException = 7022
     | InvalidCommandLineArgsInResponseFiles = 7023
 
@@ -319,6 +329,10 @@ type WarningCode =
     | NamespaceAliasIsAlreadyDefined = 6004 // same alias for the same namespace, hence (only) a warning
     | MissingBodyDeclaration = 6005
     | DuplicateAttribute = 6201
+    | MissingEntryPoint = 6202
+    | IgnoredEntryPoint = 6203
+    | ReservedEntryPointArgumentName = 6204
+    | NonResultTypeReturnedInEntryPoint = 6205
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -530,7 +544,12 @@ type DiagnosticItem =
             | ErrorCode.ExpectingIterableExpr                     -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
-                                                            
+            | ErrorCode.UnsupportedResultComparison               ->
+                // TODO: When the names of the runtime capabilities are finalized, they can be included in the error
+                // message.
+                "The execution target {0} does not support comparing measurement results. " +
+                "Choose an execution target with additional capabilities or avoid result comparisons."
+
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
             | ErrorCode.TypeRedefinition                          -> "Invalid type declaration. A type with the name \"{0}\" already exists."
@@ -598,10 +617,19 @@ type DiagnosticItem =
             | ErrorCode.QubitTypeInEntryPointSignature            -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
             | ErrorCode.CallableTypeInEntryPointSignature         -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
             | ErrorCode.UserDefinedTypeInEntryPointSignature      -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
-            | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
+            | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
+            | ErrorCode.OtherEntryPointExists                     -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.MultipleEntryPoints                       -> "The project contains more than one entry point."
+            | ErrorCode.MissingEntryPoint                         -> "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
+            | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."
+            | ErrorCode.EntryPointInLibrary                       -> "Invalid entry point. Only executable Q# projects can have entry points."
             | ErrorCode.InvalidTestAttributePlacement             -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest             -> "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the ToffoliSimulator, or the ResourcesEstimator."
+            | ErrorCode.ExpectingFullNameAsAttributeArgument      -> "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
+            | ErrorCode.AttributeInvalidOnSpecialization          -> "Invalid attribute placement. The attribute {0} cannot be attached to a specialization declaration."
+            | ErrorCode.AttributeInvalidOnCallable                -> "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
@@ -635,12 +663,12 @@ type DiagnosticItem =
             | ErrorCode.InvalidProjectOutputPath                  -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                        -> "No source files have been specified."
             | ErrorCode.UnknownCompilerPlugin                     -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
+            | ErrorCode.TypeLoadExceptionInCompilerPlugin         -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. Unable to load one or more of the requested types."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
             | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
-            | ErrorCode.CouldNotFindTargetPackage                 -> "Could not find the directory \"{0}\" containing target specific information."
-            | ErrorCode.CouldNotFindTargetPackageAssembly         -> "Could not find the assembly specifying target specific implementations within the target package \"{0}\"."
-            | ErrorCode.InvalidTargetPackageAssemblyPath          -> "Could not find the file \"{0}\" that specifies target specific implementations."
-            | ErrorCode.FailedToLoadTargetPackageAssembly         -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.InvalidPathToTargetSpecificDecompositions -> "Could not find the file \"{0}\" that specifies target specific implementations."
+            | ErrorCode.FailedToLoadTargetSpecificDecompositions  -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.ConflictsInTargetSpecificDecompositions   -> "The specified assemblies containing target specific decompositions contain conflicting declarations."
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
             | ErrorCode.InvalidCommandLineArgsInResponseFiles     -> "Invalid command line arguments in response file(s)."
                                                                   
@@ -686,6 +714,10 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined          -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration                  -> "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.DuplicateAttribute                      -> "The attribute {0} is a duplication and will be ignored."
+            | WarningCode.MissingEntryPoint                       -> "The project is an executable Q# project but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
+            | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
+            | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
+            | WarningCode.NonResultTypeReturnedInEntryPoint       -> "Only values of type Result, Result[], and tuples thereof can be returned when executing on a quantum processor."
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   

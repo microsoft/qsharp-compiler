@@ -315,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
             var indexRange = compilation.GlobalSymbols.TryGetCallable(
-                new QsQualifiedName(BuiltIn.IndexRange.FullName.Namespace, BuiltIn.IndexRange.FullName.Name),
+                BuiltIn.IndexRange.FullName,
                 NonNullable<string>.New(nsName),
                 file.FileName);
             if (!indexRange.IsFound)
@@ -368,8 +368,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var fragments = file.FragmentsOverlappingWithRange(range);
             var edits = fragments.SelectMany(IndexRangeEdits);
             var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.FullName.Namespace);
-            return edits.Any() 
-                ? new[] { ("Use IndexRange to iterate over indices.", file.GetWorkspaceEdit(suggestedOpenDir.Concat(edits).ToArray())) } 
+            return edits.Any()
+                ? new[] { ("Use IndexRange to iterate over indices.", file.GetWorkspaceEdit(suggestedOpenDir.Concat(edits).ToArray())) }
                 : Enumerable.Empty<(string, WorkspaceEdit)>();
         }
 

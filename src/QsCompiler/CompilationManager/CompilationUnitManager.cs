@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -58,14 +59,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         protected readonly ProcessingQueue Processing;
 
         /// <summary>
-        /// Initializes a CompilationUnitManager instance.
-        /// If an <see cref="System.Action"/> for publishing diagnostics is given and is not null, 
+        /// Initializes a CompilationUnitManager instance for a project with the given properties.
+        /// If an <see cref="Action"/> for publishing diagnostics is given and is not null, 
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public CompilationUnitManager(Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
+        public CompilationUnitManager(
+            Action<Exception> exceptionLogger = null,
+            Action<PublishDiagnosticParams> publishDiagnostics = null,
+            bool syntaxCheckOnly = false,
+            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
+            bool isExecutable = false,
+            NonNullable<string> executionTarget = default)
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.CompilationUnit = new CompilationUnit();
+            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable, executionTarget);
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
@@ -128,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     // do *not* dispose of the FileContentManagers!
                     this.UnsubscribeFromFileManagerEvents(file);
-                    this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = new Diagnostic[0] });
+                    this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                 }      
                 return null;
             });
@@ -138,14 +145,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to tracking the source files
 
         /// <summary>
-        /// Returns the string with the file ID associated with the given URI used throughout the compilation.
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
         /// </summary>
-        public static bool TryGetFileId(Uri uri, out NonNullable<string> id)
+        /// <exception cref="ArgumentNullException">Thrown if the URI is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if the URI is not an absolute URI or not a file URI.</exception>
+        public static NonNullable<string> GetFileId(Uri uri) =>
+            uri is null
+                ? throw new ArgumentNullException(nameof(uri))
+                : TryGetFileId(uri, out var fileId)
+                ? fileId
+                : throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
+
+        /// <summary>
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
+        /// </summary>
+        /// <returns>True if converting the URI to a file ID succeeded.</returns>
+        [Obsolete("Use GetFileId instead after ensuring that the URI is an absolute file URI.")]
+        public static bool TryGetFileId(Uri uri, out NonNullable<string> fileId)
         {
-            id = NonNullable<string>.New("");
-            if (uri == null || !uri.IsFile || !uri.IsAbsoluteUri) return false;
-            id = NonNullable<string>.New(uri.AbsolutePath);
-            return true;
+            if (!(uri is null) && uri.IsFile && uri.IsAbsoluteUri)
+            {
+                fileId = NonNullable<string>.New(uri.LocalPath);
+                return true;
+            }
+            else
+            {
+                fileId = default;
+                return false;
+            }
         }
 
         /// <summary>
@@ -343,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.CompilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                 this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
                 this.CompilationUnit.GlobalSymbols.RemoveSource(docKey);
-                if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = new Diagnostic[0] });
+                if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                 if (this.EnableVerification) this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
             });
         }
@@ -372,7 +399,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.CompilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                     this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
                     this.CompilationUnit.GlobalSymbols.RemoveSource(docKey);
-                    if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = new Diagnostic[0] });
+                    if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                     if (this.EnableVerification) this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
                 }
                 if (this.EnableVerification && !suppressVerification) this.QueueGlobalTypeCheckingAsync();
@@ -437,7 +464,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
-            var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
+            var compilation = new CompilationUnit(
+                this.CompilationUnit.RuntimeCapabilities,
+                this.CompilationUnit.IsExecutable,
+                this.CompilationUnit.ExecutionTarget,
+                this.CompilationUnit.Externals,
+                sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
 
