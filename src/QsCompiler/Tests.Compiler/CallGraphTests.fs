@@ -16,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 
 
 type CallGraphTests (output:ITestOutputHelper) =
@@ -40,12 +41,20 @@ type CallGraphTests (output:ITestOutputHelper) =
     let BazA = typeParameter "Baz.A"
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
+    let compilationManagerExe =
+        new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message),
+                                   null,
+                                   false,
+                                   AssemblyConstants.RuntimeCapabilities.Unknown,
+                                   true) // The isExecutable is true
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     // Adds Core to the compilation
-    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+    do  let addOrUpdateSourceFile filePath =
+            getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+            getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManagerExe.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let DecorateWithNamespace (ns : string) (input : string list list) =
@@ -89,6 +98,22 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
+
+    let CompileTypeParameterResolutionTestWithExe testNumber =
+        let srcChunks = ReadAndChunkSourceFile "TypeParameterResolution.qs"
+        srcChunks.Length >= testNumber |> Assert.True
+
+        let fileId = getTempFile()
+        let file = getManager fileId srcChunks.[testNumber-1]
+        compilationManagerExe.AddOrUpdateSourceFileAsync(file) |> ignore
+        let compilationDataStructures = compilationManagerExe.Build()
+        compilationManagerExe.TryRemoveSourceFileAsync(fileId, false) |> ignore
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+        Assert.NotNull compilationDataStructures.BuiltCompilation
+
+        let callGraph = BuildCallGraph.Apply compilationDataStructures.BuiltCompilation
+        Assert.NotNull callGraph
+        callGraph
 
     /// Checks if one of the given lists can be rotated into the other given list
     let CyclicEquivalence lst1 lst2 =
@@ -683,7 +708,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Operation Takes Operation`` () =
-        let graph = CompileTypeParameterResolutionTest 10
+        let graph = CompileTypeParameterResolutionTestWithExe 10
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
         let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
@@ -706,7 +731,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Basic Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 11
+        let graph = CompileTypeParameterResolutionTestWithExe 11
 
         [
             "Main", [
@@ -725,7 +750,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated To Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 12
+        let graph = CompileTypeParameterResolutionTestWithExe 12
 
         [
             "Main", [
@@ -746,7 +771,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Separated From Entry Point By Specialization`` () =
-        let graph = CompileTypeParameterResolutionTest 13
+        let graph = CompileTypeParameterResolutionTestWithExe 13
 
         let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
             let strToNode name =
@@ -784,7 +809,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called With Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 14
+        let graph = CompileTypeParameterResolutionTestWithExe 14
 
         [
             "Main", [
@@ -842,13 +867,13 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
-        let graph = CompileTypeParameterResolutionTest 17
+        let graph = CompileTypeParameterResolutionTestWithExe 17
         Assert.True(graph.Count = 0, "Expected call graph to be empty.")
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 18
+        let graph = CompileTypeParameterResolutionTestWithExe 18
 
         [
             "Main", [
@@ -864,7 +889,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant`` () =
-        let graph = CompileTypeParameterResolutionTest 19
+        let graph = CompileTypeParameterResolutionTestWithExe 19
 
         [
             "Main", [
