@@ -290,7 +290,7 @@ let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpressio
             (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements
-        |> findStatements (function | QsReturnStatement -> true | _ -> false)
+        |> findStatements (function | QsReturnStatement _ -> true | _ -> false)
         |> Seq.map returnError
     let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
     let folder (dependsOnResult, diagnostics) (condition, block) =
