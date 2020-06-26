@@ -12,10 +12,9 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
 
-type AccessModifierTests (output) =
+type AccessModifierTests () =
     inherit CompilerTests
-        (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"] [File.ReadAllLines("ReferenceTargets.txt").[1]],
-         output)
+        (CompilerTests.Compile ("TestCases", ["AccessModifiers.qs"], [File.ReadAllLines("ReferenceTargets.txt").[1]]))
 
     member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers" |> NonNullable<_>.New

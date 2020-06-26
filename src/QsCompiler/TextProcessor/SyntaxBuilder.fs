@@ -179,20 +179,30 @@ let internal curlyBrackets core = ((lCurly, rCurly) |> bracketDefinedContent cor
 /// IMPORTANT: Parses *precicely* the string literal and does *not* handle whitespace! 
 let internal getStringContent interpolArg = 
     let notPrecededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
-    let startDelimiter = pstring "\""
-    let endDelimiter = notPrecededBySlash >>. startDelimiter
+    let delimiter = pstring "\""
     let interpolatedString = 
-        let contentDelimiter = endDelimiter <|> (notPrecededBySlash >>. lCurly)
-        let nonInterpol = manyChars (notFollowedBy contentDelimiter >>. anyChar)
+        let interpolCharSnippet = manySatisfy (fun c-> c <> '\\' && c <> '"' && c <> '{')
+        let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt{" |>> function // Also supports escapting '{'
+                                                        | 'n' -> "\n"
+                                                        | 'r' -> "\r"
+                                                        | 't' -> "\t"
+                                                        | c   -> string c)
+        let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
         let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg 
         let content = nonInterpol .>>. many (interpol .>>. nonInterpol)
-        pchar '$' >>. startDelimiter >>. content .>> endDelimiter |>> fun (h, items) -> 
+        (between (pchar '$' >>. delimiter) delimiter content) |>> fun (h, items) -> 
             let mutable str = h 
             items |> List.map snd |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
             str, items |> List.map fst
     let nonInterpolatedString = 
-        let content = manyChars (notFollowedBy endDelimiter >>. anyChar)
-        startDelimiter >>. content .>> endDelimiter |>> fun str -> (str, [])
+        let normalCharSnippet = manySatisfy (fun c -> c <> '\\' && c <> '"')
+        let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt" |>> function
+                                                        | 'n' -> "\n"
+                                                        | 'r' -> "\r"
+                                                        | 't' -> "\t"
+                                                        | c   -> string c)
+        let content = (stringsSepBy normalCharSnippet escapedChar)
+        (between delimiter delimiter content) |>> fun str -> (str, [])
     attempt interpolatedString <|> attempt nonInterpolatedString
 
 do stringContentImpl := getStringContent (manyChars anyChar) >>% ()
@@ -329,7 +339,11 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
 let internal symbolNameLike errCode = 
     let identifier = 
-        let id = IdentifierOptions(isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation) |> identifier
+        let id = IdentifierOptions(
+                     isAsciiIdStart = isSymbolStart,
+                     isAsciiIdContinue = isSymbolContinuation,
+                     preCheckStart = isSymbolStart,
+                     preCheckContinue = isSymbolContinuation) |> identifier
         getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
     let whenValid (name : string, range) = 
         let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name

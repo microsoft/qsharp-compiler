@@ -264,6 +264,10 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         set a[0] += 1;
     }
 
+    function ApplyAndReassign11 () : Unit {
+        set bool = true;
+    }
+
 
     // accessing named items in user defined types
 

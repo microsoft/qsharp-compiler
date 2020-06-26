@@ -14,19 +14,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 {
     public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
-        public new static void Apply(QsCompilation compilation)
+        public static void Apply(QsCompilation compilation)
         {
             var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
                 .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
                 .Select(kvp => kvp.Key)
                 .ToImmutableHashSet();
 
-            var filter = new ValidateMonomorphization(intrinsicCallableSet);
-
-            foreach (var ns in compilation.Namespaces)
-            {
-                filter.Namespaces.OnNamespace(ns);
-            }
+            new ValidateMonomorphization(intrinsicCallableSet).OnCompilation(compilation);
         }
 
         public class TransformationState
@@ -42,7 +37,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
         internal ValidateMonomorphization(ImmutableHashSet<QsQualifiedName> intrinsicCallableSet) : base(new TransformationState(intrinsicCallableSet))
         {
             this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+            this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.Expressions = new ExpressionTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.Types = new TypeTransformation(this);
         }
 
@@ -54,13 +52,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             {
                 // Don't validate intrinsics
                 if (SharedState.IntrinsicCallableSet.Contains(c.FullName))
-                { 
-                    return c; 
+                {
+                    return c;
                 }
                 else
-                { 
+                {
                     return base.OnCallableDeclaration(c);
-                } 
+                }
             }
 
             public override ResolvedSignature OnSignature(ResolvedSignature s)
@@ -94,10 +92,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
         {
             public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
 
-            // If an intrinsic callable is generic, then its type parameters can occur within expressions; 
-            // when generic intrinsics are called, the type of that call contains type parameter types. 
+            // If an intrinsic callable is generic, then its type parameters can occur within expressions;
+            // when generic intrinsics are called, the type of that call contains type parameter types.
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp) =>
-                SharedState.IntrinsicCallableSet.Contains(tp.Origin) 
+                SharedState.IntrinsicCallableSet.Contains(tp.Origin)
                 ? QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp)
                 : throw new Exception("Type Parameter types must be resolved");
         }
