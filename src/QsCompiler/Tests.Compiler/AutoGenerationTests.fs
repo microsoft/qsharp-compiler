@@ -9,11 +9,10 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Xunit.Abstractions
 
 
-type FunctorAutoGenTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "FunctorGeneration.qs"] [], output)
+type FunctorAutoGenTests () =
+    inherit CompilerTests(CompilerTests.Compile ("TestCases", ["General.qs"; "FunctorGeneration.qs"]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.FunctorGeneration" |> NonNullable<_>.New

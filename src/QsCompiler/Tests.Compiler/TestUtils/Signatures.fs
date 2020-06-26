@@ -255,12 +255,15 @@ let public ClassicalControlSignatures =
         |])
         (_DefaultTypes, [| // If Elif
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // And Condition
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Or Condition
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Don't Lift Functions
             ClassicalControlNs, "Foo", [||], "Unit"

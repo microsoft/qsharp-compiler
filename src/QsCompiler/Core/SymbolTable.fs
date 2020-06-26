@@ -10,6 +10,7 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SymbolResolution
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
@@ -131,8 +132,8 @@ type private PartialNamespace private
 
     /// Adds the given type declaration for the given type name to the dictionary of declared types.
     /// Adds the corresponding type constructor to the dictionary of declared callables.
-    /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange.
-    /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists.
+    /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange. 
+    /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
     member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) =
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
@@ -740,7 +741,8 @@ and NamespaceManager
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
-     typesInRefs : IEnumerable<TypeDeclarationHeader>) =
+     typesInRefs : IEnumerable<TypeDeclarationHeader>, 
+     runtimeCapabilites, isExecutable) =
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -917,6 +919,83 @@ and NamespaceManager
         then [| QsCompilerDiagnostic.Error (code, [udt.Name.Value; parent.Value]) (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
         else [||]
 
+    /// Checks whether the given parent and declaration should recognized as an entry point. 
+    /// Verifies the entry point signature and arguments, and generates and returns suitable diagnostics. 
+    /// The given offset and range are used to generate diagnostics and should correspond to location of the entry point attribute. 
+    /// Returns true if the declaration should be recognized as entry point, which may be the case even if errors have been generated.
+    /// Throws an ArgumentException if the parent namespace does not exist. 
+    let validateEntryPoint (parent : QsQualifiedName) (offset, range) (decl : Resolution<'T,_>) = 
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let errs = new List<_>()
+
+        match box decl.Defined with
+        | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
+
+            // verify that the entry point has only a default body specialization
+            let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
+            match Namespaces.TryGetValue parent.Namespace with
+            | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+            | true, ns -> 
+                let specializations = ns.SpecializationsDefinedInAllSources parent.Name
+                if hasCharacteristics || specializations.Any(fst >> (<>)QsBody) then 
+                    errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+
+            // validate entry point argument and return type
+            let rec validateArgAndReturnTypes (isArg, inArray) (t : QsType) =
+                match t.Type with 
+                | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton
+                | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
+                | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
+                | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
+                | TupleType ts when ts.Length > 1 && isArg -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
+                | TupleType ts -> ts |> Seq.collect (validateArgAndReturnTypes (isArg, inArray))
+                | ArrayType _ when isArg && inArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
+                | ArrayType bt -> validateArgAndReturnTypes (isArg, true) bt
+                | _ -> Seq.empty
+            let validateArgAndReturnTypes isArg = validateArgAndReturnTypes (isArg, false)
+            let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
+            let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
+            let signatureErrs = inErrs.Concat outErrs
+            errs.AddRange signatureErrs
+
+            // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
+            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen0 || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen1 then
+                let invalid = signature.ReturnType.ExtractAll (fun t -> t.Type |> function 
+                    | Result | ArrayType _ | TupleType _ | InvalidType -> Seq.empty
+                    | _ -> Seq.singleton t)
+                if invalid.Any() then errs.Add (decl.Position, signature.ReturnType.Range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.NonResultTypeReturnedInEntryPoint, [])) 
+
+            // validate entry point argument names
+            let asCommandLineArg (str : string) = str.ToLowerInvariant() |> String.filter((<>)'_')
+            let reservedCommandLineArgs = 
+                CommandLineArguments.ReservedArguments.Concat CommandLineArguments.ReservedArgumentAbbreviations 
+                |> Seq.map asCommandLineArg |> Seq.toArray
+            let nameAndRange (sym : QsSymbol) = sym.Symbol |> function
+                | Symbol name -> Some (asCommandLineArg name.Value, sym.Range)
+                | _ -> None
+            let simplifiedArgNames = signature.Argument.Items.Select fst |> Seq.choose nameAndRange |> Seq.toList
+            let verifyArgument i (arg, range : QsNullable<_>) = 
+                if i > 0 && simplifiedArgNames.[..i-1] |> Seq.map fst |> Seq.contains arg
+                then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.DuplicateEntryPointArgumentName, []))
+                elif reservedCommandLineArgs.Contains arg
+                then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Warning (WarningCode.ReservedEntryPointArgumentName, []))
+            simplifiedArgNames |> List.iteri verifyArgument
+
+            // check that there is no more than one entry point, and no entry point if the project is not executable
+            if signatureErrs.Any() then false, errs
+            elif not isExecutable then 
+                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.EntryPointInLibrary, [])) 
+                false, errs
+            else GetEntryPoints() |> Seq.tryHead |> function
+                | None -> isExecutable, errs
+                | Some (epName, epSource) ->
+                    let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
+                    errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.OtherEntryPointExists, msgArgs))
+                    false, errs
+        | _ -> 
+            errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) 
+            false, errs
+
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given
     /// attribute.
@@ -952,8 +1031,12 @@ and NamespaceManager
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes.
     /// May throw an ArgumentException if no parent callable with the given name exists.
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) =
+        let isBuiltIn (builtIn : BuiltIn) (tId : UserDefinedType) = 
+            tId.Namespace.Value = builtIn.FullName.Namespace.Value && tId.Name.Value = builtIn.FullName.Name.Value
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
+
         let errs = new List<_>(msgs |> Seq.collect id)
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         let validateAttributes (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) =
             let returnInvalid msg =
                 errs.AddRange msg
@@ -962,9 +1045,9 @@ and NamespaceManager
 
             // known attribute
             | Value tId ->
-                let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
                 let attributeHash =
-                    if tId.Namespace.Value = BuiltIn.Deprecated.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.FullName.Name.Value then hash (tId.Namespace.Value, tId.Name.Value)
+                    if tId |> isBuiltIn BuiltIn.Deprecated then hash (tId.Namespace.Value, tId.Name.Value)
+                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then hash (tId.Namespace.Value, tId.Name.Value)
                     else hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
 
                 // the attribute is a duplication of another attribute on this declaration
@@ -974,32 +1057,14 @@ and NamespaceManager
                     |> Seq.singleton |> returnInvalid
 
                 // the attribute marks an entry point
-                elif tId.Namespace.Value = BuiltIn.EntryPoint.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.FullName.Name.Value then
-                    match box decl.Defined with
-                    | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
-                        let validateArgAndReturnTypes (qsType : QsType) =
-                            qsType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
-                            | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | _ -> Seq.empty)
-                        let argErrs = signature.Argument.Items.Select(snd).Append signature.ReturnType |> Seq.collect validateArgAndReturnTypes
-                        let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
-                        match Namespaces.TryGetValue parent.Namespace with
-                        | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
-                        | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
-                        | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
-                        if argErrs.Any() then returnInvalid argErrs
-                        else GetEntryPoints() |> Seq.tryHead |> function
-                            | None -> attributeHash :: alreadyDefined, att :: resAttr
-                            | Some (epName, epSource) ->
-                                let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
-                                (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid
-                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
+                elif tId |> isBuiltIn BuiltIn.EntryPoint then
+                    let register, msgs = validateEntryPoint parent (att.Offset, tId.Range) decl
+                    errs.AddRange msgs
+                    if register then attributeHash :: alreadyDefined, att :: resAttr
+                    else alreadyDefined, {att with TypeId = Null} :: resAttr
 
                 // the attribute marks a unit test
-                elif tId.Namespace.Value = BuiltIn.Test.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value then
+                elif tId |> isBuiltIn BuiltIn.Test then
                     let isUnitToUnit (signature : CallableSignature) =
                         let isUnitType = function
                             | Tuple _ | Missing -> false
@@ -1009,14 +1074,40 @@ and NamespaceManager
                         | [] -> signature.ReturnType |> isUnitType
                         | [(_, argType)] -> argType |> isUnitType && signature.ReturnType |> isUnitType
                         | _ -> false
+
                     match box decl.Defined with
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
-                        let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
+                        let validExecutionTargets = CommandLineArguments.BuiltInSimulators |> Seq.map (fun x -> x.ToLowerInvariant())
                         if arg <> null && (validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) || SyntaxGenerator.FullyQualifiedName.IsMatch arg) then
                             attributeHash :: alreadyDefined, att :: resAttr
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
+
+                // the attribute defines an alternative name for testing purposes
+                elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then
+                    let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
+                    match box decl.Defined with 
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ when SyntaxGenerator.FullyQualifiedName.IsMatch arg -> attributeHash :: alreadyDefined, att :: resAttr
+                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingFullNameAsAttributeArgument, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+
+                // the attribute marks an attribute 
+                elif tId |> isBuiltIn BuiltIn.Attribute then
+                    match box decl.Defined with 
+                    | :? CallableSignature ->
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnCallable, [tId.Name.Value])) |> Seq.singleton |> returnInvalid                        
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ -> attributeHash :: alreadyDefined, att :: resAttr
+
+                // the attribute marks a deprecation
+                elif tId |> isBuiltIn BuiltIn.Deprecated then
+                    match box decl.Defined with 
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ -> attributeHash :: alreadyDefined, att :: resAttr
 
                 // the attribute is another kind of attribute that requires no further verification at this point
                 else attributeHash :: alreadyDefined, att :: resAttr

@@ -19,6 +19,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
+    /// <summary>
+    /// This transformation replaces callables with type parameters with concrete
+    /// instances of the same callables. The concrete values for the type parameters
+    /// are found from uses of the callables.
+    /// This transformation also removes all callables that are not used directly or
+    /// indirectly from any of the marked entry point.
+    /// Intrinsic callables are not monomorphized or removed from the compilation.
+    /// There are also some built-in callables that are also exempt from
+    /// being removed from non-use, as they are needed for later rewrite steps.
+    /// </summary>
     public static class Monomorphize
     {
         private struct Request
@@ -40,6 +50,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
+
+            var intrinsicCallableSet = globals
+                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+                .Select(kvp => kvp.Key)
+                .ToImmutableHashSet();
 
             var entryPoints = compilation.EntryPoints
                 .Select(call => new Request
@@ -74,12 +89,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 currentResponse = ReplaceTypeParamImplementations.Apply(currentResponse);
 
                 // Rewrite calls
-                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier);
+                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier, intrinsicCallableSet);
 
                 responses.Add(currentResponse);
             }
 
-            return ResolveGenerics.Apply(compilation, responses);
+            return ResolveGenerics.Apply(compilation, responses, intrinsicCallableSet);
         }
 
         private static Identifier GetConcreteIdentifier(
@@ -157,22 +172,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses)
+            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
-                var filter = new ResolveGenerics(responses
-                    .GroupBy(res => res.concreteCallable.FullName.Namespace)
-                    .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
+                var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), intrinsicCallableSet);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return filter.OnCompilation(compilation);
             }
 
             public class TransformationState
             {
-                public readonly ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
+                public readonly ILookup<NonNullable<string>, QsCallable> NamespaceCallables;
+                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
 
-                public TransformationState(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables)
+                public TransformationState(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
                 {
                     this.NamespaceCallables = namespaceCallables;
+                    this.IntrinsicCallableSet = intrinsicCallableSet;
                 }
             }
 
@@ -180,7 +195,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables))
+            private ResolveGenerics(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                : base(new TransformationState(namespaceCallables, intrinsicCallableSet))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -192,15 +208,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
+                private bool NamespaceElementFilter(QsNamespaceElement elem)
+                {
+                    if (elem is QsNamespaceElement.QsCallable call)
+                    {
+
+                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+
                 public override QsNamespace OnNamespace(QsNamespace ns)
                 {
-                    SharedState.NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
-
                     // Removes unused or generic callables from the namespace
                     // Adds in the used concrete callables
                     return ns.WithElements(elems => elems
-                        .Where(elem => !(elem is QsNamespaceElement.QsCallable))
-                        .Concat(concretesInNs?.Select(call => QsNamespaceElement.NewQsCallable(call)) ?? Enumerable.Empty<QsNamespaceElement>())
+                        .Where(NamespaceElementFilter)
+                        .Concat(SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
                         .ToImmutableArray());
                 }
             }
@@ -284,9 +311,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamCalls :
             SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
-            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier)
+            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
-                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier);
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
 
                 // Create a new response with the transformed callable
                 return new Response
@@ -301,14 +328,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 public readonly Concretion CurrentParamTypes = new Concretion();
                 public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
+                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
 
-                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier)
+                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
                 {
                     this.GetConcreteIdentifier = getConcreteIdentifier;
+                    this.IntrinsicCallableSet = intrinsicCallableSet;
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier))
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                : base(new TransformationState(getConcreteIdentifier, intrinsicCallableSet))
             {
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -323,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     var range = this.OnRangeInformation(ex.Range);
                     var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
-                        .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
+                        .Select(kv => Tuple.Create(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
                     var exType = this.Types.OnType(ex.ResolvedType);
                     var inferredInfo = this.OnExpressionInformation(ex.InferredInformation);
@@ -338,12 +368,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
                     // Merge the type params into the current dictionary
-                    foreach (var kvp in typeParams)
+
+                    foreach (var kvp in typeParams.Where(kv => !SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)))
                     {
                         SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
 
-                    return ImmutableConcretion.Empty;
+                    return typeParams.Where(kv => SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)).ToImmutableDictionary();
                 }
             }
 
@@ -359,9 +390,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                             .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-                        // Create a new identifier
-                        sym = SharedState.GetConcreteIdentifier(global, applicableParams);
-                        tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                        // We want to skip over intrinsic callables. They will not be monomorphized.
+                        if (!SharedState.IntrinsicCallableSet.Contains(global.Item))
+                        {
+                            // Create a new identifier
+                            sym = SharedState.GetConcreteIdentifier(global, applicableParams);
+                            tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                        }
 
                         // Remove Type Params used from the CurrentParamTypes
                         foreach (var key in applicableParams.Keys)

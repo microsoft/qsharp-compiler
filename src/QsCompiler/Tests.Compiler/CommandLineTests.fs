@@ -8,7 +8,9 @@ open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
+
 
 let private pathRoot = 
     Path.GetPathRoot(Directory.GetCurrentDirectory())
@@ -162,7 +164,6 @@ let ``options from response files`` () =
         [|
             "-i"
             ("TestCases","LinkingTests","Core.qs") |> Path.Combine
-            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
         |]        
     File.WriteAllText(configFile, String.Join (" ", configArgs))
     let commandLineArgs = 
@@ -178,6 +179,29 @@ let ``options from response files`` () =
 
     let result = Program.Main commandLineArgs
     Assert.Equal(ReturnCode.SUCCESS, result)
+
+
+[<Fact>]
+let ``execute rewrite steps only if validation passes`` () = 
+    let source1 = ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine 
+    let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine 
+    let config = new CompilationLoader.Configuration(GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapabilities = AssemblyConstants.RuntimeCapabilities.QPRGen0)
+    
+    let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source1; source2])
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.Validation)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.FunctorSupport)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization) // no entry point
+
+    let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source2])
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
+    Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
+    Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.FunctorSupport)
+    Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization)
 
 
 [<Fact>]

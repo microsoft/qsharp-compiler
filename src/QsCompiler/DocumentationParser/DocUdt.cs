@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             var doc = new YamlDocument(rootNode);
             var stream = new YamlStream(doc);
 
-            text.WriteLine("### " + Utils.QsYamlMime);
+            text.WriteLine("### " + Utils.QsYamlMime + Utils.AutogenerationWarning);
             stream.Save(text, false);
         }
     }

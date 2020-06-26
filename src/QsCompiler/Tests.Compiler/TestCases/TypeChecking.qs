@@ -282,6 +282,46 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
 
+    // Equality comparison
+
+    function UnitEquality(x : Unit, y : Unit) : Bool { return x == y; }
+    function UnitInequality(x : Unit, y : Unit) : Bool { return x != y; }
+    function IntEquality(x : Int, y : Int) : Bool { return x == y; }
+    function IntInequality(x : Int, y : Int) : Bool { return x != y; }
+    function BigIntEquality(x : BigInt, y : BigInt) : Bool { return x == y; }
+    function BigIntInequality(x : BigInt, y : BigInt) : Bool { return x != y; }
+    function DoubleEquality(x : Double, y : Double) : Bool { return x == y; }
+    function DoubleInequality(x : Double, y : Double) : Bool { return x != y; }
+    function BoolEquality(x : Bool, y : Bool) : Bool { return x == y; }
+    function BoolInequality(x : Bool, y : Bool) : Bool { return true != true; }
+    function StringEquality(x : String, y : String) : Bool { return x == y; }
+    function StringInequality(x : String, y : String) : Bool { return x != y; }
+    function QubitEquality(x : Qubit, y : Qubit) : Bool { return x == y; }
+    function QubitInequality(x : Qubit, y : Qubit) : Bool { return x != y; }
+    function ResultEquality(x : Result, y : Result) : Bool { return x == y; }
+    function ResultInequality(x : Result, y : Result) : Bool { return x != y; }
+    function PauliEquality(x : Pauli, y : Pauli) : Bool { return x == y; }
+    function PauliInequality(x : Pauli, y : Pauli) : Bool { return x != y; }
+    function RangeEquality(x : Range, y : Range) : Bool { return x == y; }
+    function RangeInequality(x : Range, y : Range) : Bool { return x != y; }
+    function ArrayEquality(x : Int[], y : Int[]) : Bool { return x == y; }
+    function ArrayInequality(x : Int[], y : Int[]) : Bool { return x != y; }
+    function TupleEquality(x : (Int, Int), y : (Int, Int)) : Bool { return x == y; }
+    function TupleInequality(x : (Int, Int), y : (Int, Int)) : Bool { return x != y; }
+    function UDTEquality(x : NamedItems1, y : NamedItems1) : Bool { return x == y; }
+    function UDTInequality(x : NamedItems1, y : NamedItems1) : Bool { return x != y; }
+    function GenericEquality<'A>(x : 'A, y : 'A) : Bool { return x == y; }
+    function GenericInequality<'A>(x : 'A, y : 'A) : Bool { return x != y; }
+    function OperationEquality(x : (Unit => Unit), y : (Unit => Unit)) : Bool { return x == y; }
+    function OperationInequality(x : (Unit => Unit), y : (Unit => Unit)) : Bool { return x != y; }
+    function FunctionEquality(x : (Unit -> Unit), y : (Unit -> Unit)) : Bool { return x == y; }
+    function FunctionInequality(x : (Unit -> Unit), y : (Unit -> Unit)) : Bool { return x != y; }
+    function InvalidTypeEquality(x : __Invalid__, y : __Invalid__) : Bool { return x == y; }
+    function InvalidTypeInequality(x : __Invalid__, y : __Invalid__) : Bool { return x != y; }
+    function NoCommonBaseEquality(x : Int, y : String) : Bool { return x == y; }
+    function NoCommonBaseInequality(x : Int, y : String) : Bool { return x != y; }
+
+
     // utils for testing type matching of arguments
 
     function GenSimple<'A> (arg : 'A) : 'A {

@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -213,12 +214,35 @@ module SymbolResolution =
         let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
         StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
+    /// Converts the given string to a QsQualifiedName. 
+    /// Returs the qualified name as some if the conversion succeeds, and None otherwise. 
+    let private TryAsQualifiedName fullName = 
+        let matchQualifiedName = SyntaxGenerator.FullyQualifiedName.Match fullName
+        let asQualifiedName (str : string) = 
+            let pieces = str.Split '.'
+            {Namespace = String.Join('.', pieces.Take(pieces.Length-1)) |> NonNullable<string>.New; Name = pieces.Last() |> NonNullable<string>.New}
+        if matchQualifiedName.Success then Some (matchQualifiedName.Value |> asQualifiedName) else None
+
+    /// Checks whether the given attributes define an alternative name that may be used when loading a type or callable for testing purposes.
+    /// Returns the qualified name to use as Value if such a name is defined, or Null otherwise.
+    /// If several attributes define such a name the returned Value is based on the first such attribute.
+    let TryGetTestName attributes = 
+        let getTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesNameForTesting then Some att.Argument else None
+        StringArgument (getTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> Option.bind TryAsQualifiedName |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the type or callable has been loaded via an alternative name for testing purposes.
+    /// Returns the original qualified name as Value if this is the case, and Null otherwise.
+    /// The returned Value is based on the first attribute that indicates the original name.
+    let TryGetOriginalName attributes = 
+        let loadedViaTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
+        StringArgument (loadedViaTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> Option.bind TryAsQualifiedName |> QsNullable<_>.FromOption
+
     /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test.
     /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null.
     /// The returned sequence is empty if the declaration does not contain a unit test.
     let TryFindTestTargets attributes =
         let getTarget (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
-        let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let validTargets = CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
         let targetName (target : string) =
             if target = null then null
             elif SyntaxGenerator.FullyQualifiedName.IsMatch target then target
@@ -409,6 +433,7 @@ module SymbolResolution =
     /// or if the resolved argument type does not match the expected argument type.
     /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier
     /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
+    /// Throws an ArgumentException if a tuple-valued attribute argument does not contain at least one item.
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
@@ -436,7 +461,9 @@ module SymbolResolution =
             | StringLiteral (s, exs) ->
                 if exs.Length <> 0 then invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
                 else (StringLiteral (s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
+            | ValueTuple vs when vs.Length = 1 -> ArgExression (vs.First())
             | ValueTuple vs ->
+                if vs.Length = 0 then ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
                 let innerExs, errs = aggregateInner vs
                 let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
                 (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range, errs

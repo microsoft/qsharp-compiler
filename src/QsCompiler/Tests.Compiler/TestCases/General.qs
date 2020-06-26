@@ -8,10 +8,6 @@ namespace Microsoft.Quantum.Testing.General {
 
     operation DoNothing () : Unit {}
 
-    function Length<'T> (arr : 'T[]) : Int {
-        body intrinsic;
-    }
-
     function Function () : Unit {
         body intrinsic;
     }

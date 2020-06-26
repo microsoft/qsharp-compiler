@@ -35,9 +35,8 @@ module SerializationTests =
 
     open System
     open System.Collections.Immutable
-    open System.IO;
     open System.Reflection
-    open System.Reflection.PortableExecutable;
+    open System.Web
     open Microsoft.Quantum.QsCompiler
     open Microsoft.Quantum.QsCompiler.CompilationBuilder
     open Microsoft.Quantum.QsCompiler.DataTypes
@@ -261,7 +260,8 @@ module SerializationTests =
         let specs = attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList
         let AssertEqual (expected : string list) (got : _ list) = 
             Assert.Equal(expected.Length, got.Length)
-            expected |> List.iteri (fun i ex -> Assert.Equal (ex.Replace("%%%", dllId.Value), got.[i]))
+            expected |> List.iteri (fun i ex ->
+                Assert.Equal (ex.Replace("%%%", HttpUtility.JavaScriptStringEncode dllId.Value), got.[i]))
         AssertEqual [CALLABLE_1; CALLABLE_2; CALLABLE_3] callables
         AssertEqual [SPECIALIZATION_1; SPECIALIZATION_3] specs
         AssertEqual [TYPE_1] types
@@ -275,6 +275,3 @@ module SerializationTests =
     [<assembly: Attributes.CallableDeclaration(CALLABLE_3)>]
     [<assembly: Attributes.SpecializationDeclaration(SPECIALIZATION_3)>]
     do ()
-
-
-        

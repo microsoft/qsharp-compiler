@@ -11,29 +11,75 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    internal class ProjectProperties
+    {
+        public readonly string Version;
+        public readonly string OutputPath;
+        public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
+        public readonly bool IsExecutable;
+        public readonly NonNullable<string> ExecutionTarget;
+        public readonly bool ExposeReferencesViaTestNames;
+
+        public ProjectProperties(
+            string version,
+            string outputPath,
+            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            bool isExecutable,
+            NonNullable<string> executionTarget,
+            bool loadTestNames)
+        {
+            this.Version = version ?? "";
+            this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
+            this.RuntimeCapabilities = runtimeCapabilities;
+            this.IsExecutable = isExecutable;
+            this.ExecutionTarget = executionTarget;
+            this.ExposeReferencesViaTestNames = loadTestNames;
+        }
+    }
+
     public class ProjectInformation
     {
         public delegate bool Loader(Uri projectFile, out ProjectInformation projectInfo);
 
-        public readonly string Version;
-        public readonly string OutputPath;
+        internal readonly ProjectProperties Properties;
         public readonly ImmutableArray<string> SourceFiles;
         public readonly ImmutableArray<string> ProjectReferences;
         public readonly ImmutableArray<string> References;
 
-        internal static ProjectInformation Empty(string version, string outputPath) =>
-            new ProjectInformation(version, outputPath, Enumerable.Empty<string>(), Enumerable.Empty<string>(), Enumerable.Empty<string>());
+        internal static ProjectInformation Empty(
+                string version,
+                string outputPath,
+                AssemblyConstants.RuntimeCapabilities runtimeCapabilities) =>
+            new ProjectInformation(
+                version, 
+                outputPath, 
+                runtimeCapabilities,
+                false,
+                NonNullable<string>.New("Unspecified"),
+                false,
+                Enumerable.Empty<string>(),
+                Enumerable.Empty<string>(),
+                Enumerable.Empty<string>());
 
-        public ProjectInformation(string version, string outputPath,
-            IEnumerable<string> sourceFiles, IEnumerable<string> projectReferences, IEnumerable<string> references)
+        public ProjectInformation(
+            string version,
+            string outputPath,
+            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            bool isExecutable,
+            NonNullable<string> executionTarget,
+            bool loadTestNames,
+            IEnumerable<string> sourceFiles,
+            IEnumerable<string> projectReferences,
+            IEnumerable<string> references)
         {
-            this.Version = version ?? ""; 
-            this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
+            this.Properties = new ProjectProperties(
+                version, outputPath, runtimeCapabilities, isExecutable, executionTarget, loadTestNames);
             this.SourceFiles = sourceFiles?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(sourceFiles));
             this.ProjectReferences = projectReferences?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(projectReferences));
             this.References = references?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(references));
@@ -46,6 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             public readonly Uri ProjectFile;
             public Uri OutputPath { get; private set; }
+            public ProjectProperties Properties { get; private set; }
             private bool IsLoaded;
 
             /// <summary>
@@ -117,14 +164,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.ProjectFile = projectFile ?? throw new ArgumentNullException(nameof(projectFile));
                 this.SetProjectInformation(projectInfo ?? throw new ArgumentNullException(nameof(projectInfo)));
 
-                var version = Version.TryParse(projectInfo.Version, out Version v) ? v : null;
-                if (projectInfo.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase)) version = new Version(0, 3);
+                var version = Version.TryParse(projectInfo.Properties.Version, out Version v) ? v : null;
+                if (projectInfo.Properties.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase)) version = new Version(0, 3);
                 var ignore = version == null || version < new Version(0, 3) ? true : false;
 
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
                 // but we don't do any semantic verification, and we don't publish diagnostics for them. 
                 this.Processing = new ProcessingQueue(onException);
-                this.Manager = new CompilationUnitManager(onException, ignore ? null : publishDiagnostics, syntaxCheckOnly: ignore); 
+                this.Manager = new CompilationUnitManager(
+                    onException,
+                    ignore ? null : publishDiagnostics,
+                    syntaxCheckOnly: ignore,
+                    this.Properties.RuntimeCapabilities,
+                    this.Properties.IsExecutable,
+                    this.Properties.ExecutionTarget);
                 this.Log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.LoadedSourceFiles = ImmutableHashSet<Uri>.Empty;
@@ -141,9 +194,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private void SetProjectInformation(ProjectInformation projectInfo)
             {
                 if (projectInfo == null) throw new ArgumentNullException(nameof(projectInfo));
+                this.Properties = projectInfo.Properties;
                 this.IsLoaded = false;
 
-                var outputPath = projectInfo.OutputPath;
+                var outputPath = projectInfo.Properties.OutputPath;
                 try { outputPath = Path.GetFullPath(outputPath); }
                 catch { outputPath = null; }
                 var outputUri = Uri.TryCreate(outputPath, UriKind.Absolute, out Uri uri) ? uri : null;
@@ -257,7 +311,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     projectReferences, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
 
-                this.LoadedProjectReferences = new References(loadedHeaders, null);
+                this.LoadedProjectReferences = new References(loadedHeaders, this.Properties.ExposeReferencesViaTestNames);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code,args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
                 this.ProjectReferenceDiagnostics = diagnostics.ToImmutableArray();
@@ -284,12 +338,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var loadedHeaders = ProjectManager.LoadProjectReferences(
                     new string[] { projectReference.LocalPath }, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
-                var loaded = new References(loadedHeaders, null);
+                var loaded = new References(loadedHeaders, this.Properties.ExposeReferencesViaTestNames);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() ||
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == projRefId.Value),
                     $"loaded references upon loading {projectReference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId, null).CombineWith(loaded, null);
+                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId).CombineWith(loaded);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
@@ -316,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var loadedHeaders = ProjectManager.LoadReferencedAssemblies(references, 
                     diagnostics.Add, this.Manager.LogException);
 
-                this.LoadedReferences = new References(loadedHeaders, null);
+                this.LoadedReferences = new References(loadedHeaders, this.Properties.ExposeReferencesViaTestNames);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));                    
                 this.ReferenceDiagnostics = diagnostics.ToImmutableArray();
@@ -338,12 +392,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = ProjectManager.LoadReferencedAssemblies(new string[] { reference.LocalPath },
                     diagnostics.Add, this.Manager.LogException);
-                var loaded = new References(loadedHeaders, null);
+                var loaded = new References(loadedHeaders, this.Properties.ExposeReferencesViaTestNames);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() || 
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == refId.Value),
                     $"loaded references upon loading {reference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedReferences = this.LoadedReferences.Remove(refId, null).CombineWith(loaded, null);
+                this.LoadedReferences = this.LoadedReferences.Remove(refId).CombineWith(loaded);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
@@ -683,7 +737,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!loaded)
                 {
                     existing?.LoadProjectAsync(ImmutableDictionary<Uri,Uri>.Empty, null, MigrateToDefaultManager(openInEditor), 
-                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath))?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
+                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath, AssemblyConstants.RuntimeCapabilities.Unknown))?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null) this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
                     return;
                 }

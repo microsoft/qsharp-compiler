@@ -9,6 +9,7 @@ using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
@@ -94,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
         {
-            var parmChars = commandLine?.ToCharArray() ?? new char[0];
+            var parmChars = commandLine?.ToCharArray() ?? Array.Empty<char>();
             var inQuote = false;
             for (int index = 0; index < parmChars.Length; index++)
             {
@@ -144,30 +145,33 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (logger == null) throw new ArgumentNullException(nameof(logger));
             if (!BuildOptions.IncorporateResponseFiles(options, out options))
             {
-                logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, new string[0]);
+                logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
-                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
             }
 
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
+                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                RuntimeCapabilities = options.RuntimeCapabilites,
+                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                ConvertClassicalControl = options.TrimLevel >= 2,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
+                IsExecutable = options.MakeExecutable,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
-                EnableAdditionalChecks = false // todo: enable debug mode?
+                EnableAdditionalChecks = false, // todo: enable debug mode?
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             }; 
 
             if (options.PerfFolder != null)
