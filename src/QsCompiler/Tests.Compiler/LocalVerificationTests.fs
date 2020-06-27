@@ -85,6 +85,7 @@ type LocalVerificationTests () =
         this.Expect "ApplyAndReassign8"   [Error ErrorCode.UpdateOfImmutableIdentifier]
         this.Expect "ApplyAndReassign9"   [Error ErrorCode.UpdateOfArrayItemExpr]
         this.Expect "ApplyAndReassign10"  [Error ErrorCode.UpdateOfArrayItemExpr]
+        this.Expect "ApplyAndReassign11"  [Error ErrorCode.InvalidUseOfReservedKeyword]
 
 
     [<Fact>]
