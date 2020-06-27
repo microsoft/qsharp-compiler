@@ -52,6 +52,60 @@ let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
+let private isResultComparison ({ Expression = expr } : TypedExpression) =
+    // TODO: Technically, it should be the common base type of LHS and RHS.
+    let bothResult lhs rhs =
+        match lhs.ResolvedType.Resolution, rhs.ResolvedType.Resolution with
+        | Result, Result -> true
+        | _ -> false
+    match expr with
+    | EQ (lhs, rhs) -> bothResult lhs rhs
+    | NEQ (lhs, rhs) -> bothResult lhs rhs
+    | _ -> false
+
+/// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
+/// symbol tracker is not modified. Returns the name of the variable and the location of the reassignment.
+let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
+    // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
+    // allowed).
+    let identifierExists (name, location : QsLocation) =
+        let symbol = { Symbol = Symbol name; Range = Value location.Range }
+        match (symbols.ResolveIdentifier ignore symbol |> fst).VariableName with
+        | InvalidIdentifier -> false
+        | _ -> true
+    let accumulator = AccumulateIdentifiers()
+    accumulator.Statements.OnScope scope |> ignore
+    accumulator.SharedState.ReassignedVariables
+    |> Seq.collect (fun grouping -> Seq.map (fun location -> grouping.Key, location) grouping)
+    |> Seq.filter identifierExists
+
+/// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
+/// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
+let private verifyResultConditionalBlocks context (blocks : (TypedExpression * QsPositionedBlock) seq) =
+    // Diagnostics for return statements.
+    let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
+        match s.Statement with
+        | QsReturnStatement _ -> [s]
+        | _ -> []
+    let returnError (statement : QsStatement) =
+        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [])
+                                   (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
+    let returnErrors (block : QsPositionedBlock) =
+        block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
+
+    // Diagnostics for variable reassignments.
+    let setError (name, location) =
+        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, []) (rangeRelativeToRoot location)
+    let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
+
+    let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
+        if dependsOnResult || condition.Exists isResultComparison
+        then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
+        else false, diagnostics
+    if context.Capabilities = RuntimeCapabilities.QPRGen1
+    then Seq.fold accumulateErrors (false, Seq.empty) blocks |> snd
+    else Seq.empty
+
 
 // utils for building QsStatements from QsFragmentKinds
 
@@ -251,60 +305,6 @@ let NewConditionalBlock comments location context (qsExpr : QsExpression) =
     let block body = condition, QsPositionedBlock.New comments (Value location) body
     new BlockStatement<_>(block), Array.concat [errs; autoGenErrs]
 
-let private isResultComparison ({ Expression = expr } : TypedExpression) =
-    // TODO: Technically, it should be the common base type of LHS and RHS.
-    let bothResult lhs rhs =
-        match lhs.ResolvedType.Resolution, rhs.ResolvedType.Resolution with
-        | Result, Result -> true
-        | _ -> false
-    match expr with
-    | EQ (lhs, rhs) -> bothResult lhs rhs
-    | NEQ (lhs, rhs) -> bothResult lhs rhs
-    | _ -> false
-
-let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
-    // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
-    // allowed).
-    let identifierExists (name, location : QsLocation) =
-        let ignoreDiagnostics _ = ()
-        let symbol = { Symbol = Symbol name
-                       Range = Value location.Range }
-        match (symbols.ResolveIdentifier ignoreDiagnostics symbol |> fst).VariableName with
-        | InvalidIdentifier -> false
-        | _ -> true
-    let accumulator = AccumulateIdentifiers()
-    accumulator.Statements.OnScope scope |> ignore
-    accumulator.SharedState.ReassignedVariables
-    |> Seq.collect (fun grouping -> Seq.map (fun location -> grouping.Key, location) grouping)
-    |> Seq.filter identifierExists
-
-/// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
-/// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
-let private verifyResultConditionalBlocks context (blocks : (TypedExpression * QsPositionedBlock) seq) =
-    // Diagnostics for return statements.
-    let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
-        match s.Statement with
-        | QsReturnStatement _ -> [s]
-        | _ -> []
-    let returnError (statement : QsStatement) =
-        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [])
-                                   (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
-    let returnErrors (block : QsPositionedBlock) =
-        block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
-
-    // Diagnostics for variable reassignments.
-    let setError (name, location) =
-        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, []) (rangeRelativeToRoot location)
-    let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
-
-    let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
-        if dependsOnResult || condition.Exists isResultComparison
-        then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
-        else false, diagnostics
-    if context.Capabilities = RuntimeCapabilities.QPRGen1
-    then Seq.fold accumulateErrors (false, Seq.empty) blocks |> snd
-    else Seq.empty
-
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
 /// Throws an ArgumentException if the given if-block contains no location information. 
@@ -328,7 +328,8 @@ let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBloc
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
         |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    statement, verifyResultConditionalBlocks context allBlocks
+    let diagnostics = verifyResultConditionalBlocks context allBlocks
+    statement, diagnostics
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
