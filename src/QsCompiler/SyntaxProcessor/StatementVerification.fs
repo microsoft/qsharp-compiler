@@ -16,7 +16,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
@@ -263,9 +262,25 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
     | NEQ (lhs, rhs) -> bothResult lhs rhs
     | _ -> false
 
+let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
+    // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
+    // allowed).
+    let identifierExists (name, location : QsLocation) =
+        let ignoreDiagnostics _ = ()
+        let symbol = { Symbol = Symbol name
+                       Range = Value location.Range }
+        match (symbols.ResolveIdentifier ignoreDiagnostics symbol |> fst).VariableName with
+        | InvalidIdentifier -> false
+        | _ -> true
+    let accumulator = AccumulateIdentifiers()
+    accumulator.Statements.OnScope scope |> ignore
+    accumulator.SharedState.ReassignedVariables
+    |> Seq.collect (fun grouping -> Seq.map (fun location -> grouping.Key, location) grouping)
+    |> Seq.filter identifierExists
+
 /// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
 /// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
-let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpression * QsPositionedBlock) seq) =
+let private verifyResultConditionalBlocks context (blocks : (TypedExpression * QsPositionedBlock) seq) =
     // Diagnostics for return statements.
     let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
         match s.Statement with
@@ -278,17 +293,15 @@ let private verifyResultConditionalBlocks capabilities (blocks : (TypedExpressio
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
 
     // Diagnostics for variable reassignments.
-    let setError (variable : TypedExpression) =
-        // TODO: Range information is wrong.
-        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, [])
-                                   (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange)
-    let setErrors (block : QsPositionedBlock) = Seq.map setError (UpdatedOutsideVariables.Apply block.Body)
+    let setError (name, location) =
+        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, []) (rangeRelativeToRoot location)
+    let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
 
     let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
         if dependsOnResult || condition.Exists isResultComparison
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
         else false, diagnostics
-    if capabilities = RuntimeCapabilities.QPRGen1
+    if context.Capabilities = RuntimeCapabilities.QPRGen1
     then Seq.fold accumulateErrors (false, Seq.empty) blocks |> snd
     else Seq.empty
 
@@ -315,7 +328,7 @@ let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBloc
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
         |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    statement, verifyResultConditionalBlocks context.Capabilities allBlocks
+    statement, verifyResultConditionalBlocks context allBlocks
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.

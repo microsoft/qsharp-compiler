@@ -109,7 +109,7 @@ type ResolvedType with
         | _ -> None
 
 /// Converts the range relative to the QsLocation's offset into a range relative to the root node.
-let private rangeRelativeToRoot (location : QsLocation) =
+let internal rangeRelativeToRoot (location : QsLocation) =
     let line, column = location.Offset
     let start, finish = location.Range
     let startFromRoot =

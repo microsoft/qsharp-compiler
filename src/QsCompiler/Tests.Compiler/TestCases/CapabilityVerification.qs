@@ -136,12 +136,9 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         mutable b = false;
         if (result == One) {
             if (true) {
-                // Redeclaring b is an error, but it should not mask the error below.
                 mutable b = false;
-                // This should not be a capability error.
                 set b = true;
             }
-            // This should be a capability error.
             set b = true;
         }
     }
