@@ -81,7 +81,7 @@ let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
 
 /// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
 /// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
-let private verifyResultConditionalBlocks context (blocks : (TypedExpression * QsPositionedBlock) seq) =
+let private verifyResultConditionalBlocks context condBlocks elseBlock =
     // Diagnostics for return statements.
     let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
         match s.Statement with
@@ -98,6 +98,11 @@ let private verifyResultConditionalBlocks context (blocks : (TypedExpression * Q
         QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, []) (rangeRelativeToRoot location)
     let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
 
+    let blocks =
+        elseBlock
+        |> Option.map (fun block -> SyntaxGenerator.BoolLiteral true, block)
+        |> Option.toList
+        |> Seq.append condBlocks
     let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
         if dependsOnResult || condition.Exists isResultComparison
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
@@ -313,22 +318,12 @@ let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBloc
         match (ifBlock.ToTuple() |> snd).Location with
         | Null -> ArgumentException "No location is set for the given if-block." |> raise
         | Value location -> location
-
-    // A sequence of the blocks that have a conditional expression.
     let condBlocks = Seq.append (ifBlock.ToTuple() |> Seq.singleton) elifBlocks
-
-    // A sequence of all the blocks, with the final else-block treated as an elif-block with an always-true conditional
-    // expression.
-    let allBlocks =
-        match elseBlock with
-        | Value block -> (SyntaxGenerator.BoolLiteral true, block) |> Seq.singleton |> Seq.append condBlocks
-        | Null -> condBlocks
-
     let statement =
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
         |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    let diagnostics = verifyResultConditionalBlocks context allBlocks
+    let diagnostics = verifyResultConditionalBlocks context condBlocks elseBlock.ToOption
     statement, diagnostics
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
