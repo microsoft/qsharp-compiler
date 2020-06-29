@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Throws an ArgumentNullException if the given attribute or compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
-            new AddAttributes(new[] { (attribute, predicate) }).Apply(compilation);
+            new AddAttributes(new[] { (attribute, predicate) }).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given compilation that satisfy the given predicate 
@@ -64,14 +64,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
-            new AddAttributes(attributes).Apply(compilation);
+            new AddAttributes(attributes).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given compilation.
         /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params QsDeclarationAttribute[] attributes) =>
-            new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Apply(compilation);
+            new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute to all callables in the given namespace that satisfy the given predicate 

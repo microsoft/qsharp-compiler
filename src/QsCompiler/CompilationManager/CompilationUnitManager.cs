@@ -64,11 +64,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
         public CompilationUnitManager(
-            Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false,
-            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown, bool isExecutable = false)
+            Action<Exception> exceptionLogger = null,
+            Action<PublishDiagnosticParams> publishDiagnostics = null,
+            bool syntaxCheckOnly = false,
+            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
+            bool isExecutable = false,
+            NonNullable<string> executionTarget = default)
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable);
+            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable, executionTarget);
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
@@ -141,14 +145,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to tracking the source files
 
         /// <summary>
-        /// Returns the string with the file ID associated with the given URI used throughout the compilation.
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
         /// </summary>
-        public static bool TryGetFileId(Uri uri, out NonNullable<string> id)
+        /// <exception cref="ArgumentNullException">Thrown if the URI is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if the URI is not an absolute URI or not a file URI.</exception>
+        public static NonNullable<string> GetFileId(Uri uri) =>
+            uri is null
+                ? throw new ArgumentNullException(nameof(uri))
+                : TryGetFileId(uri, out var fileId)
+                ? fileId
+                : throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
+
+        /// <summary>
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
+        /// </summary>
+        /// <returns>True if converting the URI to a file ID succeeded.</returns>
+        [Obsolete("Use GetFileId instead after ensuring that the URI is an absolute file URI.")]
+        public static bool TryGetFileId(Uri uri, out NonNullable<string> fileId)
         {
-            id = NonNullable<string>.New("");
-            if (uri == null || !uri.IsFile || !uri.IsAbsoluteUri) return false;
-            id = NonNullable<string>.New(uri.IsUnc ? uri.LocalPath : uri.AbsolutePath);
-            return true;
+            if (!(uri is null) && uri.IsFile && uri.IsAbsoluteUri)
+            {
+                fileId = NonNullable<string>.New(uri.LocalPath);
+                return true;
+            }
+            else
+            {
+                fileId = default;
+                return false;
+            }
         }
 
         /// <summary>
@@ -440,7 +464,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
-            var compilation = new CompilationUnit(this.CompilationUnit.RuntimeCapabilities, this.CompilationUnit.IsExecutable, this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
+            var compilation = new CompilationUnit(
+                this.CompilationUnit.RuntimeCapabilities,
+                this.CompilationUnit.IsExecutable,
+                this.CompilationUnit.ExecutionTarget,
+                this.CompilationUnit.Externals,
+                sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
 

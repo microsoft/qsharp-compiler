@@ -11,11 +11,6 @@
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
 
-  <!-- We want to keep this here as fallback to mitigate issues when loading qsc references. -->
-  <PropertyGroup>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-
 
   <!-- The following item groups indeed needs to live in this file to ensure 
   that they evaluated before the modifications in the project file are applied. -->
@@ -28,26 +23,26 @@
   <!-- Q# package references included by default. -->
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.10.2005.2816-alpha" />
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.2005.2816-alpha" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.11.2006.2118-beta" />
     <!-- Packages included for specific execution targets. -->
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2005.2616-beta" />
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2005.2616-beta" />
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2005.2616-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2006.2118-beta" />
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
-    <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.10.2001.2831" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.10.2001.2831" IsTargetPackage='true' /-->
+    <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' /-->
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.11.2006.2118-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.11.2006.2118-beta" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'"
-                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.10.2005.2816-alpha"
+                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.11.2006.2118-beta"
                       IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
-      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" 
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.11.2006.2118-beta" IsImplicitlyDefined="true" 
       IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 

@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Testing.AttributeGeneration {
     }
 
     operation CallDefaultArray<'A>(size : Int) : 'A[] {
-        return DefaultArray(size);
+        return DefaultArray<'A>(size);
     }
 
 }

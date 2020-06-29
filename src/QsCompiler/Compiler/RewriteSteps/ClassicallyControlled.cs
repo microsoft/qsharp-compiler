@@ -10,12 +10,12 @@ using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Replaces if-statements with the corresponding calls to built-in quantum operations if possible. 
+    /// Replaces if-statements with the corresponding calls to built-in quantum operations if possible.
     /// </summary>
     internal class ClassicallyControlled : IRewriteStep
     {
         public string Name => "Classically Controlled";
-        public int Priority => RewriteStepPriorities.ControlFlowSubstitutions; 
+        public int Priority => RewriteStepPriorities.ControlFlowSubstitutions;
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 

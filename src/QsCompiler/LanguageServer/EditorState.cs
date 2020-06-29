@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -105,6 +106,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var targetFile = projectInstance.GetPropertyValue("TargetFileName");
             var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
 
+            var executionTarget = projectInstance.GetPropertyValue("ResolvedQsharpExecutionTarget");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
             var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability) 
                 ? capability 
@@ -125,7 +127,16 @@ namespace Microsoft.Quantum.QsLanguageServer
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
-            info = new ProjectInformation(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames, sourceFiles, projectReferences, references);
+            info = new ProjectInformation(
+                version,
+                outputPath,
+                runtimeCapabilities,
+                isExecutable,
+                NonNullable<string>.New(string.IsNullOrWhiteSpace(executionTarget) ? "Unspecified" : executionTarget),
+                loadTestNames,
+                sourceFiles,
+                projectReferences,
+                references);
             return true;
         }
 
