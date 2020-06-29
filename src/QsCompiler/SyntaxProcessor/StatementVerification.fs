@@ -52,15 +52,19 @@ let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
-let private isResultComparison ({ Expression = expr } : TypedExpression) =
-    // TODO: Technically, it should be the common base type of LHS and RHS.
-    let bothResult lhs rhs =
-        match lhs.ResolvedType.Resolution, rhs.ResolvedType.Resolution with
-        | Result, Result -> true
-        | _ -> false
-    match expr with
-    | EQ (lhs, rhs) -> bothResult lhs rhs
-    | NEQ (lhs, rhs) -> bothResult lhs rhs
+/// <summary>
+/// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
+/// </summary>
+/// <param name="parent">The name of the callable in which the expression occurs.</param>
+/// <param name="expression">The expression.</param>
+let private isResultComparison parent ({ Expression = expression } : TypedExpression) =
+    let baseTypeKind lhs rhs =
+        ((lhs.ResolvedType, lhs.Range), (rhs.ResolvedType, rhs.Range))
+        ||> CommonBaseType (fun _ _ -> ()) (ErrorCode.ArgumentMismatchInBinaryOp, []) parent
+        |> fun t -> t.Resolution
+    match expression with
+    | EQ (lhs, rhs) -> baseTypeKind lhs rhs = Result
+    | NEQ (lhs, rhs) -> baseTypeKind lhs rhs = Result
     | _ -> false
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
@@ -103,12 +107,12 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         |> Option.map (fun block -> SyntaxGenerator.BoolLiteral true, block)
         |> Option.toList
         |> Seq.append condBlocks
-    let accumulateErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
-        if dependsOnResult || condition.Exists isResultComparison
+    let foldErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
+        if dependsOnResult || condition.Exists <| isResultComparison context.Symbols.Parent
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
         else false, diagnostics
     if context.Capabilities = RuntimeCapabilities.QPRGen1
-    then Seq.fold accumulateErrors (false, Seq.empty) blocks |> snd
+    then Seq.fold foldErrors (false, Seq.empty) blocks |> snd
     else Seq.empty
 
 
