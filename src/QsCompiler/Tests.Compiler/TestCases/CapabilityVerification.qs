@@ -136,10 +136,20 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         mutable b = false;
         if (result == One) {
             if (true) {
+                // Re-declaring b is an error, but it shouldn't affect the invalid sets below.
                 mutable b = false;
                 set b = true;
             }
             set b = true;
+        }
+    }
+
+    operation SetTuple(result : Result) : Unit {
+        mutable a = false;
+        if (result == One) {
+            mutable b = 0;
+            mutable c = 0.0;
+            set (c, (b, a)) = (1.0, (1, true));
         }
     }
 

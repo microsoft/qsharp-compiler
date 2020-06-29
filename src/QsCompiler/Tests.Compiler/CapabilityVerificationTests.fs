@@ -42,12 +42,16 @@ let private all =
       "ResultAsBoolNeqOp"
       "ResultAsBoolOpReturnIf"
       "ResultAsBoolNeqOpReturnIf"
+      "ResultAsBoolOpReturnIfNested"
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "ResultAsBoolOpElseSet"
       "ElifSet"
       "ElifElifSet"
       "ElifElseSet"
+      "SetLocal"
+      // TODO: "SetReusedName"
+      "SetTuple"
       "EmptyIf"
       "EmptyIfNeq"
       "EmptyIfOp"
@@ -87,7 +91,8 @@ let ``QPRGen1 allows local mutable set from Result if`` () =
 [<Fact>]
 let ``QPRGen1 restricts non-local mutable set from Result if`` () =
     [ "ResultAsBoolOpSetIf"
-      "ResultAsBoolNeqOpSetIf" ]
+      "ResultAsBoolNeqOpSetIf"
+      "SetTuple" ]
     |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
     "SetReusedName"
     |> restricts gen1 (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
