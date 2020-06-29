@@ -92,8 +92,8 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         | QsReturnStatement _ -> [s]
         | _ -> []
     let returnError (statement : QsStatement) =
-        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [])
-                                   (statement.RangeRelativeToRoot.ValueOr QsCompilerDiagnostic.DefaultRange)
+        let range = (QsNullable<_>.Map rangeRelativeToRoot statement.Location).ValueOr QsCompilerDiagnostic.DefaultRange
+        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, []) range
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
 

@@ -119,7 +119,3 @@ let internal rangeRelativeToRoot (location : QsLocation) =
         { Line = finish.Line + line
           Column = if start.Line = finish.Line then finish.Column + column else finish.Column }
     startFromRoot, finishFromRoot
-
-type QsStatement with
-    /// The range of this statement relative to its root node.
-    member this.RangeRelativeToRoot = QsNullable<_>.Map rangeRelativeToRoot this.Location
