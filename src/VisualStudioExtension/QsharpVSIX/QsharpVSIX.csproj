@@ -68,7 +68,7 @@
     <Content Include="syntax.pkgdef">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\..\VSCodeExtension\syntaxes\qsharp.tmLanguage.json">
+    <Content Include="..\..\VSCodeExtension\packages\extension\syntaxes\qsharp.tmLanguage.json">
       <Link>Grammars\Qsharp\qsharp.tmLanguage.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
