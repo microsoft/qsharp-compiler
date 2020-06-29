@@ -548,16 +548,18 @@ type DiagnosticItem =
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
             // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
-            // comparison error messages.
+            //       comparison error messages.
             | ErrorCode.UnsupportedResultComparison               ->
-                "The execution target {0} does not support comparing measurement results. " +
-                "Choose an execution target with additional capabilities or avoid result comparisons."
+                "Measurement results cannot be compared because the execution target is {0}."
             | ErrorCode.ResultComparisonNotInOperationIf          ->
-                "The execution target {0} supports comparing measurement results only as part of the condition of an " +
-                "if- or elif-statement in an operation. " +
-                "Choose an execution target with additional capabilities or avoid unsupported result comparisons."
-            | ErrorCode.ReturnInResultConditionedBlock            -> "TODO: ReturnInResultConditionedBlock"
-            | ErrorCode.SetInResultConditionedBlock               -> "TODO: SetInResultConditionedBlock"
+                "Measurement results cannot be compared here. " +
+                "The execution target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+            | ErrorCode.ReturnInResultConditionedBlock            ->
+                "A return statement cannot be used here. " +
+                "The execution target {0} does not support return statements in conditional blocks that depend on a measurement result."
+            | ErrorCode.SetInResultConditionedBlock               ->
+                "The variable \"{0}\" cannot be reassigned here. " +
+                "In conditional blocks that depend on a measurement result, the execution target {1} only supports reassigning variables that were declared within the block."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
