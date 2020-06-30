@@ -29,7 +29,7 @@ function Test-One {
         -v $Env:BUILD_VERBOSITY `
         --logger trx `
         @args `
-        /property:Version=$Env:ASSEMBLY_VERSION
+        /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VESRION
 
     if  ($LastExitCode -ne 0) {
