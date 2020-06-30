@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var targetFile = projectInstance.GetPropertyValue("TargetFileName");
             var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
 
-            var executionTarget = projectInstance.GetPropertyValue("ResolvedQsharpExecutionTarget");
+            var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
             var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability) 
                 ? capability 
@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 outputPath,
                 runtimeCapabilities,
                 isExecutable,
-                NonNullable<string>.New(string.IsNullOrWhiteSpace(executionTarget) ? "Unspecified" : executionTarget),
+                NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture),
                 loadTestNames,
                 sourceFiles,
                 projectReferences,
