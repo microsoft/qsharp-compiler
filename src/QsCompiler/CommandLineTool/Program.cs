@@ -72,16 +72,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public const int UNEXPECTED_ERROR = -1000;
 
         public static int Status(CompilationLoader loaded) =>
-            loaded.SourceFileLoading == CompilationLoader.Status.Failed ? ReturnCode.UNRESOLVED_FILES :
-            loaded.ReferenceLoading == CompilationLoader.Status.Failed ? ReturnCode.UNRESOLVED_FILES :
-            loaded.Validation == CompilationLoader.Status.Failed ? ReturnCode.COMPILATION_ERRORS :
-            loaded.FunctorSupport == CompilationLoader.Status.Failed ? ReturnCode.FUNCTOR_GENERATION_ERRORS :
-            loaded.PreEvaluation == CompilationLoader.Status.Failed ? ReturnCode.PREEVALUATION_ERRORS :
-            loaded.Documentation == CompilationLoader.Status.Failed ? ReturnCode.DOC_GENERATION_ERRORS :
-            loaded.BinaryFormat == CompilationLoader.Status.Failed ? ReturnCode.BINARY_GENERATION_ERRORS :
-            loaded.DllGeneration == CompilationLoader.Status.Failed ? ReturnCode.DLL_GENERATION_ERRORS :
-            loaded.AllLoadedRewriteSteps == CompilationLoader.Status.Failed ? ReturnCode.PLUGIN_EXECUTION_ERRORS :
-            loaded.Success ? ReturnCode.SUCCESS : ReturnCode.UNEXPECTED_ERROR;
+            loaded.SourceFileLoading == CompilationLoader.Status.Failed ? UNRESOLVED_FILES :
+            loaded.ReferenceLoading == CompilationLoader.Status.Failed ? UNRESOLVED_FILES :
+            loaded.Validation == CompilationLoader.Status.Failed ? COMPILATION_ERRORS :
+            loaded.FunctorSupport == CompilationLoader.Status.Failed ? FUNCTOR_GENERATION_ERRORS :
+            loaded.PreEvaluation == CompilationLoader.Status.Failed ? PREEVALUATION_ERRORS :
+            loaded.Documentation == CompilationLoader.Status.Failed ? DOC_GENERATION_ERRORS :
+            loaded.BinaryFormat == CompilationLoader.Status.Failed ? BINARY_GENERATION_ERRORS :
+            loaded.DllGeneration == CompilationLoader.Status.Failed ? DLL_GENERATION_ERRORS :
+            loaded.AllLoadedRewriteSteps == CompilationLoader.Status.Failed ? PLUGIN_EXECUTION_ERRORS :
+            loaded.Success ? SUCCESS : UNEXPECTED_ERROR;
     }
 
     public static class Program
@@ -111,9 +111,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Parser.Default
                 .ParseArguments<BuildCompilation.BuildOptions, DiagnoseCompilation.DiagnoseOptions, FormatCompilation.FormatOptions>(args)
                 .MapResult(
-                    (BuildCompilation.BuildOptions opts) => Program.Run((c, o) => BuildCompilation.Run(c, o), opts),
-                    (DiagnoseCompilation.DiagnoseOptions opts) => Program.Run((c, o) => DiagnoseCompilation.Run(c, o), opts),
-                    (FormatCompilation.FormatOptions opts) => Program.Run((c, o) => FormatCompilation.Run(c, o), opts),
+                    (BuildCompilation.BuildOptions opts) => Run((c, o) => BuildCompilation.Run(c, o), opts),
+                    (DiagnoseCompilation.DiagnoseOptions opts) => Run((c, o) => DiagnoseCompilation.Run(c, o), opts),
+                    (FormatCompilation.FormatOptions opts) => Run((c, o) => FormatCompilation.Run(c, o), opts),
                     errs => ReturnCode.INVALID_ARGUMENTS);
     }
 }

@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static void UnloadAll()
         {
-            while (LoadContext.Loaded.TryTake(out var context))
+            while (Loaded.TryTake(out var context))
             {
                 if (context.IsCollectible)
                     context.Unload();
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler
             var context = new LoadContext(path);
             if (fallbackPaths != null)
                 context.AddToPath(fallbackPaths);
-            LoadContext.Loaded.Add(context);
+            Loaded.Add(context);
             var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(path));
             return context.LoadFromAssemblyName(assemblyName);
         }
