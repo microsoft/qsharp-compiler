@@ -9,9 +9,6 @@ param(
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
-    $VsCodeVsixVersion = $Env:VSCODEVSIX_VERSION,
-
-    [string]
     $VsVsixVersion = $Env:VSVSIX_VERSION
 );
 
@@ -39,10 +36,6 @@ if ("$NuGetVersion".Trim().Length -eq 0) {
     $NuGetVersion = "$AssemblyVersion-alpha";
 }
 
-if ("$VsCodeVsixVersion".Trim().Length -eq 0) {
-    $VsCodeVsixVersion = "$SemverVersion";
-}
-
 if ("$VsVsixVersion".Trim().Length -eq 0) {
     $VsVsixVersion = "$MajorVersion.$MinorVersion.$patch.$rev";
 }
@@ -62,7 +55,6 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#MINOR_VERSION#", $MinorVersion).
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion).
-                    Replace("#VSCODEVSIX_VERSION#", $VsCodeVsixVersion).
                     Replace("#VSVSIX_VERSION#", $VsVsixVersion).
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
@@ -73,7 +65,6 @@ Get-ChildItem -Recurse *.v.template `
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
 If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
-If ($Env:VSCODEVSIX_VERSION -eq $null) { $Env:VSCODEVSIX_VERSION ="$VsCodeVsixVersion" }
 If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
 
