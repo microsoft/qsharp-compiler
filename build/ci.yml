@@ -7,6 +7,7 @@ variables:
   Build.Minor: 12
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
+  Semver.Version: $(Semver.Version)
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
   Nuget.Outdir: $(Drops.Dir)/nugets
   VSIX.Outdir: $(Drops.Dir)/vsix
