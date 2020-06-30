@@ -6,7 +6,6 @@ $ErrorActionPreference = 'Stop'
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
-Write-Host "Semver version: $Env:SEMVER_VERSION"
 
 ##
 # Q# compiler and Sdk tools

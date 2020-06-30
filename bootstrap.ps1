@@ -37,7 +37,7 @@ if ("$NuGetVersion".Trim().Length -eq 0) {
 }
 
 if ("$VsixVersion".Trim().Length -eq 0) {
-    $VsixVersion = "$AssemblyVersion";
+    $VsixVersion = "$SemverVersion";
 }
 
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
@@ -65,8 +65,8 @@ Get-ChildItem -Recurse *.v.template `
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
 If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
-Write-Host "##vso[task.setvariable variable=Semver.Version]$SemverVersion"
 If ($Env:VSIX_VERSION -eq $null) { $Env:VSIX_VERSION ="$VsixVersion" }
+Write-Host "##vso[task.setvariable variable=Vsix.Version]$VsixVersion"
 
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;
