@@ -85,7 +85,7 @@ function Build-VS() {
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         @args `
                         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
-                        /property:InformationalVersion=$Env:SEMVER_VESRION
+                        /property:InformationalVersion=$Env:SEMVER_VERSION
     
                     if ($LastExitCode -ne 0) {
                         throw
