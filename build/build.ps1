@@ -26,7 +26,7 @@ function Build-One {
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
         @args `
-        /property:Version=$Env:ASSEMBLY_VERSION
+        /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VESRION
 
     if  ($LastExitCode -ne 0) {
@@ -84,7 +84,7 @@ function Build-VS() {
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         @args `
-                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
                         /property:InformationalVersion=$Env:SEMVER_VESRION
     
                     if ($LastExitCode -ne 0) {
