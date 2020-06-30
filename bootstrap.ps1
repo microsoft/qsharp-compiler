@@ -43,7 +43,7 @@ if ("$VsixVersion".Trim().Length -eq 0) {
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
 Write-Host "Enable telemetry: $Telemetry";
 
-Get-ChildItem .\* -Recurse -Include *.v.template, *.csproj `
+Get-ChildItem .\* -Recurse -Include *.v.template, *VSIX.csproj `
     | ForEach-Object {
         $Source = $_.FullName;
         $Target = $Source.Substring(0, $Source.Length - 11);
