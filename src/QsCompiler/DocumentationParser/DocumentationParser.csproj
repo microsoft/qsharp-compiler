@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.17.1" />
+    <PackageReference Include="Markdig.Signed" Version="0.20.0" />
     <PackageReference Include="YamlDotNet" Version="7.0.0" />
   </ItemGroup>
 
