@@ -27,7 +27,7 @@ function Build-One {
         -v $Env:BUILD_VERBOSITY `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
-        /property:InformationalVersion=$Env:SEMVER_VESRION
+        /property:InformationalVersion=$Env:SEMVER_VERSION
 
     if  ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to build $project."
@@ -127,4 +127,3 @@ if (-not $all_ok) {
 } else {
     exit 0
 } 
-
