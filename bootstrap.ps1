@@ -43,7 +43,7 @@ if ("$VsixVersion".Trim().Length -eq 0) {
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
 Write-Host "Enable telemetry: $Telemetry";
 
-Get-ChildItem .\* -Recurse -Include *.v.template, *VSIX.csproj `
+Get-ChildItem -Recurse *.v.template `
     | ForEach-Object {
         $Source = $_.FullName;
         $Target = $Source.Substring(0, $Source.Length - 11);
@@ -65,6 +65,7 @@ Get-ChildItem .\* -Recurse -Include *.v.template, *VSIX.csproj `
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
 If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
+Write-Host "##vso[task.setvariable variable=Semver.Version]$SemverVersion"
 If ($Env:VSIX_VERSION -eq $null) { $Env:VSIX_VERSION ="$VsixVersion" }
 
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
