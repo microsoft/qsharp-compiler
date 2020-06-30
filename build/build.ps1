@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
+Write-Host "Semver version: $Env:SEMVER_VERSION"
 
 ##
 # Q# compiler and Sdk tools
@@ -83,7 +84,8 @@ function Build-VS() {
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         @args `
-                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
+                        /property:SemverVersion=$Env:SEMVER_VERSION
     
                     if ($LastExitCode -ne 0) {
                         throw
