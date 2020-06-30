@@ -187,7 +187,6 @@ function Pack-VS() {
                 /t:CreateVsixContainer `
                 /property:Configuration=$Env:BUILD_CONFIGURATION `
                 /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
-                /property:SemverVersion=$Env:SEMVER_VERSION `
 
             if  ($LastExitCode -ne 0) {
                 throw
