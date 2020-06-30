@@ -29,7 +29,6 @@ steps:
     msbuildArgs: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
-      /p:SemverVersion=$(Semver.Version)
     configuration: $(Build.Configuration)
 
 
