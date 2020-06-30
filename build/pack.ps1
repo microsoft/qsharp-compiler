@@ -122,7 +122,7 @@ function Pack-SelfContained() {
             }  else {
                 $args = @();
             }
-            $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:ASSEMBLY_VERSION.zip";
+            $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:SEMVER_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
                 -v $Env:BUILD_VERBOSITY `
