@@ -31,7 +31,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.3.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.3.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="3.3.1" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\Common\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Compiler.csproj" />

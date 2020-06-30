@@ -11,14 +11,13 @@ using CommandLine;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
-
+using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
     /// <summary>
-    /// Default values for command line options if nothing is specified. 
+    /// Default values for command line options if nothing is specified.
     /// </summary>
     internal static class DefaultOptions
     {
@@ -27,39 +26,62 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public const int TrimLevel = 1;
     }
 
-
     public class CompilationOptions : Options
     {
-        [Option("trim", Required = false, Default = DefaultOptions.TrimLevel, SetName = CODE_MODE,
-        HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
+        [Option(
+            "trim",
+            Required = false,
+            Default = DefaultOptions.TrimLevel,
+            SetName = CODE_MODE,
+            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
         public int TrimLevel { get; set; }
 
-        [Option("load", Required = false, SetName = CODE_MODE,
-        HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+        [Option(
+            "load",
+            Required = false,
+            SetName = CODE_MODE,
+            HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
         public IEnumerable<string> Plugins { get; set; }
 
-        [Option("target-specific-decompositions", Required = false, SetName = CODE_MODE,
-        HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
+        [Option(
+            "target-specific-decompositions",
+            Required = false,
+            SetName = CODE_MODE,
+            HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
         public IEnumerable<string> TargetSpecificDecompositions { get; set; }
 
-        [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
-        HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
+        [Option(
+            "load-test-names",
+            Required = false,
+            Default = false,
+            SetName = CODE_MODE,
+            HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
         public bool ExposeReferencesViaTestNames { get; set; }
 
-        [Option("assembly-properties", Required = false, SetName = CODE_MODE,
-        HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
+        [Option(
+            "assembly-properties",
+            Required = false,
+            SetName = CODE_MODE,
+            HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
 
-        [Option("runtime", Required = false, SetName = CODE_MODE, 
-        HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
+        [Option(
+            "runtime",
+            Required = false,
+            SetName = CODE_MODE,
+            HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
-        [Option("build-exe", Required = false, Default = false, SetName = CODE_MODE,
-        HelpText = "Specifies whether to build a Q# command line application.")]
+        [Option(
+            "build-exe",
+            Required = false,
+            Default = false,
+            SetName = CODE_MODE,
+            HelpText = "Specifies whether to build a Q# command line application.")]
         public bool MakeExecutable { get; set; }
 
         /// <summary>
-        /// Returns a dictionary with the specified assembly properties as out parameter. 
+        /// Returns a dictionary with the specified assembly properties as out parameter.
         /// Returns a boolean indicating whether all specified properties were successfully added.
         /// </summary>
         internal bool ParseAssemblyProperties(out Dictionary<string, string> parsed)
@@ -76,7 +98,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         }
     }
 
-
     public class Options
     {
         public enum LogFormat
@@ -90,43 +111,73 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         protected const string SNIPPET_MODE = "snippetMode";
         protected const string RESPONSE_FILES = "responseFiles";
 
-        [Option('v', "verbosity", Required = false, Default = DefaultOptions.Verbosity,
-        HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
+        [Option(
+            'v',
+            "verbosity",
+            Required = false,
+            Default = DefaultOptions.Verbosity,
+            HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
         public string Verbosity { get; set; }
 
-        [Option("format", Required = false, Default = DefaultOptions.OutputFormat,
-        HelpText = "Specifies the output format of the command line compiler.")]
+        [Option(
+            "format",
+            Required = false,
+            Default = DefaultOptions.OutputFormat,
+            HelpText = "Specifies the output format of the command line compiler.")]
         public LogFormat OutputFormat { get; set; }
 
-        [Option('i', "input", Required = true, SetName = CODE_MODE,
-        HelpText = "Q# code or name of the Q# file to compile.")]
+        [Option(
+            'i',
+            "input",
+            Required = true,
+            SetName = CODE_MODE,
+            HelpText = "Q# code or name of the Q# file to compile.")]
         public IEnumerable<string> Input { get; set; }
 
-        [Option('s', "snippet", Required = true, SetName = SNIPPET_MODE,
-        HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
+        [Option(
+            's',
+            "snippet",
+            Required = true,
+            SetName = SNIPPET_MODE,
+            HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
         public string CodeSnippet { get; set; }
 
-        [Option('f', "within-function", Required = false, Default = false, SetName = SNIPPET_MODE,
-        HelpText = "Specifies whether a given Q# snipped occurs within a function")]
+        [Option(
+            'f',
+            "within-function",
+            Required = false,
+            Default = false,
+            SetName = SNIPPET_MODE,
+            HelpText = "Specifies whether a given Q# snipped occurs within a function")]
         public bool WithinFunction { get; set; }
 
-        [Option('r', "references", Required = false, Default = new string[0],
-        HelpText = "Referenced binaries to include in the compilation.")]
+        [Option(
+            'r',
+            "references",
+            Required = false,
+            Default = new string[0],
+            HelpText = "Referenced binaries to include in the compilation.")]
         public IEnumerable<string> References { get; set; }
 
-        [Option('n', "no-warn", Required = false, Default = new int[0],
-        HelpText = "Warnings with the given code(s) will be ignored.")]
+        [Option(
+            'n',
+            "no-warn",
+            Required = false,
+            Default = new int[0],
+            HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int> NoWarn { get; set; }
 
-        [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
-        HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
+        [Option(
+            "package-load-fallback-folders",
+            Required = false,
+            SetName = CODE_MODE,
+            HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
         public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
-
 
         /// <summary>
         /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
-        /// Already specified non-default values are prioritized over the values in the given options, 
-        /// unless overwriteNonDefaultValues is set to true. Sequences are merged. 
+        /// Already specified non-default values are prioritized over the values in the given options,
+        /// unless overwriteNonDefaultValues is set to true. Sequences are merged.
         /// </summary>
         internal void UpdateSetIndependentSettings(Options updates, bool overwriteNonDefaultValues = false)
         {
@@ -136,24 +187,23 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             this.References = (this.References ?? Array.Empty<string>()).Concat(updates.References ?? Array.Empty<string>());
         }
 
-
-        // routines related to logging 
+        // routines related to logging
 
         /// <summary>
-        /// If a logger is given, logs the options as CommandLineArguments Information before returning the printed string. 
+        /// If a logger is given, logs the options as CommandLineArguments Information before returning the printed string.
         /// </summary>
         public string[] Print(ILogger logger = null)
         {
-            string value(PropertyInfo p)
+            string Value(PropertyInfo p)
             {
                 var v = p.GetValue(this);
-                return v is String[] a 
-                    ? String.Join(';', a)
+                return v is string[] a
+                    ? string.Join(';', a)
                     : v?.ToString() ?? "(null)";
             }
 
             var props = this.GetType().GetProperties().Where(p => Attribute.IsDefined(p, typeof(OptionAttribute)));
-            var msg = props.Select(p => $"{p.Name}: {value(p)}").ToArray();
+            var msg = props.Select(p => $"{p.Name}: {Value(p)}").ToArray();
             logger?.Log(InformationCode.CommandLineArguments, Enumerable.Empty<string>(), messageParam: Formatting.Indent(msg).ToArray());
             return msg;
         }
@@ -161,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Given a LogFormat, returns a suitable routing for formatting diagnostics.
         /// </summary>
-        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format) => 
+        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format) =>
             format switch
             {
                 LogFormat.MsBuild => Formatting.MsBuildFormat,
@@ -170,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             };
 
         /// <summary>
-        /// Creates a suitable logger for the given command line options, 
+        /// Creates a suitable logger for the given command line options,
         /// logging the given arguments if the verbosity is high enough.
         /// </summary>
         public ConsoleLogger GetLogger(DiagnosticSeverity defaultVerbosity = DiagnosticSeverity.Warning)
@@ -184,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 "quiet".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
                 "q".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase)
                 ? DiagnosticSeverity.Error :
-                defaultVerbosity; 
+                defaultVerbosity;
             var logger = new ConsoleLogger(
                 LoggingFormat(this.OutputFormat),
                 verbosity,
@@ -194,13 +244,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             return logger;
         }
 
-
         // routines related to processing snippets
 
         /// <summary>
         /// text document identifier used to identify the code snippet in diagnostic mode
         /// </summary>
         private static readonly Uri SNIPPET_FILE_URI = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
+
         private static NonNullable<string> SNIPPET_FILE_ID
         {
             get
@@ -216,6 +266,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// name of the namespace within which code snippets are compiled
         /// </summary>
         private const string SNIPPET_NAMESPACE = "_CODE_SNIPPET_NS_";
+
         /// <summary>
         /// name of the callable within which code snippets are compiled
         /// </summary>
@@ -232,29 +283,34 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             $"}}";
 
         /// <summary>
-        /// Helper function that returns true if the given file id is consistent with the one for a code snippet. 
+        /// Helper function that returns true if the given file id is consistent with the one for a code snippet.
         /// </summary>
         public static bool IsCodeSnippet(NonNullable<string> fileId) =>
             fileId.Value == SNIPPET_FILE_ID.Value;
 
-
         /// <summary>
-        /// Returns a function that given a routine for loading files from disk, 
-        /// return an enumerable with all text document identifiers and the corresponding file content 
-        /// for the source code or Q# snippet specified by the given options. 
-        /// If both the Input and the CodeSnippet property are set, or none of these properties is set in the given options, 
+        /// Returns a function that given a routine for loading files from disk,
+        /// return an enumerable with all text document identifiers and the corresponding file content
+        /// for the source code or Q# snippet specified by the given options.
+        /// If both the Input and the CodeSnippet property are set, or none of these properties is set in the given options,
         /// logs a suitable error and returns and empty dictionary.
         /// </summary>
-        internal CompilationLoader.SourceLoader LoadSourcesOrSnippet (ILogger logger) => loadFromDisk =>
+        internal CompilationLoader.SourceLoader LoadSourcesOrSnippet(ILogger logger) => loadFromDisk =>
         {
             bool inputIsEmptyOrNull = this.Input == null || !this.Input.Any();
             if (this.CodeSnippet == null && !inputIsEmptyOrNull)
-            { return loadFromDisk(this.Input); }
+            {
+                return loadFromDisk(this.Input);
+            }
             else if (this.CodeSnippet != null && inputIsEmptyOrNull)
-            { return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary(); }
+            {
+                return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
+            }
 
-            if (inputIsEmptyOrNull) logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
-            else logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
+            if (inputIsEmptyOrNull)
+                logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
+            else
+                logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
             return ImmutableDictionary<Uri, string>.Empty;
         };
     }
