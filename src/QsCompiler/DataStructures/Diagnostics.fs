@@ -545,7 +545,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
             // TODO: When the names of the runtime capabilities are finalized, they can be included in the error message.
-            | ErrorCode.UnsupportedResultComparison               -> "{0} does not support comparing measurement results."
+            | ErrorCode.UnsupportedResultComparison               -> "The target {0} does not support comparing measurement results."
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
             | ErrorCode.TypeRedefinition                          -> "Invalid type declaration. A type with the name \"{0}\" already exists."
