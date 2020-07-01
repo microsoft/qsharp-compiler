@@ -53,12 +53,6 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
         | Some v -> Value v
         | None -> Null
 
-    /// Converts the QsNullable to an F# option.
-    member this.ToOption =
-        match this with
-        | Value value -> Some value
-        | Null -> None
-
 
 [<Struct>]
 type NonNullable<'T> = private Item of 'T with

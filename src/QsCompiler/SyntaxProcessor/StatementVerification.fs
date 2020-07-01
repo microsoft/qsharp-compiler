@@ -105,8 +105,8 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
 
     let blocks =
         elseBlock
-        |> Option.map (fun block -> SyntaxGenerator.BoolLiteral true, block)
-        |> Option.toList
+        |> QsNullable<_>.Map (fun block -> SyntaxGenerator.BoolLiteral true, block)
+        |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
         |> Seq.append condBlocks
     let foldErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
         if dependsOnResult || condition.Exists <| isResultComparison context.Symbols.Parent
@@ -328,7 +328,7 @@ let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBloc
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
         |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    let diagnostics = verifyResultConditionalBlocks context condBlocks elseBlock.ToOption
+    let diagnostics = verifyResultConditionalBlocks context condBlocks elseBlock
     statement, diagnostics
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
