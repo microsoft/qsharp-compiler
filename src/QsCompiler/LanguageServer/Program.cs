@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
+using System.Reflection;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Build.Locator;
@@ -62,7 +63,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         public static string Version =
-            typeof(Server).Assembly.GetName().Version?.ToString();
+            typeof(Server).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? typeof(Server).Assembly.GetName().Version.ToString();
 
         public static int Main(string[] args)
         {
