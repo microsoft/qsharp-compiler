@@ -130,7 +130,8 @@ function Pack-SelfContained() {
                 --runtime $DotNetRuntimeID `
                 --output $TargetDir `
                 @args `
-                /property:Version=$Env:ASSEMBLY_VERSION
+                /property:Version=$Env:ASSEMBLY_VERSION `
+                /property:InformationalVersion=$Env:SEMVER_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
                 -Force `
@@ -186,7 +187,8 @@ function Pack-VS() {
             msbuild QsharpVSIX.csproj `
                 /t:CreateVsixContainer `
                 /property:Configuration=$Env:BUILD_CONFIGURATION `
-                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
+                /property:InformationalVersion=$Env:SEMVER_VERSION
 
             if  ($LastExitCode -ne 0) {
                 throw
@@ -235,4 +237,3 @@ if (-not $all_ok) {
 } else {
     exit 0
 }
-
