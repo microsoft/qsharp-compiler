@@ -290,7 +290,7 @@ type ScopeContext<'a> =
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities
-      /// The name of the execution target for the compilation unit.
+      /// The name of the processor architecture for the compilation unit.
       ProcessorArchitecture : NonNullable<string> }
     with
 

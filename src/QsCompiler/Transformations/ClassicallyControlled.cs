@@ -36,12 +36,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
         private class RestructureConditions : SyntaxTreeTransformation
         {
-            public new static QsCompilation Apply(QsCompilation compilation)
-            {
-                var filter = new RestructureConditions();
-
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
-            }
+            public static QsCompilation Apply(QsCompilation compilation) =>
+                new RestructureConditions().OnCompilation(compilation);
 
             private RestructureConditions() : base()
             {
@@ -204,12 +200,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
         private class ConvertConditions : SyntaxTreeTransformation<ConvertConditions.TransformationState>
         {
-            public new static QsCompilation Apply(QsCompilation compilation)
-            {
-                var filter = new ConvertConditions(compilation);
-
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
-            }
+            public static QsCompilation Apply(QsCompilation compilation) =>
+                new ConvertConditions(compilation).OnCompilation(compilation);
 
             public class TransformationState
             {
@@ -809,12 +801,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
     internal static class LiftConditionBlocks
     {
-        public static QsCompilation Apply(QsCompilation compilation)
-        {
-            var filter = new LiftContent();
-
-            return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
-        }
+        public static QsCompilation Apply(QsCompilation compilation) =>
+            new LiftContent().OnCompilation(compilation);
 
         private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
         {
