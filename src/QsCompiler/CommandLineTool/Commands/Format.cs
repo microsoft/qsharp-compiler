@@ -71,8 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IEnumerable<string> GenerateQsCode(Compilation compilation, NonNullable<string> file, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             if (Options.IsCodeSnippet(file))
             {
                 var subtree = compilation.SyntaxTree.Values.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
@@ -83,8 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 var imports = compilation.SyntaxTree.Values
                     .ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
                 var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, compilation.SyntaxTree.Values, (file, imports));
-                if (!success)
-                    logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file.Value);
+                if (!success) logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file.Value);
 
                 return generated.Single().Select(entry =>
                 {
@@ -115,8 +113,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string outputFolder, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
 
             var code = Enumerable.Empty<string>();
             try
@@ -152,18 +149,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static int Run(FormatOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-            if (logger == null)
-                throw new ArgumentNullException(nameof(logger));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (logger == null) throw new ArgumentNullException(nameof(logger));
 
             ImmutableDictionary<Uri, string> LoadSources(SourceFileLoader loadFromDisk) =>
                 options.LoadSourcesOrSnippet(logger)(loadFromDisk)
                     .ToImmutableDictionary(entry => entry.Key, entry => UpdateArrayLiterals(entry.Value)); // manually replace array literals
 
             var loaded = new CompilationLoader(LoadSources, options.References, logger: logger); // no rewrite steps, no generation
-            if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES)
-                return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
+            if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES) return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
 
             // TODO: a lot of the formatting logic defined here and also in the routines above
             // is supposed to move into the compilation manager in order to be available for the language server to provide formatting

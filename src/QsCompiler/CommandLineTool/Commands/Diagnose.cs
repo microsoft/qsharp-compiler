@@ -82,8 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static void PrintFileContentInMemory(Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             foreach (var file in compilation.SourceFiles)
             {
                 IEnumerable<string> inMemory = compilation.FileContent[file];
@@ -92,8 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     !stripWrapping || inMemory.Count() >= 4,
                     "expecting at least four lines of code for the compilation of a code snippet");
 
-                if (stripWrapping)
-                    inMemory = inMemory.Skip(2).Take(inMemory.Count() - 4);
+                if (stripWrapping) inMemory = inMemory.Skip(2).Take(inMemory.Count() - 4);
                 logger.Log(
                     InformationCode.FileContentInMemory,
                     Enumerable.Empty<string>(),
@@ -110,8 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static void PrintContentTokenization(Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             foreach (var file in compilation.SourceFiles)
             {
                 var tokenization = compilation.Tokenization[file].Select(tokens => tokens.Select(token => token.Kind));
@@ -120,8 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     !stripWrapping || tokenization.Count() >= 4,
                     "expecting at least four lines of code for the compilation of a code snippet");
 
-                if (stripWrapping)
-                    tokenization = tokenization.Skip(2).Take(tokenization.Count() - 4).ToImmutableArray();
+                if (stripWrapping) tokenization = tokenization.Skip(2).Take(tokenization.Count() - 4).ToImmutableArray();
                 var serialization = tokenization
                     .Select(line => line.Select(item => JsonConvert.SerializeObject(item, Newtonsoft.Json.Formatting.Indented)))
                     .Zip(
@@ -148,8 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static void PrintSyntaxTree(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
@@ -163,10 +158,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     stripWrapping ? null : file.Value,
                     messageParam: new string[] { "", serialization });
 
-                if (!stripWrapping)
-                    PrintTree(JsonConvert.SerializeObject(subtree, Newtonsoft.Json.Formatting.Indented));
-                else
-                    PrintTree(JsonConvert.SerializeObject(StripSnippetWrapping(subtree), Newtonsoft.Json.Formatting.Indented));
+                if (!stripWrapping) PrintTree(JsonConvert.SerializeObject(subtree, Newtonsoft.Json.Formatting.Indented));
+                else PrintTree(JsonConvert.SerializeObject(StripSnippetWrapping(subtree), Newtonsoft.Json.Formatting.Indented));
             }
         }
 
@@ -181,8 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static void PrintGeneratedQs(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-                throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
@@ -212,17 +204,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static IEnumerable<QsStatement> StripSnippetWrapping(IEnumerable<QsNamespace> syntaxTree)
         {
-            if (syntaxTree == null)
-                throw new ArgumentNullException(nameof(syntaxTree));
+            if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
             var incorrectWrapperException = new ArgumentException("syntax tree does not reflect the expected wrapper");
-            if (syntaxTree.Count() != 1 || syntaxTree.Single().Elements.Count() != 1)
-                throw incorrectWrapperException;
+            if (syntaxTree.Count() != 1 || syntaxTree.Single().Elements.Count() != 1) throw incorrectWrapperException;
             if (syntaxTree.Single().Elements.Single() is QsNamespaceElement.QsCallable callable &&
                 callable.Item.Specializations.Count() == 1 &&
                 callable.Item.Specializations.Single().Implementation is SpecializationImplementation.Provided impl)
                 return impl.Item2.Statements;
-            else
-                throw incorrectWrapperException;
+            else throw incorrectWrapperException;
         }
 
         /// <summary>
@@ -233,10 +222,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static int Run(DiagnoseOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-            if (logger == null)
-                throw new ArgumentNullException(nameof(logger));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (logger == null) throw new ArgumentNullException(nameof(logger));
 
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
@@ -258,19 +245,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
-            if (loaded.VerifiedCompilation == null)
-                return ReturnCode.Status(loaded);
+            if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
 
-            if (logger.Verbosity < DiagnosticSeverity.Information)
-                logger.Verbosity = DiagnosticSeverity.Information;
-            if (options.PrintTextRepresentation)
-                PrintFileContentInMemory(loaded.VerifiedCompilation, logger);
-            if (options.PrintTokenization)
-                PrintContentTokenization(loaded.VerifiedCompilation, logger);
-            if (options.PrintSyntaxTree)
-                PrintSyntaxTree(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
-            if (options.PrintCompiledCode)
-                PrintGeneratedQs(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
+            if (logger.Verbosity < DiagnosticSeverity.Information) logger.Verbosity = DiagnosticSeverity.Information;
+            if (options.PrintTextRepresentation) PrintFileContentInMemory(loaded.VerifiedCompilation, logger);
+            if (options.PrintTokenization) PrintContentTokenization(loaded.VerifiedCompilation, logger);
+            if (options.PrintSyntaxTree) PrintSyntaxTree(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
+            if (options.PrintCompiledCode) PrintGeneratedQs(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
             return ReturnCode.Status(loaded);
         }
     }

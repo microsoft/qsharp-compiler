@@ -307,10 +307,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
             }
 
-            if (inputIsEmptyOrNull)
-                logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
-            else
-                logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
+            if (inputIsEmptyOrNull) logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
+            else logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
             return ImmutableDictionary<Uri, string>.Empty;
         };
     }

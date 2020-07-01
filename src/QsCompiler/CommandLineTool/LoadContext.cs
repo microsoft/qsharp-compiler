@@ -79,8 +79,7 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
             }
-            if (found.Count <= 1 || name.Version == null)
-                return found.FirstOrDefault();
+            if (found.Count <= 1 || name.Version == null) return found.FirstOrDefault();
 
             var tempContext = new LoadContext(this.PathToParentAssembly);
             var versions = new List<(string, Version)>();
@@ -93,8 +92,7 @@ namespace Microsoft.Quantum.QsCompiler
                     versions.Add((file, asmVersion));
                     if (name.Version.Equals(asmVersion))
                     {
-                        if (tempContext.IsCollectible)
-                            tempContext.Unload();
+                        if (tempContext.IsCollectible) tempContext.Unload();
                         return file;
                     }
                 }
@@ -103,8 +101,7 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
             }
-            if (tempContext.IsCollectible)
-                tempContext.Unload();
+            if (tempContext.IsCollectible) tempContext.Unload();
             var matchesMajor = versions.Where(asm => name.Version.Major == asm.Item2?.Major);
             var matchesMinor = matchesMajor.Where(asm => name.Version.Minor == asm.Item2?.Minor);
             var matchesMajRev = matchesMinor.Where(asm => name.Version.MajorRevision == asm.Item2?.MajorRevision);
@@ -132,8 +129,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             while (Loaded.TryTake(out var context))
             {
-                if (context.IsCollectible)
-                    context.Unload();
+                if (context.IsCollectible) context.Unload();
             }
         }
 
@@ -145,11 +141,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static Assembly LoadAssembly(string path, string[] fallbackPaths = null)
         {
-            if (!File.Exists(path))
-                throw new FileNotFoundException("Failed to create contex for \"path\". No such file exists.");
+            if (!File.Exists(path)) throw new FileNotFoundException("Failed to create contex for \"path\". No such file exists.");
             var context = new LoadContext(path);
-            if (fallbackPaths != null)
-                context.AddToPath(fallbackPaths);
+            if (fallbackPaths != null) context.AddToPath(fallbackPaths);
             Loaded.Add(context);
             var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(path));
             return context.LoadFromAssemblyName(assemblyName);
