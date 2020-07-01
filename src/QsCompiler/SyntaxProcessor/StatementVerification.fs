@@ -57,14 +57,14 @@ let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<
 /// </summary>
 /// <param name="parent">The name of the callable in which the expression occurs.</param>
 /// <param name="expression">The expression.</param>
-let private isResultComparison parent ({ Expression = expression } : TypedExpression) =
-    let baseTypeKind lhs rhs =
-        ((lhs.ResolvedType, lhs.Range), (rhs.ResolvedType, rhs.Range))
-        ||> CommonBaseType (fun _ _ -> ()) (ErrorCode.ArgumentMismatchInBinaryOp, []) parent
-        |> fun t -> t.Resolution
+let private isResultComparison ({ Expression = expression } : TypedExpression) =
+    let validType = function
+        | InvalidType -> None
+        | kind -> Some kind
+    let binaryType lhs rhs = validType lhs.ResolvedType.Resolution |> Option.defaultValue rhs.ResolvedType.Resolution
     match expression with
-    | EQ (lhs, rhs) -> baseTypeKind lhs rhs = Result
-    | NEQ (lhs, rhs) -> baseTypeKind lhs rhs = Result
+    | EQ (lhs, rhs) -> binaryType lhs rhs = Result
+    | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
@@ -109,7 +109,7 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
         |> Seq.append condBlocks
     let foldErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
-        if dependsOnResult || condition.Exists <| isResultComparison context.Symbols.Parent
+        if dependsOnResult || condition.Exists isResultComparison
         then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
         else false, diagnostics
     if context.Capabilities = RuntimeCapabilities.QPRGen1

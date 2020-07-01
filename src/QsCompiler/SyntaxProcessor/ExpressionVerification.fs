@@ -63,7 +63,7 @@ let internal toString (t : ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t
 /// This subtyping carries over to tuple types containing operations, and callable types containing operations as within their in- and/or output type. 
 /// However, arrays in particular are treated as invariant; 
 /// i.e. an array of operations of type t1 are *not* a subtype of arrays of operations of type t2 even if t1 is a subtype of t2. 
-let internal CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, lhsRange) (rhsType : ResolvedType, rhsRange) : ResolvedType =
+let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, lhsRange) (rhsType : ResolvedType, rhsRange) : ResolvedType =
     let raiseError errCode (lhsCond, rhsCond) = 
         if lhsCond then lhsRange |> addError errCode
         if rhsCond then rhsRange |> addError errCode
