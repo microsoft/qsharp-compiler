@@ -62,6 +62,7 @@ let private isResultComparison ({ Expression = expression } : TypedExpression) =
         | InvalidType -> None
         | kind -> Some kind
     let binaryType lhs rhs = validType lhs.ResolvedType.Resolution |> Option.defaultValue rhs.ResolvedType.Resolution
+    // This assumes that Result has no derived types that can be used in equality comparisons.
     match expression with
     | EQ (lhs, rhs) -> binaryType lhs rhs = Result
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
