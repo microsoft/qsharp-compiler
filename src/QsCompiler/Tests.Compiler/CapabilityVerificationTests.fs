@@ -31,8 +31,8 @@ let private testName name =
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
 let private expect (tester : CompilerTests) errorCodes name = tester.Verify (testName name, Seq.map Error errorCodes)
 
-/// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in Gen0,
-/// and no errors in Unknown.
+/// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
+/// QPRGen0, and no errors in Unknown.
 let private simpleTests =
     [ "ResultAsBool"
       "ResultAsBoolNeq"
@@ -60,17 +60,26 @@ let private simpleTests =
 let ``Unknown allows all Result comparison`` () =
     List.iter (expect unknown []) simpleTests
     "SetReusedName" |> expect unknown [ErrorCode.LocalVariableAlreadyExists]
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
 let ``QPRGen0 restricts all Result comparison`` () =
     List.iter (expect gen0 [ErrorCode.UnsupportedResultComparison]) simpleTests
     "SetReusedName" |> expect gen0 [ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison]
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
 let ``QPRGen1 restricts Result comparison in functions`` () =
     [ "ResultAsBool"
       "ResultAsBoolNeq" ]
     |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
 let ``QPRGen1 restricts non-if Result comparison in operations`` () =

@@ -180,4 +180,15 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
             X(q);
         }
     }
+
+    // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
+    // they do.
+
+    function ResultTuple(rr : (Result, Result)) : Bool {
+        return rr == (One, One) ? true | false;
+    }
+
+    function ResultArray(rs : Result[]) : Bool {
+        return rs == [One] ? true | false;
+    }
 }

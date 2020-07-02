@@ -251,6 +251,10 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     // comparison for any derived type).
     let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [toString lhsType; toString rhsType]
     let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
+
+    // This assumes that:
+    // - Result has no derived types that support equality comparisons.
+    // - Compound types containing Result (e.g., tuples or arrays of results) do not support equality comparison.
     match baseType.Resolution with
     | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
         addError (ErrorCode.UnsupportedResultComparison, [context.ExecutionTarget.Value]) rhsRange
