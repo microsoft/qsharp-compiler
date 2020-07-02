@@ -320,14 +320,14 @@ let NewConditionalBlock comments location context (qsExpr : QsExpression) =
     new BlockStatement<_>(block), Array.concat [errs; autoGenErrs]
 
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
-/// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
-/// Throws an ArgumentException if the given if-block contains no location information. 
-let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBlock)) elifBlocks elseBlock =
+/// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.
+/// Throws an ArgumentException if the given if-block contains no location information.
+let NewIfStatement context (ifBlock : TypedExpression * QsPositionedBlock) elifBlocks elseBlock =
     let location =
-        match (ifBlock.ToTuple() |> snd).Location with
+        match (snd ifBlock).Location with
         | Null -> ArgumentException "No location is set for the given if-block." |> raise
         | Value location -> location
-    let condBlocks = Seq.append (ifBlock.ToTuple() |> Seq.singleton) elifBlocks
+    let condBlocks = Seq.append (Seq.singleton ifBlock) elifBlocks
     let statement =
         QsConditionalStatement.New (condBlocks, elseBlock)
         |> QsConditionalStatement
