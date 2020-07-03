@@ -253,7 +253,7 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
     match baseType.Resolution with
     | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
-        addError (ErrorCode.UnsupportedResultComparison, [context.ExecutionTarget.Value]) rhsRange
+        addError (ErrorCode.UnsupportedResultComparison, [context.ProcessorArchitecture.Value]) rhsRange
     | _ ->
         let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
         VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore
