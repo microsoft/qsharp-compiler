@@ -738,6 +738,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Returns true if the given node is found in the call graph, false otherwise.
+        /// Throws ArgumentNullException if argument is null.
         /// </summary>
         public bool ContainsNode(CallGraphNode node)
         {

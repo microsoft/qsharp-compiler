@@ -101,9 +101,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
 
+            // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
             internal bool IsLimitedToEntryPoints = false;
-            internal Stack<QsQualifiedName> RequestStack = null;
-            internal HashSet<QsQualifiedName> ResolvedCallableSet = null;
+            // RequestStack and ResolvedCallableSet are not used if IsLimitedToEntryPoints is false.
+            internal Stack<QsQualifiedName> RequestStack = null; // Used to keep track of the callables that still need to be walked by the walker.
+            internal HashSet<QsQualifiedName> ResolvedCallableSet = null; // Used to keep track of the callables that have already been walked by the walker.
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
