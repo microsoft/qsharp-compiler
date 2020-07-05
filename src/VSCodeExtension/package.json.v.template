@@ -130,15 +130,15 @@
     },
     "blobs": {
         "win32": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-win10-x64-#ASSEMBLY_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-win10-x64-#SEMVER_VERSION#.zip",
             "sha256": "<DISABLED>"
         },
         "darwin": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-osx-x64-#ASSEMBLY_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-osx-x64-#SEMVER_VERSION#.zip",
             "sha256": "<DISABLED>"
         },
         "linux": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-linux-x64-#ASSEMBLY_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-linux-x64-#SEMVER_VERSION#.zip",
             "sha256": "<DISABLED>"
         }
     },
