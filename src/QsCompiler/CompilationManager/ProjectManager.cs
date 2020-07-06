@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly string OutputPath;
         public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
         public readonly bool IsExecutable;
-        public readonly NonNullable<string> ExecutionTarget;
+        public readonly NonNullable<string> ProcessorArchitecture;
         public readonly bool ExposeReferencesViaTestNames;
 
         public ProjectProperties(
@@ -31,14 +31,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
             bool isExecutable,
-            NonNullable<string> executionTarget,
+            NonNullable<string> processorArchitecture,
             bool loadTestNames)
         {
             this.Version = version ?? "";
             this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
             this.RuntimeCapabilities = runtimeCapabilities;
             this.IsExecutable = isExecutable;
-            this.ExecutionTarget = executionTarget;
+            this.ProcessorArchitecture = processorArchitecture;
             this.ExposeReferencesViaTestNames = loadTestNames;
         }
     }
@@ -72,14 +72,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
             bool isExecutable,
-            NonNullable<string> executionTarget,
+            NonNullable<string> processorArchitecture,
             bool loadTestNames,
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,
             IEnumerable<string> references)
         {
             this.Properties = new ProjectProperties(
-                version, outputPath, runtimeCapabilities, isExecutable, executionTarget, loadTestNames);
+                version, outputPath, runtimeCapabilities, isExecutable, processorArchitecture, loadTestNames);
             this.SourceFiles = sourceFiles?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(sourceFiles));
             this.ProjectReferences = projectReferences?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(projectReferences));
             this.References = references?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(references));
@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     syntaxCheckOnly: ignore,
                     this.Properties.RuntimeCapabilities,
                     this.Properties.IsExecutable,
-                    this.Properties.ExecutionTarget);
+                    this.Properties.ProcessorArchitecture);
                 this.Log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.LoadedSourceFiles = ImmutableHashSet<Uri>.Empty;

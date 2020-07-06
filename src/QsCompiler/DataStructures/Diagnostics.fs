@@ -549,8 +549,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
             // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
             //       comparison error messages.
-            | ErrorCode.UnsupportedResultComparison               ->
-                "Measurement results cannot be compared because the execution target is {0}."
+            | ErrorCode.UnsupportedResultComparison               -> "The target {0} does not support comparing measurement results."
             | ErrorCode.ResultComparisonNotInOperationIf          ->
                 "Measurement results cannot be compared here. " +
                 "The execution target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
