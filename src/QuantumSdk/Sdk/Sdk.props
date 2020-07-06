@@ -26,9 +26,9 @@
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.11.2006.2118-beta" />
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.11.2006.2118-beta" />
     <!-- Packages included for specific execution targets. -->
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2006.2118-beta" />
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2006.2118-beta" />
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2006.2118-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2006.2118-beta" />
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
     <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' /-->

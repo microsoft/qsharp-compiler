@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="E3B5E3E1-FC1A-4E7D-B6FE-1CC4C8934C1D" Version="#VSIX_VERSION#" Language="en-US" Publisher="Microsoft" />
+        <Identity Id="E3B5E3E1-FC1A-4E7D-B6FE-1CC4C8934C1D" Version="#VSVSIX_VERSION#" Language="en-US" Publisher="Microsoft" />
         <DisplayName>Microsoft Quantum Development Kit</DisplayName>
         <Description xml:space="preserve">Microsoft Quantum Development Kit provides support for developing quantum algorithms in the Q# programming language.</Description>
         <MoreInfo>http://docs.microsoft.com/en-us/quantum/</MoreInfo>
