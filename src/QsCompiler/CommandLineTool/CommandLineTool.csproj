@@ -26,11 +26,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.6.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="3.6.0" />
   </ItemGroup>
 
   <ItemGroup>
