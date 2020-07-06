@@ -826,7 +826,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
-                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
+                    diagnostics.AddRange(built.Item2.Select(item =>
+                    {
+                        var (relativeOffset, diagnostic) = item;
+                        var offset = DiagnosticTools.GetAbsolutePosition(nodes.Current.GetRootPosition(), relativeOffset);
+                        return Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, offset);
+                    }));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
