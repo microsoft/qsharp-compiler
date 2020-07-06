@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal readonly RuntimeCapabilities RuntimeCapabilities;
         internal readonly bool IsExecutable;
-        internal readonly NonNullable<string> ExecutionTarget;
+        internal readonly NonNullable<string> ProcessorArchitecture;
 
         public void Dispose()
         { this.SyncRoot.Dispose(); }
@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal CompilationUnit(
             RuntimeCapabilities capabilities,
             bool isExecutable,
-            NonNullable<string> executionTarget,
+            NonNullable<string> processorArchitecture,
             References externals = null,
             IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
@@ -305,7 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             this.RuntimeCapabilities = capabilities;
             this.IsExecutable = isExecutable;
-            this.ExecutionTarget = executionTarget;
+            this.ProcessorArchitecture = processorArchitecture;
 
             this.CompiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.CompiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();

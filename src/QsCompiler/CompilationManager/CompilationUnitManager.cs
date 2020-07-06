@@ -69,10 +69,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool syntaxCheckOnly = false,
             AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
             bool isExecutable = false,
-            NonNullable<string> executionTarget = default)
+            NonNullable<string> processorArchitecture = default)
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable, executionTarget);
+            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable, processorArchitecture);
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
@@ -467,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var compilation = new CompilationUnit(
                 this.CompilationUnit.RuntimeCapabilities,
                 this.CompilationUnit.IsExecutable,
-                this.CompilationUnit.ExecutionTarget,
+                this.CompilationUnit.ProcessorArchitecture,
                 this.CompilationUnit.Externals,
                 sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
