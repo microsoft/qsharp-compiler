@@ -702,8 +702,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish 
         /// before constructing the Compilation object by calling FlushAndExecute.
         /// </summary>
-        public Compilation Build() => 
-            this.FlushAndExecute(() => new Compilation(this));
+        public Compilation Build() => this.FlushAndExecute(() =>
+        {
+            try
+            {
+                return new Compilation(this);
+            }
+            catch (Exception ex)
+            {
+                LogException(ex);
+                return null;
+            }
+        });
 
         /// <summary>
         /// Class used to accumulate all information about the state of a compilation unit in immutable form. 
@@ -843,46 +853,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             internal Compilation(CompilationUnitManager manager)
             {
-                try
-                {
-                    this.BuiltCompilation = manager.CompilationUnit.Build();
-                    this.SourceFiles = manager.FileContentManagers.Keys.ToImmutableHashSet();
-                    this.References = manager.CompilationUnit.Externals.Declarations.Keys.ToImmutableHashSet();
+                this.BuiltCompilation = manager.CompilationUnit.Build();
+                this.SourceFiles = manager.FileContentManagers.Keys.ToImmutableHashSet();
+                this.References = manager.CompilationUnit.Externals.Declarations.Keys.ToImmutableHashSet();
 
-                    this.FileContent = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].GetLines().Select(line => line.Text).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.Tokenization = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.SyntaxTree = this.BuiltCompilation.Namespaces.ToImmutableDictionary(ns => ns.Name);
+                this.FileContent = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].GetLines().Select(line => line.Text).ToImmutableArray()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.Tokenization = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.SyntaxTree = this.BuiltCompilation.Namespaces.ToImmutableDictionary(ns => ns.Name);
 
-                    this.OpenDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
-                        nsName => nsName, 
-                        nsName => manager.CompilationUnit.GetOpenDirectives(nsName));
-                    this.NamespaceDeclarations = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].NamespaceDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
-                    this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
+                this.OpenDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
+                    nsName => nsName,
+                    nsName => manager.CompilationUnit.GetOpenDirectives(nsName));
+                this.NamespaceDeclarations = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].NamespaceDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
+                this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
 
-                    this.ScopeDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CurrentScopeDiagnostics()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.SyntaxDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CurrentSyntaxDiagnostics()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.ContextDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CurrentContextDiagnostics()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.HeaderDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CurrentHeaderDiagnostics()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.SemanticDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CurrentSemanticDiagnostics()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                }
-                catch (Exception ex) { manager.LogException(ex); }
+                this.ScopeDiagnostics = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].CurrentScopeDiagnostics()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.SyntaxDiagnostics = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].CurrentSyntaxDiagnostics()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.ContextDiagnostics = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].CurrentContextDiagnostics()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.HeaderDiagnostics = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].CurrentHeaderDiagnostics()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.SemanticDiagnostics = this.SourceFiles
+                    .Select(file => (file, manager.FileContentManagers[file].CurrentSemanticDiagnostics()))
+                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
             }
         }
     }
