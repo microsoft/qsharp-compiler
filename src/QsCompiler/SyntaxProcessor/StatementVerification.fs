@@ -97,14 +97,17 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         | _ -> []
     let returnError (statement : QsStatement) =
         let range = (QsNullable<_>.Map rangeRelativeToRoot statement.Location).ValueOr QsCompilerDiagnostic.DefaultRange
-        QsCompilerDiagnostic.Error (ErrorCode.ReturnInResultConditionedBlock, [context.ExecutionTarget.Value]) range
+        QsCompilerDiagnostic.Error
+            (ErrorCode.ReturnInResultConditionedBlock, [context.ProcessorArchitecture.Value])
+            range
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
 
     // Diagnostics for variable reassignments.
     let setError (name : NonNullable<string>, location) =
-        QsCompilerDiagnostic.Error (ErrorCode.SetInResultConditionedBlock, [name.Value; context.ExecutionTarget.Value])
-                                   (rangeRelativeToRoot location)
+        QsCompilerDiagnostic.Error
+            (ErrorCode.SetInResultConditionedBlock, [name.Value; context.ProcessorArchitecture.Value])
+            (rangeRelativeToRoot location)
     let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
 
     let blocks =
