@@ -447,14 +447,14 @@ namespace Microsoft.Quantum.QsCompiler
             RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
-            var executionTarget = this.Config.AssemblyConstants?.GetValueOrDefault(ExecutionTarget);
+            var processorArchitecture = this.Config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
                 capabilities: this.Config.RuntimeCapabilities,
                 isExecutable: this.Config.IsExecutable,
-                executionTarget: NonNullable<string>.New(string.IsNullOrWhiteSpace(executionTarget)
+                processorArchitecture: NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture)
                     ? "Unspecified"
-                    : executionTarget));
+                    : processorArchitecture));
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
@@ -871,23 +871,29 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private bool SerializeSyntaxTree(MemoryStream ms)
         {
+            void LogError() => this.LogAndUpdate(
+                ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+
             if (ms == null) throw new ArgumentNullException(nameof(ms));
-            bool ErrorAndReturn()
+            this.CompilationStatus.Serialization = 0;
+            if (this.CompilationOutput == null)
             {
-                this.LogAndUpdate(ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+                LogError();
                 return false;
             }
-            this.CompilationStatus.Serialization = 0;
-            if (this.CompilationOutput == null) ErrorAndReturn();
 
             using var writer = new BsonDataWriter(ms) { CloseOutput = false };
             var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
-            try { Json.Serializer.Serialize(writer, compilation); }
+            try
+            {
+                Json.Serializer.Serialize(writer, compilation);
+            }
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
-                ErrorAndReturn();
+                LogError();
+                return false;
             }
             return true;
         }

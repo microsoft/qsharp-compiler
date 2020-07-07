@@ -742,10 +742,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.IfClause ifCond)
             {
+                var rootPosition = nodes.Current.GetRootPosition();
+
                 // if block
                 var buildClause = BuildStatement(nodes.Current,
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
-                    context, diagnostics);
+                    context.WithinIfCondition, diagnostics);
                 var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
 
                 // elif blocks
@@ -755,7 +757,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     buildClause = BuildStatement(nodes.Current,
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
-                        context, diagnostics);
+                        context.WithinIfCondition, diagnostics);
                     elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
                     proceed = nodes.MoveNext();
                 }
@@ -771,7 +773,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     proceed = nodes.MoveNext();
                 }
 
-                statement = Statements.NewIfStatement(ifBlock, elifBlocks, elseBlock);
+                var (ifStatement, ifDiagnostics) =
+                    Statements.NewIfStatement(context, ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
+                statement = ifStatement;
+                diagnostics.AddRange(ifDiagnostics.Select(item =>
+                {
+                    var (relativeOffset, diagnostic) = item;
+                    var offset = DiagnosticTools.GetAbsolutePosition(rootPosition, relativeOffset);
+                    return Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, offset);
+                }));
                 return true;
             }
             (statement, proceed) = (null, true);
@@ -816,7 +826,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
-                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
+                    diagnostics.AddRange(built.Item2.Select(item =>
+                    {
+                        var (relativeOffset, diagnostic) = item;
+                        var offset = DiagnosticTools.GetAbsolutePosition(nodes.Current.GetRootPosition(), relativeOffset);
+                        return Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, offset);
+                    }));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
@@ -1257,7 +1272,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var context = ScopeContext<Position>.Create(
                         compilation.GlobalSymbols,
                         compilation.RuntimeCapabilities,
-                        compilation.ExecutionTarget,
+                        compilation.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
                         root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);

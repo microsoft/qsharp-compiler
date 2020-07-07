@@ -54,6 +54,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Creates an absolute position by adding the zero-based offset to the relative position.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <param name="offset">A zero-based line and column offset.</param>
+        /// <exception cref="ArgumentException">Thrown if the position line or column is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if offset line or column is negative.</exception>
+        /// <returns>The absolute position.</returns>
+        internal static Position GetAbsolutePosition(Position position, Tuple<int, int> offset)
+        {
+            var (line, column) = offset;
+            return GetAbsolutePosition(position, new QsPositionInfo(line + 1, column + 1));
+        }
+
+        /// <summary>
         /// Given the starting position, convertes the relative range returned by the Q# compiler w.r.t. that starting position into an absolute range as expected by VS.
         /// IMPORTANT: The position returned by the Q# Compiler is (assumed to be) one-based, whereas the given and returned absolute positions are (assumed to be) zero-based!
         /// If the starting position is null, then this routine simply converts the PositionInfo given by the Q# compiler to the Position object that VS expects.
