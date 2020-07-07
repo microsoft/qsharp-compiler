@@ -290,8 +290,8 @@ type ScopeContext<'a> =
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities
-      /// The name of the execution target for the compilation unit.
-      ExecutionTarget : NonNullable<string> }
+      /// The name of the processor architecture for the compilation unit.
+      ProcessorArchitecture : NonNullable<string> }
     with
 
     /// <summary>
@@ -307,7 +307,7 @@ type ScopeContext<'a> =
     /// </exception>
     static member Create (nsManager : NamespaceManager)
                          capabilities
-                         executionTarget
+                         processorArchitecture
                          (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
@@ -315,5 +315,5 @@ type ScopeContext<'a> =
               IsInOperation = declaration.Kind = Operation
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities
-              ExecutionTarget = executionTarget }
+              ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
