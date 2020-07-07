@@ -2,15 +2,14 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
+#nullable enable
 
 // ToDo: Review access modifiers
 
@@ -134,14 +133,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public class CallGraphEdge
+    public sealed class CallGraphEdge
     {
-        public TypeParameterResolutions ParamResolutions;
+        public readonly TypeParameterResolutions ParamResolutions;
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
         /// Strips position info from given resolutions before assigning them to ParamResoluitons
-        /// to ensure that the same type parameters will have the same hash.
+        /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)
@@ -159,7 +158,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(CallGraphEdge edge)
         {
-            return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
+            if (this.ParamResolutions == edge.ParamResolutions)
+            {
+                return true;
+            }
+            else
+            {
+                return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
+            }
         }
 
         /// <summary>
@@ -191,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// point to the node that has the second edge, and so on.
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
-        public static CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
             if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
             if (edges == null || edges.Any(e => e == null)) throw new ArgumentNullException(nameof(edges));
@@ -211,7 +217,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on nodes in a call graph.
     /// The CallableName and Kind are expected to be non-null.
     /// </summary>
-    public class CallGraphNode : IEquatable<CallGraphNode>
+    public sealed class CallGraphNode : IEquatable<CallGraphNode>
     {
         public readonly QsQualifiedName CallableName;
         public readonly QsSpecializationKind Kind;
@@ -230,6 +236,18 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
                 : typeArgs;
         }
+
+        /// <summary>
+        /// Constructor for CallGraphNode objects.
+        /// Strips position info from given type arguments before assigning them to TypeArgs.
+        /// Throws an ArgumentNullException if specialization is null.
+        /// </summary>
+        public CallGraphNode(QsSpecialization specialization) : this(
+            specialization == null ? throw new ArgumentNullException(nameof(specialization)) :
+            specialization.Parent,
+            specialization.Kind,
+            specialization.TypeArguments)
+        { }
 
         public override bool Equals(object obj)
         {
@@ -507,6 +525,23 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
             new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
+        /// <summary>
+        /// Represents an empty dependency for a node.
+        /// </summary>
+        private static readonly ILookup<CallGraphNode, CallGraphEdge> _EmptyDependency =
+            ImmutableArray<KeyValuePair<CallGraphNode, CallGraphEdge>>.Empty
+            .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
+
+        /// <summary>
+        /// A collection of the nodes in the call graph.
+        /// </summary>
+        public ImmutableHashSet<CallGraphNode> Nodes => _Dependencies.Keys.ToImmutableHashSet();
+
+        /// <summary>
+        /// The number of nodes in the call graph.
+        /// </summary>
+        public int Count => _Dependencies.Count;
+
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
@@ -538,9 +573,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Adds a dependency to the call graph using the caller's specialization and
         /// the called specialization's information. All parameters are expected to
         /// be non-null; the QsNullable parameter may take on their associated null value.
-        /// Throws ArgumentNullException if any of the non-nullable arguments are null.
+        /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
+        /// may have the QsNullable.Null value.
         /// </summary>
-        public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
+        internal void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, TypeParameterResolutions typeParamRes)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
@@ -556,15 +592,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// caller's specialization and the called specialization. All parameters are
         /// expected to be non-null; the QsNullable parameters may take on their
         /// associated null value.
-        /// Throws ArgumentNullException if any of the non-nullable arguments are null.
+        /// Throws ArgumentNullException if any of the arguments are null, though callerTypeArgs
+        /// and calledTypeArgs may have the QsNullable.Null value.
         /// </summary>
-        public void AddDependency(
+        internal void AddDependency(
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             TypeParameterResolutions typeParamRes)
         {
-            if (typeParamRes == null) throw new ArgumentNullException(nameof(typeParamRes));
-
             // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
@@ -575,31 +610,41 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Returns all specializations that are used directly within the given caller, whether they are
-        /// called, partially applied, or assigned. Each key in the returned dictionary represents a
-        /// specialization that is used by the caller. Each value in the dictionary is an array of edges
+        /// called, partially applied, or assigned. Each key in the returned lookup represents a
+        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
         /// representing all the different ways the given caller specialization took a dependency on the
         /// specialization represented by the associated key.
         /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty dictionary if the node was found with no dependencies.
-        /// Returns null if the node was not found to be in the graph.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
         /// </summary>
-        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(CallGraphNode callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode callerNode)
         {
-            if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return _Dependencies.GetValueOrDefault(callerSpec, null);
+            if (callerNode == null) throw new ArgumentNullException(nameof(callerNode));
+
+            if (_Dependencies.TryGetValue(callerNode, out var dep))
+            {
+                return dep
+                    .SelectMany(kvp => kvp.Value, Tuple.Create)
+                    .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
+            }
+            else
+            {
+                return _EmptyDependency;
+            }
         }
 
         /// <summary>
         /// Returns all specializations that are used directly within the given caller, whether they are
-        /// called, partially applied, or assigned. Each key in the returned dictionary represents a
-        /// specialization that is used by the caller. Each value in the dictionary is an array of edges
+        /// called, partially applied, or assigned. Each key in the returned lookup represents a
+        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
         /// representing all the different ways the given caller specialization took a dependency on the
         /// specialization represented by the associated key.
         /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty dictionary if the node was found with no dependencies.
-        /// Returns null if the node was not found to be in the graph.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
         /// </summary>
-        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
             return GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
@@ -607,19 +652,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Returns all specializations that are used directly or indirectly within the given caller,
-        /// whether they are called, partially applied, or assigned. Each key in the returned dictionary
-        /// represents a specialization that is used by the caller. Each value in the dictionary is an
-        /// array of edges representing all the different ways the given caller specialization took a
+        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
+        /// represents a specialization that is used by the caller. Each value in the lookup is an
+        /// IEnumerable of edges representing all the different ways the given caller specialization took a
         /// dependency on the specialization represented by the associated key.
         /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty dictionary if the node was found with no dependencies.
-        /// Returns null if the node was not found to be in the graph.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
         /// </summary>
-        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(CallGraphNode callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
 
-            if (!_Dependencies.ContainsKey(callerSpec)) return null;
+            if (!_Dependencies.ContainsKey(callerSpec)) return _EmptyDependency;
 
             var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
@@ -629,7 +674,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     foreach (var (dependent, edges) in next)
                     {
-                        var combinedEdges = edges.Select(e => CallGraphEdge.CombineEdges(dependent, e, edgeFromRoot));
+                        var combinedEdges = edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
@@ -651,20 +696,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             WalkDependencyTree(callerSpec, new CallGraphEdge(TypeParameterResolutions.Empty));
 
-            return accum;
+            return accum
+                .SelectMany(kvp => kvp.Value, Tuple.Create)
+                .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
         }
 
         /// <summary>
         /// Returns all specializations that are used directly or indirectly within the given caller,
-        /// whether they are called, partially applied, or assigned. Each key in the returned dictionary
-        /// represents a specialization that is used by the caller. Each value in the dictionary is an
-        /// array of edges representing all the different ways the given caller specialization took a
+        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
+        /// represents a specialization that is used by the caller. Each value in the lookup is an
+        /// IEnumerable of edges representing all the different ways the given caller specialization took a
         /// dependency on the specialization represented by the associated key.
         /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty dictionary if the node was found with no dependencies.
-        /// Returns null if the node was not found to be in the graph.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
         /// </summary>
-        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(QsSpecialization callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
             return GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
@@ -687,6 +734,16 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
+        }
+
+        /// <summary>
+        /// Returns true if the given node is found in the call graph, false otherwise.
+        /// Throws ArgumentNullException if argument is null.
+        /// </summary>
+        public bool ContainsNode(CallGraphNode node)
+        {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+            return _Dependencies.ContainsKey(node);
         }
     }
 
