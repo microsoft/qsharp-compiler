@@ -169,7 +169,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
         for nameTo in nameToList do
             let expectedNode = strToNode nameTo
-            Assert.True(dependencies.Contains(expectedNode) && dependencies.[expectedNode].Any(),
+            Assert.True(dependencies.Contains(expectedNode),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
     let AssertNotInGraph (givenGraph : CallGraph) name =
@@ -773,16 +773,6 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Separated From Entry Point By Specialization`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 13
 
-        let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
-            let strToNode name =
-                let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-                CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-            let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
-            for nameTo in nameToList do
-                let expectedNode = strToNode nameTo
-                Assert.True(dependencies.Contains(expectedNode) && dependencies.[expectedNode].Any(),
-                    sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
-
         // The generalized methods of asserting dependencies assumes Body nodes, but
         // this relationship is between a Body and an Adjoint specializations, so we
         // will check manually.
@@ -900,12 +890,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        let BarNode =
-            CallGraphNode(
-                { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Bar" },
-                QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-
-        Assert.False(graph.ContainsNode(BarNode), "Expected call graph to not include Bar.")
+        AssertNotInGraph graph "Bar"
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
