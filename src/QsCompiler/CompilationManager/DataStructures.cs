@@ -326,7 +326,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             private readonly Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
+
+            /// <summary>
+            /// Returns the position of the root node that all child node positions are relative to.
+            /// </summary>
             public Position GetRootPosition() => rootPosition.Copy();
+
             public Position GetPositionRelativeToRoot() => relPosition.Copy();
 
             /// <summary>
