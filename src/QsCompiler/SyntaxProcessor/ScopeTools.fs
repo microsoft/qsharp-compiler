@@ -286,6 +286,8 @@ type ScopeContext<'a> =
       Symbols : SymbolTracker<'a>
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+      /// True if the current expression is contained within the condition of an if- or elif-statement.
+      IsInIfCondition : bool
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
@@ -313,7 +315,12 @@ type ScopeContext<'a> =
         | Found declaration ->
             { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
+              IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities
               ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
+
+    /// Returns a new scope context for an expression that is contained within the condition of an if- or
+    /// elif-statement.
+    member this.WithinIfCondition = { this with IsInIfCondition = true }
