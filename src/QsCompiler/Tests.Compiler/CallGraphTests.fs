@@ -785,7 +785,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
 
         let mainDependencies = graph.GetDirectDependencies mainNode
-        Assert.True(mainDependencies.Contains(adjFooNode) && mainDependencies.[adjFooNode].Any(),
+        Assert.True(mainDependencies.Contains(adjFooNode),
             sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo")
 
         [
