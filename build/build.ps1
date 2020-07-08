@@ -43,6 +43,7 @@ function Build-VSCode() {
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension/packages/extension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
+            npm install ../generator-qsharp/
             npm install
             npm run compile
     
