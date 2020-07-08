@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the line and character of the given position as tuple without verifying them.
         /// Throws an ArgumentNullException if the given position is null.
         /// </summary>
-        internal static Tuple<int, int> AsTuple(Position position) => 
+        public static Tuple<int, int> AsTuple(Position position) => 
             position != null 
             ? new Tuple<int, int>(position.Line, position.Character)
             : throw new ArgumentNullException(nameof(position));
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a Position with the line and character given as tuple (inverse function for AsTuple).
         /// Throws an ArgumentNullException if the given tuple is null.
         /// </summary>
-        internal static Position AsPosition(Tuple<int, int> position) =>
+        public static Position AsPosition(Tuple<int, int> position) =>
             position != null
             ? new Position(position.Item1, position.Item2)
             : throw new ArgumentNullException(nameof(position));
@@ -51,6 +51,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             absPos.Line += relativePosition.Line - 1; // fparsec position info is one based
             absPos.Character = relativePosition.Line > 1 ? relativePosition.Column - 1 : absPos.Character + relativePosition.Column - 1; // VS expects zero based positions
             return absPos;
+        }
+
+        /// <summary>
+        /// Creates an absolute position by adding the zero-based offset to the relative position.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <param name="offset">A zero-based line and column offset.</param>
+        /// <exception cref="ArgumentException">Thrown if the position line or column is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if offset line or column is negative.</exception>
+        /// <returns>The absolute position.</returns>
+        internal static Position GetAbsolutePosition(Position position, Tuple<int, int> offset)
+        {
+            var (line, column) = offset;
+            return GetAbsolutePosition(position, new QsPositionInfo(line + 1, column + 1));
         }
 
         /// <summary>

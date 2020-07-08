@@ -17,11 +17,17 @@ function Build-One {
     );
 
     Write-Host "##[info]Building $project ..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
     dotnet build (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
-        /property:Version=$Env:ASSEMBLY_VERSION
+        @args `
+        /property:Version=$Env:ASSEMBLY_VERSION `
+        /property:InformationalVersion=$Env:SEMVER_VERSION
 
     if  ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to build $project."
@@ -70,10 +76,16 @@ function Build-VS() {
             
             if (Get-Command msbuild -ErrorAction SilentlyContinue) {
                 Try {
+                    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+                    }  else {
+                        $args = @();
+                    }
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
-                        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
-                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+                        @args `
+                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
+                        /property:InformationalVersion=$Env:SEMVER_VERSION
     
                     if ($LastExitCode -ne 0) {
                         throw
@@ -115,4 +127,3 @@ if (-not $all_ok) {
 } else {
     exit 0
 } 
-

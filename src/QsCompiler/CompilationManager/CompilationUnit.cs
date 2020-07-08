@@ -44,11 +44,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
+            /// <summary>
+            /// Initializes a set of reference headers based on the given syntax tree loaded from the specified source. 
+            /// The source is expected to be the path to the dll from which the syntax has been loaded. 
+            /// Returns an empty set of headers if the given syntax tree is null. 
+            /// </summary>
+            public Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
                 source.Value, 
-                syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                syntaxTree.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
-                syntaxTree.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
+                syntaxTree?.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
+                syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
+                syntaxTree?.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             { }
 
             internal Headers(NonNullable<string> source, IEnumerable<(string, string)> attributes) : this(
@@ -131,6 +136,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new Headers(source, callables, specializations, types);
         }
 
+        /// <summary>
+        /// Checks whether the given sequence of elements contains multiple items with the same qualified name. 
+        /// Returns a sequence of two strings, with the first one containing the name of the duplication, 
+        /// and the second one listing all sources in which it occurs. 
+        /// Returns null if the given sequence of elements is null. 
+        /// </summary>
+        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName name, NonNullable<string> source, AccessModifier access)> elements) =>
+            elements?.Where(e => Namespace.IsDeclarationAccessible(false, e.access))
+                     .GroupBy(e => e.name)
+                     .Where(g => g.Count() != 1)
+                     .Select(g => (g.Key, String.Join(", ", g.Select(e => e.source.Value))))
+                     .Select(c => ($"{c.Key.Namespace.Value}.{c.Key.Name.Value}", c.Item2));
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
@@ -186,24 +203,60 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             
             if (onError == null) return;
-            var conflictingCallables = this.Declarations.Values
-                .SelectMany(r => r.Callables)
-                .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))
-                .GroupBy(c => c.QualifiedName)
-                .Where(g => g.Count() != 1)
-                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
-            var conflictingTypes = this.Declarations.Values
-                .SelectMany(r => r.Types)
-                .Where(t => Namespace.IsDeclarationAccessible(false, t.Modifiers.Access))
-                .GroupBy(t => t.QualifiedName)
-                .Where(g => g.Count() != 1)
-                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
+            var conflicting = new List<(string, string)>();
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.SourceFile, c.Modifiers.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.SourceFile, t.Modifiers.Access));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
-            foreach (var (name, conflicts) in conflictingCallables.Concat(conflictingTypes).Distinct())
+            foreach (var (name, conflicts) in conflicting.Distinct())
             {
-                var diagArgs = new[] { $"{name.Namespace.Value}.{name.Name.Value}", conflicts };
-                onError?.Invoke(ErrorCode.ConflictInReferences, diagArgs);
+                onError?.Invoke(ErrorCode.ConflictInReferences, new[] { name, conflicts});
             }
+        }
+
+        /// <summary>
+        /// Combines the syntax trees loaded from different source assemblies and combines them into a single syntax tree.
+        /// The first item in the given arguments is expected to contain the id of the source from which the syntax tree was loaded, 
+        /// and the second item is expected to contain the loaded syntax tree. 
+        /// The source file of a declaration in the combined tree will be set to the specified source from which it was loaded, 
+        /// and internal declaration as well as their usages will be renamed to avoid conflicts. 
+        /// </summary>
+        /// <returns>Returns true and the combined syntax tree as out parameter 
+        /// if the given syntax trees do not contain any conflicting declarations and were successfully combined.
+        /// Returns false and an empty array of namespaces as out parameter otherwise.</returns>
+        /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation besides the loaded assemblies.</param>
+        /// <param name="onError">Invoked on the error messages generated when the given syntax trees contain conflicting declarations.</param>
+        /// <param name="loaded">A parameter array of tuples containing the syntax trees to combine 
+        /// as well as the sources from which they were loaded.</param>
+        public static bool CombineSyntaxTrees(out ImmutableArray<QsNamespace> combined, 
+            int additionalAssemblies = 0, Action<ErrorCode, string[]> onError = null, 
+            params (NonNullable<string>, ImmutableArray<QsNamespace>)[] loaded)
+        {
+            combined = ImmutableArray<QsNamespace>.Empty;
+            if (loaded == null) return false;
+
+            var (callables, types) = CompilationUnit.RenameInternalDeclarations(
+                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c =>
+                    c.WithSourceFile(loaded.Item1)
+                    .WithSpecializations(specs => specs.Select(s => s.WithSourceFile(loaded.Item1)).ToImmutableArray()))),
+                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t =>
+                    t.WithSourceFile(loaded.Item1))),
+                additionalAssemblies: additionalAssemblies);
+
+            var conflicting = new List<(string, string)>();
+            var callableElems = callables.Select(c => (c.FullName, c.SourceFile, c.Modifiers.Access));
+            var typeElems = types.Select(t => (t.FullName, t.SourceFile, t.Modifiers.Access));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
+            foreach (var (name, conflicts) in conflicting.Distinct())
+            {
+                onError?.Invoke(ErrorCode.ConflictInReferences, new[] { name, conflicts });
+            }
+
+            if (conflicting.Any()) return false;
+            combined = CompilationUnit.NewSyntaxTree(callables, types);
+            return true;
         }
     }
 
@@ -216,8 +269,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
-        internal static readonly NameDecorator ReferenceDecorator = new NameDecorator("QsReference");
-
         internal References Externals { get; private set; }
         internal NamespaceManager GlobalSymbols { get; private set; }
 
@@ -229,6 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal readonly RuntimeCapabilities RuntimeCapabilities;
         internal readonly bool IsExecutable;
+        internal readonly NonNullable<string> ProcessorArchitecture;
 
         public void Dispose()
         { this.SyncRoot.Dispose(); }
@@ -238,8 +290,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// Throws an ArgumentNullException if any of the given locks is.
         /// </summary>
-        internal CompilationUnit(RuntimeCapabilities capabilities, bool isExecutable,
-            References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
+        internal CompilationUnit(
+            RuntimeCapabilities capabilities,
+            bool isExecutable,
+            NonNullable<string> processorArchitecture,
+            References externals = null,
+            IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.DependentLocks = dependentLocks == null
@@ -249,6 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             this.RuntimeCapabilities = capabilities;
             this.IsExecutable = isExecutable;
+            this.ProcessorArchitecture = processorArchitecture;
 
             this.CompiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.CompiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();
@@ -692,7 +749,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
                 // Rename imported internal declarations by tagging them with their source file to avoid potentially
                 // having duplicate names in the syntax tree.
-                var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
+                var (taggedCallables, taggedTypes) = RenameInternalDeclarations(callables, types, predicate: source => Externals.Declarations.ContainsKey(source));
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
                 return new QsCompilation(tree, entryPoints.ToImmutable());
             }
@@ -794,33 +851,52 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Tags the names of imported internal callables and types with a unique identifier based on the path to their
-        /// assembly, so that they do not conflict with callables and types defined locally. Renames all references to
-        /// the tagged declarations found in the given callables and types.
+        /// Tags the names of internal callables and types that are from a source that satisfies 
+        /// the given predicate with a unique identifier based on the path to their source, 
+        /// so that they do not conflict with public callables and types. 
+        /// If no predicate is specified or the given predicate is null, tags all types and callables.
+        /// Renames all usages to the tagged names.
         /// </summary>
-        /// <param name="callables">The callables to rename and update references in.</param>
-        /// <param name="types">The types to rename and update references in.</param>
-        /// <returns>The tagged callables and types with references renamed everywhere.</returns>
-        private (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
-            TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
+        /// <param name="callables">The callables to rename and update if they are internal.</param>
+        /// <param name="types">The types to rename and update if they are internal.</param>
+        /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation 
+        /// besides the ones listed as sources in the given types and callables.</param>
+        /// <param name="predicate">If specified, only types and callables from a source for which 
+        /// this function returns true are renamed.</param>
+        /// <returns>The renamed and updated callables and types.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the given callables or types are null.</exception>
+        internal static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
+            RenameInternalDeclarations(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types,
+            int additionalAssemblies = 0, Func<NonNullable<string>, bool> predicate = null)
         {
+            if (callables == null) throw new ArgumentNullException(nameof(callables));
+            if (types == null) throw new ArgumentNullException(nameof(types));
+            predicate ??= (_ => true);
+
             // Assign a unique ID to each reference.
+
+            var decorator = new NameDecorator($"QsRef");
             var ids =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
-                .Where(source => Externals.Declarations.ContainsKey(NonNullable<string>.New(source)))
-                .Select((source, index) => (source, index))
-                .ToImmutableDictionary(item => item.source, item => item.index);
+                .Where(source => predicate(NonNullable<string>.New(source)))
+                // this setup will mean that internal declarations won't get replaced with target specific implementations
+                .Select((source, idx) => (source, idx))
+                // we need an id here that is uniquely associated with a source name 
+                // to ensure that internal names are unique even when this is not called on the entire compilation
+                .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
                 group
                 .Where(item =>
                     !Namespace.IsDeclarationAccessible(false, item.access) &&
-                    Externals.Declarations.ContainsKey(NonNullable<string>.New(item.source)))
+                    predicate(NonNullable<string>.New(item.source)))
                 .ToImmutableDictionary(item => item.name,
-                                       item => ReferenceDecorator.Decorate(item.name, ids[item.source]));
+                                       item => decorator.Decorate(item.name, ids[item.source]));
+
+            // rename all internal declarations and their usages
 
             var transformations =
                 callables.Select(callable =>
@@ -833,9 +909,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable));
+                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable))
+                .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type));
+                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type))
+                .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }
     }

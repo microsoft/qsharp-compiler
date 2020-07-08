@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
@@ -10,12 +12,12 @@ using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Replaces if-statements with the corresponding calls to built-in quantum operations if possible. 
+    /// Replaces if-statements with the corresponding calls to built-in quantum operations if possible.
     /// </summary>
     internal class ClassicallyControlled : IRewriteStep
     {
         public string Name => "Classically Controlled";
-        public int Priority => RewriteStepPriorities.ControlFlowSubstitutions; 
+        public int Priority => RewriteStepPriorities.ControlFlowSubstitutions;
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
@@ -30,22 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            var controlNs = compilation.Namespaces
-                .FirstOrDefault(ns => ns.Name.Equals(BuiltIn.ClassicallyControlledNamespace));
-
-            if (controlNs == null)
-            {
-                return false;
-            }
-
-            var providedOperations = new QsNamespace[] { controlNs }
-                .Callables()
-                .Select(c => c.FullName)
-                .ToHashSet();
-            var requiredBuiltIns = new HashSet<QsQualifiedName>()
-            {
-                BuiltIn.NoOp.FullName,
-                
+            var classicallyControlledRequired = ImmutableHashSet.Create(
                 BuiltIn.ApplyIfZero.FullName,
                 BuiltIn.ApplyIfZeroA.FullName,
                 BuiltIn.ApplyIfZeroC.FullName,
@@ -60,9 +47,23 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 BuiltIn.ApplyIfElseRA.FullName,
                 BuiltIn.ApplyIfElseRC.FullName,
                 BuiltIn.ApplyIfElseRCA.FullName
-            };
+            );
 
-            return requiredBuiltIns.IsSubsetOf(providedOperations);
+            if (!CheckForRequired(compilation, BuiltIn.ClassicallyControlledNamespace, classicallyControlledRequired))
+            {
+                return false;
+            }
+
+            var cannonRequired = ImmutableHashSet.Create(
+                BuiltIn.NoOp.FullName
+            );
+
+            if (!CheckForRequired(compilation, BuiltIn.CanonNamespace, cannonRequired))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
@@ -74,6 +75,24 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool PostconditionVerification(QsCompilation compilation)
         {
             throw new System.NotImplementedException();
+        }
+
+        private bool CheckForRequired(QsCompilation compilation, NonNullable<string> namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
+        {
+            var builtInNs = compilation.Namespaces
+                .FirstOrDefault(ns => ns.Name.Equals(namespaceName));
+
+            if (builtInNs == null)
+            {
+                return false;
+            }
+
+            var providedOperations = new QsNamespace[] { builtInNs }
+                .Callables()
+                .Select(c => c.FullName)
+                .ToImmutableHashSet();
+
+            return requiredBuiltIns.IsSubsetOf(providedOperations);
         }
     }
 }

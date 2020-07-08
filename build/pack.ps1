@@ -17,10 +17,15 @@ function Publish-One {
     );
 
     Write-Host "##[info]Publishing $project ..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
     dotnet publish (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+        @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
     if  ($LastExitCode -ne 0) {
@@ -112,15 +117,21 @@ function Pack-SelfContained() {
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
-            $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:ASSEMBLY_VERSION.zip";
+            if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+            }  else {
+                $args = @();
+            }
+            $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:SEMVER_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
                 -v $Env:BUILD_VERBOSITY `
                 --self-contained `
                 --runtime $DotNetRuntimeID `
                 --output $TargetDir `
-                /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
-                /property:Version=$Env:ASSEMBLY_VERSION
+                @args `
+                /property:Version=$Env:ASSEMBLY_VERSION `
+                /property:InformationalVersion=$Env:SEMVER_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
                 -Force `
@@ -176,7 +187,8 @@ function Pack-VS() {
             msbuild QsharpVSIX.csproj `
                 /t:CreateVsixContainer `
                 /property:Configuration=$Env:BUILD_CONFIGURATION `
-                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
+                /property:InformationalVersion=$Env:SEMVER_VERSION
 
             if  ($LastExitCode -ne 0) {
                 throw
@@ -225,4 +237,3 @@ if (-not $all_ok) {
 } else {
     exit 0
 }
-

@@ -10,13 +10,11 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
-using Microsoft.Quantum.QsCompiler.SymbolTracker;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -466,79 +464,81 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines for building statements
 
         /// <summary>
-        /// Builds the QsScope containing the given list of tree nodes, 
-        /// calling BuildStatement for each of them, and using the given symbol tracker to verify and track all symbols. 
-        /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given symbol tacker. 
-        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors. 
-        /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope. 
-        /// Throws an ArgumentNullException if the given list of tree nodes, symbol tracker or diagnostics are null.
+        /// Builds the QsScope containing the given list of tree nodes,
+        /// calling BuildStatement for each of them, and using the given scope context to verify and track all symbols.
+        /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given scope context.
+        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors.
+        /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope.
+        /// Throws an ArgumentNullException if the given list of tree nodes, scope context or diagnostics are null.
         /// </summary>
-        private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, ImmutableHashSet<QsFunctor> requiredFunctorSupport = null)
+        private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent,
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, ImmutableHashSet<QsFunctor> requiredFunctorSupport = null)
         {
             if (nodeContent == null) throw new ArgumentNullException(nameof(nodeContent));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (context == null) throw new ArgumentNullException(nameof(context));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
-            var inheritedSymbols = symbolTracker.CurrentDeclarations;
-            symbolTracker.BeginScope(requiredFunctorSupport);
-            var statements = BuildStatements(nodeContent.GetEnumerator(), symbolTracker, diagnostics);
-            symbolTracker.EndScope();
+            var inheritedSymbols = context.Symbols.CurrentDeclarations;
+            context.Symbols.BeginScope(requiredFunctorSupport);
+            var statements = BuildStatements(nodeContent.GetEnumerator(), context, diagnostics);
+            context.Symbols.EndScope();
             return new QsScope(statements, inheritedSymbols);
         }
 
         /// <summary>
-        /// Applies the given build function to the position relative to the tree root and the given symbol tracker 
+        /// Applies the given build function to the position relative to the tree root and the given scope context
         /// to get the desired object as well as a list of diagnostics.
         /// Adds the generated diagnostics to the given list of diagnostics, and returns the build object.
-        /// Throws an ArgumentNullException if the given build function, symbolTracker, or diagnostics are null.
         /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if the given build function, scope context, or diagnostics are null.
+        /// </exception>
         private static T BuildStatement<T>(FragmentTree.TreeNode node, 
-            Func<QsLocation, SymbolTracker<Position>,Tuple<T, QsCompilerDiagnostic[]>> build, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+            Func<QsLocation, ScopeContext<Position>, Tuple<T, QsCompilerDiagnostic[]>> build,
+            ScopeContext<Position> context, List<Diagnostic> diagnostics)
         {
             if (build == null) throw new ArgumentNullException(nameof(build));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (context == null) throw new ArgumentNullException(nameof(context));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             var statementPos = node.Fragment.GetRange().Start;
             var location = new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange);
-            var (statement, messages) = build(location, symbolTracker);
-            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(symbolTracker.SourceFile.Value, msg, statementPos)));
+            var (statement, messages) = build(location, context);
+            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
             return statement;
         }
 
         /// <summary>
         /// If the current tree node of the given iterator is a using-block intro,
-        /// builds the corresponding using-statement updating the given symbolTracker in the process,
+        /// builds the corresponding using-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildUsingStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.UsingBlockIntro allocate)
             {
-                symbolTracker.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
+                context.Symbols.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
                 var allocationScope = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewAllocateScope(nodes.Current.Fragment.Comments, relPos, symbols, allocate.Item1, allocate.Item2), 
-                    symbolTracker, diagnostics);
-                var body = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewAllocateScope(nodes.Current.Fragment.Comments, relPos, ctx, allocate.Item1, allocate.Item2), 
+                    context, diagnostics);
+                var body = BuildScope(nodes.Current.Children, context, diagnostics);
                 statement = allocationScope(body);
-                symbolTracker.EndScope();
+                context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -548,35 +548,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a borrowing-block intro,
-        /// builds the corresponding borrowing-statement updating the given symbolTracker in the process,
+        /// builds the corresponding borrowing-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildBorrowStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.BorrowingBlockIntro borrow)
             {
-                symbolTracker.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
+                context.Symbols.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
                 var borrowingScope = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewBorrowScope(nodes.Current.Fragment.Comments, relPos, symbols, borrow.Item1, borrow.Item2),
-                    symbolTracker, diagnostics);
-                var body = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewBorrowScope(nodes.Current.Fragment.Comments, relPos, ctx, borrow.Item1, borrow.Item2),
+                    context, diagnostics);
+                var body = BuildScope(nodes.Current.Children, context, diagnostics);
                 statement = borrowingScope(body);
-                symbolTracker.EndScope();
+                context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -586,53 +586,53 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a repeat-until-success (RUS) intro,
-        /// builds the corresponding RUS-statement updating the given symbolTracker in the process,
+        /// builds the corresponding RUS-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope,
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope,
         /// or if the repeat header is not followed by a until-success clause.
         /// </summary>
         private static bool TryBuildRepeatStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind.IsRepeatIntro)
             {
-                symbolTracker.BeginScope();
+                context.Symbols.BeginScope();
                 var headerNode = nodes.Current;
-                var inheritedSymbols = symbolTracker.CurrentDeclarations;
-                var repeatBody = new QsScope(BuildStatements(nodes.Current.Children.GetEnumerator(), symbolTracker, diagnostics), inheritedSymbols);
+                var inheritedSymbols = context.Symbols.CurrentDeclarations;
+                var repeatBody = new QsScope(BuildStatements(nodes.Current.Children.GetEnumerator(), context, diagnostics), inheritedSymbols);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind is QsFragmentKind.UntilSuccess untilCond)
                 {
-                    inheritedSymbols = symbolTracker.CurrentDeclarations;
+                    inheritedSymbols = context.Symbols.CurrentDeclarations;
                     var conditionalBlock = BuildStatement(nodes.Current,
-                        (relPos, symbols) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, symbols, untilCond.Item1),
-                        symbolTracker, diagnostics);
+                        (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, untilCond.Item1),
+                        context, diagnostics);
                     var fixupBody = untilCond.Item2 
-                        ? new QsScope(BuildStatements(nodes.Current.Children.GetEnumerator(), symbolTracker, diagnostics), inheritedSymbols)
+                        ? new QsScope(BuildStatements(nodes.Current.Children.GetEnumerator(), context, diagnostics), inheritedSymbols)
                         : new QsScope(ImmutableArray<QsStatement>.Empty, inheritedSymbols);
                     var (successCondition, fixupBlock) = conditionalBlock(fixupBody); // here, condition = true implies the block is *not* executed
-                    symbolTracker.EndScope();
+                    context.Symbols.EndScope();
 
                     statement = BuildStatement(headerNode,
-                        (relPos, symbols) =>
+                        (relPos, ctx) =>
                         {
                             var repeatBlock = new QsPositionedBlock(repeatBody, QsNullable<QsLocation>.NewValue(relPos), headerNode.Fragment.Comments); 
-                            return Statements.NewRepeatStatement(symbols, repeatBlock, successCondition, fixupBlock);
-                        }
-                        , symbolTracker, diagnostics);
+                            return Statements.NewRepeatStatement(ctx.Symbols, repeatBlock, successCondition, fixupBlock);
+                        },
+                        context, diagnostics);
                     proceed = nodes.MoveNext();
                     return true;
                 }
@@ -644,35 +644,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a for-loop intro,
-        /// builds the corresponding for-statement updating the given symbolTracker in the process,
+        /// builds the corresponding for-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildForStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.ForLoopIntro forStatement)
             {
-                symbolTracker.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
+                context.Symbols.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
                 var forLoop = BuildStatement(nodes.Current,
                     (relPos, symbols) => Statements.NewForStatement(nodes.Current.Fragment.Comments, relPos, symbols, forStatement.Item1, forStatement.Item2),
-                    symbolTracker, diagnostics);
-                var body = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    context, diagnostics);
+                var body = BuildScope(nodes.Current.Children, context, diagnostics);
                 statement = forLoop(body);
-                symbolTracker.EndScope();
+                context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -682,35 +682,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a while-loop intro,
-        /// builds the corresponding while-statement updating the given symbolTracker in the process,
+        /// builds the corresponding while-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildWhileStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.WhileLoopIntro whileStatement)
             {
-                symbolTracker.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
+                context.Symbols.BeginScope(); // pushing a scope such that the declared variables are not available outside the body
                 var whileLoop = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewWhileStatement(nodes.Current.Fragment.Comments, relPos, symbols, whileStatement.Item),
-                    symbolTracker, diagnostics);
-                var body = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewWhileStatement(nodes.Current.Fragment.Comments, relPos, ctx, whileStatement.Item),
+                    context, diagnostics);
+                var body = BuildScope(nodes.Current.Children, context, diagnostics);
                 statement = whileLoop(body);
-                symbolTracker.EndScope();
+                context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -720,33 +720,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is an if-statement into,
-        /// builds the corresponding if-statement updating the given symbolTracker in the process,
+        /// builds the corresponding if-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildIfStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.IfClause ifCond)
             {
+                var rootPosition = nodes.Current.GetRootPosition();
+
                 // if block
                 var buildClause = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, symbols, ifCond.Item),
-                    symbolTracker, diagnostics);
-                var ifBlock = buildClause(BuildScope(nodes.Current.Children, symbolTracker, diagnostics));
+                    (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
+                    context.WithinIfCondition, diagnostics);
+                var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
 
                 // elif blocks
                 proceed = nodes.MoveNext();
@@ -754,9 +756,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 while (proceed && nodes.Current.Fragment.Kind is QsFragmentKind.ElifClause elifCond)
                 {
                     buildClause = BuildStatement(nodes.Current,
-                        (relPos, symbols) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, symbols, elifCond.Item),
-                        symbolTracker, diagnostics);
-                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, symbolTracker, diagnostics)));
+                        (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
+                        context.WithinIfCondition, diagnostics);
+                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
                     proceed = nodes.MoveNext();
                 }
 
@@ -764,14 +766,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = QsNullable<QsPositionedBlock>.Null;
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
-                    var scope = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    var scope = BuildScope(nodes.Current.Children, context, diagnostics);
                     var elseLocation = new QsLocation(DiagnosticTools.AsTuple(nodes.Current.GetPositionRelativeToRoot()), nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
                     proceed = nodes.MoveNext();
                 }
 
-                statement = Statements.NewIfStatement(ifBlock, elifBlocks, elseBlock);
+                var (ifStatement, ifDiagnostics) =
+                    Statements.NewIfStatement(context, ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
+                statement = ifStatement;
+                diagnostics.AddRange(ifDiagnostics.Select(item =>
+                {
+                    var (relativeOffset, diagnostic) = item;
+                    var offset = DiagnosticTools.GetAbsolutePosition(rootPosition, relativeOffset);
+                    return Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, offset);
+                }));
                 return true;
             }
             (statement, proceed) = (null, true);
@@ -780,24 +790,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a within-block intro,
-        /// builds the corresponding conjugation updating the given symbolTracker in the process,
+        /// builds the corresponding conjugation updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildConjugationStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
@@ -808,15 +818,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
                 // independent on what functor specializations need to be auto-generated for the containing operation.
                 var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
-                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, requiredFunctorSupport);
+                var outerTranformation = BuildScope(nodes.Current.Children, context, diagnostics, requiredFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
-                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
-                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(symbolTracker.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
+                    diagnostics.AddRange(built.Item2.Select(item =>
+                    {
+                        var (relativeOffset, diagnostic) = item;
+                        var offset = DiagnosticTools.GetAbsolutePosition(nodes.Current.GetRootPosition(), relativeOffset);
+                        return Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, offset);
+                    }));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
@@ -830,31 +845,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a let-statement,
-        /// builds the corresponding let-statement updating the given symbolTracker in the process,
+        /// builds the corresponding let-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildLetStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.ImmutableBinding letStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewImmutableBinding(nodes.Current.Fragment.Comments, relPos, symbols, letStatement.Item1, letStatement.Item2),
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewImmutableBinding(nodes.Current.Fragment.Comments, relPos, ctx, letStatement.Item1, letStatement.Item2),
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -864,31 +879,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a mutable-statement,
-        /// builds the corresponding mutable-statement updating the given symbolTracker in the process,
+        /// builds the corresponding mutable-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildMutableStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.MutableBinding mutableStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewMutableBinding(nodes.Current.Fragment.Comments, relPos, symbols, mutableStatement.Item1, mutableStatement.Item2),
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewMutableBinding(nodes.Current.Fragment.Comments, relPos, ctx, mutableStatement.Item1, mutableStatement.Item2),
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -898,31 +913,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a set-statement,
-        /// builds the corresponding set-statement updating the given symbolTracker in the process,
+        /// builds the corresponding set-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildSetStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.ValueUpdate setStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewValueUpdate(nodes.Current.Fragment.Comments, relPos, symbols, setStatement.Item1, setStatement.Item2),
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewValueUpdate(nodes.Current.Fragment.Comments, relPos, ctx, setStatement.Item1, setStatement.Item2),
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -932,31 +947,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a fail-statement,
-        /// builds the corresponding fail-statement updating the given symbolTracker in the process,
+        /// builds the corresponding fail-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildFailStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.FailStatement failStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewFailStatement(nodes.Current.Fragment.Comments, relPos, symbols, failStatement.Item), 
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewFailStatement(nodes.Current.Fragment.Comments, relPos, ctx, failStatement.Item), 
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -966,31 +981,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is a return-statement,
-        /// builds the corresponding return-statement updating the given symbolTracker in the process,
+        /// builds the corresponding return-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildReturnStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.ReturnStatement returnStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewReturnStatement(nodes.Current.Fragment.Comments, relPos, symbols, returnStatement.Item),
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewReturnStatement(nodes.Current.Fragment.Comments, relPos, ctx, returnStatement.Item),
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -1000,31 +1015,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If the current tree node of the given iterator is an expression-statement,
-        /// builds the corresponding expression-statement updating the given symbolTracker in the process,
+        /// builds the corresponding expression-statement updating the given scope context in the process,
         /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Adds the diagnostics generated during the building to the given list of diagnostics.
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise. 
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
-        /// or if the last MoveNext() returned true, and is otherwise set to false.  
-        /// This routine will fail if accessing the current iterator item fails. 
+        /// Sets the out parameter to null and returns false otherwise.
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
+        /// or if the last MoveNext() returned true, and is otherwise set to false.
+        /// This routine will fail if accessing the current iterator item fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
-        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
         private static bool TryBuildExpressionStatement(IEnumerator<FragmentTree.TreeNode> nodes,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+            ScopeContext<Position> context, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.ExpressionStatement expressionStatement)
             {
                 statement = BuildStatement(nodes.Current,
-                    (relPos, symbols) => Statements.NewExpressionStatement(nodes.Current.Fragment.Comments, relPos, symbols, expressionStatement.Item),
-                    symbolTracker, diagnostics);
+                    (relPos, ctx) => Statements.NewExpressionStatement(nodes.Current.Fragment.Comments, relPos, ctx, expressionStatement.Item),
+                    context, diagnostics);
                 proceed = nodes.MoveNext();
                 return true;
             }
@@ -1033,20 +1048,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a sequence of tree nodes, builds the corrsponding array of Q# statements (ignoring invalid fragments) 
-        /// using and updating the given symbol tracker and adding the generated diagnostics to the given list of diagnostics, 
-        /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any. 
-        /// Throws an ArgumentException if this is not the case, 
-        /// or if the given symbol tracker does not currently contain an open scope.
+        /// Given a sequence of tree nodes, builds the corrsponding array of Q# statements (ignoring invalid fragments)
+        /// using and updating the given scope context and adding the generated diagnostics to the given list of diagnostics,
+        /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
+        /// Throws an ArgumentException if this is not the case,
+        /// or if the given scope context does not currently contain an open scope.
         /// Throws an ArgumentNullException if any of the given arguments is null,
         /// or if any of the fragments contained in the given nodes is null.
         /// </summary>
-        private static ImmutableArray<QsStatement> BuildStatements(IEnumerator<FragmentTree.TreeNode> nodes, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+        private static ImmutableArray<QsStatement> BuildStatements(
+            IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext<Position> context, List<Diagnostic> diagnostics)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
-            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (context.Symbols.AllScopesClosed) throw new ArgumentException("invalid scope context state - statements may only occur within a scope");
             if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
 
             var proceed = nodes.MoveNext();
@@ -1056,43 +1071,43 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (nodes.Current.Fragment?.Kind == null)
                 { throw new ArgumentNullException(nameof(nodes.Current.Fragment), "fragment kind cannot be null"); }
 
-                else if (TryBuildExpressionStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement expressionStatement))
+                else if (TryBuildExpressionStatement(nodes, context, diagnostics, out proceed, out QsStatement expressionStatement))
                 { statements.Add(expressionStatement); }
 
-                else if (TryBuildLetStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement letStatement))
+                else if (TryBuildLetStatement(nodes, context, diagnostics, out proceed, out QsStatement letStatement))
                 { statements.Add(letStatement); }
 
-                else if (TryBuildMutableStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement mutableStatement))
+                else if (TryBuildMutableStatement(nodes, context, diagnostics, out proceed, out QsStatement mutableStatement))
                 { statements.Add(mutableStatement); }
 
-                else if (TryBuildSetStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement setStatement))
+                else if (TryBuildSetStatement(nodes, context, diagnostics, out proceed, out QsStatement setStatement))
                 { statements.Add(setStatement); }
 
-                else if (TryBuildFailStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement failStatement))
+                else if (TryBuildFailStatement(nodes, context, diagnostics, out proceed, out QsStatement failStatement))
                 { statements.Add(failStatement); }
 
-                else if (TryBuildReturnStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement returnStatement))
+                else if (TryBuildReturnStatement(nodes, context, diagnostics, out proceed, out QsStatement returnStatement))
                 { statements.Add(returnStatement); }
 
-                else if (TryBuildForStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement forStatement))
+                else if (TryBuildForStatement(nodes, context, diagnostics, out proceed, out QsStatement forStatement))
                 { statements.Add(forStatement); }
 
-                else if (TryBuildWhileStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement whileStatement))
+                else if (TryBuildWhileStatement(nodes, context, diagnostics, out proceed, out QsStatement whileStatement))
                 { statements.Add(whileStatement); }
 
-                else if (TryBuildIfStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement ifStatement))
+                else if (TryBuildIfStatement(nodes, context, diagnostics, out proceed, out QsStatement ifStatement))
                 { statements.Add(ifStatement); }
 
-                else if (TryBuildRepeatStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement repeatStatement))
+                else if (TryBuildRepeatStatement(nodes, context, diagnostics, out proceed, out QsStatement repeatStatement))
                 { statements.Add(repeatStatement); }
 
-                else if (TryBuildConjugationStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugationStatement))
+                else if (TryBuildConjugationStatement(nodes, context, diagnostics, out proceed, out QsStatement conjugationStatement))
                 { statements.Add(conjugationStatement); }
 
-                else if (TryBuildBorrowStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement borrowingStatement))
+                else if (TryBuildBorrowStatement(nodes, context, diagnostics, out proceed, out QsStatement borrowingStatement))
                 { statements.Add(borrowingStatement); }
 
-                else if (TryBuildUsingStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement usingStatement))
+                else if (TryBuildUsingStatement(nodes, context, diagnostics, out proceed, out QsStatement usingStatement))
                 { statements.Add(usingStatement); }
 
                 else if (nodes.Current.Fragment.Kind.IsInvalidFragment)
@@ -1106,21 +1121,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Builds the user defined implementation based on the (children of the) given specialization root. 
         /// The implementation takes the given argument tuple as argument and needs to support auto-generation for the specified set of functors.
-        /// Uses the given SymbolTracker to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
+        /// Uses the given scope context to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information 
         /// for argument variables defined in the callable declaration). 
         /// If the expected return type for the specialization is not Unit, verifies that all paths return a value or fail, generating suitable diagnostics. 
         /// Adds the generated diagnostics to the given list of diagnostics.
-        /// Throws an ArgumentNullException if the given argument, the symbol tracker, or diagnostics are null. 
+        /// Throws an ArgumentNullException if the given argument, the scope context, or diagnostics are null. 
         /// </summary>
         private static SpecializationImplementation BuildUserDefinedImplementation(
-            FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
+            FragmentTree.TreeNode root,
+            NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+            ScopeContext<Position> context,
+            List<Diagnostic> diagnostics)
         {
             if (argTuple == null) throw new ArgumentNullException(nameof(argTuple));
-            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (context == null) throw new ArgumentNullException(nameof(context));
             if (requiredFunctorSupport == null) throw new ArgumentNullException(nameof(requiredFunctorSupport));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
@@ -1129,27 +1146,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> the position information is set to null (only) for variables defined in the declaration 
             var (variablesOnDeclation, variablesOnSpecialization) = SyntaxGenerator.ExtractItems(argTuple).Partition(decl => decl.Position.IsNull);
 
-            symbolTracker.BeginScope(requiredFunctorSupport);
+            context.Symbols.BeginScope(requiredFunctorSupport);
             foreach (var decl in variablesOnDeclation)
-            { symbolTracker.TryAddVariableDeclartion(decl); }
+            {
+                context.Symbols.TryAddVariableDeclartion(decl);
+            }
 
             var specPos = root.Fragment.GetRange().Start;
             foreach (var decl in variablesOnSpecialization)
             {
-                var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2;
+                var msgs = context.Symbols.TryAddVariableDeclartion(decl).Item2;
                 var position = specPos.Add(DiagnosticTools.AsPosition(decl.Position.Item));
                 diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, position)));
             }
 
-            var implementation = BuildScope(root.Children, symbolTracker, diagnostics);
-            symbolTracker.EndScope();
+            var implementation = BuildScope(root.Children, context, diagnostics);
+            context.Symbols.EndScope();
 
             // verify that all paths return a value if needed (or fail)
             var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var rootPosition = root.Fragment.GetRange().Start;
             Position AsAbsolutePosition(Tuple<int, int> statementPos) => rootPosition.Add(DiagnosticTools.AsPosition(statementPos));
             diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(sourceFile.Value, msg.Item2, AsAbsolutePosition(msg.Item1))));
-            if (!(symbolTracker.ExpectedReturnType.Resolution.IsUnitType || symbolTracker.ExpectedReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind.IsControlledAdjointDeclaration ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
@@ -1205,21 +1224,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// provided the children are exclusively valid statements. Fails with the corresponding exception otherwise.  
         /// Adds the generated diagnostics to the given list of diagnostics. 
         /// Throws an ArgumentNullException if the parent signature, its argument tuple, 
-        /// the NamespaceManager containing all global declarations, or the given list of diagnostics is null. 
+        /// the compilation unit, or the given list of diagnostics is null. 
         /// Throws an ArgumentException if the given root is neither a specialization declaration, nor a callable declaration,
         /// or if the callable the specialization belongs to does not support that specialization according to the given NamespaceManager.
         /// </summary>
-        private static ImmutableArray<QsSpecialization> BuildSpecializations
-            (FragmentTree specsRoot, ResolvedSignature parentSignature, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
-            NamespaceManager symbols, List<Diagnostic> diagnostics, CancellationToken cancellationToken)
+        private static ImmutableArray<QsSpecialization> BuildSpecializations(
+            FragmentTree specsRoot,
+            ResolvedSignature parentSignature,
+            QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            CompilationUnit compilation,
+            List<Diagnostic> diagnostics,
+            CancellationToken cancellationToken)
         {
             if (parentSignature == null) throw new ArgumentNullException(nameof(parentSignature));
             if (argTuple == null) throw new ArgumentNullException(nameof(argTuple));
-            if (symbols == null) throw new ArgumentNullException(nameof(symbols));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             if (cancellationToken.IsCancellationRequested) return ImmutableArray<QsSpecialization>.Empty;
-            var definedSpecs = symbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable))
+            var definedSpecs = compilation.GlobalSymbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable))
                 .ToLookup(s => s.Item2.Kind).ToImmutableDictionary(
                     specs => specs.Key, 
                     specs => QsCompilerError.RaiseOnFailure(specs.Single, "more than one specialization of the same kind exists")); // currently not supported
@@ -1235,8 +1258,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!definedSpecs.TryGetValue(kind, out var defined))
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 var (directive, spec) = defined;
-
-                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
@@ -1248,8 +1269,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
-                    implementation = BuildUserDefinedImplementation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
-                    QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
+                    var context = ScopeContext<Position>.Create(
+                        compilation.GlobalSymbols,
+                        compilation.RuntimeCapabilities,
+                        compilation.ProcessorArchitecture,
+                        spec);
+                    implementation = BuildUserDefinedImplementation(
+                        root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
+                    QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
                 return GetSpecialization(spec, signature, implementation, comments); 
@@ -1369,7 +1396,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (KeyValuePair<QsQualifiedName, (QsComments, FragmentTree)> specsRoot)
                 {
                     var info = callableDeclarations[specsRoot.Key];
-                    var specs = BuildSpecializations(specsRoot.Value.Item2, info.Signature, info.ArgumentTuple, compilation.GlobalSymbols, diagnostics, cancellationToken);
+                    var specs = BuildSpecializations(specsRoot.Value.Item2, info.Signature, info.ArgumentTuple, compilation, diagnostics, cancellationToken);
                     return (specsRoot.Key, specs); 
                 }
 

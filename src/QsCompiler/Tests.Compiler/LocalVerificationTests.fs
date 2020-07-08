@@ -10,15 +10,14 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Xunit.Abstractions
 
 
-type LocalVerificationTests (output:ITestOutputHelper) =
+type LocalVerificationTests () =
     inherit CompilerTests(
-        CompilerTests.Compile "TestCases" [
+        CompilerTests.Compile ("TestCases", [
             "General.qs"; "LocalVerification.qs"; "Types.qs"; 
             Path.Combine ("LinkingTests", "Core.qs");
-        ] [], output)
+        ]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
@@ -86,6 +85,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ApplyAndReassign8"   [Error ErrorCode.UpdateOfImmutableIdentifier]
         this.Expect "ApplyAndReassign9"   [Error ErrorCode.UpdateOfArrayItemExpr]
         this.Expect "ApplyAndReassign10"  [Error ErrorCode.UpdateOfArrayItemExpr]
+        this.Expect "ApplyAndReassign11"  [Error ErrorCode.InvalidUseOfReservedKeyword]
 
 
     [<Fact>]

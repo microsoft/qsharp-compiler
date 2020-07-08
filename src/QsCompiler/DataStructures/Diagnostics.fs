@@ -166,6 +166,10 @@ type ErrorCode =
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
+    | UnsupportedResultComparison = 5023
+    | ResultComparisonNotInOperationIf = 5024
+    | ReturnInResultConditionedBlock = 5025
+    | SetInResultConditionedBlock = 5026
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -283,12 +287,11 @@ type ErrorCode =
     | TypeLoadExceptionInCompilerPlugin = 7016
     | CouldNotLoadCompilerPlugin = 7017
     | CouldNotInstantiateRewriteStep = 7018
-    | CouldNotFindTargetPackage = 7019
-    | CouldNotFindTargetPackageAssembly = 7020
-    | InvalidTargetPackageAssemblyPath = 7021
-    | FailedToLoadTargetPackageAssembly = 7022
-    | UnexpectedCompilerException = 7023
-    | InvalidCommandLineArgsInResponseFiles = 7024
+    | InvalidPathToTargetSpecificDecompositions = 7019
+    | FailedToLoadTargetSpecificDecompositions = 7020
+    | ConflictsInTargetSpecificDecompositions = 7021
+    | UnexpectedCompilerException = 7022
+    | InvalidCommandLineArgsInResponseFiles = 7023
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -544,7 +547,19 @@ type DiagnosticItem =
             | ErrorCode.ExpectingIterableExpr                     -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
-                                                            
+            // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
+            //       comparison error messages.
+            | ErrorCode.UnsupportedResultComparison               -> "The target {0} does not support comparing measurement results."
+            | ErrorCode.ResultComparisonNotInOperationIf          ->
+                "Measurement results cannot be compared here. " +
+                "The execution target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+            | ErrorCode.ReturnInResultConditionedBlock            ->
+                "A return statement cannot be used here. " +
+                "The execution target {0} does not support return statements in conditional blocks that depend on a measurement result."
+            | ErrorCode.SetInResultConditionedBlock               ->
+                "The variable \"{0}\" cannot be reassigned here. " +
+                "In conditional blocks that depend on a measurement result, the execution target {1} only supports reassigning variables that were declared within the block."
+
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
             | ErrorCode.TypeRedefinition                          -> "Invalid type declaration. A type with the name \"{0}\" already exists."
@@ -661,10 +676,9 @@ type DiagnosticItem =
             | ErrorCode.TypeLoadExceptionInCompilerPlugin         -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. Unable to load one or more of the requested types."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
             | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
-            | ErrorCode.CouldNotFindTargetPackage                 -> "Could not find the directory \"{0}\" containing target specific information."
-            | ErrorCode.CouldNotFindTargetPackageAssembly         -> "Could not find the assembly specifying target specific implementations within the target package \"{0}\"."
-            | ErrorCode.InvalidTargetPackageAssemblyPath          -> "Could not find the file \"{0}\" that specifies target specific implementations."
-            | ErrorCode.FailedToLoadTargetPackageAssembly         -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.InvalidPathToTargetSpecificDecompositions -> "Could not find the file \"{0}\" that specifies target specific implementations."
+            | ErrorCode.FailedToLoadTargetSpecificDecompositions  -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.ConflictsInTargetSpecificDecompositions   -> "The specified assemblies containing target specific decompositions contain conflicting declarations."
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
             | ErrorCode.InvalidCommandLineArgsInResponseFiles     -> "Invalid command line arguments in response file(s)."
                                                                   

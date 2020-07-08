@@ -27,12 +27,12 @@
   <!-- Target used to verify that the specified ExecutionTarget is valid. -->
   <Target Name="VerifyExecutionTarget" BeforeTargets="QsharpCompile">
     <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
-    <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
+    <Error Condition = "'$(ResolvedProcessorArchitecture)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
   </Target>
 
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
-  <Target Name="QsharpClean" DependsOnTargets="Restore" BeforeTargets="Clean">
+  <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(_FilesToClean)**/*.g.cs" />
@@ -75,13 +75,14 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
-      <_QscCommandTargetPackageFlag Condition="'$(ResolvedTargetPackage)' != ''">--target-package "$(ResolvedTargetPackage)"</_QscCommandTargetPackageFlag>
+      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget) ResolvedQsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties>ProcessorArchitecture:$(ResolvedProcessorArchitecture) QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(ExecutionTarget) != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
 

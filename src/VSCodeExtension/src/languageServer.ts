@@ -213,8 +213,8 @@ export class LanguageServer {
         if (info === undefined || info === null) {
             throw new Error("Package info was undefined.");
         }
-        if (versionCheck && info.assemblyVersion !== version) {
-            console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
+        if (versionCheck && info.version !== version) {
+            console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.version}. Clearing cached version.`);
             await this.clearCache();
             return false;
         }

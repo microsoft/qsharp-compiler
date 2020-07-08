@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
@@ -78,16 +79,16 @@ let private buildSyntaxTree code =
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
     let mutable syntaxTree = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
     CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
-    syntaxTree.Namespaces
+    syntaxTree
 
 
 //////////////////////////////// tests //////////////////////////////////
 
 [<Fact>]
 let ``basic walk`` () = 
-    let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
+    let compilation = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
-    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
+    compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -95,12 +96,13 @@ let ``basic walk`` () =
     Assert.Equal (7, walker.Counter.forCount)
     Assert.Equal (6, walker.Counter.ifsCount)
     Assert.Equal (20, walker.Counter.callsCount)
+
 
 [<Fact>]
 let ``basic transformation`` () = 
-    let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
+    let compilation = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter()
-    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
+    compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -109,14 +111,60 @@ let ``basic transformation`` () =
     Assert.Equal (6, walker.Counter.ifsCount)
     Assert.Equal (20, walker.Counter.callsCount)
 
+
+[<Fact>]
+let ``attaching attributes to callables`` () = 
+    let WithinNamespace nsName (c : QsNamespaceElement) = c.GetFullName().Namespace.Value = nsName
+    let attGenNs = "Microsoft.Quantum.Testing.AttributeGeneration"
+    let predicate = QsCallable >> WithinNamespace attGenNs
+    let sources = [
+        Path.Combine(Path.GetFullPath ".", "TestCases", "LinkingTests", "Core.qs")
+        Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs")
+    ]
+    let compilation = sources |> Seq.map File.ReadAllText |> String.Concat |> buildSyntaxTree
+    let testAttribute = AttributeUtils.BuildAttribute(BuiltIn.Test.FullName, AttributeUtils.StringArgument "QuantumSimulator")
+
+    let checkSpec (spec : QsSpecialization) = Assert.Empty spec.Attributes; spec
+    let checkType (customType : QsCustomType) = 
+        if customType |> QsCustomType |> WithinNamespace attGenNs then Assert.Empty customType.Attributes;
+        customType
+    let checkCallable limitedToNs nrAtts (callable : QsCallable) = 
+        if limitedToNs = null || callable |> QsCallable |> WithinNamespace limitedToNs then 
+            Assert.Equal(nrAtts, callable.Attributes.Length)
+            for att in callable.Attributes do
+                Assert.Equal(testAttribute, att)
+        else Assert.Empty callable.Attributes
+        callable
+
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, predicate)
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
+    checker.OnCompilation transformed |> ignore
+
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, null)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
+    checker.OnCompilation transformed |> ignore
+
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
+    checker.OnCompilation transformed |> ignore
+
+    let transformed = AttributeUtils.AddToCallables(compilation, struct (testAttribute, new Func<_,_>(predicate)), struct(testAttribute, new Func<_,_>(predicate)))
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
+    checker.OnCompilation transformed |> ignore
+    
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, testAttribute)
+    let checker = new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
+    checker.OnCompilation transformed |> ignore
+    
+
 [<Fact>]
 let ``generation of open statements`` () = 
-    let tree = buildSyntaxTree @"
+    let compilation = buildSyntaxTree @"
         namespace Microsoft.Quantum.Testing {
             operation emptyOperation () : Unit {}
         }"
 
-    let ns = tree |> Seq.head
+    let ns = compilation.Namespaces |> Seq.head
     let source = ns.Elements.Single() |> function
         | QsCallable callable -> callable.SourceFile
         | QsCustomType t -> t.SourceFile
@@ -133,7 +181,7 @@ let ``generation of open statements`` () =
     let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
 
     let codeOutput = ref null
-    SyntaxTreeToQsharp.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
+    SyntaxTreeToQsharp.Apply (codeOutput, compilation.Namespaces, struct (source, imports)) |> Assert.True
     let lines = Utils.SplitLines (codeOutput.Value.Single().[ns.Name])
     Assert.Equal(13, lines.Count())
 

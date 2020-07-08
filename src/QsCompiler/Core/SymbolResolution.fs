@@ -433,6 +433,7 @@ module SymbolResolution =
     /// or if the resolved argument type does not match the expected argument type.
     /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier
     /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
+    /// Throws an ArgumentException if a tuple-valued attribute argument does not contain at least one item.
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
@@ -460,7 +461,9 @@ module SymbolResolution =
             | StringLiteral (s, exs) ->
                 if exs.Length <> 0 then invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
                 else (StringLiteral (s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
+            | ValueTuple vs when vs.Length = 1 -> ArgExression (vs.First())
             | ValueTuple vs ->
+                if vs.Length = 0 then ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
                 let innerExs, errs = aggregateInner vs
                 let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
                 (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range, errs
