@@ -10,71 +10,110 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
-
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class Diagnostics
     {
         internal static char ExpectedEnding(ErrorCode invalidFragmentEnding)
         {
-            if (invalidFragmentEnding == ErrorCode.ExpectingOpeningBracket) return '{';
-            else if (invalidFragmentEnding == ErrorCode.ExpectingSemicolon) return ';';
-            else if (invalidFragmentEnding == ErrorCode.UnexpectedFragmentDelimiter) return CodeFragment.MissingDelimiter;
-            else throw new NotImplementedException("unrecognized fragment ending");
+            if (invalidFragmentEnding == ErrorCode.ExpectingOpeningBracket)
+            {
+                return '{';
+            }
+            else if (invalidFragmentEnding == ErrorCode.ExpectingSemicolon)
+            {
+                return ';';
+            }
+            else if (invalidFragmentEnding == ErrorCode.UnexpectedFragmentDelimiter)
+            {
+                return CodeFragment.MissingDelimiter;
+            }
+            else
+            {
+                throw new NotImplementedException("unrecognized fragment ending");
+            }
         }
 
         private static DiagnosticSeverity Severity(QsCompilerDiagnostic msg)
         {
-            if (msg.Diagnostic.IsError) return DiagnosticSeverity.Error;
-            else if (msg.Diagnostic.IsWarning) return DiagnosticSeverity.Warning;
-            else if (msg.Diagnostic.IsInformation) return DiagnosticSeverity.Information;
-            else throw new NotImplementedException("Hints are currently not supported - they need to be added to Diagnostics.fs in the QsLanguageProcessor, and here.");
+            if (msg.Diagnostic.IsError)
+            {
+                return DiagnosticSeverity.Error;
+            }
+            else if (msg.Diagnostic.IsWarning)
+            {
+                return DiagnosticSeverity.Warning;
+            }
+            else if (msg.Diagnostic.IsInformation)
+            {
+                return DiagnosticSeverity.Information;
+            }
+            else
+            {
+                throw new NotImplementedException("Hints are currently not supported - they need to be added to Diagnostics.fs in the QsLanguageProcessor, and here.");
+            }
         }
 
         private static string Code(QsCompilerDiagnostic msg)
         {
-            if (msg.Diagnostic.IsError) return Errors.Error(msg.Code);
-            else if (msg.Diagnostic.IsWarning) return Warnings.Warning(msg.Code);
-            else if (msg.Diagnostic.IsInformation) return Informations.Information(msg.Code);
-            else throw new NotImplementedException("Hints are currently not supported - they need to be added to Diagnostics.fs in the QsLanguageProcessor, and here.");
+            if (msg.Diagnostic.IsError)
+            {
+                return Errors.Error(msg.Code);
+            }
+            else if (msg.Diagnostic.IsWarning)
+            {
+                return Warnings.Warning(msg.Code);
+            }
+            else if (msg.Diagnostic.IsInformation)
+            {
+                return Informations.Information(msg.Code);
+            }
+            else
+            {
+                throw new NotImplementedException("Hints are currently not supported - they need to be added to Diagnostics.fs in the QsLanguageProcessor, and here.");
+            }
         }
 
         /// <summary>
         /// Generates a suitable Diagnostic from the given CompilerDiagnostic returned by the Q# compiler.
-        /// The message range contained in the given CompilerDiagnostic is first converted to a Position object, 
+        /// The message range contained in the given CompilerDiagnostic is first converted to a Position object,
         /// and then added to the given positionOffset if the latter is not null.
         /// Throws an ArgumentNullException if the Range of the given CompilerDiagnostic is null.
-        /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End. 
+        /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
-        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position positionOffset = null) 
+        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position positionOffset = null)
         {
-            if (msg.Range == null) throw new ArgumentNullException(nameof(msg.Range));
+            if (msg.Range == null)
+            {
+                throw new ArgumentNullException(nameof(msg.Range));
+            }
+
             return new Diagnostic
             {
                 Severity = Severity(msg),
                 Code = Code(msg),
                 Source = filename,
-                Message = msg.Message, 
+                Message = msg.Message,
                 Range = DiagnosticTools.GetAbsoluteRange(positionOffset, msg.Range)
             };
         }
 
         internal const string QsCodePrefix = "QS";
+
         public static bool TryGetCode(string str, out int code)
         {
             code = -1;
             str = str?.Trim();
-            return !String.IsNullOrWhiteSpace(str) && 
-                str.StartsWith(QsCodePrefix, StringComparison.InvariantCultureIgnoreCase) && 
+            return !string.IsNullOrWhiteSpace(str) &&
+                str.StartsWith(QsCodePrefix, StringComparison.InvariantCultureIgnoreCase) &&
                 int.TryParse(str.Substring(2), out code);
         }
     }
 
-
     public static class Informations
     {
         public static string Code(this InformationCode code) =>
-            Information((int)code); 
+            Information((int)code);
 
         internal static string Information(int code) =>
             $"{Diagnostics.QsCodePrefix}{code}";
@@ -83,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public static class Warnings
     {
         public static string Code(this WarningCode code) =>
-            Warning((int)code); 
+            Warning((int)code);
 
         internal static string Warning(int code) =>
             $"{Diagnostics.QsCodePrefix}{code}";
@@ -94,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
-                Code = Warnings.Code(code),
+                Code = Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
                 Range = null
@@ -118,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public static class Errors
     {
         public static string Code(this ErrorCode code) =>
-            Error((int)code); 
+            Error((int)code);
 
         internal static string Error(int code) =>
             $"{Diagnostics.QsCodePrefix}{code}";
@@ -129,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
-                Code = Errors.Code(code),
+                Code = Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
                 Range = null
