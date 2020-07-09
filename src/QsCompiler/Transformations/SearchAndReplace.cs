@@ -55,6 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.SymbolRange = range ?? throw new ArgumentNullException(nameof(range));
             }
 
+            /// <inheritdoc/>
             public bool Equals(Location other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
                 && this.DeclarationOffset.Equals(other?.DeclarationOffset)
@@ -63,9 +64,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 && this.SymbolRange.Item1.Equals(other?.SymbolRange?.Item1)
                 && this.SymbolRange.Item2.Equals(other?.SymbolRange?.Item2);
 
+            /// <inheritdoc/>
             public override bool Equals(object obj) =>
                 this.Equals(obj as Location);
 
+            /// <inheritdoc/>
             public override int GetHashCode()
             {
                 var (hash, multiplier) = (0x51ed270b, -1521134295);

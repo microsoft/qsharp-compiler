@@ -27,6 +27,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
         }
 
+        /// <inheritdoc/>
         public override void Post(SendOrPostCallback fct, object arg)
         {
             if (fct == null)

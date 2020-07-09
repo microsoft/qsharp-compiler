@@ -138,6 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             // TODO: these overrides needs to be adapted once we support external specializations
 
+            /// <inheritdoc/>
             public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
                 if (this.SharedState.Predicate(t.SourceFile))
@@ -147,6 +148,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return t;
             }
 
+            /// <inheritdoc/>
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 if (this.SharedState.Predicate(c.SourceFile))
@@ -156,6 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return c;
             }
 
+            /// <inheritdoc/>
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
@@ -190,6 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public class TransformationState
         : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
+            /// <inheritdoc/>
             public bool Recur { get; }
 
             public readonly bool Seed;
@@ -197,9 +201,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             internal readonly Func<TypedExpression, bool> Condition;
             internal readonly Func<bool, bool, bool> ConstructFold;
 
+            /// <inheritdoc/>
             public bool Fold(TypedExpression ex, bool current) =>
                 this.ConstructFold(this.Condition(ex), current);
 
+            /// <inheritdoc/>
             public bool FoldResult { get; set; }
 
             public bool SatisfiesCondition => this.FoldResult;
@@ -240,6 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             : base(parent) =>
                 this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
+            /// <inheritdoc/>
             public override QsStatement OnStatement(QsStatement stm)
             {
                 this.SubSelector = this.CreateSelector(this.SharedState);
@@ -251,6 +258,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
+            /// <inheritdoc/>
             public override QsScope OnScope(QsScope scope)
             {
                 var statements = new List<QsStatement>();
@@ -330,6 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         {
         }
 
+        /// <inheritdoc/>
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
             ex = this.SharedState.Recur ? base.OnTypedExpression(ex) : ex;
@@ -356,6 +365,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public readonly Action<TypedExpression> OnExpression;
 
+        /// <inheritdoc/>
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
             this.OnExpression(ex);

@@ -470,12 +470,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
             }
 
+            /// <inheritdoc/>
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 this.SharedState.CurrentCallable = new LiftContent.CallableDetails(c);
                 return base.OnCallableDeclaration(c);
             }
 
+            /// <inheritdoc/>
             public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
             {
                 this.SharedState.InBody = true;
@@ -484,6 +486,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            /// <inheritdoc/>
             public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
             {
                 this.SharedState.InAdjoint = true;
@@ -492,6 +495,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            /// <inheritdoc/>
             public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
             {
                 this.SharedState.InControlled = true;
@@ -500,6 +504,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            /// <inheritdoc/>
             public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
             {
                 this.SharedState.InControlledAdjoint = true;
@@ -508,9 +513,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            /// <inheritdoc/>
             // ToDo: We will want to support lifting of functions in the future
             public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
 
+            /// <inheritdoc/>
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 // Generated operations list will be populated in the transform
@@ -526,6 +533,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
             }
 
+            /// <inheritdoc/>
             public override QsStatementKind OnConjugation(QsConjugation stm)
             {
                 var superInWithinBlock = this.SharedState.InWithinBlock;
@@ -538,12 +546,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
             }
 
+            /// <inheritdoc/>
             public override QsStatementKind OnReturnStatement(TypedExpression ex)
             {
                 this.SharedState.IsValidScope = false;
                 return base.OnReturnStatement(ex);
             }
 
+            /// <inheritdoc/>
             public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
                 // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
@@ -558,6 +568,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
             }
 
+            /// <inheritdoc/>
             public override QsStatementKind OnStatementKind(QsStatementKind kind)
             {
                 this.SharedState.ContainsParamRef = false; // Every statement kind starts off false
@@ -571,6 +582,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
             }
 
+            /// <inheritdoc/>
             public override TypedExpression OnTypedExpression(TypedExpression ex)
             {
                 var contextContainsParamRef = this.SharedState.ContainsParamRef;
@@ -591,6 +603,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
             }
 
+            /// <inheritdoc/>
             public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
                 if (sym is Identifier.LocalVariable local &&

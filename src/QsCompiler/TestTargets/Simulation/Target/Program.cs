@@ -21,20 +21,28 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public CsharpGeneration() =>
             this.AssemblyConstants = new Dictionary<string, string>();
 
+        /// <inheritdoc/>
         public string Name => "CsharpGeneration";
 
+        /// <inheritdoc/>
         public int Priority => 0;
 
+        /// <inheritdoc/>
         public IDictionary<string, string> AssemblyConstants { get; }
 
+        /// <inheritdoc/>
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; private set; }
 
+        /// <inheritdoc/>
         public bool ImplementsTransformation => true;
 
+        /// <inheritdoc/>
         public bool ImplementsPreconditionVerification => false;
 
+        /// <inheritdoc/>
         public bool ImplementsPostconditionVerification => false;
 
+        /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             // random "diagnostic" to check if diagnostics loading works
@@ -68,10 +76,12 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
             return success;
         }
 
+        /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation) =>
             // todo: we should implement this and check for conjugations and invalid pieces
             throw new System.NotImplementedException();
 
+        /// <inheritdoc/>
         public bool PostconditionVerification(QsCompilation compilation) =>
             throw new System.NotImplementedException();
     }

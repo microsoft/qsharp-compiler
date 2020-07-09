@@ -39,6 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
     <Content Include="..\..\..\NOTICE.txt" Link="NOTICE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

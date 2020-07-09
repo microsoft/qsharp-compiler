@@ -302,6 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal readonly bool IsExecutable;
         internal readonly NonNullable<string> ProcessorArchitecture;
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             this.syncRoot.Dispose();
@@ -436,6 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot.EnterReadLock();
         }
 
+        /// <inheritdoc/>
         public void ExitReadLock() => this.syncRoot.ExitReadLock();
 
         /// <summary>
@@ -476,6 +478,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot.EnterWriteLock();
         }
 
+        /// <inheritdoc/>
         public void ExitWriteLock() => this.syncRoot.ExitWriteLock();
 
         // methods related to accessing and managing information about the compilation

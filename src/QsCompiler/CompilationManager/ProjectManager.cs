@@ -757,6 +757,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.log = log;
         }
 
+        /// <inheritdoc/>
         public void Dispose() =>
             this.load.QueueForExecution(() =>
             {

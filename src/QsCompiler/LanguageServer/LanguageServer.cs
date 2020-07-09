@@ -104,6 +104,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.disconnectEvent.WaitOne();
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             this.editorState.Dispose();

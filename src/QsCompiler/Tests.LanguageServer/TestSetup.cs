@@ -41,6 +41,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             this.rpc?.Dispose();

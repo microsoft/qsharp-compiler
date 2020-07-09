@@ -15,6 +15,9 @@ dotnet_style_qualification_for_property = true:suggestion
 
 dotnet_diagnostic.IDE0002.severity = warning    # Name can be simplified
 
+# StyleCop: Special Rules
+dotnet_diagnostic.SA0001.severity = none        # XML comment analysis disabled
+
 # StyleCop: Readability Rules
 dotnet_diagnostic.SA1122.severity = none        # Use string.Empty for empty strings
 dotnet_diagnostic.SA1127.severity = none        # Generic type constraints should be on their own line
@@ -42,11 +45,8 @@ dotnet_diagnostic.SA1513.severity = none        # Closing brace should be follow
 dotnet_diagnostic.SA1515.severity = none        # Single-line comment should be preceded by blank line
 
 # StyleCop: Documentation Rules
-dotnet_diagnostic.SA1600.severity = none        # Elements should be documented
-dotnet_diagnostic.SA1601.severity = none        # Partial elements should be documented
-dotnet_diagnostic.SA1602.severity = none        # Enumeration items should be documented
-dotnet_diagnostic.SA1604.severity = none        # Element documentation should have summary
 dotnet_diagnostic.SA1611.severity = none        # Element parameters should be documented
+dotnet_diagnostic.SA1612.severity = none        # Element parameter documentation should match element parameters
 dotnet_diagnostic.SA1615.severity = none        # Element return value should be documented
 dotnet_diagnostic.SA1618.severity = none        # Generic type parameters should be documented
 dotnet_diagnostic.SA1623.severity = none        # Property summary documentation should match accessors

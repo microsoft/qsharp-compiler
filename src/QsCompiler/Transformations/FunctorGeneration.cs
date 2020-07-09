@@ -84,6 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             {
             }
 
+            /// <inheritdoc/>
             public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnOperationCall(TypedExpression method, TypedExpression arg)
             {
                 if (this.SharedState.FunctorToApply.IsControlled)
@@ -116,6 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         : base(parent) =>
             this.addedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
 
+        /// <inheritdoc/>
         public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
             base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.addedVariableDeclarations)));
     }
@@ -136,6 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
         }
 
+        /// <inheritdoc/>
         public override QsStatementKind OnConjugation(QsConjugation stm)
         {
             var inner = stm.InnerTransformation;

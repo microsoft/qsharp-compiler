@@ -26,4 +26,8 @@
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
 </Project>
