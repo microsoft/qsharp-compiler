@@ -9,24 +9,33 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
-
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
     internal static class TestUtils
     {
         internal static Uri GetUri(string filename)
-        { return (new Uri(Path.GetFullPath(filename))); }
+        {
+            return new Uri(Path.GetFullPath(filename));
+        }
 
         internal static List<string> GetContent(string filename)
         {
             var content = File.ReadAllLines(Path.GetFullPath(filename)).ToList();
-            if (content.Any() && File.ReadAllText(filename).EndsWith(Environment.NewLine)) content.Add(String.Empty); // ReadAllLines will ignore the last line if it is empty
-            for (var lineNr = 0; lineNr < content.Count - 1; ++lineNr) content[lineNr] += Environment.NewLine;
+            if (content.Any() && File.ReadAllText(filename).EndsWith(Environment.NewLine))
+            {
+                content.Add(string.Empty); // ReadAllLines will ignore the last line if it is empty
+            }
+            for (var lineNr = 0; lineNr < content.Count - 1; ++lineNr)
+            {
+                content[lineNr] += Environment.NewLine;
+            }
             return content;
         }
 
         internal static TextDocumentIdentifier GetTextDocumentIdentifier(string filename)
-        { return new TextDocumentIdentifier { Uri = GetUri(filename) }; }
+        {
+            return new TextDocumentIdentifier { Uri = GetUri(filename) };
+        }
 
         internal static InitializeParams GetInitializeParams()
         {
@@ -53,10 +62,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         internal static DidCloseTextDocumentParams GetCloseFileParams(string filename)
-        { return new DidCloseTextDocumentParams { TextDocument = GetTextDocumentIdentifier(filename) }; }
+        {
+            return new DidCloseTextDocumentParams { TextDocument = GetTextDocumentIdentifier(filename) };
+        }
 
         internal static DidSaveTextDocumentParams GetSaveFileParams(string filename, string content)
-        { return new DidSaveTextDocumentParams { TextDocument = new TextDocumentIdentifier { Uri = GetUri(filename) }, Text = content }; }
+        {
+            return new DidSaveTextDocumentParams { TextDocument = new TextDocumentIdentifier { Uri = GetUri(filename) }, Text = content };
+        }
 
         internal static DidChangeTextDocumentParams GetChangedFileParams(string filename, TextDocumentContentChangeEvent[] changes)
         {
@@ -74,23 +87,33 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         internal static ExecuteCommandParams ServerCommand(string command, params object[] args) =>
             new ExecuteCommandParams { Command = command, Arguments = args };
 
-
-        /// does not modify range
+        // does not modify range
         internal static int GetRangeLength(VisualStudio.LanguageServer.Protocol.Range range, IReadOnlyList<string> content)
         {
             Assert.IsTrue(Builder.IsValidRange(range));
-            if (range.Start.Line == range.End.Line) return range.End.Character - range.Start.Character;
+            if (range.Start.Line == range.End.Line)
+            {
+                return range.End.Character - range.Start.Character;
+            }
 
             var changeLength = content[range.Start.Line].Length - range.Start.Character;
             for (var line = range.Start.Line + 1; line < range.End.Line; ++line)
-            { changeLength += content[line].Length; }
+            {
+                changeLength += content[line].Length;
+            }
             return changeLength + range.End.Character;
         }
 
         internal static void ApplyEdit(TextDocumentContentChangeEvent change, ref List<string> content)
         {
-            if (content == null) throw new ArgumentNullException(nameof(content));
-            if (!content.Any()) throw new ArgumentException("the given content has to have at least on line");
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+            if (!content.Any())
+            {
+                throw new ArgumentException("the given content has to have at least on line");
+            }
 
             Assert.IsTrue(Builder.IsValidRange(change?.Range) && change.Text != null);
             Assert.IsTrue(change.Range.End.Line < content.Count());
@@ -100,12 +123,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (startLine, startChar) = (change.Range.Start.Line, change.Range.Start.Character);
             var (endLine, endChar) = (change.Range.End.Line, change.Range.End.Character);
 
-            var newText = String.Concat(content[startLine].Substring(0, startChar), change.Text, content[endLine].Substring(endChar));
-            if (startLine > 0) { newText = content[--startLine] + newText; }
-            if (endLine + 1 < content.Count) { newText = newText + content[++endLine]; }
+            var newText = string.Concat(content[startLine].Substring(0, startChar), change.Text, content[endLine].Substring(endChar));
+            if (startLine > 0)
+            {
+                newText = content[--startLine] + newText;
+            }
+            if (endLine + 1 < content.Count)
+            {
+                newText = newText + content[++endLine];
+            }
             var lineChanges = Builder.SplitLines(newText);
             if (lineChanges.Length == 0 || (endLine + 1 == content.Count() && Builder.EndOfLine.Match(lineChanges.Last()).Success))
-            { lineChanges = lineChanges.Concat(new string[] { String.Empty }).ToArray(); }
+            {
+                lineChanges = lineChanges.Concat(new string[] { string.Empty }).ToArray();
+            }
 
             content.RemoveRange(startLine, endLine - startLine + 1);
             content.InsertRange(startLine, lineChanges);
