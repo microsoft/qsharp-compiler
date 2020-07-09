@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <PackageId>Microsoft.Quantum.Compiler</PackageId>
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
   </PropertyGroup>
