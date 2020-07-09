@@ -32,7 +32,6 @@ dotnet_diagnostic.SA1405.severity = none        # Debug.Assert should provide me
 dotnet_diagnostic.SA1413.severity = none        # Use trailing comma in multi-line initializers
 
 # StyleCop: Layout Rules
-dotnet_diagnostic.SA1503.severity = none        # Braces should not be omitted
 dotnet_diagnostic.SA1512.severity = none        # Single-line comments should not be followed by blank line
 dotnet_diagnostic.SA1513.severity = none        # Closing brace should be followed by blank line
 

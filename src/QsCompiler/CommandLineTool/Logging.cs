@@ -43,7 +43,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         private static void PrintToConsole(DiagnosticSeverity severity, string message)
         {
-            if (message == null) throw new ArgumentNullException(nameof(message));
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
             var (stream, color) =
                 severity == DiagnosticSeverity.Error ? (Console.Error, ConsoleColor.Red) :
                 severity == DiagnosticSeverity.Warning ? (Console.Error, ConsoleColor.Yellow) :

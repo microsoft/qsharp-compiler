@@ -96,7 +96,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     try
                     {
                         var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
-                        if (fromResponseFiles == null) return false;
+                        if (fromResponseFiles == null)
+                        {
+                            return false;
+                        }
                         fromResponseFiles.UpdateSetIndependentSettings(options);
                         options = fromResponseFiles;
                     }
@@ -122,9 +125,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
                 var ignoreIfQuote = inQuote && precededByBackslash;
-                if (parmChars[index] == '"' && !ignoreIfQuote) inQuote = !inQuote;
-                if (inQuote && parmChars[index] == '\n') parmChars[index] = ' ';
-                if (!inQuote && !precededByBackslash && char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
+                if (parmChars[index] == '"' && !ignoreIfQuote)
+                {
+                    inQuote = !inQuote;
+                }
+                if (inQuote && parmChars[index] == '\n')
+                {
+                    parmChars[index] = ' ';
+                }
+                if (!inQuote && !precededByBackslash && char.IsWhiteSpace(parmChars[index]))
+                {
+                    parmChars[index] = '\n';
+                }
             }
             return new string(parmChars)
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -138,7 +150,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
         {
-            if (responseFiles == null) throw new ArgumentNullException(nameof(responseFiles));
+            if (responseFiles == null)
+            {
+                throw new ArgumentNullException(nameof(responseFiles));
+            }
             var commandLine = string.Join(" ", responseFiles.Select(File.ReadAllText));
             var args = SplitCommandLineArguments(commandLine);
             var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
@@ -160,8 +175,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (logger == null) throw new ArgumentNullException(nameof(logger));
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+            if (logger == null)
+            {
+                throw new ArgumentNullException(nameof(logger));
+            }
             if (!BuildOptions.IncorporateResponseFiles(options, out options))
             {
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
