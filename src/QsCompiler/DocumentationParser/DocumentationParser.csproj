@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Markdig.Signed" Version="0.20.0" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
     <PackageReference Include="YamlDotNet" Version="7.0.0" />
   </ItemGroup>
 
