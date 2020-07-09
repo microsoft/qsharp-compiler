@@ -18,6 +18,7 @@ dotnet_diagnostic.IDE0002.severity = warning    # Name can be simplified
 # StyleCop: Readability Rules
 dotnet_diagnostic.SA1122.severity = none        # Use string.Empty for empty strings
 dotnet_diagnostic.SA1127.severity = none        # Generic type constraints should be on their own line
+dotnet_diagnostic.SA1128.severity = none        # Put constructor initializers on their own line
 dotnet_diagnostic.SA1135.severity = none        # Using directives should be qualified
 
 # StyleCop: Ordering Rules
