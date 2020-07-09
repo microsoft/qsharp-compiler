@@ -317,7 +317,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// The transformation itself merely walks expressions and rebuilding is disabled.
     /// </summary>
     public class FoldOverExpressions<T, S>
-    : ExpressionTransformation<T> where T : FoldOverExpressions<T,S>.IFoldingState
+    : ExpressionTransformation<T> where T : FoldOverExpressions<T, S>.IFoldingState
     {
         public interface IFoldingState
         {
