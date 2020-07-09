@@ -25,7 +25,6 @@ dotnet_diagnostic.SA1128.severity = none        # Put constructor initializers o
 dotnet_diagnostic.SA1135.severity = none        # Using directives should be qualified
 
 # StyleCop: Ordering Rules
-dotnet_diagnostic.SA1200.severity = none        # Using directives should be placed correctly
 dotnet_diagnostic.SA1201.severity = none        # Elements should appear in the correct order
 dotnet_diagnostic.SA1202.severity = none        # Elements should be ordered by access
 dotnet_diagnostic.SA1203.severity = none        # Constants should appear before fields
