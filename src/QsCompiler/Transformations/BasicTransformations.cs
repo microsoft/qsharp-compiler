@@ -232,17 +232,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // helper classes
 
-        public class StatementTransformation<P>
-        : Core.StatementTransformation<TransformationState> where P : SelectByFoldingOverExpressions
+        public class StatementTransformation<TSelector>
+        : Core.StatementTransformation<TransformationState> where TSelector : SelectByFoldingOverExpressions
         {
-            protected P SubSelector;
-            protected readonly Func<TransformationState, P> CreateSelector;
+            protected TSelector SubSelector;
+            protected readonly Func<TransformationState, TSelector> CreateSelector;
 
             /// <summary>
             /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
             /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
             /// </summary>
-            public StatementTransformation(Func<TransformationState, P> createSelector, SyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(Func<TransformationState, TSelector> createSelector, SyntaxTreeTransformation<TransformationState> parent)
             : base(parent) =>
                 this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
@@ -316,24 +316,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation.
     /// The transformation itself merely walks expressions and rebuilding is disabled.
     /// </summary>
-    public class FoldOverExpressions<T, S>
-    : ExpressionTransformation<T> where T : FoldOverExpressions<T, S>.IFoldingState
+    public class FoldOverExpressions<TState, TResult>
+    : ExpressionTransformation<TState> where TState : FoldOverExpressions<TState, TResult>.IFoldingState
     {
         public interface IFoldingState
         {
             public bool Recur { get; }
 
-            public S Fold(TypedExpression ex, S current);
+            public TResult Fold(TypedExpression ex, TResult current);
 
-            public S FoldResult { get; set; }
+            public TResult FoldResult { get; set; }
         }
 
-        public FoldOverExpressions(SyntaxTreeTransformation<T> parent)
+        public FoldOverExpressions(SyntaxTreeTransformation<TState> parent)
         : base(parent, TransformationOptions.NoRebuild)
         {
         }
 
-        public FoldOverExpressions(T state)
+        public FoldOverExpressions(TState state)
         : base(state)
         {
         }
