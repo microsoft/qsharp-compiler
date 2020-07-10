@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<Exception> onException)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
-            this.sendTelemetry = sendTelemetry ?? ((_, __, ___) => { });
+            this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
             this.publish = param =>
             {
                 var onProjFile = param.Uri.AbsolutePath.EndsWith(".csproj", StringComparison.InvariantCultureIgnoreCase);
