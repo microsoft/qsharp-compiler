@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.newProject",
         () => {
-            requireDotNetSdk(dotNetSdkVersion).then(createNewProject);
+            createNewProject();
         }
     );
 

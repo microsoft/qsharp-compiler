@@ -5,36 +5,27 @@ import yo = require("yeoman-generator");
 import yosay = require("yosay");
 
 export default class QSharpGenerator extends yo {
-  prompting() {
-    // Have Yeoman greet the user.
-    this.log(
-      yosay("Welcome to the spectacular Q# generator!")
-    );
 
-    const prompts = [
-      {
-        type: "confirm",
-        name: "someAnswer",
-        message: "Would you like to enable this option?",
-        default: true
-      }
-    ];
+    constructor(args : any, opts : any) {
+        super(args, opts);
+        this.log(
+            yosay("Welcome to the Q# generator!")
+        );
+    }
 
-    return this.prompt(prompts).then(props => {
-      // To access props later use this.props.someAnswer;
-      // TODO: Store the properties in QSharpGenerator object
-    });
-  }
+    prompting() {
+        // No need to prompt from the generator.
+    }
 
-  writing() {
-    this.fs.copy(
-      this.templatePath("dummyfile.txt"),
-      this.destinationPath("dummyfile.txt")
-    );
-  }
+    writing() {
 
-  install() {
-    this.installDependencies();
-  }
+        // This is a stub only.
+
+        this.fs.copyTpl(
+            this.templatePath('application/Application.csproj'),
+            this.options.outputPath,
+            {}
+        );
+    }
 }
 

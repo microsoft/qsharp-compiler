@@ -23,75 +23,19 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: vscode.Uri) {
-    let proc = cp.spawn(
-        dotNetSdk.path,
-        ["new", projectType, "-lang", "Q#", "-o", uri.fsPath]
-    );
-    
-    let errorMessage = "";
-    proc.stderr.on('data', data => {
-        errorMessage = errorMessage + data;
-    });
-
-    proc.on(
-        'exit', (code, signal) => {
-            if (code === 0) {
-                const openItem = "Open new project...";
-                vscode.window.showInformationMessage(
-                    `Successfully created new project at ${uri.fsPath}.`,
-                    openItem
-                ).then(
-                    (item) => {
-                        if (item === openItem) {
-                            vscode.commands.executeCommand(
-                                "vscode.openFolder",
-                                uri
-                            ).then(
-                                (value) => {},
-                                (value) => {
-                                    vscode.window.showErrorMessage("Could not open new project");
-                                }
-                            );
-                        }
-                    }
-                );
-            } else {
-                // Check if the problem was that the project templates are missing.
-                // If so, we can give a more helpful error message and offer the
-                // user to install templates.
-                if (errorMessage.includes("Q#") && errorMessage.includes("-lang")) {
-                    const installTemplatesItem = "Install project templates and retry";
-                    vscode.window.showErrorMessage(
-                        "Project creation failed. The Q# project templates may not be installed.",
-                        installTemplatesItem
-                    )
-                    .then(
-                        item => {
-                            if (item === installTemplatesItem) {
-                                vscode.commands.executeCommand(
-                                    "quantum.installTemplates"
-                                ).then(
-                                    () => createNewProjectAtUri(dotNetSdk, projectType, uri)
-                                );
-                            }
-                        }
-                    );
-                } else {
-                    vscode.window.showErrorMessage(
-                        `.NET Core SDK exited with code ${code} when creating a new project:\n${errorMessage}`
-                    );
-                }
-            }
-        }
-    );
-}
-
-export function createNewProject(dotNetSdk: DotnetInfo) {
-    // TODO: finish switching over to Yeoman.
+function createNewProjectAtUri(projectType: string, uri: vscode.Uri) {
     let env = yeoman.createEnv();
     env.register(require.resolve('generator-qsharp'), 'qsharp:app');
 
+    // Set the Yeoman options from the user selection.
+    env.options.projectType = projectType;
+    env.options.location = uri;
+
+    // Run the generator to create the project files.
+    env.run('qsharp:app', (err: null | Error) => { throw undefined; });
+}
+
+export function createNewProject() {
     const projectTypes: {[key: string]: string} = {
         "Standalone console application": "console",
         "Quantum library": "classlib",
@@ -125,7 +69,7 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
                     }
                 }
             )
-            .then(uri => createNewProjectAtUri(dotNetSdk, projectType, uri));
+            .then(uri => createNewProjectAtUri(projectType, uri));
         }
     );
 }
