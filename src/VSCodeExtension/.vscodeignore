@@ -10,3 +10,4 @@ tslint.json
 Build-Dependencies.ps1
 BUILDING.md
 *.v.template
+**/*.txt.template

@@ -25,55 +25,10 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-function createNewProjectAtUri(projectType: string, uri: vscode.Uri) {
+export function createNewProject() {    
     let env = yeoman.createEnv();
     env.registerStub(QSharpGenerator, 'qsharp:app');
-
-    // Set the Yeoman options from the user selection.
-    env.options.projectType = projectType;
-    env.options.location = uri;
-
-    // Run the generator to create the project files.
-    env.run('qsharp:app', (err: null | Error) => { throw undefined; });
-}
-
-export function createNewProject() {    
-    const projectTypes: {[key: string]: string} = {
-        "Standalone console application": "console",
-        "Quantum library": "classlib",
-        "Unit testing project": "xunit"
-    };
-    vscode.window.showQuickPick(
-        Object.keys(projectTypes)
-    ).then(
-        projectTypeSelection => {
-            if (projectTypeSelection === undefined) {
-                throw undefined;
-            }
-            let projectType = projectTypes[projectTypeSelection];
-            
-            vscode.window.showSaveDialog({
-                saveLabel: "Create Project"
-            }).then(
-                (uri) => {
-                    if (uri !== undefined) {
-                        if (uri.scheme !== "file") {
-                            vscode.window.showErrorMessage(
-                                "New projects must be saved to the filesystem."
-                            );
-                            throw new Error("URI scheme was not file.");
-                        }
-                        else {
-                            return uri;
-                        }
-                    } else {
-                        throw undefined;
-                    }
-                }
-            )
-            .then(uri => createNewProjectAtUri(projectType, uri));
-        }
-    );
+    env.run('qsharp:app', (err: null | Error) => {  });
 }
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
