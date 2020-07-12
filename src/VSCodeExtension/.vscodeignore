@@ -3,11 +3,10 @@
 out/test/**
 out/**/*.map
 src/**
-.gitignore
+**/.gitignore
 tsconfig.json
 vsc-extension-quickstart.md
 tslint.json
 Build-Dependencies.ps1
 BUILDING.md
-*.v.template
-**/*.txt.template
+**/*.v.template
