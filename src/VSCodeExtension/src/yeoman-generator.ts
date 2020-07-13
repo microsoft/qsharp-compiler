@@ -73,33 +73,24 @@ export class QSharpGenerator extends yo {
             yosay("Creating Q# project.")
         );
 
-        console.log(this.templatePath());
-
         let sourceDir = path.join(this.templatePath(), this.options.projectType);
         let targetDir = this.options.outputUri.fsPath;
         fs.mkdir(targetDir);
 
-        console.log("ASync read has started.");
-
-        // TODO: Determine right namespace name to use.
-        let namespaceName = "UserNamespace";
+        // Namespace is the directory name itself.
+        let dirs = targetDir.split(path.sep);
+        let namespaceName = dirs.pop() || dirs.pop(); // In case there is a trailing separator.
 
         fs.readdir(sourceDir, (err, files) => {
             if (err){
                 throw err;
             }
             files.forEach( (filename) => {
-                console.log(filename);
-                console.log(path.join(sourceDir, filename));
-                console.log(path.join(targetDir, filename));
-
-                let output = this.fs.copyTpl(
+                this.fs.copyTpl(
                     path.join(sourceDir, filename),
                     path.join(targetDir, filename),
                     {  name: namespaceName }
                 );
-
-            console.log(output);
             });
         });
 
@@ -124,5 +115,3 @@ export class QSharpGenerator extends yo {
         );
     }
 }
-
-
