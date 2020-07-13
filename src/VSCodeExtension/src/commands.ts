@@ -25,8 +25,9 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-export function createNewProject() {    
+export function createNewProject(context: vscode.ExtensionContext) {    
     let env = yeoman.createEnv();
+    env.options.extensionPath = context.extensionPath;
     env.registerStub(QSharpGenerator, 'qsharp:app');
     env.run('qsharp:app', (err: null | Error) => {  });
 }

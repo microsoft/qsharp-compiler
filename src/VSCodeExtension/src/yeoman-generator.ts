@@ -15,10 +15,7 @@ export class QSharpGenerator extends yo {
             yosay("Welcome to the Q# generator!")
         );
 
-        // TODO:
-        // The default value of `this.templatePath` points to the local AppData roaming data of
-        // VS Code when running in this context. This needs to be updated to use the install location
-        // from the appropriate extension context.
+        this.sourceRoot(path.join(this.options.extensionPath, "templates"));
     }
 
     prompting() {
