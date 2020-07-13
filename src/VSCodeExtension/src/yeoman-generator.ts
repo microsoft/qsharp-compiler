@@ -76,16 +76,25 @@ export class QSharpGenerator extends yo {
 
         // Namespace is the directory name itself.
         let dirs = targetDir.split(path.sep);
-        let namespaceName = dirs.pop() || dirs.pop(); // In case there is a trailing separator.
+
+        // In case there is a trailing separator.
+        let namespaceName = dirs.pop() || dirs.pop();
 
         fs.readdir(sourceDir, (err, files) => {
             if (err){
                 throw err;
             }
             files.forEach( (filename) => {
+                let destinationName = filename;
+                let fileExtension = filename.split(".").pop();
+
+                if (fileExtension && fileExtension.toLowerCase() === "csproj") {
+                    destinationName = namespaceName + ".csproj";
+                }
+
                 this.fs.copyTpl(
                     path.join(sourceDir, filename),
-                    path.join(targetDir, filename),
+                    path.join(targetDir, destinationName),
                     {  name: namespaceName }
                 );
             });
