@@ -332,7 +332,8 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         AssertCombinedResolution(Foo, expected, given)
 
-    [<Fact(Skip="Need to rework resolution algorithm.")>]
+    //[<Fact(Skip="Need to rework resolution algorithm.")>]
+    [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () =
 
