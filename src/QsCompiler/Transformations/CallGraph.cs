@@ -56,6 +56,21 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
+        /// Reversed the dependencies of type parameters resolving to other type parameters in the given
+        /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
+        /// parameters that can be updating by knowing the resolution of the lookup's associated key.
+        /// </summary>
+        private static ILookup<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
+        {
+             return typeParamResolutions
+                .Select(kvp => (kvp.Key, GetTypeParameters.Apply(kvp.Value)))   // Get any type parameters in the resolution type.
+                .SelectMany(tup => tup.Item2.Select(value => (tup.Key, value))) // For each type parameter found, match it to the dictionary key.
+                .ToLookup(                                                      // Reverse the keys and resulting type parameters to make the lookup.
+                    kvp => kvp.value,
+                    kvp => kvp.Key);
+        }
+
+        /// <summary>
         /// Applies all the type parameter resolutions in a dictionary to the whole dictionary,
         /// resulting in a resolution dictionary that has type parameter keys that are not
         /// referenced in the values of the dictionary.
@@ -76,31 +91,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             foreach (var (typeParam, paramRes) in resolutionDictionary)
             {
-                // ToDo: make this using LINQ
-                var temp2 = new List<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>>>();
-                foreach (var kvp in combinedBuilder)
-                {
-                    if (ContainsTypeParameter.Apply(kvp.Value))
-                    {
-                        foreach (var temp3 in GetTypeParameters.Apply(kvp.Value))
-                        {
-                            temp2.Add(new KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>>(kvp.Key, temp3));
-                        }
-                    }
-                }
-                var mayBeReplaced = temp2
-                    .ToLookup(
-                        kvp => kvp.Value,
-                        kvp => kvp.Key);
-
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
-                //var mayBeReplaced = combinedBuilder
-                //    .Where(kv => kv.Value.Resolution.IsTypeParameter)
-                //    .ToLookup(
-                //        // ToDo: Check for composite types that contain type parameter types.
-                //        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
-                //        entry => entry.Key);
+                var mayBeReplaced = GetReplaceable(combinedBuilder);
 
                 // Check that we are not constricting a type parameter to another type parameter of the same callable
                 // both before and after updating the current value with the resolutions processed so far.
@@ -128,6 +121,20 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return success;
         }
 
+        /// <summary>
+        /// Combines subsequent type parameter resolutions dictionaries into a single dictionary containing the resolution for all
+        /// the type parameters found.
+        ///
+        /// The given resolutions are expected to be ordered such that dictionaries containing type parameters that take a
+        /// dependency on other type parameters in other dictionaries appear before those dictionaries they depend on.
+        /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
+        /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
+        /// the next innermost, and so on until the outermost expression is given last.
+        ///
+        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
+        /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
+        /// type parameter belonging to a different callable, or themselves.
+        /// </summary>
         internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
         {
             if (!resolutionDictionaries.Any())
@@ -139,7 +146,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
             var success = true;
 
-            //static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
             static bool IsSelfResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
             static bool IsConstrictiveResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
@@ -148,41 +154,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             foreach (var resolutionDictionary in resolutionDictionaries)
             {
                 success = TryCombineTypeResolutionDictionary(out var resolvedDictionary, resolutionDictionary) && success;
-                
-                // ToDo: make this using LINQ
-                var temp2 = new List<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>>>();
-                foreach (var kvp in combinedBuilder)
-                {
-                    if (ContainsTypeParameter.Apply(kvp.Value))
-                    {
-                        foreach (var temp3 in GetTypeParameters.Apply(kvp.Value))
-                        {
-                            temp2.Add(new KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>>(kvp.Key, temp3));
-                        }
-                    }
-                }
-                var mayBeReplaced = temp2
-                    .ToLookup(
-                        kvp => kvp.Value,
-                        kvp => kvp.Key);
 
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
-                //var mayBeReplaced = combinedBuilder
-                //    .Where(kv => kv.Value.Resolution.IsTypeParameter)
-                //    .ToLookup(
-                //        // ToDo: Check for composite types that contain type parameter types.
-                //        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
-                //        entry => entry.Key);
-
-                //if (paramRes.Resolution is ResolvedTypeKind.TypeParameter t)
-                //{
-                //    var key = AsTypeResolutionKey(t.Item);
-                //    if (combinedBuilder.TryGetValue(key, out var value))
-                //    {
-                //        paramRes = value;
-                //    }
-                //}
+                var mayBeReplaced = GetReplaceable(combinedBuilder);
 
                 // Do any replacements for type parameters that may be replaced with values in the current dictionary.
                 // This needs to be done first to cover an edge case.
@@ -221,103 +196,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return success;
         }
 
-        /// <summary>
-    /// Combines subsequent type parameter resolutions dictionaries into a single dictionary containing the resolution for all
-    /// the type parameters found.
-    ///
-    /// The given resolutions are expected to be ordered such that dictionaries containing type parameters that take a
-    /// dependency on other type parameters in other dictionaries appear before those dictionaries they depend on.
-    /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
-    /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
-    /// the next innermost, and so on until the outermost expression is given last.
-    ///
-    /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
-    /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
-    /// type parameter belonging to a different callable, or themselves.
-    /// </summary>
-        internal static bool Old_TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
-        {
-            if (!resolutionDictionaries.Any())
-            {
-                combined = TypeParameterResolutions.Empty;
-                return true;
-            }
-
-            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
-            var success = true;
-
-            static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
-            static bool IsSelfResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
-                res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
-            static bool IsConstrictiveResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
-                res.Resolution is ResolvedTypeKind.TypeParameter tp && typeParam.Item1.Equals(tp.Item.Origin) && typeParam.Item2.Value != tp.Item.TypeName.Value;
-
-            foreach (var resolutionDictionary in resolutionDictionaries)
-            {
-                // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
-                // if a certain type parameter is resolved by the currently processed dictionary.
-                var mayBeReplaced = combinedBuilder
-                    .Where(kv => kv.Value.Resolution.IsTypeParameter)
-                    .ToLookup(
-                        // ToDo: Check for composite types that contain type parameter types.
-                        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
-                        entry => entry.Key);
-
-                // Do any replacements for type parameters that may be replaced with values in the current dictionary.
-                // This needs to be done first to cover an edge case.
-                foreach (var (typeParam, paramRes) in resolutionDictionary.Where(entry => mayBeReplaced.Contains(entry.Key)))
-                {
-                    // Get all the parameters whose value is dependent on the current resolution's type parameter,
-                    // and update their values with this resolution's value.
-                    foreach (var keyInCombined in mayBeReplaced[typeParam])
-                    {
-                        // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                        success = success && !IsConstrictiveResolution(keyInCombined, paramRes);
-                        combinedBuilder[keyInCombined] = paramRes;
-                    }
-                }
-
-                // Add all resolutions to the current dictionary.
-                foreach (var (typeParam, paramRes) in resolutionDictionary)
-                {
-                    // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                    success = success && !IsConstrictiveResolution(typeParam, paramRes);
-                    // Check that there is no conflicting resolution already defined.
-                    var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
-                        && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
-                    success = success && !conflictingResolutionExists;
-                    combinedBuilder[typeParam] = paramRes;
-                }
-            }
-
-            combined = combinedBuilder.ToImmutable();
-            return success;
-        }
-
-        //internal class ReplaceTypeParamTypes : TypeTransformation
-        //{
-        //    private readonly Tuple<QsQualifiedName, NonNullable<string>> TypeParamName;
-        //    private readonly ResolvedType ReplacementType;
-        //
-        //    public ReplaceTypeParamTypes(Tuple<QsQualifiedName, NonNullable<string>> typeParamName, ResolvedType replacementType)
-        //    {
-        //        TypeParamName = typeParamName;
-        //        ReplacementType = replacementType;
-        //    }
-        //
-        //    public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
-        //    {
-        //        return base.OnTypeParameter(tp);
-        //    }
-        //
-        //    new public ResolvedType OnType(ResolvedType t)
-        //    {
-        //        return t.Equals(SourceType)
-        //        ? ReplacementType
-        //        : base.OnType(t);
-        //    }
-        //}
-
         internal class GetTypeParameters : TypeTransformation<GetTypeParameters.TransformationState>
         {
             public static HashSet<Tuple<QsQualifiedName, NonNullable<string>>> Apply(ResolvedType res)
@@ -339,41 +217,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 SharedState.typeParams.Add(AsTypeResolutionKey(tp));
-                return base.OnTypeParameter(tp);
-            }
-        }
-
-        internal class ContainsTypeParameter : TypeTransformation<ContainsTypeParameter.TransformationState>
-        {
-            public static bool Apply(ResolvedType res)
-            {
-                var walker = new ContainsTypeParameter();
-                walker.OnType(res);
-                return walker.SharedState.doesContainTypeParam;
-            }
-
-            internal class TransformationState
-            {
-                public bool doesContainTypeParam = false;
-            }
-
-            private ContainsTypeParameter() : base(new TransformationState(), TransformationOptions.NoRebuild) { }
-
-            new public ResolvedType OnType(ResolvedType t)
-            {
-                // Short-circuit if we already know the there is a type parameter.
-                if (!SharedState.doesContainTypeParam)
-                {
-                    base.OnType(t);
-                }
-
-                // It doesn't matter what we return because this is a walker.
-                return ResolvedType.New(ResolvedTypeKind.InvalidType);
-            }
-
-            public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
-            {
-                SharedState.doesContainTypeParam = true;
                 return base.OnTypeParameter(tp);
             }
         }
