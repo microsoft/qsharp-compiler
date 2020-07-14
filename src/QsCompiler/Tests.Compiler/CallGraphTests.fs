@@ -335,7 +335,6 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         AssertCombinedResolution(Foo, expected, given)
 
-    //[<Fact(Skip="Need to rework resolution algorithm.")>]
     [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () =
@@ -521,7 +520,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (BarA, BazA |> TypeParameter)
             ]
             ResolutionFromParam [
-                (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
+                (BazA, BarC |> TypeParameter)
             ]
         |]
         let expected = ResolutionFromParam [
@@ -546,6 +545,20 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
 
         AssertCombinedResolution(Foo, expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Nested Constricted Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, [FooB |> TypeParameter; Int] |> MakeTupleType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, [FooB |> TypeParameter; Int] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolutionFailure(Foo, expected, given)
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
