@@ -60,6 +60,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
+    let MakeTupleType types =
+        types |> Seq.map ResolvedType.New |> Seq.toArray |> ImmutableArray.CreateRange |> TupleType
+
     let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
@@ -526,6 +529,23 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
 
         AssertCombinedResolutionFailure(Foo, expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Nested Type Paramter Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, [BarA |> TypeParameter; Int] |> MakeTupleType)
+            ]
+            ResolutionFromParam [
+                (BarA, [String; Double] |> MakeTupleType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, [[String; Double] |> MakeTupleType; Int] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolution(Foo, expected, given)
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
