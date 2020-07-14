@@ -45,12 +45,14 @@ namespace Microsoft.Quantum.QsCompiler
             this.Resolving += this.OnResolving;
         }
 
+        /// <inheritdoc/>
         protected override Assembly Load(AssemblyName name)
         {
             string path = this.resolver.ResolveAssemblyToPath(name);
             return path == null ? null : this.LoadFromAssemblyPath(path);
         }
 
+        /// <inheritdoc/>
         protected override IntPtr LoadUnmanagedDll(string name)
         {
             string path = this.resolver.ResolveUnmanagedDllToPath(name);

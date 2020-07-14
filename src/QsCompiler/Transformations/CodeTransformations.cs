@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-
 namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
@@ -35,8 +34,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the body of an operation, auto-generates the (content of the) controlled specialization using the default name 
-        /// for control qubits. Adds the control qubits names to the list of defined variables for the scope and each subscope. 
+        /// Given the body of an operation, auto-generates the (content of the) controlled specialization using the default name
+        /// for control qubits. Adds the control qubits names to the list of defined variables for the scope and each subscope.
         /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope GenerateControlled(this QsScope scope)
@@ -56,7 +55,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception> onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null)
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
             var inline = new InlineConjugations(onException);
             var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
@@ -71,8 +73,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try { evaluated = PreEvaluation.All(compilation); }
+            if (compilation == null)
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
+            try
+            {
+                evaluated = PreEvaluation.All(compilation);
+            }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);
@@ -83,5 +91,3 @@ namespace Microsoft.Quantum.QsCompiler
         }
     }
 }
-
-
