@@ -13,9 +13,12 @@
 
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
-    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <icon>images\MS_Quantum_Spot_Dev.png</icon>
 
     <copyright>$copyright$</copyright>
     <tags>Quantum Q# Qsharp </tags>
   </metadata>
+  <files>
+    <file src="MS_Quantum_Spot_Dev.png" target="images" />
+  </files>
 </package>
