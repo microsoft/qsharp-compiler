@@ -87,7 +87,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(msg.Range));
             }
-
             return new Diagnostic
             {
                 Severity = Severity(msg),
