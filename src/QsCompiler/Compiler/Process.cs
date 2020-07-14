@@ -7,15 +7,14 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
-
 namespace Microsoft.Quantum.QsCompiler
 {
     public static class ProcessRunner
     {
         /// <summary>
-        /// Starts the given process and accumulates the received output and error data in the given StringBuilders. 
+        /// Starts the given process and accumulates the received output and error data in the given StringBuilders.
         /// Returns true if the process completed within the specified time without throwing an exception, and false otherwise.
-        /// Any thrown exception is returned as out parameter. 
+        /// Any thrown exception is returned as out parameter.
         /// </summary>
         public static bool Run(Process process, StringBuilder output, StringBuilder error, out Exception ex, int timeout)
         {
@@ -24,14 +23,26 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 void AddOutput(object sender, DataReceivedEventArgs e)
                 {
-                    if (e.Data == null) outputWaitHandle.Set();
-                    else output.AppendLine(e.Data);
+                    if (e.Data == null)
+                    {
+                        outputWaitHandle.Set();
+                    }
+                    else
+                    {
+                        output.AppendLine(e.Data);
+                    }
                 }
 
                 void AddError(object sender, DataReceivedEventArgs e)
                 {
-                    if (e.Data == null) errorWaitHandle.Set();
-                    else error.AppendLine(e.Data);
+                    if (e.Data == null)
+                    {
+                        errorWaitHandle.Set();
+                    }
+                    else
+                    {
+                        error.AppendLine(e.Data);
+                    }
                 }
 
                 process.OutputDataReceived += AddOutput;
@@ -47,7 +58,10 @@ namespace Microsoft.Quantum.QsCompiler
                         && outputWaitHandle.WaitOne()
                         && errorWaitHandle.WaitOne();
                 }
-                catch (Exception e) { ex = e; }
+                catch (Exception e)
+                {
+                    ex = e;
+                }
                 finally
                 {
                     // unsubscribe such that the AutoResetEvents are not accessed after disposing
@@ -60,15 +74,21 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Starts and runs a process invoking the given command with the given arguments.
-        /// If a dictionary of environment variables and their desired values is specified, 
+        /// If a dictionary of environment variables and their desired values is specified,
         /// sets these environment variables prior to execution and resets them afterwards.
-        /// Accumulates the received output and error data in the respective StringBuilder and returns them as out parameters. 
+        /// Accumulates the received output and error data in the respective StringBuilder and returns them as out parameters.
         /// Returns true if the process completed within the specified time without throwing an exception, and false otherwise.
-        /// Returns the exit code of the process as well as any thrown exception as out parameter. 
+        /// Returns the exit code of the process as well as any thrown exception as out parameter.
         /// </summary>
-        public static bool Run(string command, string args,
-            out StringBuilder outstream, out StringBuilder errstream, out int exitCode, out Exception ex,
-            IDictionary<string, string> envVariables = null, int timeout = 10000)
+        public static bool Run(
+            string command,
+            string args,
+            out StringBuilder outstream,
+            out StringBuilder errstream,
+            out int exitCode,
+            out Exception ex,
+            IDictionary<string, string> envVariables = null,
+            int timeout = 10000)
         {
             var process = new Process();
             process.StartInfo = new ProcessStartInfo
@@ -98,9 +118,10 @@ namespace Microsoft.Quantum.QsCompiler
             finally
             {
                 foreach (var entry in origEnvVariables)
-                { Environment.SetEnvironmentVariable(entry.Key, entry.Value); }
+                {
+                    Environment.SetEnvironmentVariable(entry.Key, entry.Value);
+                }
             }
         }
     }
-
 }

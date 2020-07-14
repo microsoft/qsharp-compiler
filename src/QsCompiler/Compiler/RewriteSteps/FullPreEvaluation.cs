@@ -4,26 +4,30 @@
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Evaluates classical computations as much as possible.   
+    /// Evaluates classical computations as much as possible.
     /// </summary>
     internal class FullPreEvaluation : IRewriteStep
     {
         public string Name => "Full Pre-Evaluation";
+
         public int Priority => RewriteStepPriorities.EvaluationOfClassicalComputations;
+
         public IDictionary<string, string> AssemblyConstants { get; }
+
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsPreconditionVerification => false;
+
         public bool ImplementsTransformation => true;
+
         public bool ImplementsPostconditionVerification => false;
 
         public FullPreEvaluation()
         {
-            AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)

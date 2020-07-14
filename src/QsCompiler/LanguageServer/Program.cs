@@ -10,7 +10,6 @@ using CommandLine;
 using CommandLine.Text;
 using Microsoft.Build.Locator;
 
-
 namespace Microsoft.Quantum.QsLanguageServer
 {
     public class Server
@@ -21,23 +20,38 @@ namespace Microsoft.Quantum.QsLanguageServer
             protected const string CONNECTION_VIA_SOCKET = "connectionViaSocket";
             protected const string CONNECTION_VIA_PIPE = "connectionViaPipe";
 
-            [Option('l', "log", Required = false, Default = null,
-            HelpText = "Path to log messages to.")]
+            [Option(
+                'l',
+                "log",
+                Required = false,
+                Default = null,
+                HelpText = "Path to log messages to.")]
             public string LogFile { get; set; }
 
-            [Option('p', "port", Required = true, SetName = CONNECTION_VIA_SOCKET,
-            HelpText = "Port to use for TCP/IP connections.")]
+            [Option(
+                'p',
+                "port",
+                Required = true,
+                SetName = CONNECTION_VIA_SOCKET,
+                HelpText = "Port to use for TCP/IP connections.")]
             public int Port { get; set; }
 
-            [Option('w', "writer", Required = true, SetName = CONNECTION_VIA_PIPE,
-            HelpText = "Named pipe to write to.")]
+            [Option(
+                'w',
+                "writer",
+                Required = true,
+                SetName = CONNECTION_VIA_PIPE,
+                HelpText = "Named pipe to write to.")]
             public string WriterPipeName { get; set; }
 
-            [Option('r', "reader", Required = true, SetName = CONNECTION_VIA_PIPE,
-            HelpText = "Named pipe to read from.")]
+            [Option(
+                'r',
+                "reader",
+                Required = true,
+                SetName = CONNECTION_VIA_PIPE,
+                HelpText = "Named pipe to read from.")]
             public string ReaderPipeName { get; set; }
         }
-
 
         public enum ReturnCode
         {
@@ -72,18 +86,24 @@ namespace Microsoft.Quantum.QsLanguageServer
             var options = parser.ParseArguments<Options>(args);
             return options.MapResult(
                 (Options opts) => Run(opts),
-                (errs => errs.IsVersion() 
-                    ? LogAndExit(ReturnCode.SUCCESS, message: Version) 
-                    : LogAndExit(ReturnCode.INVALID_ARGUMENTS, message: HelpText.AutoBuild(options))));
+                errs => errs.IsVersion()
+                    ? LogAndExit(ReturnCode.SUCCESS, message: Version)
+                    : LogAndExit(ReturnCode.INVALID_ARGUMENTS, message: HelpText.AutoBuild(options)));
         }
 
         private static int Run(Options options)
         {
-            if (options == null) return LogAndExit(ReturnCode.MISSING_ARGUMENTS);
+            if (options == null)
+            {
+                return LogAndExit(ReturnCode.MISSING_ARGUMENTS);
+            }
 
-            // In the case where we actually instantiate a server, we need to "configure" the design time build. 
-            // This needs to be done before any MsBuild packages are loaded. 
-            try { MSBuildLocator.RegisterDefaults(); }
+            // In the case where we actually instantiate a server, we need to "configure" the design time build.
+            // This needs to be done before any MsBuild packages are loaded.
+            try
+            {
+                MSBuildLocator.RegisterDefaults();
+            }
             catch (Exception ex)
             {
                 Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
@@ -104,18 +124,20 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             Log("Listening...", options.LogFile);
-            try { server.WaitForShutdown(); }
+            try
+            {
+                server.WaitForShutdown();
+            }
             catch (Exception ex)
             {
                 Log("[ERROR] Unexpected error.", options.LogFile);
                 return LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile, ex.ToString());
             }
 
-            return server.ReadyForExit 
+            return server.ReadyForExit
                 ? LogAndExit(ReturnCode.SUCCESS, options.LogFile)
                 : LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile);
         }
-
 
         private static void Log(object msg, string logFile = null)
         {
@@ -124,7 +146,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 using var writer = new StreamWriter(logFile, append: true);
                 writer.WriteLine(msg);
             }
-            else Console.WriteLine(msg);
+            else
+            {
+                Console.WriteLine(msg);
+            }
         }
 
         internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string logFile = null)
@@ -134,9 +159,15 @@ namespace Microsoft.Quantum.QsLanguageServer
             var readerPipe = new NamedPipeClientStream(readerName);
 
             readerPipe.Connect(30000);
-            if (!readerPipe.IsConnected) Log($"[ERROR] Connection attempted timed out.", logFile);
+            if (!readerPipe.IsConnected)
+            {
+                Log($"[ERROR] Connection attempted timed out.", logFile);
+            }
             writerPipe.Connect(30000);
-            if (!writerPipe.IsConnected) Log($"[ERROR] Connection attempted timed out.", logFile);
+            if (!writerPipe.IsConnected)
+            {
+                Log($"[ERROR] Connection attempted timed out.", logFile);
+            }
             return new QsLanguageServer(writerPipe, readerPipe);
         }
 
@@ -144,7 +175,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
             Stream stream = null;
-            try { stream = new TcpClient(hostname, port)?.GetStream(); }
+            try
+            {
+                stream = new TcpClient(hostname, port)?.GetStream();
+            }
             catch (Exception ex)
             {
                 Log("[ERROR] Failed to get network stream.", logFile);

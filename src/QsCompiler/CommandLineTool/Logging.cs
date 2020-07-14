@@ -17,6 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         protected internal virtual string Format(Diagnostic msg) =>
             this.applyFormatting(msg);
 
+        /// <inheritdoc/>
         protected sealed override void Print(Diagnostic msg) =>
             PrintToConsole(msg.Severity, this.Format(msg));
 
