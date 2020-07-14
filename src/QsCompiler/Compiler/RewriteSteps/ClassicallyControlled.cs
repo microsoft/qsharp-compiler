@@ -8,7 +8,6 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
-
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
@@ -17,17 +16,22 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class ClassicallyControlled : IRewriteStep
     {
         public string Name => "Classically Controlled";
+
         public int Priority => RewriteStepPriorities.ControlFlowSubstitutions;
+
         public IDictionary<string, string> AssemblyConstants { get; }
+
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsPreconditionVerification => true;
+
         public bool ImplementsTransformation => true;
+
         public bool ImplementsPostconditionVerification => false;
 
         public ClassicallyControlled()
         {
-            AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)
@@ -37,28 +41,24 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 BuiltIn.ApplyIfZeroA.FullName,
                 BuiltIn.ApplyIfZeroC.FullName,
                 BuiltIn.ApplyIfZeroCA.FullName,
-
                 BuiltIn.ApplyIfOne.FullName,
                 BuiltIn.ApplyIfOneA.FullName,
                 BuiltIn.ApplyIfOneC.FullName,
                 BuiltIn.ApplyIfOneCA.FullName,
-
                 BuiltIn.ApplyIfElseR.FullName,
                 BuiltIn.ApplyIfElseRA.FullName,
                 BuiltIn.ApplyIfElseRC.FullName,
-                BuiltIn.ApplyIfElseRCA.FullName
-            );
+                BuiltIn.ApplyIfElseRCA.FullName);
 
-            if (!CheckForRequired(compilation, BuiltIn.ClassicallyControlledNamespace, classicallyControlledRequired))
+            if (!this.CheckForRequired(compilation, BuiltIn.ClassicallyControlledNamespace, classicallyControlledRequired))
             {
                 return false;
             }
 
             var cannonRequired = ImmutableHashSet.Create(
-                BuiltIn.NoOp.FullName
-            );
+                BuiltIn.NoOp.FullName);
 
-            if (!CheckForRequired(compilation, BuiltIn.CanonNamespace, cannonRequired))
+            if (!this.CheckForRequired(compilation, BuiltIn.CanonNamespace, cannonRequired))
             {
                 return false;
             }
