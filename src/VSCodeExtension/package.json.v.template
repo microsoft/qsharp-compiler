@@ -6,7 +6,7 @@
     "publisher": "quantum",
     "author": "Microsoft DevLabs",
     "homepage": "http://docs.microsoft.com/quantum/",
-    "icon": "mobius_strip_preview.png",
+    "icon": "MS_Quantum_Spot_Dev-200.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/microsoft/qsharp-compiler.git"
