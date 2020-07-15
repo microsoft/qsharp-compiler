@@ -29,7 +29,13 @@ export function createNewProject(context: vscode.ExtensionContext) {
     let env = yeoman.createEnv();
     env.options.extensionPath = context.extensionPath;
     env.registerStub(QSharpGenerator, 'qsharp:app');
-    env.run('qsharp:app', (err: null | Error) => {  });
+    env.run('qsharp:app', (err: null | Error) => {
+        if (err) {
+            let errorMessage = err.name + ": " + err.message;
+            console.log(errorMessage);
+            vscode.window.showErrorMessage(errorMessage);
+        }
+    });
 }
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
