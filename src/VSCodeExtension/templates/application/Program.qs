@@ -1,5 +1,4 @@
 ﻿namespace <%= name %> {
-
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     
@@ -9,4 +8,3 @@
         Message("Hello quantum world!");
     }
 }
-
