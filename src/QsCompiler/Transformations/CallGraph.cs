@@ -196,8 +196,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return success;
         }
 
+        /// <summary>
+        /// Walker that collects all of the type parameter references for a given ResolvedType
+        /// and returns them as a HashSet.
+        /// </summary>
         internal class GetTypeParameters : TypeTransformation<GetTypeParameters.TransformationState>
         {
+            /// <summary>
+            /// Walks the given ResolvedType and returns all of the type parameters referenced.
+            /// </summary>
             public static HashSet<Tuple<QsQualifiedName, NonNullable<string>>> Apply(ResolvedType res)
             {
                 var walker = new GetTypeParameters();
@@ -221,13 +228,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
         }
 
+        /// <summary>
+        /// Walker that checks a given type parameter resolution to see if it constricts
+        /// the type parameter to another type parameter of the same callable.
+        /// </summary>
         internal class ConstrictionCheck : TypeTransformation<ConstrictionCheck.TransformationState>
         {
             private readonly Tuple<QsQualifiedName, NonNullable<string>> TypeParamName;
 
-            public static bool Apply(Tuple<QsQualifiedName, NonNullable<string>> typeParamName, ResolvedType typeParamRes)
+            /// <summary>
+            /// Walks the given ResolvedType, typeParamRes, and returns true if there is a reference
+            /// to a different type parameter of the same callable as the given type parameter, typeParam.
+            /// Otherwise returns false.
+            /// </summary>
+            public static bool Apply(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType typeParamRes)
             {
-                var walker = new ConstrictionCheck(typeParamName);
+                var walker = new ConstrictionCheck(typeParam);
                 walker.OnType(typeParamRes);
                 return walker.SharedState.isConstrictive;
             }
