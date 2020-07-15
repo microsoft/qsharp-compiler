@@ -1,4 +1,0 @@
-This file is NOT intended to merge.
-
-This pull request has been created to test a cross-repo build.
-
