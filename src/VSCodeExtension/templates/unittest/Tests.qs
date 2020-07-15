@@ -6,7 +6,7 @@
 
 
     @Test("QuantumSimulator")
-    operation AllocateQubit () : Unit {
+    operation AllocateQubit() : Unit {
         
         using (q = Qubit()) {
             Assert([PauliZ], [q], Zero, "Newly allocated qubit must be in |0> state.");
