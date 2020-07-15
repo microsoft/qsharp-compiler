@@ -36,7 +36,7 @@
         "commands": [
             {
                 "command": "quantum.installTemplates",
-                "title": "Q#: Install project templates"
+                "title": "Q#: Install command line project templates"
             },
 
             {
