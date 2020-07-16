@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using VS = Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -85,13 +85,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Zero-based position in the source file where the code that caused the generation of the diagnostic starts.
             /// The position is null if the diagnostic is not caused by a piece of source code.
             /// </summary>
-            public Tuple<int, int> Start { get; set; }
+            public Position Start { get; set; }
 
             /// <summary>
             /// Zero-based position in the source file where the code that caused the generation of the diagnostic ends.
             /// The position is null if the diagnostic is not caused by a piece of source code.
             /// </summary>
-            public Tuple<int, int> End { get; set; }
+            public Position End { get; set; }
 
             /// <summary>
             /// Initializes a new diagnostic.
@@ -110,8 +110,8 @@ namespace Microsoft.Quantum.QsCompiler
                     Message = d.Message,
                     Source = d.Source,
                     Stage = stage,
-                    Start = d.Range?.Start == null ? null : DiagnosticTools.AsTuple(d.Range.Start),
-                    End = d.Range?.End == null ? null : DiagnosticTools.AsTuple(d.Range.End)
+                    Start = d.Range?.Start?.ToQSharp(),
+                    End = d.Range?.End?.ToQSharp()
                 };
         }
 

@@ -99,11 +99,12 @@ type TypedExpressionConverter() =
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : TypedExpression, hasExistingValue : bool, serializer : JsonSerializer) = 
         let (ex, paramRes, t, info, range) = 
-            serializer.Deserialize< QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-                                    * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType> 
-                                    * ResolvedType 
-                                    * InferredExpressionInformation 
-                                    * QsRangeInfo >(reader) 
+            serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+                                   * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType>
+                                   * ResolvedType
+                                   * InferredExpressionInformation
+                                   * QsNullable<Range>>
+                reader
         {Expression = ex; TypeArguments = paramRes.ToImmutableArray(); ResolvedType = t; InferredInformation = info; Range = range}
 
     override this.WriteJson(writer : JsonWriter, value : TypedExpression, serializer : JsonSerializer) =
@@ -158,4 +159,3 @@ module Json =
 
     let Serializer = Converters false |> CreateSerializer
     let PermissiveSerializer = Converters true |> CreateSerializer
-

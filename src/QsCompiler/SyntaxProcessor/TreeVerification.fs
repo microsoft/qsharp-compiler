@@ -22,7 +22,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Such diagnostics include in particular warnings for all statement that will never be executed, and errors for misplaced returns statements
 /// Throws an ArgumentException if the statements contain no location information. 
 let AllPathsReturnValueOrFail body = 
-    let diagnostics = new List<(int*int) * QsCompilerDiagnostic>()
+    let diagnostics = new List<Position * QsCompilerDiagnostic>()
     let addDiagnostic diag (stm : QsStatement) = stm.Location |> function
         | Null -> ArgumentException "no location set for the given statement" |> raise
         | Value loc -> (loc.Offset, loc.Range |> diag) |> diagnostics.Add
@@ -125,7 +125,7 @@ let AllPathsReturnValueOrFail body =
 /// Returns a lookup that contains the generated diagnostics and their positions for each file.
 /// Throws an ArgumentException if the location for a generated diagnostic cannot be determined. 
 let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHeader>) = 
-    let diagnostics = new List<((int * int) * NonNullable<string>)*_>()
+    let diagnostics = new List<(Position * NonNullable<string>) * _>()
     let getLocation (header: TypeDeclarationHeader) = 
         header.Location.ValueOrApply (fun _ -> ArgumentException "The given type header contains no location information." |> raise)
 
@@ -193,5 +193,3 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
             ((loc.Offset, udt.SourceFile), loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, [])) |> diagnostics.Add        
     let positionAndDiagnostic ((pos, _), msg) = pos, msg 
     diagnostics.ToLookup(fst >> snd, positionAndDiagnostic)
-
-       

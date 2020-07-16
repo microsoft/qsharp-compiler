@@ -34,8 +34,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simulation", "Simulation", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulation", "src\QsCompiler\TestTargets\Simulation\Target\Simulation.csproj", "{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "src\QsCompiler\TestTargets\Simulation\Example\Example.csproj", "{2E331781-F7ED-4EF1-8451-896636C6D93A}"
-EndProject
+# TODO:
+# Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "src\QsCompiler\TestTargets\Simulation\Example\Example.csproj", "{2E331781-F7ED-4EF1-8451-896636C6D93A}"
+# EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{D2E36476-A65F-4310-9C4C-B721BCC47B00}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Library1", "src\QsCompiler\TestTargets\Libraries\Library1\Library1.csproj", "{DDAA35BF-7BFC-431F-9F7E-182F01DAEB3F}"

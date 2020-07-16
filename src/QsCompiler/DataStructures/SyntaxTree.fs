@@ -108,9 +108,9 @@ type Identifier =
 /// relative to the position of a chosen root-node (e.g. the specialization declaration)
 type QsLocation = {
     /// position offset (line and character) for Range relative to the chosen root node
-    Offset : int * int
+    Offset : Position
     /// range relative to Offset
-    Range : QsPositionInfo * QsPositionInfo
+    Range : Range
 }
 
 
@@ -124,7 +124,7 @@ type QsTypeParameter = {
     TypeName : NonNullable<string>
     /// the range at which the type parameter occurs relative to the statement (or partial statement) root
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 }
 
 
@@ -136,7 +136,7 @@ type UserDefinedType = {
     Name : NonNullable<string>
     /// the range at which the type occurs relative to the statement (or partial statement) root
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 }
 
 
@@ -354,7 +354,7 @@ type TypedExpression = {
     InferredInformation : InferredExpressionInformation
     /// the range at which the expression occurs relative to the statement (or partial statement) root
     /// -> is Null for invalid and auto-generated expressions
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 }
     with
     interface ITuple
@@ -421,9 +421,9 @@ type LocalVariableDeclaration<'Name> = {
     /// Denotes the position where the variable is declared
     /// relative to the position of the specialization declaration within which the variable is declared.
     /// If the Position is Null, then the variable is not declared within a specialization (but belongs to a callable or type declaration).
-    Position : QsNullable<int*int>
+    Position : QsNullable<Position>
     /// Denotes the range of the variable name relative to the position of the variable declaration.
-    Range : QsPositionInfo * QsPositionInfo
+    Range : Range
 }
 
 
@@ -597,7 +597,7 @@ type QsDeclarationAttribute = {
     /// Contains the argument with which the attribute is instantiated.
     Argument : TypedExpression
     /// Represents the position in the source file where the attribute is used.
-    Offset : int * int
+    Offset : Position
     /// contains comments in the code associated with the attached attribute
     Comments : QsComments
 }

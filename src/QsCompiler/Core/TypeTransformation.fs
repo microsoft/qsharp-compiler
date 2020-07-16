@@ -22,8 +22,8 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     // supplementary type information 
 
-    abstract member OnRangeInformation : QsRangeInfo -> QsRangeInfo
-    default this.OnRangeInformation r = r
+    abstract member OnRange : QsNullable<Range> -> QsNullable<Range>
+    default this.OnRange range = range
 
     abstract member OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs
@@ -40,14 +40,14 @@ type TypeTransformationBase(options : TransformationOptions) =
     abstract member OnUserDefinedType : UserDefinedType -> ExpressionType
     default this.OnUserDefinedType udt = 
         let ns, name = udt.Namespace, udt.Name
-        let range = this.OnRangeInformation udt.Range
+        let range = this.OnRange udt.Range
         ExpressionType.UserDefinedType << UserDefinedType.New |> Node.BuildOr InvalidType (ns, name, range)
 
     abstract member OnTypeParameter : QsTypeParameter -> ExpressionType
     default this.OnTypeParameter tp = 
         let origin = tp.Origin
         let name = tp.TypeName
-        let range = this.OnRangeInformation tp.Range
+        let range = this.OnRange tp.Range
         ExpressionType.TypeParameter << QsTypeParameter.New |> Node.BuildOr InvalidType (origin, name, range)
 
     abstract member OnOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType

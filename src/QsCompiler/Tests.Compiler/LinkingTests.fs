@@ -7,7 +7,6 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
-open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -36,8 +35,8 @@ type LinkingTests (output:ITestOutputHelper) =
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     let defaultOffset = {
-        Offset = DiagnosticTools.AsTuple (Position (0, 0))
-        Range = QsCompilerDiagnostic.DefaultRange
+        Offset = Position.Zero
+        Range = Range.Zero
     }
 
     let qualifiedName ns name = {

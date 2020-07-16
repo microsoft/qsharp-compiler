@@ -11,8 +11,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 {
@@ -118,10 +118,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// returns a copy of the CodeFragment Range
         /// </summary>
-        internal LSP.Range GetRange() => this.fragmentRange.Copy();
+        internal Lsp.Range GetRange() => this.fragmentRange.Copy();
 
-        private readonly LSP.Range fragmentRange;
-        internal readonly Tuple<QsPositionInfo, QsPositionInfo> HeaderRange;
+        private readonly Lsp.Range fragmentRange;
+        internal readonly Range HeaderRange;
         internal readonly int Indentation;
         internal readonly string Text;
         internal readonly char FollowedBy;
@@ -133,15 +133,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal const char MissingDelimiter = '@'; // arbitrarily chosen
         internal static readonly ImmutableArray<char> DelimitingChars = ImmutableArray.Create('}', '{', ';');
 
-        private static Tuple<QsPositionInfo, QsPositionInfo> GetHeaderRange(string text, QsFragmentKind kind) =>
-            kind == null ? QsCompilerDiagnostic.DefaultRange : kind.IsControlledAdjointDeclaration
+        private static Range GetHeaderRange(string text, QsFragmentKind kind) =>
+            kind == null ? Range.Zero : kind.IsControlledAdjointDeclaration
                 ? Parsing.HeaderDelimiters(2).Invoke(text ?? "")
                 : Parsing.HeaderDelimiters(1).Invoke(text ?? "");
 
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, LSP.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, Lsp.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
         {
             if (!Utils.IsValidRange(r))
             {
@@ -161,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, LSP.Range r, string text, char next, QsFragmentKind kind = null)
+        internal CodeFragment(int indent, Lsp.Range r, string text, char next, QsFragmentKind kind = null)
             : this(indent, r, text, next, null, kind, true)
         {
         }
@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal CodeFragment WithUpdatedLineNumber(int lineNrChange) =>
             this?.SetRange(this.GetRange().WithUpdatedLineNumber(lineNrChange));
 
-        internal CodeFragment SetRange(LSP.Range range) =>
+        internal CodeFragment SetRange(Lsp.Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetIndentation(int indent) =>
@@ -390,17 +390,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal struct TreeNode
         {
-            private readonly Position relPosition;
-            private readonly Position rootPosition;
+            private readonly Lsp.Position relPosition;
+            private readonly Lsp.Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
 
             /// <summary>
             /// Returns the position of the root node that all child node positions are relative to.
             /// </summary>
-            public Position GetRootPosition() => this.rootPosition.Copy();
+            public Lsp.Position GetRootPosition() => this.rootPosition.Copy();
 
-            public Position GetPositionRelativeToRoot() => this.relPosition.Copy();
+            public Lsp.Position GetPositionRelativeToRoot() => this.relPosition.Copy();
 
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
@@ -408,7 +408,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// Throws an ArgumentException if the given parent start position is invalid, or larger than the fragment start position.
             /// Throws an ArgumentNullException if any of the given arguments is null.
             /// </summary>
-            public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
+            public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Lsp.Position parentStart)
             {
                 this.Fragment = fragment ?? throw new ArgumentNullException(nameof(fragment));
                 this.Children = children ?? throw new ArgumentNullException(nameof(children));
@@ -446,12 +446,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal struct HeaderEntry<T>
     {
-        private readonly Position position;
+        private readonly Lsp.Position position;
 
-        internal Position GetPosition() => this.position.Copy();
+        internal Lsp.Position GetPosition() => this.position.Copy();
 
         internal readonly NonNullable<string> SymbolName;
-        internal readonly Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>> PositionedSymbol;
+        internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
 
         internal readonly T Declaration;
         internal readonly ImmutableArray<AttributeAnnotation> Attributes;
@@ -460,8 +460,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
-            Position offset,
-            (NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>) sym,
+            Lsp.Position offset,
+            (NonNullable<string>, Range) sym,
             T decl,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
@@ -478,7 +478,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             this.position = offset.Copy();
             this.SymbolName = sym.Item1;
-            this.PositionedSymbol = new Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>(sym.Item1, sym.Item2);
+            this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
             this.Attributes = attributes;
             this.Documentation = doc;
@@ -526,11 +526,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 throw new ArgumentException("extracted declaration does not have a suitable name");
             }
 
-            var symRange =
-                sym.Range.IsNull
-                ? new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero)
-                : sym.Range.Item;
-
+            var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
                 : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);

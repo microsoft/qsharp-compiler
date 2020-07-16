@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the Range of the given CompilerDiagnostic is null.
         /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
-        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position positionOffset = null)
+        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Lsp.Position positionOffset = null)
         {
             if (msg.Range == null)
             {
@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // warnings 20**
 
-        internal static Diagnostic EmptyStatementWarning(string filename, Position pos)
+        internal static Diagnostic EmptyStatementWarning(string filename, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -148,7 +148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = WarningCode.ExcessSemicolon.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(WarningCode.ExcessSemicolon, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
     }
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // errors 20**
 
-        internal static Diagnostic InvalidFragmentEnding(string filename, ErrorCode code, Position pos)
+        internal static Diagnostic InvalidFragmentEnding(string filename, ErrorCode code, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -183,11 +183,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(code),
                 Source = filename,
                 Message = DiagnosticItem.Message(code, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
 
-        internal static Diagnostic MisplacedOpeningBracketError(string filename, Position pos)
+        internal static Diagnostic MisplacedOpeningBracketError(string filename, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -195,13 +195,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MisplacedOpeningBracket.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MisplacedOpeningBracket, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
 
         // errors 10**
 
-        internal static Diagnostic ExcessBracketError(string filename, Position pos)
+        internal static Diagnostic ExcessBracketError(string filename, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -209,11 +209,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.ExcessBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.ExcessBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
 
-        internal static Diagnostic MissingClosingBracketError(string filename, Position pos)
+        internal static Diagnostic MissingClosingBracketError(string filename, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -221,11 +221,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MissingBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
 
-        internal static Diagnostic MissingStringDelimiterError(string filename, Position pos)
+        internal static Diagnostic MissingStringDelimiterError(string filename, Lsp.Position pos)
         {
             return new Diagnostic
             {
@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MissingStringDelimiterError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingStringDelimiterError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos, End = pos }
             };
         }
     }

@@ -53,6 +53,13 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
         | Some v -> Value v
         | None -> Null
 
+/// Operations for QsNullable<'T>.
+module QsNullable =
+    /// Applies 'f' to both nullable arguments if both have a Value. Returns Null otherwise.
+    let Map2 f a b =
+        match a, b with
+        | Value a, Value b -> f a b |> Value
+        | _ -> Null
 
 [<Struct>]
 type NonNullable<'T> = private Item of 'T with
@@ -60,54 +67,99 @@ type NonNullable<'T> = private Item of 'T with
     member this.Value = this |> function | Item str -> str
 
 
+// Zero-based position.
+// TODO: Add documentation.
+[<CustomEquality>]
+[<CustomComparison>]
+type Position =
+    // TODO: Require that line and column are positive.
+    { Line : int
+      Column : int }
+
+    static member Zero = { Line = 0; Column = 0 }
+
+    static member (+) (a, b) =
+        { Line = a.Line + b.Line
+          Column = if b.Line > 0
+                   then b.Column
+                   else a.Column + b.Column }
+
+    static member op_Equality (a : Position, b : Position) = a = b
+
+    static member op_GreaterThan (a : Position, b) = (a :> IComparable<Position>).CompareTo b > 0
+
+    member a.CompareTo b =
+        if a.Line < b.Line || a.Line = b.Line && a.Column < b.Column
+        then -1
+        elif a.Line = b.Line && a.Column = b.Column
+        then 0
+        else 1
+
+    override a.Equals b =
+        match b with
+        | :? Position as b' -> a.CompareTo b' = 0
+        | _ -> false
+
+    override this.GetHashCode () = hash this
+
+    interface IComparable<Position> with
+        override a.CompareTo b = a.CompareTo b
+
+    interface IComparable with
+        override a.CompareTo b =
+            match b with
+            | :? Position as b' -> a.CompareTo b'
+            | _ -> ArgumentException "The object is not a Position." |> raise
+
+// TODO: Add documentation.
+type Range =
+    // TODO: Require that Start <= Range.
+    { Start : Position
+      End : Position }
+
+    static member Zero = { Start = Position.Zero; End = Position.Zero }
+
+    static member Combine a b =
+        { Start = min a.Start b.Start
+          End = max a.End b.End }
+
+    static member (+) (position, range) =
+        { Start = range.Start + position
+          End = range.End + position }
+
+    static member (+) (range : Range, position : Position) = position + range
+
+    static member op_Equality (a : Range, b : Range) = a = b
+
 [<Struct>]
-type QsPositionInfo = {Line : int; Column: int} with 
-    static member Zero = {Line = 1; Column = 1}
-    static member CombinedRange (left : QsRangeInfo, right : QsRangeInfo) = 
-        match left, right with
-        | Value r1, Value r2 -> Value (fst r1, snd r2)
-        | _ -> Null
+type QsCompilerDiagnostic =
+    { Diagnostic : DiagnosticItem
+      Arguments : IEnumerable<string>
+      Range : Range }
 
-and QsRangeInfo = 
-    QsNullable<QsPositionInfo * QsPositionInfo>
+    /// builds a new diagnostics error with the give code and range
+    static member New (item, args) range = { Diagnostic = item; Arguments = args; Range = range }
 
+    /// builds a new diagnostics error with the give code and range
+    static member Error (code, args) range = QsCompilerDiagnostic.New (Error code, args) range
 
-[<Struct>]
-type QsCompilerDiagnostic = {
-    Diagnostic : DiagnosticItem
-    Arguments : IEnumerable<string>
-    Range : QsPositionInfo * QsPositionInfo 
-}
-    with 
-        static member DefaultRange = QsPositionInfo.Zero, QsPositionInfo.Zero
+    /// builds a new diagnostics warning with the give code and range
+    static member Warning (code, args) range = QsCompilerDiagnostic.New (Warning code, args) range
 
-        /// builds a new diagnostics error with the give code and range
-        static member New (item, args) (startPos, endPos) = 
-            {Diagnostic = item; Arguments = args; Range = (startPos, endPos)}
+    /// builds a new diagnostics information with the give code and range
+    static member Info (code, args) range = QsCompilerDiagnostic.New (Information code, args) range
 
-        /// builds a new diagnostics error with the give code and range
-        static member Error (code, args) (startPos, endPos) = 
-            QsCompilerDiagnostic.New (code |> Error, args) (startPos, endPos)
-        
-        /// builds a new diagnostics warning with the give code and range
-        static member Warning (code, args) (startPos, endPos) = 
-            QsCompilerDiagnostic.New (code |> Warning, args) (startPos, endPos)
-        
-        /// builds a new diagnostics information with the give code and range
-        static member Info (code, args) (startPos, endPos) = 
-            QsCompilerDiagnostic.New (code |> Information, args) (startPos, endPos)
+    member this.Code =
+        match this.Diagnostic with
+        | Error code -> int code
+        | Warning code -> int code
+        | Information code -> int code
 
-        member this.Code = 
-            match this.Diagnostic with 
-            | Error code -> (int)code
-            | Warning code -> (int)code
-            | Information code -> (int)code
-
-        member this.Message =
-            match this.Diagnostic with 
-            | Error code -> DiagnosticItem.Message (code, this.Arguments)
-            | Warning code -> DiagnosticItem.Message (code, this.Arguments)
-            | Information code -> DiagnosticItem.Message (code, this.Arguments)
+    member this.Message =
+        match this.Diagnostic with
+        | Error code -> DiagnosticItem.Message (code, this.Arguments)
+        | Warning code -> DiagnosticItem.Message (code, this.Arguments)
+        | Information code -> DiagnosticItem.Message (code, this.Arguments)
 
 
 /// interface used to pass anything lock-like to the symbol table (could not find an existing one??) 

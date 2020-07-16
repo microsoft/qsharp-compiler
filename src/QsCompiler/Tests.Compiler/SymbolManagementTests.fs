@@ -12,7 +12,10 @@ open Xunit
 
 
 let private rnd = System.Random(1); 
-let getRange () = ({Line = rnd.Next(); Column = rnd.Next()}, {Line = rnd.Next(); Column = rnd.Next()}) |> Value
+let getRange () =
+    { Start = { Line = rnd.Next(); Column = rnd.Next() }
+      End = { Line = rnd.Next(); Column = rnd.Next() } }
+    |> Value
 
 let toQualName (ns : string, name : string) =
     {Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name}

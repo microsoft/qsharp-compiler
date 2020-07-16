@@ -15,8 +15,9 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -105,12 +106,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl => decl.QualifiedName,
                     decl => SymbolResolution.TryGetTestName(decl.Attributes).ValueOr(decl.QualifiedName));
 
-            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Tuple<int, int> declLocation)
+            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Position declLocation)
             {
                 var attName = new UserDefinedType(
                     NonNullable<string>.New(GeneratedAttributes.Namespace),
                     NonNullable<string>.New(GeneratedAttributes.LoadedViaTestNameInsteadOf),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
                 var attArg = SyntaxGenerator.StringLiteral(
                     NonNullable<string>.New(originalName.ToString()),
                     ImmutableArray<TypedExpression>.Empty);
@@ -916,10 +917,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal QsScope TryGetSpecializationAt(
             FileContentManager file,
-            Position pos,
+            Lsp.Position pos,
             out QsQualifiedName callableName,
-            out Position callablePos,
-            out Position specializationPos)
+            out Lsp.Position callablePos,
+            out Lsp.Position specializationPos)
         {
             (callableName, callablePos, specializationPos) = (null, null, null);
             if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
@@ -975,7 +976,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value.
         /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
         /// </summary>
-        internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Position callablePos, Position specPos, LocalDeclarations declarations = null)
+        internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Lsp.Position callablePos, Lsp.Position specPos, LocalDeclarations declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
             {
@@ -992,12 +993,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return LocalDeclarations.Empty;
             }
             declarations ??= TryGetLocalDeclarations();
-
-            Tuple<int, int> AbsolutePosition(QsNullable<Tuple<int, int>> relOffset) =>
+            return declarations.WithAbsolutePosition(relOffset =>
                 relOffset.IsNull
-                    ? DiagnosticTools.AsTuple(callablePos)
-                    : DiagnosticTools.AsTuple(specPos.Add(DiagnosticTools.AsPosition(relOffset.Item)));
-            return declarations.WithAbsolutePosition(AbsolutePosition);
+                    ? callablePos.ToQSharp()
+                    : specPos.ToQSharp() + relOffset.Item);
         }
 
         /// <summary>
@@ -1011,7 +1010,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object.
         /// Sets the parent name to null, if no parent could be determind.
         /// </summary>
-        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
+        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Lsp.Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
             var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos), includeDeclaredAtPosition);

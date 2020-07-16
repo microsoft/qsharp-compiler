@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself. 
 type QsKeyword = {
-    parse : Parser<Position*Position, QsCompilerDiagnostic list>
+    parse : Parser<Range, QsCompilerDiagnostic list>
     id : string
 }
 
