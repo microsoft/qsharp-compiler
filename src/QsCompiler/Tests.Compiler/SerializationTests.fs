@@ -58,8 +58,8 @@ module SerializationTests =
         Type = t |> ResolvedType.New
         InferredInformation = InferredExpressionInformation.New (false, false)
         Position = Null
-        Range = { Start = { Line = 1; Column = s }
-                  End = { Line = 1; Column = e } }
+        Range = { Start = Position.Create (1, s)
+                  End = Position.Create (1, e) }
     }
 
     let tupleIntIntType = TupleType ([Int |> ResolvedType.New; Int |> ResolvedType.New].ToImmutableArray())
@@ -68,8 +68,8 @@ module SerializationTests =
         [intItem; intItem].ToImmutableArray() |> QsTuple
     let qualifiedName ns name = {Namespace = ns |> NonNullable<string>.New; Name = name |> NonNullable<string>.New}
     let udt name = 
-        let range = { Start = { Line = 5; Column = 10 }
-                      End = { Line = 5; Column = 10 } } |> Value
+        let range = { Start = Position.Create (5, 10)
+                      End = Position.Create (5, 10) } |> Value
         let fullName = qualifiedName "Microsoft.Quantum" name 
         {Namespace = fullName.Namespace; Name = fullName.Name; Range = range} |> UserDefinedType
     let udtPair = udt "Pair"
@@ -91,9 +91,9 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 4; Column = 43 } |> DeclarationHeader.Offset.Defined
-            HeaderRange     = { Start = { Line = 1; Column = 1 }
-                                End = { Line = 1; Column = 5 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (4, 43) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = { Start = Position.Create (1, 1)
+                                End = Position.Create (1, 5) } |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         } 
         |> testOne
@@ -105,9 +105,9 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 5; Column = 39 } |> DeclarationHeader.Offset.Defined
-            HeaderRange     = { Start = { Line = 1; Column = 1 }
-                                End = { Line = 1; Column = 5 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (5, 39) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = { Start = Position.Create (1, 1)
+                                End = Position.Create (1, 5) } |> DeclarationHeader.Range.Defined
             Documentation   = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
         } 
         |> testOne
@@ -119,9 +119,9 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 5; Column = 4 } |> DeclarationHeader.Offset.Defined
-            HeaderRange     = { Start = { Line = 1; Column = 9 }
-                                End = { Line = 1; Column = 13 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (5, 4) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 13) } |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -133,9 +133,9 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 6; Column = 4 } |> DeclarationHeader.Offset.Defined
-            HeaderRange     = { Start = {Line = 1; Column = 9}
-                                End = { Line = 1; Column = 15 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (6, 4) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 15) } |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -155,9 +155,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 2; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 9 }
-                                End = { Line = 1; Column = 13 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (2, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 13) } |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType udtPair [] 
             Documentation   = ImmutableArray.Create("type constructor for user defined type") 
@@ -170,9 +170,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 4; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 10 }
-                                End = { Line = 1; Column = 23 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (4, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 10)
+                                End = Position.Create (1, 23) } |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [ varDecl "p" udtPair (25,26) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature udtPair UnitType []
             Documentation   = ImmutableArray.Empty
@@ -185,9 +185,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 5; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 11 }
-                                End = { Line = 1; Column = 25 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (5, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 11)
+                                End = Position.Create (1, 25) } |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature UnitType UnitType [Adjointable; Controllable]
             Documentation   = ImmutableArray.Empty
@@ -200,9 +200,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 3; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 9 }
-                                End = { Line = 1; Column = 15 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (3, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 15) } |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType (udt "Unused") []
             Documentation   = ImmutableArray.Create("type constructor for user defined type")
@@ -222,9 +222,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 2; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 9 }
-                                End = { Line = 1; Column = 13 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (2, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 13) } |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
@@ -236,9 +236,9 @@ module SerializationTests =
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = { Line = 3; Column = 4 } |> DeclarationHeader.Offset.Defined
-            SymbolRange     = { Start = { Line = 1; Column = 9 }
-                                End = { Line = 1; Column = 15 } } |> DeclarationHeader.Range.Defined
+            Position        = Position.Create (3, 4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = { Start = Position.Create (1, 9)
+                                End = Position.Create (1, 15) } |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty

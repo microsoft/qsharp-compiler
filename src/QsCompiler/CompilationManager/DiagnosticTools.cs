@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Position ToQSharp(this Lsp.Position position) =>
             position is null
                 ? throw new ArgumentNullException(nameof(position))
-                : new Position(position.Line, position.Character);
+                : Position.Create(position.Line, position.Character);
 
         /// <summary>
         /// Converts the Q# compiler position into a language server protocol position.

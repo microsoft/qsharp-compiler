@@ -72,23 +72,16 @@ type NonNullable<'T> = private Item of 'T with
 [<CustomEquality>]
 [<CustomComparison>]
 type Position =
-    // TODO: Require that line and column are positive.
-    { Line : int
-      Column : int }
+    private {
+        line : int
+        column : int
+    }
 
-    static member Zero = { Line = 0; Column = 0 }
+    member this.Line = this.line
 
-    static member (+) (a, b) =
-        { Line = a.Line + b.Line
-          Column = if b.Line > 0
-                   then b.Column
-                   else a.Column + b.Column }
+    member this.Column = this.column
 
-    static member op_Equality (a : Position, b : Position) = a = b
-
-    static member op_GreaterThan (a : Position, b) = (a :> IComparable<Position>).CompareTo b > 0
-
-    member a.CompareTo b =
+    member a.CompareTo (b : Position) =
         if a.Line < b.Line || a.Line = b.Line && a.Column < b.Column
         then -1
         elif a.Line = b.Line && a.Column = b.Column
@@ -102,7 +95,7 @@ type Position =
 
     override this.GetHashCode () = hash this
 
-    interface IComparable<Position> with
+    interface Position IComparable with
         override a.CompareTo b = a.CompareTo b
 
     interface IComparable with
@@ -110,6 +103,23 @@ type Position =
             match b with
             | :? Position as b' -> a.CompareTo b'
             | _ -> ArgumentException "The object is not a Position." |> raise
+    
+    static member (+) (a : Position, b : Position) =
+        { line = a.Line + b.Line
+          column = if b.Line > 0
+                   then b.Column
+                   else a.Column + b.Column }
+
+    static member op_Equality (a : Position, b : Position) = a.Equals b
+
+    static member op_GreaterThan (a : Position, b) = (a :> Position IComparable).CompareTo b > 0
+
+    static member Zero = { line = 0; column = 0 }
+
+    static member Create (line, column) =
+        if line < 0 || column < 0
+        then ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
+        { line = line; column = column }
 
 // TODO: Add documentation.
 type Range =
