@@ -283,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 }
 
                 // It doesn't matter what we return because this is a walker.
-                return ResolvedType.New(ResolvedTypeKind.InvalidType);
+                return t;
             }
 
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
