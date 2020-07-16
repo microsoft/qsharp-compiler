@@ -347,8 +347,12 @@ let private setStatement =
         ]
 
     let identifierExpr continuation = 
-        let asIdentifier (sym : QsSymbol) = (Identifier (sym, Null), sym.Range) |> QsExpression.New
-        let validItem = (missingExpr <|> (localIdentifier |>> asIdentifier)) .>> followedBy continuation // missingExpr needs to be first
+        let asIdentifier (sym : QsSymbol) =
+            match sym.Symbol with
+            | InvalidSymbol -> preturn unknownExpr
+            | Symbol _ -> (Identifier (sym, Null), sym.Range) |> QsExpression.New |> preturn
+            | _ -> fail "symbol is not a local identifier"
+        let validItem = (missingExpr <|> (localIdentifier >>= asIdentifier)) .>> followedBy continuation // missingExpr needs to be first
         let exprError (ex : QsExpression) = ex.Range |> function
             | Value range -> range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidIdentifierExprInUpdate, []) |> preturn >>= pushDiagnostic
             | Null -> fail "expression without range info"

@@ -15,7 +15,7 @@
     <PackageReleaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Microsoft/qsharp-compiler</PackageProjectUrl>
-    <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
+    <PackageIcon>qdk-nuget-icon.png</PackageIcon>
     <PackageTags>Quantum Q# Qsharp</PackageTags>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>qsc</ToolCommandName>
@@ -26,11 +26,8 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.3.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.3.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.3.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.3.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="3.3.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.6.0" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,8 +39,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
     <Content Include="..\..\..\NOTICE.txt" Link="NOTICE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\build\assets\qdk-nuget-icon.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
 </Project>

@@ -15,7 +15,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Microsoft.Quantum.VisualStudio</RootNamespace>
     <AssemblyName>Microsoft.Quantum.VisualStudio.Extension</AssemblyName>
-    <TargetVsixContainerName>Microsoft.Quantum.Development.Kit-$(AssemblyVersion).vsix</TargetVsixContainerName>
+    <TargetVsixContainerName>Microsoft.Quantum.Development.Kit-$(VSVSIX_VERSION).vsix</TargetVsixContainerName>
     <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp3.1\publish\</LanguageServerPath>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <GeneratePkgDefFile>false</GeneratePkgDefFile>
@@ -127,11 +127,11 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="mobius_strip_icon.png">
+    <Content Include="MS_Quantum_Spot_Dev-32.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="mobius_strip_preview.png">
+    <Content Include="MS_Quantum_Spot_Dev-200.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

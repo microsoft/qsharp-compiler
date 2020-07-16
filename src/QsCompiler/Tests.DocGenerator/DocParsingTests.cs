@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 
@@ -23,37 +23,40 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
         [Fact]
         public void ParseDocComments()
         {
-            string[] comments = { "# Summary",
-                                  "Encodes a multi-qubit Pauli operator represented as an array of",
-                                  "single-qubit Pauli operators into an integer.",
-                                  "",
-                                  "Test second paragraph.",
-                                  "",
-                                  "# Description",
-                                  "This is some text",
-                                  "",
-                                  "This is some more text",
-                                  "",
-                                  "# Input",
-                                  "## paulies",
-                                  "An array of at most 31 single-qubit Pauli operators.",
-                                  "",
-                                  "# Output",
-                                  "An integer uniquely identifying `paulies`, as described below.",
-                                  "",
-                                  "# Remarks",
-                                  "Each Pauli operator can be encoded using two bits:",
-                                  "$$",
-                                  "\\begin{align}",
-                                  "\\boldone \\mapsto 00, \\quad X \\mapsto 01, \\quad Y \\mapsto 11,",
-                                  "\\quad Z \\mapsto 10.",
-                                  "\\end{align}",
-                                  "$$",
-                                  "",
-                                  "Given an array of Pauli operators `[P0, ..., Pn]`, this function returns an",
-                                  "integer with binary expansion formed by concatenating",
-                                  "the mappings of each Pauli operator in big-endian order",
-                                  "`bits(Pn) ... bits(P0)`." };
+            string[] comments =
+            {
+                "# Summary",
+                "Encodes a multi-qubit Pauli operator represented as an array of",
+                "single-qubit Pauli operators into an integer.",
+                "",
+                "Test second paragraph.",
+                "",
+                "# Description",
+                "This is some text",
+                "",
+                "This is some more text",
+                "",
+                "# Input",
+                "## paulies",
+                "An array of at most 31 single-qubit Pauli operators.",
+                "",
+                "# Output",
+                "An integer uniquely identifying `paulies`, as described below.",
+                "",
+                "# Remarks",
+                "Each Pauli operator can be encoded using two bits:",
+                "$$",
+                "\\begin{align}",
+                "\\boldone \\mapsto 00, \\quad X \\mapsto 01, \\quad Y \\mapsto 11,",
+                "\\quad Z \\mapsto 10.",
+                "\\end{align}",
+                "$$",
+                "",
+                "Given an array of Pauli operators `[P0, ..., Pn]`, this function returns an",
+                "integer with binary expansion formed by concatenating",
+                "the mappings of each Pauli operator in big-endian order",
+                "`bits(Pn) ... bits(P0)`."
+            };
             var dc = new DocComment(comments);
             Assert.Equal(comments[1] + "\r" + comments[2] + "\r" + comments[3] + "\r" + comments[4], dc.Summary);
             Assert.Equal(comments[1] + "\r" + comments[2], dc.ShortSummary);
@@ -64,14 +67,14 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
             Assert.Equal(comments[16], dc.Output);
             Assert.Empty(dc.TypeParameters);
             Assert.Equal("", dc.Example);
-            var remarks = String.Join("\r", comments.AsSpan(19, 12).ToArray());
+            var remarks = string.Join("\r", comments.AsSpan(19, 12).ToArray());
             Assert.Equal(remarks, dc.Remarks);
         }
 
         [Fact]
         public void ParseUdt()
         {
-            string[] comments = 
+            string[] comments =
             {
                 "# Summary",
                 "Represents a single primitive term in the set of all dynamical generators, e.g.",
@@ -149,15 +152,16 @@ seeAlso:
             var anonymousItem = QsTuple<QsTypeItem>.NewQsTupleItem(QsTypeItem.NewAnonymous(baseType));
             var typeItems = QsTuple<QsTypeItem>.NewQsTuple(ImmutableArray.Create(anonymousItem));
 
-            var generatorIndexType = new QsCustomType(MakeFullName("GeneratorIndex"),
-                                                      ImmutableArray<QsDeclarationAttribute>.Empty,
-                                                      new Modifiers(AccessModifier.DefaultAccess),
-                                                      NonNullable<string>.New("GeneratorRepresentation.qs"),
-                                                      ZeroLocation,
-                                                      baseType,
-                                                      typeItems,
-                                                      comments.ToImmutableArray(),
-                                                      QsComments.Empty);
+            var generatorIndexType = new QsCustomType(
+                MakeFullName("GeneratorIndex"),
+                ImmutableArray<QsDeclarationAttribute>.Empty,
+                new Modifiers(AccessModifier.DefaultAccess),
+                NonNullable<string>.New("GeneratorRepresentation.qs"),
+                ZeroLocation,
+                baseType,
+                typeItems,
+                comments.ToImmutableArray(),
+                QsComments.Empty);
             var udt = new DocUdt("Microsoft.Quantum.Canon", generatorIndexType);
 
             var stream = new StringWriter();
@@ -307,12 +311,13 @@ output:
             var qubitArrayType = ResolvedType.New(QsType.NewArrayType(ResolvedType.New(QsType.Qubit)));
             var unitType = ResolvedType.New(QsType.UnitType);
             var doubleType = ResolvedType.New(QsType.Double);
-            var oracleType = ResolvedType.New(QsType.NewUserDefinedType(new UserDefinedType(CanonName, 
-                                                                        NonNullable<string>.New("DiscreteOracle"), 
-                                                                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null)));
+            var oracleType = ResolvedType.New(QsType.NewUserDefinedType(new UserDefinedType(
+                CanonName,
+                NonNullable<string>.New("DiscreteOracle"),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null)));
             var noInfo = CallableInformation.NoInformation;
             var acFunctors = ResolvedCharacteristics.FromProperties(new[] { OpProperty.Adjointable, OpProperty.Controllable });
-            var acInfo = new CallableInformation(acFunctors, InferredCallableInformation.NoInformation); 
+            var acInfo = new CallableInformation(acFunctors, InferredCallableInformation.NoInformation);
             var qubitToUnitOp = ResolvedType.New(QsType.NewOperation(new SigTypeTuple(qubitArrayType, unitType), noInfo));
             var qubitToUnitOpAC = ResolvedType.New(QsType.NewOperation(new SigTypeTuple(qubitArrayType, unitType), acInfo));
             var phaseEstArgs = new ResolvedType[] { oracleType, qubitArrayType }.ToImmutableArray();
@@ -324,27 +329,32 @@ output:
             var argTupleType = ResolvedType.New(QsType.NewTupleType(argTypes));
             var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo);
 
-            var args = new List<ArgDeclType> { BuildArgument("statePrepUnitary", qubitToUnitOp),
-                                               BuildArgument("adiabaticUnitary", qubitToUnitOp),
-                                               BuildArgument("qpeUnitary", qubitToUnitOpAC),
-                                               BuildArgument("phaseEstAlgorithm", phaseEstOp),
-                                               BuildArgument("qubits", qubitArrayType) }
-                            .ConvertAll(arg => QsTuple<ArgDeclType>.NewQsTupleItem(arg))
-                            .ToImmutableArray();
+            var args =
+                new List<ArgDeclType>
+                {
+                    BuildArgument("statePrepUnitary", qubitToUnitOp),
+                    BuildArgument("adiabaticUnitary", qubitToUnitOp),
+                    BuildArgument("qpeUnitary", qubitToUnitOpAC),
+                    BuildArgument("phaseEstAlgorithm", phaseEstOp),
+                    BuildArgument("qubits", qubitArrayType)
+                }
+                .ConvertAll(arg => QsTuple<ArgDeclType>.NewQsTupleItem(arg))
+                .ToImmutableArray();
             var argTuple = QsTuple<ArgDeclType>.NewQsTuple(args);
             var specs = Array.Empty<QsSpecialization>().ToImmutableArray();
 
-            var qsCallable = new QsCallable(QsCallableKind.Operation,
-                                            MakeFullName("AdiabaticStateEnergyUnitary"),
-                                            ImmutableArray<QsDeclarationAttribute>.Empty,
-                                            new Modifiers(AccessModifier.DefaultAccess),
-                                            NonNullable<string>.New("Techniques.qs"),
-                                            ZeroLocation,
-                                            signature,
-                                            argTuple,
-                                            specs,
-                                            comments.ToImmutableArray(),
-                                            QsComments.Empty);
+            var qsCallable = new QsCallable(
+                QsCallableKind.Operation,
+                MakeFullName("AdiabaticStateEnergyUnitary"),
+                ImmutableArray<QsDeclarationAttribute>.Empty,
+                new Modifiers(AccessModifier.DefaultAccess),
+                NonNullable<string>.New("Techniques.qs"),
+                ZeroLocation,
+                signature,
+                argTuple,
+                specs,
+                comments.ToImmutableArray(),
+                QsComments.Empty);
             var callable = new DocCallable("Microsoft.Quantum.Canon", qsCallable);
 
             var stream = new StringWriter();
@@ -356,11 +366,13 @@ output:
         [Fact]
         public void ParseDeprecated()
         {
-            string[] comments = { "# Summary",
-                                  "This is some text",
-                                  "# Deprecated",
-                                  "Some other text"
-                                };
+            string[] comments =
+            {
+                "# Summary",
+                "This is some text",
+                "# Deprecated",
+                "Some other text"
+            };
             string dep = "NewName";
             string warning = "> [!WARNING]\n> Deprecated\n";
             string warningText = "name has been deprecated. Please use @\"newname\" instead.";

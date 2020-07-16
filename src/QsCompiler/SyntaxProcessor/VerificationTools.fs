@@ -107,5 +107,3 @@ type ResolvedType with
         | Range -> Some (Int |> ResolvedType.New)
         | ArrayType bt -> Some bt
         | _ -> None
-
-

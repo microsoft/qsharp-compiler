@@ -90,15 +90,18 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile (srcFolder, files, ?references, ?capabilities) =
+    static member Compile (srcFolder, fileNames, ?references, ?capabilities) =
         let references = defaultArg references []
         let capabilities = defaultArg capabilities RuntimeCapabilities.Unknown
-        let compileFiles (files : IEnumerable<_>) =
-            let mgr = new CompilationUnitManager((fun ex -> failwith ex.Message), capabilities = capabilities)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
-            |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync
-            |> ignore
-            mgr.UpdateReferencesAsync(new References(ProjectManager.LoadReferencedAssemblies(references))) |> ignore
-            mgr.Build()
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles
+        let paths = fileNames |> Seq.map (fun file -> Path.Combine (srcFolder, file) |> Path.GetFullPath)
+        let mutable exceptions = []
+        use manager = new CompilationUnitManager ((fun e -> exceptions <- e :: exceptions), capabilities = capabilities)
+        paths.ToImmutableDictionary (Uri, File.ReadAllText)
+        |> CompilationUnitManager.InitializeFileManagers
+        |> manager.AddOrUpdateSourceFilesAsync
+        |> ignore
+        references |> ProjectManager.LoadReferencedAssemblies |> References |> manager.UpdateReferencesAsync |> ignore
+        let compilation = manager.Build ()
+        if not <| List.isEmpty exceptions
+        then exceptions |> List.rev |> AggregateException |> raise
+        compilation
