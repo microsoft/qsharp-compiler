@@ -127,11 +127,11 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="mobius_strip_icon.png">
+    <Content Include="MS_Quantum_Spot_Dev-32.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="mobius_strip_preview.png">
+    <Content Include="MS_Quantum_Spot_Dev-200.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

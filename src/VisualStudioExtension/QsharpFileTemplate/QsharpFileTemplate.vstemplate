@@ -3,7 +3,7 @@
   <TemplateData>
     <Name>Q# File</Name>
     <Description>An empty Q# operation.</Description>
-    <Icon>mobius_strip_icon.png</Icon>
+    <Icon>MS_Quantum_Spot_Dev-32.png</Icon>
     <TemplateID>e8636bf0-e3cd-4689-b27c-6a8c954f4dc4</TemplateID>
     <ProjectType>CSharp</ProjectType>
     <NumberOfParentCategoriesToRollUp>2</NumberOfParentCategoriesToRollUp>

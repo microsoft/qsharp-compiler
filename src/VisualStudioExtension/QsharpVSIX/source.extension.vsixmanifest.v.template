@@ -7,8 +7,8 @@
         <MoreInfo>http://docs.microsoft.com/en-us/quantum/</MoreInfo>
         <License>LICENSE.txt</License>
         <ReleaseNotes>http://docs.microsoft.com/en-us/quantum/quantum-relnotes</ReleaseNotes>
-        <Icon>mobius_strip_preview.png</Icon>
-        <PreviewImage>mobius_strip_preview.png</PreviewImage>
+        <Icon>MS_Quantum_Spot_Dev-200.png</Icon>
+        <PreviewImage>MS_Quantum_Spot_Dev-200.png</PreviewImage>
         <Tags>quantum, Q#</Tags>
     </Metadata>
     <Installation InstalledByMsi="false">
