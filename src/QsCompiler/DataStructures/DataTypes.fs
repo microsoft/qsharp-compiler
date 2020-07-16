@@ -68,8 +68,6 @@ type NonNullable<'T> = private Item of 'T with
 
 
 /// A position in a text document.
-[<CustomEquality>]
-[<CustomComparison>]
 type Position =
     private
     | Position of int * int
@@ -79,34 +77,6 @@ type Position =
 
     /// The column number, where column zero is the first column in the line.
     member this.Column = match this with Position (_, column) -> column
-
-    /// Returns x such that:
-    ///
-    /// x < 0 if this position occurs before the given position
-    /// x = 0 if this position equals the given position
-    /// x > 0 if this position occurs after the given position
-    member a.CompareTo (b : Position) =
-        if a.Line < b.Line || a.Line = b.Line && a.Column < b.Column
-        then -1
-        elif a.Line = b.Line && a.Column = b.Column
-        then 0
-        else 1
-
-    override a.Equals b =
-        match b with
-        | :? Position as b' -> a.CompareTo b' = 0
-        | _ -> false
-
-    override this.GetHashCode () = hash this
-
-    interface Position IComparable with
-        override a.CompareTo b = a.CompareTo b
-
-    interface IComparable with
-        override a.CompareTo b =
-            match b with
-            | :? Position as b' -> a.CompareTo b'
-            | _ -> ArgumentException "The object is not a Position." |> raise
 
     static member (+) (a : Position, b : Position) =
         Position (a.Line + b.Line,
