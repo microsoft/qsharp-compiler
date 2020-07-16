@@ -17,7 +17,9 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    // Type Parameters are frequently referenced by the callable of the type parameter followed by the name of the specific type parameter.
+    using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
+    using TypeParameterResolutions = ImmutableDictionary</*TypeParamterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     public static class TypeParamUtils
     {
@@ -64,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
         /// parameters that can be updated by knowing the resolution of the lookup's associated key.
         /// </summary>
-        private static ILookup<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
+        private static ILookup<TypeParameterName, TypeParameterName> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
         {
              return typeParamResolutions
                 .Select(kvp => (kvp.Key, GetTypeParameters.Apply(kvp.Value))) // Get any type parameters in the resolution type.
@@ -75,25 +77,25 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Applies all the type parameter resolutions in a dictionary to the whole dictionary,
-        /// resulting in a resolution dictionary that has type parameter keys that are not
-       /// referenced in its values.
+        /// Combines independent resolutions in a disjointed dictionary, resulting in a
+        /// resolution dictionary that has type parameter keys that are not referenced
+        /// in its values.
         /// </summary>
-        internal static bool TryCombineTypeResolutionDictionary(out TypeParameterResolutions combined, TypeParameterResolutions resolutionDictionary)
+        internal static bool TryCombineTypeResolutionDictionary(out TypeParameterResolutions combinedResolutions, TypeParameterResolutions independentResolutions)
         {
-            if (!resolutionDictionary.Any())
+            if (!independentResolutions.Any())
             {
-                combined = TypeParameterResolutions.Empty;
+                combinedResolutions = TypeParameterResolutions.Empty;
                 return true;
             }
 
-            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+            var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
             var success = true;
 
-            static bool IsConstrictiveResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+            static bool IsConstrictiveResolution(TypeParameterName typeParam, ResolvedType res) =>
                 ConstrictionCheck.Apply(typeParam, res);
 
-            foreach (var (typeParam, paramRes) in resolutionDictionary)
+            foreach (var (typeParam, paramRes) in independentResolutions)
             {
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
@@ -121,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 combinedBuilder[typeParam] = resolvedParamRes;
             }
 
-            combined = combinedBuilder.ToImmutable();
+            combinedResolutions = combinedBuilder.ToImmutable();
             return success;
         }
 
@@ -139,23 +141,23 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
         /// type parameter belonging to a different callable, or themselves.
         /// </summary>
-        internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
+        internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combinedResolutions, params TypeParameterResolutions[] independentResolutionDictionaries)
         {
-            if (!resolutionDictionaries.Any())
+            if (!independentResolutionDictionaries.Any())
             {
-                combined = TypeParameterResolutions.Empty;
+                combinedResolutions = TypeParameterResolutions.Empty;
                 return true;
             }
 
-            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+            var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
             var success = true;
 
-            static bool IsSelfResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+            static bool IsSelfResolution(TypeParameterName typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
-            static bool IsConstrictiveResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+            static bool IsConstrictiveResolution(TypeParameterName typeParam, ResolvedType res) =>
                 ConstrictionCheck.Apply(typeParam, res);
 
-            foreach (var resolutionDictionary in resolutionDictionaries)
+            foreach (var resolutionDictionary in independentResolutionDictionaries)
             {
                 success = TryCombineTypeResolutionDictionary(out var resolvedDictionary, resolutionDictionary) && success;
 
@@ -196,7 +198,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 }
             }
 
-            combined = combinedBuilder.ToImmutable();
+            combinedResolutions = combinedBuilder.ToImmutable();
             return success;
         }
 
@@ -209,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             /// <summary>
             /// Walks the given ResolvedType and returns all of the type parameters referenced.
             /// </summary>
-            public static HashSet<Tuple<QsQualifiedName, NonNullable<string>>> Apply(ResolvedType res)
+            public static HashSet<TypeParameterName> Apply(ResolvedType res)
             {
                 var walker = new GetTypeParameters();
                 walker.OnType(res);
@@ -218,14 +220,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             internal class TransformationState
             {
-                public HashSet<Tuple<QsQualifiedName, NonNullable<string>>> TypeParams = new HashSet<Tuple<QsQualifiedName, NonNullable<string>>>();
+                public HashSet<TypeParameterName> TypeParams = new HashSet<TypeParameterName>();
             }
 
             private GetTypeParameters() : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
             }
 
-            private static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
+            private static TypeParameterName AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
 
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
@@ -240,14 +242,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         internal class ConstrictionCheck : TypeTransformation<ConstrictionCheck.TransformationState>
         {
-            private readonly Tuple<QsQualifiedName, NonNullable<string>> typeParamName;
+            private readonly TypeParameterName typeParamName;
 
             /// <summary>
             /// Walks the given ResolvedType, typeParamRes, and returns true if there is a reference
             /// to a different type parameter of the same callable as the given type parameter, typeParam.
             /// Otherwise returns false.
             /// </summary>
-            public static bool Apply(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType typeParamRes)
+            public static bool Apply(TypeParameterName typeParam, ResolvedType typeParamRes)
             {
                 var walker = new ConstrictionCheck(typeParam);
                 walker.OnType(typeParamRes);
@@ -259,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 public bool IsConstrictive = false;
             }
 
-            private ConstrictionCheck(Tuple<QsQualifiedName, NonNullable<string>> typeParamName)
+            private ConstrictionCheck(TypeParameterName typeParamName)
                 : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
                 this.typeParamName = typeParamName;
