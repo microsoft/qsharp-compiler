@@ -18,6 +18,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
+    /// <summary>
+    /// Utility class containing methods for working with type parameters.
+    /// </summary>
     public static class TypeParamUtils
     {
         // TODO:
@@ -48,7 +51,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         internal static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
         {
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
             var success = TryCombineTypeResolutions(out combined, resolutions);
             combined = combined.Where(kvp => kvp.Key.Item1.Equals(target)).ToImmutableDictionary();
             return success;
@@ -135,6 +142,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public sealed class CallGraphEdge
     {
+        /// <summary>
+        /// Contains the type parameter resolutions associated with this edge.
+        /// </summary>
         public readonly TypeParameterResolutions ParamResolutions;
 
         /// <summary>
@@ -145,10 +155,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)
         {
-            if (paramResolutions == null) throw new ArgumentNullException(nameof(paramResolutions));
+            if (paramResolutions == null)
+            {
+                throw new ArgumentNullException(nameof(paramResolutions));
+            }
 
             // Remove position info from type parameter resolutions
-            ParamResolutions = paramResolutions.ToImmutableDictionary(kvp => kvp.Key,
+            this.ParamResolutions = paramResolutions.ToImmutableDictionary(
+                kvp => kvp.Key,
                 kvp => StripPositionInfo.Apply(kvp.Value));
         }
 
@@ -199,8 +213,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
-            if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
-            if (edges == null || edges.Any(e => e == null)) throw new ArgumentNullException(nameof(edges));
+            if (targetNode == null)
+            {
+                throw new ArgumentNullException(nameof(targetNode));
+            }
+
+            if (edges == null || edges.Any(e => e == null))
+            {
+                throw new ArgumentNullException(nameof(edges));
+            }
 
             if (TypeParamUtils.TryCombineTypeResolutionsForTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
             {
@@ -219,8 +240,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public sealed class CallGraphNode : IEquatable<CallGraphNode>
     {
+        /// <summary>
+        /// The name of the represented callable.
+        /// </summary>
         public readonly QsQualifiedName CallableName;
+
+        /// <summary>
+        /// The specialization represented.
+        /// </summary>
         public readonly QsSpecializationKind Kind;
+
+        /// <summary>
+        /// The type arguments associated with this specialization.
+        /// </summary>
         public readonly QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
 
         /// <summary>
@@ -230,9 +262,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public CallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
         {
-            CallableName = callableName ?? throw new ArgumentNullException(nameof(callableName));
-            Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-            TypeArgs = typeArgs.IsValue
+            this.CallableName = callableName ?? throw new ArgumentNullException(nameof(callableName));
+            this.Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+            this.TypeArgs = typeArgs.IsValue
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
                 : typeArgs;
         }
@@ -247,21 +279,25 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             specialization.Parent,
             specialization.Kind,
             specialization.TypeArguments)
-        { }
+        {
+        }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is CallGraphNode && Equals((CallGraphNode)obj);
+            return obj is CallGraphNode && this.Equals((CallGraphNode)obj);
         }
 
+        /// <inheritdoc/>
         public bool Equals(CallGraphNode other)
         {
-            return (CallableName, Kind, TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
+            return (this.CallableName, this.Kind, this.TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return (CallableName, Kind, TypeArgs).GetHashCode();
+            return (this.CallableName, this.Kind, this.TypeArgs).GetHashCode();
         }
     }
 
@@ -292,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         private class JohnsonCycleFind
         {
-            private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
+            private readonly Stack<(HashSet<int> SCC, int MinNode)> sccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
 
             /// <summary>
             /// Johnson's algorithm for finding all cycles in a graph.
@@ -309,13 +345,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             {
                 var cycles = new List<List<int>>();
 
-                PushSCCsFromGraph(graph, graph.Keys.ToHashSet());
-                while (SccStack.Any())
+                this.PushSCCsFromGraph(graph, graph.Keys.ToHashSet());
+                while (this.sccStack.Any())
                 {
-                    var (scc, startNode) = SccStack.Pop();
-                    cycles.AddRange(GetSccCycles(graph, scc, startNode));
+                    var (scc, startNode) = this.sccStack.Pop();
+                    cycles.AddRange(this.GetSccCycles(graph, scc, startNode));
                     scc.Remove(startNode);
-                    PushSCCsFromGraph(graph, scc);
+                    this.PushSCCsFromGraph(graph, scc);
                 }
 
                 return cycles;
@@ -328,10 +364,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             /// </summary>
             private void PushSCCsFromGraph(Dictionary<int, List<int>> graph, HashSet<int> filter)
             {
-                var sccs = TarjanSCC(graph, filter).OrderByDescending(x => x.MinNode);
+                var sccs = this.TarjanSCC(graph, filter).OrderByDescending(x => x.MinNode);
                 foreach (var scc in sccs)
                 {
-                    SccStack.Push(scc);
+                    this.sccStack.Push(scc);
                 }
             }
 
@@ -353,9 +389,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                                // This is necessarily separate from the node's id value.
                 var nodeStack = new Stack<int>();
                 var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
-                var SCCs = new List<(HashSet<int> SCC, int MinNode)>();
+                var stronglyConnectedComponents = new List<(HashSet<int> SCC, int MinNode)>();
 
-                void setMinLowLink(int node, int potentialMin)
+                void SetMinLowLink(int node, int potentialMin)
                 {
                     var vInfo = nodeInfo[node];
                     if (vInfo.LowLink > potentialMin)
@@ -365,7 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                     }
                 }
 
-                void strongconnect(int node)
+                void StrongConnect(int node)
                 {
                     // Set the depth index for node to the smallest unused index
                     nodeStack.Push(node);
@@ -380,8 +416,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                             if (!nodeInfo.ContainsKey(child))
                             {
                                 // Child has not yet been visited; recurse on it
-                                strongconnect(child);
-                                setMinLowLink(node, nodeInfo[child].LowLink);
+                                StrongConnect(child);
+                                SetMinLowLink(node, nodeInfo[child].LowLink);
                             }
                             else if (nodeInfo[child].OnStack)
                             {
@@ -389,7 +425,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                                 // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
                                 // Note: The next line may look odd - but is correct.
                                 // It says child.index not child.lowlink; that is deliberate and from the original paper
-                                setMinLowLink(node, nodeInfo[child].Index);
+                                SetMinLowLink(node, nodeInfo[child].Index);
                             }
                         }
                     }
@@ -414,9 +450,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                             {
                                 minNode = nodeInScc;
                             }
-
-                        } while (node != nodeInScc);
-                        SCCs.Add((scc, minNode));
+                        }
+                        while (node != nodeInScc);
+                        stronglyConnectedComponents.Add((scc, minNode));
                     }
                 }
 
@@ -424,11 +460,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     if (!nodeInfo.ContainsKey(node))
                     {
-                        strongconnect(node);
+                        StrongConnect(node);
                     }
                 }
 
-                return SCCs;
+                return stronglyConnectedComponents;
             }
 
             /// <summary>
@@ -449,19 +485,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 var blockedMap = new Dictionary<int, HashSet<int>>();
                 var nodeStack = new Stack<int>();
 
-                void unblock(int node)
+                void Unblock(int node)
                 {
                     if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
                     {
                         blockedMap.Remove(node);
                         foreach (var n in nodesToUnblock)
                         {
-                            unblock(n);
+                            Unblock(n);
                         }
                     }
                 }
 
-                bool populateCycles(int currNode)
+                bool PopulateCycles(int currNode)
                 {
                     var foundCycle = false;
                     nodeStack.Push(currNode);
@@ -478,7 +514,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                             }
                             else if (!blockedSet.Contains(child))
                             {
-                                foundCycle |= populateCycles(child);
+                                foundCycle |= PopulateCycles(child);
                             }
                         }
                     }
@@ -487,7 +523,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                     if (foundCycle)
                     {
-                        unblock(currNode);
+                        Unblock(currNode);
                     }
                     else
                     {
@@ -512,7 +548,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                     return foundCycle;
                 }
 
-                populateCycles(startNode);
+                PopulateCycles(startNode);
 
                 return cycles;
             }
@@ -522,29 +558,29 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
-        private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
+        private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> dependencies =
             new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
         /// <summary>
         /// Represents an empty dependency for a node.
         /// </summary>
-        private static readonly ILookup<CallGraphNode, CallGraphEdge> _EmptyDependency =
+        private static readonly ILookup<CallGraphNode, CallGraphEdge> EmptyDependency =
             ImmutableArray<KeyValuePair<CallGraphNode, CallGraphEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
         /// <summary>
         /// A collection of the nodes in the call graph.
         /// </summary>
-        public ImmutableHashSet<CallGraphNode> Nodes => _Dependencies.Keys.ToImmutableHashSet();
+        public ImmutableHashSet<CallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
 
         /// <summary>
         /// The number of nodes in the call graph.
         /// </summary>
-        public int Count => _Dependencies.Count;
+        public int Count => this.dependencies.Count;
 
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
-            if (_Dependencies.TryGetValue(callerKey, out var deps))
+            if (this.dependencies.TryGetValue(callerKey, out var deps))
             {
                 if (!deps.TryGetValue(calledKey, out var edges))
                 {
@@ -559,13 +595,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             {
                 var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
                 newDeps[calledKey] = ImmutableArray.Create(edge);
-                _Dependencies[callerKey] = newDeps;
+                this.dependencies[callerKey] = newDeps;
             }
 
             // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
-            if (!_Dependencies.ContainsKey(calledKey))
+            if (!this.dependencies.ContainsKey(calledKey))
             {
-                _Dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+                this.dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
             }
         }
 
@@ -576,14 +612,25 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
         /// may have the QsNullable.Null value.
         /// </summary>
-        internal void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
-            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, TypeParameterResolutions typeParamRes)
+        internal void AddDependency(
+            QsSpecialization callerSpec,
+            QsQualifiedName calledName,
+            QsSpecializationKind calledKind,
+            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
+            TypeParameterResolutions typeParamRes)
         {
-            if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
 
-            AddDependency(
-                callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments,
-                calledName, calledKind, calledTypeArgs,
+            this.AddDependency(
+                callerSpec.Parent,
+                callerSpec.Kind,
+                callerSpec.TypeArguments,
+                calledName,
+                calledKind,
+                calledTypeArgs,
                 typeParamRes);
         }
 
@@ -596,8 +643,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// and calledTypeArgs may have the QsNullable.Null value.
         /// </summary>
         internal void AddDependency(
-            QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
+            QsQualifiedName callerName,
+            QsSpecializationKind callerKind,
+            QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
+            QsQualifiedName calledName,
+            QsSpecializationKind calledKind,
+            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             TypeParameterResolutions typeParamRes)
         {
             // Setting TypeArgs to Null because the type specialization is not implemented yet
@@ -605,7 +656,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
 
             var edge = new CallGraphEdge(typeParamRes);
-            RecordDependency(callerKey, calledKey, edge);
+            this.RecordDependency(callerKey, calledKey, edge);
         }
 
         /// <summary>
@@ -620,9 +671,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode callerNode)
         {
-            if (callerNode == null) throw new ArgumentNullException(nameof(callerNode));
+            if (callerNode == null)
+            {
+                throw new ArgumentNullException(nameof(callerNode));
+            }
 
-            if (_Dependencies.TryGetValue(callerNode, out var dep))
+            if (this.dependencies.TryGetValue(callerNode, out var dep))
             {
                 return dep
                     .SelectMany(kvp => kvp.Value, Tuple.Create)
@@ -630,7 +684,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
             else
             {
-                return _EmptyDependency;
+                return EmptyDependency;
             }
         }
 
@@ -646,8 +700,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
         {
-            if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            return this.GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
         }
 
         /// <summary>
@@ -662,15 +720,21 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(CallGraphNode callerSpec)
         {
-            if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
 
-            if (!_Dependencies.ContainsKey(callerSpec)) return _EmptyDependency;
+            if (!this.dependencies.ContainsKey(callerSpec))
+            {
+                return EmptyDependency;
+            }
 
             var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
             void WalkDependencyTree(CallGraphNode root, CallGraphEdge edgeFromRoot)
             {
-                if (_Dependencies.TryGetValue(root, out var next))
+                if (this.dependencies.TryGetValue(root, out var next))
                 {
                     foreach (var (dependent, edges) in next)
                     {
@@ -713,8 +777,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
         {
-            if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            return this.GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
         }
 
         /// <summary>
@@ -723,12 +791,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            var indexToNode = _Dependencies.Keys.ToImmutableArray();
+            var indexToNode = this.dependencies.Keys.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
             var graph = indexToNode
                 .Select((v, i) => (v, i))
-                .ToDictionary(kvp => kvp.i,
-                    kvp => _Dependencies[kvp.v].Keys
+                .ToDictionary(
+                    kvp => kvp.i,
+                    kvp => this.dependencies[kvp.v].Keys
                         .Select(dep => nodeToIndex[dep])
                         .ToList());
 
@@ -742,9 +811,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool ContainsNode(CallGraphNode node)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            return _Dependencies.ContainsKey(node);
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
+            return this.dependencies.ContainsKey(node);
         }
     }
-
 }
