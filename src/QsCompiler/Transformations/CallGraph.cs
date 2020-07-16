@@ -60,9 +60,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Reversed the dependencies of type parameters resolving to other type parameters in the given
+        /// Reverses the dependencies of type parameters resolving to other type parameters in the given
         /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
-        /// parameters that can be updating by knowing the resolution of the lookup's associated key.
+        /// parameters that can be updated by knowing the resolution of the lookup's associated key.
         /// </summary>
         private static ILookup<Tuple<QsQualifiedName, NonNullable<string>>, Tuple<QsQualifiedName, NonNullable<string>>> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
         {
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Applies all the type parameter resolutions in a dictionary to the whole dictionary,
         /// resulting in a resolution dictionary that has type parameter keys that are not
-        /// referenced in the values of the dictionary.
+       /// referenced in its values.
         /// </summary>
         internal static bool TryCombineTypeResolutionDictionary(out TypeParameterResolutions combined, TypeParameterResolutions resolutionDictionary)
         {
