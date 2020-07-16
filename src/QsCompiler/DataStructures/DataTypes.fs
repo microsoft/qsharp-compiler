@@ -72,14 +72,12 @@ type NonNullable<'T> = private Item of 'T with
 [<CustomEquality>]
 [<CustomComparison>]
 type Position =
-    private {
-        line : int
-        column : int
-    }
+    private
+    | Position of int * int
 
-    member this.Line = this.line
+    member this.Line = match this with Position (line, _) -> line
 
-    member this.Column = this.column
+    member this.Column = match this with Position (_, column) -> column
 
     member a.CompareTo (b : Position) =
         if a.Line < b.Line || a.Line = b.Line && a.Column < b.Column
@@ -105,10 +103,8 @@ type Position =
             | _ -> ArgumentException "The object is not a Position." |> raise
 
     static member (+) (a : Position, b : Position) =
-        { line = a.Line + b.Line
-          column = if b.Line > 0
-                   then b.Column
-                   else a.Column + b.Column }
+        Position (a.Line + b.Line,
+                  if b.Line > 0 then b.Column else a.Column + b.Column)
 
     static member op_Equality (a : Position, b : Position) = a.Equals b
 
@@ -117,24 +113,21 @@ type Position =
     static member Create line column =
         if line < 0 || column < 0
         then ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
-        { line = line; column = column }
+        Position (line, column)
 
-    static member Zero = { line = 0; column = 0 }
+    static member Zero = Position (0, 0)
 
 // TODO: Add documentation.
 type Range =
-    private {
-        start : Position
-        ``end`` : Position
-    }
+    private
+    | Range of Position * Position
 
-    member this.Start = this.start
+    member this.Start = match this with Range (start, _) -> start
 
-    member this.End = this.``end``
+    member this.End = match this with Range (_, end') -> end'
 
     static member (+) (position : Position, range : Range) =
-        { start = range.Start + position
-          ``end`` = range.End + position }
+        Range (range.Start + position, range.End + position)
 
     static member (+) (range : Range, position : Position) = position + range
 
@@ -143,13 +136,12 @@ type Range =
     static member Create start ``end`` =
         if start > ``end``
         then ArgumentException "Range start cannot occur after range end." |> raise
-        { start = start; ``end`` = ``end`` }
+        Range (start, ``end``)
 
-    static member Zero = { start = Position.Zero; ``end`` = Position.Zero }
+    static member Zero = Range (Position.Zero, Position.Zero)
 
     static member Combine (a : Range) (b : Range) =
-        { start = min a.Start b.Start
-          ``end`` = max a.End b.End }
+        Range (min a.Start b.Start, max a.End b.End)
 
 [<Struct>]
 type QsCompilerDiagnostic =
