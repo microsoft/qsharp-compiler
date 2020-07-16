@@ -61,7 +61,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
     let MakeTupleType types =
-        types |> Seq.map ResolvedType.New |> Seq.toArray |> ImmutableArray.CreateRange |> TupleType
+        types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
     let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
