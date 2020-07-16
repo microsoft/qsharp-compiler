@@ -21,8 +21,54 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
     using TypeParameterResolutions = ImmutableDictionary</*TypeParamterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    public static class TypeParamUtils
+    /// <summary>
+    /// Utility class containing methods for working with type parameters.
+    /// </summary>
+    internal static class TypeParamUtils
     {
+        /// <summary>
+        /// Reverses the dependencies of type parameters resolving to other type parameters in the given
+        /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
+        /// parameters that can be updated by knowing the resolution of the lookup's associated key.
+        /// </summary>
+        private static ILookup<TypeParameterName, TypeParameterName> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
+        {
+            return typeParamResolutions
+               .Select(kvp => (kvp.Key, GetTypeParameters.Apply(kvp.Value))) // Get any type parameters in the resolution type.
+               .SelectMany(tup => tup.Item2.Select(value => (tup.Key, value))) // For each type parameter found, match it to the dictionary key.
+               .ToLookup(// Reverse the keys and resulting type parameters to make the lookup.
+                   kvp => kvp.value,
+                   kvp => kvp.Key);
+        }
+
+        /// <summary>
+        /// Uses the given lookup, mayBeReplaced, to determine what records in the combinedBuilder can be updated
+        /// from the given type parameter, typeParam, and its resolution, paramRes. Then updates the combinedBuilder
+        /// appropriately. The flag used to determine the validity of type resolutions dictionaries, success, is
+        /// updated and returned.
+        /// </summary>
+        private static bool UpdatedReplaceableResolutions(
+            bool success,
+            ILookup<TypeParameterName, TypeParameterName> mayBeReplaced,
+            TypeParameterResolutions.Builder combinedBuilder,
+            TypeParameterName typeParam,
+            ResolvedType paramRes)
+        {
+            // Create a dictionary with just the current resolution in it.
+            var singleResolution = new[] { 0 }.ToImmutableDictionary(_ => typeParam, _ => paramRes);
+
+            // Get all the parameters whose value is dependent on the current resolution's type parameter,
+            // and update their values with this resolution's value.
+            foreach (var keyInCombined in mayBeReplaced[typeParam])
+            {
+                // Check that we are not constricting a type parameter to another type parameter of the same callable.
+                success = success && !ConstrictionCheck.Apply(keyInCombined, paramRes);
+                combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
+            }
+
+            return success;
+        }
+
         // TODO:
         // This is the method that should be invoked to verify cycles of interest,
         // i.e. where each callable in the cycle is type parametrized.
@@ -58,49 +104,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             var success = TryCombineTypeResolutions(out combined, resolutions);
             combined = combined.Where(kvp => kvp.Key.Item1.Equals(target)).ToImmutableDictionary();
-            return success;
-        }
-
-        /// <summary>
-        /// Reverses the dependencies of type parameters resolving to other type parameters in the given
-        /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
-        /// parameters that can be updated by knowing the resolution of the lookup's associated key.
-        /// </summary>
-        private static ILookup<TypeParameterName, TypeParameterName> GetReplaceable(TypeParameterResolutions.Builder typeParamResolutions)
-        {
-             return typeParamResolutions
-                .Select(kvp => (kvp.Key, GetTypeParameters.Apply(kvp.Value))) // Get any type parameters in the resolution type.
-                .SelectMany(tup => tup.Item2.Select(value => (tup.Key, value))) // For each type parameter found, match it to the dictionary key.
-                .ToLookup(// Reverse the keys and resulting type parameters to make the lookup.
-                    kvp => kvp.value,
-                    kvp => kvp.Key);
-        }
-
-        /// <summary>
-        /// Uses the given lookup, mayBeReplaced, to determine what records in the combinedBuilder can be updated
-        /// from the given type parameter, typeParam, and its resolution, paramRes. Then updates the combinedBuilder
-        /// appropriately. The flag used to determine the validity of type resolutions dictionaries, success, is
-        /// updated and returned.
-        /// </summary>
-        private static bool UpdatedReplaceableResolutions(
-            bool success,
-            ILookup<TypeParameterName, TypeParameterName> mayBeReplaced,
-            TypeParameterResolutions.Builder combinedBuilder,
-            TypeParameterName typeParam,
-            ResolvedType paramRes)
-        {
-            // Create a dictionary with just the current resolution in it.
-            var singleResolution = new[] { 0 }.ToImmutableDictionary(_ => typeParam, _ => paramRes);
-
-            // Get all the parameters whose value is dependent on the current resolution's type parameter,
-            // and update their values with this resolution's value.
-            foreach (var keyInCombined in mayBeReplaced[typeParam])
-            {
-                // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                success = success && !ConstrictionCheck.Apply(keyInCombined, paramRes);
-                combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
-            }
-
             return success;
         }
 
@@ -304,6 +307,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public sealed class CallGraphEdge
     {
+        /// <summary>
+        /// Contains the type parameter resolutions associated with this edge.
+        /// </summary>
         public readonly TypeParameterResolutions ParamResolutions;
 
         /// <summary>
@@ -399,8 +405,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public sealed class CallGraphNode : IEquatable<CallGraphNode>
     {
+        /// <summary>
+        /// The name of the represented callable.
+        /// </summary>
         public readonly QsQualifiedName CallableName;
+
+        /// <summary>
+        /// The specialization represented.
+        /// </summary>
         public readonly QsSpecializationKind Kind;
+
+        /// <summary>
+        /// The type arguments associated with this specialization.
+        /// </summary>
         public readonly QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
 
         /// <summary>

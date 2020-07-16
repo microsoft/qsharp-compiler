@@ -24,6 +24,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// </summary>
     public static class BuildCallGraph
     {
+        /// <summary>
+        /// Builds and returns the call graph for the given compilation.
+        /// </summary>
         public static CallGraph Apply(QsCompilation compilation) =>
             compilation.EntryPoints.Any()
             ? ApplyWithEntryPoints(compilation)
