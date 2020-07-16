@@ -8,15 +8,13 @@ using System.IO;
 using System.Threading;
 using Newtonsoft.Json;
 
-
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
     /// <summary>
-    /// Provides an event tracker of the compilation process for the purpose of assessing performance. 
+    /// Provides an event tracker of the compilation process for the purpose of assessing performance.
     /// </summary>
     public static class CompilationTracker
     {
-
         // Private classes and types.
 
         /// <summary>
@@ -28,33 +26,38 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// Represents the name of the parent compilation task.
             /// </summary>
             public readonly string ParentName;
+
             /// <summary>
             /// Represents the name of the compilation task.
             /// </summary>
             public readonly string Name;
+
             /// <summary>
             /// Contains the UTC datetime when the task started.
             /// </summary>
             public readonly DateTime UtcStart;
+
             /// <summary>
             /// Contains the UTC datetime when the task ended.
             /// </summary>
             public DateTime? UtcEnd;
+
             /// <summary>
             /// Contains the duration of the task in milliseconds.
             /// </summary>
             public long? DurationInMs;
+
             /// <summary>
             /// Stopwatch used to measure the duration of the task.
             /// </summary>
-            private readonly Stopwatch Watch;
+            private readonly Stopwatch watch;
 
             /// <summary>
             /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
             /// </summary>
             internal static string GenerateKey(string parentName, string name)
             {
-                return String.Format("{0}.{1}", parentName ?? "ROOT", name);
+                return string.Format("{0}.{1}", parentName ?? "ROOT", name);
             }
 
             /// <summary>
@@ -62,12 +65,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// </summary>
             public CompilationTask(string parentName, string name)
             {
-                ParentName = parentName;
-                Name = name;
-                UtcStart = DateTime.UtcNow;
-                UtcEnd = null;
-                DurationInMs = null;
-                Watch = Stopwatch.StartNew();
+                this.ParentName = parentName;
+                this.Name = name;
+                this.UtcStart = DateTime.UtcNow;
+                this.UtcEnd = null;
+                this.DurationInMs = null;
+                this.watch = Stopwatch.StartNew();
             }
 
             /// <summary>
@@ -75,9 +78,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// </summary>
             public void End()
             {
-                UtcEnd = DateTime.UtcNow;
-                Watch.Stop();
-                DurationInMs = Watch.ElapsedMilliseconds;
+                this.UtcEnd = DateTime.UtcNow;
+                this.watch.Stop();
+                this.DurationInMs = this.watch.ElapsedMilliseconds;
             }
 
             /// <summary>
@@ -85,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// </summary>
             public bool IsInProgress()
             {
-                return Watch.IsRunning;
+                return this.watch.IsRunning;
             }
         }
 
@@ -99,8 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             public CompilationTaskNode(CompilationTask task)
             {
-                Task = task;
-                Children = new Dictionary<string, CompilationTaskNode>();
+                this.Task = task;
+                this.Children = new Dictionary<string, CompilationTaskNode>();
             }
         }
 
@@ -126,9 +129,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             public Warning(WarningType type, string key)
             {
-                UtcDateTime = DateTime.UtcNow;
-                Type = type;
-                Key = key;
+                this.UtcDateTime = DateTime.UtcNow;
+                this.Type = type;
+                this.Key = key;
             }
         }
 
@@ -170,6 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Note that thread-safe access to this member is done through the global lock.
         /// </summary>
         private static readonly IDictionary<string, CompilationTask> CompilationTasks = new Dictionary<string, CompilationTask>();
+
         /// <summary>
         /// Contains the warnings generated while handling the compiler tasks events.
         /// Note that thread-safe access to this member is done through the global lock.
@@ -265,7 +269,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static void OnCompilationTaskEvent(object sender, CompilationLoader.CompilationTaskEventArgs args)
         {
-            lock (GlobalLock) {
+            lock (GlobalLock)
+            {
                 if (CompilationEventTypeHandlers.TryGetValue(args.Type, out var hanlder))
                 {
                     hanlder(args);
@@ -297,7 +302,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 serializer.Serialize(file, compilationProcessesForest);
             }
 
-            if (Warnings.Count > 0) {
+            if (Warnings.Count > 0)
+            {
                 using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfWarningsFileName)))
                 {
                     var serializer = new JsonSerializer

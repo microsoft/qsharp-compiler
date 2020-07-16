@@ -13,17 +13,22 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class ConjugationInlining : IRewriteStep
     {
         public string Name => "Conjugation Inlining";
+
         public int Priority => RewriteStepPriorities.InliningOfConjugations;
+
         public IDictionary<string, string> AssemblyConstants { get; }
+
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsPreconditionVerification => false;
+
         public bool ImplementsTransformation => true;
+
         public bool ImplementsPostconditionVerification => false;
 
         public ConjugationInlining()
         {
-            AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)

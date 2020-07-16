@@ -21,7 +21,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ControlledArg(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg) =>
             arg != null
-            ? SyntaxGenerator.WithControlQubits(arg,
+            ? SyntaxGenerator.WithControlQubits(
+                arg,
                 QsNullable<Tuple<int, int>>.Null,
                 QsLocalSymbol.NewValidName(NonNullable<string>.New(InternalUse.ControlQubitsName)),
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null)
@@ -34,9 +35,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private static QsSpecialization GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
         {
-            if (specs == null || specs.Any(s => s == null)) throw new ArgumentNullException(nameof(specs));
+            if (specs == null || specs.Any(s => s == null))
+            {
+                throw new ArgumentNullException(nameof(specs));
+            }
             specs = specs.Where(spec => spec.Kind == kind);
-            if (specs.Count() > 1) throw new ArgumentException("several specializations of the given kind exist");
+            if (specs.Count() > 1)
+            {
+                throw new ArgumentException("several specializations of the given kind exist");
+            }
             return specs.Any() ? specs.Single() : null;
         }
 
@@ -58,11 +65,20 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? BodyImplementation(this QsCallable callable)
         {
-            if (callable == null || callable.Kind.IsTypeConstructor) return null;
+            if (callable == null || callable.Kind.IsTypeConstructor)
+            {
+                return null;
+            }
             var noBodyException = new ArgumentException("no implementation provided for body");
             var bodyDecl = callable.Specializations.GetSpecialization(QsSpecializationKind.QsBody)?.Implementation ?? throw noBodyException;
-            if (bodyDecl.IsGenerated) throw new ArgumentException("functor generator directive on body specialization");
-            if (bodyDecl.IsExternal || bodyDecl.IsIntrinsic) return null;
+            if (bodyDecl.IsGenerated)
+            {
+                throw new ArgumentException("functor generator directive on body specialization");
+            }
+            if (bodyDecl.IsExternal || bodyDecl.IsIntrinsic)
+            {
+                return null;
+            }
             return GetContent(bodyDecl) ?? throw noBodyException;
         }
 
@@ -81,7 +97,10 @@ namespace Microsoft.Quantum.QsCompiler
         private static QsCallable BuildAdjoint(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
-            if (bodyDecl == null) return callable ?? throw new ArgumentNullException(nameof(callable));
+            if (bodyDecl == null)
+            {
+                return callable ?? throw new ArgumentNullException(nameof(callable));
+            }
 
             var adj = callable.Specializations.GetSpecialization(QsSpecializationKind.QsAdjoint);
             if (adj != null && adj.Implementation is SpecializationImplementation.Generated gen)
@@ -89,8 +108,11 @@ namespace Microsoft.Quantum.QsCompiler
                 var (bodyArg, bodyImpl) = bodyDecl.Value;
                 void SetImplementation(QsScope impl) => adj = adj.WithImplementation(SpecializationImplementation.NewProvided(bodyArg, impl));
 
-                //if (gen.Item.IsSelfInverse) SetImplementation(bodyImpl); -> nothing to do here, we want to keep this information
-                if (gen.Item.IsInvert) SetImplementation(bodyImpl.GenerateAdjoint());
+                // if (gen.Item.IsSelfInverse) SetImplementation(bodyImpl); -> nothing to do here, we want to keep this information
+                if (gen.Item.IsInvert)
+                {
+                    SetImplementation(bodyImpl.GenerateAdjoint());
+                }
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsAdjoint ? adj : s).ToImmutableArray());
         }
@@ -109,14 +131,20 @@ namespace Microsoft.Quantum.QsCompiler
         private static QsCallable BuildControlled(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
-            if (bodyDecl == null) return callable ?? throw new ArgumentNullException(nameof(callable));
+            if (bodyDecl == null)
+            {
+                return callable ?? throw new ArgumentNullException(nameof(callable));
+            }
 
             var ctl = callable.Specializations.GetSpecialization(QsSpecializationKind.QsControlled);
             if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated gen)
             {
                 var (bodyArg, bodyImpl) = bodyDecl.Value;
                 void SetImplementation(QsScope impl) => ctl = ctl.WithImplementation(SpecializationImplementation.NewProvided(ControlledArg(bodyArg), impl));
-                if (gen.Item.IsDistribute) SetImplementation(bodyImpl.GenerateControlled());
+                if (gen.Item.IsDistribute)
+                {
+                    SetImplementation(bodyImpl.GenerateControlled());
+                }
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlled ? ctl : s).ToImmutableArray());
         }
@@ -138,7 +166,10 @@ namespace Microsoft.Quantum.QsCompiler
         private static QsCallable BuildControlledAdjoint(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
-            if (bodyDecl == null) return callable ?? throw new ArgumentNullException(nameof(callable));
+            if (bodyDecl == null)
+            {
+                return callable ?? throw new ArgumentNullException(nameof(callable));
+            }
 
             var ctlAdj = callable.Specializations.GetSpecialization(QsSpecializationKind.QsControlledAdjoint);
             if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
@@ -173,7 +204,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static bool GenerateFunctorSpecializations(QsCompilation compilation, out QsCompilation built, Action<Exception> onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null)
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
             var success = true;
             var namespaces = compilation.Namespaces.Where(ns => ns != null).Select(ns =>
             {
@@ -196,8 +230,10 @@ namespace Microsoft.Quantum.QsCompiler
                             return QsNamespaceElement.NewQsCallable(callableDecl.Item);
                         }
                     }
-                    else return element;
-
+                    else
+                    {
+                        return element;
+                    }
                 });
                 return new QsNamespace(ns.Name, elements.ToImmutableArray(), ns.Documentation);
             });
@@ -206,4 +242,3 @@ namespace Microsoft.Quantum.QsCompiler
         }
     }
 }
-

@@ -10,17 +10,17 @@ using Microsoft.Quantum.QsCompiler;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json.Linq;
 
-
 namespace Microsoft.Quantum.QsLanguageServer
 {
     public static class Utils
     {
-        // language server tools - 
+        // language server tools -
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
         public static T TryJTokenAs<T>(JToken arg) where T : class =>
-            QsCompilerError.RaiseOnFailure(() =>
-                arg == null ? throw new ArgumentNullException(nameof(arg)) : arg.ToObject<T>(), "could not cast given JToken");
+            QsCompilerError.RaiseOnFailure(
+                () => arg == null ? throw new ArgumentNullException(nameof(arg)) : arg.ToObject<T>(),
+                "could not cast given JToken");
 
         private static ShowMessageParams AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
@@ -33,8 +33,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot show message - given server or text was null");
-            if (server == null) throw new ArgumentNullException(nameof(server));
-            if (message == null) throw new ArgumentNullException(nameof(message));
+            if (server == null)
+            {
+                throw new ArgumentNullException(nameof(server));
+            }
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
             _ = server.NotifyClientAsync(Methods.WindowShowMessageName, message);
         }
 
@@ -46,33 +52,53 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot log message - given server or text was null");
-            if (server == null) throw new ArgumentNullException(nameof(server));
-            if (message == null) throw new ArgumentNullException(nameof(message));
+            if (server == null)
+            {
+                throw new ArgumentNullException(nameof(server));
+            }
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
             _ = server.NotifyClientAsync(Methods.WindowLogMessageName, message);
         }
-
 
         // tools related to project loading and file watching
 
         /// <summary>
-        /// Attempts to apply the given mapper to each element in the given sequence. 
-        /// Returns a new sequence consisting of all mapped elements for which the mapping succeeded as out parameter, 
+        /// Attempts to apply the given mapper to each element in the given sequence.
+        /// Returns a new sequence consisting of all mapped elements for which the mapping succeeded as out parameter,
         /// as well as a bool indicating whether the mapping succeeded for all elements.
-        /// The returned out parameter is non-null even if the mapping failed on some elements. 
+        /// The returned out parameter is non-null even if the mapping failed on some elements.
         /// </summary>
-        internal static bool TryEnumerate<TSource, TResult>(this IEnumerable<TSource> source, 
-            Func<TSource, TResult> mapper, out ImmutableArray<TResult> mapped)
+        internal static bool TryEnumerate<TSource, TResult>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TResult> mapper,
+            out ImmutableArray<TResult> mapped)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (mapper == null) throw new ArgumentNullException(nameof(mapper));
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+            if (mapper == null)
+            {
+                throw new ArgumentNullException(nameof(mapper));
+            }
 
             var succeeded = true;
             var enumerator = source.GetEnumerator();
 
             T Try<T>(Func<T> getRes, T fallback)
             {
-                try { return getRes(); }
-                catch { succeeded = false; return fallback; }
+                try
+                {
+                    return getRes();
+                }
+                catch
+                {
+                    succeeded = false;
+                    return fallback;
+                }
             }
 
             bool TryMoveNext() => Try(enumerator.MoveNext, false);
@@ -82,24 +108,27 @@ namespace Microsoft.Quantum.QsLanguageServer
             while (TryMoveNext())
             {
                 var evaluated = ApplyToCurrent();
-                if (evaluated.Item1) values.Add(evaluated.Item2);
-            }; 
+                if (evaluated.Item1)
+                {
+                    values.Add(evaluated.Item2);
+                }
+            }
 
             mapped = values.ToImmutable();
             return succeeded;
         }
 
         /// <summary>
-        /// Attempts to enumerate the given sequence. 
-        /// Returns a new sequence consisting of all elements which could be accessed, 
+        /// Attempts to enumerate the given sequence.
+        /// Returns a new sequence consisting of all elements which could be accessed,
         /// as well as a bool indicating whether the enumeration succeeded for all elements.
-        /// The returned out parameter is non-null even if access failed on some elements. 
+        /// The returned out parameter is non-null even if access failed on some elements.
         /// </summary>
         internal static bool TryEnumerate<TSource>(this IEnumerable<TSource> source, out ImmutableArray<TSource> enumerated) =>
             source.TryEnumerate(element => element, out enumerated);
 
         /// <summary>
-        /// The given log function is applied to all errors and warning 
+        /// The given log function is applied to all errors and warning
         /// raised by the ms build routine an instance of this class is given to.
         /// </summary>
         internal class MSBuildLogger : Logger

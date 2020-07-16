@@ -8,7 +8,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 {
     /// <summary>
@@ -25,6 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         public class TransformationState
         {
             public bool Success { get; internal set; }
+
             internal readonly Action<Exception> OnException;
 
             internal Func<QsScope, QsScope> ResolveNames =
@@ -40,7 +40,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             }
         }
 
-
         public InlineConjugations(Action<Exception> onException = null)
         : base(new TransformationState(onException))
         {
@@ -50,15 +49,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
-
         // helper classes
 
         private class StatementTransformation
         : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent) { }
-
+            : base(parent)
+            {
+            }
 
             public override QsScope OnScope(QsScope scope)
             {
@@ -77,25 +76,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                         statements.AddRange(inner.Statements);
                         statements.AddRange(adjOuter.Statements);
                     }
-                    else statements.Add(this.OnStatement(statement));
+                    else
+                    {
+                        statements.Add(this.OnStatement(statement));
+                    }
                 }
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }
 
-
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent) { }
+            : base(parent)
+            {
+            }
 
-
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
-                (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation(
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 this.SharedState.Reset();
-                try { body = this.Transformation.Statements.OnScope(body); }
+                try
+                {
+                    body = this.Transformation.Statements.OnScope(body);
+                }
                 catch (Exception ex)
                 {
                     this.SharedState.OnException?.Invoke(ex);
@@ -106,5 +111,3 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         }
     }
 }
-
-

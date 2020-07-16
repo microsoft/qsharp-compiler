@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
-
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class DiagnosticTools
@@ -19,8 +18,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the line and character of the given position as tuple without verifying them.
         /// Throws an ArgumentNullException if the given position is null.
         /// </summary>
-        public static Tuple<int, int> AsTuple(Position position) => 
-            position != null 
+        public static Tuple<int, int> AsTuple(Position position) =>
+            position != null
             ? new Tuple<int, int>(position.Line, position.Character)
             : throw new ArgumentNullException(nameof(position));
 
@@ -42,10 +41,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static Position GetAbsolutePosition(Position offset, QsPositionInfo relativePosition)
         {
-            if (relativePosition.Line < 1 || relativePosition.Column < 1) throw new ArgumentOutOfRangeException(nameof(relativePosition));
+            if (relativePosition.Line < 1 || relativePosition.Column < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(relativePosition));
+            }
 
-            if (offset == null) return new Position(relativePosition.Line - 1, relativePosition.Column - 1); // fparsec position info is one based
-            if (!Utils.IsValidPosition(offset)) throw new ArgumentException(nameof(offset));
+            if (offset == null)
+            {
+                return new Position(relativePosition.Line - 1, relativePosition.Column - 1); // fparsec position info is one based
+            }
+            if (!Utils.IsValidPosition(offset))
+            {
+                throw new ArgumentException(nameof(offset));
+            }
 
             var absPos = offset.Copy();
             absPos.Line += relativePosition.Line - 1; // fparsec position info is one based
@@ -54,30 +62,50 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Creates an absolute position by adding the zero-based offset to the relative position.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <param name="offset">A zero-based line and column offset.</param>
+        /// <exception cref="ArgumentException">Thrown if the position line or column is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if offset line or column is negative.</exception>
+        /// <returns>The absolute position.</returns>
+        internal static Position GetAbsolutePosition(Position position, Tuple<int, int> offset)
+        {
+            var (line, column) = offset;
+            return GetAbsolutePosition(position, new QsPositionInfo(line + 1, column + 1));
+        }
+
+        /// <summary>
         /// Given the starting position, convertes the relative range returned by the Q# compiler w.r.t. that starting position into an absolute range as expected by VS.
         /// IMPORTANT: The position returned by the Q# Compiler is (assumed to be) one-based, whereas the given and returned absolute positions are (assumed to be) zero-based!
         /// If the starting position is null, then this routine simply converts the PositionInfo given by the Q# compiler to the Position object that VS expects.
-        /// Throws an ArgumentNullException if the given relative range is null. 
-        /// Throws an ArgumentException if the Line or Column of the given offset are smaller than zero, 
-        /// or if the end position (second item) of the given relative range is larger than the start position (first item). 
+        /// Throws an ArgumentNullException if the given relative range is null.
+        /// Throws an ArgumentException if the Line or Column of the given offset are smaller than zero,
+        /// or if the end position (second item) of the given relative range is larger than the start position (first item).
         /// Throws an ArgumentOutOfRangeException if the Line or Column of the given relative position are smaller than one.
         /// </summary>
         internal static LSP.Range GetAbsoluteRange(Position offset, Tuple<QsPositionInfo, QsPositionInfo> relativeRange)
         {
             bool LargerThan(QsPositionInfo lhs, QsPositionInfo rhs) =>
-                lhs.Line > rhs.Line || (lhs.Line == rhs.Line && lhs.Column > rhs.Column); 
-            if (relativeRange == null) throw new ArgumentNullException(nameof(relativeRange));
-            if (LargerThan(relativeRange.Item1, relativeRange.Item2)) throw new ArgumentException("invalid range", nameof(relativeRange)); 
+                lhs.Line > rhs.Line || (lhs.Line == rhs.Line && lhs.Column > rhs.Column);
+            if (relativeRange == null)
+            {
+                throw new ArgumentNullException(nameof(relativeRange));
+            }
+            if (LargerThan(relativeRange.Item1, relativeRange.Item2))
+            {
+                throw new ArgumentException("invalid range", nameof(relativeRange));
+            }
             return new LSP.Range { Start = GetAbsolutePosition(offset, relativeRange.Item1), End = GetAbsolutePosition(offset, relativeRange.Item2) };
         }
 
         /// <summary>
         /// Given the location information for a declared symbol,
-        /// as well as the position of the declaration within which the symbol is declared, 
+        /// as well as the position of the declaration within which the symbol is declared,
         /// returns the zero-based line and character index indicating the position of the symbol in the file.
         /// Returns null if the given object is not compatible with the position information generated by this CompilationBuilder.
         /// </summary>
-        public static Tuple<int, int> SymbolPosition(QsLocation rootLocation, QsNullable<Tuple<int,int>> symbolPosition, Tuple<QsPositionInfo, QsPositionInfo> symbolRange)
+        public static Tuple<int, int> SymbolPosition(QsLocation rootLocation, QsNullable<Tuple<int, int>> symbolPosition, Tuple<QsPositionInfo, QsPositionInfo> symbolRange)
         {
             var offset = symbolPosition.IsNull // the position offset is set to null (only) for variables defined in the declaration
                 ? DeclarationPosition(rootLocation)
@@ -86,21 +114,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the position of the specialization declaration to whose implementation the statement belongs, 
-        /// and the position of the statement within the implementation, 
+        /// Given the position of the specialization declaration to whose implementation the statement belongs,
+        /// and the position of the statement within the implementation,
         /// returns the zero-based line and character index indicating the position of the statement in the file.
         /// Returns null if either one of the given objects is not compatible with the position information generated by this CompilationBuilder.
         /// </summary>
         public static Tuple<int, int> StatementPosition(QsLocation rootLocation, QsLocation statementLocation) =>
             StatementPosition(rootLocation.Offset, statementLocation.Offset);
-        internal static Tuple<int, int> StatementPosition(Tuple<int,int> rootOffset, Tuple<int, int> statementPos) =>
+
+        internal static Tuple<int, int> StatementPosition(Tuple<int, int> rootOffset, Tuple<int, int> statementPos) =>
             DeclarationPosition(AsPosition(rootOffset).Add(AsPosition(statementPos)));
 
         /// <summary>
-        /// Given the location of a callable, type or specialization declaration, 
+        /// Given the location of a callable, type or specialization declaration,
         /// returns the zero-based line and character index indicating the position of the declaration in the file.
         /// </summary>
         public static Tuple<int, int> DeclarationPosition(QsLocation location) => DeclarationPosition(AsPosition(location.Offset));
+
         private static Tuple<int, int> DeclarationPosition(Position position) => new Tuple<int, int>(position.Line, position.Character);
 
         /// <summary>
@@ -109,8 +139,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Position Copy(this Position pos)
         {
-            return pos == null 
-                ? null 
+            return pos == null
+                ? null
                 : new Position(pos.Line, pos.Character);
         }
 
@@ -122,21 +152,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Position WithUpdatedLineNumber(this Position pos, int lineNrChange)
         {
-            if (!Utils.IsValidPosition(pos)) throw new ArgumentException($"invalid Position in {nameof(WithUpdatedLineNumber)}");
-            if (pos.Line + lineNrChange < 0) throw new ArgumentOutOfRangeException(nameof(lineNrChange));
+            if (!Utils.IsValidPosition(pos))
+            {
+                throw new ArgumentException($"invalid Position in {nameof(WithUpdatedLineNumber)}");
+            }
+            if (pos.Line + lineNrChange < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
+            }
             var updated = pos.Copy();
             updated.Line += lineNrChange;
             return updated;
         }
 
         /// <summary>
-        /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range 
+        /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range
         /// (i.e. does a deep copy) or null in case the given Range is null.
         /// </summary>
         public static LSP.Range Copy(this LSP.Range r)
         {
-            return r == null 
-                ? null 
+            return r == null
+                ? null
                 : new LSP.Range { Start = r.Start.Copy(), End = r.End.Copy() };
         }
 
@@ -148,9 +184,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static LSP.Range WithUpdatedLineNumber(this LSP.Range range, int lineNrChange)
         {
-            if (lineNrChange == 0) return range ?? throw new ArgumentNullException(nameof(range));
-            if (!Utils.IsValidRange(range)) throw new ArgumentException($"invalid Range in {nameof(WithUpdatedLineNumber)}"); // range can be empty
-            if (range.Start.Line + lineNrChange < 0) throw new ArgumentOutOfRangeException(nameof(lineNrChange));
+            if (lineNrChange == 0)
+            {
+                return range ?? throw new ArgumentNullException(nameof(range));
+            }
+            if (!Utils.IsValidRange(range))
+            {
+                throw new ArgumentException($"invalid Range in {nameof(WithUpdatedLineNumber)}"); // range can be empty
+            }
+            if (range.Start.Line + lineNrChange < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
+            }
             var updated = range.Copy();
             updated.Start.Line += lineNrChange;
             updated.End.Line += lineNrChange;
@@ -163,7 +208,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Diagnostic Copy(this Diagnostic message)
         {
-            if (message == null) return null;
+            if (message == null)
+            {
+                return null;
+            }
             return new Diagnostic()
             {
                 Range = message.Range.Copy(),
@@ -182,7 +230,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Diagnostic WithUpdatedLineNumber(this Diagnostic diagnostic, int lineNrChange)
         {
-            if (lineNrChange == 0) return diagnostic ?? throw new ArgumentNullException(nameof(diagnostic));
+            if (lineNrChange == 0)
+            {
+                return diagnostic ?? throw new ArgumentNullException(nameof(diagnostic));
+            }
             var updatedRange = diagnostic.Range.WithUpdatedLineNumber(lineNrChange); // throws if the given diagnostic is null
             var updated = diagnostic.Copy();
             updated.Range = updatedRange;
@@ -227,12 +278,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound.
-        /// Diagnostics without any range information are only extracted if no lower bound is specified or the specified lower bound is smaller than zero. 
+        /// Diagnostics without any range information are only extracted if no lower bound is specified or the specified lower bound is smaller than zero.
         /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound = -1)
         {
-            if (condition == null) throw new ArgumentNullException(nameof(condition));
+            if (condition == null)
+            {
+                throw new ArgumentNullException(nameof(condition));
+            }
             return orig?.Where(m => condition(m) && lowerBound <= (m.Range?.Start?.Line ?? -1));
         }
 
@@ -242,7 +296,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound, int upperBound)
         {
-            if (condition == null) throw new ArgumentNullException(nameof(condition));
+            if (condition == null)
+            {
+                throw new ArgumentNullException(nameof(condition));
+            }
             return orig?.Where(m => condition(m) && lowerBound <= m.Range.Start.Line && m.Range.End.Line < upperBound);
         }
 
@@ -250,62 +307,80 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Extracts all elements which start at a line that is larger or equal to lowerBound.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound)
-        { return orig?.Filter(m => true, lowerBound); }
+        {
+            return orig?.Filter(m => true, lowerBound);
+        }
 
         /// <summary>
         /// Extracts all elements which start at a line that is larger or equal to lowerBound and smaller than upperBound.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound, int upperBound)
-        { return orig?.Filter(m => true, lowerBound, upperBound); }
-
+        {
+            return orig?.Filter(m => true, lowerBound, upperBound);
+        }
 
         /// <summary>
         /// Returns true if the start line of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByStartLine(this Diagnostic m, int lowerBound)
-        { return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line; }
+        {
+            return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line;
+        }
 
         /// <summary>
         /// Returns true if the start line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByStartLine(this Diagnostic m, int lowerBound, int upperBound)
-        { return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line && m.Range.Start.Line < upperBound; }
+        {
+            return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line && m.Range.Start.Line < upperBound;
+        }
 
         /// <summary>
         /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByEndLine(this Diagnostic m, int lowerBound)
-        { return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line; }
+        {
+            return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line;
+        }
 
         /// <summary>
         /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByEndLine(this Diagnostic m, int lowerBound, int upperBound)
-        { return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line && m.Range.End.Line < upperBound; }
-
+        {
+            return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line && m.Range.End.Line < upperBound;
+        }
 
         /// <summary>
         /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByStart(this Diagnostic m, Position lowerBound)
-        { return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start); }
+        {
+            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start);
+        }
 
         /// <summary>
         /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByStart(this Diagnostic m, Position lowerBound, Position upperBound)
-        { return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start) && m.Range.Start.IsSmallerThan(upperBound); }
+        {
+            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start) && m.Range.Start.IsSmallerThan(upperBound);
+        }
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByEnd(this Diagnostic m, Position lowerBound)
-        { return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End); }
+        {
+            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End);
+        }
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByEnd(this Diagnostic m, Position lowerBound, Position upperBound)
-        { return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End) && m.Range.End.IsSmallerThan(upperBound); }
+        {
+            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End) && m.Range.End.IsSmallerThan(upperBound);
+        }
     }
 }

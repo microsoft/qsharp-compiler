@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>Microsoft.Quantum.Compiler</id>
     <version>$version$</version>
@@ -13,9 +13,12 @@
 
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
-    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <icon>images\qdk-nuget-icon.png</icon>
 
     <copyright>$copyright$</copyright>
     <tags>Quantum Q# Qsharp </tags>
   </metadata>
+  <files>
+    <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
+  </files>
 </package>

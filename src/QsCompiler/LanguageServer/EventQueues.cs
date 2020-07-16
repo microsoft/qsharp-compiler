@@ -11,20 +11,22 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
-
 namespace Microsoft.Quantum.QsLanguageServer
 {
     public class CoalesceingQueue
     {
         private int nrSubscriptions = 0;
-        private readonly ConcurrentDictionary<int, (IDisposable,IDisposable)> Subscriptions;
+        private readonly ConcurrentDictionary<int, (IDisposable, IDisposable)> subscriptions;
 
         public CoalesceingQueue() =>
-            this.Subscriptions = new ConcurrentDictionary<int, (IDisposable, IDisposable)>();
+            this.subscriptions = new ConcurrentDictionary<int, (IDisposable, IDisposable)>();
 
         public bool Unsubscribe(int id)
         {
-            if (!this.Subscriptions.TryRemove(id, out var subscriptions)) return false;
+            if (!this.subscriptions.TryRemove(id, out var subscriptions))
+            {
+                return false;
+            }
             subscriptions.Item1.Dispose();
             subscriptions.Item2.Dispose();
             return true;
@@ -40,15 +42,21 @@ namespace Microsoft.Quantum.QsLanguageServer
             timer.AutoReset = false;
             timer.Enabled = false;
 
-            var eventSubscription = observable.Subscribe(fileEvent => { timer.Stop(); timer.Start(); });
+            var eventSubscription = observable.Subscribe(fileEvent =>
+            {
+                timer.Stop();
+                timer.Start();
+            });
             var bufferedSubscription = observable.Buffer(fileIdle).Subscribe(e => bufferHandler(e));
 
-            var id = ++nrSubscriptions;
+            var id = ++this.nrSubscriptions;
             var subscriptions = (eventSubscription, bufferedSubscription);
-            if (!this.Subscriptions.TryAdd(id, subscriptions)) id = -1;
+            if (!this.subscriptions.TryAdd(id, subscriptions))
+            {
+                id = -1;
+            }
             return id;
         }
-
 
         internal static IEnumerable<FileEvent> Coalesce(IEnumerable<FileEvent> events)
         {
@@ -66,11 +74,26 @@ namespace Microsoft.Quantum.QsLanguageServer
                 var last = stack.Pop();
                 var changedEvent = new FileEvent { FileChangeType = FileChangeType.Changed, Uri = e.Uri };
 
-                if (last.FileChangeType == e.FileChangeType) stack.Push(last);
-                else if (last.FileChangeType == FileChangeType.Created && e.FileChangeType == FileChangeType.Deleted) stacks.Remove(e.Uri);
-                else if (last.FileChangeType == FileChangeType.Deleted && e.FileChangeType == FileChangeType.Created) stack.Push(changedEvent);
-                else if (last.FileChangeType == FileChangeType.Created && e.FileChangeType == FileChangeType.Changed) stack.Push(last);
-                else if (last.FileChangeType == FileChangeType.Changed && e.FileChangeType == FileChangeType.Deleted) stack.Push(e);
+                if (last.FileChangeType == e.FileChangeType)
+                {
+                    stack.Push(last);
+                }
+                else if (last.FileChangeType == FileChangeType.Created && e.FileChangeType == FileChangeType.Deleted)
+                {
+                    stacks.Remove(e.Uri);
+                }
+                else if (last.FileChangeType == FileChangeType.Deleted && e.FileChangeType == FileChangeType.Created)
+                {
+                    stack.Push(changedEvent);
+                }
+                else if (last.FileChangeType == FileChangeType.Created && e.FileChangeType == FileChangeType.Changed)
+                {
+                    stack.Push(last);
+                }
+                else if (last.FileChangeType == FileChangeType.Changed && e.FileChangeType == FileChangeType.Deleted)
+                {
+                    stack.Push(e);
+                }
                 else
                 {
                     stack.Push(last);
@@ -79,6 +102,5 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
             return stacks.Values.SelectMany(stack => stack.Reverse()).ToImmutableArray();
         }
-
     }
 }
