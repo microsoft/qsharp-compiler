@@ -13,8 +13,8 @@ open Xunit
 
 let private rnd = System.Random(1); 
 let getRange () =
-    { Start = Position.Create (rnd.Next(), rnd.Next())
-      End = Position.Create (rnd.Next(), rnd.Next()) }
+    Range.Create (Position.Create (rnd.Next()) (rnd.Next()))
+                 (Position.Create (rnd.Next()) (rnd.Next()))
     |> Value
 
 let toQualName (ns : string, name : string) =

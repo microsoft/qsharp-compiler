@@ -103,7 +103,7 @@ let HeaderDelimiters nrHeaders =
     splitHeaders 
     |>> fun (following, range) ->
         if nrHeaders <= following.Length
-        then { Start = range.Start; End = following.[nrHeaders - 1] }
+        then Range.Create range.Start following.[nrHeaders - 1]
         else range
     |> GetDelimiters
 

@@ -49,8 +49,8 @@ let private deprecatedOp warning (parsedOp : string) =
         let minusOldOpLength value =
             // value here should never be 0 or less (just a precaution)
             if value < parsedOp.Length then 0 else value - parsedOp.Length
-        let precedingPos = Position.Create (pos.Line, minusOldOpLength pos.Column)
-        { Start = precedingPos; End = pos }
+        let precedingPos = Position.Create pos.Line (minusOldOpLength pos.Column)
+        Range.Create precedingPos pos
     buildWarning (getPosition |>> precedingRange) warning
 
 qsExpression.AddOperator (TernaryOperator(qsCopyAndUpdateOp.op, emptySpace, qsCopyAndUpdateOp.cont, emptySpace                        , qsCopyAndUpdateOp.prec, qsCopyAndUpdateOp.Associativity,     applyTerinary CopyAndUpdate))
@@ -317,7 +317,7 @@ let private itemAccessExpr =
             let namedItemEx = buildCombinedExpr (NamedItem (ex, sym)) (ex.Range, sym.Range)
             applyAccessors (namedItemEx, tail)
     let accessor = 
-        let missingEx pos = (MissingExpr, { Start = pos; End = pos }) |> QsExpression.New
+        let missingEx pos = (MissingExpr, Range.Create pos pos) |> QsExpression.New
         let openRange = pstring qsOpenRangeOp.op |> term
         let fullyOpenRange = openRange |>> snd .>>? followedBy eof |>> fun range ->
             let lhs, rhs = missingEx range.Start, missingEx range.End

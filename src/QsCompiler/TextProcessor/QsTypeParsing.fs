@@ -146,7 +146,7 @@ let private operationType =
                     |> String.concat qsSetUnion.op |> sprintf "%s %s" qsCharacteristics.id
                 QsCompilerDiagnostic.Warning
                     (WarningCode.DeprecatedOpCharacteristics, [characteristics])
-                    { Start = startPos; End = range.End }
+                    (Range.Create startPos range.End)
                 |> pushDiagnostic
                 >>. preturn setExpr
         | _ -> fail "not a functor support annotation"

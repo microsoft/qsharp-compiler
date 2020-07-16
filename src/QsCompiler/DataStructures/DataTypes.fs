@@ -103,7 +103,7 @@ type Position =
             match b with
             | :? Position as b' -> a.CompareTo b'
             | _ -> ArgumentException "The object is not a Position." |> raise
-    
+
     static member (+) (a : Position, b : Position) =
         { line = a.Line + b.Line
           column = if b.Line > 0
@@ -114,32 +114,42 @@ type Position =
 
     static member op_GreaterThan (a : Position, b) = (a :> Position IComparable).CompareTo b > 0
 
-    static member Zero = { line = 0; column = 0 }
-
-    static member Create (line, column) =
+    static member Create line column =
         if line < 0 || column < 0
         then ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
         { line = line; column = column }
 
+    static member Zero = { line = 0; column = 0 }
+
 // TODO: Add documentation.
 type Range =
-    // TODO: Require that Start <= Range.
-    { Start : Position
-      End : Position }
+    private {
+        start : Position
+        ``end`` : Position
+    }
 
-    static member Zero = { Start = Position.Zero; End = Position.Zero }
+    member this.Start = this.start
 
-    static member Combine a b =
-        { Start = min a.Start b.Start
-          End = max a.End b.End }
+    member this.End = this.``end``
 
-    static member (+) (position, range) =
-        { Start = range.Start + position
-          End = range.End + position }
+    static member (+) (position : Position, range : Range) =
+        { start = range.Start + position
+          ``end`` = range.End + position }
 
     static member (+) (range : Range, position : Position) = position + range
 
     static member op_Equality (a : Range, b : Range) = a = b
+
+    static member Create start ``end`` =
+        if start > ``end``
+        then ArgumentException "Range start cannot occur after range end." |> raise
+        { start = start; ``end`` = ``end`` }
+
+    static member Zero = { start = Position.Zero; ``end`` = Position.Zero }
+
+    static member Combine (a : Range) (b : Range) =
+        { start = min a.Start b.Start
+          ``end`` = max a.End b.End }
 
 [<Struct>]
 type QsCompilerDiagnostic =

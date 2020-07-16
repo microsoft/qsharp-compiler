@@ -429,9 +429,7 @@ let private filterAndAdapt (diagnostics : QsCompilerDiagnostic list) endPos =
         |> List.exists (fun other -> diagnostic.Range.Start <= other.Range.Start &&
                                      diagnostic.Range.End >= other.Range.Start)
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
-    let rangeWithinFragment range =
-        { Start = min endPos range.Start
-          End = min endPos range.End }
+    let rangeWithinFragment (range : Range) = Range.Create (min endPos range.Start) (min endPos range.End)
     filteredExcessCont @ remainingDiagnostics
     |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })
 
@@ -454,9 +452,9 @@ let internal buildFragment header body (invalid : QsFragmentKind) fragmentKind c
               Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
               Text = NonNullable<_>.New text }
 
-    let buildDiagnostic (errPos, (text, range)) =
+    let buildDiagnostic (errPos, (text, range : Range)) =
         let errPos = if range.End < errPos then range.End else errPos
-        QsCompilerDiagnostic.NewError invalid.ErrorCode { Start = errPos; End = range.End }
+        QsCompilerDiagnostic.NewError invalid.ErrorCode (Range.Create errPos range.End)
         |> pushDiagnostic
         >>. preturn (invalid, (text, range))
 

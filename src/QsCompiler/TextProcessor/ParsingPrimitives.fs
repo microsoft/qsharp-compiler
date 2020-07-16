@@ -53,12 +53,12 @@ let internal isSymbolContinuation c =
 
 /// Returns the current position in the input stream.
 let internal getPosition =
-    CharParsers.getPosition |>> fun p -> Position.Create (int p.Line - 1, int p.Column - 1)
+    CharParsers.getPosition |>> fun p -> Position.Create (int p.Line - 1) (int p.Column - 1)
 
 /// Returns the result of 'p' and the character range that 'p' consumed.
 let internal getRange p =
     getPosition .>>. p .>>. getPosition
-    |>> fun ((start, result), end') -> result, { Start = start; End = end' }
+    |>> fun ((start, result), end') -> result, Range.Create start end'
 
 /// Returns an empty range at the current position in the input stream.
 let internal getEmptyRange = getRange (preturn ()) |>> snd

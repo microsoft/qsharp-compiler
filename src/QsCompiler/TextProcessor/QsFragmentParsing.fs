@@ -359,7 +359,7 @@ let private setStatement =
             | Value range -> range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidIdentifierExprInUpdate, []) |> preturn >>= pushDiagnostic
             | Null -> fail "expression without range info"
         let errorOnArrayItem = 
-            let toRange (start, arrs) = { Start = start; End = (List.last arrs |> snd).End }
+            let toRange (start, arrs : (_ * Range) list) = Range.Create start ((List.last arrs |> snd).End)
             let arrItem = getPosition .>> localIdentifier .>>. many1 (arrayBrackets (expectedExpr eof)) .>> followedBy continuation
             buildError (arrItem |>> toRange) ErrorCode.UpdateOfArrayItemExpr >>% unknownExpr
         let nonTupleExpr = notFollowedBy continuation >>. expr >>= exprError >>% unknownExpr
@@ -493,7 +493,7 @@ let private expressionStatement =
     let invalid = ExpressionStatement unknownExpr
     let valid = 
         let errOnNonCallLike (pos, ex : QsExpression) =
-            let errRange = match ex.Range with | Value range -> range | Null -> { Start = pos; End = pos }
+            let errRange = match ex.Range with | Value range -> range | Null -> Range.Create pos pos
             errRange |> QsCompilerDiagnostic.Error (ErrorCode.NonCallExprAsStatement, []) |> preturn >>= pushDiagnostic
         let anyExpr = getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
         attempt callLikeExpr |>> ExpressionStatement <|> anyExpr
