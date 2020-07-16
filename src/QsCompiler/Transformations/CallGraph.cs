@@ -77,6 +77,34 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
+        /// Uses the given lookup, mayBeReplaced, to determine what records in the combinedBuilder can be updated
+        /// from the given type parameter, typeParam, and its resolution, paramRes. Then updates the combinedBuilder
+        /// appropriately. The flag used to determine the validity of type resolutions dictionaries, success, is
+        /// updated and returned.
+        /// </summary>
+        private static bool UpdatedReplaceableResolutions(
+            bool success,
+            ILookup<TypeParameterName, TypeParameterName> mayBeReplaced,
+            TypeParameterResolutions.Builder combinedBuilder,
+            TypeParameterName typeParam,
+            ResolvedType paramRes)
+        {
+            // Create a dictionary with just the current resolution in it.
+            var singleResolution = new[] { 0 }.ToImmutableDictionary(_ => typeParam, _ => paramRes);
+
+            // Get all the parameters whose value is dependent on the current resolution's type parameter,
+            // and update their values with this resolution's value.
+            foreach (var keyInCombined in mayBeReplaced[typeParam])
+            {
+                // Check that we are not constricting a type parameter to another type parameter of the same callable.
+                success = success && !ConstrictionCheck.Apply(keyInCombined, paramRes);
+                combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
+            }
+
+            return success;
+        }
+
+        /// <summary>
         /// Combines independent resolutions in a disjointed dictionary, resulting in a
         /// resolution dictionary that has type parameter keys that are not referenced
         /// in its values.
@@ -92,9 +120,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
             var success = true;
 
-            static bool IsConstrictiveResolution(TypeParameterName typeParam, ResolvedType res) =>
-                ConstrictionCheck.Apply(typeParam, res);
-
             foreach (var (typeParam, paramRes) in independentResolutions)
             {
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
@@ -103,21 +128,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                 // Check that we are not constricting a type parameter to another type parameter of the same callable
                 // both before and after updating the current value with the resolutions processed so far.
-                success = success && !IsConstrictiveResolution(typeParam, paramRes);
+                success = success && !ConstrictionCheck.Apply(typeParam, paramRes);
                 var resolvedParamRes = ResolvedType.ResolveTypeParameters(combinedBuilder.ToImmutable(), paramRes);
-                success = success && !IsConstrictiveResolution(typeParam, resolvedParamRes);
+                success = success && !ConstrictionCheck.Apply(typeParam, resolvedParamRes);
 
-                // Create a dictionary with just the current resolution in it.
-                var singleResolution = new[] { 0 }.ToImmutableDictionary(_ => typeParam, _ => resolvedParamRes);
-
-                // Get all the parameters whose value is dependent on the current resolution's type parameter,
-                // and update their values with this resolution's value.
-                foreach (var keyInCombined in mayBeReplaced[typeParam])
-                {
-                    // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                    success = success && !IsConstrictiveResolution(keyInCombined, resolvedParamRes);
-                    combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
-                }
+                // Do any replacements for type parameters that may be replaced with the current resolution.
+                success = UpdatedReplaceableResolutions(success, mayBeReplaced, combinedBuilder, typeParam, resolvedParamRes);
 
                 // Add the resolution to the current dictionary.
                 combinedBuilder[typeParam] = resolvedParamRes;
@@ -154,8 +170,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             static bool IsSelfResolution(TypeParameterName typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
-            static bool IsConstrictiveResolution(TypeParameterName typeParam, ResolvedType res) =>
-                ConstrictionCheck.Apply(typeParam, res);
 
             foreach (var resolutionDictionary in independentResolutionDictionaries)
             {
@@ -169,24 +183,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 // This needs to be done first to cover an edge case.
                 foreach (var (typeParam, paramRes) in resolvedDictionary.Where(entry => mayBeReplaced.Contains(entry.Key)))
                 {
-                    // Create a dictionary with just the current resolution in it.
-                    var singleResolution = new[] { 0 }.ToImmutableDictionary(_ => typeParam, _ => paramRes);
-
-                    // Get all the parameters whose value is dependent on the current resolution's type parameter,
-                    // and update their values with this resolution's value.
-                    foreach (var keyInCombined in mayBeReplaced[typeParam])
-                    {
-                        // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                        success = success && !IsConstrictiveResolution(keyInCombined, paramRes);
-                        combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
-                    }
+                    success = UpdatedReplaceableResolutions(success, mayBeReplaced, combinedBuilder, typeParam, paramRes);
                 }
 
                 // Validate and add each resolution to the result.
                 foreach (var (typeParam, paramRes) in resolvedDictionary)
                 {
                     // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                    success = success && !IsConstrictiveResolution(typeParam, paramRes);
+                    success = success && !ConstrictionCheck.Apply(typeParam, paramRes);
 
                     // Check that there is no conflicting resolution already defined.
                     var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
