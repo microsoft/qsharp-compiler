@@ -26,6 +26,33 @@ type NonNullableConverter<'T when 'T: equality and 'T: null>()  =
         serializer.Serialize(writer, value.Value)
 
 
+type PositionConverter() =
+    inherit JsonConverter<Position>()
+
+    override this.ReadJson(reader, _, _, _, serializer) =
+        serializer.Deserialize<int * int> reader ||> Position.Create
+
+    override this.WriteJson(writer : JsonWriter, position : Position, serializer : JsonSerializer) =
+        serializer.Serialize(writer, (position.Line, position.Column))
+
+
+/// Position type used with ranges for serialization backwards compatibility.
+type [<Struct>] private RangePosition = { Line : int; Column : int }
+
+type RangeConverter() =
+    inherit JsonConverter<Range>()
+
+    override this.ReadJson(reader, _, _, _, serializer) =
+        let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
+        Range.Create (Position.Create start.Line start.Column)
+                     (Position.Create end'.Line end'.Column)
+
+    override this.WriteJson(writer : JsonWriter, range : Range, serializer : JsonSerializer) =
+        let start = { Line = range.Start.Line; Column = range.Start.Column }
+        let end' = { Line = range.End.Line; Column = range.End.Column }
+        serializer.Serialize(writer, (start, end'))
+
+
 type QsNullableLocationConverter(?ignoreSerializationException) =
     inherit JsonConverter<QsNullable<QsLocation>>()
     let ignoreSerializationException = defaultArg ignoreSerializationException false
@@ -138,6 +165,8 @@ module Json =
     let Converters ignoreSerializationException = 
         [|
             new NonNullableConverter<string>()                                  :> JsonConverter
+            new PositionConverter()                                             :> JsonConverter
+            new RangeConverter()                                                :> JsonConverter
             new QsNullableLocationConverter(ignoreSerializationException)       :> JsonConverter
             new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
             new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
