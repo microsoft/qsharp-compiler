@@ -68,7 +68,7 @@
     </VSTemplate>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="mobius_strip_icon.png">
+    <Content Include="MS_Quantum_Spot_Dev-32.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

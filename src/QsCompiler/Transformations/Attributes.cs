@@ -5,16 +5,14 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
-    using CallablePredicate = Func<QsCallable, bool>;
     using AttributeId = QsNullable<UserDefinedType>;
+    using CallablePredicate = Func<QsCallable, bool>;
     using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
 
-
     /// <summary>
-    /// Contains tools for building and adding attributes to an existing Q# compilation. 
+    /// Contains tools for building and adding attributes to an existing Q# compilation.
     /// </summary>
     public static class AttributeUtils
     {
@@ -26,8 +24,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         // public static methods
 
         /// <summary>
-        /// Returns a Q# attribute with the given name and argument that can be attached to a declaration. 
-        /// The attribute id is set to Null if the given name is null. 
+        /// Returns a Q# attribute with the given name and argument that can be attached to a declaration.
+        /// The attribute id is set to Null if the given name is null.
         /// The attribute argument is set to an invalid expression if the given argument is null.
         /// </summary>
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
@@ -41,17 +39,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             SyntaxGenerator.StringLiteral(NonNullable<string>.New(content ?? ""), ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
-        /// Builds an attribute argument with the given string valued tuple items. 
-        /// If a given string is null, the value of the corresponding item is set to the empty string. 
-        /// If no items are given, a suitable argument of type unit is returned. 
+        /// Builds an attribute argument with the given string valued tuple items.
+        /// If a given string is null, the value of the corresponding item is set to the empty string.
+        /// If no items are given, a suitable argument of type unit is returned.
         /// </summary>
         public static TypedExpression StringArguments(params string[] items) =>
             items == null || items.Length == 0 ? SyntaxGenerator.UnitValue :
-            items.Length == 1 ? StringArgument(items.Single()) : 
+            items.Length == 1 ? StringArgument(items.Single()) :
             SyntaxGenerator.TupleLiteral(items.Select(StringArgument));
 
         /// <summary>
-        /// Adds the given attribute to all callables in the given compilation that satisfy the given predicate 
+        /// Adds the given attribute to all callables in the given compilation that satisfy the given predicate
         /// - if the predicate is specified and not null.
         /// Throws an ArgumentNullException if the given attribute or compilation is null.
         /// </summary>
@@ -59,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             new AddAttributes(new[] { (attribute, predicate) }).OnCompilation(compilation);
 
         /// <summary>
-        /// Adds the given attribute(s) to all callables in the given compilation that satisfy the given predicate 
+        /// Adds the given attribute(s) to all callables in the given compilation that satisfy the given predicate
         /// - if the predicate is specified and not null.
         /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
@@ -74,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).OnCompilation(compilation);
 
         /// <summary>
-        /// Adds the given attribute to all callables in the given namespace that satisfy the given predicate 
+        /// Adds the given attribute to all callables in the given namespace that satisfy the given predicate
         /// - if the predicate is specified and not null.
         /// Throws an ArgumentNullException if the given attribute or namespace is null.
         /// </summary>
@@ -82,7 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             new AddAttributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
 
         /// <summary>
-        /// Adds the given attribute(s) to all callables in the given namespace that satisfy the given predicate 
+        /// Adds the given attribute(s) to all callables in the given namespace that satisfy the given predicate
         /// - if the predicate is specified and not null.
         /// Throws an ArgumentNullException if one of the given attributes or the namespace is null.
         /// </summary>
@@ -95,7 +93,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Namespaces.OnNamespace(ns);
-
 
         // private transformation class(es)
 
@@ -117,7 +114,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             internal AddAttributes(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> attributes)
             : base(new TransformationState(attributes?.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true)))))
             {
-                if (attributes == null || attributes.Any(entry => entry.Item1 == null)) throw new ArgumentNullException(nameof(attributes));
+                if (attributes == null || attributes.Any(entry => entry.Item1 == null))
+                {
+                    throw new ArgumentNullException(nameof(attributes));
+                }
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new Core.StatementTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
                 this.StatementKinds = new Core.StatementKindTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
@@ -126,7 +126,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Types = new Core.TypeTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
             }
 
-
             // helper classes
 
             private class NamespaceTransformation
@@ -134,10 +133,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 public NamespaceTransformation(AddAttributes parent)
                 : base(parent)
-                { }
+                {
+                }
 
                 public override QsCallable OnCallableDeclaration(QsCallable c) =>
-                    c.AddAttributes(SharedState.AttributeSelection
+                    c.AddAttributes(this.SharedState.AttributeSelection
                         .Where(entry => entry.Item2(c))
                         .Select(entry => entry.Item1));
             }

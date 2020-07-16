@@ -8,7 +8,6 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 {
     public static class ReplaceWithTargetIntrinsics
@@ -24,13 +23,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
             var envNames = environment.Namespaces.ToImmutableDictionary(ns => ns.Name);
             var targetNames = target.Namespaces.Select(ns => ns.Name).ToImmutableHashSet();
 
-            return new QsCompilation(environment.Namespaces
-                .Where(ns => !targetNames.Contains(ns.Name))
-                .Concat(target.Namespaces.Select(ns =>
-                    envNames.TryGetValue(ns.Name, out var envNs)
-                    ? MergeNamespaces(envNs, ns)
-                    : ns))
-                .ToImmutableArray(), target.EntryPoints);
+            return new QsCompilation(
+                environment.Namespaces
+                    .Where(ns => !targetNames.Contains(ns.Name))
+                    .Concat(target.Namespaces.Select(ns =>
+                        envNames.TryGetValue(ns.Name, out var envNs)
+                        ? MergeNamespaces(envNs, ns)
+                        : ns))
+                    .ToImmutableArray(), target.EntryPoints);
         }
 
         /// <summary>
@@ -88,11 +88,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
         private static bool CompareUserDefinedTypes(QsNamespaceElement.QsCustomType first, QsNamespaceElement.QsCustomType second)
         {
             var tempNs = StripPositionInfo.Apply(
-                new QsNamespace(NonNullable<string>.New("tempNs"),
+                new QsNamespace(
+                    NonNullable<string>.New("tempNs"),
                     ImmutableArray.Create<QsNamespaceElement>(first, second),
                     Array.Empty<NonNullable<string>>().ToLookup(ns => ns, _ => ImmutableArray<string>.Empty)));
             var firstUDT = ((QsNamespaceElement.QsCustomType)tempNs.Elements[0]).Item;
-            var secondUDT = ((QsNamespaceElement.QsCustomType)tempNs.Elements[1]).Item;            
+            var secondUDT = ((QsNamespaceElement.QsCustomType)tempNs.Elements[1]).Item;
             return firstUDT.TypeItems.Equals(secondUDT.TypeItems);
         }
     }

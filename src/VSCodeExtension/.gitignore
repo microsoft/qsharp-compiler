@@ -8,4 +8,3 @@ node_modules
 NOTICE.txt
 package.json
 package-lock.json
-syntaxes/qsharp.tmLanguage.json

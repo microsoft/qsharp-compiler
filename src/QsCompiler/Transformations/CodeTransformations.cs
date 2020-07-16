@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     /// <summary>
@@ -56,7 +55,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception> onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null)
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
             var inline = new InlineConjugations(onException);
             var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
@@ -71,8 +73,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try { evaluated = PreEvaluation.All(compilation); }
+            if (compilation == null)
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
+            try
+            {
+                evaluated = PreEvaluation.All(compilation);
+            }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);

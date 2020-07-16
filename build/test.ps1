@@ -29,7 +29,8 @@ function Test-One {
         -v $Env:BUILD_VERBOSITY `
         --logger trx `
         @args `
-        /property:Version=$Env:ASSEMBLY_VERSION
+        /property:Version=$Env:ASSEMBLY_VERSION `
+        /property:InformationalVersion=$Env:SEMVER_VERSION
 
     if  ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to test $project."
@@ -44,4 +45,3 @@ if (-not $all_ok)
 {
     throw "Running tests failed. Check the logs."
 }
-
