@@ -26,7 +26,7 @@ steps:
   condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
-    msbuildArgs: >
+    msbuildArgs: >-
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)

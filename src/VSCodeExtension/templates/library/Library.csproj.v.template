@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+</Project>
