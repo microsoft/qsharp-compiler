@@ -37,7 +37,7 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
 
         # Check if package already added as dependency, only add if new:
         $added = $dep.dependency | Where { $_.id -eq $id }
-        if (!$added -and ($_.PrivateAssets -ne "All")) {
+        if (!$added -and $_.PrivateAssets -ne "All") {
             Write-Host "Adding $id"
             $onedependency = $dep.AppendChild($nuspec.CreateElement('dependency', $nuspec.package.metadata.NamespaceURI))
             $onedependency.SetAttribute('id', $id)
