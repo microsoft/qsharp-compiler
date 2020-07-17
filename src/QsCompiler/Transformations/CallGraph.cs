@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     // Type Parameters are frequently referenced by the callable of the type parameter followed by the name of the specific type parameter.
     using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
-    using TypeParameterResolutions = ImmutableDictionary</*TypeParamterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
     /// Utility class containing methods for working with type parameters.
