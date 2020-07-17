@@ -110,7 +110,7 @@ type Range =
     member this.End = match this with Range (_, end') -> end'
 
     static member (+) (position : Position, range : Range) =
-        Range (range.Start + position, range.End + position)
+        Range (position + range.Start, position + range.End)
 
     static member (+) (range : Range, position : Position) = position + range
 
