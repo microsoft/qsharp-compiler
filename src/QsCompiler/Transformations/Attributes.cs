@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The attribute argument is set to an invalid expression if the given argument is null.
         /// </summary>
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, null, QsComments.Empty);
+            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, Position.Zero, QsComments.Empty);
 
         /// <summary>
         /// Builds a string literal with the given content that can be used as argument to a Q# attribute.
