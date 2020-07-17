@@ -76,12 +76,17 @@ type Position = private Position of int * int with
     /// The column number, where column zero is the first column in the line.
     member this.Column = match this with Position (_, column) -> column
 
+    /// Translates the first position by the amount of the second position. If the resulting position is on the same
+    /// line, the column numbers are added; otherwise, the second position's column number is used.
     static member (+) (a : Position, b : Position) =
-        Position (a.Line + b.Line,
-                  if b.Line > 0 then b.Column else a.Column + b.Column)
+        let line = a.Line + b.Line
+        let column = if b.Line = 0 then a.Column + b.Column else b.Column
+        Position (line, column)
 
-    static member op_Equality (a : Position, b : Position) = a.Equals b
+    /// Returns true if the positions have the same line and column numbers.
+    static member op_Equality (a : Position, b : Position) = a = b
 
+    /// Returns true if the second position occurs after the first position. 
     static member op_GreaterThan (a : Position, b) = (a :> Position IComparable).CompareTo b > 0
 
     /// <summary>
@@ -105,9 +110,11 @@ type Range = private Range of Position * Position with
     /// The end of the range.
     member this.End = match this with Range (_, end') -> end'
 
+    /// Adds the range's start and end positions to the given position.
     static member (+) (position : Position, range : Range) =
         Range (position + range.Start, position + range.End)
 
+    /// Returns true if the ranges have the same start and end positions.
     static member op_Equality (a : Range, b : Range) = a = b
 
     /// <summary>
