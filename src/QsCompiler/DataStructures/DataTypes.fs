@@ -124,9 +124,9 @@ type Range = private Range of Position * Position with
     /// The empty range starting and ending at position zero.
     static member Zero = Range (Position.Zero, Position.Zero)
 
-    /// Creates a new range using the first starting position of either range, and the last ending position of either
-    /// range.
-    static member Combine (a : Range) (b : Range) =
+    /// Creates a new range that spans the smallest starting position of either range to the largest ending position of
+    /// either range.
+    static member Span (a : Range) (b : Range) =
         Range (min a.Start b.Start, max a.End b.End)
 
 [<Struct>]

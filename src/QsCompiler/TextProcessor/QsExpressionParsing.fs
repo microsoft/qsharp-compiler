@@ -27,7 +27,7 @@ let internal unknownExpr = (InvalidExpr, Null) |> QsExpression.New
 /// builds the corresponding expression with its range set to the combined range. 
 /// If either one of given ranges is Null, builds an invalid expression with its range set to Null. 
 let private buildCombinedExpr kind (lRange, rRange) =
-    match QsNullable.Map2 Range.Combine lRange rRange with
+    match QsNullable.Map2 Range.Span lRange rRange with
     | Value range -> { Expression = kind; Range = Value range }
     | Null -> { Expression = InvalidExpr; Range = Null }
 

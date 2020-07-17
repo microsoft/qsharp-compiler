@@ -99,7 +99,7 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
 let private allocationScope = 
     let combineRangeAndBuild (r1, (kind, r2)) =
         match r2 with
-        | Value r2 -> { Initializer = kind; Range = Range.Combine r1 r2 |> Value }
+        | Value r2 -> { Initializer = kind; Range = Range.Span r1 r2 |> Value }
         | Null -> { Initializer = InvalidInitializer; Range = Null }
     let qRegisterAlloc =
         qsQubit.parse .>>. (arrayBrackets (expectedExpr eof)
