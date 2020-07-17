@@ -112,8 +112,6 @@ type Range =
     static member (+) (position : Position, range : Range) =
         Range (position + range.Start, position + range.End)
 
-    static member (+) (range : Range, position : Position) = position + range
-
     static member op_Equality (a : Range, b : Range) = a = b
 
     /// <summary>
