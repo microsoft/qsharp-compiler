@@ -50,12 +50,14 @@ type RangeConverter() =
 
     override this.ReadJson(reader, _, _, _, serializer) =
         let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
-        Range.Create (Position.Create start.Line start.Column)
-                     (Position.Create end'.Line end'.Column)
+        // For backwards compatibility, convert the serialized one-based positions to zero-based positions.
+        Range.Create (Position.Create (start.Line - 1) (start.Column - 1))
+                     (Position.Create (end'.Line - 1) (end'.Column - 1))
 
     override this.WriteJson(writer : JsonWriter, range : Range, serializer : JsonSerializer) =
-        let start = { Line = range.Start.Line; Column = range.Start.Column }
-        let end' = { Line = range.End.Line; Column = range.End.Column }
+        // For backwards compatibility, convert the zero-based positions to one-based serialized positions.
+        let start = { Line = range.Start.Line + 1; Column = range.Start.Column + 1 }
+        let end' = { Line = range.End.Line + 1; Column = range.End.Column + 1 }
         serializer.Serialize(writer, (start, end'))
 
 
