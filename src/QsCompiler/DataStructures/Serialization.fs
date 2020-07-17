@@ -7,6 +7,7 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
+open System.Runtime.Serialization
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
@@ -36,8 +37,13 @@ type PositionConverter() =
         serializer.Serialize(writer, (position.Line, position.Column))
 
 
-/// Position type used with ranges for serialization backwards compatibility.
-type [<Struct>] private RangePosition = { Line : int; Column : int }
+[<CLIMutable>]
+[<DataContract>]
+type private RangePosition =
+    { [<DataMember>]
+      Line : int
+      [<DataMember>]
+      Column : int }
 
 type RangeConverter() =
     inherit JsonConverter<Range>()
