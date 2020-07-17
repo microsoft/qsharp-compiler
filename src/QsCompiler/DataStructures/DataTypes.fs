@@ -68,9 +68,7 @@ type NonNullable<'T> = private Item of 'T with
 
 
 /// A position in a text document.
-type Position =
-    private
-    | Position of int * int
+type Position = private Position of int * int with
 
     /// The line number, where line zero is the first line in the document.
     member this.Line = match this with Position (line, _) -> line
@@ -99,9 +97,7 @@ type Position =
     static member Zero = Position (0, 0)
 
 /// A range between two positions in a text document.
-type Range =
-    private
-    | Range of Position * Position
+type Range = private Range of Position * Position with
 
     /// The start of the range.
     member this.Start = match this with Range (start, _) -> start
