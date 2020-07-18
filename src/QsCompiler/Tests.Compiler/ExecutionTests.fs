@@ -40,12 +40,12 @@ type ExecutionTests (output:ITestOutputHelper) =
         AssertEqual expectedOutput out
 
 
-    [<Fact (Skip = "Updated C# generation packages needed")>]
+    [<Fact>]
     member this.``Loading via test names`` () = 
         ExecuteAndCompareOutput "LogViaTestName" "not implemented"
 
 
-    [<Fact (Skip = "Updated C# generation packages needed")>]
+    [<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "
@@ -144,7 +144,7 @@ type ExecutionTests (output:ITestOutputHelper) =
             "
 
 
-    [<Fact (Skip = "Updated C# generation packages needed")>]
+    [<Fact>]
     member this.``Referencing Projects and Packages`` () = 
         ExecuteAndCompareOutput 
             "PackageAndProjectReference" "
