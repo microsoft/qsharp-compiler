@@ -333,7 +333,7 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// IMPORTANT: this routines handles the name *only* and does *not* handle whitespace! 
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
 let internal symbolNameLike errCode =
-    let id =
+    let ident =
         IdentifierOptions
             (isAsciiIdStart = isSymbolStart,
              isAsciiIdContinue = isSymbolContinuation,
@@ -349,9 +349,9 @@ let internal symbolNameLike errCode =
         else if moreThanUnderscores then preturn name |>> Some
         else buildError (preturn range) errCode >>% None
     let invalid =
-        let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. id
+        let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
         buildError (getRange invalidName |>> snd) errCode >>% None
-    notFollowedBy qsReservedKeyword >>. attempt (id >>= whenValid <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
+    notFollowedBy qsReservedKeyword >>. attempt (ident >>= whenValid <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
 
 /// Handles permissive parsing of a symbol:
 /// Uses symbolNameLike to generate suitable errors if the current symbol-like text is not a valid symbol in Q#
