@@ -246,14 +246,14 @@ module SerializationTests =
     [<Literal>]
     let SPECIALIZATION_3 = "{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyOperation\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":5,\"Item2\":39},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":5}},\"Documentation\":[]}"
 
-    
+
     [<Fact>]
     let ``attribute reader`` () =
-        let dllUri = new Uri(Assembly.GetExecutingAssembly().Location)
-        let gotId, dllId = CompilationUnitManager.TryGetFileId dllUri
+        let dllUri = Assembly.GetExecutingAssembly().Location |> Uri
+        let dllId = CompilationUnitManager.GetFileId dllUri
         let mutable attrs = null
         let loadedFromResource = AssemblyLoader.LoadReferencedAssembly (dllUri, &attrs, false)
-        Assert.True(gotId && not loadedFromResource, "loading should indicate failure when headers are loaded based on attributes rather than resources");
+        Assert.False (loadedFromResource, "loading should indicate failure when headers are loaded based on attributes rather than resources")
 
         let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
         let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
