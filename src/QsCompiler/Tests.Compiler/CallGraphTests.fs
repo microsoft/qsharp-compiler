@@ -37,7 +37,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     let FooA = typeParameter "Foo.A"
     let FooB = typeParameter "Foo.B"
     let BarA = typeParameter "Bar.A"
-    let BarC = typeParameter "Bar.C"
+    let BarB = typeParameter "Bar.B"
     let BazA = typeParameter "Baz.A"
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
@@ -59,6 +59,9 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
+
+    let MakeTupleType types =
+        types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
     let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
@@ -177,18 +180,18 @@ type CallGraphTests (output:ITestOutputHelper) =
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
 
-    let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
+    let CheckCombinedResolution (expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
-        let success = TypeParamUtils.TryCombineTypeResolutionsForTarget(parent, &combined, resolutions)
+        let success = TypeParamUtils.TryCombineTypeResolutions(&combined, resolutions)
         AssertExpectedResolution expected combined
         success
 
-    let AssertCombinedResolution (parent, expected, [<ParamArray>] resolutions) =
-        let success = CheckCombinedResolution (parent, expected, resolutions)
+    let AssertCombinedResolution (expected, [<ParamArray>] resolutions) =
+        let success = CheckCombinedResolution (expected, resolutions)
         Assert.True(success, "Combining type resolutions was not successful.")
 
-    let AssertCombinedResolutionFailure (parent, expected, [<ParamArray>] resolutions) =
-        let success = CheckCombinedResolution (parent, expected, resolutions)
+    let AssertCombinedResolutionFailure (expected, [<ParamArray>] resolutions) =
+        let success = CheckCombinedResolution (expected, resolutions)
         Assert.False(success, "Combining type resolutions should have failed.")
 
     [<Fact>]
@@ -207,9 +210,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -225,9 +229,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, BazA |> TypeParameter)
+            (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -245,7 +250,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -263,9 +268,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -283,9 +289,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -306,9 +313,11 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Double)
+            (BarA, Double)
+            (BazA, Double)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -328,11 +337,12 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
-    [<Fact(Skip="Need to rework resolution algorithm.")>]
+    [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () =
 
@@ -351,9 +361,11 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
+            (BarA, Int)
+            (BazA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -370,9 +382,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, Int)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -391,9 +404,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, BazA |> TypeParameter)
+            (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -410,9 +424,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, Double)
+            (BarA, Int)
         ]
 
-        AssertCombinedResolutionFailure(Foo, expected, given)
+        AssertCombinedResolutionFailure(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -424,14 +439,15 @@ type CallGraphTests (output:ITestOutputHelper) =
             ]
             ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
-                (FooA, BarC |> TypeParameter)
+                (FooA, BarB |> TypeParameter)
             ]
         |]
         let expected = ResolutionFromParam [
-            (FooA, BarC |> TypeParameter)
+            (FooA, BarB |> TypeParameter)
+            (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(Foo, expected, given)
+        AssertCombinedResolutionFailure(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -446,7 +462,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooA, FooA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -465,9 +481,11 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, FooA |> TypeParameter)
+            (BarA, FooA |> TypeParameter)
+            (BazA, FooA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(Foo, expected, given)
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -482,7 +500,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooA, FooB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(Foo, expected, given)
+        AssertCombinedResolutionFailure(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -501,9 +519,11 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, FooB |> TypeParameter)
+            (BarA, FooB |> TypeParameter)
+            (BazA, FooB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(Foo, expected, given)
+        AssertCombinedResolutionFailure(expected, given)
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -517,14 +537,82 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (BarA, BazA |> TypeParameter)
             ]
             ResolutionFromParam [
-                (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
+                (BazA, BarB |> TypeParameter)
             ]
         |]
         let expected = ResolutionFromParam [
-            (FooA, BarC |> TypeParameter)
+            (FooA, BarB |> TypeParameter)
+            (BarA, BarB |> TypeParameter)
+            (BazA, BarB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(Foo, expected, given)
+        AssertCombinedResolutionFailure(expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Nested Type Paramter Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, [BarA |> TypeParameter; Int] |> MakeTupleType)
+            ]
+            ResolutionFromParam [
+                (BarA, [String; Double] |> MakeTupleType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, [[String; Double] |> MakeTupleType; Int] |> MakeTupleType)
+            (BarA, [String; Double] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolution(expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Nested Constricted Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, [FooB |> TypeParameter; Int] |> MakeTupleType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, [FooB |> TypeParameter; Int] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolutionFailure(expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, [FooA |> TypeParameter; BarA |> TypeParameter] |> MakeTupleType)
+            ]
+            ResolutionFromParam [
+                (BarA, Int)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, [FooA |> TypeParameter; Int] |> MakeTupleType)
+            (BarA, Int)
+        ]
+
+        AssertCombinedResolution(expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Single Dictonary Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+                (BarA, Int)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, Int)
+            (BarA, Int)
+        ]
+
+        AssertCombinedResolution(expected, given)
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
