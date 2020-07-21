@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
-        public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Lsp.Position position)
+        public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position position)
         {
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position
             if (symbolInfo == null || compilation == null)
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            var locals = compilation.TryGetLocalDeclarations(file, position.ToQSharp(), out var cName, includeDeclaredAtPosition: true);
+            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
             if (cName == null)
             {
                 return null;
@@ -80,7 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            if (!file.TryGetReferences(compilation, position, out var declLocation, out var locations))
+            if (!file.TryGetReferences(compilation, position.ToQSharp(), out var declLocation, out var locations))
             {
                 return null;
             }
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var found = file.TryGetReferences(compilation, position, out var declLocation, out var locations);
+            var found = file.TryGetReferences(compilation, position.ToQSharp(), out var declLocation, out var locations);
             if (!found)
             {
                 return null;
@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var found = file.TryGetReferences(
                 compilation,
-                position,
+                position.ToQSharp(),
                 out var declLocation,
                 out var locations,
                 limitToSourceFiles: ImmutableHashSet.Create(file.FileName));
@@ -203,13 +203,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Hover HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
-            Lsp.Position position,
+            Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
             Hover GetHover(string info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position, End = position }
+                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -223,8 +223,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return GetHover(symbolInfo.UsedLiterals.Single().LiteralInfo(markdown).Value);
             }
-            var locals = compilation.TryGetLocalDeclarations(file, position.ToQSharp(), out var cName, includeDeclaredAtPosition: true);
-            var nsName = cName?.Namespace.Value ?? file.TryGetNamespaceAt(position.ToQSharp());
+            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
+            var nsName = cName?.Namespace.Value ?? file.TryGetNamespaceAt(position);
             if (nsName == null)
             {
                 return null;

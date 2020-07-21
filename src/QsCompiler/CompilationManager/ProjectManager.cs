@@ -1107,7 +1107,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Location DefinitionLocation(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
@@ -1134,7 +1134,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Hover HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position, format), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.

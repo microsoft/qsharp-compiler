@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition(
-            this FileContentManager file, Lsp.Position pos, CompilationUnit compilation, out string idName)
+            this FileContentManager file, Position pos, CompilationUnit compilation, out string idName)
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
             idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition(
-            this FileContentManager file, Lsp.Position pos, CompilationUnit compilation, out string typeName)
+            this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
         {
             var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
             typeName = types != null && types.Any() &&
@@ -172,16 +172,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
 
-            (string, WorkspaceEdit) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Lsp.Position pos)
+            (string, WorkspaceEdit) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Position pos)
             {
-                var edit = new TextEdit { Range = new Lsp.Range { Start = pos, End = pos }, NewText = $"{suggestedNS.Value}." };
+                var edit = new TextEdit
+                {
+                    Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() },
+                    NewText = $"{suggestedNS.Value}."
+                };
                 return ($"{suggestedNS.Value}.{id}", file.GetWorkspaceEdit(edit));
             }
 
-            var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
+            var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start.ToQSharp())
                 .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
-            var suggestedTypeQualifications = ambiguousTypes.Select(d => d.Range.Start)
+            var suggestedTypeQualifications = ambiguousTypes.Select(d => d.Range.Start.ToQSharp())
                 .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var id)
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
             return suggestedIdQualifications.Concat(suggestedTypeQualifications);
@@ -208,9 +212,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var suggestionsForIds = unknownCallables.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var _));
+                .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos.ToQSharp(), compilation, out var _));
             var suggestionsForTypes = unknownTypes.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var _));
+                .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos.ToQSharp(), compilation, out var _));
             return file.OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
                 .Select(edit => (edit.NewText.Trim().Trim(';'), file.GetWorkspaceEdit(edit)));
         }
@@ -363,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // Returns true the given expression is of the form "0 .. Length(args) - 1",
             // as well as the range of the entire expression and the argument tuple "(args)" as out parameters.
-            static bool IsIndexRange(QsExpression iterExpr, Lsp.Position offset, out Lsp.Range exprRange, out Lsp.Range argRange)
+            static bool IsIndexRange(QsExpression iterExpr, Position offset, out Lsp.Range exprRange, out Lsp.Range argRange)
             {
                 if (
                     // iterable expression is a valid range literal
@@ -383,8 +387,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // .. a valid argument tuple
                     callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)
                 {
-                    exprRange = DiagnosticTools.GetAbsoluteRange(offset, iterExpr.Range.Item);
-                    argRange = DiagnosticTools.GetAbsoluteRange(offset, callLikeExression.Item2.Range.Item);
+                    exprRange = DiagnosticTools.GetAbsoluteRange(offset.ToLsp(), iterExpr.Range.Item);
+                    argRange = DiagnosticTools.GetAbsoluteRange(offset.ToLsp(), callLikeExression.Item2.Range.Item);
                     return true;
                 }
 
@@ -397,7 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             static IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
             {
                 if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
-                    IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
+                    IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start.ToQSharp(), out var iterExprRange, out var argTupleRange))
                 {
                     yield return new TextEdit()
                     {
@@ -434,9 +438,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var unreachableCode = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
 
-            WorkspaceEdit SuggestedRemoval(Lsp.Position pos)
+            WorkspaceEdit SuggestedRemoval(Position pos)
             {
-                var fragment = file.TryGetFragmentAt(pos.ToQSharp(), out var currentFragToken);
+                var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
                 var lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
                 if (fragment == null || --lastFragToken == null)
                 {
@@ -471,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             return unreachableCode
-                .Select(d => SuggestedRemoval(d.Range?.Start))
+                .Select(d => SuggestedRemoval(d.Range?.Start.ToQSharp()))
                 .Where(edit => edit != null)
                 .Select(edit => ("Remove unreachable code.", edit));
         }

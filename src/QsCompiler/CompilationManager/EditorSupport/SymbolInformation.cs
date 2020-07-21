@@ -87,13 +87,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static QsSymbolInfo TryGetQsSymbolInfo(
             this FileContentManager file,
-            Lsp.Position position,
+            Position position,
             bool includeEnd,
             out CodeFragment fragment)
         {
             // getting the relevant token (if any)
 
-            fragment = file?.TryGetFragmentAt(position.ToQSharp(), out var _, includeEnd);
+            fragment = file?.TryGetFragmentAt(position, out var _, includeEnd);
             if (fragment?.Kind == null)
             {
                 return null;
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // getting the symbol information (if any), and return the overlapping items only
 
             bool OverlapsWithPosition(Range symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
+                position.ToLsp().IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
 
             var symbolInfo = fragment.Kind.SymbolInformation();
 
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static bool TryGetReferences(
             this FileContentManager file,
             CompilationUnit compilation,
-            Lsp.Position position,
+            Position position,
             out Location declarationLocation,
             out IEnumerable<Location> referenceLocations,
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
@@ -200,8 +200,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return false;
             }
 
-            var implementation = compilation.TryGetSpecializationAt(file, position.ToQSharp(), out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.ToQSharp() - specPos, includeDeclaredAtPosition: true);
+            var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
+            var declarations = implementation?.LocalDeclarationsAt(position - specPos, includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // the given position corresponds to an identifier of a global callable
                 var nsName = parentName == null
-                    ? file.TryGetNamespaceAt(position.ToQSharp())
+                    ? file.TryGetNamespaceAt(position)
                     : parentName.Namespace.Value;
                 if (nsName == null)
                 {
