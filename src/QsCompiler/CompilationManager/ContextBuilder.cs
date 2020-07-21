@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -139,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static CodeFragment TryGetFragmentAt(
             this FileContentManager file,
-            Lsp.Position pos,
+            Position pos,
             out CodeFragment.TokenIndex tIndex,
             bool includeEnd = false)
         {
@@ -149,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
             var start = pos.Line;
-            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.Character <= pos.Character).ToImmutableArray();
+            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.Character <= pos.Column).ToImmutableArray();
             while (!previous.Any() && --start >= 0)
             {
                 previous = file.GetTokenizedLine(start);
@@ -161,8 +162,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var lastPreceding = previous.Last().WithUpdatedLineNumber(start);
             var overlaps = includeEnd
-                ? pos.IsSmallerThanOrEqualTo(lastPreceding.GetRange().End)
-                : pos.IsSmallerThan(lastPreceding.GetRange().End);
+                ? pos <= lastPreceding.GetRange().End.ToQSharp()
+                : pos < lastPreceding.GetRange().End.ToQSharp();
             tIndex = overlaps ? new CodeFragment.TokenIndex(file, start, previous.Length - 1) : null;
             return overlaps ? lastPreceding : null;
         }
@@ -172,14 +173,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given file or position is null, or if no such namespace can be found
         /// (e.g. because the namespace name is invalid).
         /// </summary>
-        public static string TryGetNamespaceAt(this FileContentManager file, Lsp.Position pos)
+        public static string TryGetNamespaceAt(this FileContentManager file, Position pos)
         {
             if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
             {
                 return null;
             }
             var namespaces = file.GetNamespaceDeclarations();
-            var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start.IsSmallerThan(pos));
+            var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start.ToQSharp() < pos);
             return preceding.Any() ? preceding.Last().Item1.Value : null;
         }
 
@@ -193,7 +194,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a callable name as well as existing specializations can be found, but no specialization precedes the given position,
         /// returns null for the specialization kind as well as for its position.
         /// </summary>
-        public static ((NonNullable<string>, Lsp.Position), (QsSpecializationKind, Lsp.Position))? TryGetClosestSpecialization(this FileContentManager file, Lsp.Position pos)
+        public static ((NonNullable<string>, Lsp.Position), (QsSpecializationKind, Lsp.Position))? TryGetClosestSpecialization(
+            this FileContentManager file, Position pos)
         {
             QsSpecializationKind GetSpecializationKind(CodeFragment fragment)
             {
@@ -214,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var declarations = file.CallableDeclarationTokens();
-                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment().GetRange().Start.IsSmallerThan(pos));
+                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment().GetRange().Start.ToQSharp() < pos);
                 if (!precedingDecl.Any())
                 {
                     return null;
@@ -229,7 +231,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var specializations = FileHeader.FilterCallableSpecializations(closestCallable.GetChildren(deep: false).Select(tIndex => tIndex.GetFragment()));
-                var precedingSpec = specializations.TakeWhile(fragment => fragment.GetRange().Start.IsSmallerThan(pos));
+                var precedingSpec = specializations.TakeWhile(fragment => fragment.GetRange().Start.ToQSharp() < pos);
                 var lastPreceding = precedingSpec.Any() ? precedingSpec.Last() : null;
 
                 if (specializations.Any() && lastPreceding == null)
@@ -283,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return true;
             }
 
-            var overlapsWithStart = file.TryGetFragmentAt(range.Start, out var _);
+            var overlapsWithStart = file.TryGetFragmentAt(range.Start.ToQSharp(), out var _);
             return overlapsWithStart != null;
         }
 
@@ -588,10 +590,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(changedLines));
             }
 
-            var lastInFile = file.LastToken()?.GetFragment()?.GetRange()?.End ?? file.End();
+            var lastInFile = file.LastToken()?.GetFragment()?.GetRange()?.End.ToQSharp() ?? file.End();
             var callables = file.GetCallableDeclarations().Select(tuple => // these are sorted according to their line number
             {
-                var ns = file.TryGetNamespaceAt(tuple.Item2.Start);
+                var ns = file.TryGetNamespaceAt(tuple.Item2.Start.ToQSharp());
                 QsCompilerError.Verify(ns != null, "namespace for callable declaration should not be null"); // invalid namespace names default to an unknown namespace name, but remain included in the compilation
                 return (tuple.Item2.Start, new QsQualifiedName(NonNullable<string>.New(ns), tuple.Item1));
             }).ToList();
@@ -602,7 +604,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (Lsp.Range, QsQualifiedName) TypeCheckingRange((Lsp.Position, QsQualifiedName) lastPreceding, IEnumerable<(Lsp.Position, QsQualifiedName)> next)
             {
                 var callableStart = lastPreceding.Item1;
-                var callableEnd = next.Any() ? next.First().Item1 : lastInFile;
+                var callableEnd = next.Any() ? next.First().Item1 : lastInFile.ToLsp();
                 return (new Lsp.Range { Start = callableStart, End = callableEnd }, lastPreceding.Item2);
             }
 

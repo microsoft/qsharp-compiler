@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -446,7 +448,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("given position is not within file");
             }
             var line = file.GetLine(pos.Line);
-            var index = pos.Character;
+            var index = pos.Column;
 
             // check if the given position is within a string or a comment, or denotes an excess bracket,
             // and find the next closest position that isn't
@@ -454,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return line.FinalIndentation(); // not necessary, but saves doing the rest of the computation
             }
-            index = line.FindInCode(trimmed => trimmed.Length - 1, 0, pos.Character); // if the given position is within a string, then this is the most convenient way to get the closest position that isn't..
+            index = line.FindInCode(trimmed => trimmed.Length - 1, 0, pos.Column); // if the given position is within a string, then this is the most convenient way to get the closest position that isn't..
             if (index < 0)
             {
                 return line.Indentation; // perfectly valid scenario (if there is no relevant code before the given position)
@@ -465,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // but if this char was within non-code text, then we need to include this char ... see (*)
             var indexInCode = IndexInRelevantCode(index, line);
             QsCompilerError.Verify(indexInCode >= 0, "index in code should be positive");
-            var code = RelevantCode(line).Substring(0, index < pos.Character ? indexInCode + 1 : indexInCode); // (*) - yep, that's a bit awkward, but the cleanest I can come up with right now
+            var code = RelevantCode(line).Substring(0, index < pos.Column ? indexInCode + 1 : indexInCode); // (*) - yep, that's a bit awkward, but the cleanest I can come up with right now
             var indentation = line.Indentation + NrIndents(code) - NrUnindents(code);
             QsCompilerError.Verify(indentation >= 0, "computed indentation at any position in the file should be positive");
             return indentation;
@@ -706,11 +708,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var lastLine = file.GetLine(file.NrLines() - 1);
             if (lastLine.FinalIndentation() > 0)
             {
-                yield return Errors.MissingClosingBracketError(file.FileName.Value, new Position(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingClosingBracketError(file.FileName.Value, new Lsp.Position(file.NrLines() - 1, lastLine.Text.Length));
             }
             if (ContinueString(lastLine))
             {
-                yield return Errors.MissingStringDelimiterError(file.FileName.Value, new Position(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingStringDelimiterError(file.FileName.Value, new Lsp.Position(file.NrLines() - 1, lastLine.Text.Length));
             }
         }
 
@@ -729,7 +731,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 foreach (var pos in line.ExcessBracketPositions)
                 {
-                    yield return Errors.ExcessBracketError(file.FileName.Value, new Position(start, pos));
+                    yield return Errors.ExcessBracketError(file.FileName.Value, new Lsp.Position(start, pos));
                 }
                 ++start;
             }

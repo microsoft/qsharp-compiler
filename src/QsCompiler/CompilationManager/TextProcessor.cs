@@ -7,7 +7,8 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -124,7 +125,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// stripping (only) end of line comments (and not removing excess brackets).
         /// Note: the End position of the given range is *not* part of the returned string.
         /// </summary>
-        private static string GetCodeSnippet(this FileContentManager file, LSP.Range range)
+        private static string GetCodeSnippet(this FileContentManager file, Lsp.Range range)
         {
             if (!Utils.IsValidRange(range, file))
             {
@@ -210,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file), "file is null or empty");
             }
-            return new Position(file.NrLines() - 1, file.GetLine(file.NrLines() - 1).Text.Length);
+            return Position.Create(file.NrLines() - 1, file.GetLine(file.NrLines() - 1).Text.Length);
         }
 
         /// <summary>
@@ -228,7 +229,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (endIndex-- > 0 && file.GetLine(endIndex).WithoutEnding.Trim().Length == 0)
             {
             }
-            return endIndex < 0 ? new Position(0, 0) : new Position(endIndex, file.GetLine(endIndex).WithoutEnding.Length);
+            return endIndex < 0
+                ? Position.Zero
+                : Position.Create(endIndex, file.GetLine(endIndex).WithoutEnding.Length);
         }
 
         /// <summary>
@@ -239,14 +242,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
-        internal static Position FragmentEnd(this FileContentManager file, ref Position current)
+        internal static Position FragmentEnd(this FileContentManager file, ref Lsp.Position current)
         {
             var lastInFile = LastInFile(file);
-            if (!Utils.IsValidPosition(current, file))
+            if (!Utils.IsValidPosition(current.ToQSharp(), file))
             {
                 throw new ArgumentException("given position is not within file");
             }
-            if (lastInFile.IsSmallerThanOrEqualTo(current))
+            if (lastInFile <= current.ToQSharp())
             {
                 throw new ArgumentException("no fragment exists at the given position");
             }
@@ -265,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else
                 {
-                    current = lastInFile;
+                    current = lastInFile.ToLsp();
                     return lastInFile;
                 }
             }
@@ -276,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 endChar = file.GetLine(endIndex).StatementStart();
             }
-            return endIndex < file.NrLines() ? new Position(endIndex, endChar + 1) : lastInFile;
+            return endIndex < file.NrLines() ? Position.Create(endIndex, endChar + 1) : lastInFile;
         }
 
         /// <summary>
@@ -293,12 +296,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("given position is not within file");
             }
             var startIndex = current.Line;
-            var startChar = file.GetLine(startIndex).StatementEnd(0, current.Character);
+            var startChar = file.GetLine(startIndex).StatementEnd(0, current.Column);
             while (startChar < 0 && startIndex-- > 0)
             {
                 startChar = file.GetLine(startIndex).StatementEnd();
             }
-            return startIndex < 0 ? new Position(0, 0) : new Position(startIndex, startChar + 1);
+            return startIndex < 0 ? Position.Zero : Position.Create(startIndex, startChar + 1);
         }
 
         /// <summary>
@@ -322,24 +325,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var iter = changedLines.GetEnumerator();
             var lastInFile = LastInFile(file);
 
-            Position processed = new Position(0, 0);
+            var processed = Position.Zero;
             while (iter.MoveNext())
             {
                 QsCompilerError.Verify(iter.Current >= 0 && iter.Current < file.NrLines(), "index out of range for changed line");
                 if (processed.Line < iter.Current)
                 {
-                    var statementStart = file.PositionAfterPrevious(new Position(iter.Current, 0));
-                    if (processed.IsSmallerThan(statementStart))
+                    var statementStart = file.PositionAfterPrevious(Position.Create(iter.Current, 0));
+                    if (processed < statementStart)
                     {
                         processed = statementStart;
                     }
                 }
 
-                while (processed.Line <= iter.Current && processed.IsSmallerThan(lastInFile))
+                while (processed.Line <= iter.Current && processed < lastInFile)
                 {
-                    processed = processed.Copy(); // because we don't want to modify the ending of the previous code fragment ...
-                    var nextEnding = file.FragmentEnd(ref processed);
-                    var extractedPiece = file.GetCodeSnippet(new LSP.Range { Start = processed, End = nextEnding });
+                    var start = processed.ToLsp(); // because we don't want to modify the ending of the previous code fragment ...
+                    var nextEnding = file.FragmentEnd(ref start);
+                    var extractedPiece = file.GetCodeSnippet(new Lsp.Range { Start = start, End = nextEnding.ToLsp() });
 
                     // constructing the CodeFragment -
                     // NOTE: its Range.End is the position of the delimiting char (if such a char exists), i.e. the position right after Code ends
@@ -347,7 +350,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // length = 0 can occur e.g. if the last piece of code in the file does not terminate with a statement ending
                     if (extractedPiece.Length > 0)
                     {
-                        var code = file.GetLine(nextEnding.Line).ExcessBracketPositions.Contains(nextEnding.Character - 1)
+                        var code = file.GetLine(nextEnding.Line).ExcessBracketPositions.Contains(nextEnding.Column - 1)
                             ? extractedPiece.Substring(0, extractedPiece.Length - 1)
                             : extractedPiece;
                         if (code.Length == 0 || !CodeFragment.DelimitingChars.Contains(code.Last()))
@@ -355,9 +358,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             code = $"{code}{CodeFragment.MissingDelimiter}";
                         }
 
-                        var endChar = nextEnding.Character - (extractedPiece.Length - code.Length) - 1;
-                        var codeRange = new LSP.Range { Start = processed, End = new Position(nextEnding.Line, endChar) };
-                        yield return new CodeFragment(file.IndentationAt(codeRange.Start), codeRange, code.Substring(0, code.Length - 1), code.Last());
+                        var endChar = nextEnding.Column - (extractedPiece.Length - code.Length) - 1;
+                        var codeRange = new Lsp.Range { Start = start, End = new Lsp.Position(nextEnding.Line, endChar) };
+                        yield return new CodeFragment(file.IndentationAt(codeRange.Start.ToQSharp()), codeRange, code.Substring(0, code.Length - 1), code.Last());
                     }
                     processed = nextEnding;
                 }
@@ -372,7 +375,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if file is null.
         /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not a valid range within the current file content.
         /// </summary>
-        internal static LSP.Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
+        internal static Lsp.Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (file == null)
             {
@@ -388,14 +391,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // if no piece of code exists before the start of the modifications, then the check effectively starts at the beginning of the file
-            var syntaxCheckStart = file.PositionAfterPrevious(new Position(start, 0)); // position (0,0) if there is no previous fragment
+            var syntaxCheckStart = file.PositionAfterPrevious(Position.Create(start, 0)); // position (0,0) if there is no previous fragment
             // if the modification goes past what is currently the last piece of code, then the effectively the check extends to the end of the file
-            var firstAfterModified = new Position(start + count, 0);
+            var firstAfterModified = new Lsp.Position(start + count, 0);
             var lastInFile = LastInFile(file);
-            var syntaxCheckEnd = firstAfterModified.IsSmallerThan(lastInFile)
+            var syntaxCheckEnd = firstAfterModified.ToQSharp() < lastInFile
                 ? file.FragmentEnd(ref firstAfterModified)
                 : file.End();
-            return new LSP.Range { Start = syntaxCheckStart, End = lastInFile.IsSmallerThanOrEqualTo(syntaxCheckEnd) ? file.End() : syntaxCheckEnd };
+            return new Lsp.Range
+            {
+                Start = syntaxCheckStart.ToLsp(),
+                End = lastInFile <= syntaxCheckEnd ? file.End().ToLsp() : syntaxCheckEnd.ToLsp()
+            };
         }
 
         /// <summary>

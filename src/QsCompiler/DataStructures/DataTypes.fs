@@ -83,11 +83,32 @@ type Position = private Position of int * int with
         let column = if b.Line = 0 then a.Column + b.Column else b.Column
         Position (line, column)
 
+    /// <summary>
+    /// Translates the first position backwards by the amount of the second position. If the resulting position is on
+    /// the same line, the column numbers are subtracted; otherwise, the first position's column number is used.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if the resulting position has a negative line or column number.
+    /// </exception>
+    static member (-) (a : Position, b : Position) =
+        let line = a.Line - b.Line
+        let column = if a.Line = b.Line then a.Column - b.Column else a.Column
+        Position (line, column)
+
     /// Returns true if the positions have the same line and column numbers.
     static member op_Equality (a : Position, b : Position) = a = b
 
+    /// Returns true if the second position occurs before the first position.
+    static member op_LessThan (a : Position, b) = (a :> Position IComparable).CompareTo b < 0
+
+    /// Returns true if the second position occurs at or before the first position.
+    static member op_LessThanOrEqual (a : Position, b) = (a :> Position IComparable).CompareTo b <= 0
+
     /// Returns true if the second position occurs after the first position. 
     static member op_GreaterThan (a : Position, b) = (a :> Position IComparable).CompareTo b > 0
+
+    /// Returns true if the second position occurs at or after the first position.
+    static member op_GreaterThanOrEqual (a : Position, b) = (a :> Position IComparable).CompareTo b >= 0
 
     /// <summary>
     /// Creates a position.

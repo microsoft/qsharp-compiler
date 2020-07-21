@@ -542,7 +542,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var syntaxCheckInOriginal = new Lsp.Range
                 {
                     Start = syntaxCheckInUpdated.Start,
-                    End = syntaxCheckInUpdated.End == this.End() ? origFileEnd : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
+                    End = syntaxCheckInUpdated.End.ToQSharp() == this.End()
+                        ? origFileEnd.ToLsp()
+                        : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
                 };
 
                 // update the tokens and make sure the necessary connections get marked as edited
@@ -751,7 +753,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Lsp.Position(0, range.End.Character)));
                 }
 
-                var enveloppingFragment = this.TryGetFragmentAt(range.Start, out var _);
+                var enveloppingFragment = this.TryGetFragmentAt(range.Start.ToQSharp(), out var _);
                 if (enveloppingFragment != null)
                 {
                     start = enveloppingFragment.GetRange().Start.Line;
@@ -1105,7 +1107,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 var change = new TextDocumentContentChangeEvent
                 {
-                    Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End() },
+                    Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End().ToLsp() },
                     // fixme: range length is not accurate, but also not used...
                     RangeLength = 0,
                     Text = text

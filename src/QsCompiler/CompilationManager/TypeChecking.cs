@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         break;
                     }
                 }
-                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start);
+                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start.ToQSharp());
                 return (tIndex, HeaderEntry<T>.From(getDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
             })
             ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given file or position is null.
         /// Throws an ArgumentException if the given position is not a valid position within the given file.
         /// </summary>
-        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Lsp.Position pos, bool ignorePrecedingAttributes = true)
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
             if (!Utils.IsValidPosition(pos, file))
             {
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool IsDocCommentLine(string text) => text.StartsWith("///") || text == string.Empty;
 
             var lastPreceding = file.GetTokenizedLine(pos.Line)
-                .TakeWhile(ContextBuilder.TokensUpTo(new Lsp.Position(0, pos.Character)))
+                .TakeWhile(ContextBuilder.TokensUpTo(new Lsp.Position(0, pos.Column)))
                 .LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(pos.Line);
             for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
             {
@@ -2059,21 +2059,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
         /// </summary>
-        private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(this QsScope scope, Lsp.Position relativePosition, bool includeDeclaredAtPosition)
+        private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
+            this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
         {
             if (scope == null)
             {
                 throw new ArgumentNullException(nameof(scope));
             }
-            if (!Utils.IsValidPosition(relativePosition))
-            {
-                throw new ArgumentException(nameof(relativePosition));
-            }
 
             LocalDeclarations Concat(LocalDeclarations fst, LocalDeclarations snd)
                 => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
             bool BeforePosition(QsNullable<QsLocation> location) =>
-                location.IsValue && location.Item.Offset.ToLsp().IsSmallerThan(relativePosition);
+                location.IsValue && location.Item.Offset < relativePosition;
             bool StartsBeforePosition(QsScope body) => body.Statements.Any() && BeforePosition(body.Statements.First().Location);
 
             var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location)).ToImmutableArray();
@@ -2146,7 +2143,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
         /// </summary>
-        internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Lsp.Position relativePosition) =>
+        internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
 
         /// <summary>
@@ -2161,7 +2158,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
         /// </summary>
-        internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Lsp.Position relativePosition, bool includeDeclaredAtPosition) =>
+        internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
 
         /// <summary>
@@ -2173,7 +2170,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
         /// </summary>
-        public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Lsp.Position relativePosition) =>
+        public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;
 
         /// <summary>

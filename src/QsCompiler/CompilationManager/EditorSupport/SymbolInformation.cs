@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // getting the relevant token (if any)
 
-            fragment = file?.TryGetFragmentAt(position, out var _, includeEnd);
+            fragment = file?.TryGetFragmentAt(position.ToQSharp(), out var _, includeEnd);
             if (fragment?.Kind == null)
             {
                 return null;
@@ -200,8 +200,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return false;
             }
 
-            var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
+            var implementation = compilation.TryGetSpecializationAt(file, position.ToQSharp(), out var parentName, out var callablePos, out var specPos);
+            var declarations = implementation?.LocalDeclarationsAt(position.ToQSharp() - specPos, includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // the given position corresponds to an identifier of a global callable
                 var nsName = parentName == null
-                    ? file.TryGetNamespaceAt(position)
+                    ? file.TryGetNamespaceAt(position.ToQSharp())
                     : parentName.Namespace.Value;
                 if (nsName == null)
                 {
@@ -260,10 +260,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // the given position corresponds to a variable declared as part of a specialization declaration or implementation
                 var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Start);
-                var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
+                var statements = implementation.StatementsAfterDeclaration(defStart.ToQSharp() - specPos);
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
-                var rootOffset = specPos.ToQSharp();
-                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Select(AsLocation);
+                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;

@@ -7,7 +7,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -180,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given position is valid, i.e. if both the line and character are positive.
         /// Throws an ArgumentNullException is an argument is null.
         /// </summary>
-        public static bool IsValidPosition(Position pos)
+        public static bool IsValidPosition(Lsp.Position pos)
         {
             if (pos == null)
             {
@@ -200,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            return IsValidPosition(pos) && pos.Line < file.NrLines() && pos.Character <= file.GetLine(pos.Line).Text.Length;
+            return pos.Line < file.NrLines() && pos.Column <= file.GetLine(pos.Line).Text.Length;
         }
 
         /// <summary>
@@ -208,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if a given position is null.
         /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
-        internal static bool IsSmallerThan(this Position first, Position second)
+        internal static bool IsSmallerThan(this Lsp.Position first, Lsp.Position second)
         {
             if (!IsValidPosition(first) || !IsValidPosition(second))
             {
@@ -222,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if a given position is null.
         /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
-        internal static bool IsSmallerThanOrEqualTo(this Position first, Position second) =>
+        internal static bool IsSmallerThanOrEqualTo(this Lsp.Position first, Lsp.Position second) =>
             !second.IsSmallerThan(first);
 
         /// <summary>
@@ -230,7 +231,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the given ranges is null.
         /// Throws an ArgumentException if any of the given ranges is not valid.
         /// </summary>
-        internal static bool Overlaps(this LSP.Range range1, LSP.Range range2)
+        internal static bool Overlaps(this Lsp.Range range1, Lsp.Range range2)
         {
             if (!IsValidRange(range1) || !IsValidRange(range2))
             {
@@ -247,7 +248,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given position or range is null.
         /// Throws an ArgumentException if the given position or range is not valid.
         /// </summary>
-        internal static bool IsWithinRange(this Position pos, LSP.Range range, bool includeEnd = false)
+        internal static bool IsWithinRange(this Lsp.Position pos, Lsp.Range range, bool includeEnd = false)
         {
             if (!IsValidPosition(pos) || !IsValidRange(range))
             {
@@ -260,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        public static bool IsValidRange(LSP.Range range) =>
+        public static bool IsValidRange(Lsp.Range range) =>
             IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End);
 
         /// <summary>
@@ -268,15 +269,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        internal static bool IsValidRange(LSP.Range range, FileContentManager file) =>
-            IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End);
+        internal static bool IsValidRange(Lsp.Range range, FileContentManager file) =>
+            IsValidPosition(range?.Start.ToQSharp(), file) && IsValidPosition(range.End.ToQSharp(), file) && range.Start.IsSmallerThanOrEqualTo(range.End);
 
         /// <summary>
         /// Returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based.
         /// Throws an ArgumentNullException if a given position is null.
         /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
-        internal static Position Add(this Position fst, Position snd)
+        internal static Lsp.Position Add(this Lsp.Position fst, Lsp.Position snd)
         {
             if (!IsValidPosition(fst))
             {
@@ -286,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(snd));
             }
-            return new Position(fst.Line + snd.Line, snd.Line == 0 ? fst.Character + snd.Character : snd.Character);
+            return new Lsp.Position(fst.Line + snd.Line, snd.Line == 0 ? fst.Character + snd.Character : snd.Character);
         }
 
         /// <summary>
@@ -294,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if a given position is null.
         /// Throws an ArgumentException if a given position is not valid, or if fst is smaller than snd.
         /// </summary>
-        internal static Position Subtract(this Position fst, Position snd)
+        internal static Lsp.Position Subtract(this Lsp.Position fst, Lsp.Position snd)
         {
             if (!IsValidPosition(fst))
             {
@@ -308,14 +309,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(snd), "the position to subtract from needs to be larger than the position to subract");
             }
-            var relPos = new Position(fst.Line - snd.Line, fst.Line == snd.Line ? fst.Character - snd.Character : fst.Character);
+            var relPos = new Lsp.Position(fst.Line - snd.Line, fst.Line == snd.Line ? fst.Character - snd.Character : fst.Character);
             QsCompilerError.Verify(snd.Add(relPos).Equals(fst), "adding the relative position to snd does not equal fst");
             return relPos;
         }
 
         // tools for debugging
 
-        public static string DiagnosticString(this LSP.Range r) =>
+        public static string DiagnosticString(this Lsp.Range r) =>
             $"({r?.Start?.Line},{r?.Start?.Character}) - ({r?.End?.Line},{r?.End?.Character})";
 
         internal static string DiagnosticString(FileContentManager file)

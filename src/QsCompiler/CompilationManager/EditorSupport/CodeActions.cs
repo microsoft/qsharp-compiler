@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var (start, end) = (range.Start.Line, range.End.Line);
 
-            var fragAtStart = file.TryGetFragmentAt(range.Start, out var _, includeEnd: true);
+            var fragAtStart = file.TryGetFragmentAt(range.Start.ToQSharp(), out var _, includeEnd: true);
             var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
@@ -271,7 +271,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc.
                 // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below.
-                var fragment = file.TryGetFragmentAt(d.Range.Start, out var _);
+                var fragment = file.TryGetFragmentAt(d.Range.Start.ToQSharp(), out var _);
 
                 static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
@@ -326,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             return updateOfArrayItemExprs
-                .Select(d => file?.TryGetFragmentAt(d.Range.Start, out var _, includeEnd: true))
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start.ToQSharp(), out var _, includeEnd: true))
                 .Where(frag => frag != null)
                 .Select(frag => SuggestedCopyAndUpdateExpr(frag))
                 .Where(s => s.Item2 != null);
@@ -346,7 +346,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // Ensure that the IndexRange library function exists in this compilation unit.
-            var nsName = file.TryGetNamespaceAt(range.Start);
+            var nsName = file.TryGetNamespaceAt(range.Start.ToQSharp());
             if (nsName == null)
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             WorkspaceEdit SuggestedRemoval(Lsp.Position pos)
             {
-                var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
+                var fragment = file.TryGetFragmentAt(pos.ToQSharp(), out var currentFragToken);
                 var lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
                 if (fragment == null || --lastFragToken == null)
                 {
@@ -496,7 +496,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
             var declStart = fragment.GetRange().Start;
-            if (declSymbol == null || file.DocumentingComments(declStart).Any())
+            if (declSymbol == null || file.DocumentingComments(declStart.ToQSharp()).Any())
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }

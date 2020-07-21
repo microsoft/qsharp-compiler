@@ -147,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(position));
             }
-            if (!Utils.IsValidPosition(position, file))
+            if (!Utils.IsValidPosition(position.ToQSharp(), file))
             {
                 // FileContentManager.IndentationAt will fail if the position is not within the file.
                 fragment = null;
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             fragment = token.GetFragment();
-            var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
+            var relativeIndentation = fragment.Indentation - file.IndentationAt(position.ToQSharp());
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
                 new[] { token }.Concat(token.GetNonEmptyParents())
@@ -253,7 +253,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 case CompletionKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
-            var currentNamespace = file.TryGetNamespaceAt(position);
+            var currentNamespace = file.TryGetNamespaceAt(position.ToQSharp());
             var openNamespaces =
                 namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
             switch (kind.Tag)
@@ -316,7 +316,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return Array.Empty<CompletionItem>();
             }
 
-            var currentNamespace = file.TryGetNamespaceAt(position);
+            var currentNamespace = file.TryGetNamespaceAt(position.ToQSharp());
             if (nsPath != null)
             {
                 var resolvedNsPath = ResolveNamespaceAlias(file, compilation, position, nsPath);
@@ -360,7 +360,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             return
                 compilation
-                .TryGetLocalDeclarations(file, position, out _, includeDeclaredAtPosition: false)
+                .TryGetLocalDeclarations(file, position.ToQSharp(), out _, includeDeclaredAtPosition: false)
                 .Variables
                 .Where(variable => !mutableOnly || variable.InferredInformation.IsMutable)
                 .Select(variable => new CompletionItem()
@@ -558,7 +558,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 prefix += ".";
             }
-            var @namespace = file.TryGetNamespaceAt(position);
+            var @namespace = file.TryGetNamespaceAt(position.ToQSharp());
             if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
             {
                 return Array.Empty<CompletionItem>();
@@ -647,7 +647,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException(nameof(position));
             }
 
-            var @namespace = file.TryGetNamespaceAt(position);
+            var @namespace = file.TryGetNamespaceAt(position.ToQSharp());
             if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
             {
                 return Array.Empty<string>();
@@ -676,7 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException(nameof(position));
             }
 
-            var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
+            var fragment = file.TryGetFragmentAt(position.ToQSharp(), out _, includeEnd: true);
             if (fragment == null)
             {
                 return null;
@@ -749,7 +749,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(alias));
             }
 
-            var nsName = file.TryGetNamespaceAt(position);
+            var nsName = file.TryGetNamespaceAt(position.ToQSharp());
             if (nsName == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(nsName)))
             {
                 return alias;
@@ -814,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var end = fragment.GetRange().End;
             var position = file.FragmentEnd(ref end);
-            return new Lsp.Position(position.Line, position.Character - 1);
+            return new Lsp.Position(position.Line, position.Column - 1);
         }
 
         /// <summary>

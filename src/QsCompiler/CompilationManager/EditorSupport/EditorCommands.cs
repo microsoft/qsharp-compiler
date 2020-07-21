@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
+            var locals = compilation.TryGetLocalDeclarations(file, position.ToQSharp(), out var cName, includeDeclaredAtPosition: true);
             if (cName == null)
             {
                 return null;
@@ -223,8 +223,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return GetHover(symbolInfo.UsedLiterals.Single().LiteralInfo(markdown).Value);
             }
-            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
-            var nsName = cName?.Namespace.Value ?? file.TryGetNamespaceAt(position);
+            var locals = compilation.TryGetLocalDeclarations(file, position.ToQSharp(), out var cName, includeDeclaredAtPosition: true);
+            var nsName = cName?.Namespace.Value ?? file.TryGetNamespaceAt(position.ToQSharp());
             if (nsName == null)
             {
                 return null;
@@ -258,7 +258,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // getting the relevant token (if any)
 
-            var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
+            var fragment = file?.TryGetFragmentAt(position.ToQSharp(), out var _, includeEnd: true);
             if (fragment?.Kind == null || compilation == null)
             {
                 return null;
@@ -282,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return result == 0 ? x.End.CompareTo(y.End) : result;
             });
 
-            var nsName = file.TryGetNamespaceAt(position);
+            var nsName = file.TryGetNamespaceAt(position.ToQSharp());
             var (method, args) = overlappingEx.Last().Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression c ? (c.Item1, c.Item2) : (null, null);
             if (nsName == null || method == null || args == null)
             {
