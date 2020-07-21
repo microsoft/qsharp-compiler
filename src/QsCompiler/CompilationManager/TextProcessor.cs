@@ -242,39 +242,47 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
-        internal static Position FragmentEnd(this FileContentManager file, ref Lsp.Position current)
+        internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
-            var lastInFile = LastInFile(file);
-            if (!Utils.IsValidPosition(current.ToQSharp(), file))
+            if (!Utils.IsValidPosition(current, file))
             {
                 throw new ArgumentException("given position is not within file");
             }
-            if (lastInFile <= current.ToQSharp())
+            var lastInFile = LastInFile(file);
+            if (lastInFile <= current)
             {
                 throw new ArgumentException("no fragment exists at the given position");
             }
 
+            static int MoveNextLine(ref Position position)
+            {
+                position = Position.Create(position.Line + 1, position.Column);
+                return position.Line;
+            }
+
             var text = file.GetLine(current.Line).WithoutEnding;
-            if (current.Character > text.Length || text.Substring(current.Character).TrimEnd().Length == 0)
+            if (current.Column > text.Length || text.Substring(current.Column).TrimEnd().Length == 0)
             {
                 var trimmed = string.Empty;
-                while (trimmed.Length == 0 && ++current.Line < file.NrLines())
+                while (trimmed.Length == 0 && MoveNextLine(ref current) < file.NrLines())
                 {
                     trimmed = file.GetLine(current.Line).WithoutEnding.TrimStart();
                 }
                 if (current.Line < file.NrLines())
                 {
-                    current.Character = file.GetLine(current.Line).WithoutEnding.Length - trimmed.Length;
+                    current = Position.Create(
+                        current.Line,
+                        file.GetLine(current.Line).WithoutEnding.Length - trimmed.Length);
                 }
                 else
                 {
-                    current = lastInFile.ToLsp();
+                    current = lastInFile;
                     return lastInFile;
                 }
             }
 
             var endIndex = current.Line;
-            var endChar = file.GetLine(endIndex).StatementStart(current.Character);
+            var endChar = file.GetLine(endIndex).StatementStart(current.Column);
             while (endChar < 0 && ++endIndex < file.NrLines())
             {
                 endChar = file.GetLine(endIndex).StatementStart();
@@ -340,9 +348,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 while (processed.Line <= iter.Current && processed < lastInFile)
                 {
-                    var start = processed.ToLsp(); // because we don't want to modify the ending of the previous code fragment ...
-                    var nextEnding = file.FragmentEnd(ref start);
-                    var extractedPiece = file.GetCodeSnippet(new Lsp.Range { Start = start, End = nextEnding.ToLsp() });
+                    var nextEnding = file.FragmentEnd(ref processed);
+                    var extractedPiece = file.GetCodeSnippet(new Lsp.Range { Start = processed.ToLsp(), End = nextEnding.ToLsp() });
 
                     // constructing the CodeFragment -
                     // NOTE: its Range.End is the position of the delimiting char (if such a char exists), i.e. the position right after Code ends
@@ -359,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
 
                         var endChar = nextEnding.Column - (extractedPiece.Length - code.Length) - 1;
-                        var codeRange = new Lsp.Range { Start = start, End = new Lsp.Position(nextEnding.Line, endChar) };
+                        var codeRange = new Lsp.Range { Start = processed.ToLsp(), End = new Lsp.Position(nextEnding.Line, endChar) };
                         yield return new CodeFragment(file.IndentationAt(codeRange.Start.ToQSharp()), codeRange, code.Substring(0, code.Length - 1), code.Last());
                     }
                     processed = nextEnding;
@@ -393,9 +400,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // if no piece of code exists before the start of the modifications, then the check effectively starts at the beginning of the file
             var syntaxCheckStart = file.PositionAfterPrevious(Position.Create(start, 0)); // position (0,0) if there is no previous fragment
             // if the modification goes past what is currently the last piece of code, then the effectively the check extends to the end of the file
-            var firstAfterModified = new Lsp.Position(start + count, 0);
+            var firstAfterModified = Position.Create(start + count, 0);
             var lastInFile = LastInFile(file);
-            var syntaxCheckEnd = firstAfterModified.ToQSharp() < lastInFile
+            var syntaxCheckEnd = firstAfterModified < lastInFile
                 ? file.FragmentEnd(ref firstAfterModified)
                 : file.End();
             return new Lsp.Range

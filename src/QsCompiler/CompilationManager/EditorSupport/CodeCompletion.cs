@@ -812,7 +812,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
             }
 
-            var end = fragment.GetRange().End;
+            var end = fragment.GetRange().End.ToQSharp();
             var position = file.FragmentEnd(ref end);
             return new Lsp.Position(position.Line, position.Column - 1);
         }
