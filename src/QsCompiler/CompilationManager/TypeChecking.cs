@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool IsDocCommentLine(string text) => text.StartsWith("///") || text == string.Empty;
 
             var lastPreceding = file.GetTokenizedLine(pos.Line)
-                .TakeWhile(ContextBuilder.TokensUpTo(new Lsp.Position(0, pos.Column)))
+                .TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, pos.Column)))
                 .LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(pos.Line);
             for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
             {

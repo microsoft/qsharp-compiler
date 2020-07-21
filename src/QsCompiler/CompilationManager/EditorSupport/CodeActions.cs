@@ -14,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -95,11 +96,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (start, end) = (range.Start.Line, range.End.Line);
 
             var fragAtStart = file.TryGetFragmentAt(range.Start.ToQSharp(), out var _, includeEnd: true);
-            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
+            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start.ToQSharp())); // does not include fragAtStart
             inRange = start == end
-                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
+                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp()))
                 : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
-                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp())));
 
             var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
             if (fragAtStart != null)
@@ -507,7 +508,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
                 return att != null || (line != null && !line.Any());
             }
-            var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(new Lsp.Position(0, declStart.Character)));
+            var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, declStart.Character)));
             for (var lineNr = declStart.Line; EmptyOrFirstAttribute(preceding, out var precedingAttribute);)
             {
                 if (precedingAttribute != null)

@@ -15,6 +15,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -750,7 +751,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 if (start != end)
                 {
-                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Lsp.Position(0, range.End.Character)));
+                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(Position.Create(0, range.End.Character)));
                 }
 
                 var enveloppingFragment = this.TryGetFragmentAt(range.Start.ToQSharp(), out var _);

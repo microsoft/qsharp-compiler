@@ -940,7 +940,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var ((cName, cPos), (specKind, sPos)) = root.Value;
-            (callablePos, specializationPos) = (cPos.ToQSharp(), sPos.ToQSharp());
+            (callablePos, specializationPos) = (cPos, sPos);
             callableName = new QsQualifiedName(NonNullable<string>.New(nsName), cName);
 
             QsSpecialization GetSpecialization(QsQualifiedName fullName, QsSpecializationKind kind)
@@ -963,8 +963,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            QsCompilerError.Verify(sPos.ToQSharp() <= pos, "computed closes preceding specialization does not precede the position in question");
-            QsCompilerError.Verify(sPos != null || relevantSpecialization == null, "the position offset should not be null unless the relevant specialization is");
+            QsCompilerError.Verify(sPos <= pos, "computed closes preceding specialization does not precede the position in question");
             return ((SpecializationImplementation.Provided)relevantSpecialization.Implementation).Item2;
         }
 

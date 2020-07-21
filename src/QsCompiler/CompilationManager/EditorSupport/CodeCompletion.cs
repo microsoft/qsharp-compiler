@@ -784,7 +784,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 tokens = file.GetTokenizedLine(--line);
             }
 
-            var index = tokens.TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
+            var index = tokens.TakeWhile(ContextBuilder.TokensUpTo(position.ToQSharp())).Count() - 1;
             if (index == -1)
             {
                 return null;
