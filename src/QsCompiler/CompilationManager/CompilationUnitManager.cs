@@ -776,7 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // FIXME: the correct thing to do here would be to call FlushAndExecute...!
             var success = this.Processing.QueueForExecution(
                 () => this.fileContentManagers.TryGetValue(docKey, out FileContentManager file)
-                    ? file.Rename(this.compilationUnit, param.Position, param.NewName)
+                    ? file.Rename(this.compilationUnit, param.Position.ToQSharp(), param.NewName)
                     : null,
                 out WorkspaceEdit edit);
             return success ? edit : null;

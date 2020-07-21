@@ -1121,7 +1121,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public SignatureHelp SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position, format), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns information about the item at the specified position as Hover information.
@@ -1147,7 +1147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public DocumentHighlight[] DocumentHighlights(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all locations where the symbol at the given position - if any - is referenced.
@@ -1160,7 +1160,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Location[] SymbolReferences(ReferenceParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position, param.Context), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position.ToQSharp(), param.Context), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns the SymbolInformation for each namespace declaration,

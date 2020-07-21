@@ -74,13 +74,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
         /// </summary>
-        public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Lsp.Position position, ReferenceContext context)
+        public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position position, ReferenceContext context)
         {
             if (file == null)
             {
                 return null;
             }
-            if (!file.TryGetReferences(compilation, position.ToQSharp(), out var declLocation, out var locations))
+            if (!file.TryGetReferences(compilation, position, out var declLocation, out var locations))
             {
                 return null;
             }
@@ -95,13 +95,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
         /// </summary>
-        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Lsp.Position position, string newName)
+        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
             if (newName == null || file == null)
             {
                 return null;
             }
-            var found = file.TryGetReferences(compilation, position.ToQSharp(), out var declLocation, out var locations);
+            var found = file.TryGetReferences(compilation, position, out var declLocation, out var locations);
             if (!found)
             {
                 return null;
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
         /// </summary>
-        public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Lsp.Position position)
+        public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
         {
             DocumentHighlight AsHighlight(Lsp.Range range) =>
                 new DocumentHighlight { Range = range, Kind = DocumentHighlightKind.Read };
@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var found = file.TryGetReferences(
                 compilation,
-                position.ToQSharp(),
+                position,
                 out var declLocation,
                 out var locations,
                 limitToSourceFiles: ImmutableHashSet.Create(file.FileName));
@@ -253,12 +253,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static SignatureHelp SignatureHelp(
             this FileContentManager file,
             CompilationUnit compilation,
-            Lsp.Position position,
+            Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
             // getting the relevant token (if any)
 
-            var fragment = file?.TryGetFragmentAt(position.ToQSharp(), out var _, includeEnd: true);
+            var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
             if (fragment?.Kind == null || compilation == null)
             {
                 return null;
@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 
             bool OverlapsWithPosition(Range symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
+                position.ToLsp().IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
             if (!overlappingEx.Any())
@@ -282,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return result == 0 ? x.End.CompareTo(y.End) : result;
             });
 
-            var nsName = file.TryGetNamespaceAt(position.ToQSharp());
+            var nsName = file.TryGetNamespaceAt(position);
             var (method, args) = overlappingEx.Last().Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression c ? (c.Item1, c.Item2) : (null, null);
             if (nsName == null || method == null || args == null)
             {
@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // now that we now what callable is called we need to check which argument should come next
 
             bool BeforePosition(Range symRange) =>
-                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.End).IsSmallerThan(position);
+                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.End).ToQSharp() < position;
 
             IEnumerable<(Range, string)> ExtractParameterRanges(
                 QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
