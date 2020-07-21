@@ -534,11 +534,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var fragmentStart = fragment.GetRange().Start;
                 var (include, verifications) = Context.VerifySyntaxTokenContext(context);
                 foreach (var msg in verifications)
                 {
-                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragmentStart));
+                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.GetRange().Start.ToQSharp()));
                 }
 
                 if (include)

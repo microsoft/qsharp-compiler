@@ -33,9 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             // opting to not complain about semicolons not following code anywhere in the file (i.e. on any scope)
             var diagnostics = fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == ';')
-                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.GetRange().End))
+                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.GetRange().End.ToQSharp()))
                 .Concat(fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == '{')
-                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.GetRange().End)));
+                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.GetRange().End.ToQSharp())));
             return diagnostics.ToList(); // in case fragments change
         }
 
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var code = fragment.Kind.InvalidEnding;
             if (Diagnostics.ExpectedEnding(code) != fragment.FollowedBy)
             {
-                yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End);
+                yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End.ToQSharp());
             }
         }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var checkEnding = true; // if there is already a diagnostic overlapping with the ending, then don't bother checking the ending
                     foreach (var fragmentDiagnostic in output.Diagnostics)
                     {
-                        var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start);
+                        var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start.ToQSharp());
                         diagnostics.Add(generated);
 
                         var fragmentEnd = fragment.GetRange().End;
