@@ -1194,7 +1194,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public CompletionList Completions(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
-                (file, compilation) => file.Completions(compilation, param?.Position),
+                (file, compilation) => file.Completions(compilation, param?.Position.ToQSharp()),
                 suppressExceptionLogging: true);
 
         /// <summary>
