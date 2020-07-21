@@ -97,7 +97,7 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         | _ -> []
     let returnError (statement : QsStatement) =
         let error = ErrorCode.ReturnInResultConditionedBlock, [context.ProcessorArchitecture.Value]
-        let location = statement.Location.ValueOr { Offset = 0, 0; Range = QsCompilerDiagnostic.DefaultRange }
+        let location = statement.Location.ValueOr { Offset = Position.Zero; Range = Range.Zero }
         location.Offset, QsCompilerDiagnostic.Error error location.Range
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
@@ -224,7 +224,7 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
             | _ -> ()
             [||]
         | Item (ex : TypedExpression) -> 
-            let range = ex.Range.ValueOr QsCompilerDiagnostic.DefaultRange 
+            let range = ex.Range.ValueOr Range.Zero
             [| range |> QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) |]
         | _ -> [||] // both missing and invalid expressions on the lhs are fine
     let refErrs = verifiedLhs |> VerifyMutability
@@ -391,7 +391,7 @@ let private NewBindingScope kind comments (location : QsLocation) context (qsSym
 
     let initializer, initErrs = VerifyInitializer qsInit
     let symTuple, _, varErrs = 
-        let rhsRange = qsInit.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let rhsRange = qsInit.Range.ValueOr Range.Zero
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
         VerifyBinding addDeclaration (qsSym, (initializer.Type, rhsRange)) true

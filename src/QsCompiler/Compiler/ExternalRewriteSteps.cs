@@ -13,7 +13,8 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler
 {
@@ -90,9 +91,9 @@ namespace Microsoft.Quantum.QsCompiler
                     diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Info ? DiagnosticSeverity.Information :
                     DiagnosticSeverity.Hint;
 
-                var startPosition = diagnostic.Start == null ? null : new Position(diagnostic.Start.Item1, diagnostic.Start.Item2);
-                var endPosition = diagnostic.End == null ? startPosition : new Position(diagnostic.End.Item1, diagnostic.End.Item2);
-                var range = startPosition == null || diagnostic.Source == null ? null : new LSP.Range { Start = startPosition, End = endPosition };
+                var startPosition = diagnostic.Start == null ? null : new Lsp.Position(diagnostic.Start.Line, diagnostic.Start.Column);
+                var endPosition = diagnostic.End == null ? startPosition : new Lsp.Position(diagnostic.End.Line, diagnostic.End.Column);
+                var range = startPosition == null || diagnostic.Source == null ? null : new Lsp.Range { Start = startPosition, End = endPosition };
                 if (range != null && !Utils.IsValidRange(range))
                 {
                     range = null;
@@ -149,8 +150,8 @@ namespace Microsoft.Quantum.QsCompiler
                             Severity = (CodeAnalysis.DiagnosticSeverity)itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Severity)).GetValue(obj, null),
                             Message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string,
                             Source = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Source)).GetValue(obj, null) as string,
-                            Start = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Start)).GetValue(obj, null) as Tuple<int, int>,
-                            End = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.End)).GetValue(obj, null) as Tuple<int, int>
+                            Start = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Start)).GetValue(obj, null) as Position,
+                            End = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.End)).GetValue(obj, null) as Position
                         });
                     }
                     return diagnostics.ToImmutable();

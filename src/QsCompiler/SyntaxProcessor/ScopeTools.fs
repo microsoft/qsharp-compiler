@@ -196,7 +196,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// If the given symbol is not a valid name for an identifier, or the corresponding variable is not visible on the current scope,
     /// calls the given addDiagnostics function with a suitable diagnostic. 
     member this.ResolveIdentifier addDiagnostic (qsSym : QsSymbol) = 
-        let defaultLoc = Null, QsCompilerDiagnostic.DefaultRange // dummy location for the purpose of returning the necessary information as local variable declaration
+        let defaultLoc = Null, Range.Zero // dummy location for the purpose of returning the necessary information as local variable declaration
         let invalid = 
             let properties = (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty

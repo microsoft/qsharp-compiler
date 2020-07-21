@@ -28,9 +28,9 @@ let private rwstr s = pstring s |> rws
 
 // symbols and names
 
-let private buildQsExpression kind (range : Position * Position) = (kind, range) |> QsExpression.New
-let private buildQsSymbol     kind (range : Position * Position) = (kind, range) |> QsSymbol.New
-let private buildQsType       kind (range : Position * Position) = (kind, range) |> QsType.New
+let private buildQsExpression kind (range : Range) = (kind, range) |> QsExpression.New
+let private buildQsSymbol     kind (range : Range) = (kind, range) |> QsSymbol.New
+let private buildQsType       kind (range : Range) = (kind, range) |> QsType.New
 
 /// returns true if the given char is a valid start symbol for an identifier: Underscore or a Unicode character of classes Lu, Ll, Lt, Lm, Lo, Nl.
 /// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#identifiers
@@ -50,12 +50,24 @@ let internal isSymbolContinuation c =
         System.Globalization.UnicodeCategory.NonSpacingMark; // Mn
         System.Globalization.UnicodeCategory.SpacingCombiningMark; // Mc
         System.Globalization.UnicodeCategory.Format] // Cf
-        
+
+/// Returns the current position in the input stream.
+let internal getPosition =
+    CharParsers.getPosition |>> fun p -> Position.Create (int p.Line - 1) (int p.Column - 1)
+
+/// Returns the result of 'p' and the character range that 'p' consumed.
+let internal getRange p =
+    getPosition .>>. p .>>. getPosition
+    |>> fun ((start, result), end') -> result, Range.Create start end'
+
+/// Returns an empty range at the current position in the input stream.
+let internal getEmptyRange = getRange (preturn ()) |>> snd
+
 /// Gets the char stream position before and after applying the given parser, 
 /// and returns the result of the given parser as well as a tuple of the two positions.
 /// If the given parser fails, returns to the initial char stream state an reports a non-fatal error.
 /// Consumes any whitespace to the right.
-let internal term p = (getPosition .>>. p .>>. getPosition) |> rws |>> fun ((pos1, res), pos2) -> res,(pos1,pos2)
+let internal term p = getRange p |> rws
 
 /// Parses the given string and verifies that the next following character is not a valid symbol continuation. 
 /// Returns to the initial char stream state an reports a non-fatal error if the verification fails. 

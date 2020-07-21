@@ -14,7 +14,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or if the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, LSP.Range syntaxCheckDelimiters, int lineNrChange)
+        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Lsp.Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null)
             {
@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckStart, syntaxCheckEnd) || m.SelectByEnd(syntaxCheckStart, syntaxCheckEnd));  // remove any Diagnostic overlapping with the updated interval
-                diagnostics.RemoveAll(m => m.SelectByStart(new Position(0, 0), syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
+                diagnostics.RemoveAll(m => m.SelectByStart(new Lsp.Position(), syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
                 if (lineNrChange != 0)
                 {
                     diagnostics.Transform(UpdateLineNrs);
@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static void DelayInvalidateOrUpdate(
             ManagedList<Diagnostic> diagnostics,
             ManagedList<Diagnostic> updated,
-            LSP.Range syntaxCheckDelimiters,
+            Lsp.Range syntaxCheckDelimiters,
             int lineNrChange)
         {
             if (diagnostics == null)
@@ -309,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSyntaxDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSyntaxDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
             InvalidateOrUpdateBySyntaxCheckDelimeters(this.syntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateHeaderDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateHeaderDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.headerDiagnostics, this.updatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -427,7 +427,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSemanticDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSemanticDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.semanticDiagnostics, this.updatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -539,7 +539,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.content.Replace(start, count, replacements);
                 var lineNrChange = replacements.Count - count;
                 var syntaxCheckInUpdated = this.GetSyntaxCheckDelimiters(start, replacements.Count);
-                var syntaxCheckInOriginal = new LSP.Range
+                var syntaxCheckInOriginal = new Lsp.Range
                 {
                     Start = syntaxCheckInUpdated.Start,
                     End = syntaxCheckInUpdated.End == this.End() ? origFileEnd : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
@@ -712,7 +712,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given range is not a valid range.
         /// Throws an ArgumentOutOfRangeException if the line number of the range end is larger than the number of currently saved tokens.
         /// </summary>
-        private void RemoveTokensInRange(LSP.Range range)
+        private void RemoveTokensInRange(Lsp.Range range)
         {
             this.tokens.SyncRoot.EnterWriteLock();
             try
@@ -748,7 +748,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 if (start != end)
                 {
-                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Position(0, range.End.Character)));
+                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Lsp.Position(0, range.End.Character)));
                 }
 
                 var enveloppingFragment = this.TryGetFragmentAt(range.Start, out var _);
@@ -928,7 +928,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// whose content has been edited since the last call to this routine.
         /// Invalidates all semantic diagnostics withing the corresponding Ranges.
         /// </summary>
-        internal void MarkCallableAsContentEdited(IEnumerable<(LSP.Range, QsQualifiedName)> edited)
+        internal void MarkCallableAsContentEdited(IEnumerable<(Lsp.Range, QsQualifiedName)> edited)
         {
             foreach (var (range, callableName) in edited)
             {
@@ -1104,7 +1104,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentNullException(nameof(text));
                 }
                 var change = new TextDocumentContentChangeEvent
-                { Range = new LSP.Range { Start = new Position(0, 0), End = this.End() }, RangeLength = 0, Text = text }; // fixme: range length is not accurate, but also not used...
+                {
+                    Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End() },
+                    // fixme: range length is not accurate, but also not used...
+                    RangeLength = 0,
+                    Text = text
+                };
                 this.PushChange(change, out bool processed);
                 if (!processed)
                 {
@@ -1204,7 +1209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, LSP.Range)> GetNamespaceDeclarations()
+        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.GetRange()))
@@ -1215,7 +1220,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, LSP.Range)> GetTypeDeclarations()
+        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.GetRange()))
@@ -1226,7 +1231,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, LSP.Range)> GetCallableDeclarations()
+        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.GetRange()))

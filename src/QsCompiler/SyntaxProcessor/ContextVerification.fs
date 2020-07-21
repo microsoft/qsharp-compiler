@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 
 type SyntaxTokenContext = {
-    Range : QsPositionInfo * QsPositionInfo
+    Range : Range
     Self : QsNullable<QsFragmentKind>
     Previous : QsNullable<QsFragmentKind>
     Next : QsNullable<QsFragmentKind>

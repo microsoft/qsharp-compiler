@@ -12,7 +12,9 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -38,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
-        public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position position)
+        public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Lsp.Position position)
         {
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position
             if (symbolInfo == null || compilation == null)
@@ -59,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? compilation.GlobalSymbols.TypeDeclaration(cName.Namespace, file.FileName, symbolInfo.UsedTypes.Single())
                 : symbolInfo.DeclaredSymbols.Any()
                 ? compilation.GlobalSymbols.SymbolDeclaration(locals, cName.Namespace, file.FileName, symbolInfo.DeclaredSymbols.Single())
-                : QsNullable<Tuple<NonNullable<string>, Tuple<int, int>, Tuple<QsPositionInfo, QsPositionInfo>>>.Null;
+                : QsNullable<Tuple<NonNullable<string>, Position, Range>>.Null;
 
             return found.IsValue
                 ? SymbolInfo.AsLocation(found.Item.Item1, found.Item.Item2, found.Item.Item3)
@@ -72,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
         /// </summary>
-        public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position position, ReferenceContext context)
+        public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Lsp.Position position, ReferenceContext context)
         {
             if (file == null)
             {
@@ -93,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
         /// </summary>
-        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
+        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Lsp.Position position, string newName)
         {
             if (newName == null || file == null)
             {
@@ -131,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, LSP.Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Lsp.Range range, CodeActionContext context)
         {
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file))
             {
@@ -160,9 +162,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
         /// </summary>
-        public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
+        public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Lsp.Position position)
         {
-            DocumentHighlight AsHighlight(LSP.Range range) =>
+            DocumentHighlight AsHighlight(Lsp.Range range) =>
                 new DocumentHighlight { Range = range, Kind = DocumentHighlightKind.Read };
 
             if (file == null)
@@ -201,13 +203,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Hover HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position position,
+            Lsp.Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
             Hover GetHover(string info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new LSP.Range { Start = position, End = position }
+                Range = new Lsp.Range { Start = position, End = position }
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -251,7 +253,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static SignatureHelp SignatureHelp(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position position,
+            Lsp.Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
             // getting the relevant token (if any)
@@ -265,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 
-            bool OverlapsWithPosition(Tuple<QsPositionInfo, QsPositionInfo> symRange) =>
+            bool OverlapsWithPosition(Range symRange) =>
                 position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
@@ -276,8 +278,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             overlappingEx.Sort((ex1, ex2) => // for nested call expressions, the last expressions (by range) is always the closest one
             {
                 var (x, y) = (ex1.Range.Item, ex2.Range.Item);
-                int result = x.Item1.CompareTo(y.Item1);
-                return result == 0 ? x.Item2.CompareTo(y.Item2) : result;
+                int result = x.Start.CompareTo(y.Start);
+                return result == 0 ? x.End.CompareTo(y.End) : result;
             });
 
             var nsName = file.TryGetNamespaceAt(position);
@@ -343,21 +345,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (nrCtlApplications-- > 0)
             {
                 var ctlQsName = QsLocalSymbol.NewValidName(NonNullable<string>.New(nrCtlApplications == 0 ? "cs" : $"cs{nrCtlApplications}"));
-                argTuple = SyntaxGenerator.WithControlQubits(argTuple, QsNullable<Tuple<int, int>>.Null, ctlQsName, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                argTuple = SyntaxGenerator.WithControlQubits(argTuple, QsNullable<Position>.Null, ctlQsName, QsNullable<Range>.Null);
             }
 
             // now that we now what callable is called we need to check which argument should come next
 
-            bool BeforePosition(Tuple<QsPositionInfo, QsPositionInfo> symRange) =>
-                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.Item2).IsSmallerThan(position);
+            bool BeforePosition(Range symRange) =>
+                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.End).IsSmallerThan(position);
 
-            IEnumerable<(Tuple<QsPositionInfo, QsPositionInfo>, string)> ExtractParameterRanges(
+            IEnumerable<(Range, string)> ExtractParameterRanges(
                 QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
             {
-                var @null = ((Tuple<QsPositionInfo, QsPositionInfo>)null, (string)null);
-                IEnumerable<(Tuple<QsPositionInfo, QsPositionInfo>, string)> SingleItem(string paramName)
+                var @null = ((Range)null, (string)null);
+                IEnumerable<(Range, string)> SingleItem(string paramName)
                 {
-                    var arg = ex?.Range == null ? ((Tuple<QsPositionInfo, QsPositionInfo>)null, paramName)
+                    var arg = ex?.Range == null ? ((Range)null, paramName)
                         : ex.Range.IsValue ? (ex.Range.Item, paramName)
                         : @null; // no signature help if there are invalid expressions
                     return new[] { arg };

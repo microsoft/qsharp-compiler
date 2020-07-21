@@ -9,6 +9,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
@@ -354,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         TypeArgsResolution.Empty,
                         unitType,
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                     var typeArgs = ImmutableArray.Create(unitType);
 
                     var identifier = new TypedExpression(
@@ -366,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             .ToImmutableArray(),
                         operationType,
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
 
                     return (identifier, args);
                 }
@@ -380,7 +381,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
                         new InferredExpressionInformation(false, expressions.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
 
                 #region Condition Converting Logic
 
@@ -411,7 +412,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             .ToImmutableArray(),
                         operationType,
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
 
                     // Creates type resolutions for the call expression
                     var opTypeArgResolutions = typeArgs
@@ -434,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         opTypeArgResolutions,
                         unitType,
                         new InferredExpressionInformation(false, true),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                 }
 
                 /// <summary>
@@ -505,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             TypeArgsResolution.Empty,
                             ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Result))),
                             new InferredExpressionInformation(false, expression.InferredInformation.HasLocalQuantumDependency),
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                            QsNullable<Range>.Null);
 
                     var equality = this.CreateValueTupleExpression(equalityId, equalityArgs);
                     var inequality = this.CreateValueTupleExpression(inequalityId, inequalityArgs);

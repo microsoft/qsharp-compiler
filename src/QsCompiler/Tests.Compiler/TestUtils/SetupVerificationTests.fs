@@ -38,13 +38,13 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         [for file in compilation.SourceFiles do
             let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.Location <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
-            let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> DiagnosticTools.AsTuple d.Range.Start)
+            let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp ())
             
             for i = 1 to locations.Length do
                 let key = fst locations.[i-1]
                 if i < locations.Length then 
                     let withinCurrentDeclaration (d : Diagnostic) = 
-                        Utils.IsSmallerThan(d.Range.Start, snd locations.[i] |> DiagnosticTools.AsPosition)
+                        Utils.IsSmallerThan(d.Range.Start, (snd locations.[i]).ToLsp ())
                     yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
                     containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
                 else yield key, containedDiagnostics.ToImmutableArray()
