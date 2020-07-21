@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 
             bool OverlapsWithPosition(Range symRange) =>
-                position.ToLsp().IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
+                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
             if (!overlappingEx.Any())

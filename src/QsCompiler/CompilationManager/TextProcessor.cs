@@ -96,8 +96,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start.ToQSharp());
                         diagnostics.Add(generated);
 
-                        var fragmentEnd = fragment.GetRange().End;
-                        var diagnosticGoesUpToFragmentEnd = fragmentEnd.IsWithinRange(generated.Range) || fragmentEnd.Equals(generated.Range.End);
+                        var fragmentEnd = fragment.GetRange().End.ToQSharp();
+                        var diagnosticGoesUpToFragmentEnd = fragmentEnd.IsWithinRange(generated.Range) || fragmentEnd == generated.Range.End.ToQSharp();
                         if (fragmentDiagnostic.Diagnostic.IsError && diagnosticGoesUpToFragmentEnd)
                         {
                             checkEnding = false;

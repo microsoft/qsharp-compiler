@@ -205,28 +205,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Verifies both positions, and returns true if the first position comes strictly before the second position.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
-        /// </summary>
-        internal static bool IsSmallerThan(this Lsp.Position first, Lsp.Position second)
-        {
-            if (!IsValidPosition(first) || !IsValidPosition(second))
-            {
-                throw new ArgumentException("invalid position(s) given for comparison");
-            }
-            return first.Line < second.Line || (first.Line == second.Line && first.Character < second.Character);
-        }
-
-        /// <summary>
-        /// Verifies both positions, and returns true if the first position comes before the second position, or if both positions are the same.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
-        /// </summary>
-        internal static bool IsSmallerThanOrEqualTo(this Lsp.Position first, Lsp.Position second) =>
-            !second.IsSmallerThan(first);
-
-        /// <summary>
         /// Returns true if the given ranges overlap.
         /// Throws an ArgumentNullException if any of the given ranges is null.
         /// Throws an ArgumentException if any of the given ranges is not valid.
@@ -237,8 +215,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("invalid range given for comparison");
             }
-            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
-            return second.Start.IsSmallerThan(first.End);
+            var (first, second) = range1.Start.ToQSharp() < range2.Start.ToQSharp() ? (range1, range2) : (range2, range1);
+            return second.Start.ToQSharp() < first.End.ToQSharp();
         }
 
         /// <summary>
@@ -246,15 +224,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If includeEnd is true then the end point of the range is considered to be part of the range,
         /// otherwise the range is considered to include the start but excludes the end point.
         /// Throws an ArgumentNullException if the given position or range is null.
-        /// Throws an ArgumentException if the given position or range is not valid.
+        /// Throws an ArgumentException if the given range is not valid.
         /// </summary>
-        internal static bool IsWithinRange(this Lsp.Position pos, Lsp.Range range, bool includeEnd = false)
+        internal static bool IsWithinRange(this Position pos, Lsp.Range range, bool includeEnd = false)
         {
-            if (!IsValidPosition(pos) || !IsValidRange(range))
+            if (!IsValidRange(range))
             {
-                throw new ArgumentException("invalid position or range given for comparison");
+                throw new ArgumentException("invalid range given for comparison");
             }
-            return range.Start.IsSmallerThanOrEqualTo(pos) && (includeEnd ? pos.IsSmallerThanOrEqualTo(range.End) : pos.IsSmallerThan(range.End));
+            return range.Start.ToQSharp() <= pos
+                   && (includeEnd ? pos <= range.End.ToQSharp() : pos < range.End.ToQSharp());
         }
 
         /// <summary>
@@ -262,7 +241,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
         public static bool IsValidRange(Lsp.Range range) =>
-            IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End);
+            IsValidPosition(range?.Start)
+            && IsValidPosition(range.End)
+            && range.Start.ToQSharp() <= range.End.ToQSharp();
 
         /// <summary>
         /// Returns true if the given range is valid,
@@ -270,7 +251,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
         internal static bool IsValidRange(Lsp.Range range, FileContentManager file) =>
-            IsValidPosition(range?.Start.ToQSharp(), file) && IsValidPosition(range.End.ToQSharp(), file) && range.Start.IsSmallerThanOrEqualTo(range.End);
+            IsValidPosition(range?.Start.ToQSharp(), file)
+            && IsValidPosition(range.End.ToQSharp(), file)
+            && range.Start.ToQSharp() <= range.End.ToQSharp();
 
         // tools for debugging
 

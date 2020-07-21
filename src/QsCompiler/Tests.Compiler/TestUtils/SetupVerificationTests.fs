@@ -43,8 +43,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
             for i = 1 to locations.Length do
                 let key = fst locations.[i-1]
                 if i < locations.Length then 
-                    let withinCurrentDeclaration (d : Diagnostic) = 
-                        Utils.IsSmallerThan(d.Range.Start, (snd locations.[i]).ToLsp ())
+                    let withinCurrentDeclaration (d : Diagnostic) = d.Range.Start.ToQSharp() < snd locations.[i]
                     yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
                     containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
                 else yield key, containedDiagnostics.ToImmutableArray()

@@ -249,33 +249,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
-        internal static bool SelectByStart(this Diagnostic m, Lsp.Position lowerBound)
-        {
-            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start);
-        }
+        internal static bool SelectByStart(this Diagnostic m, Position lowerBound) =>
+            m?.Range?.Start?.Line != null && lowerBound <= m.Range.Start.ToQSharp();
 
         /// <summary>
         /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
-        internal static bool SelectByStart(this Diagnostic m, Lsp.Position lowerBound, Lsp.Position upperBound)
-        {
-            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start) && m.Range.Start.IsSmallerThan(upperBound);
-        }
+        internal static bool SelectByStart(this Diagnostic m, Position lowerBound, Position upperBound) =>
+            m?.Range?.Start?.Line != null
+            && lowerBound <= m.Range.Start.ToQSharp()
+            && m.Range.Start.ToQSharp() < upperBound;
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
-        internal static bool SelectByEnd(this Diagnostic m, Lsp.Position lowerBound)
-        {
-            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End);
-        }
+        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound) =>
+            m?.Range?.End?.Line != null && lowerBound <= m.Range.End.ToQSharp();
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
-        internal static bool SelectByEnd(this Diagnostic m, Lsp.Position lowerBound, Lsp.Position upperBound)
-        {
-            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End) && m.Range.End.IsSmallerThan(upperBound);
-        }
+        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound, Position upperBound) =>
+            m?.Range?.End?.Line != null
+            && lowerBound <= m.Range.End.ToQSharp()
+            && m.Range.End.ToQSharp() < upperBound;
     }
 }

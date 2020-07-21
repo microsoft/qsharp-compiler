@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // getting the symbol information (if any), and return the overlapping items only
 
             bool OverlapsWithPosition(Range symRange) =>
-                position.ToLsp().IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
+                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
 
             var symbolInfo = fragment.Kind.SymbolInformation();
 

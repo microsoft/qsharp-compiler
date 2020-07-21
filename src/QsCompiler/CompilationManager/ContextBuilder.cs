@@ -100,7 +100,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("invalid range");
             }
             var tokenRange = token.GetRange();
-            return tokenRange.Start.IsWithinRange(range) && tokenRange.End.IsWithinRange(range, includeEnd: true);
+            return tokenRange.Start.ToQSharp().IsWithinRange(range)
+                   && tokenRange.End.ToQSharp().IsWithinRange(range, includeEnd: true);
         }
 
         /// <summary>
@@ -352,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var index = -1;
             var tokenRange = token.GetRange();
-            while (++index < list.Count && list[index].GetRange().Start.IsSmallerThan(tokenRange.Start))
+            while (++index < list.Count && list[index].GetRange().Start.ToQSharp() < tokenRange.Start.ToQSharp())
             {
             }
             return index < list.Count && list[index].Equals(token) ? index : -1;

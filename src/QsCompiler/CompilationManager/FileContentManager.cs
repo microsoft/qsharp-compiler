@@ -200,14 +200,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(syntaxCheckDelimiters));
             }
-            var (syntaxCheckStart, syntaxCheckEnd) = (syntaxCheckDelimiters.Start, syntaxCheckDelimiters.End);
+            var (syntaxCheckStart, syntaxCheckEnd) =
+                (syntaxCheckDelimiters.Start.ToQSharp(), syntaxCheckDelimiters.End.ToQSharp());
 
             Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckEnd) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
                 diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckStart, syntaxCheckEnd) || m.SelectByEnd(syntaxCheckStart, syntaxCheckEnd));  // remove any Diagnostic overlapping with the updated interval
-                diagnostics.RemoveAll(m => m.SelectByStart(new Lsp.Position(), syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
+                diagnostics.RemoveAll(m => m.SelectByStart(Position.Zero, syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
                 if (lineNrChange != 0)
                 {
                     diagnostics.Transform(UpdateLineNrs);
@@ -241,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End.ToQSharp()) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             if (lineNrChange != 0)
             {
                 diagnostics.Transform(UpdateLineNrs);
@@ -760,7 +761,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (enveloppingFragment != null)
                 {
                     start = enveloppingFragment.GetRange().Start.Line;
-                    FilterAndMarkEdited(start, token => !range.Start.IsWithinRange(token.GetRange().WithUpdatedLineNumber(start)));
+                    FilterAndMarkEdited(start, token => !range.Start.ToQSharp().IsWithinRange(token.GetRange().WithUpdatedLineNumber(start)));
                 }
 
                 // which lines get marked as edited depends on the tokens prior to transformation,
