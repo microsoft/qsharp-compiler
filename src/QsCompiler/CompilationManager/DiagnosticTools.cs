@@ -35,36 +35,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : new Lsp.Position(position.Line, position.Column);
 
         /// <summary>
-        /// Adds the Q# position to the language server protocol position, returning a new language server protocol
-        /// position.
-        /// </summary>
-        /// <param name="position1">
-        /// The language server protocol position. Null is equivalent to the zero position.
-        /// </param>
-        /// <param name="position2">The Q# position.</param>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="position1"/> is invalid.</exception>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position2"/> is null.</exception>
-        internal static Lsp.Position GetAbsolutePosition(Lsp.Position position1, Position position2)
-        {
-            // TODO: This should be replaced with `position1 + position2` once both are Q# positions.
-            if (!Utils.IsValidPosition(position1))
-            {
-                throw new ArgumentException(nameof(position1));
-            }
-            if (position2 is null)
-            {
-                throw new ArgumentNullException(nameof(position2));
-            }
-            var absPos = position1?.Copy() ?? new Lsp.Position();
-            absPos.Line += position2.Line;
-            absPos.Character =
-                position2.Line > 0
-                    ? position2.Column
-                    : absPos.Character + position2.Column;
-            return absPos;
-        }
-
-        /// <summary>
         /// Adds the language server protocol position to the Q# compiler range.
         /// </summary>
         /// <param name="position">The language server protocol position.</param>
@@ -80,8 +50,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             return new Lsp.Range
             {
-                Start = GetAbsolutePosition(position, range.Start),
-                End = GetAbsolutePosition(position, range.End)
+                Start = (position.ToQSharp() + range.Start).ToLsp(),
+                End = (position.ToQSharp() + range.End).ToLsp()
             };
         }
 

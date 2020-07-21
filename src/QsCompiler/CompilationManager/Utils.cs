@@ -272,68 +272,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static bool IsValidRange(Lsp.Range range, FileContentManager file) =>
             IsValidPosition(range?.Start.ToQSharp(), file) && IsValidPosition(range.End.ToQSharp(), file) && range.Start.IsSmallerThanOrEqualTo(range.End);
 
-        /// <summary>
-        /// Returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
-        /// </summary>
-        internal static Lsp.Position Add(this Lsp.Position fst, Lsp.Position snd)
-        {
-            if (!IsValidPosition(fst))
-            {
-                throw new ArgumentException(nameof(fst));
-            }
-            if (!IsValidPosition(snd))
-            {
-                throw new ArgumentException(nameof(snd));
-            }
-            return new Lsp.Position(fst.Line + snd.Line, snd.Line == 0 ? fst.Character + snd.Character : snd.Character);
-        }
-
-        /// <summary>
-        /// Returns the position of fst relative to snd under the assumption that both positions are zero-based.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid, or if fst is smaller than snd.
-        /// </summary>
-        internal static Lsp.Position Subtract(this Lsp.Position fst, Lsp.Position snd)
-        {
-            if (!IsValidPosition(fst))
-            {
-                throw new ArgumentException(nameof(fst));
-            }
-            if (!IsValidPosition(snd))
-            {
-                throw new ArgumentException(nameof(snd));
-            }
-            if (fst.IsSmallerThan(snd))
-            {
-                throw new ArgumentException(nameof(snd), "the position to subtract from needs to be larger than the position to subract");
-            }
-            var relPos = new Lsp.Position(fst.Line - snd.Line, fst.Line == snd.Line ? fst.Character - snd.Character : fst.Character);
-            QsCompilerError.Verify(snd.Add(relPos).Equals(fst), "adding the relative position to snd does not equal fst");
-            return relPos;
-        }
-
         // tools for debugging
 
         public static string DiagnosticString(this Lsp.Range r) =>
             $"({r?.Start?.Line},{r?.Start?.Character}) - ({r?.End?.Line},{r?.End?.Character})";
-
-        internal static string DiagnosticString(FileContentManager file)
-        {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            var annotatedContent = new string[file.NrLines()];
-            for (var lineNr = 0; lineNr < file.NrLines(); ++lineNr)
-            {
-                var line = file.GetLine(lineNr);
-                var delimString = "[" + string.Join(",", line.StringDelimiters) + "] ";
-                var prefix = delimString + string.Concat<string>(Enumerable.Repeat("*", line.ExcessBracketPositions.Count()));
-                annotatedContent[lineNr] = $"{prefix}i{line.Indentation}: {line.WithoutEnding}";
-            }
-            return JoinLines(annotatedContent);
-        }
     }
 }

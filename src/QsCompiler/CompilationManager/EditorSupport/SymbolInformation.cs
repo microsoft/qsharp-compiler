@@ -259,8 +259,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             else
             {
                 // the given position corresponds to a variable declared as part of a specialization declaration or implementation
-                var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Start);
-                var statements = implementation.StatementsAfterDeclaration(defStart.ToQSharp() - specPos);
+                var defStart = defOffset.ToQSharp() + defRange.Start;
+                var statements = implementation.StatementsAfterDeclaration(defStart - specPos);
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
             }

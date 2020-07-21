@@ -350,8 +350,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // now that we now what callable is called we need to check which argument should come next
 
-            bool BeforePosition(Range symRange) =>
-                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.End).ToQSharp() < position;
+            bool BeforePosition(Range symRange) => fragmentStart.ToQSharp() + symRange.End < position;
 
             IEnumerable<(Range, string)> ExtractParameterRanges(
                 QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
