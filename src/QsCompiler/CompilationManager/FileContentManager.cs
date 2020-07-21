@@ -545,7 +545,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Start = syntaxCheckInUpdated.Start,
                     End = syntaxCheckInUpdated.End.ToQSharp() == this.End()
                         ? origFileEnd.ToLsp()
-                        : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
+                        : new Lsp.Position(
+                            syntaxCheckInUpdated.End.Line - lineNrChange,
+                            syntaxCheckInUpdated.End.Character)
                 };
 
                 // update the tokens and make sure the necessary connections get marked as edited

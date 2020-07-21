@@ -69,47 +69,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a new Position with the line number and character of the given Position
-        /// or null in case the given Position is null.
-        /// </summary>
-        public static Lsp.Position Copy(this Lsp.Position pos)
-        {
-            return pos == null
-                ? null
-                : new Lsp.Position(pos.Line, pos.Character);
-        }
-
-        /// <summary>
-        /// Verifies the given Position, and returns a *new* Position with updated line number.
-        /// Throws an ArgumentNullException if the given Position is null.
-        /// Throws an ArgumentException if the given Position is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
-        /// </summary>
-        public static Lsp.Position WithUpdatedLineNumber(this Lsp.Position pos, int lineNrChange)
-        {
-            if (!Utils.IsValidPosition(pos))
-            {
-                throw new ArgumentException($"invalid Position in {nameof(WithUpdatedLineNumber)}");
-            }
-            if (pos.Line + lineNrChange < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
-            }
-            var updated = pos.Copy();
-            updated.Line += lineNrChange;
-            return updated;
-        }
-
-        /// <summary>
         /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range
         /// (i.e. does a deep copy) or null in case the given Range is null.
         /// </summary>
-        public static Lsp.Range Copy(this Lsp.Range r)
-        {
-            return r == null
-                ? null
-                : new Lsp.Range { Start = r.Start.Copy(), End = r.End.Copy() };
-        }
+        public static Lsp.Range Copy(this Lsp.Range r) =>
+            r == null ? null : new Lsp.Range
+            {
+                Start = new Lsp.Position(r.Start.Line, r.Start.Character),
+                End = new Lsp.Position(r.End.Line, r.End.Character)
+            };
 
         /// <summary>
         /// Verifies the given Range, and returns a *new* Range with updated line numbers.

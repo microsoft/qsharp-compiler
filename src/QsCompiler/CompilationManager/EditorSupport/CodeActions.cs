@@ -500,8 +500,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
-            var declStart = fragment.GetRange().Start;
-            if (declSymbol == null || file.DocumentingComments(declStart.ToQSharp()).Any())
+            var declStart = fragment.GetRange().Start.ToQSharp();
+            if (declSymbol == null || file.DocumentingComments(declStart).Any())
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
@@ -512,18 +512,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
                 return att != null || (line != null && !line.Any());
             }
-            var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, declStart.Character)));
+            var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, declStart.Column)));
             for (var lineNr = declStart.Line; EmptyOrFirstAttribute(preceding, out var precedingAttribute);)
             {
                 if (precedingAttribute != null)
                 {
-                    declStart = precedingAttribute.GetRange().Start.WithUpdatedLineNumber(lineNr);
+                    declStart = Position.Create(declStart.Line + lineNr, declStart.Column);
                 }
                 preceding = lineNr-- > 0 ? file.GetTokenizedLine(lineNr) : (IEnumerable<CodeFragment>)null;
             }
 
             var docPrefix = "/// ";
-            var endLine = $"{Environment.NewLine}{file.GetLine(declStart.Line).Text.Substring(0, declStart.Character)}";
+            var endLine = $"{Environment.NewLine}{file.GetLine(declStart.Line).Text.Substring(0, declStart.Column)}";
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
@@ -546,7 +546,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 string.Concat(typeParams.Select(x => $"{docPrefix}## '{x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")));
 
             var whichDecl = $" for {declSymbol.AsDeclarationName(null)}";
-            var suggestedEdit = file.GetWorkspaceEdit(new TextEdit { Range = new Lsp.Range { Start = declStart, End = declStart }, NewText = docString });
+            var suggestedEdit = file.GetWorkspaceEdit(new TextEdit
+            {
+                Range = new Lsp.Range { Start = declStart.ToLsp(), End = declStart.ToLsp() },
+                NewText = docString
+            });
             return new[] { ($"Add documentation{whichDecl}.", suggestedEdit) };
         }
     }
