@@ -46,7 +46,7 @@ type private TrackedScope = private {
 /// (i.e. if the version number of the NamespaceManager has changed). 
 /// The constructor throws an ArgumentException if the given NamespaceManager does not contain all resolutions, 
 /// or if a callable with the given parent name does not exist in the given NamespaceManager.
-type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualifiedName) =  
+type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedName) =  
 // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
 
     do  if not globals.ContainsResolutions then ArgumentException "the content of the given namespace manager needs to be resolved" |> raise
@@ -281,9 +281,9 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 | _ -> addError (ErrorCode.UnknownItemName, [udt.Name.Value; name.Value]); InvalidType |> ResolvedType.New
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
-type ScopeContext<'a> =
+type ScopeContext =
     { /// The symbol tracker for the parent callable.
-      Symbols : SymbolTracker<'a>
+      Symbols : SymbolTracker
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
       /// True if the current expression is contained within the condition of an if- or elif-statement.
@@ -313,7 +313,7 @@ type ScopeContext<'a> =
                          (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
-            { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
+            { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
               IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType

@@ -362,7 +362,7 @@ let private VerifyControlledApplication addError (ex : ResolvedType, range) =
 /// If the Identifier could potentially be type parameterized (even if the number of type parameters is null), 
 /// but the number of type arguments does not match the number of type parameters, adds a WrongNumberOfTypeArguments error via addDiagnostic.
 /// Returns the resolved Identifer after type parameter resolution as typed expression. 
-let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tArgs) = 
+let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker) (sym, tArgs) = 
     let resolvedTargs = tArgs |> QsNullable<_>.Map (fun (args : ImmutableArray<QsType>) -> 
         args.Select (fun tArg -> tArg.Type |> function 
             | MissingType -> ResolvedType.New MissingType 
