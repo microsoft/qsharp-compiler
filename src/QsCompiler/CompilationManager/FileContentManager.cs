@@ -15,6 +15,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -199,14 +201,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(syntaxCheckDelimiters));
             }
-            var (syntaxCheckStart, syntaxCheckEnd) = (syntaxCheckDelimiters.Start, syntaxCheckDelimiters.End);
+            var syntaxCheck = Range.Create(
+                syntaxCheckDelimiters.Start.ToQSharp(),
+                syntaxCheckDelimiters.End.ToQSharp());
 
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckEnd) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheck.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
-                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckStart, syntaxCheckEnd) || m.SelectByEnd(syntaxCheckStart, syntaxCheckEnd));  // remove any Diagnostic overlapping with the updated interval
-                diagnostics.RemoveAll(m => m.SelectByStart(new Lsp.Position(), syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
+                // remove any Diagnostic overlapping with the updated interval
+                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheck) || m.SelectByEnd(syntaxCheck));
+                // these are also no longer valid
+                diagnostics.RemoveAll(m => m.SelectByStart(Range.Create(Position.Zero, syntaxCheck.Start)) && m.SelectByEnd(syntaxCheck.End));
                 if (lineNrChange != 0)
                 {
                     diagnostics.Transform(UpdateLineNrs);
@@ -240,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End.ToQSharp()) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             if (lineNrChange != 0)
             {
                 diagnostics.Transform(UpdateLineNrs);
@@ -542,7 +548,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var syntaxCheckInOriginal = new Lsp.Range
                 {
                     Start = syntaxCheckInUpdated.Start,
-                    End = syntaxCheckInUpdated.End == this.End() ? origFileEnd : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
+                    End = syntaxCheckInUpdated.End.ToQSharp() == this.End()
+                        ? origFileEnd.ToLsp()
+                        : new Lsp.Position(
+                            syntaxCheckInUpdated.End.Line - lineNrChange,
+                            syntaxCheckInUpdated.End.Character)
                 };
 
                 // update the tokens and make sure the necessary connections get marked as edited
@@ -748,14 +758,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 if (start != end)
                 {
-                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Lsp.Position(0, range.End.Character)));
+                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(Position.Create(0, range.End.Character)));
                 }
 
-                var enveloppingFragment = this.TryGetFragmentAt(range.Start, out var _);
+                var enveloppingFragment = this.TryGetFragmentAt(range.Start.ToQSharp(), out var _);
                 if (enveloppingFragment != null)
                 {
                     start = enveloppingFragment.GetRange().Start.Line;
-                    FilterAndMarkEdited(start, token => !range.Start.IsWithinRange(token.GetRange().WithUpdatedLineNumber(start)));
+                    FilterAndMarkEdited(start, token => !range.Start.ToQSharp().IsWithinRange(token.GetRange().WithUpdatedLineNumber(start)));
                 }
 
                 // which lines get marked as edited depends on the tokens prior to transformation,
@@ -1105,7 +1115,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 var change = new TextDocumentContentChangeEvent
                 {
-                    Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End() },
+                    Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End().ToLsp() },
                     // fixme: range length is not accurate, but also not used...
                     RangeLength = 0,
                     Text = text

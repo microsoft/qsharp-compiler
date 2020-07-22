@@ -917,10 +917,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal QsScope TryGetSpecializationAt(
             FileContentManager file,
-            Lsp.Position pos,
+            Position pos,
             out QsQualifiedName callableName,
-            out Lsp.Position callablePos,
-            out Lsp.Position specializationPos)
+            out Position callablePos,
+            out Position specializationPos)
         {
             (callableName, callablePos, specializationPos) = (null, null, null);
             if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
@@ -963,8 +963,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            QsCompilerError.Verify(sPos?.IsSmallerThanOrEqualTo(pos) ?? true, "computed closes preceding specialization does not precede the position in question");
-            QsCompilerError.Verify(sPos != null || relevantSpecialization == null, "the position offset should not be null unless the relevant specialization is");
+            QsCompilerError.Verify(sPos <= pos, "computed closes preceding specialization does not precede the position in question");
             return ((SpecializationImplementation.Provided)relevantSpecialization.Implementation).Item2;
         }
 
@@ -976,7 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value.
         /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
         /// </summary>
-        internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Lsp.Position callablePos, Lsp.Position specPos, LocalDeclarations declarations = null)
+        internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Position callablePos, Position specPos, LocalDeclarations declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
             {
@@ -993,10 +992,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return LocalDeclarations.Empty;
             }
             declarations ??= TryGetLocalDeclarations();
-            return declarations.WithAbsolutePosition(relOffset =>
-                relOffset.IsNull
-                    ? callablePos.ToQSharp()
-                    : specPos.ToQSharp() + relOffset.Item);
+            return declarations.WithAbsolutePosition(
+                relOffset => relOffset.IsNull ? callablePos : specPos + relOffset.Item);
         }
 
         /// <summary>
@@ -1010,10 +1007,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object.
         /// Sets the parent name to null, if no parent could be determind.
         /// </summary>
-        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Lsp.Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
+        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos), includeDeclaredAtPosition);
+            var declarations = implementation?.LocalDeclarationsAt(pos - specPos, includeDeclaredAtPosition);
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations);
         }
 

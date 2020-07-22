@@ -41,14 +41,14 @@ let private Verify context expr =
 /// checks if the given typed expression has any local quantum dependencies. 
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements. 
-let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker<_>) (ex : TypedExpression, range) = 
+let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker) (ex : TypedExpression, range) = 
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
     else [| range |> QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) |] 
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
-let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<_>) = 
+let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker) = 
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
@@ -73,7 +73,7 @@ let private isResultComparison ({ Expression = expression } : TypedExpression) =
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
 /// symbol tracker is not modified. Returns the name of the variable and the location of the reassignment.
-let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
+let private nonLocalUpdates (symbols : SymbolTracker) (scope : QsScope) =
     // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
     // allowed).
     let identifierExists (name, location : QsLocation) =
@@ -151,7 +151,7 @@ let NewFailStatement comments location context expr =
 /// and returns it along with an array of diagnostics generated during resolution and verification. 
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations 
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
-let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<_>) expr =
+let NewReturnStatement comments (location : QsLocation) (context : ScopeContext) expr =
     let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
     let verifiedExpr, _, diagnostics = VerifyWith verifyIsReturnType context expr 
     let autoGenErrs =
@@ -242,7 +242,7 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters 
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
-let private TryAddDeclaration isMutable (symbols : SymbolTracker<_>) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsRange) =
+let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsRange) =
     let typeParametrizedRhs = rhsType.isTypeParametrized symbols.Parent
     let t, tpErr = 
         if not typeParametrizedRhs then rhsType, [||]
@@ -340,7 +340,7 @@ let NewIfStatement context (ifBlock : TypedExpression * QsPositionedBlock) elifB
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
 /// Returns an array with diagnostics generated if the statement does not satisfy the necessary conditions 
 /// for the required auto-generation of specializations (specified by the given SymbolTracker). 
-let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
+let NewRepeatStatement (symbols : SymbolTracker) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
     let location = repeatBlock.Location |> function 
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc 
