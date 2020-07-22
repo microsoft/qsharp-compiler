@@ -101,13 +101,13 @@ type Position = private Position of int * int with
     /// Returns true if the second position occurs before the first position.
     static member op_LessThan (a : Position, b) = (a :> Position IComparable).CompareTo b < 0
 
-    /// Returns true if the second position occurs at or before the first position.
+    /// Returns true if the second position occurs on or before the first position.
     static member op_LessThanOrEqual (a : Position, b) = (a :> Position IComparable).CompareTo b <= 0
 
     /// Returns true if the second position occurs after the first position. 
     static member op_GreaterThan (a : Position, b) = (a :> Position IComparable).CompareTo b > 0
 
-    /// Returns true if the second position occurs at or after the first position.
+    /// Returns true if the second position occurs on or after the first position.
     static member op_GreaterThanOrEqual (a : Position, b) = (a :> Position IComparable).CompareTo b >= 0
 
     /// <summary>
@@ -130,6 +130,9 @@ type Range = private Range of Position * Position with
 
     /// The end of the range.
     member this.End = match this with Range (_, end') -> end'
+
+    /// Returns true if the position occurs on or after the starting position, and before the ending position.
+    member this.Contains position = this.Start <= position && position < this.End
 
     /// Adds the range's start and end positions to the given position.
     static member (+) (position : Position, range : Range) =

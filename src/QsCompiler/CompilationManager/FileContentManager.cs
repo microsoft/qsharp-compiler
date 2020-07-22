@@ -16,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -200,15 +201,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(syntaxCheckDelimiters));
             }
-            var (syntaxCheckStart, syntaxCheckEnd) =
-                (syntaxCheckDelimiters.Start.ToQSharp(), syntaxCheckDelimiters.End.ToQSharp());
+            var syntaxCheck = Range.Create(
+                syntaxCheckDelimiters.Start.ToQSharp(),
+                syntaxCheckDelimiters.End.ToQSharp());
 
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckEnd) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheck.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
-                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckStart, syntaxCheckEnd) || m.SelectByEnd(syntaxCheckStart, syntaxCheckEnd));  // remove any Diagnostic overlapping with the updated interval
-                diagnostics.RemoveAll(m => m.SelectByStart(Position.Zero, syntaxCheckStart) && m.SelectByEnd(syntaxCheckEnd)); // these are also no longer valid
+                // remove any Diagnostic overlapping with the updated interval
+                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheck) || m.SelectByEnd(syntaxCheck));
+                // these are also no longer valid
+                diagnostics.RemoveAll(m => m.SelectByStart(Range.Create(Position.Zero, syntaxCheck.Start)) && m.SelectByEnd(syntaxCheck.End));
                 if (lineNrChange != 0)
                 {
                     diagnostics.Transform(UpdateLineNrs);

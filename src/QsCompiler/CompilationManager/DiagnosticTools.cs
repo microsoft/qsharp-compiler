@@ -253,12 +253,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             m?.Range?.Start?.Line != null && lowerBound <= m.Range.Start.ToQSharp();
 
         /// <summary>
-        /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
+        /// Returns true if the start position of the diagnostic is contained in the range.
         /// </summary>
-        internal static bool SelectByStart(this Diagnostic m, Position lowerBound, Position upperBound) =>
-            m?.Range?.Start?.Line != null
-            && lowerBound <= m.Range.Start.ToQSharp()
-            && m.Range.Start.ToQSharp() < upperBound;
+        internal static bool SelectByStart(this Diagnostic m, Range range) =>
+            !(m?.Range?.Start is null) && range.Contains(m.Range.Start.ToQSharp());
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound.
@@ -267,11 +265,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             m?.Range?.End?.Line != null && lowerBound <= m.Range.End.ToQSharp();
 
         /// <summary>
-        /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
+        /// Returns true if the end position of the diagnostic is contained in the range.
         /// </summary>
-        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound, Position upperBound) =>
-            m?.Range?.End?.Line != null
-            && lowerBound <= m.Range.End.ToQSharp()
-            && m.Range.End.ToQSharp() < upperBound;
+        internal static bool SelectByEnd(this Diagnostic m, Range range) =>
+            !(m?.Range?.End is null) && range.Contains(m.Range.End.ToQSharp());
     }
 }
