@@ -76,11 +76,19 @@ type Position = private Position of int * int with
     /// The column number, where column zero is the first column in the line.
     member this.Column = match this with Position (_, column) -> column
 
+    /// <summary>
     /// Translates the first position by the amount of the second position. If the resulting position is on the same
     /// line, the column numbers are added; otherwise, the second position's column number is used.
-    static member (+) (a : Position, b : Position) =
-        let line = a.Line + b.Line
-        let column = if b.Line = 0 then a.Column + b.Column else b.Column
+    /// </summary>
+    /// <remarks>
+    /// Addition is an associative but not commutative operation.
+    /// </remarks>
+    static member (+) (offset : Position, relative : Position) =
+        let line = offset.Line + relative.Line
+        let column =
+            if relative.Line = 0
+            then offset.Column + relative.Column
+            else relative.Column
         Position (line, column)
 
     /// <summary>
@@ -90,9 +98,12 @@ type Position = private Position of int * int with
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if the resulting position has a negative line or column number.
     /// </exception>
-    static member (-) (a : Position, b : Position) =
-        let line = a.Line - b.Line
-        let column = if a.Line = b.Line then a.Column - b.Column else a.Column
+    static member (-) (position : Position, offset : Position) =
+        let line = position.Line - offset.Line
+        let column =
+            if position.Line = offset.Line
+            then position.Column - offset.Column
+            else position.Column
         Position (line, column)
 
     /// Returns true if the positions have the same line and column numbers.
