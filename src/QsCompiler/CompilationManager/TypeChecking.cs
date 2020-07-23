@@ -665,7 +665,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var statementPos = node.Fragment.Range.Start;
-            var location = new QsLocation(node.GetPositionRelativeToRoot(), node.Fragment.HeaderRange);
+            var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, messages) = build(location, context);
             diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
             return statement;
@@ -1016,7 +1016,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.IfClause ifCond)
             {
-                var rootPosition = nodes.Current.GetRootPosition();
+                var rootPosition = nodes.Current.RootPosition;
 
                 // if block
                 var buildClause = BuildStatement(
@@ -1045,7 +1045,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
                     var scope = BuildScope(nodes.Current.Children, context, diagnostics);
-                    var elseLocation = new QsLocation(nodes.Current.GetPositionRelativeToRoot(), nodes.Current.Fragment.HeaderRange);
+                    var elseLocation = new QsLocation(nodes.Current.RelativePosition, nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
                     proceed = nodes.MoveNext();
@@ -1105,7 +1105,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
-                QsNullable<QsLocation>.NewValue(new QsLocation(node.GetPositionRelativeToRoot(), node.Fragment.HeaderRange));
+                QsNullable<QsLocation>.NewValue(new QsLocation(node.RelativePosition, node.Fragment.HeaderRange));
 
             if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
             {
@@ -1124,9 +1124,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         var (relativeOffset, diagnostic) = item;
                         return Diagnostics.Generate(
-                            context.Symbols.SourceFile.Value,
-                            diagnostic,
-                            nodes.Current.GetRootPosition() + relativeOffset);
+                            context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition + relativeOffset);
                     }));
 
                     statement = built.Item1;

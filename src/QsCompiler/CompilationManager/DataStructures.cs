@@ -384,17 +384,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal struct TreeNode
         {
-            private readonly Position relPosition;
-            private readonly Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
 
             /// <summary>
-            /// Returns the position of the root node that all child node positions are relative to.
+            /// The position of the root node that all child node positions are relative to.
             /// </summary>
-            public Position GetRootPosition() => this.rootPosition;
+            public Position RootPosition { get; }
 
-            public Position GetPositionRelativeToRoot() => this.relPosition;
+            /// <summary>
+            /// The position of this node relative to the root node.
+            /// </summary>
+            public Position RelativePosition { get; }
 
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
@@ -411,8 +412,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
                 }
-                this.rootPosition = parentStart;
-                this.relPosition = fragment.Range.Start - parentStart;
+                this.RootPosition = parentStart;
+                this.RelativePosition = fragment.Range.Start - parentStart;
             }
         }
 
