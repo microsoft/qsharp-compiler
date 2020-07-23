@@ -436,9 +436,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal struct HeaderEntry<T>
     {
-        private readonly Position position;
-
-        internal Position GetPosition() => this.position;
+        internal Position Position { get; }
 
         internal readonly NonNullable<string> SymbolName;
         internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
@@ -462,7 +460,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 throw new ArgumentNullException(nameof(tIndex));
             }
 
-            this.position = offset;
+            this.Position = offset;
             this.SymbolName = sym.Item1;
             this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;

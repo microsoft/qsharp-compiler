@@ -215,13 +215,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var itemsToCompile = new List<(TItem, HeaderEntry<THeader>)>();
             foreach (var (tIndex, headerItem) in itemsToAdd)
             {
-                var position = headerItem.GetPosition();
-                var messages = add(position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Attributes, headerItem.Documentation).ToList();
+                var messages = add(headerItem.Position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Attributes, headerItem.Documentation).ToList();
                 if (!messages.Any(msg => msg.Diagnostic.IsError))
                 {
                     itemsToCompile.Add((tIndex, headerItem));
                 }
-                diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, position)));
+                diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, headerItem.Position)));
             }
             return itemsToCompile;
         }
@@ -268,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var distinctNamespaces = namespaceHeaders.Select(tuple => tuple.Item2).GroupBy(header => header.SymbolName)
                     .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName))
                     .ToImmutableDictionary(ns => ns.Name); // making sure the namespaces are extended even if they occur multiple times in the same file
-                var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.GetPosition(), distinctNamespaces[tuple.Item2.SymbolName])).ToList();
+                var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.Position, distinctNamespaces[tuple.Item2.SymbolName])).ToList();
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
@@ -286,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>))>();
                 foreach (var headerItem in typesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.GetPosition(), namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
                     tokensToCompile.Add((new QsQualifiedName(ns.Name, headerItem.Item2.SymbolName), (headerItem.Item2.Comments, null)));
                 }
 
@@ -300,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
                 foreach (var headerItem in callablesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.GetPosition(), namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
                     var tIndicesToCompile = AddSpecializationsToNamespace(file, ns, headerItem, diagnostics);
                     var (nsName, cName) = (ns.Name, headerItem.Item2.SymbolName);
                     var callableDeclComments = headerItem.Item2.Comments;
@@ -355,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var specializations = file.GetHeaderItems(specializationTokens, frag => SpecializationDeclaration(parent.Item2, frag), null);
             foreach (var (tIndex, headerItem) in specializations)
             {
-                var position = headerItem.GetPosition();
+                var position = headerItem.Position;
                 var (specKind, generator, introRange) = headerItem.Declaration;
                 var location = new QsLocation(position, introRange);
                 var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, headerItem.Attributes, headerItem.Documentation);
@@ -385,7 +384,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // if the declaration directly contains statements and no specialization, auto-generate a default body for the callable
             if (!specializations.Any())
             {
-                var location = new QsLocation(parent.Item2.GetPosition(), parentName.Item2);
+                var location = new QsLocation(parent.Item2.Position, parentName.Item2);
                 var genRange = QsNullable<Range>.NewValue(location.Range); // set to the range of the callable name
                 var omittedSymbol = new QsSymbol(QsSymbolKind<QsSymbol>.OmittedSymbols, QsNullable<Range>.Null);
                 var generatorKind = QsSpecializationGeneratorKind<QsSymbol>.NewUserDefinedImplementation(omittedSymbol);
@@ -482,7 +481,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             file.SyncRoot.EnterReadLock(); // there is no reason to also set a lock for the compilation - AddOpenDirective and ResolveAll will set a suitable lock
             try
             {
-                var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.GetPosition(), tuple.Item2.SymbolName)).ToList();
+                var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
                     (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
