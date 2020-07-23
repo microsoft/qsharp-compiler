@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="range"/> is invalid.</exception>
-        internal static Range ToQSharp(this Lsp.Range range) =>
+        public static Range ToQSharp(this Lsp.Range range) =>
             range is null
                 ? throw new ArgumentNullException(nameof(range))
                 : Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
@@ -211,28 +211,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Converts the Q# compiler range into a language server protocol range.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
-        internal static Lsp.Range ToLsp(this Range range) =>
+        public static Lsp.Range ToLsp(this Range range) =>
             range is null
                 ? throw new ArgumentNullException(nameof(range))
                 : new Lsp.Range { Start = range.Start.ToLsp(), End = range.End.ToLsp() };
-
-        /// <summary>
-        /// Returns true if the given position is valid, i.e. if both the line and character are positive.
-        /// Throws an ArgumentNullException is an argument is null.
-        /// </summary>
-        internal static bool IsValidPosition(Lsp.Position pos) =>
-            pos is null
-                ? throw new ArgumentNullException(nameof(pos))
-                : pos.Line >= 0 && pos.Character >= 0;
-
-        /// <summary>
-        /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
-        /// Throws an ArgumentNullException if an argument is null.
-        /// </summary>
-        public static bool IsValidRange(Lsp.Range range) =>
-            IsValidPosition(range?.Start)
-            && IsValidPosition(range.End)
-            && range.Start.ToQSharp() <= range.End.ToQSharp();
 
         /// <summary>
         /// Returns true if the position is within the bounds of the file contents.

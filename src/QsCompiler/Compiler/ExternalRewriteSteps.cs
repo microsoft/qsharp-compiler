@@ -14,7 +14,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
-using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler
 {
@@ -91,14 +91,6 @@ namespace Microsoft.Quantum.QsCompiler
                     diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Info ? DiagnosticSeverity.Information :
                     DiagnosticSeverity.Hint;
 
-                var startPosition = diagnostic.Start == null ? null : new Lsp.Position(diagnostic.Start.Line, diagnostic.Start.Column);
-                var endPosition = diagnostic.End == null ? startPosition : new Lsp.Position(diagnostic.End.Line, diagnostic.End.Column);
-                var range = startPosition == null || diagnostic.Source == null ? null : new Lsp.Range { Start = startPosition, End = endPosition };
-                if (range != null && !Utils.IsValidRange(range))
-                {
-                    range = null;
-                }
-
                 var stageAnnotation =
                     diagnostic.Stage == IRewriteStep.Stage.PreconditionVerification ? $"[{diagnostic.Stage}] " :
                     diagnostic.Stage == IRewriteStep.Stage.PostconditionVerification ? $"[{diagnostic.Stage}] " :
@@ -112,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Severity = severity,
                     Message = $"{stageAnnotation}{diagnostic.Message}",
                     Source = diagnostic.Source,
-                    Range = range
+                    Range = diagnostic.Source is null ? null : diagnostic.Range?.ToLsp()
                 };
             }
 
@@ -150,8 +142,7 @@ namespace Microsoft.Quantum.QsCompiler
                             Severity = (CodeAnalysis.DiagnosticSeverity)itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Severity)).GetValue(obj, null),
                             Message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string,
                             Source = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Source)).GetValue(obj, null) as string,
-                            Start = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Start)).GetValue(obj, null) as Position,
-                            End = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.End)).GetValue(obj, null) as Position
+                            Range = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Range)).GetValue(obj, null) as Range
                         });
                     }
                     return diagnostics.ToImmutable();

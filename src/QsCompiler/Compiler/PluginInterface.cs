@@ -82,16 +82,10 @@ namespace Microsoft.Quantum.QsCompiler
             public Stage Stage { get; set; }
 
             /// <summary>
-            /// Zero-based position in the source file where the code that caused the generation of the diagnostic starts.
-            /// The position is null if the diagnostic is not caused by a piece of source code.
+            /// Zero-based range in the source file of the code that caused the generation of the diagnostic.
+            /// The range is null if the diagnostic is not caused by a piece of source code.
             /// </summary>
-            public Position Start { get; set; }
-
-            /// <summary>
-            /// Zero-based position in the source file where the code that caused the generation of the diagnostic ends.
-            /// The position is null if the diagnostic is not caused by a piece of source code.
-            /// </summary>
-            public Position End { get; set; }
+            public Range Range { get; set; }
 
             /// <summary>
             /// Initializes a new diagnostic.
@@ -110,8 +104,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Message = d.Message,
                     Source = d.Source,
                     Stage = stage,
-                    Start = d.Range?.Start?.ToQSharp(),
-                    End = d.Range?.End?.ToQSharp()
+                    Range = d.Range?.ToQSharp()
                 };
         }
 

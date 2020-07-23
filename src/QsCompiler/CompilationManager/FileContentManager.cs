@@ -1037,23 +1037,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content,
             // however, let's at least check that nothing is null, all entries are positive, and the range start is smaller than or equal to the range end
-
             if (change == null)
             {
                 throw new ArgumentNullException(nameof(change));
             }
-            if (!Utils.IsValidRange(change.Range))
-            {
-                throw new ArgumentException("range of the given change is invalid");
-            }
+
             this.timer.Stop(); // will be restarted if needed
-
-            var start = change.Range.Start.Line;
-            var count = change.Range.End.Line - start + 1;
-            var line = this.unprocessedUpdates.Any() ? this.unprocessedUpdates.Peek().Range.Start.Line : start;
-
+            var range = change.Range.ToQSharp();
+            var count = range.End.Line - range.Start.Line + 1;
+            var line = this.unprocessedUpdates.Any()
+                ? this.unprocessedUpdates.Peek().Range.Start.Line
+                : range.Start.Line;
             publishDiagnostics = true;
-            if (count == 1 && line == start)
+            if (count == 1 && line == range.Start.Line)
             {
                 this.unprocessedUpdates.Enqueue(change);
 

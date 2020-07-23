@@ -63,7 +63,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Translates the line numbers in the diagnostic by the given offset.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="diagnostic"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if the new diagnostic has an invalid range.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the new diagnostic has negative line numbers.
+        /// </exception>
         public static Diagnostic TranslateLines(this Diagnostic diagnostic, int offset)
         {
             if (diagnostic is null)
@@ -73,9 +75,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var copy = diagnostic.Copy();
             copy.Range.Start.Line += offset;
             copy.Range.End.Line += offset;
-            if (!Utils.IsValidRange(copy.Range))
+            if (copy.Range.Start.Line < 0 || copy.Range.End.Line < 0)
             {
-                throw new ArgumentException("Diagnostic range is invalid after translating.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(offset), "Translated diagnostic has negative line numbers.");
             }
             return copy;
         }
