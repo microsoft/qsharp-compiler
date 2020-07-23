@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool includeEnd = false)
         {
             tIndex = null;
-            if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
+            if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
             }
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static string TryGetNamespaceAt(this FileContentManager file, Position pos)
         {
-            if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
+            if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
             }
@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return kind;
             }
 
-            if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
+            if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
             }
@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            if (!Utils.IsValidRange(range, file))
+            if (!file.ContainsRange(range))
             {
                 throw new ArgumentOutOfRangeException(nameof(range));
             }

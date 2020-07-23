@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
-            if (!IsValidRange(change.Range.ToQSharp(), file))
+            if (!file.ContainsRange(change.Range.ToQSharp()))
             {
                 throw new ArgumentOutOfRangeException(nameof(change)); // range can be empty
             }
@@ -235,29 +235,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             && range.Start.ToQSharp() <= range.End.ToQSharp();
 
         /// <summary>
-        /// Returns true if the given position is valid, i.e. if the line is within the given file,
-        /// and the character is within the text on that line (including text.Length).
-        /// Throws an ArgumentNullException is an argument is null.
+        /// Returns true if the position is within the bounds of the file contents.
         /// </summary>
-        internal static bool IsValidPosition(Position pos, FileContentManager file)
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="file"/> or <paramref name="position"/> is null.
+        /// </exception>
+        internal static bool ContainsPosition(this FileContentManager file, Position position)
         {
-            if (file == null)
+            if (file is null)
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            return pos.Line < file.NrLines() && pos.Column <= file.GetLine(pos.Line).Text.Length;
+            if (position is null)
+            {
+                throw new ArgumentNullException(nameof(position));
+            }
+            return position.Line < file.NrLines() && position.Column <= file.GetLine(position.Line).Text.Length;
         }
 
         /// <summary>
-        /// Returns true if the given range is valid,
-        /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
-        /// Throws an ArgumentNullException if an argument is null.
+        /// Returns true if the range is within the bounds of the file contents.
         /// </summary>
-        internal static bool IsValidRange(Range range, FileContentManager file) =>
-            !(range is null)
-            && IsValidPosition(range.Start, file)
-            && IsValidPosition(range.End, file)
-            && range.Start <= range.End;
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="file"/> or <paramref name="range"/> is null.
+        /// </exception>
+        internal static bool ContainsRange(this FileContentManager file, Range range)
+        {
+            if (file is null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+            if (range is null)
+            {
+                throw new ArgumentNullException(nameof(range));
+            }
+            return file.ContainsPosition(range.Start) && file.ContainsPosition(range.End) && range.Start <= range.End;
+        }
 
         // tools for debugging
 

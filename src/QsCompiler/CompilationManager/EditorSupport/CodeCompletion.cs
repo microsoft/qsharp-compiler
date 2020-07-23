@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            if (!Utils.IsValidPosition(position, file))
+            if (!file.ContainsPosition(position))
             {
                 // FileContentManager.IndentationAt will fail if the position is not within the file.
                 fragment = null;

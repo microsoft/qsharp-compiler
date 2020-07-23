@@ -443,7 +443,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static int IndentationAt(this FileContentManager file, Position pos)
         {
-            if (!Utils.IsValidPosition(pos, file))
+            if (!file.ContainsPosition(pos))
             {
                 throw new ArgumentException("given position is not within file");
             }

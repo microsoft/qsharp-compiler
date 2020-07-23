@@ -607,7 +607,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private void VerifyTokenUpdate(IReadOnlyList<CodeFragment> fragments)
         {
-            if (fragments.Any(fragment => !Utils.IsValidRange(fragment.GetRange(), this)))
+            if (fragments.Any(fragment => !this.ContainsRange(fragment.GetRange())))
             {
                 throw new ArgumentException("the range of the given token to update is not a valid range within the current file content");
             }

@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
-            if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file))
+            if (range?.Start == null || range.End == null || file == null || !file.ContainsRange(range))
             {
                 return null;
             }

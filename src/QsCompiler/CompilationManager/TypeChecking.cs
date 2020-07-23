@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
-            if (!Utils.IsValidPosition(pos, file))
+            if (!file.ContainsPosition(pos))
             {
                 throw new ArgumentException(nameof(pos));
             }

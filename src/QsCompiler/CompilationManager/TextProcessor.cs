@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static string GetCodeSnippet(this FileContentManager file, Range range)
         {
-            if (!Utils.IsValidRange(range, file))
+            if (!file.ContainsRange(range))
             {
                 throw new ArgumentException($"cannot extract code snippet for the given range \n range: {range.DiagnosticString()}");
             }
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
-            if (!Utils.IsValidPosition(current, file))
+            if (!file.ContainsPosition(current))
             {
                 throw new ArgumentException("given position is not within file");
             }
@@ -302,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {
-            if (!Utils.IsValidPosition(current, file))
+            if (!file.ContainsPosition(current))
             {
                 throw new ArgumentException("given position is not within file");
             }
