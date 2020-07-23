@@ -537,12 +537,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var lineNrChange = replacements.Count - count;
                 var syntaxCheckInUpdated = this.GetSyntaxCheckDelimiters(start, replacements.Count);
                 var syntaxCheckInOriginal = Range.Create(
-                    syntaxCheckInUpdated.Start.ToQSharp(),
-                    syntaxCheckInUpdated.End.ToQSharp() == this.End()
+                    syntaxCheckInUpdated.Start,
+                    syntaxCheckInUpdated.End == this.End()
                         ? origFileEnd
                         : Position.Create(
                             syntaxCheckInUpdated.End.Line - lineNrChange,
-                            syntaxCheckInUpdated.End.Character));
+                            syntaxCheckInUpdated.End.Column));
 
                 // update the tokens and make sure the necessary connections get marked as edited
                 // -> needs to be done *before* updating the tracked line numbers!

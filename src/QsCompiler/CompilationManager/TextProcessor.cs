@@ -385,7 +385,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if file is null.
         /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not a valid range within the current file content.
         /// </summary>
-        internal static Lsp.Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
+        internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (file == null)
             {
@@ -408,11 +408,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var syntaxCheckEnd = firstAfterModified < lastInFile
                 ? file.FragmentEnd(ref firstAfterModified)
                 : file.End();
-            return new Lsp.Range
-            {
-                Start = syntaxCheckStart.ToLsp(),
-                End = lastInFile <= syntaxCheckEnd ? file.End().ToLsp() : syntaxCheckEnd.ToLsp()
-            };
+            return Range.Create(
+                syntaxCheckStart,
+                lastInFile <= syntaxCheckEnd ? file.End() : syntaxCheckEnd);
         }
 
         /// <summary>

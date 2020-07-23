@@ -88,20 +88,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns all code fragments in the specified file that overlap with the given range.
         /// Returns an empty sequence if any of the given arguments is null.
         /// </summary>
-        private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Lsp.Range range)
+        private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Range range)
         {
-            if (file == null || range?.Start == null || range.End == null)
+            if (file is null || range is null)
             {
                 return Enumerable.Empty<CodeFragment>();
             }
             var (start, end) = (range.Start.Line, range.End.Line);
 
-            var fragAtStart = file.TryGetFragmentAt(range.Start.ToQSharp(), out var _, includeEnd: true);
-            var inRange = file.GetTokenizedLine(start).Select(t => t.TranslateLines(start)).Where(ContextBuilder.TokensAfter(range.Start.ToQSharp())); // does not include fragAtStart
+            var fragAtStart = file.TryGetFragmentAt(range.Start, out _, includeEnd: true);
+            var inRange = file.GetTokenizedLine(start).Select(t => t.TranslateLines(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
-                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp()))
+                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
                 : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.TranslateLines(start + 1 + i))))
-                    .Concat(file.GetTokenizedLine(end).Select(t => t.TranslateLines(end)).Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp())));
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.TranslateLines(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
 
             var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
             if (fragAtStart != null)
@@ -141,7 +141,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
 
             // range and whitespace info for inserting open directives
-            var openDirEditRange = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() };
             var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
             var indentationAfterOpenDir = file.GetLine(insertOpenDirAt.Line).Text.Substring(0, insertOpenDirAt.Column);
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{(string.IsNullOrWhiteSpace(indentationAfterOpenDir) ? indentationAfterOpenDir : "    ")}";
@@ -150,7 +149,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return namespaces.Distinct().Where(ns => !openDirs.Contains(ns.Value, null)).Select(suggestedNS => // filter all namespaces that are already open
             {
                 var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
-                return new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
+                return new TextEdit
+                {
+                    Range = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() },
+                    NewText = $"{directive};{whitespaceAfterOpenDir}"
+                };
             });
         }
 
@@ -343,7 +346,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if this is not the case or any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForIndexRange(
-            this FileContentManager file, CompilationUnit compilation, Lsp.Range range)
+            this FileContentManager file, CompilationUnit compilation, Range range)
         {
             if (file == null || compilation == null || range?.Start == null)
             {
@@ -351,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // Ensure that the IndexRange library function exists in this compilation unit.
-            var nsName = file.TryGetNamespaceAt(range.Start.ToQSharp());
+            var nsName = file.TryGetNamespaceAt(range.Start);
             if (nsName == null)
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
@@ -367,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // Returns true the given expression is of the form "0 .. Length(args) - 1",
             // as well as the range of the entire expression and the argument tuple "(args)" as out parameters.
-            static bool IsIndexRange(QsExpression iterExpr, Position offset, out Lsp.Range exprRange, out Lsp.Range argRange)
+            static bool IsIndexRange(QsExpression iterExpr, Position offset, out Range exprRange, out Range argRange)
             {
                 if (
                     // iterable expression is a valid range literal
@@ -387,8 +390,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // .. a valid argument tuple
                     callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)
                 {
-                    exprRange = (offset + iterExpr.Range.Item).ToLsp();
-                    argRange = (offset + callLikeExression.Item2.Range.Item).ToLsp();
+                    exprRange = offset + iterExpr.Range.Item;
+                    argRange = offset + callLikeExression.Item2.Range.Item;
                     return true;
                 }
 
@@ -403,14 +406,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
                     IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
                 {
-                    yield return new TextEdit()
+                    yield return new TextEdit
                     {
-                        Range = new Lsp.Range { Start = iterExprRange.Start, End = argTupleRange.Start },
+                        Range = new Lsp.Range { Start = iterExprRange.Start.ToLsp(), End = argTupleRange.Start.ToLsp() },
                         NewText = BuiltIn.IndexRange.FullName.Name.Value
                     };
-                    yield return new TextEdit()
+                    yield return new TextEdit
                     {
-                        Range = new Lsp.Range { Start = argTupleRange.End, End = iterExprRange.End },
+                        Range = new Lsp.Range { Start = argTupleRange.End.ToLsp(), End = iterExprRange.End.ToLsp() },
                         NewText = ""
                     };
                 }
@@ -487,7 +490,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or the overlapping fragment contains a declaration that is already documented,
         /// or if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Lsp.Range range)
+        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
         {
             var overlapping = file?.FragmentsOverlappingWithRange(range);
             var fragment = overlapping?.FirstOrDefault();
