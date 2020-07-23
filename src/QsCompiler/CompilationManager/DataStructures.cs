@@ -116,11 +116,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class CodeFragment
     {
         /// <summary>
-        /// returns a copy of the CodeFragment Range
+        /// Returns the code fragment's range.
         /// </summary>
-        internal Lsp.Range GetRange() => this.fragmentRange.Copy();
+        internal Range GetRange() => this.fragmentRange;
 
-        private readonly Lsp.Range fragmentRange;
+        private readonly Range fragmentRange;
         internal readonly Range HeaderRange;
         internal readonly int Indentation;
         internal readonly string Text;
@@ -141,12 +141,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, Lsp.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, Range range, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
         {
-            if (!Utils.IsValidRange(r))
-            {
-                throw new ArgumentException("invalid range for code fragment");
-            }
             if (!DelimitingChars.Contains(next) && next != MissingDelimiter)
             {
                 throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
@@ -156,13 +152,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.FollowedBy = next;
             this.Comments = comments ?? QsComments.Empty;
             this.Kind = kind; // nothing here should be modifiable
-            this.fragmentRange = r.Copy();
+            this.fragmentRange = range;
             this.HeaderRange = GetHeaderRange(this.Text, this.Kind);
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, Lsp.Range r, string text, char next, QsFragmentKind kind = null)
-            : this(indent, r, text, next, null, kind, true)
+        internal CodeFragment(int indent, Range range, string text, char next, QsFragmentKind kind = null)
+            : this(indent, range, text, next, null, kind, true)
         {
         }
 
@@ -184,10 +180,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 (this.Kind == null ? other.Kind == null : this.Kind.Equals(other.Kind));
         }
 
-        internal CodeFragment WithUpdatedLineNumber(int lineNrChange) =>
-            this?.SetRange(this.GetRange().WithUpdatedLineNumber(lineNrChange));
+        internal CodeFragment TranslateLines(int offset) => this.SetRange(this.GetRange().TranslateLines(offset));
 
-        internal CodeFragment SetRange(Lsp.Range range) =>
+        internal CodeFragment SetRange(Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetIndentation(int indent) =>
@@ -302,7 +297,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                return this.file.GetTokenizedLine(this.Line)[this.Index].WithUpdatedLineNumber(this.Line);
+                return this.file.GetTokenizedLine(this.Line)[this.Index].TranslateLines(this.Line);
             }
 
             /// <summary>
@@ -413,13 +408,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.Fragment = fragment ?? throw new ArgumentNullException(nameof(fragment));
                 this.Children = children ?? throw new ArgumentNullException(nameof(children));
 
-                var fragStart = fragment.GetRange().Start.ToQSharp();
-                if (fragStart < parentStart)
+                if (fragment.GetRange().Start < parentStart)
                 {
                     throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
                 }
                 this.rootPosition = parentStart;
-                this.relPosition = fragStart - parentStart;
+                this.relPosition = fragment.GetRange().Start - parentStart;
             }
         }
 
@@ -504,8 +498,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             var fragment = tIndex.GetFragmentWithClosingComments();
-            var fragmentStart = fragment.GetRange().Start.ToQSharp();
-
             var extractedDecl = getDeclaration(fragment);
             var (sym, decl) =
                 extractedDecl.IsNull
@@ -521,7 +513,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.GetRange().Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 

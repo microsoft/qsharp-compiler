@@ -17,45 +17,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public static class DiagnosticTools
     {
         /// <summary>
-        /// Converts the language server protocol position into a Q# compiler position.
-        /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
-        public static Position ToQSharp(this Lsp.Position position) =>
-            position is null
-                ? throw new ArgumentNullException(nameof(position))
-                : Position.Create(position.Line, position.Character);
-
-        /// <summary>
-        /// Converts the Q# compiler position into a language server protocol position.
-        /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
-        public static Lsp.Position ToLsp(this Position position) =>
-            position is null
-                ? throw new ArgumentNullException(nameof(position))
-                : new Lsp.Position(position.Line, position.Column);
-
-        /// <summary>
-        /// Adds the language server protocol position to the Q# compiler range.
-        /// </summary>
-        /// <param name="position">The language server protocol position.</param>
-        /// <param name="range">The Q# compiler range.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
-        internal static Lsp.Range GetAbsoluteRange(Lsp.Position position, Range range)
-        {
-            // TODO: This should be replaced with `position + range` once the LSP position and returned range are Q#
-            // compiler types.
-            if (range == null)
-            {
-                throw new ArgumentNullException(nameof(range));
-            }
-            return new Lsp.Range
-            {
-                Start = (position.ToQSharp() + range.Start).ToLsp(),
-                End = (position.ToQSharp() + range.End).ToLsp()
-            };
-        }
-
-        /// <summary>
         /// Given the location information for a declared symbol,
         /// as well as the position of the declaration within which the symbol is declared,
         /// returns the zero-based line and character index indicating the position of the symbol in the file.
@@ -69,78 +30,54 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range
-        /// (i.e. does a deep copy) or null in case the given Range is null.
-        /// </summary>
-        public static Lsp.Range Copy(this Lsp.Range r) =>
-            r == null ? null : new Lsp.Range
-            {
-                Start = new Lsp.Position(r.Start.Line, r.Start.Character),
-                End = new Lsp.Position(r.End.Line, r.End.Character)
-            };
-
-        /// <summary>
-        /// Verifies the given Range, and returns a *new* Range with updated line numbers.
-        /// Throws an ArgumentNullException if the given Range is null.
-        /// Throws an ArgumentException if the given Range is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
-        /// </summary>
-        public static Lsp.Range WithUpdatedLineNumber(this Lsp.Range range, int lineNrChange)
-        {
-            if (lineNrChange == 0)
-            {
-                return range ?? throw new ArgumentNullException(nameof(range));
-            }
-            if (!Utils.IsValidRange(range))
-            {
-                throw new ArgumentException($"invalid Range in {nameof(WithUpdatedLineNumber)}"); // range can be empty
-            }
-            if (range.Start.Line + lineNrChange < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
-            }
-            var updated = range.Copy();
-            updated.Start.Line += lineNrChange;
-            updated.End.Line += lineNrChange;
-            return updated;
-        }
-
-        /// <summary>
         /// Returns a new Diagnostic, making a deep copy of the given one (in particular a deep copy of it's Range)
         /// or null if the given Diagnostic is null.
         /// </summary>
         public static Diagnostic Copy(this Diagnostic message)
         {
-            if (message == null)
-            {
-                return null;
-            }
-            return new Diagnostic()
-            {
-                Range = message.Range.Copy(),
-                Severity = message.Severity,
-                Code = message.Code,
-                Source = message.Source,
-                Message = message.Message
-            };
+            Lsp.Position CopyPosition(Lsp.Position position) =>
+                position is null ? null : new Lsp.Position(position.Line, position.Character);
+
+            Lsp.Range CopyRange(Lsp.Range range) =>
+                range is null
+                    ? null
+                    : new Lsp.Range
+                    {
+                        Start = CopyPosition(range.Start),
+                        End = CopyPosition(range.End)
+                    };
+
+            return message is null
+                ? null
+                : new Diagnostic
+                {
+                    Range = CopyRange(message.Range),
+                    Severity = message.Severity,
+                    Code = message.Code,
+                    Source = message.Source,
+                    Message = message.Message
+                };
         }
 
         /// <summary>
-        /// For a given Diagnostic, verifies its range and returns a *new* Diagnostic with updated line numbers.
-        /// Throws an ArgumentNullException if the given Diagnostic is null.
-        /// Throws an ArgumentException if the Range of the given Diagnostic is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
+        /// Translates the line numbers in the diagnostic by the given offset.
         /// </summary>
-        public static Diagnostic WithUpdatedLineNumber(this Diagnostic diagnostic, int lineNrChange)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="diagnostic"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if the new diagnostic has an invalid range.</exception>
+        public static Diagnostic TranslateLines(this Diagnostic diagnostic, int offset)
         {
-            if (lineNrChange == 0)
+            if (diagnostic is null)
             {
-                return diagnostic ?? throw new ArgumentNullException(nameof(diagnostic));
+                throw new ArgumentNullException(nameof(diagnostic));
             }
-            var updatedRange = diagnostic.Range.WithUpdatedLineNumber(lineNrChange); // throws if the given diagnostic is null
-            var updated = diagnostic.Copy();
-            updated.Range = updatedRange;
-            return updated;
+            var copy = diagnostic.Copy();
+            copy.Range.Start.Line += offset;
+            copy.Range.End.Line += offset;
+            if (!Utils.IsValidRange(copy.Range))
+            {
+                throw new ArgumentException("Diagnostic range is invalid after translating.");
+            }
+            return copy;
         }
 
         /// <summary>

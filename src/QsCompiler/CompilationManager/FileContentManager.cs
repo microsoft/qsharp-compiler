@@ -189,30 +189,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// Throws an ArgumentNullException if the given diagnostics to update or if the syntax check delimiters are null.
-        /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Lsp.Range syntaxCheckDelimiters, int lineNrChange)
+        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null)
             {
                 throw new ArgumentNullException(nameof(diagnostics));
             }
-            if (!Utils.IsValidRange(syntaxCheckDelimiters))
-            {
-                throw new ArgumentException(nameof(syntaxCheckDelimiters));
-            }
-            var syntaxCheck = Range.Create(
-                syntaxCheckDelimiters.Start.ToQSharp(),
-                syntaxCheckDelimiters.End.ToQSharp());
-
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheck.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.TranslateLines(lineNrChange) : m;
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
                 // remove any Diagnostic overlapping with the updated interval
-                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheck) || m.SelectByEnd(syntaxCheck));
+                diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckDelimiters) || m.SelectByEnd(syntaxCheckDelimiters));
                 // these are also no longer valid
-                diagnostics.RemoveAll(m => m.SelectByStart(Range.Create(Position.Zero, syntaxCheck.Start)) && m.SelectByEnd(syntaxCheck.End));
+                diagnostics.RemoveAll(m => m.SelectByStart(Range.Create(Position.Zero, syntaxCheckDelimiters.Start)) && m.SelectByEnd(syntaxCheckDelimiters.End));
                 if (lineNrChange != 0)
                 {
                     diagnostics.Transform(UpdateLineNrs);
@@ -233,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static void DelayInvalidateOrUpdate(
             ManagedList<Diagnostic> diagnostics,
             ManagedList<Diagnostic> updated,
-            Lsp.Range syntaxCheckDelimiters,
+            Range syntaxCheckDelimiters,
             int lineNrChange)
         {
             if (diagnostics == null)
@@ -246,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End.ToQSharp()) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.TranslateLines(lineNrChange) : m;
             if (lineNrChange != 0)
             {
                 diagnostics.Transform(UpdateLineNrs);
@@ -284,7 +275,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var end = start + count;
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.TranslateLines(lineNrChange) : m;
 
             this.scopeDiagnostics.SyncRoot.EnterWriteLock();
             try
@@ -315,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSyntaxDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             InvalidateOrUpdateBySyntaxCheckDelimeters(this.syntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -372,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var end = start + count;
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.TranslateLines(lineNrChange) : m;
 
             this.contextDiagnostics.SyncRoot.EnterWriteLock();
             try
@@ -405,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateHeaderDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.headerDiagnostics, this.updatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -433,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null.
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSemanticDiagnostics(Lsp.Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.semanticDiagnostics, this.updatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
@@ -545,15 +536,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.content.Replace(start, count, replacements);
                 var lineNrChange = replacements.Count - count;
                 var syntaxCheckInUpdated = this.GetSyntaxCheckDelimiters(start, replacements.Count);
-                var syntaxCheckInOriginal = new Lsp.Range
-                {
-                    Start = syntaxCheckInUpdated.Start,
-                    End = syntaxCheckInUpdated.End.ToQSharp() == this.End()
-                        ? origFileEnd.ToLsp()
-                        : new Lsp.Position(
+                var syntaxCheckInOriginal = Range.Create(
+                    syntaxCheckInUpdated.Start.ToQSharp(),
+                    syntaxCheckInUpdated.End.ToQSharp() == this.End()
+                        ? origFileEnd
+                        : Position.Create(
                             syntaxCheckInUpdated.End.Line - lineNrChange,
-                            syntaxCheckInUpdated.End.Character)
-                };
+                            syntaxCheckInUpdated.End.Character));
 
                 // update the tokens and make sure the necessary connections get marked as edited
                 // -> needs to be done *before* updating the tracked line numbers!
@@ -630,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragmentRanges = fragments.Select(t => t.GetRange());
                 var (min, max) = (fragmentRanges.Min(frag => frag.Start.Line), fragmentRanges.Max(frag => frag.End.Line));
                 var existing = Enumerable.Range(min, max - min + 1)
-                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.WithUpdatedLineNumber(lineNr).GetRange().DiagnosticString() + $": {t.Text}"));
+                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.TranslateLines(lineNr).GetRange().DiagnosticString() + $": {t.Text}"));
                 throw new ArgumentException("the given fragments to update overlap with existing tokens - \n" +
                     $"Ranges for updates were: \n{string.Join("\n", fragments.Select(t => t.GetRange().DiagnosticString() + $": {t.Text}"))} \n" +
                     $"Ranges for existing are: \n{string.Join("\n", existing)}");
@@ -719,18 +708,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Tokens starting at range.End or ending at range.Start are *not* considered to be overlapping.
         /// Futs a write-lock on the Tokens during the entire routine.
         /// Throws an ArgumentNullException if the given range or it start or end position is null.
-        /// Throws an ArgumentException if the given range is not a valid range.
         /// Throws an ArgumentOutOfRangeException if the line number of the range end is larger than the number of currently saved tokens.
         /// </summary>
-        private void RemoveTokensInRange(Lsp.Range range)
+        private void RemoveTokensInRange(Range range)
         {
             this.tokens.SyncRoot.EnterWriteLock();
             try
             {
-                if (!Utils.IsValidRange(range))
-                {
-                    throw new ArgumentException("invalid range"); // *don't* verify against the current file content
-                }
                 if (range.End.Line >= this.tokens.Count())
                 {
                     throw new ArgumentOutOfRangeException(nameof(range));
@@ -751,21 +735,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var (start, end) = (range.Start.Line, range.End.Line);
-                FilterAndMarkEdited(start, ContextBuilder.NotOverlappingWith(range.WithUpdatedLineNumber(-start)));
+                FilterAndMarkEdited(start, ContextBuilder.NotOverlappingWith(range.TranslateLines(-start)));
                 for (var i = start + 1; i < end; ++i)
                 {
                     FilterAndMarkEdited(i, _ => false); // remove all
                 }
                 if (start != end)
                 {
-                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(Position.Create(0, range.End.Character)));
+                    FilterAndMarkEdited(end, ContextBuilder.TokensAfter(Position.Create(0, range.End.Column)));
                 }
 
-                var enveloppingFragment = this.TryGetFragmentAt(range.Start.ToQSharp(), out var _);
-                if (enveloppingFragment != null)
+                var envelopingFragment = this.TryGetFragmentAt(range.Start, out _);
+                if (envelopingFragment != null)
                 {
-                    start = enveloppingFragment.GetRange().Start.Line;
-                    FilterAndMarkEdited(start, token => !range.Start.ToQSharp().IsWithinRange(token.GetRange().WithUpdatedLineNumber(start)));
+                    var envelopeStart = envelopingFragment.GetRange().Start.Line;
+                    FilterAndMarkEdited(envelopeStart, token =>
+                        !token.GetRange().TranslateLines(envelopeStart).Contains(range.Start));
                 }
 
                 // which lines get marked as edited depends on the tokens prior to transformation,
@@ -835,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var startLine = fragments.First().GetRange().Start.Line;
                     var tokens =
                         fragments.TakeWhile(fragment => fragment.GetRange().Start.Line == startLine)
-                        .Select(token => token.WithUpdatedLineNumber(-startLine)) // token ranges are relative to their start line! (to simplify updating...)
+                        .Select(token => token.TranslateLines(-startLine)) // token ranges are relative to their start line! (to simplify updating...)
                         .ToImmutableArray();
 
                     ImmutableArray<CodeFragment> MergeAndAttachComments(ImmutableArray<CodeFragment> current)
@@ -938,7 +923,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// whose content has been edited since the last call to this routine.
         /// Invalidates all semantic diagnostics withing the corresponding Ranges.
         /// </summary>
-        internal void MarkCallableAsContentEdited(IEnumerable<(Lsp.Range, QsQualifiedName)> edited)
+        internal void MarkCallableAsContentEdited(IEnumerable<(Range, QsQualifiedName)> edited)
         {
             foreach (var (range, callableName) in edited)
             {
@@ -1219,7 +1204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetNamespaceDeclarations()
+        public IEnumerable<(NonNullable<string>, Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.GetRange()))
@@ -1230,7 +1215,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetTypeDeclarations()
+        public IEnumerable<(NonNullable<string>, Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.GetRange()))
@@ -1241,7 +1226,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Lsp.Range)> GetCallableDeclarations()
+        public IEnumerable<(NonNullable<string>, Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.GetRange()))

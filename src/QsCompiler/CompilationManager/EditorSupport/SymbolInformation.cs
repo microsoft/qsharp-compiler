@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new Location
             {
                 Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : null,
-                Range = DiagnosticTools.GetAbsoluteRange(offset.ToLsp(), relRange)
+                Range = (offset + relRange).ToLsp()
             };
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Namespace Declarations",
                 Kind = SymbolKind.Namespace,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Type Declarations",
                 Kind = SymbolKind.Struct,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Operation and Function Declarations",
                 Kind = SymbolKind.Method,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -102,11 +102,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // getting the symbol information (if any), and return the overlapping items only
 
-            bool OverlapsWithPosition(Range symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
+            bool OverlapsWithPosition(Range symRange)
+            {
+                var absolute = fragmentStart + symRange;
+                return includeEnd ? absolute.ContainsEnd(position) : absolute.Contains(position);
+            }
 
             var symbolInfo = fragment.Kind.SymbolInformation();
-
             var overlappingDecl = symbolInfo.DeclaredSymbols.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
             QsCompilerError.Verify(overlappingDecl.Count() <= 1, "more than one declaration overlaps with the same position");
             var overlappingVariables = symbolInfo.UsedVariables.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));

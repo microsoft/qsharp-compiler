@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(msg),
                 Source = filename,
                 Message = msg.Message,
-                Range = DiagnosticTools.GetAbsoluteRange(positionOffset.ToLsp(), msg.Range)
+                Range = ((positionOffset ?? Position.Zero) + msg.Range).ToLsp()
             };
         }
 

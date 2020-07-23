@@ -9,6 +9,7 @@ using System.Threading;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -130,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
-            if (!IsValidRange(change.Range, file))
+            if (!IsValidRange(change.Range.ToQSharp(), file))
             {
                 throw new ArgumentOutOfRangeException(nameof(change)); // range can be empty
             }
@@ -178,17 +179,60 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // utils for dealing with positions and ranges
 
         /// <summary>
+        /// Converts the language server protocol position into a Q# compiler position.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="position"/> is invalid.</exception>
+        public static Position ToQSharp(this Lsp.Position position) =>
+            position is null
+                ? throw new ArgumentNullException(nameof(position))
+                : Position.Create(position.Line, position.Character);
+
+        /// <summary>
+        /// Converts the Q# compiler position into a language server protocol position.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
+        public static Lsp.Position ToLsp(this Position position) =>
+            position is null
+                ? throw new ArgumentNullException(nameof(position))
+                : new Lsp.Position(position.Line, position.Column);
+
+        /// <summary>
+        /// Converts the language server protocol range into a Q# compiler range.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="range"/> is invalid.</exception>
+        internal static Range ToQSharp(this Lsp.Range range) =>
+            range is null
+                ? throw new ArgumentNullException(nameof(range))
+                : Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
+
+        /// <summary>
+        /// Converts the Q# compiler range into a language server protocol range.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
+        internal static Lsp.Range ToLsp(this Range range) =>
+            range is null
+                ? throw new ArgumentNullException(nameof(range))
+                : new Lsp.Range { Start = range.Start.ToLsp(), End = range.End.ToLsp() };
+
+        /// <summary>
         /// Returns true if the given position is valid, i.e. if both the line and character are positive.
         /// Throws an ArgumentNullException is an argument is null.
         /// </summary>
-        public static bool IsValidPosition(Lsp.Position pos)
-        {
-            if (pos == null)
-            {
-                throw new ArgumentNullException(nameof(pos));
-            }
-            return pos.Line >= 0 && pos.Character >= 0;
-        }
+        internal static bool IsValidPosition(Lsp.Position pos) =>
+            pos is null
+                ? throw new ArgumentNullException(nameof(pos))
+                : pos.Line >= 0 && pos.Character >= 0;
+
+        /// <summary>
+        /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
+        /// Throws an ArgumentNullException if an argument is null.
+        /// </summary>
+        public static bool IsValidRange(Lsp.Range range) =>
+            IsValidPosition(range?.Start)
+            && IsValidPosition(range.End)
+            && range.Start.ToQSharp() <= range.End.ToQSharp();
 
         /// <summary>
         /// Returns true if the given position is valid, i.e. if the line is within the given file,
@@ -205,59 +249,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given ranges overlap.
-        /// Throws an ArgumentNullException if any of the given ranges is null.
-        /// Throws an ArgumentException if any of the given ranges is not valid.
-        /// </summary>
-        internal static bool Overlaps(this Lsp.Range range1, Lsp.Range range2)
-        {
-            if (!IsValidRange(range1) || !IsValidRange(range2))
-            {
-                throw new ArgumentException("invalid range given for comparison");
-            }
-            var (first, second) = range1.Start.ToQSharp() < range2.Start.ToQSharp() ? (range1, range2) : (range2, range1);
-            return second.Start.ToQSharp() < first.End.ToQSharp();
-        }
-
-        /// <summary>
-        /// Verifies the given position and range, and returns true if the given position lays within the given range.
-        /// If includeEnd is true then the end point of the range is considered to be part of the range,
-        /// otherwise the range is considered to include the start but excludes the end point.
-        /// Throws an ArgumentNullException if the given position or range is null.
-        /// Throws an ArgumentException if the given range is not valid.
-        /// </summary>
-        internal static bool IsWithinRange(this Position pos, Lsp.Range range, bool includeEnd = false)
-        {
-            if (!IsValidRange(range))
-            {
-                throw new ArgumentException("invalid range given for comparison");
-            }
-            return range.Start.ToQSharp() <= pos
-                   && (includeEnd ? pos <= range.End.ToQSharp() : pos < range.End.ToQSharp());
-        }
-
-        /// <summary>
-        /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
-        /// Throws an ArgumentNullException if an argument is null.
-        /// </summary>
-        public static bool IsValidRange(Lsp.Range range) =>
-            IsValidPosition(range?.Start)
-            && IsValidPosition(range.End)
-            && range.Start.ToQSharp() <= range.End.ToQSharp();
-
-        /// <summary>
         /// Returns true if the given range is valid,
         /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        internal static bool IsValidRange(Lsp.Range range, FileContentManager file) =>
-            IsValidPosition(range?.Start.ToQSharp(), file)
-            && IsValidPosition(range.End.ToQSharp(), file)
-            && range.Start.ToQSharp() <= range.End.ToQSharp();
+        internal static bool IsValidRange(Range range, FileContentManager file) =>
+            !(range is null)
+            && IsValidPosition(range.Start, file)
+            && IsValidPosition(range.End, file)
+            && range.Start <= range.End;
 
         // tools for debugging
 
-        public static string DiagnosticString(this Lsp.Range r) =>
-            $"({r?.Start?.Line},{r?.Start?.Character}) - ({r?.End?.Line},{r?.End?.Character})";
+        public static string DiagnosticString(this Range r) =>
+            $"({r?.Start?.Line},{r?.Start?.Column}) - ({r?.End?.Line},{r?.End?.Column})";
     }
 }

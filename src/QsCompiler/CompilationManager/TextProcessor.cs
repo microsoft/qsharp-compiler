@@ -9,6 +9,7 @@ using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -33,9 +34,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             // opting to not complain about semicolons not following code anywhere in the file (i.e. on any scope)
             var diagnostics = fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == ';')
-                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.GetRange().End.ToQSharp()))
+                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.GetRange().End))
                 .Concat(fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == '{')
-                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.GetRange().End.ToQSharp())));
+                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.GetRange().End)));
             return diagnostics.ToList(); // in case fragments change
         }
 
@@ -54,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var code = fragment.Kind.InvalidEnding;
             if (Diagnostics.ExpectedEnding(code) != fragment.FollowedBy)
             {
-                yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End.ToQSharp());
+                yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End);
             }
         }
 
@@ -81,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 for (var outputIndex = 0; outputIndex < outputs.Length; ++outputIndex)
                 {
                     var output = outputs[outputIndex];
-                    var fragmentRange = DiagnosticTools.GetAbsoluteRange(snippetStart, output.Range);
+                    var fragmentRange = snippetStart + output.Range;
                     var fragment = new CodeFragment(
                         snippet.Indentation,
                         fragmentRange,
@@ -93,11 +94,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var checkEnding = true; // if there is already a diagnostic overlapping with the ending, then don't bother checking the ending
                     foreach (var fragmentDiagnostic in output.Diagnostics)
                     {
-                        var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start.ToQSharp());
+                        var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start);
                         diagnostics.Add(generated);
 
-                        var fragmentEnd = fragment.GetRange().End.ToQSharp();
-                        var diagnosticGoesUpToFragmentEnd = fragmentEnd.IsWithinRange(generated.Range) || fragmentEnd == generated.Range.End.ToQSharp();
+                        var fragmentEnd = fragment.GetRange().End;
+                        var generatedRange = generated.Range.ToQSharp();
+                        var diagnosticGoesUpToFragmentEnd =
+                            generatedRange.Contains(fragmentEnd) || fragmentEnd == generatedRange.End;
                         if (fragmentDiagnostic.Diagnostic.IsError && diagnosticGoesUpToFragmentEnd)
                         {
                             checkEnding = false;
@@ -125,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// stripping (only) end of line comments (and not removing excess brackets).
         /// Note: the End position of the given range is *not* part of the returned string.
         /// </summary>
-        private static string GetCodeSnippet(this FileContentManager file, Lsp.Range range)
+        private static string GetCodeSnippet(this FileContentManager file, Range range)
         {
             if (!Utils.IsValidRange(range, file))
             {
@@ -139,12 +142,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var firstLine = CodeLine(file.GetLine(start));
             if (count == 1)
             {
-                return firstLine.Substring(range.Start.Character, range.End.Character - range.Start.Character);
+                return firstLine.Substring(range.Start.Column, range.End.Column - range.Start.Column);
             }
 
             var lastLine = CodeLine(file.GetLine(range.End.Line));
-            var prepend = firstLine.Substring(range.Start.Character);
-            var append = lastLine.Substring(0, range.End.Character);
+            var prepend = firstLine.Substring(range.Start.Column);
+            var append = lastLine.Substring(0, range.End.Column);
 
             var middle = file.GetLines(start + 1, count - 2).Select(CodeLine).ToArray();
             if (middle.Length == 0)
@@ -349,7 +352,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 while (processed.Line <= iter.Current && processed < lastInFile)
                 {
                     var nextEnding = file.FragmentEnd(ref processed);
-                    var extractedPiece = file.GetCodeSnippet(new Lsp.Range { Start = processed.ToLsp(), End = nextEnding.ToLsp() });
+                    var extractedPiece = file.GetCodeSnippet(Range.Create(processed, nextEnding));
 
                     // constructing the CodeFragment -
                     // NOTE: its Range.End is the position of the delimiting char (if such a char exists), i.e. the position right after Code ends
@@ -366,8 +369,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
 
                         var endChar = nextEnding.Column - (extractedPiece.Length - code.Length) - 1;
-                        var codeRange = new Lsp.Range { Start = processed.ToLsp(), End = new Lsp.Position(nextEnding.Line, endChar) };
-                        yield return new CodeFragment(file.IndentationAt(codeRange.Start.ToQSharp()), codeRange, code.Substring(0, code.Length - 1), code.Last());
+                        var codeRange = Range.Create(processed, Position.Create(nextEnding.Line, endChar));
+                        yield return new CodeFragment(file.IndentationAt(codeRange.Start), codeRange, code.Substring(0, code.Length - 1), code.Last());
                     }
                     processed = nextEnding;
                 }

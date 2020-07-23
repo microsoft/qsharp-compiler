@@ -142,8 +142,16 @@ type Range = private Range of Position * Position with
     /// The end of the range.
     member this.End = match this with Range (_, end') -> end'
 
-    /// Returns true if the position occurs on or after the starting position, and before the ending position.
+    /// Returns true if the range contains the given position, excluding the end position.
     member this.Contains position = this.Start <= position && position < this.End
+
+    /// Returns true if the range contains the given position, including the end position.
+    member this.ContainsEnd position = this.Start <= position && position <= this.End
+
+    /// Translates the line numbers of the start and end positions by the given offset.
+    member this.TranslateLines offset =
+        Range (Position (this.Start.Line + offset, this.Start.Column),
+               Position (this.End.Line + offset, this.End.Column))
 
     /// Adds the range's start and end positions to the given position.
     static member (+) (position : Position, range : Range) =
@@ -170,6 +178,9 @@ type Range = private Range of Position * Position with
     /// either range.
     static member Span (a : Range) (b : Range) =
         Range (min a.Start b.Start, max a.End b.End)
+
+    /// Returns true if the ranges overlap.
+    static member Overlaps (a : Range) (b : Range) = min a.Start b.Start < max a.End b.End
 
 [<Struct>]
 type QsCompilerDiagnostic =

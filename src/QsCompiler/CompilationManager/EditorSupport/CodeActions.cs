@@ -15,6 +15,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -96,11 +97,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (start, end) = (range.Start.Line, range.End.Line);
 
             var fragAtStart = file.TryGetFragmentAt(range.Start.ToQSharp(), out var _, includeEnd: true);
-            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start.ToQSharp())); // does not include fragAtStart
+            var inRange = file.GetTokenizedLine(start).Select(t => t.TranslateLines(start)).Where(ContextBuilder.TokensAfter(range.Start.ToQSharp())); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp()))
-                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
-                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp())));
+                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.TranslateLines(start + 1 + i))))
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.TranslateLines(end)).Where(ContextBuilder.TokensStartingBefore(range.End.ToQSharp())));
 
             var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
             if (fragAtStart != null)
@@ -140,9 +141,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
 
             // range and whitespace info for inserting open directives
-            var openDirEditRange = new Lsp.Range { Start = insertOpenDirAt, End = insertOpenDirAt };
+            var openDirEditRange = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() };
             var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
-            var indentationAfterOpenDir = file.GetLine(insertOpenDirAt.Line).Text.Substring(0, insertOpenDirAt.Character);
+            var indentationAfterOpenDir = file.GetLine(insertOpenDirAt.Line).Text.Substring(0, insertOpenDirAt.Column);
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{(string.IsNullOrWhiteSpace(indentationAfterOpenDir) ? indentationAfterOpenDir : "    ")}";
 
             // construct a suitable edit
@@ -253,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         text = $"{text} ";
                     }
                 }
-                var edit = new TextEdit { Range = range?.Copy(), NewText = text };
+                var edit = new TextEdit { Range = range, NewText = text };
                 return ($"Replace with \"{text.Trim()}\".", file.GetWorkspaceEdit(edit));
             }
 
@@ -288,7 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var fragmentStart = fragment?.GetRange()?.Start;
                 return characteristicsInFragment
-                    .Where(c => c.Range.IsValue && DiagnosticTools.GetAbsoluteRange(fragmentStart, c.Range.Item).Overlaps(d.Range))
+                    .Where(c => c.Range.IsValue && Range.Overlaps(fragmentStart + c.Range.Item, d.Range.ToQSharp()))
                     .Select(c => ReplaceWith(CharacteristicsAnnotation(c), d.Range));
             });
 
@@ -325,8 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Convert set <identifier>[<index>] = <rhs> to set <identifier> w/= <index> <- <rhs>
                 var rhs = $"{exprInfo.Item3} {Keywords.qsCopyAndUpdateOp.cont} {exprInfo.Item4}";
                 var outputStr = $"{Keywords.qsValueUpdate.id} {exprInfo.Item2} {Keywords.qsCopyAndUpdateOp.op}= {rhs}";
-                var fragmentRange = fragment.GetRange();
-                var edit = new TextEdit { Range = fragmentRange.Copy(), NewText = outputStr };
+                var edit = new TextEdit { Range = fragment.GetRange().ToLsp(), NewText = outputStr };
                 return ("Replace with an update-and-reassign statement.", file.GetWorkspaceEdit(edit));
             }
 
@@ -387,8 +387,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // .. a valid argument tuple
                     callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)
                 {
-                    exprRange = DiagnosticTools.GetAbsoluteRange(offset.ToLsp(), iterExpr.Range.Item);
-                    argRange = DiagnosticTools.GetAbsoluteRange(offset.ToLsp(), callLikeExression.Item2.Range.Item);
+                    exprRange = (offset + iterExpr.Range.Item).ToLsp();
+                    argRange = (offset + callLikeExression.Item2.Range.Item).ToLsp();
                     return true;
                 }
 
@@ -401,7 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             static IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
             {
                 if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
-                    IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start.ToQSharp(), out var iterExprRange, out var argTupleRange))
+                    IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
                 {
                     yield return new TextEdit()
                     {
@@ -461,7 +461,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var eraseEnd = lastInScope.GetRange().End;
 
                 // determine the whitespace for the replacement string
-                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Character);
+                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Column);
                 var trimmedLastLine = lastLine.TrimEnd();
                 var whitespace = lastLine[trimmedLastLine.Length..];
 
@@ -470,7 +470,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 replaceString += eraseStart.Line == eraseEnd.Line ? " " : $"{Environment.NewLine}{whitespace}";
 
                 // create and return a suitable edit
-                var edit = new TextEdit { Range = new Lsp.Range { Start = eraseStart, End = eraseEnd }, NewText = replaceString };
+                var edit = new TextEdit { Range = new Lsp.Range { Start = eraseStart.ToLsp(), End = eraseEnd.ToLsp() }, NewText = replaceString };
                 return file.GetWorkspaceEdit(edit);
             }
 
@@ -500,7 +500,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
-            var declStart = fragment.GetRange().Start.ToQSharp();
+            var declStart = fragment.GetRange().Start;
             if (declSymbol == null || file.DocumentingComments(declStart).Any())
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
