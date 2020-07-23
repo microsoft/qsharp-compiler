@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var fragmentStart = fragment.GetRange().Start;
+            var fragmentStart = fragment.Range.Start;
 
             // getting the symbol information (if any), and return the overlapping items only
 

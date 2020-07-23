@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     precedingFragment = preceding.GetFragment();
                     if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
                     {
-                        var offset = precedingFragment.GetRange().Start;
+                        var offset = precedingFragment.Range.Start;
                         attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, offset, precedingFragment.Comments));
                     }
                     else
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         break;
                     }
                 }
-                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start);
+                var docComments = file.DocumentingComments(tIndex.GetFragment().Range.Start);
                 return (tIndex, HeaderEntry<T>.From(getDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
             })
             ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.TranslateLines(lineNr);
             }
 
-            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.GetRange().End.Line + 1;
+            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.Range.End.Line + 1;
             return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - firstRelevant : 0)
                 .Select(line => line.Text.Trim()).Where(IsDocCommentLine).Select(line => line.TrimStart('/'))
                 .SkipWhile(text => string.IsNullOrWhiteSpace(text)).Reverse()
@@ -378,7 +378,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var msgRange = Parsing.HeaderDelimiters(1).Invoke(statement.Text);
                     var msg = QsCompilerDiagnostic.Error(ErrorCode.NotWithinSpecialization, Enumerable.Empty<string>(), msgRange);
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.GetRange().Start));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.Range.Start));
                 }
             }
 
@@ -526,7 +526,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 tokens?.Select(token =>
                 {
                     var fragment = token.GetFragmentWithClosingComments();
-                    var parentPos = rootPos ?? fragment.GetRange().Start;
+                    var parentPos = rootPos ?? fragment.Range.Start;
                     return new FragmentTree.TreeNode(fragment, BuildNodes(ChildrenToCompile(token), parentPos), parentPos);
                 })
                 ?.ToList()?.AsReadOnly();
@@ -664,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(diagnostics));
             }
 
-            var statementPos = node.Fragment.GetRange().Start;
+            var statementPos = node.Fragment.Range.Start;
             var location = new QsLocation(node.GetPositionRelativeToRoot(), node.Fragment.HeaderRange);
             var (statement, messages) = build(location, context);
             diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
@@ -1601,7 +1601,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 context.Symbols.TryAddVariableDeclartion(decl);
             }
 
-            var specPos = root.Fragment.GetRange().Start;
+            var specPos = root.Fragment.Range.Start;
             foreach (var decl in variablesOnSpecialization)
             {
                 var msgs = context.Symbols.TryAddVariableDeclartion(decl).Item2;
@@ -1614,7 +1614,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // verify that all paths return a value if needed (or fail)
             var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
-            var rootPosition = root.Fragment.GetRange().Start;
+            var rootPosition = root.Fragment.Range.Start;
             diagnostics.AddRange(messages.Select(msg =>
                 Diagnostics.Generate(sourceFile.Value, msg.Item2, rootPosition + msg.Item1)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
@@ -1778,7 +1778,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
                 if (implementation == null && gen is QsSpecializationGeneratorKind<QsSymbol>.UserDefinedImplementation userDefined)
                 {
-                    var specPos = root.Fragment.GetRange().Start;
+                    var specPos = root.Fragment.Range.Start;
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
@@ -1813,7 +1813,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
-                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item == root.Fragment.GetRange().Start))
+                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item == root.Fragment.Range.Start))
                 {
                     return null; // only process specializations that are valid
                 }

@@ -607,21 +607,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private void VerifyTokenUpdate(IReadOnlyList<CodeFragment> fragments)
         {
-            if (fragments.Any(fragment => !this.ContainsRange(fragment.GetRange())))
+            if (fragments.Any(fragment => !this.ContainsRange(fragment.Range)))
             {
                 throw new ArgumentException("the range of the given token to update is not a valid range within the current file content");
             }
             ContextBuilder.VerifyTokenOrdering(fragments);
 
             // check that there are no overlapping fragments
-            if (fragments.Select(fragment => fragment.GetRange()).Any(this.ContainsTokensOverlappingWith))
+            if (fragments.Select(fragment => fragment.Range).Any(this.ContainsTokensOverlappingWith))
             {
-                var fragmentRanges = fragments.Select(t => t.GetRange());
+                var fragmentRanges = fragments.Select(t => t.Range);
                 var (min, max) = (fragmentRanges.Min(frag => frag.Start.Line), fragmentRanges.Max(frag => frag.End.Line));
                 var existing = Enumerable.Range(min, max - min + 1)
-                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.TranslateLines(lineNr).GetRange().DiagnosticString() + $": {t.Text}"));
+                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.TranslateLines(lineNr).Range.DiagnosticString() + $": {t.Text}"));
                 throw new ArgumentException("the given fragments to update overlap with existing tokens - \n" +
-                    $"Ranges for updates were: \n{string.Join("\n", fragments.Select(t => t.GetRange().DiagnosticString() + $": {t.Text}"))} \n" +
+                    $"Ranges for updates were: \n{string.Join("\n", fragments.Select(t => t.Range.DiagnosticString() + $": {t.Text}"))} \n" +
                     $"Ranges for existing are: \n{string.Join("\n", existing)}");
             }
         }
@@ -748,9 +748,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var envelopingFragment = this.TryGetFragmentAt(range.Start, out _);
                 if (envelopingFragment != null)
                 {
-                    var envelopeStart = envelopingFragment.GetRange().Start.Line;
+                    var envelopeStart = envelopingFragment.Range.Start.Line;
                     FilterAndMarkEdited(envelopeStart, token =>
-                        !token.GetRange().TranslateLines(envelopeStart).Contains(range.Start));
+                        !token.Range.TranslateLines(envelopeStart).Contains(range.Start));
                 }
 
                 // which lines get marked as edited depends on the tokens prior to transformation,
@@ -802,10 +802,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.VerifyTokenUpdate(fragments);
 
                 // update the Header if necessary
-                var newNSdecl = FileHeader.FilterNamespaceDeclarations(fragments).Select(fragment => fragment.GetRange().Start.Line);
-                var newOpenDir = FileHeader.FilterOpenDirectives(fragments).Select(fragment => fragment.GetRange().Start.Line);
-                var newTypeDecl = FileHeader.FilterTypeDeclarations(fragments).Select(fragment => fragment.GetRange().Start.Line);
-                var newCallableDecl = FileHeader.FilterCallableDeclarations(fragments).Select(fragment => fragment.GetRange().Start.Line);
+                var newNSdecl = FileHeader.FilterNamespaceDeclarations(fragments).Select(fragment => fragment.Range.Start.Line);
+                var newOpenDir = FileHeader.FilterOpenDirectives(fragments).Select(fragment => fragment.Range.Start.Line);
+                var newTypeDecl = FileHeader.FilterTypeDeclarations(fragments).Select(fragment => fragment.Range.Start.Line);
+                var newCallableDecl = FileHeader.FilterCallableDeclarations(fragments).Select(fragment => fragment.Range.Start.Line);
 
                 this.header.AddNamespaceDeclarations(newNSdecl); // fixme: check that these are disjoint sets...
                 this.header.AddOpenDirectives(newOpenDir);
@@ -817,9 +817,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var markEdited = new List<Action>();
                 while (fragments.Any())
                 {
-                    var startLine = fragments.First().GetRange().Start.Line;
+                    var startLine = fragments.First().Range.Start.Line;
                     var tokens =
-                        fragments.TakeWhile(fragment => fragment.GetRange().Start.Line == startLine)
+                        fragments.TakeWhile(fragment => fragment.Range.Start.Line == startLine)
                         .Select(token => token.TranslateLines(-startLine)) // token ranges are relative to their start line! (to simplify updating...)
                         .ToImmutableArray();
 
@@ -846,7 +846,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
 
                         // ... grab all comments associated with the last token
-                        var relevantEndLine = startLine + merged[merged.Count - 1].GetRange().End.Line;
+                        var relevantEndLine = startLine + merged[merged.Count - 1].Range.End.Line;
                         if (relevantEndLine != startLine && this.GetTokenizedLine(relevantEndLine).Any())
                         {
                             --relevantEndLine;
@@ -862,7 +862,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.TransformAndMarkEdited(startLine, MergeAndAttachComments, _ => tokens, out var transformation, out var edited);
                     applyTransformations.Add(transformation);
                     markEdited.Add(edited);
-                    fragments = fragments.SkipWhile(fragment => fragment.GetRange().Start.Line == startLine).ToList();
+                    fragments = fragments.SkipWhile(fragment => fragment.Range.Start.Line == startLine).ToList();
                 }
 
                 // which lines get marked as edited depends on the tokens after the transformations,
@@ -1203,7 +1203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public IEnumerable<(NonNullable<string>, Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
-            return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.GetRange()))
+            return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.Range))
                 .Where(tuple => tuple.Item1 != null)
                 .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
         }
@@ -1214,7 +1214,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public IEnumerable<(NonNullable<string>, Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
-            return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.GetRange()))
+            return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.Range))
                 .Where(tuple => tuple.Item1 != null)
                 .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
         }
@@ -1225,7 +1225,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public IEnumerable<(NonNullable<string>, Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
-            return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.GetRange()))
+            return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.Range))
                 .Where(tuple => tuple.Item1 != null)
                 .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
         }

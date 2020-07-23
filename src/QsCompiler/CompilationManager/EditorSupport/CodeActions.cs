@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // determine what open directives already exist
-            var insertOpenDirAt = firstInNs.GetRange().Start;
+            var insertOpenDirAt = firstInNs.Range.Start;
             var openDirs = nsElements.Select(t => t.GetFragment().Kind?.OpenedNamespace())
                 .TakeWhile(opened => opened?.IsValue ?? false)
                 .Select(opened => (
@@ -290,7 +290,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item3) :
                     Enumerable.Empty<Characteristics>();
 
-                var fragmentStart = fragment?.GetRange()?.Start;
+                var fragmentStart = fragment?.Range?.Start;
                 return characteristicsInFragment
                     .Where(c => c.Range.IsValue && Range.Overlaps(fragmentStart + c.Range.Item, d.Range.ToQSharp()))
                     .Select(c => ReplaceWith(CharacteristicsAnnotation(c), d.Range));
@@ -329,7 +329,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Convert set <identifier>[<index>] = <rhs> to set <identifier> w/= <index> <- <rhs>
                 var rhs = $"{exprInfo.Item3} {Keywords.qsCopyAndUpdateOp.cont} {exprInfo.Item4}";
                 var outputStr = $"{Keywords.qsValueUpdate.id} {exprInfo.Item2} {Keywords.qsCopyAndUpdateOp.op}= {rhs}";
-                var edit = new TextEdit { Range = fragment.GetRange().ToLsp(), NewText = outputStr };
+                var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = outputStr };
                 return ("Replace with an update-and-reassign statement.", file.GetWorkspaceEdit(edit));
             }
 
@@ -404,7 +404,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             static IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
             {
                 if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
-                    IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
+                    IsIndexRange(forLoopIntro.Item2, fragment.Range.Start, out var iterExprRange, out var argTupleRange))
                 {
                     yield return new TextEdit
                     {
@@ -452,7 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // work off of the last reachable fragment, if there is one
                 var lastBeforeErase = lastFragToken.GetFragment();
-                var eraseStart = lastBeforeErase.GetRange().End;
+                var eraseStart = lastBeforeErase.Range.End;
 
                 // find the last fragment in the scope
                 while (currentFragToken != null)
@@ -461,10 +461,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     currentFragToken = currentFragToken.NextOnScope(true);
                 }
                 var lastInScope = lastFragToken.GetFragment();
-                var eraseEnd = lastInScope.GetRange().End;
+                var eraseEnd = lastInScope.Range.End;
 
                 // determine the whitespace for the replacement string
-                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Column);
+                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.Range.Start.Column);
                 var trimmedLastLine = lastLine.TrimEnd();
                 var whitespace = lastLine[trimmedLastLine.Length..];
 
@@ -503,7 +503,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
-            var declStart = fragment.GetRange().Start;
+            var declStart = fragment.Range.Start;
             if (declSymbol == null || file.DocumentingComments(declStart).Any())
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();

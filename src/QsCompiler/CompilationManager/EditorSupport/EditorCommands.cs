@@ -263,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var fragmentStart = fragment.GetRange().Start;
+            var fragmentStart = fragment.Range.Start;
 
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 

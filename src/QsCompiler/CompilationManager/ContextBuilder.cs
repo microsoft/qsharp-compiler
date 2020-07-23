@@ -36,13 +36,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Position previousEnding = null;
             foreach (var token in tokens)
             {
-                var range = token.GetRange();
-                if (!(previousEnding is null) && previousEnding > range.Start)
+                if (!(previousEnding is null) && previousEnding > token.Range.Start)
                 {
                     throw new ArgumentException($"the given tokens to update are not ordered according to their range - \n" +
-                        $"Ranges were: {string.Join("\n", tokens.Select(t => t.GetRange().DiagnosticString()))}");
+                        $"Ranges were: {string.Join("\n", tokens.Select(t => t.Range.DiagnosticString()))}");
                 }
-                previousEnding = range.End;
+                previousEnding = token.Range.End;
             }
         }
 
@@ -94,26 +93,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(token));
             }
-            return range.Contains(token.GetRange().Start) && range.ContainsEnd(token.GetRange().End);
+            return range.Contains(token.Range.Start) && range.ContainsEnd(token.Range.End);
         }
 
         /// <summary>
         /// Returns a function that returns true if a given fragment ends at or before the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensUpTo(Position pos) => token =>
-            token.GetRange().End <= pos;
+            token.Range.End <= pos;
 
         /// <summary>
         /// Returns a function that returns true if a given fragment starts (strictly) before the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensStartingBefore(Position pos) => token =>
-            token.GetRange().Start < pos;
+            token.Range.Start < pos;
 
         /// <summary>
         /// Returns a function that returns true if a given fragment starts at or after the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensAfter(Position pos) => token =>
-            pos <= token.GetRange().Start;
+            pos <= token.Range.Start;
 
         /// <summary>
         /// Returns a function that returns true if a given fragment does not overlap with the specified range.
@@ -143,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
             var start = pos.Line;
-            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.Column <= pos.Column).ToImmutableArray();
+            var previous = file.GetTokenizedLine(start).Where(token => token.Range.Start.Column <= pos.Column).ToImmutableArray();
             while (!previous.Any() && --start >= 0)
             {
                 previous = file.GetTokenizedLine(start);
@@ -155,8 +154,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var lastPreceding = previous.Last().TranslateLines(start);
             var overlaps = includeEnd
-                ? pos <= lastPreceding.GetRange().End
-                : pos < lastPreceding.GetRange().End;
+                ? pos <= lastPreceding.Range.End
+                : pos < lastPreceding.Range.End;
             tIndex = overlaps ? new CodeFragment.TokenIndex(file, start, previous.Length - 1) : null;
             return overlaps ? lastPreceding : null;
         }
@@ -209,14 +208,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var declarations = file.CallableDeclarationTokens();
-                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment().GetRange().Start < pos);
+                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment().Range.Start < pos);
                 if (!precedingDecl.Any())
                 {
                     return null;
                 }
 
                 var closestCallable = precedingDecl.Last();
-                var callablePosition = closestCallable.GetFragment().GetRange().Start;
+                var callablePosition = closestCallable.GetFragment().Range.Start;
                 var callableName = closestCallable.GetFragment().Kind.DeclaredCallableName(null);
                 if (callableName == null)
                 {
@@ -224,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var specializations = FileHeader.FilterCallableSpecializations(closestCallable.GetChildren(deep: false).Select(tIndex => tIndex.GetFragment()));
-                var precedingSpec = specializations.TakeWhile(fragment => fragment.GetRange().Start < pos);
+                var precedingSpec = specializations.TakeWhile(fragment => fragment.Range.Start < pos);
                 var lastPreceding = precedingSpec.Any() ? precedingSpec.Last() : null;
 
                 if (specializations.Any() && lastPreceding == null)
@@ -234,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 return lastPreceding == null
                     ? ((NonNullable<string>.New(callableName), callablePosition), (QsSpecializationKind.QsBody, callablePosition))
-                    : ((NonNullable<string>.New(callableName), callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.GetRange().Start));
+                    : ((NonNullable<string>.New(callableName), callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
             }
             finally
             {
@@ -273,8 +272,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (inRange.Any())
             {
                 QsCompilerError.Raise($"{range.DiagnosticString()} overlaps for start = {start}, end = {end}, \n\n" +
-                    $"{string.Join("\n", file.GetTokenizedLine(start).Select(x => $"{x.GetRange().DiagnosticString()}"))},\n\n " +
-                    $"{string.Join("\n", file.GetTokenizedLine(end).Select(x => $"{x.GetRange().DiagnosticString()}"))},");
+                    $"{string.Join("\n", file.GetTokenizedLine(start).Select(x => $"{x.Range.DiagnosticString()}"))},\n\n " +
+                    $"{string.Join("\n", file.GetTokenizedLine(end).Select(x => $"{x.Range.DiagnosticString()}"))},");
                 return true;
             }
 
@@ -304,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 if (next.Any())
                 {
-                    var start = next.First().GetRange().Start;
+                    var start = next.First().Range.Start;
                     merged.AddRange(batch.TakeWhile(TokensUpTo(start)));
                     batch = batch.SkipWhile(TokensUpTo(start)).ToList();
                 }
@@ -345,8 +344,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var index = -1;
-            var tokenRange = token.GetRange();
-            while (++index < list.Count && list[index].GetRange().Start < tokenRange.Start)
+            var tokenRange = token.Range;
+            while (++index < list.Count && list[index].Range.Start < tokenRange.Start)
             {
             }
             return index < list.Count && list[index].Equals(token) ? index : -1;
@@ -531,7 +530,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (include, verifications) = Context.VerifySyntaxTokenContext(context);
                 foreach (var msg in verifications)
                 {
-                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.GetRange().Start));
+                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.Range.Start));
                 }
 
                 if (include)
@@ -582,7 +581,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(changedLines));
             }
 
-            var lastInFile = file.LastToken()?.GetFragment()?.GetRange()?.End ?? file.End();
+            var lastInFile = file.LastToken()?.GetFragment()?.Range?.End ?? file.End();
             var callables = file.GetCallableDeclarations().Select(tuple => // these are sorted according to their line number
             {
                 var ns = file.TryGetNamespaceAt(tuple.Item2.Start);

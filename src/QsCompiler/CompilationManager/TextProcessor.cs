@@ -34,9 +34,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             // opting to not complain about semicolons not following code anywhere in the file (i.e. on any scope)
             var diagnostics = fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == ';')
-                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.GetRange().End))
+                .Select(snippet => Warnings.EmptyStatementWarning(filename, snippet.Range.End))
                 .Concat(fragments.Where(snippet => snippet.Text.Length == 0 && snippet.FollowedBy == '{')
-                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.GetRange().End)));
+                .Select(snippet => Errors.MisplacedOpeningBracketError(filename, snippet.Range.End)));
             return diagnostics.ToList(); // in case fragments change
         }
 
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var code = fragment.Kind.InvalidEnding;
             if (Diagnostics.ExpectedEnding(code) != fragment.FollowedBy)
             {
-                yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End);
+                yield return Errors.InvalidFragmentEnding(filename, code, fragment.Range.End);
             }
         }
 
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             foreach (var snippet in fragments)
             {
-                var snippetStart = snippet.GetRange().Start;
+                var snippetStart = snippet.Range.Start;
                 var outputs = Parsing.ProcessCodeFragment(snippet.Text);
                 for (var outputIndex = 0; outputIndex < outputs.Length; ++outputIndex)
                 {
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var generated = Diagnostics.Generate(filename, fragmentDiagnostic, fragmentRange.Start);
                         diagnostics.Add(generated);
 
-                        var fragmentEnd = fragment.GetRange().End;
+                        var fragmentEnd = fragment.Range.End;
                         var generatedRange = generated.Range.ToQSharp();
                         var diagnosticGoesUpToFragmentEnd =
                             generatedRange.Contains(fragmentEnd) || fragmentEnd == generatedRange.End;

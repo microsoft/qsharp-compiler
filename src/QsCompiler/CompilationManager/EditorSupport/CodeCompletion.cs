@@ -680,10 +680,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
             }
 
-            var relativeLine = position.Line - fragment.GetRange().Start.Line;
+            var relativeLine = position.Line - fragment.Range.Start.Line;
             var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("");
             var relativeCharacter =
-                relativeLine == 0 ? position.Column - fragment.GetRange().Start.Column : position.Column;
+                relativeLine == 0 ? position.Column - fragment.Range.Start.Column : position.Column;
             if (relativeLine < 0 ||
                 relativeLine >= lines.Count() ||
                 relativeCharacter < 0 ||
@@ -773,7 +773,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
             }
 
-            var end = fragment.GetRange().End;
+            var end = fragment.Range.End;
             var position = file.FragmentEnd(ref end);
             return Position.Create(position.Line, position.Column - 1);
         }
@@ -805,7 +805,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return "";
             }
-            return fragment.GetRange().End < position
+            return fragment.Range.End < position
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
         }
