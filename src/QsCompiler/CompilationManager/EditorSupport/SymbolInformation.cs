@@ -241,9 +241,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return true;
             }
-            var (defOffset, defRange) = (definition.Item.Item2.ToLsp(), definition.Item.Item3);
+            var (defOffset, defRange) = (definition.Item.Item2, definition.Item.Item3);
 
-            if (defOffset.Equals(callablePos))
+            if (defOffset == callablePos)
             {
                 // the given position corresponds to a variable declared as part of a callable declaration
                 if (!compilation.GetCallables().TryGetValue(parentName, out var parent))
@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             else
             {
                 // the given position corresponds to a variable declared as part of a specialization declaration or implementation
-                var defStart = defOffset.ToQSharp() + defRange.Start;
+                var defStart = defOffset + defRange.Start;
                 var statements = implementation.StatementsAfterDeclaration(defStart - specPos);
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
