@@ -4,25 +4,24 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
+open System.Collections.Immutable
 open System.IO
-open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
-open Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions;
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions
 open Xunit
-open System.Collections.Immutable
 
 
 type TypeParameterTests () =
 
+    let TypeParameterNS = "Microsoft.Quantum.Testing.TypeParameter"
+
     let qualifiedName name =
-        ("NS" |> NonNullable<string>.New, name |> NonNullable<string>.New) |> QsQualifiedName.New
+        (TypeParameterNS |> NonNullable<string>.New, name |> NonNullable<string>.New) |> QsQualifiedName.New
 
     let typeParameter (id : string) =
         let pieces = id.Split(".")
@@ -33,6 +32,7 @@ type TypeParameterTests () =
 
     let FooA = typeParameter "Foo.A"
     let FooB = typeParameter "Foo.B"
+    let FooC = typeParameter "Foo.C"
     let BarA = typeParameter "Bar.A"
     let BarB = typeParameter "Bar.B"
     let BazA = typeParameter "Baz.A"
@@ -47,23 +47,75 @@ type TypeParameterTests () =
         let keysMismatch = ImmutableHashSet.CreateRange(res1.Keys).SymmetricExcept res2.Keys
         keysMismatch.Count = 0 && res1 |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value) |> not
 
-    let AssertExpectedResolution (expected : ImmutableDictionary<_,_>) (given : ImmutableDictionary<_,_> ) =
+    let AssertExpectedResolution expected given =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckCombinedResolution (expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
+    let CheckCombinedResolution expected resolutions =
         let mutable combined = ImmutableDictionary.Empty
         let success = TypeParamUtils.TryCombineTypeResolutions(&combined, resolutions)
         AssertExpectedResolution expected combined
         success
 
-    let AssertCombinedResolution (expected, [<ParamArray>] resolutions) =
-        let success = CheckCombinedResolution (expected, resolutions)
+    let AssertCombinedResolution expected resolutions =
+        let success = CheckCombinedResolution expected resolutions
         Assert.True(success, "Combining type resolutions was not successful.")
 
-    let AssertCombinedResolutionFailure (expected, [<ParamArray>] resolutions) =
-        let success = CheckCombinedResolution (expected, resolutions)
+    let AssertCombinedResolutionFailure expected resolutions =
+        let success = CheckCombinedResolution expected resolutions
         Assert.False(success, "Combining type resolutions should have failed.")
 
+    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
+
+    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+
+    let ReadAndChunkSourceFile fileName =
+        let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
+        sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
+
+    let BuildContent content =
+
+        let fileId = getTempFile()
+        let file = getManager fileId content
+
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
+        let compilationDataStructures = compilationManager.Build()
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+        Assert.NotNull compilationDataStructures.BuiltCompilation
+
+        compilationDataStructures
+
+    let CompileTypeParameterTest testNumber =
+        let srcChunks = ReadAndChunkSourceFile "TypeParameter.qs"
+        srcChunks.Length >= testNumber |> Assert.True
+        let compilationDataStructures = BuildContent <| srcChunks.[testNumber-1]
+        let processedCompilation = compilationDataStructures.BuiltCompilation
+        Assert.NotNull processedCompilation
+        processedCompilation
+
+    let GetCallableWithName compilation ns name =
+        compilation.Namespaces
+        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> GlobalCallableResolutions
+        |> Seq.find (fun x -> x.Key.Name.Value = name)
+        |> (fun x -> x.Value)
+
+    let GetMainExpression (compilation : QsCompilation) =
+        let mainCallable = GetCallableWithName compilation TypeParameterNS "Main"
+        let body =
+            mainCallable.Specializations
+            |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+            |> fun x -> match x.Implementation with
+                        | Provided (_, body) -> body
+                        | _ -> failwith "Expected but did not find Provided Implementation"
+        Assert.True(body.Statements.Length = 1)
+        match body.Statements.[0].Statement with
+        | QsExpressionStatement expression -> expression
+        | _ -> failwith "Expected but did not find an Expression Statement"
+
+    
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Resolution to Concrete`` () =
@@ -83,7 +135,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -102,7 +154,7 @@ type TypeParameterTests () =
             (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -120,7 +172,7 @@ type TypeParameterTests () =
             (FooA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -141,7 +193,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -162,7 +214,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -187,7 +239,7 @@ type TypeParameterTests () =
             (BazA, Double)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -210,7 +262,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -235,7 +287,7 @@ type TypeParameterTests () =
             (BazA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -255,7 +307,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -277,7 +329,7 @@ type TypeParameterTests () =
             (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -297,7 +349,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -317,7 +369,7 @@ type TypeParameterTests () =
             (BarA, BazA |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -332,7 +384,7 @@ type TypeParameterTests () =
             (FooA, FooA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -355,7 +407,7 @@ type TypeParameterTests () =
             (BazA, FooA |> TypeParameter)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -370,7 +422,7 @@ type TypeParameterTests () =
             (FooA, FooB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -393,7 +445,7 @@ type TypeParameterTests () =
             (BazA, FooB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -416,7 +468,7 @@ type TypeParameterTests () =
             (BazA, BarB |> TypeParameter)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -434,7 +486,7 @@ type TypeParameterTests () =
             (BarA, [String; Double] |> MakeTupleType)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -448,7 +500,7 @@ type TypeParameterTests () =
             (FooA, [FooB |> TypeParameter; Int] |> MakeTupleType)
         ]
 
-        AssertCombinedResolutionFailure(expected, given)
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -466,7 +518,7 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
@@ -482,4 +534,18 @@ type TypeParameterTests () =
             (BarA, Int)
         ]
 
-        AssertCombinedResolution(expected, given)
+        AssertCombinedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Partial Resolution`` () =
+        let expression = CompileTypeParameterTest 1 |> GetMainExpression 
+        
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [
+            (FooA, Double)
+            (FooB, Int)
+            (FooC, String)
+        ]
+
+        AssertExpectedResolution expected given
