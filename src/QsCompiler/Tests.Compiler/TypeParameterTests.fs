@@ -19,7 +19,7 @@ open Xunit
 open System.Collections.Immutable
 
 
-type ClassicalControlTests () =
+type TypeParameterTests () =
 
     let qualifiedName name =
         ("NS" |> NonNullable<string>.New, name |> NonNullable<string>.New) |> QsQualifiedName.New
