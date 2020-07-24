@@ -158,6 +158,7 @@
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
+    <Compile Include="TypeParameterTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />
