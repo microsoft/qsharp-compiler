@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
         private class RestructureConditions : SyntaxTreeTransformation
         {
-            public new static QsCompilation Apply(QsCompilation compilation)
+            public static QsCompilation Apply(QsCompilation compilation)
             {
                 var filter = new RestructureConditions();
 
@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
         private class ConvertConditions : SyntaxTreeTransformation<ConvertConditions.TransformationState>
         {
-            public new static QsCompilation Apply(QsCompilation compilation)
+            public static QsCompilation Apply(QsCompilation compilation)
             {
                 var filter = new ConvertConditions(compilation);
 

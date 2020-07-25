@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 {
     public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
-        public new static void Apply(QsCompilation compilation)
+        public static void Apply(QsCompilation compilation)
         {
             var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
                 .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
