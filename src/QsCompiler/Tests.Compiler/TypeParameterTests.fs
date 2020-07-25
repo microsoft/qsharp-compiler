@@ -115,7 +115,7 @@ type TypeParameterTests () =
         | QsExpressionStatement expression -> expression
         | _ -> failwith "Expected but did not find an Expression Statement"
 
-    
+
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Resolution to Concrete`` () =
@@ -538,9 +538,75 @@ type TypeParameterTests () =
 
     [<Fact>]
     [<Trait("Category","Parsing Expressions")>]
-    member this.``Partial Resolution`` () =
-        let expression = CompileTypeParameterTest 1 |> GetMainExpression 
-        
+    member this.``Identifier Resolution`` () =
+        let expression = CompileTypeParameterTest 1 |> GetMainExpression
+
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [
+            (FooA, Double)
+            (FooB, Int)
+            (FooC, String)
+        ]
+
+        AssertExpectedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Adjoint Application Resolution`` () =
+        let expression = CompileTypeParameterTest 2 |> GetMainExpression
+
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [
+            (FooA, Double)
+            (FooB, Int)
+            (FooC, String)
+        ]
+
+        AssertExpectedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Controlled Application Resolution`` () =
+        let expression = CompileTypeParameterTest 3 |> GetMainExpression
+
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [
+            (FooA, Double)
+            (FooB, Int)
+            (FooC, String)
+        ]
+
+        AssertExpectedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Partial Application Resolution`` () =
+        let expression = CompileTypeParameterTest 4 |> GetMainExpression
+
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [
+            (FooA, Double)
+            (FooB, Int)
+            (FooC, String)
+        ]
+
+        AssertExpectedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Sub-call Resolution`` () =
+        let expression = CompileTypeParameterTest 5 |> GetMainExpression
+
+        let given = GetTypeParameterResolutions.Apply expression
+        let expected = ResolutionFromParam [ ]
+
+        AssertExpectedResolution expected given
+
+    [<Fact>]
+    [<Trait("Category","Parsing Expressions")>]
+    member this.``Argument Sub-call Resolution`` () =
+        let expression = CompileTypeParameterTest 6 |> GetMainExpression
+
         let given = GetTypeParameterResolutions.Apply expression
         let expected = ResolutionFromParam [
             (FooA, Double)
