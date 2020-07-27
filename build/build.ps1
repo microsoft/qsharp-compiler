@@ -112,6 +112,7 @@ function Build-VS() {
 $all_ok = $True
 
 Build-One '../QsCompiler.sln'
+Build-One '../src/QsLinter/QsLinter.csproj'
 Build-One '../src/QuantumSdk/Tools/Tools.sln'
 
 if ($Env:ENABLE_VSIX -ne "false") {
