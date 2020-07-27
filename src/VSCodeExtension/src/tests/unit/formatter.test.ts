@@ -101,5 +101,4 @@ describe('formatter core', () => {
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
   });
-
 });
