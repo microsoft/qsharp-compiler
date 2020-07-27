@@ -97,14 +97,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    registerCommand(
-        context,
-        "quantum.helloWorld",
-        () => {
-            vscode.window.showInformationMessage(`Hello VS Code from qshasdarp-formatter!`);
-        }
-    );
-
     // Register Q# formatter
     context.subscriptions.push(
         vscode.languages.registerDocumentFormattingEditProvider({
