@@ -44,11 +44,11 @@ describe('formatter core', () => {
     });
 
     it("changes breaklines and whitespace if there is preceeding code", () => {
-      const code = `H(qs[0]); if            
+      const code = `H(qs[0]);   if            
                        
               (1 == 1){H(qs[0]);}`;
 
-      const expectedCode = "H(qs[0]); if (1 == 1){H(qs[0]);}";
+      const expectedCode = "H(qs[0]);   if (1 == 1){H(qs[0]);}";
 
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
