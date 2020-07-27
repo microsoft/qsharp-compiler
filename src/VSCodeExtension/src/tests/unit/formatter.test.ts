@@ -15,14 +15,31 @@ describe('formatter core', () => {
     it("adds space after if statement", () => {
       const code = "if(1 == 1){H(qs[0]);}";
       const expectedCode = "if (1 == 1){H(qs[0]);}";
-      
+
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
 
     it("does not add space if it is already there", () => {
       const code = "if (1 == 1){H(qs[0]);}";
       const expectedCode = "if (1 == 1){H(qs[0]);}";
-      
+
+      assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+    });
+
+    it("replaces an if with several spaces with just one", () => {
+      const code = "if                              (1 == 1){H(qs[0]);}";
+      const expectedCode = "if (1 == 1){H(qs[0]);}";
+
+      assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+    });
+
+    it("changes breaklines and whitespace with just one space", () => {
+      const code = `if            
+                       
+              (1 == 1){H(qs[0]);}`;
+
+      const expectedCode = "if (1 == 1){H(qs[0]);}";
+
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
   });
