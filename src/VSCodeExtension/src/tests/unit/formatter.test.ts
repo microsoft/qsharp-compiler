@@ -1,10 +1,10 @@
-import 'mocha';
-import * as assert from 'assert';
-import { formatter } from '../../formatter/formatter';
-import { spaceAfterIf } from '../../formatter/rules/space-after-if';
+import "mocha";
+import * as assert from "assert";
+import { formatter } from "../../formatter/formatter";
+import { spaceAfterIf } from "../../formatter/rules/space-after-if";
 
-describe('formatter core', () => {
-  it('with no rules, the code is unchanged', () => {
+describe("formatter core", () => {
+  it("with no rules, the code is unchanged", () => {
     const code = "using(qs=Qubit[3]){H(qs[0]);}";
     const expectedCode = "using(qs=Qubit[3]){H(qs[0]);}";
 
@@ -75,8 +75,9 @@ describe('formatter core', () => {
     });
 
     it("formats space after if it is preceeding with a semicolon", () => {
-      const code = "mutable bits = new Result[0];if(1==1){Message(\"1==1\");}";
-      const expectedCode = "mutable bits = new Result[0];if (1==1){Message(\"1==1\");}";
+      const code = 'mutable bits = new Result[0];if(1==1){Message("1==1");}';
+      const expectedCode =
+        'mutable bits = new Result[0];if (1==1){Message("1==1");}';
 
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
@@ -84,7 +85,9 @@ describe('formatter core', () => {
     it("formats space after if it is preceeding with a semicolon with line break", () => {
       const code = `mutable bits = new Result[0];if 
                    (1==1){Message(\"1==1\");}`;
-      const expectedCode = "mutable bits = new Result[0];if (1==1){Message(\"1==1\");}";
+
+      const expectedCode =
+        'mutable bits = new Result[0];if (1==1){Message("1==1");}';
 
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
@@ -97,7 +100,7 @@ describe('formatter core', () => {
       const expectedCode = `for (idxBit in 1..BitSizeI(max)) {
                       set bits += [SampleQuantumRandomNumberGenerator()];
                     }if (2==2){Message("2==2");}`;
-      
+
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
   });
