@@ -10,7 +10,7 @@ import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 import { LanguageServer } from './languageServer';
-import { formatDocument } from "./formatter/formatter";
+import { formatDocument } from "./formatter/format-document";
 
 /**
  * Returns the root folder for the current workspace.
