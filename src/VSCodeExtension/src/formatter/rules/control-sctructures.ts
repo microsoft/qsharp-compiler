@@ -1,7 +1,7 @@
 import { FormatRule } from "../formatter";
 
 /**
- * Makes an only space after an if statement
+ * Laves just one space after an if statement
  *
  * @param code input string
  *
