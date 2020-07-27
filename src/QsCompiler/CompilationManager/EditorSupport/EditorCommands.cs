@@ -133,9 +133,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Lsp.Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
-            if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file))
+            if (range?.Start == null || range.End == null || file == null || !file.ContainsRange(range))
             {
                 return null;
             }
@@ -263,12 +263,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var fragmentStart = fragment.GetRange().Start;
+            var fragmentStart = fragment.Range.Start;
 
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 
-            bool OverlapsWithPosition(Range symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
+            bool OverlapsWithPosition(Range symRange) => (fragmentStart + symRange).ContainsEnd(position);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
             if (!overlappingEx.Any())
@@ -350,7 +349,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // now that we now what callable is called we need to check which argument should come next
 
-            bool BeforePosition(Range symRange) => fragmentStart.ToQSharp() + symRange.End < position;
+            bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
             IEnumerable<(Range, string)> ExtractParameterRanges(
                 QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)

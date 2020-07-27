@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     precedingFragment = preceding.GetFragment();
                     if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
                     {
-                        var offset = precedingFragment.GetRange().Start.ToQSharp();
+                        var offset = precedingFragment.Range.Start;
                         attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, offset, precedingFragment.Comments));
                     }
                     else
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         break;
                     }
                 }
-                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start.ToQSharp());
+                var docComments = file.DocumentingComments(tIndex.GetFragment().Range.Start);
                 return (tIndex, HeaderEntry<T>.From(getDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
             })
             ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
-            if (!Utils.IsValidPosition(pos, file))
+            if (!file.ContainsPosition(pos))
             {
                 throw new ArgumentException(nameof(pos));
             }
@@ -78,13 +78,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var lastPreceding = file.GetTokenizedLine(pos.Line)
                 .TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, pos.Column)))
-                .LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(pos.Line);
+                .LastOrDefault(RelevantToken)?.TranslateLines(pos.Line);
             for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
             {
-                lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(lineNr);
+                lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.TranslateLines(lineNr);
             }
 
-            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.GetRange().End.Line + 1;
+            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.Range.End.Line + 1;
             return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - firstRelevant : 0)
                 .Select(line => line.Text.Trim()).Where(IsDocCommentLine).Select(line => line.TrimStart('/'))
                 .SkipWhile(text => string.IsNullOrWhiteSpace(text)).Reverse()
@@ -215,13 +215,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var itemsToCompile = new List<(TItem, HeaderEntry<THeader>)>();
             foreach (var (tIndex, headerItem) in itemsToAdd)
             {
-                var position = headerItem.GetPosition();
-                var messages = add(position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Attributes, headerItem.Documentation).ToList();
+                var messages = add(headerItem.Position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Attributes, headerItem.Documentation).ToList();
                 if (!messages.Any(msg => msg.Diagnostic.IsError))
                 {
                     itemsToCompile.Add((tIndex, headerItem));
                 }
-                diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, position)));
+                diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, headerItem.Position)));
             }
             return itemsToCompile;
         }
@@ -268,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var distinctNamespaces = namespaceHeaders.Select(tuple => tuple.Item2).GroupBy(header => header.SymbolName)
                     .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName))
                     .ToImmutableDictionary(ns => ns.Name); // making sure the namespaces are extended even if they occur multiple times in the same file
-                var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.GetPosition(), distinctNamespaces[tuple.Item2.SymbolName])).ToList();
+                var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.Position, distinctNamespaces[tuple.Item2.SymbolName])).ToList();
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
@@ -286,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>))>();
                 foreach (var headerItem in typesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.GetPosition(), namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
                     tokensToCompile.Add((new QsQualifiedName(ns.Name, headerItem.Item2.SymbolName), (headerItem.Item2.Comments, null)));
                 }
 
@@ -300,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
                 foreach (var headerItem in callablesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.GetPosition(), namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
                     var tIndicesToCompile = AddSpecializationsToNamespace(file, ns, headerItem, diagnostics);
                     var (nsName, cName) = (ns.Name, headerItem.Item2.SymbolName);
                     var callableDeclComments = headerItem.Item2.Comments;
@@ -355,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var specializations = file.GetHeaderItems(specializationTokens, frag => SpecializationDeclaration(parent.Item2, frag), null);
             foreach (var (tIndex, headerItem) in specializations)
             {
-                var position = headerItem.GetPosition();
+                var position = headerItem.Position;
                 var (specKind, generator, introRange) = headerItem.Declaration;
                 var location = new QsLocation(position, introRange);
                 var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, headerItem.Attributes, headerItem.Documentation);
@@ -378,14 +377,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var msgRange = Parsing.HeaderDelimiters(1).Invoke(statement.Text);
                     var msg = QsCompilerDiagnostic.Error(ErrorCode.NotWithinSpecialization, Enumerable.Empty<string>(), msgRange);
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.GetRange().Start.ToQSharp()));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.Range.Start));
                 }
             }
 
             // if the declaration directly contains statements and no specialization, auto-generate a default body for the callable
             if (!specializations.Any())
             {
-                var location = new QsLocation(parent.Item2.GetPosition(), parentName.Item2);
+                var location = new QsLocation(parent.Item2.Position, parentName.Item2);
                 var genRange = QsNullable<Range>.NewValue(location.Range); // set to the range of the callable name
                 var omittedSymbol = new QsSymbol(QsSymbolKind<QsSymbol>.OmittedSymbols, QsNullable<Range>.Null);
                 var generatorKind = QsSpecializationGeneratorKind<QsSymbol>.NewUserDefinedImplementation(omittedSymbol);
@@ -482,7 +481,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             file.SyncRoot.EnterReadLock(); // there is no reason to also set a lock for the compilation - AddOpenDirective and ResolveAll will set a suitable lock
             try
             {
-                var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.GetPosition(), tuple.Item2.SymbolName)).ToList();
+                var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
                     (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
@@ -526,7 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 tokens?.Select(token =>
                 {
                     var fragment = token.GetFragmentWithClosingComments();
-                    var parentPos = rootPos ?? fragment.GetRange().Start.ToQSharp();
+                    var parentPos = rootPos ?? fragment.Range.Start;
                     return new FragmentTree.TreeNode(fragment, BuildNodes(ChildrenToCompile(token), parentPos), parentPos);
                 })
                 ?.ToList()?.AsReadOnly();
@@ -664,8 +663,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(diagnostics));
             }
 
-            var statementPos = node.Fragment.GetRange().Start.ToQSharp();
-            var location = new QsLocation(node.GetPositionRelativeToRoot(), node.Fragment.HeaderRange);
+            var statementPos = node.Fragment.Range.Start;
+            var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, messages) = build(location, context);
             diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
             return statement;
@@ -1016,7 +1015,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.IfClause ifCond)
             {
-                var rootPosition = nodes.Current.GetRootPosition();
+                var rootPosition = nodes.Current.RootPosition;
 
                 // if block
                 var buildClause = BuildStatement(
@@ -1045,7 +1044,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
                     var scope = BuildScope(nodes.Current.Children, context, diagnostics);
-                    var elseLocation = new QsLocation(nodes.Current.GetPositionRelativeToRoot(), nodes.Current.Fragment.HeaderRange);
+                    var elseLocation = new QsLocation(nodes.Current.RelativePosition, nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
                     proceed = nodes.MoveNext();
@@ -1105,7 +1104,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
-                QsNullable<QsLocation>.NewValue(new QsLocation(node.GetPositionRelativeToRoot(), node.Fragment.HeaderRange));
+                QsNullable<QsLocation>.NewValue(new QsLocation(node.RelativePosition, node.Fragment.HeaderRange));
 
             if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
             {
@@ -1124,9 +1123,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         var (relativeOffset, diagnostic) = item;
                         return Diagnostics.Generate(
-                            context.Symbols.SourceFile.Value,
-                            diagnostic,
-                            nodes.Current.GetRootPosition() + relativeOffset);
+                            context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition + relativeOffset);
                     }));
 
                     statement = built.Item1;
@@ -1601,7 +1598,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 context.Symbols.TryAddVariableDeclartion(decl);
             }
 
-            var specPos = root.Fragment.GetRange().Start.ToQSharp();
+            var specPos = root.Fragment.Range.Start;
             foreach (var decl in variablesOnSpecialization)
             {
                 var msgs = context.Symbols.TryAddVariableDeclartion(decl).Item2;
@@ -1614,7 +1611,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // verify that all paths return a value if needed (or fail)
             var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
-            var rootPosition = root.Fragment.GetRange().Start.ToQSharp();
+            var rootPosition = root.Fragment.Range.Start;
             diagnostics.AddRange(messages.Select(msg =>
                 Diagnostics.Generate(sourceFile.Value, msg.Item2, rootPosition + msg.Item1)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
@@ -1778,7 +1775,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
                 if (implementation == null && gen is QsSpecializationGeneratorKind<QsSymbol>.UserDefinedImplementation userDefined)
                 {
-                    var specPos = root.Fragment.GetRange().Start.ToQSharp();
+                    var specPos = root.Fragment.Range.Start;
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
@@ -1813,7 +1810,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
-                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item.ToLsp() == root.Fragment.GetRange().Start))
+                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item == root.Fragment.Range.Start))
                 {
                     return null; // only process specializations that are valid
                 }

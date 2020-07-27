@@ -1182,7 +1182,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range, param.Context), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range.ToQSharp(), param.Context), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.

@@ -923,7 +923,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             out Position specializationPos)
         {
             (callableName, callablePos, specializationPos) = (null, null, null);
-            if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
+            if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
             }

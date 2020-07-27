@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 ++this.NrWarningsLogged;
             }
 
-            var msg = m.Range == null ? m : m.WithUpdatedLineNumber(this.lineNrOffset);
+            var msg = m.Range == null ? m : m.TranslateLines(this.lineNrOffset);
             this.Output(msg);
         }
 

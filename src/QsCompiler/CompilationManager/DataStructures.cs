@@ -116,11 +116,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class CodeFragment
     {
         /// <summary>
-        /// returns a copy of the CodeFragment Range
+        /// The code fragment's range.
         /// </summary>
-        internal Lsp.Range GetRange() => this.fragmentRange.Copy();
+        internal Range Range { get; }
 
-        private readonly Lsp.Range fragmentRange;
         internal readonly Range HeaderRange;
         internal readonly int Indentation;
         internal readonly string Text;
@@ -141,12 +140,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, Lsp.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, Range range, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
         {
-            if (!Utils.IsValidRange(r))
-            {
-                throw new ArgumentException("invalid range for code fragment");
-            }
             if (!DelimitingChars.Contains(next) && next != MissingDelimiter)
             {
                 throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
@@ -156,18 +151,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.FollowedBy = next;
             this.Comments = comments ?? QsComments.Empty;
             this.Kind = kind; // nothing here should be modifiable
-            this.fragmentRange = r.Copy();
+            this.Range = range;
             this.HeaderRange = GetHeaderRange(this.Text, this.Kind);
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, Lsp.Range r, string text, char next, QsFragmentKind kind = null)
-            : this(indent, r, text, next, null, kind, true)
+        internal CodeFragment(int indent, Range range, string text, char next, QsFragmentKind kind = null)
+            : this(indent, range, text, next, null, kind, true)
         {
         }
 
         internal CodeFragment Copy() =>
-            new CodeFragment(this.Indentation, this.GetRange(), this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         public bool Equals(CodeFragment other)
         {
@@ -176,7 +171,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 return false;
             }
             return
-                this.GetRange().Equals(other.GetRange()) &&
+                this.Range == other.Range &&
                 this.Indentation == other.Indentation &&
                 this.Text == other.Text &&
                 this.FollowedBy == other.FollowedBy &&
@@ -184,33 +179,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 (this.Kind == null ? other.Kind == null : this.Kind.Equals(other.Kind));
         }
 
-        internal CodeFragment WithUpdatedLineNumber(int lineNrChange) =>
-            this?.SetRange(this.GetRange().WithUpdatedLineNumber(lineNrChange));
+        internal CodeFragment TranslateLines(int offset) => this.SetRange(this.Range.TranslateLines(offset));
 
-        internal CodeFragment SetRange(Lsp.Range range) =>
+        internal CodeFragment SetRange(Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetIndentation(int indent) =>
-            new CodeFragment(indent, this.fragmentRange, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(indent, this.Range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetCode(string code) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, code, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, code, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetFollowedBy(char delim) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, delim, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, delim, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetKind(QsFragmentKind kind) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, this.Comments, kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, this.Comments, kind, this.IncludeInCompilation);
 
         internal CodeFragment ClearComments() =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, null, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, null, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetOpeningComments(IEnumerable<string> commentsBefore)
         {
             var relevantComments = commentsBefore.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
             var comments = new QsComments(relevantComments.Select(c => c ?? string.Empty).ToImmutableArray(), this.Comments.ClosingComments);
-            return new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
+            return new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
         }
 
         internal CodeFragment SetClosingComments(IEnumerable<string> commentsAfter)
@@ -218,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var relevantComments = commentsAfter.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
             var comments = new QsComments(this.Comments.OpeningComments, relevantComments.Select(c => c ?? string.Empty).ToImmutableArray());
-            return new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
+            return new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
         }
 
         /// <summary>
@@ -302,7 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                return this.file.GetTokenizedLine(this.Line)[this.Index].WithUpdatedLineNumber(this.Line);
+                return this.file.GetTokenizedLine(this.Line)[this.Index].TranslateLines(this.Line);
             }
 
             /// <summary>
@@ -390,17 +384,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal struct TreeNode
         {
-            private readonly Position relPosition;
-            private readonly Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
 
             /// <summary>
-            /// Returns the position of the root node that all child node positions are relative to.
+            /// The position of the root node that all child node positions are relative to.
             /// </summary>
-            public Position GetRootPosition() => this.rootPosition;
+            public Position RootPosition { get; }
 
-            public Position GetPositionRelativeToRoot() => this.relPosition;
+            /// <summary>
+            /// The position of this node relative to the root node.
+            /// </summary>
+            public Position RelativePosition { get; }
 
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
@@ -413,13 +408,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.Fragment = fragment ?? throw new ArgumentNullException(nameof(fragment));
                 this.Children = children ?? throw new ArgumentNullException(nameof(children));
 
-                var fragStart = fragment.GetRange().Start.ToQSharp();
-                if (fragStart < parentStart)
+                if (fragment.Range.Start < parentStart)
                 {
                     throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
                 }
-                this.rootPosition = parentStart;
-                this.relPosition = fragStart - parentStart;
+                this.RootPosition = parentStart;
+                this.RelativePosition = fragment.Range.Start - parentStart;
             }
         }
 
@@ -442,9 +436,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal struct HeaderEntry<T>
     {
-        private readonly Position position;
-
-        internal Position GetPosition() => this.position;
+        internal Position Position { get; }
 
         internal readonly NonNullable<string> SymbolName;
         internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
@@ -468,7 +460,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 throw new ArgumentNullException(nameof(tIndex));
             }
 
-            this.position = offset;
+            this.Position = offset;
             this.SymbolName = sym.Item1;
             this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
@@ -504,8 +496,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             var fragment = tIndex.GetFragmentWithClosingComments();
-            var fragmentStart = fragment.GetRange().Start.ToQSharp();
-
             var extractedDecl = getDeclaration(fragment);
             var (sym, decl) =
                 extractedDecl.IsNull
@@ -521,7 +511,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 
