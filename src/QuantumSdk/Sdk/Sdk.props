@@ -32,6 +32,12 @@
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
     <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' /-->
+    <PackageReference
+      Condition="'$(EnableQsLinter)' == 'true'"
+      Include="Microsoft.Quantum.QsLinter"
+      Version="$(QuantumSdkVersion)"
+      IsQscReference="true"
+    />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
