@@ -10,11 +10,12 @@ import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 import { LanguageServer } from './languageServer';
+import { formatDocument } from "./formatter";
 
 /**
  * Returns the root folder for the current workspace.
  */
-function findRootFolder() : string {
+function findRootFolder(): string {
     // FIXME: handle multiple workspace folders here.
     let workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders) {
@@ -39,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let dotNetSdkVersion = packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK;
 
     // Get any .NET Core SDK version number to report in telemetry.
-    var dotNetSdk : DotnetInfo | undefined;
+    var dotNetSdk: DotnetInfo | undefined;
     try {
         dotNetSdk = await findDotNetSdk();
     } catch {
@@ -95,6 +96,18 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }
     );
+
+    // Register Q# formatter
+    context.subscriptions.push(
+        vscode.languages.registerDocumentFormattingEditProvider({
+            scheme: 'file',
+            language: 'qsharp',
+        }, {
+            provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
+                return formatDocument(document);
+            }
+        })
+    )
 
     let rootFolder = findRootFolder();
 
