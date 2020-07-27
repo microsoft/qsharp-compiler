@@ -9,7 +9,7 @@
  * @example `   namespace ... {}` ->
  * `namespace ... {}`
  */
-export const namespaceRule = (code: string): string => {
+const namespaceRule: FormatRule => {
   const operationMatcher: RegExp = /\s+(namespace)/g;
 
   return operationMatcher.test(code) ? code.trimLeft() : code;
