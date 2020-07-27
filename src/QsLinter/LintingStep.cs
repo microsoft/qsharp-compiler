@@ -40,6 +40,8 @@ namespace Microsoft.Quantum.Compiler.Linter
 
         public bool PreconditionVerification(QsCompilation compilation) => throw new NotImplementedException();
 
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
+
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             System.Console.WriteLine("I: Beginning qslint scan.");
