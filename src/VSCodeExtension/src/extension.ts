@@ -10,7 +10,7 @@ import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 import { LanguageServer } from './languageServer';
-import { formatDocument } from "./formatter";
+import { formatDocument } from "./formatter/formatter";
 
 /**
  * Returns the root folder for the current workspace.
@@ -94,6 +94,14 @@ export async function activate(context: vscode.ExtensionContext) {
                     packageInfo ? packageInfo.nugetVersion : undefined
                 )
             );
+        }
+    );
+
+    registerCommand(
+        context,
+        "quantum.helloWorld",
+        () => {
+            vscode.window.showInformationMessage(`Hello VS Code from qshasdarp-formatter!`);
         }
     );
 
