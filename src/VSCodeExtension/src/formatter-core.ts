@@ -5,5 +5,5 @@ export const formatter = (code: string, rules: FormatRule[]): string => {
 }
 
 export const spaceAfterIf: FormatRule = (code: string): string => {
-    return code.replace(/(^| +)if[ \n]*/, "$1if ");
+    return code.replace(/(^| +|;|})if[ \n]*/, "$1if ");
 }
