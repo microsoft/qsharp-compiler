@@ -7,7 +7,7 @@ import { FormatRule } from "../formatter";
  *
  * @example `if                              (1 == 1){H(qs[0]);}` ->
  * `if (1 == 1){H(qs[0]);}`
- * 
+ *
  * more examples in the unit tests
  */
 export const spaceAfterIf: FormatRule = (code: string): string => {
