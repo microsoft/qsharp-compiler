@@ -42,6 +42,13 @@ describe('formatter core', () => {
 
       assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
     });
+
+    it("does not change if it is a function call", () => {
+      const code = "myFunctionWithConvenientNameif(parameter)";
+      const expectedCode = "myFunctionWithConvenientNameif(parameter)";
+
+      assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+    });
   });
 
 });
