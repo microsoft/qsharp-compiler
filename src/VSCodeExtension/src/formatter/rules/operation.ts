@@ -23,3 +23,5 @@ export const argsRule = (code: string): string => {
     return `operation ${opName} (${args}) : ${retType}`;
   });
 };
+
+export default [argsRule];

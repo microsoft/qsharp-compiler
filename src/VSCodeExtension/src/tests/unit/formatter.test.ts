@@ -1,7 +1,7 @@
 import "mocha";
 import * as assert from "assert";
 import { formatter } from "../../formatter/formatter";
-import { spaceAfterIf } from "../../formatter/rules/space-after-if";
+import { spaceAfterIf } from "../../formatter/rules/control-sctructures";
 
 describe("formatter core", () => {
   it("with no rules, the code is unchanged", () => {

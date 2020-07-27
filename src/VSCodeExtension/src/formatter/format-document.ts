@@ -3,11 +3,15 @@
 
 import * as vscode from "vscode";
 import { FormatRule, formatter } from "./formatter";
-import { namespaceRule } from "./rules/indent";
-import { argsRule } from "./rules/operation";
-import { spaceAfterIf } from "./rules/space-after-if";
+import indentRules from "./rules/indent";
+import operationRules from "./rules/operation";
+import controlSturctureRules from "./rules/control-sctructures";
 
-const rules: FormatRule[] = [namespaceRule, argsRule, spaceAfterIf];
+const rules: FormatRule[] = [
+  ...indentRules,
+  ...operationRules,
+  ...controlSturctureRules,
+];
 
 export const formatDocument = (
   document: vscode.TextDocument
@@ -16,7 +20,7 @@ export const formatDocument = (
     Array(document.lineCount),
     (_, lineNo) => document.lineAt(lineNo)
   );
-  
+
   const formattedLines: vscode.TextEdit[] = lines
     .map((line) => {
       const formattedLine: string = formatter(line.text, rules);
