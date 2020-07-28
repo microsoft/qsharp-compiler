@@ -48,4 +48,23 @@ describe("namespace rule", () => {
         code = "     namespace   Foo   { // ... }        ";
         assert.equal(formatter(code, [namespaceRule]), expectedCode);
     });
+    
+    it("match dot-separated names", () => {
+        const expectedCode = "namespace Microsoft.Quantum.Arrays { // ... }";
+
+        let code = "     namespace Microsoft.Quantum.Arrays { // ... }";
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+
+        code = "namespace Microsoft.Quantum.Arrays { // ... }        ";
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+        
+        code = "namespace   Microsoft.Quantum.Arrays { // ... }        ";
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+        
+        code = "namespace Microsoft.Quantum.Arrays   { // ... }        ";
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+
+        code = "     namespace   Microsoft.Quantum.Arrays   { // ... }        ";
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+    });
 });

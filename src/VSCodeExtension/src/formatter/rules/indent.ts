@@ -12,7 +12,7 @@ import { FormatRule } from "../formatter";
  * `namespace Foo {}`
  */
 export const namespaceRule: FormatRule = (code: string) => {
-    const namespaceMatcher: RegExp = /^\s*namespace\s*(\w+)\s*(\S|\S.*\S)\s*$/g;
+    const namespaceMatcher: RegExp = /^\s*namespace\s+(\w+(?:\.\w+)*)\s*({|{.*})\s*$/g;
 
     return code.replace(namespaceMatcher, (match, namespace, rest) => `namespace ${namespace} ${rest}`);
 };
