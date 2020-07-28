@@ -13,7 +13,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions
 
 
 type TypeParameterTests () =

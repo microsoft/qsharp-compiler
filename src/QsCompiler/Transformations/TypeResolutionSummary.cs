@@ -10,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions
+namespace Microsoft.Quantum.QsCompiler
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -18,6 +18,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
     using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
     using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
+    /// <summary>
+    /// Summarizes a series of type parameter resolution dictionaries, ResolutionsInSummary, into one
+    /// resolution dictionary, CombinedTypeParameterResolutions, containing the ultimate type resolutions
+    /// for all the type parameters found in the dictionaries. Validation is done on the resolutions,
+    /// which can be checked through the IsValidSummary, SummarizesOverConflictingResolution, and
+    /// SummarizesOverParameterConstriction flags.
+    /// </summary>
     public class TypeResolutionSummary
     {
         // Static Members
@@ -96,6 +103,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
 
         /// <summary>
         /// Creates a type parameter resolution summary from independent type parameter resolution dictionaries.
+        /// The given resolutions are expected to be ordered such that dictionaries containing type parameters resolutions that
+        /// reference type parameters in other dictionaries appear before those dictionaries containing the referenced type parameters.
+        /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
+        /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
+        /// the next innermost, and so on until the outermost expression is given last.
         /// </summary>
         internal TypeResolutionSummary(params TypeParameterResolutions[] independentResolutionDictionaries)
         {
@@ -107,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
                 this.CombinedTypeParameterResolutions = TypeParameterResolutions.Empty;
             }
 
-            this.CombineTypeResolutions(this.ResolutionsInSummary.ToArray());
+            this.CombineTypeResolutions();
         }
 
         // Methods
@@ -151,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
         /// <summary>
         /// Combines independent resolutions in a disjointed dictionary, resulting in a
         /// resolution dictionary that has type parameter keys that are not referenced
-        /// in its values.
+        /// in its values. Returns the resulting dictionary.
         /// </summary>
         private TypeParameterResolutions CombineTypeResolutionDictionary(TypeParameterResolutions independentResolutions)
         {
@@ -180,24 +192,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
         }
 
         /// <summary>
-        /// Combines subsequent type parameter resolutions dictionaries into a single dictionary containing the resolution for all
-        /// the type parameters found.
-        ///
-        /// The given resolutions are expected to be ordered such that dictionaries containing type parameters that take a
-        /// dependency on other type parameters in other dictionaries appear before those dictionaries they depend on.
-        /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
-        /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
-        /// the next innermost, and so on until the outermost expression is given last.
-        ///
-        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
-        /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
-        /// type parameter belonging to a different callable, or themselves.
+        /// Combines the resolution dictionaries in the summary into one resolution dictionary containing
+        /// the resolutions for all the type parameters found.
+        /// Updates the summary with the constructed dictionary. Updates the summary flags accordingly.
         /// </summary>
-        private void CombineTypeResolutions(params TypeParameterResolutions[] independentResolutionDictionaries)
+        private void CombineTypeResolutions()
         {
             var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
 
-            foreach (var resolutionDictionary in independentResolutionDictionaries)
+            foreach (var resolutionDictionary in this.ResolutionsInSummary)
             {
                 TypeParameterResolutions resolvedDictionary;
                 resolvedDictionary = this.CombineTypeResolutionDictionary(resolutionDictionary);
@@ -326,8 +329,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
             }
         }
 
+        /// <summary>
+        /// Walker that returns the relevant type parameter resolution dictionaries from a given
+        /// TypedExpression and its sub-expressions.
+        /// </summary>
         private class GetTypeParameterResolutions : ExpressionTransformation<GetTypeParameterResolutions.TransformationState>
         {
+            /// <summary>
+            /// Walk the given TypedExpression, collecting type parameter resolution dictionaries relevant to
+            /// the type parameter resolutions of the topmost expression. Returns the resolution dictionaries
+            /// ordered from the innermost expression's resolutions to the outermost expression's resolutions.
+            /// </summary>
             public static TypeParameterResolutions[] Apply(TypedExpression expression)
             {
                 var walker = new GetTypeParameterResolutions();
