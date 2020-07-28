@@ -8,26 +8,26 @@ import operationRules from "./rules/operation";
 import controlStructureRules from "./rules/control-structure";
 
 const rules: FormatRule[] = [
-  ...indentRules,
-  ...operationRules,
-  ...controlStructureRules,
+    ...indentRules,
+    ...operationRules,
+    ...controlStructureRules,
 ];
 
 export const formatDocument = (
-  document: vscode.TextDocument
+    document: vscode.TextDocument
 ): vscode.TextEdit[] => {
-  const lines: vscode.TextLine[] = Array.from(
-    Array(document.lineCount),
-    (_, lineNo) => document.lineAt(lineNo)
-  );
+    const lines: vscode.TextLine[] = Array.from(
+        Array(document.lineCount),
+        (_, lineNo) => document.lineAt(lineNo)
+    );
 
-  const formattedLines: vscode.TextEdit[] = lines
-    .map((line) => {
-      const formattedLine: string = formatter(line.text, rules);
-      return formattedLine !== line.text
-        ? vscode.TextEdit.replace(line.range, formattedLine)
-        : null;
-    })
-    .filter((e): e is vscode.TextEdit => e != null);
-  return formattedLines;
+    const formattedLines: vscode.TextEdit[] = lines
+        .map((line) => {
+            const formattedLine: string = formatter(line.text, rules);
+            return formattedLine !== line.text
+                ? vscode.TextEdit.replace(line.range, formattedLine)
+                : null;
+        })
+        .filter((e): e is vscode.TextEdit => e != null);
+    return formattedLines;
 };

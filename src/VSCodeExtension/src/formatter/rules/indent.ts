@@ -12,9 +12,9 @@ import { FormatRule } from "../formatter";
  * `namespace ... {}`
  */
 export const namespaceRule: FormatRule = (code: string) => {
-  const operationMatcher: RegExp = /\s+(namespace)/g;
+    const operationMatcher: RegExp = /\s+(namespace)/g;
 
-  return operationMatcher.test(code) ? code.trimLeft() : code;
+    return operationMatcher.test(code) ? code.trimLeft() : code;
 };
 
 export default [namespaceRule];

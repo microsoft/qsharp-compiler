@@ -11,7 +11,7 @@ import { FormatRule } from "../formatter";
  * more examples in the unit tests
  */
 export const spaceAfterIf: FormatRule = (code: string): string => {
-  return code.replace(/(^| +|;|})if[ \n]*/, "$1if ");
+    return code.replace(/(^| +|;|})if[ \n]*/, "$1if ");
 };
 
 export default [spaceAfterIf];
