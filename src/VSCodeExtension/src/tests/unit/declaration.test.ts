@@ -1,7 +1,7 @@
 import "mocha";
 import * as assert from "assert";
 import { formatter } from "../../formatter/formatter";
-import { argsRule } from "../../formatter/rules/operation";
+import { argsRule } from "../../formatter/rules/declaration";
 
 describe("arguments rule", () => {
     it("no error", () => {
