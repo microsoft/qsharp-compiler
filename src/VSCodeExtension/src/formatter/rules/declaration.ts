@@ -10,11 +10,11 @@
  * `operation Foo (q : Qubit, n : Int) : Bool`
  */
 export const argsRule = (code: string): string => {
-    const operationMatcher: RegExp = /operation\s*(\w+)\s*(\(.*\))\s*:\s*(\w+)/g;
+    const declarationMatcher: RegExp = /(operation|function)\s*(\w+)\s*(\(.*\))\s*:\s*(\w+)/g;
     const firstArgMatcher: RegExp = /\(((\w*)\s*:\s*([a-zA-Z]+))/g
     const restArgMatcher: RegExp = /,\s*((\w*)\s*:\s*([a-zA-Z]+))/g;
 
-    return code.replace(operationMatcher, (match, opName, args, retType) => {
+    return code.replace(declarationMatcher, (match, keyword, opName, args, retType) => {
         args = args
             .replace(
                 firstArgMatcher,
@@ -26,7 +26,7 @@ export const argsRule = (code: string): string => {
                 (match: string, group: string, variable: string, type: string) =>
                     `, ${variable} : ${type}`
             );
-        return `operation ${opName} ${args} : ${retType}`;
+        return `${keyword} ${opName} ${args} : ${retType}`;
     });
 };
 

@@ -52,4 +52,11 @@ describe("arguments rule", () => {
         code = "operation Foo (q : Qubit,   n : Int) : Bool";
         assert.equal(formatter(code, [argsRule]), expectedCode);
     });
+
+    it("match functions", () => {
+        const code = "  function   Foo   (q  :Qubit,   n :  Int)   :  Bool";
+        const expectedCode = "  function Foo (q : Qubit, n : Int) : Bool";
+
+        assert.equal(formatter(code, [argsRule]), expectedCode);
+    });
 });
