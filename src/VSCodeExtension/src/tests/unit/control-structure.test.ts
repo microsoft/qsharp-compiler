@@ -95,4 +95,36 @@ describe("space after if rule", () => {
 
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
+
+  it("does not format space after if statement if there is an identifier that starts with if", () => {
+    const code = "ifunctionWithParams(parameter);"
+    const expectedCode = "ifunctionWithParams(parameter);"
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
+  it("does not format space after if statement if there is an identifier that ends with if", () => {
+    const code = "functionWithParamsif= 2;"
+    const expectedCode = "functionWithParamsif= 2;"
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
+  it("break line just after the if statement", () => {
+    const code = `mutable bits = new Result[0];if
+(1==1){Message("1==1");}`;
+
+    const expectedCode =
+      'mutable bits = new Result[0];if (1==1){Message("1==1");}';
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
+  // Activate this test once a strategy for managing comments is implemented
+  xit("leaves comments unchanged", () => {
+    const code = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+    const expectedCode = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
 });
