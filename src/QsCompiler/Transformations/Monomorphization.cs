@@ -12,7 +12,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
@@ -33,21 +32,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         private struct Request
         {
-            public QsQualifiedName originalName;
-            public ImmutableConcretion typeResolutions;
-            public QsQualifiedName concreteName;
+            public QsQualifiedName OriginalName;
+            public ImmutableConcretion TypeResolutions;
+            public QsQualifiedName ConcreteName;
         }
 
         private struct Response
         {
-            public QsQualifiedName originalName;
-            public ImmutableConcretion typeResolutions;
-            public QsCallable concreteCallable;
+            public QsQualifiedName OriginalName;
+            public ImmutableConcretion TypeResolutions;
+            public QsCallable ConcreteCallable;
         }
 
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
+            if (compilation == null || compilation.Namespaces.Contains(null))
+            {
+                throw new ArgumentNullException(nameof(compilation));
+            }
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
@@ -59,9 +61,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var entryPoints = compilation.EntryPoints
                 .Select(call => new Request
                 {
-                    originalName = call,
-                    typeResolutions = ImmutableConcretion.Empty,
-                    concreteName = call
+                    OriginalName = call,
+                    TypeResolutions = ImmutableConcretion.Empty,
+                    ConcreteName = call
                 });
 
             var requests = new Stack<Request>(entryPoints);
@@ -72,14 +74,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 Request currentRequest = requests.Pop();
 
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
-                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName}");
+                if (!globals.TryGetValue(currentRequest.OriginalName, out QsCallable originalGlobal))
+                {
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.OriginalName}");
+                }
 
                 var currentResponse = new Response
                 {
-                    originalName = currentRequest.originalName,
-                    typeResolutions = currentRequest.typeResolutions,
-                    concreteCallable = originalGlobal.WithFullName(name => currentRequest.concreteName)
+                    OriginalName = currentRequest.OriginalName,
+                    TypeResolutions = currentRequest.TypeResolutions,
+                    ConcreteCallable = originalGlobal.WithFullName(name => currentRequest.ConcreteName)
                 };
 
                 GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
@@ -115,10 +119,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             string name = null;
 
             // Check for recursive call
-            if (currentResponse.originalName.Equals(globalCallable.Item) &&
-                typesHashSet.SetEquals(currentResponse.typeResolutions))
+            if (currentResponse.OriginalName.Equals(globalCallable.Item) &&
+                typesHashSet.SetEquals(currentResponse.TypeResolutions))
             {
-                name = currentResponse.concreteCallable.FullName.Name.Value;
+                name = currentResponse.ConcreteCallable.FullName.Name.Value;
             }
 
             // Search requests for identifier
@@ -126,9 +130,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = requests
                     .Where(req =>
-                        req.originalName.Equals(globalCallable.Item) &&
-                        typesHashSet.SetEquals(req.typeResolutions))
-                    .Select(req => req.concreteName.Name.Value)
+                        req.OriginalName.Equals(globalCallable.Item) &&
+                        typesHashSet.SetEquals(req.TypeResolutions))
+                    .Select(req => req.ConcreteName.Name.Value)
                     .FirstOrDefault();
             }
 
@@ -137,9 +141,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = responses
                     .Where(res =>
-                        res.originalName.Equals(globalCallable.Item) &&
-                        typesHashSet.SetEquals(res.typeResolutions))
-                    .Select(res => res.concreteCallable.FullName.Name.Value)
+                        res.OriginalName.Equals(globalCallable.Item) &&
+                        typesHashSet.SetEquals(res.TypeResolutions))
+                    .Select(res => res.ConcreteCallable.FullName.Name.Value)
                     .FirstOrDefault();
             }
 
@@ -155,13 +159,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 requests.Push(new Request()
                 {
-                    originalName = globalCallable.Item,
-                    typeResolutions = types,
-                    concreteName = concreteName
+                    OriginalName = globalCallable.Item,
+                    TypeResolutions = types,
+                    ConcreteName = concreteName
                 });
             }
-            else // If the identifier was found, update with the name
+            else
             {
+                // If the identifier was found, update with the name
                 concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
             }
 
@@ -174,9 +179,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
-                var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), intrinsicCallableSet);
+                var filter = new ResolveGenerics(responses.ToLookup(res => res.ConcreteCallable.FullName.Namespace, res => res.ConcreteCallable), intrinsicCallableSet);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return filter.OnCompilation(compilation);
             }
 
             public class TransformationState
@@ -206,14 +211,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 private bool NamespaceElementFilter(QsNamespaceElement elem)
                 {
                     if (elem is QsNamespaceElement.QsCallable call)
                     {
-
-                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
+                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || this.SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
                     }
                     else
                     {
@@ -226,8 +232,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     // Removes unused or generic callables from the namespace
                     // Adds in the used concrete callables
                     return ns.WithElements(elems => elems
-                        .Where(NamespaceElementFilter)
-                        .Concat(SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
+                        .Where(this.NamespaceElementFilter)
+                        .Concat(this.SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
                         .ToImmutableArray());
                 }
             }
@@ -243,16 +249,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             public static Response Apply(Response current)
             {
                 // Nothing to change if the current callable is already concrete
-                if (current.typeResolutions == ImmutableConcretion.Empty) return current;
+                if (current.TypeResolutions == ImmutableConcretion.Empty)
+                {
+                    return current;
+                }
 
-                var filter = new ReplaceTypeParamImplementations(current.typeResolutions);
+                var filter = new ReplaceTypeParamImplementations(current.TypeResolutions);
 
                 // Create a new response with the transformed callable
                 return new Response
                 {
-                    originalName = current.originalName,
-                    typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
+                    OriginalName = current.OriginalName,
+                    TypeResolutions = current.TypeResolutions,
+                    ConcreteCallable = filter.Namespaces.OnCallableDeclaration(current.ConcreteCallable)
                 };
             }
 
@@ -274,7 +283,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 public override ResolvedSignature OnSignature(ResolvedSignature s)
                 {
@@ -283,19 +294,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                         ImmutableArray<QsLocalSymbol>.Empty,
                         s.ArgumentType,
                         s.ReturnType,
-                        s.Information
-                        );
+                        s.Information);
                     return base.OnSignature(s);
                 }
             }
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
                 {
-                    if (SharedState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    if (this.SharedState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {
                         return typeParam.Resolution;
                     }
@@ -318,9 +330,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 // Create a new response with the transformed callable
                 return new Response
                 {
-                    originalName = current.originalName,
-                    typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
+                    OriginalName = current.OriginalName,
+                    TypeResolutions = current.TypeResolutions,
+                    ConcreteCallable = filter.Namespaces.OnCallableDeclaration(current.ConcreteCallable)
                 };
             }
 
@@ -347,7 +359,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
@@ -368,40 +382,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
                     // Merge the type params into the current dictionary
-                   
-                    foreach (var kvp in typeParams.Where(kv => !SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)))
+
+                    foreach (var kvp in typeParams.Where(kv => !this.SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)))
                     {
-                        SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
+                        this.SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
 
-                    return typeParams.Where(kv => SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)).ToImmutableDictionary();
+                    return typeParams.Where(kv => this.SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)).ToImmutableDictionary();
                 }
             }
 
             private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        ImmutableConcretion applicableParams = SharedState.CurrentParamTypes
+                        ImmutableConcretion applicableParams = this.SharedState.CurrentParamTypes
                             .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                         // We want to skip over intrinsic callables. They will not be monomorphized.
-                        if (!SharedState.IntrinsicCallableSet.Contains(global.Item))
+                        if (!this.SharedState.IntrinsicCallableSet.Contains(global.Item))
                         {
                             // Create a new identifier
-                            sym = SharedState.GetConcreteIdentifier(global, applicableParams);
+                            sym = this.SharedState.GetConcreteIdentifier(global, applicableParams);
                             tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
                         }
 
                         // Remove Type Params used from the CurrentParamTypes
                         foreach (var key in applicableParams.Keys)
                         {
-                            SharedState.CurrentParamTypes.Remove(key);
+                            this.SharedState.CurrentParamTypes.Remove(key);
                         }
                     }
                     else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
@@ -415,11 +431,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                {
+                }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
                 {
-                    if (SharedState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    if (this.SharedState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {
                         return typeParam.Resolution;
                     }

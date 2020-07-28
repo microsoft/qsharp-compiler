@@ -9,14 +9,12 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-
     [TestClass]
     public class ProjectLoaderTests
     {
-        static ProjectLoaderTests () =>
+        static ProjectLoaderTests() =>
             MSBuildLocator.RegisterDefaults();
 
         private static string ProjectFileName(string project) =>
@@ -28,7 +26,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var uri = new Uri(Path.GetFullPath(relativePath));
             return (uri.LocalPath, CompilationContext.Load(uri));
         }
-            
 
         [TestMethod]
         public void GetGlobalProperties()
@@ -61,12 +58,15 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             void CompareFramework(string project, string expected)
             {
                 var projectFileName = ProjectFileName(project);
-                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, out var _, (x,y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
-                if (!props.TryGetValue("TargetFramework", out string actual)) actual = null;
+                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, out var _, (x, y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
+                if (!props.TryGetValue("TargetFramework", out string actual))
+                {
+                    actual = null;
+                }
                 Assert.AreEqual(expected, actual);
             }
 
-            var testProjects = new(string, string)[]
+            var testProjects = new (string, string)[]
             {
                 ("test1", "netcoreapp2.1"),
                 ("test2", "netstandard2.0"),
@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             foreach (var project in invalidProjects)
             {
-                var (_, context) = Context(project);
+                var (_, context) = this.Context(project);
                 Assert.IsNull(context);
             }
         }
@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadOutdatedQsharpProject()
         {
-            var (projectFile, context) = Context("test9");
+            var (projectFile, context) = this.Context("test9");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test9.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadQsharpCoreLibraries()
         {
-            var (projectFile, context) = Context("test3");
+            var (projectFile, context) = this.Context("test3");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test3.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
 
-            (projectFile, context) = Context("test12");
+            (projectFile, context) = this.Context("test12");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test12.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -172,7 +172,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadQsharpFrameworkLibrary()
         {
-            var (projectFile, context) = Context("test7");
+            var (projectFile, context) = this.Context("test7");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test7.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadQsharpConsoleApps()
         {
-            var (projectFile, context) = Context("test4");
+            var (projectFile, context) = this.Context("test4");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test4.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
 
-            (projectFile, context) = Context("test10");
+            (projectFile, context) = this.Context("test10");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test10.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesCanon());
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
 
-            (projectFile, context) = Context("test11");
+            (projectFile, context) = this.Context("test11");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test11.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadQsharpUnitTest()
         {
-            var (projectFile, context) = Context("test5");
+            var (projectFile, context) = this.Context("test5");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test5.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -251,7 +251,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var qsFiles = new string[]
             {
-                // Compilation target set to none for "Operation5.qs",         
+                // Compilation target set to none for "Operation5.qs",
                 Path.Combine(projDir, "Tests5.qs"),
                 Path.Combine(projDir, "test.folder", "Operation5.qs")
             };
@@ -267,7 +267,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void LoadQsharpMultiFrameworkLibrary()
         {
-            var (projectFile, context) = Context("test6");
+            var (projectFile, context) = this.Context("test6");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
             Assert.AreEqual("test6.dll", Path.GetFileName(context.Properties.OutputPath));
@@ -288,7 +288,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
     }
 
-
     internal static class CompilationContext
     {
         internal static ProjectInformation Load(Uri projectFile)
@@ -300,14 +299,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
+
         internal static bool UsesProject(this ProjectInformation info, string projectFileName) => info.ProjectReferences.Any(r => r.EndsWith(projectFileName));
 
         // NB: We check whether the project uses either the 0.3–0.5 name (Primitives) or the 0.6– name (Intrinsic).
         internal static bool UsesIntrinsics(this ProjectInformation info) => info.UsesDll("Microsoft.Quantum.Intrinsic.dll") || info.UsesDll("Microsoft.Quantum.Primitives.dll");
+
         internal static bool UsesCanon(this ProjectInformation info) =>
             info.UsesDll("Microsoft.Quantum.Canon.dll") ||
             info.UsesDll("Microsoft.Quantum.Standard.dll");
+
         internal static bool UsesXunitHelper(this ProjectInformation info) => info.UsesDll("Microsoft.Quantum.Simulation.XUnit.dll");
     }
-
 }

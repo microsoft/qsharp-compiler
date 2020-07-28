@@ -63,7 +63,7 @@ let internal toString (t : ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t
 /// This subtyping carries over to tuple types containing operations, and callable types containing operations as within their in- and/or output type. 
 /// However, arrays in particular are treated as invariant; 
 /// i.e. an array of operations of type t1 are *not* a subtype of arrays of operations of type t2 even if t1 is a subtype of t2. 
-let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, lhsRange) (rhsType : ResolvedType, rhsRange) : ResolvedType = 
+let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, lhsRange) (rhsType : ResolvedType, rhsRange) : ResolvedType =
     let raiseError errCode (lhsCond, rhsCond) = 
         if lhsCond then lhsRange |> addError errCode
         if rhsCond then rhsRange |> addError errCode
@@ -251,9 +251,16 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     // comparison for any derived type).
     let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [toString lhsType; toString rhsType]
     let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
+
+    // This assumes that:
+    // - Result has no derived types that support equality comparisons.
+    // - Compound types containing Result (e.g., tuples or arrays of results) do not support equality comparison.
     match baseType.Resolution with
     | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
-        addError (ErrorCode.UnsupportedResultComparison, [context.ExecutionTarget.Value]) rhsRange
+        addError (ErrorCode.UnsupportedResultComparison, [context.ProcessorArchitecture.Value]) rhsRange
+    | Result when context.Capabilities = RuntimeCapabilities.QPRGen1 &&
+                  not (context.IsInOperation && context.IsInIfCondition) ->
+        addError (ErrorCode.ResultComparisonNotInOperationIf, [context.ProcessorArchitecture.Value]) rhsRange
     | _ ->
         let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
         VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore

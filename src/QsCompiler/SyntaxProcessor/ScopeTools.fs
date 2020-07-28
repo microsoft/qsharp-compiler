@@ -286,12 +286,14 @@ type ScopeContext<'a> =
       Symbols : SymbolTracker<'a>
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+      /// True if the current expression is contained within the condition of an if- or elif-statement.
+      IsInIfCondition : bool
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities
-      /// The name of the execution target for the compilation unit.
-      ExecutionTarget : NonNullable<string> }
+      /// The name of the processor architecture for the compilation unit.
+      ProcessorArchitecture : NonNullable<string> }
     with
 
     /// <summary>
@@ -307,13 +309,18 @@ type ScopeContext<'a> =
     /// </exception>
     static member Create (nsManager : NamespaceManager)
                          capabilities
-                         executionTarget
+                         processorArchitecture
                          (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
             { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
+              IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities
-              ExecutionTarget = executionTarget }
+              ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
+
+    /// Returns a new scope context for an expression that is contained within the condition of an if- or
+    /// elif-statement.
+    member this.WithinIfCondition = { this with IsInIfCondition = true }

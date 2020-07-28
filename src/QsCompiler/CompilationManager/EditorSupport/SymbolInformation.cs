@@ -14,7 +14,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
 
-
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     /// <summary>
@@ -27,8 +26,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Throws an ArgumentNullException if the given offset or relative range is null.
         /// </summary>
-        internal static Location AsLocation(NonNullable<string> source,
-            Tuple<int, int> offset, Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
+        internal static Location AsLocation(
+                NonNullable<string> source,
+                Tuple<int, int> offset,
+                Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
             new Location
             {
                 Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : null,
@@ -79,18 +80,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Sets the out parameter to the code fragment that overlaps with the given position in the given file
-        /// if such a fragment exists, or to null otherwise. 
-        /// If an overlapping code fragment exists, returns all symbol declarations, variable, Q# types, and Q# literals 
+        /// if such a fragment exists, or to null otherwise.
+        /// If an overlapping code fragment exists, returns all symbol declarations, variable, Q# types, and Q# literals
         /// that *overlap* with the given position as Q# SymbolInformation.
-        /// Returns null if no such fragment exists, or the given file and/or position is null, or the position is invalid. 
+        /// Returns null if no such fragment exists, or the given file and/or position is null, or the position is invalid.
         /// </summary>
-        internal static QsSymbolInfo TryGetQsSymbolInfo(this FileContentManager file,
-            Position position, bool includeEnd, out CodeFragment fragment)
+        internal static QsSymbolInfo TryGetQsSymbolInfo(
+            this FileContentManager file,
+            Position position,
+            bool includeEnd,
+            out CodeFragment fragment)
         {
             // getting the relevant token (if any)
 
             fragment = file?.TryGetFragmentAt(position, out var _, includeEnd);
-            if (fragment?.Kind == null) return null;
+            if (fragment?.Kind == null)
+            {
+                return null;
+            }
             var fragmentStart = fragment.GetRange().Start;
 
             // getting the symbol information (if any), and return the overlapping items only
@@ -117,20 +124,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Searches the given compilation for all references to a globally defined type or callable with the given name, 
-        /// and returns their locations as out parameter. 
-        /// If a set of source files is specified, then the search is limited to the specified files. 
-        /// Returns the location where that type or callable is defined as out parameter, 
-        /// or null if the declaration is not within this compilation unit and the files to which the search has been limited. 
-        /// Returns true if the search completed successfully, and false otherwise. 
+        /// Searches the given compilation for all references to a globally defined type or callable with the given name,
+        /// and returns their locations as out parameter.
+        /// If a set of source files is specified, then the search is limited to the specified files.
+        /// Returns the location where that type or callable is defined as out parameter,
+        /// or null if the declaration is not within this compilation unit and the files to which the search has been limited.
+        /// Returns true if the search completed successfully, and false otherwise.
         /// If the given compilation unit or qualified name is null, returns false without raising an exception.
         /// </summary>
-        internal static bool TryGetReferences(this CompilationUnit compilation, QsQualifiedName fullName,
-            out Location declarationLocation, out IEnumerable<Location> referenceLocations,
+        internal static bool TryGetReferences(
+            this CompilationUnit compilation,
+            QsQualifiedName fullName,
+            out Location declarationLocation,
+            out IEnumerable<Location> referenceLocations,
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             (declarationLocation, referenceLocations) = (null, null);
-            if (compilation == null || fullName == null) return false;
+            if (compilation == null || fullName == null)
+            {
+                return false;
+            }
 
             var emptyDoc = Array.Empty<NonNullable<string>>().ToLookup(i => i, _ => ImmutableArray<string>.Empty);
             var namespaces = compilation.GetCallables()
@@ -151,41 +164,57 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Searches the given compilation for all references to the identifier or type at the given position in the given file, 
-        /// and returns their locations as out parameter. 
-        /// If a set of source files is specified, then the search is limited to the specified files. 
-        /// Returns the location where that identifier or type is defined as out parameter, 
-        /// or null if the declaration is not within this compilation unit and the files to which the search has been limited. 
-        /// Returns true if the search completed successfully, and false otherwise. 
-        /// If the given file, compilation unit, or position is null, returns false without raising an exception. 
+        /// Searches the given compilation for all references to the identifier or type at the given position in the given file,
+        /// and returns their locations as out parameter.
+        /// If a set of source files is specified, then the search is limited to the specified files.
+        /// Returns the location where that identifier or type is defined as out parameter,
+        /// or null if the declaration is not within this compilation unit and the files to which the search has been limited.
+        /// Returns true if the search completed successfully, and false otherwise.
+        /// If the given file, compilation unit, or position is null, returns false without raising an exception.
         /// </summary>
         internal static bool TryGetReferences(
-            this FileContentManager file, CompilationUnit compilation, Position position,
-            out Location declarationLocation, out IEnumerable<Location> referenceLocations,
+            this FileContentManager file,
+            CompilationUnit compilation,
+            Position position,
+            out Location declarationLocation,
+            out IEnumerable<Location> referenceLocations,
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             (referenceLocations, declarationLocation) = (null, null);
-            if (file == null || compilation == null) return false;
-            var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position 
-            if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration) return false;
+            if (file == null || compilation == null)
+            {
+                return false;
+            }
+            var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position
+            if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration)
+            {
+                return false;
+            }
 
             var sym = symbolInfo.UsedTypes.Any()
                 && symbolInfo.UsedTypes.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt ? udt.Item
                 : symbolInfo.UsedVariables.Any() ? symbolInfo.UsedVariables.Single()
                 : symbolInfo.DeclaredSymbols.Any() ? symbolInfo.DeclaredSymbols.Single() : null;
-            if (sym == null) return false;
+            if (sym == null)
+            {
+                return false;
+            }
 
             var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
             var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
-            if (definition.IsNull) // the given position corresponds to an identifier of a global callable
+            if (definition.IsNull)
             {
+                // the given position corresponds to an identifier of a global callable
                 var nsName = parentName == null
                     ? file.TryGetNamespaceAt(position)
                     : parentName.Namespace.Value;
-                if (nsName == null) return false;
+                if (nsName == null)
+                {
+                    return false;
+                }
                 var ns = NonNullable<string>.New(nsName);
 
                 var result = ResolutionResult<CallableDeclarationHeader>.NotFound;
@@ -206,12 +235,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             referenceLocations = Enumerable.Empty<Location>();
-            if (limitToSourceFiles != null && !limitToSourceFiles.Contains(file.FileName)) return true;
+            if (limitToSourceFiles != null && !limitToSourceFiles.Contains(file.FileName))
+            {
+                return true;
+            }
             var (defOffset, defRange) = (DiagnosticTools.AsPosition(definition.Item.Item2), definition.Item.Item3);
 
-            if (defOffset.Equals(callablePos)) // the given position corresponds to a variable declared as part of a callable declaration
+            if (defOffset.Equals(callablePos))
             {
-                if (!compilation.GetCallables().TryGetValue(parentName, out var parent)) return false;
+                // the given position corresponds to a variable declared as part of a callable declaration
+                if (!compilation.GetCallables().TryGetValue(parentName, out var parent))
+                {
+                    return false;
+                }
                 referenceLocations = parent.Specializations
                     .Where(spec => spec.SourceFile.Value == file.FileName.Value)
                     .SelectMany(spec =>
@@ -220,12 +256,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             : ImmutableHashSet<IdentifierReferences.Location>.Empty)
                     .Select(AsLocation);
             }
-            else // the given position corresponds to a variable declared as part of a specialization declaration or implementation
+            else
             {
+                // the given position corresponds to a variable declared as part of a specialization declaration or implementation
                 var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Item1);
                 var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
-                var rootOffset = DiagnosticTools.AsTuple(specPos); 
+                var rootOffset = DiagnosticTools.AsTuple(specPos);
                 referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);

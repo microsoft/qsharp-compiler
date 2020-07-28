@@ -4,7 +4,6 @@
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
-
 namespace Microsoft.Quantum.QsLanguageServer
 {
     public static class CommandIds
@@ -43,14 +42,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             new ProtocolError(Codes.AwaitingInitialization);
     }
 
-    // If the workaround for ignoring CodeActionKind is no longer needed, 
-    // please also remove the modification in the server's Initialize method 
-    // that sets capabilities.textDocument.codeAction to null. 
+    // If the workaround for ignoring CodeActionKind is no longer needed,
+    // please also remove the modification in the server's Initialize method
+    // that sets capabilities.textDocument.codeAction to null.
     public static class Workarounds
     {
         /// <summary>
-        /// This is the exact version as used by earlier versions of the package. 
-        /// We will use this one for the sake of avoiding a bug in the VS Code client 
+        /// This is the exact version as used by earlier versions of the package.
+        /// We will use this one for the sake of avoiding a bug in the VS Code client
         /// that will cause an issue for deserializing the CodeActionKind array.
         /// </summary>
         [DataContract]
@@ -75,8 +74,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         /// <summary>
-        /// This is the exact version as used by earlier versions of the package. 
-        /// We will use this one for the sake of avoiding a bug in the VS Code client 
+        /// This is the exact version as used by earlier versions of the package.
+        /// We will use this one for the sake of avoiding a bug in the VS Code client
         /// that will cause an issue for deserializing the CodeActionKind array.
         /// </summary>
         [DataContract]
