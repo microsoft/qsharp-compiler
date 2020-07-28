@@ -86,6 +86,23 @@ namespace Qrng {
 
         assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
       });
+
+
+      it("adds space after if statement", () => {
+        const code =
+          `
+        if(a == 2) { // comment
+          Foo();
+        }`;
+
+        const expectedCode =
+          `
+        if (a == 2) { // comment
+          Foo();
+        }`;
+
+        assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+      });
     });
   });
 });
