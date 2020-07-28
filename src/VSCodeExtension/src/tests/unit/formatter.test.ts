@@ -35,12 +35,27 @@ part2 = 2;`;
       assert.equal(formattedCode, code);
     });
 
-    // Activate this test once a strategy for managing comments is implemented
-    it("leaves comments unchanged if decorated with ", () => {
-      const code = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
-      const expectedCode = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+    describe("integration tests with other rules", () => {
+      it("space after if leaves comments unchanged if decorated withCommentsIgnored", () => {
+        const code = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+        const expectedCode = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
 
-      assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
-    });
+        assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+      });
+
+      it("leaves comment unchanged", () => {
+        const code = `if\\comment a b c d
+                      (a == 2) {
+                        dosomething();
+                      }`;
+
+        const expectedCode = `if\\comment a b c d
+                      (a == 2) {
+                        dosomething();
+                      }`;
+
+        assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+      });
+    })
   })
 });
