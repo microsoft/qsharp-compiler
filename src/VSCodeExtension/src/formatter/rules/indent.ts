@@ -8,13 +8,13 @@ import { FormatRule } from "../formatter";
  *
  * @param code input string
  *
- * @example `   namespace ... {}` ->
- * `namespace ... {}`
+ * @example `   namespace   Foo   {}` ->
+ * `namespace Foo {}`
  */
 export const namespaceRule: FormatRule = (code: string) => {
-    const operationMatcher: RegExp = /\s+(namespace)/g;
+    const namespaceMatcher: RegExp = /^\s*namespace\s*(\w+)\s*(\S|\S.*\S)\s*$/g;
 
-    return operationMatcher.test(code) ? code.trimLeft() : code;
+    return code.replace(namespaceMatcher, (match, namespace, rest) => `namespace ${namespace} ${rest}`);
 };
 
 export default [namespaceRule];
