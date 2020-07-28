@@ -25,7 +25,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-export function createNewProject(context: vscode.ExtensionContext) {    
+export function createNewProject(context: vscode.ExtensionContext) {
     let env = yeoman.createEnv();
     env.options.extensionPath = context.extensionPath;
     env.registerStub(QSharpGenerator, 'qsharp:app');
@@ -41,13 +41,13 @@ export function createNewProject(context: vscode.ExtensionContext) {
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
         oc(packageInfo).nugetVersion
-        ? `::${packageInfo!.nugetVersion}`
-        : "";
+            ? `::${packageInfo!.nugetVersion}`
+            : "";
     let proc = cp.spawn(
         dotNetSdk.path,
         ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
     );
-    
+
     let errorMessage = "";
     proc.stderr.on(
         'data', data => {
@@ -57,7 +57,7 @@ export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageIn
     proc.stdout.on(
         'data', data => {
             console.log("" + data);
-        }        
+        }
     )
 
     proc.on(
@@ -102,7 +102,7 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
                     return promisify(cp.exec)(
                         `"${dotNetSdk.path}" tool uninstall --global Microsoft.Quantum.IQSharp`
                     )
-                    .then(() => true);
+                        .then(() => true);
                 }
                 return true;
             }
@@ -112,24 +112,24 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
                 if (needToInstall) {
                     let versionSpec =
                         requiredVersion === undefined
-                        ? ""
-                        : `::${requiredVersion}`;
+                            ? ""
+                            : `::${requiredVersion}`;
                     return promisify(cp.exec)(
                         `"${dotNetSdk.path}" tool install --global Microsoft.Quantum.IQSharp${versionSpec}`
                     )
-                    .then(() => {
-                        // Check what version actually got installed and report that back.
-                        findIQSharpVersion()
-                            .then(installedVersion => {
-                                if (installedVersion === undefined) {
-                                    throw new Error("Could not detect IQ# version after installing.");
-                                }
-                                if (installedVersion["iqsharp"] === undefined) {
-                                    throw new Error("Newly installed IQ# did not report a version.");
-                                }
-                                vscode.window.showInformationMessage(`Successfully installed IQ# version ${installedVersion["iqsharp"]}`);
-                            });
-                    });
+                        .then(() => {
+                            // Check what version actually got installed and report that back.
+                            findIQSharpVersion()
+                                .then(installedVersion => {
+                                    if (installedVersion === undefined) {
+                                        throw new Error("Could not detect IQ# version after installing.");
+                                    }
+                                    if (installedVersion["iqsharp"] === undefined) {
+                                        throw new Error("Newly installed IQ# did not report a version.");
+                                    }
+                                    vscode.window.showInformationMessage(`Successfully installed IQ# version ${installedVersion["iqsharp"]}`);
+                                });
+                        });
                 }
             }
         )
