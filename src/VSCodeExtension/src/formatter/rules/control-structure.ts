@@ -9,7 +9,7 @@ import { FormatRule } from "../formatter";
  * `if (1 == 1){H(qs[0]);}`
  */
 export const spaceAfterIf: FormatRule = (code: string): string => {
-    return code.replace(/(^| +|;|})if[ \n]*\(/, "$1if (");
+    return code.replace(/(^| +|;|})if[ \n]*\(/gm, "$1if (");
 };
 
 export default [spaceAfterIf];

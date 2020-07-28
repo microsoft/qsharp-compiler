@@ -120,6 +120,15 @@ describe("space after if rule", () => {
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
+  it("catches multiple if statements", () => {
+    const code = `if                              (1 == 1){H(qs[0]);}
+if                              (1 == 1){H(qs[0]);}`;
+    const expectedCode = `if (1 == 1){H(qs[0]);}
+if (1 == 1){H(qs[0]);}`;
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
   // Activate this test once a strategy for managing comments is implemented
   xit("leaves comments unchanged", () => {
     const code = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
