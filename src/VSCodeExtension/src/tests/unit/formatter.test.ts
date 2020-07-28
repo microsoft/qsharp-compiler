@@ -86,6 +86,6 @@ namespace Qrng {
 
         assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
       });
-    })
-  })
+    });
+  });
 });
