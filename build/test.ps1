@@ -45,11 +45,20 @@ function Test-VSCode {
     Push-Location (Join-Path $PSScriptRoot $path)
         npm run unittest
     Pop-Location
+
+    if ($LastExitCode -ne 0) {
+        Write-Host "##vso[task.logissue type=error;]Failed to test VSCode inside $path"
+        $script:all_ok = $False
+    }
 }
 
 Test-One '../QsCompiler.sln'
-Test-VSCode '../src/VSCodeExtension'
 
+if ($Env:ENABLE_VSIX -ne "false") {
+    Test-VSCode '../src/VSCodeExtension'
+} else {
+    Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
+}
 
 if (-not $all_ok) 
 {
