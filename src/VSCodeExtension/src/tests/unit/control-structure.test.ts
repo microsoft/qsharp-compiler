@@ -1,6 +1,6 @@
 import "mocha";
 import * as assert from "assert";
-import { formatter } from "../../formatter/formatter";
+import { formatter, withCommentsIgnored } from "../../formatter/formatter";
 import { spaceAfterIf } from "../../formatter/rules/control-structure";
 
 describe("space after if rule", () => {
@@ -127,5 +127,45 @@ if                              (1 == 1){H(qs[0]);}`;
 if (1 == 1){H(qs[0]);}`;
 
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
+  describe("integration tests withCommentsIgnored", () => {
+    it("space after if leaves comments unchanged if decorated withCommentsIgnored", () => {
+      const code = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+      const expectedCode = '// mutable bits = new Result[0];if(1==1){Message("1==1");}';
+
+      assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+    });
+
+    it("leaves comment unchanged", () => {
+      const code = `if\\comment a b c d
+                    (a == 2) {
+                      dosomething();
+                    }`;
+
+      const expectedCode = `if\\comment a b c d
+                    (a == 2) {
+                      dosomething();
+                    }`;
+
+      assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+    });
+
+
+    it("adds space after if statement", () => {
+      const code =
+        `
+      if(a == 2) { // comment
+        Foo();
+      }`;
+
+      const expectedCode =
+        `
+      if (a == 2) { // comment
+        Foo();
+      }`;
+
+      assert.equal(formatter(code, [withCommentsIgnored(spaceAfterIf)]), expectedCode);
+    });
   });
 });
