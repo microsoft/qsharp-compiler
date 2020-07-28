@@ -40,7 +40,7 @@ part2 = 2;`;
       assert.equal(formattedCode, code);
     });
 
-    it("multiple comments, multiple line comments, calls the rule with the non coment code", () => {
+    it("multiple comments, multiple line comments, calls the rule with the non-comment code", () => {
       const code =
         `
 // This is a test comment
