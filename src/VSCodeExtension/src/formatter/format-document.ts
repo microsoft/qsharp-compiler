@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import { FormatRule, formatter } from "./formatter";
 import indentRules from "./rules/indent";
-import operationRules from "./rules/operation";
+import operationRules from "./rules/declaration";
 import controlStructureRules from "./rules/control-structure";
 
 const rules: FormatRule[] = [
