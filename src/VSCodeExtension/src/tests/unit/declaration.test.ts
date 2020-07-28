@@ -59,4 +59,13 @@ describe("arguments rule", () => {
 
         assert.equal(formatter(code, [argsRule]), expectedCode);
     });
+
+    it("catches multiple declarations", () => {
+        const code = `  function   Foo   (q  :Qubit,   n :  Int)   :  Unit {}
+operation   Bar   (q  :Qubit,   n :  Int)   :  Unit {}`;
+        const expectedCode = `  function Foo (q : Qubit, n : Int) : Unit {}
+operation Bar (q : Qubit, n : Int) : Unit {}`;
+
+        assert.equal(formatter(code, [argsRule]), expectedCode);
+    });
 });
