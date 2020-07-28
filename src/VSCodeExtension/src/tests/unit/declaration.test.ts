@@ -68,4 +68,29 @@ operation Bar (q : Qubit, n : Int) : Unit {}`;
 
         assert.equal(formatter(code, [argsRule]), expectedCode);
     });
+
+    it("formats multiline declarations", () => {
+        const code = `operation Foo   (
+    q  :Qubit,
+    n :  Int
+)   :  Bool`;
+        const expectedCode = `operation Foo (q : Qubit, n : Int) : Bool`;
+
+        assert.equal(formatter(code, [argsRule]), expectedCode);
+    });
+
+    it("catches multiple multiline declarations", () => {
+        const code = `operation Foo   (
+    q  :Qubit,
+    n :  Int
+)   :  Bool {}
+function Bar   (
+    q  :Qubit,
+    n :  Int
+)   :  Bool {}`;
+        const expectedCode = `operation Foo (q : Qubit, n : Int) : Bool {}
+function Bar (q : Qubit, n : Int) : Bool {}`;
+
+        assert.equal(formatter(code, [argsRule]), expectedCode);
+    });
 });
