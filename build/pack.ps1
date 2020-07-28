@@ -168,7 +168,7 @@ function Pack-VSCode() {
             }
         } Catch {
             Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
-            $all_ok = $False
+            $Script:all_ok = $False
         }
     } else {
         Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
@@ -195,7 +195,7 @@ function Pack-VS() {
             }
         } Catch {
             Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-            $all_ok = $False
+            $Script:all_ok = $False
         }
     } else {    
         Write-Host "msbuild not installed. Will skip creation of VisualStudio extension package"
