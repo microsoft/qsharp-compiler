@@ -38,7 +38,17 @@ function Test-One {
     }
 }
 
+function Test-VSCode {
+    Param([string] $path);
+
+    Write-Host "##[info]Testing VSCode Extension inside $path..."    
+    Push-Location (Join-Path $PSScriptRoot $path)
+        npm run unittest
+    Pop-Location
+}
+
 Test-One '../QsCompiler.sln'
+Test-VSCode '../src/VSCodeExtension'
 
 
 if (-not $all_ok) 

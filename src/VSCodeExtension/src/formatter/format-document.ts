@@ -5,12 +5,12 @@ import * as vscode from "vscode";
 import { FormatRule, formatter } from "./formatter";
 import indentRules from "./rules/indent";
 import operationRules from "./rules/operation";
-import controlSturctureRules from "./rules/control-sctructures";
+import controlStructureRules from "./rules/control-structure";
 
 const rules: FormatRule[] = [
   ...indentRules,
   ...operationRules,
-  ...controlSturctureRules,
+  ...controlStructureRules,
 ];
 
 export const formatDocument = (
