@@ -16,18 +16,11 @@ const rules: FormatRule[] = [
 export const formatDocument = (
     document: vscode.TextDocument
 ): vscode.TextEdit[] => {
-    const lines: vscode.TextLine[] = Array.from(
-        Array(document.lineCount),
-        (_, lineNo) => document.lineAt(lineNo)
-    );
+    const firstLine = document.lineAt(0);
+    const lastLine = document.lineAt(document.lineCount - 1);
+    const range: vscode.Range = new vscode.Range(firstLine.range.start, lastLine.range.end);
 
-    const formattedLines: vscode.TextEdit[] = lines
-        .map((line) => {
-            const formattedLine: string = formatter(line.text, rules);
-            return formattedLine !== line.text
-                ? vscode.TextEdit.replace(line.range, formattedLine)
-                : null;
-        })
-        .filter((e): e is vscode.TextEdit => e != null);
-    return formattedLines;
+    const formattedDocument: string = formatter(document.getText(), rules);
+
+    return [vscode.TextEdit.replace(range, formattedDocument)];
 };
