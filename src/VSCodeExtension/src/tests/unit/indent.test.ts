@@ -67,4 +67,30 @@ describe("namespace rule", () => {
         code = "     namespace   Microsoft.Quantum.Arrays   { // ... }        ";
         assert.equal(formatter(code, [namespaceRule]), expectedCode);
     });
+
+    it("formats multiline", () => {
+        const expectedCode = `namespace Foo {
+    // ... 
+}`;
+
+        let code = `     namespace Foo {
+    // ... 
+}`;
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+
+        code = `     namespace Foo {
+    // ... 
+}     `;
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+        
+        code = `     namespace Foo     {
+    // ... 
+}`;
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+        
+        code = `     namespace Foo     {
+    // ... 
+}    `;
+        assert.equal(formatter(code, [namespaceRule]), expectedCode);
+    });
 });

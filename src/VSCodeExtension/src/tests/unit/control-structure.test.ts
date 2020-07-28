@@ -66,7 +66,7 @@ describe("space after if rule", () => {
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
-  it("formats space after if it is preceeding with a semicolon", () => {
+  it("formats space after if it is preceding with a semicolon", () => {
     const code = 'mutable bits = new Result[0];if(1==1){Message("1==1");}';
     const expectedCode =
       'mutable bits = new Result[0];if (1==1){Message("1==1");}';
@@ -74,7 +74,7 @@ describe("space after if rule", () => {
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
-  it("formats space after if it is preceeding with a semicolon with line break", () => {
+  it("formats space after if it is preceding with a semicolon with line break", () => {
     const code = `mutable bits = new Result[0];if 
                    (1==1){Message(\"1==1\");}`;
 
@@ -84,7 +84,7 @@ describe("space after if rule", () => {
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
-  it("formats space after if it is precceding with a }", () => {
+  it("formats space after if it is preceding with a }", () => {
     const code = `for (idxBit in 1..BitSizeI(max)) {
                       set bits += [SampleQuantumRandomNumberGenerator()];
                     }if(2==2){Message("2==2");}`;
@@ -116,6 +116,15 @@ describe("space after if rule", () => {
 
     const expectedCode =
       'mutable bits = new Result[0];if (1==1){Message("1==1");}';
+
+    assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
+  });
+
+  it("catches multiple if statements", () => {
+    const code = `if                              (1 == 1){H(qs[0]);}
+if                              (1 == 1){H(qs[0]);}`;
+    const expectedCode = `if (1 == 1){H(qs[0]);}
+if (1 == 1){H(qs[0]);}`;
 
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
