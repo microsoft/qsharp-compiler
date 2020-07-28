@@ -12,8 +12,8 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions
 open Xunit
+open Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutions
 
 
 type TypeParameterTests () =
@@ -50,11 +50,10 @@ type TypeParameterTests () =
     let AssertExpectedResolution expected given =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckCombinedResolution expected resolutions =
-        let mutable combined = ImmutableDictionary.Empty
-        let success = TypeParamUtils.TryCombineTypeResolutions(&combined, resolutions)
-        AssertExpectedResolution expected combined
-        success
+    let CheckCombinedResolution expected (resolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>),ResolvedType> []) =
+        let summary = TypeResolutionSummary(resolutions)
+        AssertExpectedResolution expected summary.CombinedTypeParameterResolutions
+        summary.IsValidSummary
 
     let AssertCombinedResolution expected resolutions =
         let success = CheckCombinedResolution expected resolutions
@@ -541,7 +540,8 @@ type TypeParameterTests () =
     member this.``Identifier Resolution`` () =
         let expression = CompileTypeParameterTest 1 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -555,7 +555,8 @@ type TypeParameterTests () =
     member this.``Adjoint Application Resolution`` () =
         let expression = CompileTypeParameterTest 2 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -569,7 +570,8 @@ type TypeParameterTests () =
     member this.``Controlled Application Resolution`` () =
         let expression = CompileTypeParameterTest 3 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -583,7 +585,8 @@ type TypeParameterTests () =
     member this.``Partial Application Resolution`` () =
         let expression = CompileTypeParameterTest 4 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -597,7 +600,8 @@ type TypeParameterTests () =
     member this.``Sub-call Resolution`` () =
         let expression = CompileTypeParameterTest 5 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [ ]
 
         AssertExpectedResolution expected given
@@ -607,7 +611,8 @@ type TypeParameterTests () =
     member this.``Argument Sub-call Resolution`` () =
         let expression = CompileTypeParameterTest 6 |> GetMainExpression
 
-        let given = GetTypeParameterResolutions.Apply expression
+        let summary = TypeResolutionSummary(expression)
+        let given = summary.CombinedTypeParameterResolutions
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)

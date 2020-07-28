@@ -18,11 +18,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
     using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
     using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    /// <summary>
-    /// Utility class containing methods for working with type parameters.
-    /// </summary>
-    internal static class TypeParamUtils
+    public class TypeResolutionSummary
     {
+        // Static Members
+
+        /// <summary>
+        /// Checks if the given type parameter directly resolves to itself. If so, the
+        /// resolution may be overridden without conflict.
+        /// </summary>
+        private static bool IsSelfResolution(TypeParameterName typeParam, ResolvedType res)
+        {
+            return res.Resolution is ResolvedTypeKind.TypeParameter tp
+                && tp.Item.Origin.Equals(typeParam.Item1)
+                && tp.Item.TypeName.Equals(typeParam.Item2);
+        }
+
         /// <summary>
         /// Reverses the dependencies of type parameters resolving to other type parameters in the given
         /// dictionary to create a lookup whose keys are type parameters and whose values are all the type
@@ -38,14 +48,88 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
                    kvp => kvp.Key);
         }
 
+        // Fields and Properties
+
+        /// <summary>
+        /// Array of all the type parameter resolution dictionaries that are summarized in this summary.
+        /// </summary>
+        public readonly ImmutableArray<TypeParameterResolutions> ResolutionsInSummary;
+
+        /// <summary>
+        /// The resulting resolution dictionary from combining all the input resolutions in
+        /// ResolutionsInSummary. Represents a summary of all the type parameters found and their
+        /// ultimate type resolutions.
+        /// </summary>
+        public TypeParameterResolutions CombinedTypeParameterResolutions { get; private set; }
+
+        /// <summary>
+        /// Flag for if there were any invalid scenarios encountered while creating the summary.
+        /// Invalid scenarios include a type parameter being assigned to multiple conflicting types
+        /// and a type parameter being assigned to a type referencing a different type parameter of
+        /// the same callable. Has value true if no invalid scenarios were encountered.
+        /// </summary>
+        public bool IsValidSummary { get => !this.SummarizesOverConflictingResolution && !this.SummarizesOverParameterConstriction; }
+
+        /// <summary>
+        /// Flag for if, at any time in the creation of the summary, there was a type parameter that
+        /// was assigned conflicting type resolutions. Has value true if a conflict was encountered.
+        /// </summary>
+        public bool SummarizesOverConflictingResolution { get; private set; } = false;
+
+        /// <summary>
+        /// Flag for if, at any time in the creation of the summary, there was a type parameter that
+        /// was assigned a type resolution referencing a different type parameter of the same callable.
+        /// </summary>
+        public bool SummarizesOverParameterConstriction { get; private set; } = false;
+
+        // Constructors
+
+        /// <summary>
+        /// Creates a type parameter resolution summary from the independent type parameter resolutions
+        /// found in the given typed expression and its sub expressions. Only sub-expressions whose
+        /// type parameter resolutions are relevant to the given expression's type parameter resolutions
+        /// are considered.
+        /// </summary>
+        public TypeResolutionSummary(TypedExpression expression) : this(GetTypeParameterResolutions.Apply(expression))
+        {
+        }
+
+        /// <summary>
+        /// Creates a type parameter resolution summary from independent type parameter resolution dictionaries.
+        /// </summary>
+        internal TypeResolutionSummary(params TypeParameterResolutions[] independentResolutionDictionaries)
+        {
+            // Filter out empty dictionaries
+            this.ResolutionsInSummary = independentResolutionDictionaries.Where(res => !res.IsEmpty).ToImmutableArray();
+
+            if (!this.ResolutionsInSummary.Any())
+            {
+                this.CombinedTypeParameterResolutions = TypeParameterResolutions.Empty;
+            }
+
+            this.CombineTypeResolutions(this.ResolutionsInSummary.ToArray());
+        }
+
+        // Methods
+
+        /// <summary>
+        /// Updates the SummarizesOverParameterConstriction flag. If the flag is already set to true,
+        /// nothing will be done. If not, the given type parameter will be checked against the given
+        /// resolution for type parameter constriction, which is when one type parameter is dependent
+        /// on another type parameter of the same callable.
+        /// </summary>
+        private void UpdateConstrictionFlag(TypeParameterName typeParamName, ResolvedType typeParamResolution)
+        {
+            this.SummarizesOverParameterConstriction = this.SummarizesOverParameterConstriction
+                || ConstrictionCheck.Apply(typeParamName, typeParamResolution);
+        }
+
         /// <summary>
         /// Uses the given lookup, mayBeReplaced, to determine what records in the combinedBuilder can be updated
         /// from the given type parameter, typeParam, and its resolution, paramRes. Then updates the combinedBuilder
-        /// appropriately. The flag used to determine the validity of type resolutions dictionaries, success, is
-        /// updated and returned.
+        /// appropriately.
         /// </summary>
-        private static bool UpdatedReplaceableResolutions(
-            bool success,
+        private void UpdatedReplaceableResolutions(
             ILookup<TypeParameterName, TypeParameterName> mayBeReplaced,
             TypeParameterResolutions.Builder combinedBuilder,
             TypeParameterName typeParam,
@@ -59,11 +143,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
             foreach (var keyInCombined in mayBeReplaced[typeParam])
             {
                 // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                success = success && !ConstrictionCheck.Apply(keyInCombined, paramRes);
+                this.UpdateConstrictionFlag(keyInCombined, paramRes);
                 combinedBuilder[keyInCombined] = ResolvedType.ResolveTypeParameters(singleResolution, combinedBuilder[keyInCombined]);
             }
-
-            return success;
         }
 
         /// <summary>
@@ -71,16 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
         /// resolution dictionary that has type parameter keys that are not referenced
         /// in its values.
         /// </summary>
-        internal static bool TryCombineTypeResolutionDictionary(out TypeParameterResolutions combinedResolutions, TypeParameterResolutions independentResolutions)
+        private TypeParameterResolutions CombineTypeResolutionDictionary(TypeParameterResolutions independentResolutions)
         {
-            if (!independentResolutions.Any())
-            {
-                combinedResolutions = TypeParameterResolutions.Empty;
-                return true;
-            }
-
             var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
-            var success = true;
 
             foreach (var (typeParam, paramRes) in independentResolutions)
             {
@@ -90,19 +165,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
 
                 // Check that we are not constricting a type parameter to another type parameter of the same callable
                 // both before and after updating the current value with the resolutions processed so far.
-                success = success && !ConstrictionCheck.Apply(typeParam, paramRes);
+                this.UpdateConstrictionFlag(typeParam, paramRes);
                 var resolvedParamRes = ResolvedType.ResolveTypeParameters(combinedBuilder.ToImmutable(), paramRes);
-                success = success && !ConstrictionCheck.Apply(typeParam, resolvedParamRes);
+                this.UpdateConstrictionFlag(typeParam, resolvedParamRes);
 
                 // Do any replacements for type parameters that may be replaced with the current resolution.
-                success = UpdatedReplaceableResolutions(success, mayBeReplaced, combinedBuilder, typeParam, resolvedParamRes);
+                this.UpdatedReplaceableResolutions(mayBeReplaced, combinedBuilder, typeParam, resolvedParamRes);
 
                 // Add the resolution to the current dictionary.
                 combinedBuilder[typeParam] = resolvedParamRes;
             }
 
-            combinedResolutions = combinedBuilder.ToImmutable();
-            return success;
+            return combinedBuilder.ToImmutable();
         }
 
         /// <summary>
@@ -119,23 +193,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
         /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
         /// type parameter belonging to a different callable, or themselves.
         /// </summary>
-        internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combinedResolutions, params TypeParameterResolutions[] independentResolutionDictionaries)
+        private void CombineTypeResolutions(params TypeParameterResolutions[] independentResolutionDictionaries)
         {
-            if (!independentResolutionDictionaries.Any())
-            {
-                combinedResolutions = TypeParameterResolutions.Empty;
-                return true;
-            }
-
             var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
-            var success = true;
-
-            static bool IsSelfResolution(TypeParameterName typeParam, ResolvedType res) =>
-                res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
             foreach (var resolutionDictionary in independentResolutionDictionaries)
             {
-                success = TryCombineTypeResolutionDictionary(out var resolvedDictionary, resolutionDictionary) && success;
+                TypeParameterResolutions resolvedDictionary;
+                resolvedDictionary = this.CombineTypeResolutionDictionary(resolutionDictionary);
 
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
@@ -145,34 +210,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
                 // This needs to be done first to cover an edge case.
                 foreach (var (typeParam, paramRes) in resolvedDictionary.Where(entry => mayBeReplaced.Contains(entry.Key)))
                 {
-                    success = UpdatedReplaceableResolutions(success, mayBeReplaced, combinedBuilder, typeParam, paramRes);
+                    this.UpdatedReplaceableResolutions(mayBeReplaced, combinedBuilder, typeParam, paramRes);
                 }
 
                 // Validate and add each resolution to the result.
                 foreach (var (typeParam, paramRes) in resolvedDictionary)
                 {
                     // Check that we are not constricting a type parameter to another type parameter of the same callable.
-                    success = success && !ConstrictionCheck.Apply(typeParam, paramRes);
+                    this.UpdateConstrictionFlag(typeParam, paramRes);
 
                     // Check that there is no conflicting resolution already defined.
-                    var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
-                        && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
-                    success = success && !conflictingResolutionExists;
+                    if (!this.SummarizesOverConflictingResolution)
+                    {
+                        this.SummarizesOverConflictingResolution = combinedBuilder.TryGetValue(typeParam, out var current)
+                            && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
+                    }
 
                     // Add the resolution to the current dictionary.
                     combinedBuilder[typeParam] = paramRes;
                 }
             }
 
-            combinedResolutions = combinedBuilder.ToImmutable();
-            return success;
+            this.CombinedTypeParameterResolutions = combinedBuilder.ToImmutable();
         }
+
+        // Nested Classes
 
         /// <summary>
         /// Walker that collects all of the type parameter references for a given ResolvedType
         /// and returns them as a HashSet.
         /// </summary>
-        internal class GetTypeParameters : TypeTransformation<GetTypeParameters.TransformationState>
+        private class GetTypeParameters : TypeTransformation<GetTypeParameters.TransformationState>
         {
             /// <summary>
             /// Walks the given ResolvedType and returns all of the type parameters referenced.
@@ -206,7 +274,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
         /// Walker that checks a given type parameter resolution to see if it constricts
         /// the type parameter to another type parameter of the same callable.
         /// </summary>
-        internal class ConstrictionCheck : TypeTransformation<ConstrictionCheck.TransformationState>
+        private class ConstrictionCheck : TypeTransformation<ConstrictionCheck.TransformationState>
         {
             private readonly TypeParameterName typeParamName;
 
@@ -257,61 +325,54 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.GetTypeParameterResolutio
                 return base.OnTypeParameter(tp);
             }
         }
-    }
 
-    /// <summary>
-    /// stuff
-    /// </summary>
-    public static class GetTypeParameterResolutions
-    {
-        public static TypeParameterResolutions Apply(TypedExpression expression)
+        private class GetTypeParameterResolutions : ExpressionTransformation<GetTypeParameterResolutions.TransformationState>
         {
-            var walker = new CombineTypeParams();
-            walker.OnTypedExpression(expression);
-            var valid = TypeParamUtils.TryCombineTypeResolutions(out var combined, walker.SharedState.Resolutions.ToArray());
-            return combined;
-        }
-
-        private class TransformationState
-        {
-            public List<TypeParameterResolutions> Resolutions = new List<TypeParameterResolutions>();
-            public bool InCallLike = false;
-        }
-
-        private class CombineTypeParams : ExpressionTransformation<TransformationState>
-        {
-            public CombineTypeParams() : base(new TransformationState(), TransformationOptions.NoRebuild)
+            public static TypeParameterResolutions[] Apply(TypedExpression expression)
             {
+                var walker = new GetTypeParameterResolutions();
+                walker.OnTypedExpression(expression);
+                return walker.SharedState.Resolutions.ToArray();
             }
+
+            internal class TransformationState
+            {
+                public List<TypeParameterResolutions> Resolutions = new List<TypeParameterResolutions>();
+                public bool InCallLike = false;
+            }
+
+            private GetTypeParameterResolutions() : base(new TransformationState(), TransformationOptions.NoRebuild)
+                {
+                }
 
             public override TypedExpression OnTypedExpression(TypedExpression ex)
-            {
-                if (ex.Expression is ExpressionKind.CallLikeExpression call)
                 {
-                    if (!this.SharedState.InCallLike || TypedExpression.IsPartialApplication(call))
+                    if (ex.Expression is ExpressionKind.CallLikeExpression call)
                     {
-                        var contextInCallLike = this.SharedState.InCallLike;
-                        this.SharedState.InCallLike = true;
-                        this.OnTypedExpression(call.Item1);
-                        this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
-                        this.SharedState.InCallLike = contextInCallLike;
+                        if (!this.SharedState.InCallLike || TypedExpression.IsPartialApplication(call))
+                        {
+                            var contextInCallLike = this.SharedState.InCallLike;
+                            this.SharedState.InCallLike = true;
+                            this.OnTypedExpression(call.Item1);
+                            this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
+                            this.SharedState.InCallLike = contextInCallLike;
+                        }
                     }
-                }
-                else if (ex.Expression is ExpressionKind.AdjointApplication adj)
-                {
-                    this.OnTypedExpression(adj.Item);
-                }
-                else if (ex.Expression is ExpressionKind.ControlledApplication ctrl)
-                {
-                    this.OnTypedExpression(ctrl.Item);
-                }
-                else
-                {
-                    this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
-                }
+                    else if (ex.Expression is ExpressionKind.AdjointApplication adj)
+                    {
+                        this.OnTypedExpression(adj.Item);
+                    }
+                    else if (ex.Expression is ExpressionKind.ControlledApplication ctrl)
+                    {
+                        this.OnTypedExpression(ctrl.Item);
+                    }
+                    else
+                    {
+                        this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
+                    }
 
-                return ex;
-            }
+                    return ex;
+                }
         }
     }
 }
