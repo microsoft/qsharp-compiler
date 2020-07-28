@@ -96,14 +96,14 @@ describe("space after if rule", () => {
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
-  it("does not formats space after if statement if there is an identifier that starts with if", () => {
+  it("does not format space after if statement if there is an identifier that starts with if", () => {
     const code = "ifunctionWithParams(parameter);"
     const expectedCode = "ifunctionWithParams(parameter);"
 
     assert.equal(formatter(code, [spaceAfterIf]), expectedCode);
   });
 
-  it("does not formats space after if statement if there is an identifier that ends with if", () => {
+  it("does not format space after if statement if there is an identifier that ends with if", () => {
     const code = "functionWithParamsif= 2;"
     const expectedCode = "functionWithParamsif= 2;"
 
