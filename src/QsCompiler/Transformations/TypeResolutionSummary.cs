@@ -19,10 +19,10 @@ namespace Microsoft.Quantum.QsCompiler
     using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
-    /// Summarizes a series of type parameter resolution dictionaries, ResolutionsInSummary, into one
-    /// resolution dictionary, CombinedTypeParameterResolutions, containing the ultimate type resolutions
-    /// for all the type parameters found in the dictionaries. Validation is done on the resolutions,
-    /// which can be checked through the IsValidSummary, SummarizesOverConflictingResolution, and
+    /// Summarizes a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,
+    /// into one resolution dictionary, CombinedResolutionDictionary, containing the ultimate type
+    /// resolutions for all the type parameters found in the dictionaries. Validation is done on the
+    /// resolutions, which can be checked through the IsValid, SummarizesOverConflictingResolution, and
     /// SummarizesOverParameterConstriction flags.
     /// </summary>
     public class TypeResolutionSummary
@@ -60,14 +60,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Array of all the type parameter resolution dictionaries that are summarized in this summary.
         /// </summary>
-        public readonly ImmutableArray<TypeParameterResolutions> ResolutionsInSummary;
+        public readonly ImmutableArray<TypeParameterResolutions> IndependentResolutionDictionaries;
 
         /// <summary>
         /// The resulting resolution dictionary from combining all the input resolutions in
-        /// ResolutionsInSummary. Represents a summary of all the type parameters found and their
+        /// IndependentResolutionDictionaries. Represents a summary of all the type parameters found and their
         /// ultimate type resolutions.
         /// </summary>
-        public TypeParameterResolutions CombinedTypeParameterResolutions { get; private set; }
+        public TypeParameterResolutions CombinedResolutionDictionary { get; private set; }
 
         /// <summary>
         /// Flag for if there were any invalid scenarios encountered while creating the summary.
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// and a type parameter being assigned to a type referencing a different type parameter of
         /// the same callable. Has value true if no invalid scenarios were encountered.
         /// </summary>
-        public bool IsValidSummary { get => !this.SummarizesOverConflictingResolution && !this.SummarizesOverParameterConstriction; }
+        public bool IsValid { get => !this.SummarizesOverConflictingResolution && !this.SummarizesOverParameterConstriction; }
 
         /// <summary>
         /// Flag for if, at any time in the creation of the summary, there was a type parameter that
@@ -112,11 +112,11 @@ namespace Microsoft.Quantum.QsCompiler
         internal TypeResolutionSummary(params TypeParameterResolutions[] independentResolutionDictionaries)
         {
             // Filter out empty dictionaries
-            this.ResolutionsInSummary = independentResolutionDictionaries.Where(res => !res.IsEmpty).ToImmutableArray();
+            this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !res.IsEmpty).ToImmutableArray();
 
-            if (!this.ResolutionsInSummary.Any())
+            if (!this.IndependentResolutionDictionaries.Any())
             {
-                this.CombinedTypeParameterResolutions = TypeParameterResolutions.Empty;
+                this.CombinedResolutionDictionary = TypeParameterResolutions.Empty;
             }
 
             this.CombineTypeResolutions();
@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler
         private void UpdateConstrictionFlag(TypeParameterName typeParamName, ResolvedType typeParamResolution)
         {
             this.SummarizesOverParameterConstriction = this.SummarizesOverParameterConstriction
-                || ConstrictionCheck.Apply(typeParamName, typeParamResolution);
+                || CheckForConstriction.Apply(typeParamName, typeParamResolution);
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             var combinedBuilder = ImmutableDictionary.CreateBuilder<TypeParameterName, ResolvedType>();
 
-            foreach (var resolutionDictionary in this.ResolutionsInSummary)
+            foreach (var resolutionDictionary in this.IndependentResolutionDictionaries)
             {
                 TypeParameterResolutions resolvedDictionary;
                 resolvedDictionary = this.CombineTypeResolutionDictionary(resolutionDictionary);
@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            this.CombinedTypeParameterResolutions = combinedBuilder.ToImmutable();
+            this.CombinedResolutionDictionary = combinedBuilder.ToImmutable();
         }
 
         // Nested Classes
@@ -277,7 +277,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Walker that checks a given type parameter resolution to see if it constricts
         /// the type parameter to another type parameter of the same callable.
         /// </summary>
-        private class ConstrictionCheck : TypeTransformation<ConstrictionCheck.TransformationState>
+        private class CheckForConstriction : TypeTransformation<CheckForConstriction.TransformationState>
         {
             private readonly TypeParameterName typeParamName;
 
@@ -288,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public static bool Apply(TypeParameterName typeParam, ResolvedType typeParamRes)
             {
-                var walker = new ConstrictionCheck(typeParam);
+                var walker = new CheckForConstriction(typeParam);
                 walker.OnType(typeParamRes);
                 return walker.SharedState.IsConstrictive;
             }
@@ -298,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler
                 public bool IsConstrictive = false;
             }
 
-            private ConstrictionCheck(TypeParameterName typeParamName)
+            private CheckForConstriction(TypeParameterName typeParamName)
                 : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
                 this.typeParamName = typeParamName;
