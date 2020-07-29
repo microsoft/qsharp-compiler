@@ -1,4 +1,4 @@
-import { FormatRule } from "../formatter";
+import { FormatRule, withCommentsIgnored } from "../formatter";
 
 /**
  * Leaves just one space after an if statement.
@@ -12,4 +12,4 @@ export const spaceAfterIf: FormatRule = (code: string): string => {
     return code.replace(/(^| +|;|})if[ \n]*\(/gm, "$1if (");
 };
 
-export default [spaceAfterIf];
+export default [withCommentsIgnored(spaceAfterIf)];
