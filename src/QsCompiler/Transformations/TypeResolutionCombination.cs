@@ -19,13 +19,13 @@ namespace Microsoft.Quantum.QsCompiler
     using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
-    /// Summarizes a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,
+    /// Combines a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,
     /// into one resolution dictionary, CombinedResolutionDictionary, containing the ultimate type
     /// resolutions for all the type parameters found in the dictionaries. Validation is done on the
-    /// resolutions, which can be checked through the IsValid, SummarizesOverConflictingResolution, and
-    /// SummarizesOverParameterConstriction flags.
+    /// resolutions, which can be checked through the IsValid, CombinesOverConflictingResolution, and
+    /// CombinesOverParameterConstriction flags.
     /// </summary>
-    public class TypeResolutionSummary
+    public class TypeResolutionCombination
     {
         // Static Members
 
@@ -58,58 +58,58 @@ namespace Microsoft.Quantum.QsCompiler
         // Fields and Properties
 
         /// <summary>
-        /// Array of all the type parameter resolution dictionaries that are summarized in this summary.
+        /// Array of all the type parameter resolution dictionaries that are combined in this combination.
         /// </summary>
         public readonly ImmutableArray<TypeParameterResolutions> IndependentResolutionDictionaries;
 
         /// <summary>
         /// The resulting resolution dictionary from combining all the input resolutions in
-        /// IndependentResolutionDictionaries. Represents a summary of all the type parameters found and their
-        /// ultimate type resolutions.
+        /// IndependentResolutionDictionaries. Represents a combination of all the type parameters
+        /// found and their ultimate type resolutions.
         /// </summary>
         public TypeParameterResolutions CombinedResolutionDictionary { get; private set; }
 
         /// <summary>
-        /// Flag for if there were any invalid scenarios encountered while creating the summary.
+        /// Flag for if there were any invalid scenarios encountered while creating the combination.
         /// Invalid scenarios include a type parameter being assigned to multiple conflicting types
         /// and a type parameter being assigned to a type referencing a different type parameter of
         /// the same callable. Has value true if no invalid scenarios were encountered.
         /// </summary>
-        public bool IsValid { get => !this.SummarizesOverConflictingResolution && !this.SummarizesOverParameterConstriction; }
+        public bool IsValid { get => !this.CombinesOverConflictingResolution && !this.CombinesOverParameterConstriction; }
 
         /// <summary>
-        /// Flag for if, at any time in the creation of the summary, there was a type parameter that
+        /// Flag for if, at any time in the creation of the combination, there was a type parameter that
         /// was assigned conflicting type resolutions. Has value true if a conflict was encountered.
         /// </summary>
-        public bool SummarizesOverConflictingResolution { get; private set; } = false;
+        public bool CombinesOverConflictingResolution { get; private set; } = false;
 
         /// <summary>
-        /// Flag for if, at any time in the creation of the summary, there was a type parameter that
+        /// Flag for if, at any time in the creation of the combination, there was a type parameter that
         /// was assigned a type resolution referencing a different type parameter of the same callable.
         /// </summary>
-        public bool SummarizesOverParameterConstriction { get; private set; } = false;
+        public bool CombinesOverParameterConstriction { get; private set; } = false;
 
         // Constructors
 
         /// <summary>
-        /// Creates a type parameter resolution summary from the independent type parameter resolutions
+        /// Creates a type parameter resolution combination from the independent type parameter resolutions
         /// found in the given typed expression and its sub expressions. Only sub-expressions whose
         /// type parameter resolutions are relevant to the given expression's type parameter resolutions
         /// are considered.
         /// </summary>
-        public TypeResolutionSummary(TypedExpression expression) : this(GetTypeParameterResolutions.Apply(expression))
+        public TypeResolutionCombination(TypedExpression expression) : this(GetTypeParameterResolutions.Apply(expression))
         {
         }
 
         /// <summary>
-        /// Creates a type parameter resolution summary from independent type parameter resolution dictionaries.
+        /// Creates a type parameter resolution combination from independent type parameter resolution dictionaries.
         /// The given resolutions are expected to be ordered such that dictionaries containing type parameters resolutions that
         /// reference type parameters in other dictionaries appear before those dictionaries containing the referenced type parameters.
         /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
         /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
         /// the next innermost, and so on until the outermost expression is given last.
         /// </summary>
-        internal TypeResolutionSummary(params TypeParameterResolutions[] independentResolutionDictionaries)
+        internal TypeResolutionCombination(params TypeParameterResolutions[] independentResolutionDictionaries)
         {
             // Filter out empty dictionaries
             this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !res.IsEmpty).ToImmutableArray();
@@ -125,14 +125,14 @@ namespace Microsoft.Quantum.QsCompiler
         // Methods
 
         /// <summary>
-        /// Updates the SummarizesOverParameterConstriction flag. If the flag is already set to true,
+        /// Updates the CombinesOverParameterConstriction flag. If the flag is already set to true,
         /// nothing will be done. If not, the given type parameter will be checked against the given
         /// resolution for type parameter constriction, which is when one type parameter is dependent
         /// on another type parameter of the same callable.
         /// </summary>
         private void UpdateConstrictionFlag(TypeParameterName typeParamName, ResolvedType typeParamResolution)
         {
-            this.SummarizesOverParameterConstriction = this.SummarizesOverParameterConstriction
+            this.CombinesOverParameterConstriction = this.CombinesOverParameterConstriction
                 || CheckForConstriction.Apply(typeParamName, typeParamResolution);
         }
 
@@ -192,9 +192,9 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Combines the resolution dictionaries in the summary into one resolution dictionary containing
+        /// Combines the resolution dictionaries in the combination into one resolution dictionary containing
         /// the resolutions for all the type parameters found.
-        /// Updates the summary with the constructed dictionary. Updates the summary flags accordingly.
+        /// Updates the combination with the constructed dictionary. Updates the validation flags accordingly.
         /// </summary>
         private void CombineTypeResolutions()
         {
@@ -223,9 +223,9 @@ namespace Microsoft.Quantum.QsCompiler
                     this.UpdateConstrictionFlag(typeParam, paramRes);
 
                     // Check that there is no conflicting resolution already defined.
-                    if (!this.SummarizesOverConflictingResolution)
+                    if (!this.CombinesOverConflictingResolution)
                     {
-                        this.SummarizesOverConflictingResolution = combinedBuilder.TryGetValue(typeParam, out var current)
+                        this.CombinesOverConflictingResolution = combinedBuilder.TryGetValue(typeParam, out var current)
                             && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
                     }
 

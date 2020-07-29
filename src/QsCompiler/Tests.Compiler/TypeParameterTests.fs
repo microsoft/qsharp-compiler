@@ -50,9 +50,9 @@ type TypeParameterTests () =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
     let CheckCombinedResolution expected (resolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>),ResolvedType> []) =
-        let summary = TypeResolutionSummary(resolutions)
-        AssertExpectedResolution expected summary.CombinedResolutionDictionary
-        summary.IsValid
+        let combination = TypeResolutionCombination(resolutions)
+        AssertExpectedResolution expected combination.CombinedResolutionDictionary
+        combination.IsValid
 
     let AssertCombinedResolution expected resolutions =
         let success = CheckCombinedResolution expected resolutions
@@ -539,8 +539,8 @@ type TypeParameterTests () =
     member this.``Identifier Resolution`` () =
         let expression = CompileTypeParameterTest 1 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -554,8 +554,8 @@ type TypeParameterTests () =
     member this.``Adjoint Application Resolution`` () =
         let expression = CompileTypeParameterTest 2 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -569,8 +569,8 @@ type TypeParameterTests () =
     member this.``Controlled Application Resolution`` () =
         let expression = CompileTypeParameterTest 3 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -584,8 +584,8 @@ type TypeParameterTests () =
     member this.``Partial Application Resolution`` () =
         let expression = CompileTypeParameterTest 4 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
@@ -599,8 +599,8 @@ type TypeParameterTests () =
     member this.``Sub-call Resolution`` () =
         let expression = CompileTypeParameterTest 5 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [ ]
 
         AssertExpectedResolution expected given
@@ -610,8 +610,8 @@ type TypeParameterTests () =
     member this.``Argument Sub-call Resolution`` () =
         let expression = CompileTypeParameterTest 6 |> GetMainExpression
 
-        let summary = TypeResolutionSummary(expression)
-        let given = summary.CombinedResolutionDictionary
+        let combination = TypeResolutionCombination(expression)
+        let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Int)
