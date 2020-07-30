@@ -22,8 +22,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// Combines a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,
     /// into one resolution dictionary, CombinedResolutionDictionary, containing the ultimate type
     /// resolutions for all the type parameters found in the dictionaries. Validation is done on the
-    /// resolutions, which can be checked through the IsValid, CombinesOverConflictingResolution, and
-    /// CombinesOverParameterConstriction flags.
+    /// resolutions, which can be checked through the IsValid flag.
     /// </summary>
     public class TypeResolutionCombination
     {
@@ -75,19 +74,19 @@ namespace Microsoft.Quantum.QsCompiler
         /// and a type parameter being assigned to a type referencing a different type parameter of
         /// the same callable. Has value true if no invalid scenarios were encountered.
         /// </summary>
-        public bool IsValid { get => !this.CombinesOverConflictingResolution && !this.CombinesOverParameterConstriction; }
+        public bool IsValid { get => !this.combinesOverConflictingResolution && !this.combinesOverParameterConstriction; }
 
         /// <summary>
         /// Flag for if, at any time in the creation of the combination, there was a type parameter that
         /// was assigned conflicting type resolutions. Has value true if a conflict was encountered.
         /// </summary>
-        public bool CombinesOverConflictingResolution { get; private set; } = false;
+        private bool combinesOverConflictingResolution = false;
 
         /// <summary>
         /// Flag for if, at any time in the creation of the combination, there was a type parameter that
         /// was assigned a type resolution referencing a different type parameter of the same callable.
         /// </summary>
-        public bool CombinesOverParameterConstriction { get; private set; } = false;
+        private bool combinesOverParameterConstriction = false;
 
         // Constructors
 
@@ -125,14 +124,14 @@ namespace Microsoft.Quantum.QsCompiler
         // Methods
 
         /// <summary>
-        /// Updates the CombinesOverParameterConstriction flag. If the flag is already set to true,
+        /// Updates the combinesOverParameterConstriction flag. If the flag is already set to true,
         /// nothing will be done. If not, the given type parameter will be checked against the given
         /// resolution for type parameter constriction, which is when one type parameter is dependent
         /// on another type parameter of the same callable.
         /// </summary>
         private void UpdateConstrictionFlag(TypeParameterName typeParamName, ResolvedType typeParamResolution)
         {
-            this.CombinesOverParameterConstriction = this.CombinesOverParameterConstriction
+            this.combinesOverParameterConstriction = this.combinesOverParameterConstriction
                 || CheckForConstriction.Apply(typeParamName, typeParamResolution);
         }
 
@@ -223,9 +222,9 @@ namespace Microsoft.Quantum.QsCompiler
                     this.UpdateConstrictionFlag(typeParam, paramRes);
 
                     // Check that there is no conflicting resolution already defined.
-                    if (!this.CombinesOverConflictingResolution)
+                    if (!this.combinesOverConflictingResolution)
                     {
-                        this.CombinesOverConflictingResolution = combinedBuilder.TryGetValue(typeParam, out var current)
+                        this.combinesOverConflictingResolution = combinedBuilder.TryGetValue(typeParam, out var current)
                             && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
                     }
 
