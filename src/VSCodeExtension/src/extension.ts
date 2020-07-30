@@ -10,7 +10,7 @@ import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 import { LanguageServer } from './languageServer';
-import { formatDocument } from "./formatter/format-document";
+import QSharpFormatter from './formatter/qsharp-formatter';
 
 /**
  * Returns the root folder for the current workspace.
@@ -98,16 +98,10 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Register Q# formatter
+    const qsFormatter = new QSharpFormatter();
     context.subscriptions.push(
-        vscode.languages.registerDocumentFormattingEditProvider({
-            scheme: 'file',
-            language: 'qsharp',
-        }, {
-            provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
-                return formatDocument(document);
-            }
-        })
-    )
+        vscode.languages.registerDocumentFormattingEditProvider('qsharp', qsFormatter)
+    );
 
     let rootFolder = findRootFolder();
 

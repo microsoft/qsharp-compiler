@@ -15,4 +15,4 @@ export const withCommentsIgnored = (rule: FormatRule): FormatRule => {
             return previousCode + formattedCode;
         }, "");
     }
-};  
+};
