@@ -57,6 +57,9 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Array of all the type parameter resolution dictionaries that are combined in this combination.
+        /// The items are ordered such that dictionaries containing type parameters resolutions that
+        /// reference type parameters in other dictionaries appear before those dictionaries containing
+        /// the referenced type parameters. I.e., dictionary A depends on dictionary B, so A should come before B.
         /// </summary>
         public readonly ImmutableArray<TypeParameterResolutions> IndependentResolutionDictionaries;
 
