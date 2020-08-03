@@ -29,8 +29,7 @@ namespace Microsoft.Quantum.QsCompiler
         // Static Members
 
         /// <summary>
-        /// Checks if the given type parameter directly resolves to itself. If so, the
-        /// resolution may be overridden without conflict.
+        /// Checks if the given type parameter directly resolves to itself.
         /// </summary>
         private static bool IsSelfResolution(TypeParameterName typeParam, ResolvedType res)
         {
@@ -66,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// IndependentResolutionDictionaries. Represents a combination of all the type parameters
         /// found and their ultimate type resolutions.
         /// </summary>
-        public TypeParameterResolutions CombinedResolutionDictionary { get; private set; }
+        public TypeParameterResolutions CombinedResolutionDictionary { get; private set; } = TypeParameterResolutions.Empty;
 
         /// <summary>
         /// Flag for if there were any invalid scenarios encountered while creating the combination.
@@ -74,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// and a type parameter being assigned to a type referencing a different type parameter of
         /// the same callable. Has value true if no invalid scenarios were encountered.
         /// </summary>
-        public bool IsValid { get => !this.combinesOverConflictingResolution && !this.combinesOverParameterConstriction; }
+        public bool IsValid => !this.combinesOverConflictingResolution && !this.combinesOverParameterConstriction;
 
         /// <summary>
         /// Flag for if, at any time in the creation of the combination, there was a type parameter that
@@ -106,19 +105,17 @@ namespace Microsoft.Quantum.QsCompiler
         /// reference type parameters in other dictionaries appear before those dictionaries containing the referenced type parameters.
         /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
         /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
-        /// the next innermost, and so on until the outermost expression is given last.
+        /// the next innermost, and so on until the outermost expression is given last. Empty and null dictionaries are ignored.
         /// </summary>
         internal TypeResolutionCombination(params TypeParameterResolutions[] independentResolutionDictionaries)
         {
             // Filter out empty dictionaries
-            this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !res.IsEmpty).ToImmutableArray();
+            this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !(res is null || res.IsEmpty)).ToImmutableArray();
 
-            if (!this.IndependentResolutionDictionaries.Any())
+            if (this.IndependentResolutionDictionaries.Any())
             {
-                this.CombinedResolutionDictionary = TypeParameterResolutions.Empty;
+                this.CombineTypeResolutions();
             }
-
-            this.CombineTypeResolutions();
         }
 
         // Methods
@@ -162,7 +159,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Combines independent resolutions in a disjointed dictionary, resulting in a
         /// resolution dictionary that has type parameter keys that are not referenced
-        /// in its values. Returns the resulting dictionary.
+        /// in its values. Null mappings are removed in the resulting dictionary.
+        /// Returns the resulting dictionary.
         /// </summary>
         private TypeParameterResolutions CombineTypeResolutionDictionary(TypeParameterResolutions independentResolutions)
         {
@@ -170,6 +168,12 @@ namespace Microsoft.Quantum.QsCompiler
 
             foreach (var (typeParam, paramRes) in independentResolutions)
             {
+                // Skip any null mappings
+                if (paramRes is null)
+                {
+                    continue;
+                }
+
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
                 var mayBeReplaced = GetReplaceable(combinedBuilder);
@@ -201,8 +205,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             foreach (var resolutionDictionary in this.IndependentResolutionDictionaries)
             {
-                TypeParameterResolutions resolvedDictionary;
-                resolvedDictionary = this.CombineTypeResolutionDictionary(resolutionDictionary);
+                var resolvedDictionary = this.CombineTypeResolutionDictionary(resolutionDictionary);
 
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
                 // if a certain type parameter is resolved by the currently processed dictionary.
