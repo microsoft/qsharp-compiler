@@ -10,6 +10,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
+#nullable enable
+
 namespace Microsoft.Quantum.QsCompiler
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
