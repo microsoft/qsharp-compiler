@@ -91,8 +91,7 @@ for op in qsExpression.Operators do qsArgument.AddOperator op
 /// Parses a postfix modifer (unwrap operator) as term and returns its range, 
 /// i.e. fails without consuming input if there is no postfix modifier to parse. 
 let private postFixModifier = 
-    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) 
-    |>> snd |>> QsPositionInfo.Range 
+    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers, 
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -314,7 +313,7 @@ type private ItemAccessor =
 let private itemAccessExpr = 
     let rec applyPostfixModifiers ex = function 
         | [] -> ex
-        | (range : QsRangeInfo) :: tail -> 
+        | (range : Range) :: tail -> 
             let ex = (UnwrapApplication (ex), range) |> QsExpression.New
             applyPostfixModifiers ex tail 
     let rec applyAccessors (ex : QsExpression, item) = 
