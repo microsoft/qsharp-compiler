@@ -75,10 +75,10 @@ qsExpression.AddOperator (InfixOperator  (qsMULop.op          , emptySpace      
 qsExpression.AddOperator (InfixOperator  (qsMODop.op          , emptySpace                                                            , qsMODop.prec          , qsMODop.Associativity          , (), applyBinary   MOD          ))
 qsExpression.AddOperator (InfixOperator  (qsDIVop.op          , notFollowedBy (pchar '/') >>. emptySpace                              , qsDIVop.prec          , qsDIVop.Associativity          , (), applyBinary   DIV          ))
 qsExpression.AddOperator (InfixOperator  (qsPOWop.op          , emptySpace                                                            , qsPOWop.prec          , qsPOWop.Associativity          , (), applyBinary   POW          ))
-qsExpression.AddOperator (PrefixOperator (qsBNOTop.op         , emptySpace                                                            , qsBNOTop.prec         , qsBNOTop.isLeftAssociative     , (), applyUnary    BNOT         ))
-qsExpression.AddOperator (PrefixOperator (qsNOTop.op          , notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace      , qsNOTop.prec          , qsNOTop.isLeftAssociative      , (), applyUnary    NOT          ))
-qsExpression.AddOperator (PrefixOperator (qsNEGop.op          , emptySpace                                                            , qsNEGop.prec          , qsNEGop.isLeftAssociative      , (), applyUnary    NEG          ))
-qsExpression.AddOperator (PrefixOperator ("!"                 , "!"  |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace , qsNOTop.prec          , qsNOTop.isLeftAssociative      , (), applyUnary    NOT          ))
+qsExpression.AddOperator (PrefixOperator (qsBNOTop.op         , emptySpace                                                            , qsBNOTop.prec         , true                           , (), applyUnary    BNOT         ))
+qsExpression.AddOperator (PrefixOperator (qsNOTop.op          , notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace      , qsNOTop.prec          , true                           , (), applyUnary    NOT          ))
+qsExpression.AddOperator (PrefixOperator (qsNEGop.op          , emptySpace                                                            , qsNEGop.prec          , true                           , (), applyUnary    NEG          ))
+qsExpression.AddOperator (PrefixOperator ("!"                 , "!"  |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace , qsNOTop.prec          , true                           , (), applyUnary    NOT          ))
 qsExpression.AddOperator (InfixOperator  ("||"                , "||" |> deprecatedOp WarningCode.DeprecatedORoperator  >>. emptySpace , qsORop.prec           , qsORop.Associativity           , (), applyBinary   OR           ))
 qsExpression.AddOperator (InfixOperator  ("&&"                , "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace , qsANDop.prec          , qsANDop.Associativity          , (), applyBinary   AND          ))
 
@@ -87,6 +87,11 @@ for op in qsExpression.Operators do qsArgument.AddOperator op
 
 // processing modifiers (functor application and unwrap directives)
 // -> modifiers basically act as unary operators with infinite precedence that can only be applied to certain expressions
+
+/// Parses a postfix modifer (unwrap operator) as term and returns its range, 
+/// i.e. fails without consuming input if there is no postfix modifier to parse. 
+let private postFixModifier = 
+    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers, 
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -97,7 +102,6 @@ let private withModifiers modifiableExpr =
     let rec applyUnwraps unwraps (core : QsExpression) = unwraps |> function 
         | [] -> core
         | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
-    let unwrapOperator = term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
     let rec applyFunctors functors (core : QsExpression) = functors |> function
         | [] -> core 
         | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
@@ -105,7 +109,7 @@ let private withModifiers modifiableExpr =
         let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
         let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
-    attempt (many functorApplication .>>. modifiableExpr) .>>. many unwrapOperator // NOTE: do *not* replace by an expected expression even if there are preceding functors!
+    attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
     |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (List.rev functors)
 
 
@@ -307,15 +311,23 @@ type private ItemAccessor =
 /// Note that this parser has a dependency on the identifier, tupleItem expr, and valueArray parsers - 
 /// meaning they process the left-most part of the array item expression and thus need to be evaluated *after* the arrayItemExpr parser. 
 let private itemAccessExpr = 
+    let rec applyPostfixModifiers ex = function 
+        | [] -> ex
+        | (range : Range) :: tail -> 
+            let ex = (UnwrapApplication (ex), range) |> QsExpression.New
+            applyPostfixModifiers ex tail 
     let rec applyAccessors (ex : QsExpression, item) = 
+        let recur (accessEx, mods) tail = 
+            let accessExWithMods = applyPostfixModifiers accessEx mods
+            applyAccessors (accessExWithMods, tail)
         match item with
         | [] -> ex
-        | ArrayItemAccessor (idx, range) :: tail -> 
+        | (ArrayItemAccessor (idx, range), postfixMod) :: tail -> 
             let arrItemEx = buildCombinedExpr (ArrayItem (ex, idx)) (ex.Range, Value range)
-            applyAccessors (arrItemEx, tail)
-        | NamedItemAccessor sym :: tail -> 
+            recur (arrItemEx, postfixMod) tail
+        | (NamedItemAccessor sym, postfixMod) :: tail -> 
             let namedItemEx = buildCombinedExpr (NamedItem (ex, sym)) (ex.Range, sym.Range)
-            applyAccessors (namedItemEx, tail)
+            recur (namedItemEx, postfixMod) tail
     let accessor = 
         let missingEx pos = (MissingExpr, Range.Create pos pos) |> QsExpression.New
         let openRange = pstring qsOpenRangeOp.op |> term
@@ -343,7 +355,7 @@ let private itemAccessExpr =
                 | None -> core |> applyPost
         let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
         let namedItemAccess = term (pstring qsNamedItemCombinator.op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol |>> NamedItemAccessor
-        arrayItemAccess <|> namedItemAccess
+        (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
     let arrItem = 
         // ideally, this would also "depend" on callLikeExpression and arrayItemExpr (i.e. try them as an lhs expression)
         // but that requires handling the cyclic dependency ...

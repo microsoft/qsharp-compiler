@@ -37,7 +37,7 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
 
         # Check if package already added as dependency, only add if new:
         $added = $dep.dependency | Where { $_.id -eq $id }
-        if (!$added) {
+        if (!$added -and $_.PrivateAssets -ne "All") {
             Write-Host "Adding $id"
             $onedependency = $dep.AppendChild($nuspec.CreateElement('dependency', $nuspec.package.metadata.NamespaceURI))
             $onedependency.SetAttribute('id', $id)
@@ -58,4 +58,3 @@ Add-NuGetDependencyFromCsprojToNuspec "Compiler.csproj" $dep
 # Save into .nuspec file:
 $nuspec.package.metadata.AppendChild($dep)
 $nuspec.Save("$PSScriptRoot\Compiler.nuspec")
-

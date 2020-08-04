@@ -75,7 +75,10 @@ let toBigInt b =
     BigIntLiteral (System.Numerics.BigInteger.Parse b) |> toExpr
 
 let toSymbol s =
-    (Identifier ({Symbol=Symbol (s |> NonNullable<string>.New); Range=Null}, Null)) |> toExpr
+    {Symbol=Symbol (s |> NonNullable<string>.New); Range=Null}
+
+let toIdentifier s =
+    (Identifier (toSymbol s, Null)) |> toExpr
 
 let toTuple (es : QsExpression seq) =
     ValueTuple (es.ToImmutableArray()) |> toExpr
