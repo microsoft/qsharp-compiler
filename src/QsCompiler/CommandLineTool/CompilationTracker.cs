@@ -5,8 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
-using Newtonsoft.Json;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -104,6 +105,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 this.Task = task;
                 this.Children = new Dictionary<string, CompilationTaskNode>();
+            }
+
+            public void WriteToJson(Utf8JsonWriter jsonWriter, string prefix)
+            {
+                var preparedPrefix = "";
+                if (!string.IsNullOrEmpty(prefix)) {
+                    preparedPrefix = $"{prefix}.";
+                }
+
+                var propertyName = $"{preparedPrefix}{this.Task.Name}";
+                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs ?? -1);
+                foreach (var entry in this.Children.OrderBy(e => e.Key))
+                {
+                    entry.Value.WriteToJson(jsonWriter, propertyName);
+                }
             }
         }
 
@@ -294,24 +310,27 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Directory.CreateDirectory(outputPath);
             using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfDataFileName)))
             {
-                var serializer = new JsonSerializer
+                var jsonWriterOptions = new JsonWriterOptions()
                 {
-                    Formatting = Formatting.Indented
+                    Indented = true
                 };
 
-                serializer.Serialize(file, compilationProcessesForest);
+                var jsonWriter = new Utf8JsonWriter(file.BaseStream, jsonWriterOptions);
+                jsonWriter.WriteStartObject();
+                foreach (var tree in compilationProcessesForest.OrderBy(t => t.Task.Name))
+                {
+                    tree.WriteToJson(jsonWriter, null);
+                }
+
+                jsonWriter.WriteEndObject();
+                jsonWriter.Flush();
             }
 
             if (Warnings.Count > 0)
             {
                 using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfWarningsFileName)))
                 {
-                    var serializer = new JsonSerializer
-                    {
-                        Formatting = Formatting.Indented
-                    };
-
-                    serializer.Serialize(file, Warnings);
+                    JsonSerializer.SerializeAsync(file.BaseStream, Warnings).Wait();
                 }
             }
         }

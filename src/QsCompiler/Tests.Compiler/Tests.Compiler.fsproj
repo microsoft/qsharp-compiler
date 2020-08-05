@@ -151,6 +151,9 @@
     <None Include="TestCases\TypeParameterResolution.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\TypeParameter.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
@@ -165,6 +168,7 @@
     <Compile Include="LinkingTests.fs" />
     <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
+    <Compile Include="TypeParameterTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />

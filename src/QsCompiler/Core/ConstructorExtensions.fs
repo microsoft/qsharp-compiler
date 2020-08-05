@@ -83,7 +83,7 @@ type TypedExpression with
     /// the ResolvedType is set to the type constructed by resolving it using ResolveTypeParameters and the given look-up.
     static member New (expr, typeParamResolutions : ImmutableDictionary<_,_>, exType, exInfo, range) = {
         Expression = expr
-        TypeArguments = typeParamResolutions |> TypedExpression.AsTypeArguments
+        TypeArguments = TypedExpression.AsTypeArguments typeParamResolutions
         ResolvedType = ResolvedType.ResolveTypeParameters typeParamResolutions exType
         InferredInformation = exInfo
         Range = range
