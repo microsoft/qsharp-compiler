@@ -182,7 +182,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
-                    TypeParamUtils.TryCombineTypeResolutionsForTarget(global.Item, out var typeParamRes, this.SharedState.TypeParameterResolutions.ToArray());
+                    var combination = new TypeResolutionCombination(this.SharedState.TypeParameterResolutions.ToArray());
+                    var typeParamRes = combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(global.Item)).ToImmutableDictionary();
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
                     if (this.SharedState.IsInCall)
