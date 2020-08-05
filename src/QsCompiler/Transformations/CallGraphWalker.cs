@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
                     var combination = new TypeResolutionCombination(this.SharedState.TypeParameterResolutions.ToArray());
-                    var typeParamRes = combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(global.Item)).ToImmutableDictionary();
+                    var typeParamRes = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
                     if (this.SharedState.IsInCall)

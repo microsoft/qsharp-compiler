@@ -338,7 +338,6 @@ type QsTuple<'I> with
             | QsTupleItem item -> seq { yield item } 
         this |> extractAll
 
-
 // active pattern for tuple matching
 
  // not the nicest solution, but unfortunatly type extensions cannot be used to satisfy member constraints...
@@ -372,6 +371,11 @@ let (| Missing | _ |) arg =
     | Some [] -> Some Missing
     | _ -> None
 
+// filter for type parameter resolution dictionaries
+
+[<Extension>]
+let FilterByOrigin (this : ImmutableDictionary<(QsQualifiedName * NonNullable<string>), ResolvedType>) origin =
+    this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange
 
 // look-up for udt and global callables
 
@@ -408,4 +412,3 @@ let GlobalCallableResolutions (syntaxTree : IEnumerable<QsNamespace>) =
         | QsCallable c -> Some (c.FullName, c)
         | _ -> None))
     callables.ToImmutableDictionary(fst, snd)
-    

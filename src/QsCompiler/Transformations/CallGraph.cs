@@ -202,8 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         {
             var parent = rootNode.CallableName;
             var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
-            var resolvedToConcrete = combination.CombinedResolutionDictionary
-                .Where(kvp => kvp.Key.Item1.Equals(parent))
+            var resolvedToConcrete = combination.CombinedResolutionDictionary.FilterByOrigin(parent)
                 .All(kvp => !(kvp.Value.Resolution is ResolvedTypeKind.TypeParameter tp) ||
                     (tp.Item.Origin.Equals(kvp.Key.Item1) && tp.Item.TypeName.Equals(kvp.Key.Item2)));
             return combination.IsValid && resolvedToConcrete;

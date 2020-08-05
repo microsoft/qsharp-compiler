@@ -277,7 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
                             var combination = new TypeResolutionCombination(expr.Item);
-                            var combinedTypeArguments = combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(global.Item)).ToImmutableDictionary();
+                            var combinedTypeArguments = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                             QsCompilerError.Verify(combination.IsValid, "failed to combine type parameter resolution");
 
                             var globalCallable = this.SharedState.Compilation.Namespaces
