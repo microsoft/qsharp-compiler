@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -251,29 +250,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
 
                 /// <summary>
-                /// Get the combined type resolutions for a pair of nested resolutions,
-                /// resolving references in the inner resolutions to the outer resolutions.
-                /// </summary>
-                private TypeArgsResolution GetCombinedTypeResolution(TypeArgsResolution outer, TypeArgsResolution inner)
-                {
-                    var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-                    return inner.Select(innerRes =>
-                    {
-                        if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
-                            outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
-                        {
-                            outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
-                            return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
-                        }
-                        else
-                        {
-                            return innerRes;
-                        }
-                    })
-                    .Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
-                }
-
-                /// <summary>
                 /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
                 /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
                 /// If valid, returns true with the identifier of the call like expression and the arguments of the
@@ -300,12 +276,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
-                            var combined = TypeParamUtils.TryCombineTypeResolutionsForTarget(
-                                global.Item,
-                                out var combinedTypeArguments,
-                                newCallIdentifier.TypeParameterResolutions,
-                                callTypeArguments);
-                            QsCompilerError.Verify(combined, "failed to combine type parameter resolution");
+                            var combination = new TypeResolutionCombination(expr.Item);
+                            var combinedTypeArguments = combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(global.Item)).ToImmutableDictionary();
+                            QsCompilerError.Verify(combination.IsValid, "failed to combine type parameter resolution");
 
                             var globalCallable = this.SharedState.Compilation.Namespaces
                                 .Where(ns => ns.Name.Equals(global.Item.Namespace))
