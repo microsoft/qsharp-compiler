@@ -113,7 +113,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             if (combination.IsValid)
             {
-                return new CallGraphEdge(combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(targetNode.CallableName)).ToImmutableDictionary());
+                return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName));
             }
             else
             {
