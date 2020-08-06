@@ -366,7 +366,8 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         accumulate.SharedState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
-        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+        |> Seq.map (fun loc -> loc.Offset + loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.toArray
     QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location LocalDeclarations.Empty, updateErrs
 
 /// Given the location of the statement header and the resolution context, 
