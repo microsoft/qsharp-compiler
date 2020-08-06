@@ -1604,8 +1604,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // verify that all paths return a value if needed (or fail)
             var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(messages.Select(msg =>
-                Diagnostics.Generate(sourceFile.Value, msg.Item2, rootPosition + msg.Item1)));
+            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind.IsControlledAdjointDeclaration ? 2 : 1).Invoke(root.Fragment.Text);
