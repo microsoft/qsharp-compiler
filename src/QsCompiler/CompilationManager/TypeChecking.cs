@@ -1053,12 +1053,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (ifStatement, ifDiagnostics) =
                     Statements.NewIfStatement(context, ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
                 statement = ifStatement;
-                diagnostics.AddRange(ifDiagnostics.Select(item =>
-                {
-                    var (relativeOffset, diagnostic) = item;
-                    return Diagnostics.Generate(
-                        context.Symbols.SourceFile.Value, diagnostic, rootPosition + relativeOffset);
-                }));
+                diagnostics.AddRange(ifDiagnostics.Select(diagnostic =>
+                    Diagnostics.Generate(context.Symbols.SourceFile.Value, diagnostic, rootPosition)));
                 return true;
             }
             (statement, proceed) = (null, true);
