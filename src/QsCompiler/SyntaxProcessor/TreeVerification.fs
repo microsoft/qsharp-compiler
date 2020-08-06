@@ -191,5 +191,5 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
             let udt = definitions.[udtIndex]
             let loc = getLocation udt
             ((loc.Offset, udt.SourceFile), loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, [])) |> diagnostics.Add        
-    let updateDiagnosticRange ((pos, _), msg) = { msg with QsCompilerDiagnostic.Range = pos + msg.Range } 
-    diagnostics.ToLookup(fst >> snd, updateDiagnosticRange)
+    diagnostics.ToLookup (fst >> snd, fun ((position, _), diagnostic) ->
+        { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range })
