@@ -425,8 +425,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
-            void AddDiagnostics(NonNullable<string> source, IEnumerable<Tuple<Position, QsCompilerDiagnostic>> msgs) =>
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg.Item2, msg.Item1)));
+            void AddDiagnostics(NonNullable<string> source, IEnumerable<QsCompilerDiagnostic> msgs) =>
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg)));
 
             if (fileName != null)
             {
