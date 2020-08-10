@@ -219,6 +219,38 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     return;
                 }
+
+                if (!associatedWithProject)
+                {
+                    try
+                    {
+                        var compilationScope = Path.Combine(Path.GetDirectoryName(textDocument.Uri.LocalPath), "*.qs");
+                        var newProjectFileContents = $@"
+                            <Project Sdk=""Microsoft.Quantum.Sdk/0.12.20072031"">
+                                <PropertyGroup>
+                                    <TargetFramework>netstandard2.1</TargetFramework>
+                                </PropertyGroup>
+                                <ItemGroup>
+                                    <QsharpCompile Include=""{compilationScope}"" />
+                                </ItemGroup>
+                            </Project>
+                        ";
+                        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
+                        var projectFilePath = Path.Combine(directory.FullName, $"{Guid.NewGuid()}.csproj");
+                        using (var outputFile = new StreamWriter(projectFilePath))
+                        {
+                            outputFile.WriteLine(newProjectFileContents);
+                        }
+                        this.projects.ProjectChangedOnDiskAsync(new Uri(projectFilePath), this.QsProjectLoader, this.GetOpenFile).Wait();
+                        associatedWithProject = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
+                        manager.LogException(ex);
+                    }
+                }
+
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
                 {
                     showError?.Invoke($"Failed to load file '{textDocument.Uri.LocalPath}'", MessageType.Error);
