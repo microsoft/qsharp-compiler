@@ -225,16 +225,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     try
                     {
                         var compilationScope = Path.Combine(Path.GetDirectoryName(textDocument.Uri.LocalPath), "*.qs");
-                        var newProjectFileContents = $@"
-                            <Project Sdk=""Microsoft.Quantum.Sdk/0.12.20072031"">
-                                <PropertyGroup>
-                                    <TargetFramework>netstandard2.1</TargetFramework>
-                                </PropertyGroup>
-                                <ItemGroup>
-                                    <QsharpCompile Include=""{compilationScope}"" />
-                                </ItemGroup>
-                            </Project>
-                        ";
+                        var newProjectFileContents = TemporaryProject.GetFileContents(compilationScope);
                         var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
                         var projectFilePath = Path.Combine(directory.FullName, $"{Guid.NewGuid()}.csproj");
                         using (var outputFile = new StreamWriter(projectFilePath))
