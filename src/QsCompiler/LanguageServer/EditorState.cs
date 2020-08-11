@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
-        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, out Uri projectUri, out ProjectInformation info)
+        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion, out Uri projectUri, out ProjectInformation info)
         {
             projectUri = null;
             info = null;
@@ -165,7 +165,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 outputFile.WriteLine(
                     TemporaryProject.GetFileContents(
-                        compilationScope: Path.Combine(localFolderPath, "*.qs")));
+                        compilationScope: Path.Combine(localFolderPath, "*.qs"),
+                        sdkVersion: sdkVersion));
             }
 
             projectUri = new Uri(projectFilePath);
@@ -250,7 +251,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     try
                     {
-                        if (this.QsTemporaryProjectLoader(textDocument.Uri, out Uri projectUri, out _))
+                        if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
                         {
                             this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile).Wait();
                             associatedWithProject = true;
