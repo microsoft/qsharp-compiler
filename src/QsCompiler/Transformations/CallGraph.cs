@@ -221,8 +221,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         private class CheckTypeParameterResolutions : TypeTransformation<CheckTypeParameterResolutions.TransformationState>
         {
-            private readonly QsQualifiedName origin;
-
             /// <summary>
             /// Determines if the given ResolvedType contains a reference to a different type
             /// parameter of the same callable as the given type parameter, typeParam, or if
@@ -249,13 +247,18 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             internal class TransformationState
             {
+                public readonly QsQualifiedName Origin;
                 public bool IsNestedSelfReference = false;
+
+                public TransformationState(QsQualifiedName origin)
+                {
+                    this.Origin = origin;
+                }
             }
 
             private CheckTypeParameterResolutions(QsQualifiedName origin)
-                : base(new TransformationState(), TransformationOptions.NoRebuild)
+                : base(new TransformationState(origin), TransformationOptions.NoRebuild)
             {
-                this.origin = origin;
             }
 
             public new ResolvedType OnType(ResolvedType t)
@@ -272,7 +275,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
-                if (tp.Origin.Equals(this.origin))
+                if (tp.Origin.Equals(this.SharedState.Origin))
                 {
                     this.SharedState.IsNestedSelfReference = true;
                 }
