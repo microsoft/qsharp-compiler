@@ -700,3 +700,8 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Trait("Category","Cycle Validation")>]
     member this.``Cycle with Mutated Forwarding`` () =
         CompileCycleValidationTest 5 |> AssertInvalidCycleExists
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Multiple Concrete Resolutions`` () =
+        CompileCycleValidationTest 6 |> AssertValidCycles

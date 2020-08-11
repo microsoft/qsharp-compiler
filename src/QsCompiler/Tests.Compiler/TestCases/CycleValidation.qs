@@ -5,16 +5,16 @@
 // Cycle with Generic Resolution
 namespace Microsoft.Quantum.Testing.CycleDetection {
 
-    operation Foo<'A,'B>() : Unit {
-        Bar<'A,'B>();
+    operation Foo<'A>() : Unit {
+        Bar<'A>();
     }
 
-    operation Bar<'A,'B>() : Unit {
-        Baz<'A,'B>();
+    operation Bar<'A>() : Unit {
+        Baz<'A>();
     }
 
-    operation Baz<'A,'B>() : Unit {
-        Foo<'A,'B>();
+    operation Baz<'A>() : Unit {
+        Foo<'A>();
     }
 }
 
@@ -23,16 +23,16 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
 // Cycle with Concrete Resolution
 namespace Microsoft.Quantum.Testing.CycleDetection {
 
-    operation Foo<'A,'B>() : Unit {
-        Bar<'A,'B>();
+    operation Foo<'A,'B,'C>() : Unit {
+        Bar<Int,'B,'C>();
     }
 
-    operation Bar<'A,'B>() : Unit {
-        Baz<Int,'B>();
+    operation Bar<'A,'B,'C>() : Unit {
+        Baz<'A,Double,'C>();
     }
 
-    operation Baz<'A,'B>() : Unit {
-        Foo<'A,Double>();
+    operation Baz<'A,'B,'C>() : Unit {
+        Foo<'A,'B,String>();
     }
 }
 
@@ -92,26 +92,18 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
 
 // =================================
 
-// Verify Cycle
+// Cycle with Multiple Concrete Resolutions
 namespace Microsoft.Quantum.Testing.CycleDetection {
 
-    operation Foo<'A,'B>() : Unit {
-        Bar<'A,'B>();
+    operation Foo<'A>() : Unit {
+        Bar<Int>();
     }
 
-    operation Bar<'A,'B>() : Unit {
-        Baz<Int,'B>();
+    operation Bar<'A>() : Unit {
+        Baz<Double>();
     }
 
-    operation Baz<'A,'B>() : Unit {
-        Zip<'B,'A>();
-    }
-
-    operation Zip<'A,'B>() : Unit {
-        Zap<Double,'B>();
-    }
-
-    operation Zap<'A,'B>() : Unit {
-        Foo<'A,'B>();
+    operation Baz<'A>() : Unit {
+        Foo<'A>();
     }
 }

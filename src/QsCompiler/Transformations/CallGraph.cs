@@ -194,13 +194,16 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public class CallGraph
     {
-        // TODO:
-        // This is the method that should be invoked to verify cycles of interest,
-        // i.e. where each callable in the cycle is type parametrized.
-        // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined.
-        internal static bool VerifyCycle(/*CallGraphNode rootNode,*/ params CallGraphEdge[] edges)
+        /// <summary>
+        /// Given a cycle of call graph edges, determines if the cycle is valid.
+        /// Invalid cycles are those that cause type parameters to be mapped to
+        /// other type parameters of the same callable (constricting resolutions)
+        /// or to a type containing a nested reference to the same type parameter,
+        /// i.e Foo.A -> Foo.A[].
+        /// Returns true if the cycle is valid, false if invalid.
+        /// </summary>
+        internal static bool VerifyCycle(params CallGraphEdge[] edges)
         {
-            //var parent = rootNode.CallableName;
             var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
             if (!combination.IsValid)
             {
@@ -209,8 +212,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var allResolutionsValid = combination.CombinedResolutionDictionary
                 .All(kvp => CheckTypeParameterResolutions.IsValidParamResolution(kvp.Key, kvp.Value));
             return allResolutionsValid;
-            //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
-            // TODO: check that monomorphization correctly processes closed cycles - meaning add a test...
         }
 
         /// <summary>
