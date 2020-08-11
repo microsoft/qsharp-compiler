@@ -43,6 +43,17 @@ type CallGraphTests (output:ITestOutputHelper) =
     let ResolutionFromParamName (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (op, param, _) -> op, param), (fun (_, _, resolution) -> ResolvedType.New resolution))
 
+    let GetEdges (graph: CallGraph) (cycle: ImmutableArray<CallGraphNode>) =
+        List.rev [
+        for i in 0 .. cycle.Length - 1 do
+            let current = cycle.[i]
+            let next = cycle.[(i+1)%(cycle.Length)]
+            yield graph.GetDirectDependencies(current).[next] ]
+
+    let rec CartesianProduct = function
+        | [] -> Seq.singleton []
+        | l::ls -> CartesianProduct ls |> Seq.collect (fun xs -> l |> Seq.map (fun x -> x::xs))
+
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
@@ -72,6 +83,12 @@ type CallGraphTests (output:ITestOutputHelper) =
     let CompileCycleDetectionTest testNumber =
         let callGraph = CompileTest testNumber "CycleDetection.qs"
         callGraph.GetCallCycles ()
+
+    let CompileCycleValidationTest testNumber =
+        let graph = CompileTest testNumber "CycleValidation.qs"
+
+        graph.GetCallCycles()
+        |> Seq.map (fun x -> GetEdges graph x) |> Seq.collect (fun x -> CartesianProduct x)
 
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
@@ -150,6 +167,15 @@ type CallGraphTests (output:ITestOutputHelper) =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
+
+    let AssertValidCycles (cycles: seq<CallGraphEdge list>) =
+        for cycle in cycles do
+            Assert.True(CallGraph.VerifyCycle(cycle.ToArray()),
+                sprintf "Invalid cycle found:\n%A" (cycle |> List.map (fun x -> x.ParamResolutions)))
+
+    let AssertInvalidCycleExists (cycles: seq<CallGraphEdge list>) =
+        Assert.True(cycles |> Seq.exists (fun cycle -> not (CallGraph.VerifyCycle(cycle.ToArray()))),
+                sprintf "Expected but did not find an invalid cycle")
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -649,3 +675,28 @@ type CallGraphTests (output:ITestOutputHelper) =
             [ "_2k2"; "_3k2"; "_3k3" ]
         ]
         |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Generic Resolution`` () =
+        CompileCycleValidationTest 1 |> AssertValidCycles
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Concrete Resolution`` () =
+        CompileCycleValidationTest 2 |> AssertValidCycles
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Constricting Cycle`` () =
+        CompileCycleValidationTest 3 |> AssertInvalidCycleExists
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Rotating Parameters`` () =
+        CompileCycleValidationTest 4 |> AssertValidCycles
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Mutated Forwarding`` () =
+        CompileCycleValidationTest 5 |> AssertInvalidCycleExists
