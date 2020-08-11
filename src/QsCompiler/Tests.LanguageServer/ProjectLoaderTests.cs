@@ -306,21 +306,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
     internal static class CompilationContext
     {
-        internal static ProjectInformation Load(Uri projectFile)
-        {
-            static void LogOutput(string msg, MessageType level) =>
-                Console.WriteLine($"[{level}]: {msg}");
-            return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
-                .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
-        }
+        private static void LogOutput(string msg, MessageType level) =>
+            Console.WriteLine($"[{level}]: {msg}");
 
-        internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile)
-        {
-            static void LogOutput(string msg, MessageType level) =>
-                Console.WriteLine($"[{level}]: {msg}");
-            return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+        internal static ProjectInformation Load(Uri projectFile) =>
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+                .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
+
+        internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile) =>
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
                 .QsTemporaryProjectLoader(sourceFile, out var projectUri, out var loaded) ? (projectUri, loaded) : (null, null);
-        }
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
 
