@@ -153,6 +153,32 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, out Uri projectUri, out ProjectInformation info)
+        {
+            projectUri = null;
+            info = null;
+
+            var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", Guid.NewGuid().ToString())).FullName;
+            var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
+            using (var outputFile = new StreamWriter(projectFilePath))
+            {
+                outputFile.WriteLine(
+                    TemporaryProject.GetFileContents(
+                        compilationScope: Path.Combine(localFolderPath, "*.qs")));
+            }
+
+            projectUri = new Uri(projectFilePath);
+            var success = this.QsProjectLoader(projectUri, out info);
+            if (!success)
+            {
+                File.Delete(projectFilePath);
+                Directory.Delete(projectFolderPath);
+            }
+
+            return success;
+        }
+
         /// <summary>
         /// For each given uri, loads the corresponding project if the uri contains the project file for a Q# project,
         /// and publishes suitable diagnostics for it.
@@ -224,16 +250,11 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     try
                     {
-                        var compilationScope = Path.Combine(Path.GetDirectoryName(textDocument.Uri.LocalPath), "*.qs");
-                        var newProjectFileContents = TemporaryProject.GetFileContents(compilationScope);
-                        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
-                        var projectFilePath = Path.Combine(directory.FullName, $"{Guid.NewGuid()}.csproj");
-                        using (var outputFile = new StreamWriter(projectFilePath))
+                        if (this.QsTemporaryProjectLoader(textDocument.Uri, out Uri projectUri, out _))
                         {
-                            outputFile.WriteLine(newProjectFileContents);
+                            this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile).Wait();
+                            associatedWithProject = true;
                         }
-                        this.projects.ProjectChangedOnDiskAsync(new Uri(projectFilePath), this.QsProjectLoader, this.GetOpenFile).Wait();
-                        associatedWithProject = true;
                     }
                     catch (Exception ex)
                     {

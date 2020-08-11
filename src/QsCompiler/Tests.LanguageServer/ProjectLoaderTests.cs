@@ -20,6 +20,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
 
+        private static string SourceFileName(string project, string fileName) =>
+            Path.Combine("TestProjects", project, fileName);
+
         private (string, ProjectInformation) Context(string project)
         {
             var relativePath = ProjectFileName(project);
@@ -286,6 +289,19 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
+
+        [TestMethod]
+        public void LoadQsharpTemporaryProject()
+        {
+            var sourceFile = Path.GetFullPath(SourceFileName("test14", "Operation14.qs"));
+            var (projectUri, projectInformation) = CompilationContext.LoadTemporary(new Uri(sourceFile));
+            Assert.IsNotNull(projectUri);
+            Assert.IsNotNull(projectInformation);
+            Assert.IsTrue(projectInformation.UsesCanon());
+
+            var qsFiles = new string[] { sourceFile };
+            CollectionAssert.AreEquivalent(qsFiles, projectInformation.SourceFiles.ToArray());
+        }
     }
 
     internal static class CompilationContext
@@ -296,6 +312,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Console.WriteLine($"[{level}]: {msg}");
             return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
                 .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
+        }
+
+        internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile)
+        {
+            static void LogOutput(string msg, MessageType level) =>
+                Console.WriteLine($"[{level}]: {msg}");
+            return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+                .QsTemporaryProjectLoader(sourceFile, out var projectUri, out var loaded) ? (projectUri, loaded) : (null, null);
         }
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
