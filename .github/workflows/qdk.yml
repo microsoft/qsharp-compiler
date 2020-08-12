@@ -14,6 +14,6 @@ jobs:
     - name: 'Trigger end-to-end QDK build'
       uses: Azure/pipelines@releases/v1
       with:
-        azure-devops-project-url: 'https://dev.azure.com/ms-quantum-public/Microsoft Quantum (public)/'
+        azure-devops-project-url: 'https://dev.azure.com/ms-quantum-public/Microsoft Quantum (public)'
         azure-pipeline-name: 'qdk' 
         azure-devops-token: '${{ secrets.AZURE_DEVOPS_TOKEN }}'
