@@ -21,7 +21,6 @@ resources:
     name: microsoft/qdk
     ref: refs/heads/feature/qdk-ci
 
-
 jobs:
 - job: e2e
   displayName: 'End-to-end build'
