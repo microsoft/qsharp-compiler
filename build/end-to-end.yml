@@ -1,0 +1,28 @@
+name: $(Build.Major).$(Build.Minor).$(BuildId)
+
+variables:
+  Build.Major: 0
+  Build.Minor: 0
+  Build.ReleaseType: vnext
+  Assembly.Constants: 'SIGNED%3BTELEMETRY'
+  IQSharp.Hosting.Env: 'build-agent'
+  runCodesignValidationInjection: false
+
+pr:
+- master
+- feature/*
+
+
+resources:
+  - repository: qdk
+    type: github
+    endpoint: Microsoft
+    name: microsoft/qdk
+
+
+jobs:
+- job: "End-to-end"
+  steps:
+  - template: build.vnext/step-init-main.yml@qdk
+
+
