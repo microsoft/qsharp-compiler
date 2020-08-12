@@ -111,7 +111,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         return assemblyLoadContext.LoadFromAssemblyPath(path);
                     }
-
                     return null;
                 };
             }

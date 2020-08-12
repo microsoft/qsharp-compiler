@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.Loader;
 using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -14,8 +15,19 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        static ProjectLoaderTests() =>
-            MSBuildLocator.RegisterDefaults();
+        static ProjectLoaderTests()
+        {
+            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
+            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
+            {
+                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    return assemblyLoadContext.LoadFromAssemblyPath(path);
+                }
+                return null;
+            };
+        }
 
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
