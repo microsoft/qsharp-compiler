@@ -1,6 +1,11 @@
 name: End-to-end QDK build
 
-on: pull-request
+on: 
+  pull-request:
+    # Sequence of patterns matched against refs/heads
+    branches:
+      - master
+      - 'feature/**'
 
 jobs:    
   build-qdk:
