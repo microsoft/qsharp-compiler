@@ -27,6 +27,7 @@ jobs:
   pool: 
     vmImage: 'ubuntu-latest'
   steps:
+  - script: echo Build.Repository.Name $(Build.Repository.Name)!!
   - template: build.vnext/step-init-main.yml@qdk
 
 
