@@ -23,7 +23,8 @@ resources:
 
 
 jobs:
-- job: "End-to-end"
+- job: e2e
+  displayName: 'End-to-end build'
   steps:
   - template: build.vnext/step-init-main.yml@qdk
 
