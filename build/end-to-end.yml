@@ -7,6 +7,7 @@ variables:
   Assembly.Constants: 'SIGNED%3BTELEMETRY'
   IQSharp.Hosting.Env: 'build-agent'
   runCodesignValidationInjection: false
+  Build.Repo: qsharp-compiler
 
 pr:
 - master
