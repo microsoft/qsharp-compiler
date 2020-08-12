@@ -19,7 +19,7 @@ resources:
     type: github
     endpoint: Microsoft
     name: microsoft/qdk
-    ref: refs/heads/main
+    ref: refs/heads/feature/qdk-ci
 
 
 jobs:
