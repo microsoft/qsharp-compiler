@@ -1,0 +1,14 @@
+name: End-to-end QDK build
+
+on: pull-request
+
+jobs:    
+  build-qdk:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Trigger end-to-end QDK build'
+      uses: Azure/pipelines@releases/v1
+      with:
+        azure-devops-project-url: 'https://dev.azure.com/ms-quantum-public/Microsoft%20Quantum%20(public)/'
+        azure-pipeline-name: 'qdk' 
+        azure-devops-token: '${{ secrets.AZURE_DEVOPS_TOKEN }}'
