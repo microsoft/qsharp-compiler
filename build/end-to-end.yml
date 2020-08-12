@@ -24,6 +24,8 @@ resources:
 jobs:
 - job: e2e
   displayName: 'End-to-end build'
+  pool: 
+    vmImage: 'ubuntu-latest'
   steps:
   - template: build.vnext/step-init-main.yml@qdk
 
