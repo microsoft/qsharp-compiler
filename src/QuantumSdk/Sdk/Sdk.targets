@@ -117,8 +117,9 @@
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue"> 
       <Output TaskParameter="ExitCode" PropertyName="QscExitCode"/>
     </Exec>
-    <Message Importance="high" Text="Qsc command exit code: $(QscExitCode)"/>
+    <Message Importance="low" Text="Qsc command exit code: $(QscExitCode)"/>
     <Delete Condition="'$(QscExitCode)' != '0'" Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
+    <Error Text="Qsc command failed with exit code: $(QscExitCode)." Condition="'$(QscExitCode)' != '0'" />
   </Target>
 
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
