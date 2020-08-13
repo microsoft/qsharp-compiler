@@ -241,7 +241,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            this.CombinedResolutionDictionary = combinedBuilder.ToImmutable();
+            this.CombinedResolutionDictionary = this.CombineTypeResolutionDictionary(combinedBuilder.ToImmutable());
         }
 
         // Nested Classes

@@ -194,20 +194,96 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public class CallGraph
     {
-        // TODO:
-        // This is the method that should be invoked to verify cycles of interest,
-        // i.e. where each callable in the cycle is type parametrized.
-        // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined.
-        internal static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
+        /// <summary>
+        /// Given a cycle of call graph edges, determines if the cycle is valid.
+        /// Invalid cycles are those that cause type parameters to be mapped to
+        /// other type parameters of the same callable (constricting resolutions)
+        /// or to a type containing a nested reference to the same type parameter,
+        /// i.e Foo.A -> Foo.A[].
+        /// Returns true if the cycle is valid, false if invalid.
+        /// </summary>
+        internal static bool VerifyCycle(params CallGraphEdge[] edges)
         {
-            var parent = rootNode.CallableName;
             var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
-            var resolvedToConcrete = combination.CombinedResolutionDictionary.FilterByOrigin(parent)
-                .All(kvp => !(kvp.Value.Resolution is ResolvedTypeKind.TypeParameter tp) ||
-                    (tp.Item.Origin.Equals(kvp.Key.Item1) && tp.Item.TypeName.Equals(kvp.Key.Item2)));
-            return combination.IsValid && resolvedToConcrete;
-            //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
-            // TODO: check that monomorphization correctly processes closed cycles - meaning add a test...
+            if (!combination.IsValid)
+            {
+                return false;
+            }
+            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
+            // Valid cycles do not contain nested self-references in their type parameter resolutions,
+            // although this may be valid in other circumstances.
+            return combination.CombinedResolutionDictionary
+                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
+        }
+
+        /// <summary>
+        /// Walker that checks a given type parameter resolution to see if it constricts
+        /// the type parameter to another type parameter of the same callable, or contains
+        /// a nested self-reference.
+        /// </summary>
+        private class CheckTypeParameterResolutions : TypeTransformation<CheckTypeParameterResolutions.TransformationState>
+        {
+            /// <summary>
+            /// Determines if the given ResolvedType contains a reference to a different type
+            /// parameter of the same callable as the given type parameter, typeParam, or if
+            /// it contains a nested self-reference. Direct self-references are allowed.
+            /// Returns false if a conflicting reference or a nested self-reference is found.
+            /// Returns true otherwise.
+            /// </summary>
+            public static bool ContainsNestedSelfReference(TypeParameterName typeParam, ResolvedType typeParamRes)
+            {
+                if (typeParamRes.Resolution is ResolvedTypeKind.TypeParameter tp
+                    && tp.Item.Origin.Equals(typeParam.Item1))
+                {
+                    // If given a type parameter whose origin matches the callable,
+                    // the only valid resolution is a direct self-resolution
+                    return !tp.Item.TypeName.Equals(typeParam.Item2);
+                }
+
+                // If not dealing with a top-level type parameter, then check the type for nested self-references
+                var walker = new CheckTypeParameterResolutions(typeParam.Item1);
+                walker.OnType(typeParamRes);
+
+                return walker.SharedState.IsNestedSelfReference;
+            }
+
+            internal class TransformationState
+            {
+                public readonly QsQualifiedName Origin;
+                public bool IsNestedSelfReference = false;
+
+                public TransformationState(QsQualifiedName origin)
+                {
+                    this.Origin = origin;
+                }
+            }
+
+            private CheckTypeParameterResolutions(QsQualifiedName origin)
+                : base(new TransformationState(origin), TransformationOptions.NoRebuild)
+            {
+            }
+
+            public new ResolvedType OnType(ResolvedType t)
+            {
+                // Short-circuit if we already know the type is constrictive.
+                if (!this.SharedState.IsNestedSelfReference)
+                {
+                    base.OnType(t);
+                }
+
+                // It doesn't matter what we return because this is a walker.
+                return t;
+            }
+
+            public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
+            {
+                if (tp.Origin.Equals(this.SharedState.Origin))
+                {
+                    this.SharedState.IsNestedSelfReference = true;
+                }
+
+                return base.OnTypeParameter(tp);
+            }
         }
 
         /// <summary>
