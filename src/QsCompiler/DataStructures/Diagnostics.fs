@@ -552,13 +552,13 @@ type DiagnosticItem =
             | ErrorCode.UnsupportedResultComparison               -> "The target {0} does not support comparing measurement results."
             | ErrorCode.ResultComparisonNotInOperationIf          ->
                 "Measurement results cannot be compared here. " +
-                "The execution target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+                "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
             | ErrorCode.ReturnInResultConditionedBlock            ->
                 "A return statement cannot be used here. " +
-                "The execution target {0} does not support return statements in conditional blocks that depend on a measurement result."
+                "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
             | ErrorCode.SetInResultConditionedBlock               ->
                 "The variable \"{0}\" cannot be reassigned here. " +
-                "In conditional blocks that depend on a measurement result, the execution target {1} only supports reassigning variables that were declared within the block."
+                "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."

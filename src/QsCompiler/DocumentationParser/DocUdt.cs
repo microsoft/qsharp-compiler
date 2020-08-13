@@ -5,7 +5,6 @@ using System.IO;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
-
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
     /// <summary>
@@ -25,8 +24,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocUdt(string ns, QsCustomType udt)
             : base(ns, udt.FullName.Name.Value, Utils.UdtKind, udt.Documentation, udt.Attributes)
         {
-            syntax = Utils.CustomTypeToSyntax(udt);
-            customType = udt;
+            this.syntax = Utils.CustomTypeToSyntax(udt);
+            this.customType = udt;
         }
 
         /// <summary>
@@ -36,36 +35,36 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal override void WriteToFile(TextWriter text)
         {
             var rootNode = new YamlMappingNode();
-            rootNode.AddStringMapping(Utils.UidKey, uid);
-            rootNode.AddStringMapping(Utils.NameKey, name);
-            rootNode.AddStringMapping(Utils.TypeKey, itemType);
-            rootNode.AddStringMapping(Utils.NamespaceKey, namespaceName);
-            if (!string.IsNullOrEmpty(comments.Documentation))
+            rootNode.AddStringMapping(Utils.UidKey, this.uid);
+            rootNode.AddStringMapping(Utils.NameKey, this.name);
+            rootNode.AddStringMapping(Utils.TypeKey, this.itemType);
+            rootNode.AddStringMapping(Utils.NamespaceKey, this.namespaceName);
+            if (!string.IsNullOrEmpty(this.comments.Documentation))
             {
-                rootNode.AddStringMapping(Utils.SummaryKey, comments.Documentation);
+                rootNode.AddStringMapping(Utils.SummaryKey, this.comments.Documentation);
             }
 
             // UDTs get fancy treatment of examples
-            if (!string.IsNullOrEmpty(comments.Remarks) || !string.IsNullOrEmpty(comments.Example))
+            if (!string.IsNullOrEmpty(this.comments.Remarks) || !string.IsNullOrEmpty(this.comments.Example))
             {
-                var rems = comments.Remarks;
-                if (!string.IsNullOrEmpty(comments.Example))
+                var rems = this.comments.Remarks;
+                if (!string.IsNullOrEmpty(this.comments.Example))
                 {
                     // \r instead of \n because the YAML.Net serialization doubles \n.
                     // In the file the newline is correct; YAML.Net serializes \r as \n.
-                    rems += "\r\r### Examples\r" + comments.Example;
+                    rems += "\r\r### Examples\r" + this.comments.Example;
                 }
                 rootNode.AddStringMapping(Utils.RemarksKey, rems);
             }
 
-            rootNode.Add(Utils.SyntaxKey, syntax);
-            if (!string.IsNullOrEmpty(comments.References))
+            rootNode.Add(Utils.SyntaxKey, this.syntax);
+            if (!string.IsNullOrEmpty(this.comments.References))
             {
-                rootNode.AddStringMapping(Utils.ReferencesKey, comments.References);
+                rootNode.AddStringMapping(Utils.ReferencesKey, this.comments.References);
             }
-            if (comments.SeeAlso.Count > 0)
+            if (this.comments.SeeAlso.Count > 0)
             {
-                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(comments.SeeAlso));
+                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.comments.SeeAlso));
             }
 
             var doc = new YamlDocument(rootNode);

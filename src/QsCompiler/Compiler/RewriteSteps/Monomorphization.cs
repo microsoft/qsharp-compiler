@@ -7,7 +7,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
-
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
@@ -16,17 +15,22 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class Monomorphization : IRewriteStep
     {
         public string Name => "Monomorphization";
+
         public int Priority => RewriteStepPriorities.TypeParameterElimination;
+
         public IDictionary<string, string> AssemblyConstants { get; }
+
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsPreconditionVerification => true;
+
         public bool ImplementsTransformation => true;
+
         public bool ImplementsPostconditionVerification => true;
 
         public Monomorphization()
         {
-            AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any();
@@ -39,8 +43,14 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            try { ValidateMonomorphization.Apply(compilation); }
-            catch { return false; }
+            try
+            {
+                ValidateMonomorphization.Apply(compilation);
+            }
+            catch
+            {
+                return false;
+            }
             return true;
         }
     }

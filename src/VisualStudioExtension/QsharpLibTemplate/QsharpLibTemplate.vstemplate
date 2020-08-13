@@ -3,7 +3,7 @@
   <TemplateData>
     <Name>Q# Library</Name>
     <Description>A project for creating a Q# library.</Description>
-    <Icon>mobius_strip_icon.png</Icon>
+    <Icon>MS_Quantum_Spot_Dev-32.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
     <TemplateID>Microsoft.Common.Classlib.QSharp</TemplateID>

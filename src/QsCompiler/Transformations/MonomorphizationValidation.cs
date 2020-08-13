@@ -9,7 +9,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 {
     public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
@@ -46,12 +45,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
-            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            {
+            }
 
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 // Don't validate intrinsics
-                if (SharedState.IntrinsicCallableSet.Contains(c.FullName))
+                if (this.SharedState.IntrinsicCallableSet.Contains(c.FullName))
                 {
                     return c;
                 }
@@ -74,12 +75,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
-            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            {
+            }
 
             public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
                 // Type resolutions for intrinsics are allowed
-                if (typeParams.Any(kvp => !SharedState.IntrinsicCallableSet.Contains(kvp.Key.Item1)))
+                if (typeParams.Any(kvp => !this.SharedState.IntrinsicCallableSet.Contains(kvp.Key.Item1)))
                 {
                     throw new Exception("Type Parameter Resolutions must be empty");
                 }
@@ -90,12 +93,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class TypeTransformation : TypeTransformation<TransformationState>
         {
-            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            {
+            }
 
             // If an intrinsic callable is generic, then its type parameters can occur within expressions;
             // when generic intrinsics are called, the type of that call contains type parameter types.
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp) =>
-                SharedState.IntrinsicCallableSet.Contains(tp.Origin)
+                this.SharedState.IntrinsicCallableSet.Contains(tp.Origin)
                 ? QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp)
                 : throw new Exception("Type Parameter types must be resolved");
         }

@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// The inputs to the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string,string> Input { get; private set; }
+        public Dictionary<string, string> Input { get; private set; }
 
         /// <summary>
         /// The output from the item.
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// The type parameters for the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string,string> TypeParameters { get; private set; }
+        public Dictionary<string, string> TypeParameters { get; private set; }
 
         /// <summary>
         /// An example of using the item.
@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 var key = "";
                 var accum = new List<Block>();
-                var result = new List<ValueTuple<string, List<Block>>>();
+                var result = new List<(string, List<Block>)>();
 
                 foreach (var block in blocks)
                 {
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         {
                             if (accum.Count > 0)
                             {
-                                result.Add(new ValueTuple<string, List<Block>>(key, accum));
+                                result.Add((key, accum));
                                 accum = new List<Block>();
                             }
                             key = GetHeadingText(heading);
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
                 if (accum.Count > 0)
                 {
-                    result.Add(new ValueTuple<string, List<Block>>(key, accum));
+                    result.Add((key, accum));
                 }
 
                 return result;
@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 foreach (var block in blocks)
                 {
                     var skip = false;
-                    if ((block is HeadingBlock heading) && (heading.Level == level))
+                    if (block is HeadingBlock heading && heading.Level == level)
                     {
                         inMatch = GetHeadingText(heading).Equals(name);
                         skip = true;
@@ -256,12 +256,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             this.SeeAlso = new List<string>();
             this.References = "";
 
-            var deprecationSummary = String.IsNullOrWhiteSpace(replacement) 
+            var deprecationSummary = string.IsNullOrWhiteSpace(replacement)
                                     ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
                                     : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement.ToLowerInvariant() + "\"" });
             var deprecationDetails = "";
 
-            var text = String.Join("\n", docComments);
+            var text = string.Join("\n", docComments);
 
             // Only parse if there are comments to parse
             if (!string.IsNullOrWhiteSpace(text))
@@ -279,10 +279,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             this.Summary = ToMarkdown(section);
                             summarySection.AddRange(section);
                             // For now, the short hover information gets the first paragraph of the summary.
-                            this.ShortSummary = ToMarkdown(section.GetRange(0,1));
+                            this.ShortSummary = ToMarkdown(section.GetRange(0, 1));
                             break;
                         case "Deprecated":
-                            if (String.IsNullOrWhiteSpace(name))
+                            if (string.IsNullOrWhiteSpace(name))
                             {
                                 deprecationSummary = ToMarkdown(section.GetRange(0, 1));
                                 if (section.Count > 1)
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             break;
                         case "Remarks":
                             (var remarks, var examples) = PartitionNestedSection(section, 2, "Example");
-                            if ((examples.Count > 0) && (this.Example == ""))
+                            if (examples.Count > 0 && this.Example == "")
                             {
                                 this.Example = ToMarkdown(examples);
                             }
@@ -334,14 +334,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     }
                 }
 
-
                 this.Documentation = ToMarkdown(summarySection.Concat(descriptionSection));
             }
 
             if (deprecated)
             {
                 var shortDeprecationText = DeprecatedWarning + "\r" + deprecationSummary;
-                var longDeprecationText = shortDeprecationText + (String.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
+                var longDeprecationText = shortDeprecationText + (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
                 this.Summary += "\r" + longDeprecationText;
                 this.ShortSummary = shortDeprecationText;
                 this.Documentation = deprecationSummary;
@@ -353,9 +352,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
-        public DocComment(IEnumerable<string> docComments) : this(docComments, "", false, "")
+        public DocComment(IEnumerable<string> docComments)
+            : this(docComments, "", false, "")
         {
-
         }
     }
 }
