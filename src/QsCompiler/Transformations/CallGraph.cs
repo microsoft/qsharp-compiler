@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
             if (!combination.IsValid)
             {
-                return false; this is an error
+                return false;
             }
             // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
             // Valid cycles do not contain nested self-references in their type parameter resolutions,
