@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     // If given a type parameter whose origin matches the callable,
                     // the only valid resolution is a direct self-resolution
-                    return tp.Item.TypeName.Equals(typeParam.Item2);
+                    return !tp.Item.TypeName.Equals(typeParam.Item2);
                 }
 
                 // If not dealing with a top-level type parameter, then check the type for nested self-references
