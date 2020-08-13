@@ -228,7 +228,6 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Pack-VS
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
-    return
 }
 
 if (-not $all_ok) {
