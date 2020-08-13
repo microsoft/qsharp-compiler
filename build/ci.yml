@@ -12,8 +12,14 @@ variables:
   VSIX.Outdir: $(Drops.Dir)/vsix
   Blobs.Outdir: $(Drops.Dir)/blobs
 
+pr:
+- master
+- feature/*
+
 jobs:
 - job: "QsCompiler"
+  pool: 
+    vmImage: 'windows-latest'
   steps:
   - template: steps.yml
 
