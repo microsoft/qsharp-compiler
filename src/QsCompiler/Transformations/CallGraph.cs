@@ -209,9 +209,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             {
                 return false;
             }
-            var allResolutionsValid = combination.CombinedResolutionDictionary
-                .All(kvp => CheckTypeParameterResolutions.IsValidParamResolution(kvp.Key, kvp.Value));
-            return allResolutionsValid;
+            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
+            // Valid cycles do not contain nested self-references in their type parameter resolutions,
+            // although this may be valid in other circumstances.
+            return combination.CombinedResolutionDictionary
+                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
         }
 
         /// <summary>
@@ -228,7 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             /// Returns false if a conflicting reference or a nested self-reference is found.
             /// Returns true otherwise.
             /// </summary>
-            public static bool IsValidParamResolution(TypeParameterName typeParam, ResolvedType typeParamRes)
+            public static bool ContainsNestedSelfReference(TypeParameterName typeParam, ResolvedType typeParamRes)
             {
                 if (typeParamRes.Resolution is ResolvedTypeKind.TypeParameter tp
                     && tp.Item.Origin.Equals(typeParam.Item1))
@@ -242,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 var walker = new CheckTypeParameterResolutions(typeParam.Item1);
                 walker.OnType(typeParamRes);
 
-                return !walker.SharedState.IsNestedSelfReference;
+                return walker.SharedState.IsNestedSelfReference;
             }
 
             internal class TransformationState
