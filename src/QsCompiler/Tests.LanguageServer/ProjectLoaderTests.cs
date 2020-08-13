@@ -18,6 +18,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         static ProjectLoaderTests()
         {
             VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
+
+            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
             AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
             {
                 string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
