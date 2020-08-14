@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             info = null;
 
             var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
-            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", $"proj{localFolderPath.GetHashCode()}")).FullName;
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", $"{localFolderPath.GetHashCode():X8}")).FullName;
             var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
             using (var outputFile = new StreamWriter(projectFilePath))
             {
