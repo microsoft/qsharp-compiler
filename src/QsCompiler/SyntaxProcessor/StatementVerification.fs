@@ -98,14 +98,14 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
     let returnError (statement : QsStatement) =
         let error = ErrorCode.ReturnInResultConditionedBlock, [context.ProcessorArchitecture.Value]
         let location = statement.Location.ValueOr { Offset = Position.Zero; Range = Range.Zero }
-        location.Offset, QsCompilerDiagnostic.Error error location.Range
+        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
 
     // Diagnostics for variable reassignments.
     let setError (name : NonNullable<string>, location : QsLocation) =
         let error = ErrorCode.SetInResultConditionedBlock, [name.Value; context.ProcessorArchitecture.Value]
-        location.Offset, QsCompilerDiagnostic.Error error location.Range
+        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
     let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
 
     let blocks =
@@ -366,7 +366,8 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         accumulate.SharedState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
-        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+        |> Seq.map (fun loc -> loc.Offset + loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.toArray
     QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location LocalDeclarations.Empty, updateErrs
 
 /// Given the location of the statement header and the resolution context, 

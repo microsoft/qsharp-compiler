@@ -1295,7 +1295,10 @@ and NamespaceManager
             let typeDiagnostics = this.CacheTypeResolution()
             let callableDiagnostics = this.CacheCallableResolutions()
             this.ContainsResolutions <- true
-            callableDiagnostics.Concat(typeDiagnostics).ToLookup(fst, snd)
+            callableDiagnostics
+                .Concat(typeDiagnostics)
+                .ToLookup(fst, fun (_, (position, diagnostic)) ->
+                    { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range })
         finally syncRoot.ExitWriteLock()
 
     /// Returns a dictionary that maps each namespace name to a look-up

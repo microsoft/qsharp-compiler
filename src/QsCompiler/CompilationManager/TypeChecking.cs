@@ -425,8 +425,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
-            void AddDiagnostics(NonNullable<string> source, IEnumerable<Tuple<Position, QsCompilerDiagnostic>> msgs) =>
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg.Item2, msg.Item1)));
+            void AddDiagnostics(NonNullable<string> source, IEnumerable<QsCompilerDiagnostic> msgs) =>
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg)));
 
             if (fileName != null)
             {
@@ -1053,12 +1053,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (ifStatement, ifDiagnostics) =
                     Statements.NewIfStatement(context, ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
                 statement = ifStatement;
-                diagnostics.AddRange(ifDiagnostics.Select(item =>
-                {
-                    var (relativeOffset, diagnostic) = item;
-                    return Diagnostics.Generate(
-                        context.Symbols.SourceFile.Value, diagnostic, rootPosition + relativeOffset);
-                }));
+                diagnostics.AddRange(ifDiagnostics.Select(diagnostic => Diagnostics.Generate(
+                    context.Symbols.SourceFile.Value, diagnostic, rootPosition)));
                 return true;
             }
             (statement, proceed) = (null, true);
@@ -1119,12 +1115,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
-                    diagnostics.AddRange(built.Item2.Select(item =>
-                    {
-                        var (relativeOffset, diagnostic) = item;
-                        return Diagnostics.Generate(
-                            context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition + relativeOffset);
-                    }));
+                    diagnostics.AddRange(built.Item2.Select(diagnostic => Diagnostics.Generate(
+                        context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition)));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
@@ -1612,8 +1604,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // verify that all paths return a value if needed (or fail)
             var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(messages.Select(msg =>
-                Diagnostics.Generate(sourceFile.Value, msg.Item2, rootPosition + msg.Item1)));
+            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind.IsControlledAdjointDeclaration ? 2 : 1).Invoke(root.Fragment.Text);
