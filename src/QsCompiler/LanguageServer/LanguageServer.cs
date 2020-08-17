@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         private void OnTemporaryProjectLoaded(Uri projectUri) =>
-            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj", "*.dll", "*.qs").Wait();
+            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
         // jsonrpc methods for initialization and shut down
 
