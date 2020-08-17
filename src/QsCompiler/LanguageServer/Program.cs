@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.Loader;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Build.Locator;
@@ -102,7 +103,20 @@ namespace Microsoft.Quantum.QsLanguageServer
             // This needs to be done before any MsBuild packages are loaded.
             try
             {
-                MSBuildLocator.RegisterDefaults();
+                VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
+
+                // We're using the installed version of the binaries to avoid a dependency between
+                // the .NET Core SDK version and NuGet. This is a workaround due to the issue below:
+                // https://github.com/microsoft/MSBuildLocator/issues/86
+                AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
+                {
+                    string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
+                    if (File.Exists(path))
+                    {
+                        return assemblyLoadContext.LoadFromAssemblyPath(path);
+                    }
+                    return null;
+                };
             }
             catch (Exception ex)
             {
