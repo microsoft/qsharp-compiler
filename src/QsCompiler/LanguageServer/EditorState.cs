@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry;
+        private readonly Action<Uri> onTemporaryProjectLoaded;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -58,7 +59,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams> publishDiagnostics,
             Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry,
             Action<string, MessageType> log,
-            Action<Exception> onException)
+            Action<Exception> onException,
+            Action<Uri> onTemporaryProjectLoaded)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
@@ -83,6 +85,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader = projectLoader ?? throw new ArgumentNullException(nameof(projectLoader));
             this.projects = new ProjectManager(onException, log, this.publish);
             this.openFiles = new ConcurrentDictionary<Uri, FileContentManager>();
+            this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
         /// <summary>
@@ -254,6 +257,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
                         {
                             this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile).Wait();
+                            this.onTemporaryProjectLoaded(projectUri);
                             associatedWithProject = true;
                         }
                     }

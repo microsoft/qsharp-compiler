@@ -324,11 +324,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Console.WriteLine($"[{level}]: {msg}");
 
         internal static ProjectInformation Load(Uri projectFile) =>
-            new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
                 .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
 
         internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile, string sdkVersion) =>
-            new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
                 .QsTemporaryProjectLoader(sourceFile, sdkVersion, out var projectUri, out var loaded) ? (projectUri, loaded) : (null, null);
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
