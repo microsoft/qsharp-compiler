@@ -125,9 +125,9 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration23<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
-        set arr += [VariableDeclaration22(_, arg), VariableDeclaration22(_, "")]; 
-        arr[0](cnt - 1);
+        mutable arr = new ((Int, 'T) => Unit)[2];
+        set arr w/= 0 .. 0 <- [VariableDeclaration17];
+        arr[0](cnt - 1, arg);
     }
 
     operation VariableDeclaration24<'T>(cnt: Int, arg : 'T) : Unit {
@@ -185,6 +185,12 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         set arr w/= 0 .. 1 <- [VariableDeclaration31, VariableDeclaration17<Double>];
         let foo = arr w/ 0 <- VariableDeclaration31;
         return VariableDeclaration31(cnt, arg);
+    }
+
+    operation VariableDeclaration32<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr += [VariableDeclaration22(_, arg), VariableDeclaration22(_, "")]; 
+        arr[0](cnt - 1);
     }
 
 

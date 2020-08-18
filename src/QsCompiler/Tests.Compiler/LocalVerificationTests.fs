@@ -49,12 +49,12 @@ type LocalVerificationTests () =
         this.Expect "VariableDeclaration15" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
         this.Expect "VariableDeclaration16" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
         this.Expect "VariableDeclaration17" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
-        //this.Expect "VariableDeclaration18" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "VariableDeclaration18" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.MultipleTypesInArray]
         this.Expect "VariableDeclaration19" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
         //this.Expect "VariableDeclaration20" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration21" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration22" [Error ErrorCode.DirectRecursionWithinTemplate]
-        this.Expect "VariableDeclaration23" []
+        this.Expect "VariableDeclaration23" [Error ErrorCode.ConstrainsTypeParameter]
         this.Expect "VariableDeclaration24" [Error ErrorCode.DirectRecursionWithinTemplate; Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration25" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration26" [Error ErrorCode.DirectRecursionWithinTemplate]
@@ -63,6 +63,7 @@ type LocalVerificationTests () =
         this.Expect "VariableDeclaration29" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration30" []
         this.Expect "VariableDeclaration31" []
+        this.Expect "VariableDeclaration32" []
 
 
     [<Fact>]
