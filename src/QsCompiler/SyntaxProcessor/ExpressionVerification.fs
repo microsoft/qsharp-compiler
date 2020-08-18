@@ -504,7 +504,14 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
                     let typeParam = QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
                     match res.Resolution with 
                     | TypeParameter tp when tp.Origin = fst entry.Key && tp.TypeName = snd entry.Key -> typeParam
-                    | _ when isDirectRecursion -> r |> addError (ErrorCode.DirectRecursionWithinTemplate, []); invalid // FIXME: support this (see comment above)
+                    | _ when isDirectRecursion ->
+                        // In the case where we have a direct recursion we need to know what explicit type arguments were specified. 
+                        // In particular, we need to know when a type argument was a type parameter of the parent callable. 
+                        // In that case, the type parameter needs to resolve to itself.
+                        // For any other type parameters, we can resolve them to whatever they resolve to, unless it is a type parameter of another callable. 
+                        // Then we need to attach these resolutions as type arguments to the identifier. 
+                        // At the end, all type parameters for the parent need to be resolved, and otherwise we need to generate a suitable error. 
+                        r |> addError (ErrorCode.DirectRecursionWithinTemplate, []); invalid // FIXME: support this (see comment above)
                     | _ -> r |> addError (ErrorCode.ConstrainsTypeParameter, [typeParam |> toString]); typeParam
                 else res |> StripPositionInfo.Apply
             match entry |> Seq.distinctBy fst |> Seq.toList with
