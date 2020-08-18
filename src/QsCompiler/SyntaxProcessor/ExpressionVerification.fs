@@ -497,10 +497,10 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
                     // 2.) because the call is a direct recursion
                     // In the first case, they always need to be "resolved" to exactly themselves.
                     // In the second case, they can be resolve to anything, just like any other (i.e. external) type parameter.
-                    // The tricky thing is that for recursive calls with explicitly provided type parameters, any wild combination of one and two can occur...
-                    // The problem is bigger than that, however, since for a recursive partial application that does not resolve all type parameters, 
-                    // we need to have a way to distinguish the type parameters of the returned partial application expression from the ones in the parent function... 
-                    // While this is something that should be supported eventually, we will prevent (direct) recursive calls to generic functions for now. 
+                    // Any combination of one and two may occur. For a recursive partial applications that does not resolve all type parameters, 
+                    // we need to to distinguish the type parameters of the returned partial application expression from the ones in the parent function. 
+                    // We hence treat self-recursions separately and require that for direct self-recursions all type parameters need to be resolved;
+                    // i.e. we prevent type parametrized partial applications of the parent callable, and all type arguments are attached to the identifier.
                     let typeParam = QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
                     match res.Resolution with 
                     | TypeParameter tp when tp.Origin = fst entry.Key && tp.TypeName = snd entry.Key -> typeParam
