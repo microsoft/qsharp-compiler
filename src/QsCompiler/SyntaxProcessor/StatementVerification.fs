@@ -21,21 +21,28 @@ open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 // some utils for type checking statements
 
+/// Given a verification function that takes an error logging function as well as an expression type, expression kind, and its range, 
+/// first resolves the given expression, and then verifies its resolved type with the verification function. 
+/// Returns the typed expression built upon resolution, the return value of the verification function, 
+/// and an array with the diagnostics generated during resolution and verification. 
+let private ExpressionVerifyWith verification context (expr : QsExpression) = 
+    let accumulatedDiagnostics = new List<QsCompilerDiagnostic>() 
+    let addError code = QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
+    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
+    let resVerification = verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
+    typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
+
 /// Given a verification function that takes an error logging function as well as an expression type and its range, 
 /// first resolves the given expression, and then verifies its resolved type with the verification function. 
 /// Returns the typed expression built upon resolution, the return value of the verification function, 
 /// and an array with the diagnostics generated during resolution and verification. 
-let private VerifyWith verification context (expr : QsExpression) = 
-    let accumulatedDiagnostics = new List<QsCompilerDiagnostic>() 
-    let addError code = QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
-    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
-    let resVerification = verification addError (typedExpr.ResolvedType, expr.RangeOrDefault)
-    typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
+let private VerifyWith verification = 
+    ExpressionVerifyWith (fun addErr (exT, _, exRange) -> verification addErr (exT, exRange))
 
 /// Resolves the given expression, and returns the typed expression built upon resolution, 
 /// as well as an array with the diagnostics generated during resolution. 
-let private Verify context expr = 
-    VerifyWith (fun _ _ _ -> ()) context expr |> fun (ex,_,err) -> ex, err
+let private Verify context = 
+    VerifyWith (fun _ _ -> ()) context >> fun (ex,_,err) -> ex, err
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// checks if the given typed expression has any local quantum dependencies. 
@@ -153,7 +160,7 @@ let NewFailStatement comments location context expr =
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
 let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<_>) expr =
     let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
-    let verifiedExpr, _, diagnostics = VerifyWith verifyIsReturnType context expr 
+    let verifiedExpr, _, diagnostics = ExpressionVerifyWith verifyIsReturnType context expr 
     let autoGenErrs =
         context.Symbols
         |> onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range)
@@ -218,9 +225,8 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
 let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression, rhs : QsExpression) =
     let verifiedLhs, lhsErrs = Verify context lhs
-    let VerifyIsCorrectType =
-        VerifyAssignment verifiedLhs.ResolvedType context.Symbols.Parent ErrorCode.TypeMismatchInValueUpdate
-    let verifiedRhs, _, rhsErrs = VerifyWith VerifyIsCorrectType context rhs
+    let VerifyIsCorrectType = VerifyAssignment verifiedLhs.ResolvedType context.Symbols.Parent ErrorCode.TypeMismatchInValueUpdate
+    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith VerifyIsCorrectType context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency 
     let rec VerifyMutability = function
         | Tuple (exs : TypedExpression list) -> exs |> Seq.collect VerifyMutability |> Seq.toArray
@@ -249,22 +255,17 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
 let private TryAddDeclaration isMutable (symbols : SymbolTracker<_>) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
-    let isTypeParamRecursion () = 
-        let paramSelf = function
-            | Identifier (GlobalCallable id, Null) -> id = symbols.Parent
-            | Identifier (GlobalCallable id, Value tArgs) -> id = symbols.Parent && tArgs.Contains (MissingType |> ResolvedType.New)
-            | _ -> false
-        match rhsEx with 
-        | Some ex -> (SyntaxGenerator.AutoGeneratedExpression ex rhsType.Resolution false).Exists paramSelf
+    let isTypeParamRecursion = function
+        | Some (kind : QsExpressionKind<_,_,_>) -> IsTypeParamRecursion symbols.Parent kind
         | None -> false
     let t, tpErr = 
-        if rhsType.isTypeParametrized symbols.Parent || isTypeParamRecursion() then 
+        if rhsType.isTypeParametrized symbols.Parent || isTypeParamRecursion rhsEx then 
             InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
         else rhsType, [||]
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), errs |> Array.append tpErr
-
+    
 /// Given a Q# symbol, as well as the expression on the right hand side that is assigned to it, 
 /// resolves and verifies the assignment using VerifyBinding and the resolution context.
 /// Pushes all determined variable declarations into the current scope of the symbol tracker, 

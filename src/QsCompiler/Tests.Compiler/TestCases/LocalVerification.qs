@@ -86,8 +86,91 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation VariableDeclaration16<'T>(cnt: Int, arg : 'T) : Unit {
         mutable arr = new ((Int, 'T) => Unit)[0];
-        set arr = [VariableDeclaration16];
+        set arr += [VariableDeclaration16];
         arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration17<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ((Int, 'T) => Unit)[1];
+        set arr w/= 0 <- VariableDeclaration17;
+        arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration18<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ((Int, 'T) => Unit)[2];
+        set arr w/= 0 .. 1 <- [VariableDeclaration18, VariableDeclaration17];
+        arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration19<'T>(arg : 'T) : Unit {
+        let arr = new ('T => Unit)[1];
+        let foo = arr w/ 0 <- VariableDeclaration19;
+    }
+
+    operation VariableDeclaration20<'T>(arg : 'T) : 'T {
+        return VariableDeclaration20(arg);
+    }
+
+    operation VariableDeclaration21<'T>(cnt: Int, arg : 'T) : Unit {
+        let r1 = VariableDeclaration21(_, "");
+        let recur = VariableDeclaration21(_, arg);
+        recur(cnt - 1);
+    }
+
+    operation VariableDeclaration22<'T>(cnt: Int, arg : 'T) : Unit {
+        let t1 = (1, (VariableDeclaration22(_, 1), ""));
+        let tuple = (1, (VariableDeclaration22(_, arg), ""));
+        let (_, (recur, _)) = tuple;
+        recur(cnt - 1);
+    }
+
+    operation VariableDeclaration23<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr += [VariableDeclaration22(_, arg), VariableDeclaration22(_, "")]; 
+        arr[0](cnt - 1);
+    }
+
+    operation VariableDeclaration24<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = [VariableDeclaration24(_, arg), VariableDeclaration24(_, 1.)];
+        mutable _arr = [VariableDeclaration24(_, arg), VariableDeclaration24(_, 1.)];
+        arr[0](cnt - 1);
+    }
+
+    operation VariableDeclaration25<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr = [VariableDeclaration25(_, PauliX)];
+        set arr = [VariableDeclaration25(_, arg)];
+        arr[0](cnt - 1);
+    }
+
+    operation VariableDeclaration26<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr += [VariableDeclaration26(_, PauliX)];
+        set arr += [VariableDeclaration26(_, arg)];
+        arr[1](cnt - 1);
+    }
+
+    operation VariableDeclaration27<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[1];
+        set arr w/= 0 <- VariableDeclaration27(_, arg);
+        set arr w/= 0 <- VariableDeclaration27(_, 5);
+        arr[0](cnt - 1);
+    }
+
+    operation VariableDeclaration28<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[2];
+        set arr w/= 0 .. 1 <- [VariableDeclaration28(_, arg), VariableDeclaration27(_, arg)];
+        arr[0](cnt - 1);
+    }
+
+    operation VariableDeclaration29<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = new (Int => Unit)[1];
+        let foo = arr w/ 0 <- VariableDeclaration29(_, arg);
+        let bar = arr w/ 0 <- VariableDeclaration29(_, Zero);
+    }
+
+    operation VariableDeclaration30<'T>(arg : 'T) : 'T {
+        return VariableDeclaration30<'T>(arg);
     }
 
 

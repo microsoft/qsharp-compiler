@@ -265,6 +265,14 @@ type TypedExpression with
         let inner (ex : TypedExpression) = ex.Expression
         TypedExpression.ExtractAll (inner, extract) this
 
+    /// Applies the given function to the expression kind, 
+    /// and then recurs into each subexpression of the returned expression kind.
+    /// Returns an enumerable of all walked expressions. 
+    member public this.Extract (map : _ -> QsExpressionKind<_,_,_>) = 
+        let inner (ex : TypedExpression) = map ex.Expression
+        let fold ex sub = Seq.concat sub |> Seq.append (ex |> Seq.singleton) 
+        this |> TypedExpression.MapAndFold (inner, fold)
+
 
 type QsExpression with 
 
