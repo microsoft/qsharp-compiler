@@ -792,10 +792,12 @@ type QsNamespace = {
 type TypeParameterName = QsQualifiedName * NonNullable<string>
 type TypeParameterResolutions = ImmutableDictionary<TypeParameterName, ResolvedType>
 
+// Interface used to represent an edge in the call graph
 type ICallGraphEdge =
     inherit  IEquatable<ICallGraphEdge>
     abstract member ParamResolutions : TypeParameterResolutions
 
+// Interface used to represent a node in the call graph
 type ICallGraphNode =
     inherit IEquatable<ICallGraphNode>
     abstract member CallableName : QsQualifiedName
@@ -803,7 +805,7 @@ type ICallGraphNode =
     abstract member TypeArgs : QsNullable<ImmutableArray<ResolvedType>>
 
 
-// interface used to represent a call graph
+// Interface used to represent a call graph
 type ICallGraph = 
     abstract member Nodes : ImmutableHashSet<ICallGraphNode>
     abstract member Count : int
@@ -816,10 +818,11 @@ type ICallGraph =
 
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
-    /// contains all compiled namespaces
+    /// Contains all compiled namespaces
     Namespaces : ImmutableArray<QsNamespace>
     /// Contains the names of all entry points of the compilation.
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
+    /// Contains the Call Graph for the compilation.
     CallGraph : ICallGraph
 }
