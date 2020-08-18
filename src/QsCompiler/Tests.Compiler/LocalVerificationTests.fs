@@ -62,6 +62,7 @@ type LocalVerificationTests () =
         //this.Expect "VariableDeclaration28" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration29" [Error ErrorCode.DirectRecursionWithinTemplate]
         this.Expect "VariableDeclaration30" []
+        this.Expect "VariableDeclaration31" []
 
 
     [<Fact>]

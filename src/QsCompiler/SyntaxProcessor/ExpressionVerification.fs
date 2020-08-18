@@ -528,7 +528,6 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
 /// Returns false otherwise.
 let internal IsTypeParamRecursion (parent, definedTypeParams : ImmutableArray<_>) ex = 
     let paramSelf = function
-        // TODO: TESTS FOR THE CASE WHERE THE PARENT IS NOT TYPE PARAMETRIZED
         | Identifier (GlobalCallable id, Null) -> id = parent && definedTypeParams.Length <> 0
         | Identifier (GlobalCallable id, Value tArgs) -> id = parent && tArgs.Contains (MissingType |> ResolvedType.New)
         | _ -> false

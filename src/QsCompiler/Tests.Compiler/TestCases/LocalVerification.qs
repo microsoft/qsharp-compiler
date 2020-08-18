@@ -173,6 +173,20 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return VariableDeclaration30<'T>(arg);
     }
 
+    operation VariableDeclaration31(cnt: Int, arg : Double) : Unit {
+        let recur = VariableDeclaration31; 
+        let tuple = (1, (VariableDeclaration31, ""));
+        let a1 = [VariableDeclaration31];
+        mutable a2 = [VariableDeclaration31];
+        mutable arr = new ((Int, Double) => Unit)[0];
+        set arr = [VariableDeclaration31]; 
+        set arr += [VariableDeclaration31]; 
+        set arr w/= 0 <- VariableDeclaration31;
+        set arr w/= 0 .. 1 <- [VariableDeclaration31, VariableDeclaration17<Double>];
+        let foo = arr w/ 0 <- VariableDeclaration31;
+        return VariableDeclaration31(cnt, arg);
+    }
+
 
     // copy-and-update array
 
