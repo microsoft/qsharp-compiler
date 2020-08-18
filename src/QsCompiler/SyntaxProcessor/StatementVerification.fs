@@ -44,6 +44,13 @@ let private VerifyWith verification =
 let private Verify context = 
     VerifyWith (fun _ _ -> ()) context >> fun (ex,_,err) -> ex, err
 
+/// Helper method that returns a suitable verification method based on VerifyAssignment 
+/// that can be passed to ExpressionVerifyWith.  
+let private AssignmentVerification expected (context : ScopeContext<_>) errCode = 
+    let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
+    let verification addErr (t,e,r) = VerifyAssignment expected parent errCode addErr (t, Some e, r)
+    verification
+
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// checks if the given typed expression has any local quantum dependencies. 
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
@@ -159,7 +166,7 @@ let NewFailStatement comments location context expr =
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations 
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
 let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<_>) expr =
-    let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
+    let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
     let verifiedExpr, _, diagnostics = ExpressionVerifyWith verifyIsReturnType context expr 
     let autoGenErrs =
         context.Symbols
@@ -225,7 +232,7 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
 let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression, rhs : QsExpression) =
     let verifiedLhs, lhsErrs = Verify context lhs
-    let VerifyIsCorrectType = VerifyAssignment verifiedLhs.ResolvedType context.Symbols.Parent ErrorCode.TypeMismatchInValueUpdate
+    let VerifyIsCorrectType = AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
     let verifiedRhs, _, rhsErrs = ExpressionVerifyWith VerifyIsCorrectType context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency 
     let rec VerifyMutability = function
@@ -255,11 +262,8 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
 let private TryAddDeclaration isMutable (symbols : SymbolTracker<_>) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
-    let isTypeParamRecursion = function
-        | Some (kind : QsExpressionKind<_,_,_>) -> IsTypeParamRecursion symbols.Parent kind
-        | None -> false
     let t, tpErr = 
-        if rhsType.isTypeParametrized symbols.Parent || isTypeParamRecursion rhsEx then 
+        if rhsType.isTypeParametrized symbols.Parent || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then 
             InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
         else rhsType, [||]
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)

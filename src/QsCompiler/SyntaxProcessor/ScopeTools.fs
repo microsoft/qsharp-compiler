@@ -106,6 +106,9 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
 
+    /// the type parameters of the parent callable associated with this symbol tracker
+    member internal this.DefinedTypeParameters = typeParameters
+
     /// the source file within which the Parent (a callable declaration) associated with this SymbolTracker instance is declared
     member this.SourceFile = sourceFile
 
