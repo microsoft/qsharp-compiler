@@ -9,6 +9,10 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     open Microsoft.Quantum.Testing.TypeChecking;
 
 
+    // type argument inference
+
+    //operation 
+
     // variable declarations 
 
     operation VariableDeclaration1 () : Unit {
@@ -49,6 +53,41 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation VariableDeclaration10 () : Unit {
         using ((q1, q2, q3) = (Qubit(), (Qubit(), Qubit()))) {}
+    }
+
+    operation VariableDeclaration11<'T>(cnt: Int, arg : 'T) : Unit {
+        let recur = VariableDeclaration11; // not allowed
+        recur(cnt - 1, arg);
+    }
+
+    operation VariableDeclaration12<'T>(cnt: Int, arg : 'T) : Unit {
+        let tuple = (1, (VariableDeclaration12, "")); // not allowed
+        let (_, recur) = tuple;
+        recur(cnt - 1, arg);
+    }
+
+    operation VariableDeclaration13<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ((Int, 'T) => Unit)[0];
+        set arr += [VariableDeclaration12]; 
+        arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration14<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = [VariableDeclaration14];
+        mutable _arr = [VariableDeclaration14];
+        arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration15<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ((Int, 'T) => Unit)[0];
+        set arr = [VariableDeclaration15];
+        arr[0](cnt - 1, arg);
+    }
+
+    operation VariableDeclaration16<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ((Int, 'T) => Unit)[0];
+        set arr = [VariableDeclaration16];
+        arr[0](cnt - 1, arg);
     }
 
 

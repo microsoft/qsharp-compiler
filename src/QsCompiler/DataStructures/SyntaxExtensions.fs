@@ -244,6 +244,13 @@ type TypedExpression with
         let fold ex sub = condition ex || sub |> Seq.exists id
         this |> TypedExpression.MapAndFold (inner, fold)
 
+    /// Returns true if the expression satisfies the given condition or contains a sub-expression that does.
+    /// Returns false otherwise.
+    member public this.Exists (condition : QsExpressionKind<_,_,_> -> bool) =
+        let inner (ex : TypedExpression) = ex.Expression
+        let fold (ex : TypedExpression) sub = condition ex.Expression || sub |> Seq.exists id
+        this |> TypedExpression.MapAndFold (inner, fold)
+
     /// Recursively applies the given function inner to the given item and  
     /// applies the given extraction function to each contained subitem of the returned expression kind.
     /// Returns an enumerable of all extracted items. 
@@ -408,4 +415,3 @@ let GlobalCallableResolutions (syntaxTree : IEnumerable<QsNamespace>) =
         | QsCallable c -> Some (c.FullName, c)
         | _ -> None))
     callables.ToImmutableDictionary(fst, snd)
-    

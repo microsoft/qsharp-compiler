@@ -24,7 +24,12 @@ type LocalVerificationTests () =
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diag)
 
-    
+
+    [<Fact>]
+    member this.``type argument inference`` () = 
+        ()
+
+
     [<Fact>]
     member this.``Variable declarations`` () = 
         this.Expect "VariableDeclaration1"  []
@@ -37,6 +42,12 @@ type LocalVerificationTests () =
         this.Expect "VariableDeclaration8"  []
         this.Expect "VariableDeclaration9"  [Error ErrorCode.SymbolTupleShapeMismatch]
         this.Expect "VariableDeclaration10" [Error ErrorCode.SymbolTupleShapeMismatch]
+        this.Expect "VariableDeclaration11" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration12" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration13" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "VariableDeclaration14" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration15" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration16" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
 
 
     [<Fact>]
