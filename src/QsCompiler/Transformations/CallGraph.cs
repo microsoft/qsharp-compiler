@@ -26,12 +26,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public sealed class CallGraphEdge
+    public sealed class CallGraphEdge : ICallGraphEdge
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
         /// </summary>
-        public readonly TypeParameterResolutions ParamResolutions;
+        public TypeParameterResolutions ParamResolutions { get; private set; }
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public bool Equals(CallGraphEdge edge)
+        public bool Equals(ICallGraphEdge edge)
         {
             if (this.ParamResolutions == edge.ParamResolutions)
             {
@@ -72,13 +72,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Inserts the edge into the given array of edges if the edge is not already in the array.
         /// Ignores order of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public ImmutableArray<CallGraphEdge> InsertEdge(ImmutableArray<CallGraphEdge> edges)
+        public static ImmutableArray<ICallGraphEdge> InsertEdge(ICallGraphEdge edge, ImmutableArray<ICallGraphEdge> edges)
         {
-            var ordered = this.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
+            var ordered = edge.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
 
             if (edges == null || edges.Length == 0)
             {
-                return ImmutableArray.Create(this);
+                return ImmutableArray.Create(edge);
             }
             else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
             else
             {
-                return edges.Add(this);
+                return edges.Add(edge);
             }
         }
 
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// point to the node that has the second edge, and so on.
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
-        public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        public static ICallGraphEdge CombinePathIntoSingleEdge(ICallGraphNode targetNode, params ICallGraphEdge[] edges)
         {
             if (targetNode == null)
             {
@@ -126,22 +126,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on nodes in a call graph.
     /// The CallableName and Kind are expected to be non-null.
     /// </summary>
-    public sealed class CallGraphNode : IEquatable<CallGraphNode>
+    public sealed class CallGraphNode : ICallGraphNode
     {
         /// <summary>
         /// The name of the represented callable.
         /// </summary>
-        public readonly QsQualifiedName CallableName;
+        public QsQualifiedName CallableName { get; private set; }
 
         /// <summary>
         /// The specialization represented.
         /// </summary>
-        public readonly QsSpecializationKind Kind;
+        public QsSpecializationKind Kind { get; private set; }
 
         /// <summary>
         /// The type arguments associated with this specialization.
         /// </summary>
-        public readonly QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
+        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; private set; }
 
         /// <summary>
         /// Constructor for CallGraphNode objects.
@@ -173,11 +173,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is CallGraphNode && this.Equals((CallGraphNode)obj);
+            return obj is ICallGraphNode && this.Equals((ICallGraphNode)obj);
         }
 
         /// <inheritdoc/>
-        public bool Equals(CallGraphNode other)
+        public bool Equals(ICallGraphNode other)
         {
             return (this.CallableName, this.Kind, this.TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
         }
@@ -192,30 +192,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Class used to track call graph of a compilation.
     /// </summary>
-    public class CallGraph
+    public class CallGraph : ICallGraph
     {
-        /// <summary>
-        /// Given a cycle of call graph edges, determines if the cycle is valid.
-        /// Invalid cycles are those that cause type parameters to be mapped to
-        /// other type parameters of the same callable (constricting resolutions)
-        /// or to a type containing a nested reference to the same type parameter,
-        /// i.e Foo.A -> Foo.A[].
-        /// Returns true if the cycle is valid, false if invalid.
-        /// </summary>
-        internal static bool VerifyCycle(params CallGraphEdge[] edges)
-        {
-            var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
-            if (!combination.IsValid)
-            {
-                return false;
-            }
-            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
-            // Valid cycles do not contain nested self-references in their type parameter resolutions,
-            // although this may be valid in other circumstances.
-            return combination.CombinedResolutionDictionary
-                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
-        }
-
         /// <summary>
         /// Walker that checks a given type parameter resolution to see if it constricts
         /// the type parameter to another type parameter of the same callable, or contains
@@ -538,27 +516,49 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
-        private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> dependencies =
-            new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
+        private readonly Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>> dependencies =
+            new Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>>();
 
         /// <summary>
         /// Represents an empty dependency for a node.
         /// </summary>
-        private static readonly ILookup<CallGraphNode, CallGraphEdge> EmptyDependency =
-            ImmutableArray<KeyValuePair<CallGraphNode, CallGraphEdge>>.Empty
+        private static readonly ILookup<ICallGraphNode, ICallGraphEdge> EmptyDependency =
+            ImmutableArray<KeyValuePair<ICallGraphNode, ICallGraphEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
+
+        /// <summary>
+        /// Given a cycle of call graph edges, determines if the cycle is valid.
+        /// Invalid cycles are those that cause type parameters to be mapped to
+        /// other type parameters of the same callable (constricting resolutions)
+        /// or to a type containing a nested reference to the same type parameter,
+        /// i.e Foo.A -> Foo.A[].
+        /// Returns true if the cycle is valid, false if invalid.
+        /// </summary>
+        public static bool VerifyCycle(params ICallGraphEdge[] edges)
+        {
+            var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
+            if (!combination.IsValid)
+            {
+                return false;
+            }
+            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
+            // Valid cycles do not contain nested self-references in their type parameter resolutions,
+            // although this may be valid in other circumstances.
+            return combination.CombinedResolutionDictionary
+                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
+        }
 
         /// <summary>
         /// A collection of the nodes in the call graph.
         /// </summary>
-        public ImmutableHashSet<CallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
+        public ImmutableHashSet<ICallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
 
         /// <summary>
         /// The number of nodes in the call graph.
         /// </summary>
         public int Count => this.dependencies.Count;
 
-        private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
+        private void RecordDependency(ICallGraphNode callerKey, ICallGraphNode calledKey, ICallGraphEdge edge)
         {
             if (this.dependencies.TryGetValue(callerKey, out var deps))
             {
@@ -568,12 +568,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 }
                 else
                 {
-                    deps[calledKey] = edge.InsertEdge(edges);
+                    deps[calledKey] = CallGraphEdge.InsertEdge(edge, edges);
                 }
             }
             else
             {
-                var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+                var newDeps = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
                 newDeps[calledKey] = ImmutableArray.Create(edge);
                 this.dependencies[callerKey] = newDeps;
             }
@@ -581,7 +581,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
             if (!this.dependencies.ContainsKey(calledKey))
             {
-                this.dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+                this.dependencies[calledKey] = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
             }
         }
 
@@ -649,7 +649,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode callerNode)
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(ICallGraphNode callerNode)
         {
             if (callerNode == null)
             {
@@ -678,7 +678,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null)
             {
@@ -698,7 +698,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(CallGraphNode callerSpec)
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(ICallGraphNode callerSpec)
         {
             if (callerSpec == null)
             {
@@ -710,9 +710,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 return EmptyDependency;
             }
 
-            var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+            var accum = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
 
-            void WalkDependencyTree(CallGraphNode root, CallGraphEdge edgeFromRoot)
+            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge edgeFromRoot)
             {
                 if (this.dependencies.TryGetValue(root, out var next))
                 {
@@ -755,7 +755,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null)
             {
@@ -769,7 +769,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
-        public List<ImmutableArray<CallGraphNode>> GetCallCycles()
+        public ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
         {
             var indexToNode = this.dependencies.Keys.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
@@ -782,14 +782,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                         .ToList());
 
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
-            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
+            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
         }
 
         /// <summary>
         /// Returns true if the given node is found in the call graph, false otherwise.
         /// Throws ArgumentNullException if argument is null.
         /// </summary>
-        public bool ContainsNode(CallGraphNode node)
+        public bool ContainsNode(ICallGraphNode node)
         {
             if (node == null)
             {

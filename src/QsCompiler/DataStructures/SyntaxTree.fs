@@ -789,6 +789,31 @@ type QsNamespace = {
     member this.WithElements (getElements : Func<_,_>) = {this with Elements = getElements.Invoke(this.Elements)}
 
 
+type TypeParameterName = QsQualifiedName * NonNullable<string>
+type TypeParameterResolutions = ImmutableDictionary<TypeParameterName, ResolvedType>
+
+type ICallGraphEdge =
+    inherit  IEquatable<ICallGraphEdge>
+    abstract member ParamResolutions : TypeParameterResolutions
+
+type ICallGraphNode =
+    inherit IEquatable<ICallGraphNode>
+    abstract member CallableName : QsQualifiedName
+    abstract member Kind : QsSpecializationKind
+    abstract member TypeArgs : QsNullable<ImmutableArray<ResolvedType>>
+
+
+// interface used to represent a call graph
+type ICallGraph = 
+    abstract member Nodes : ImmutableHashSet<ICallGraphNode>
+    abstract member Count : int
+    abstract member GetDirectDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member GetAllDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member GetAllDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member GetCallCycles : Unit -> ImmutableArray<ImmutableArray<ICallGraphNode>>
+    abstract member ContainsNode : ICallGraphNode -> bool
+
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
     /// contains all compiled namespaces
@@ -796,4 +821,5 @@ type QsCompilation = {
     /// Contains the names of all entry points of the compilation.
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
+    CallGraph : ICallGraph
 }
