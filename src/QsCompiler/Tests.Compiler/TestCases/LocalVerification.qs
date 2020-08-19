@@ -9,6 +9,128 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     open Microsoft.Quantum.Testing.TypeChecking;
 
 
+    // type argument inference
+
+    operation TypeArgumentsInference1<'T>(cnt: Int, arg : 'T) : Unit {
+        let recur = TypeArgumentsInference1(3, _);
+        recur(arg);
+    }
+
+    operation TypeArgumentsInference2<'T>(cnt: Int, arg : 'T) : Unit {
+        let tuple = (1, (TypeArgumentsInference2(3, _), ""));
+        let (_, (recur, _)) = tuple;
+        recur(arg);
+    }
+
+    operation TypeArgumentsInference3<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = [TypeArgumentsInference3(1, _), TypeArgumentsInference2(_, arg)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference4<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = [TypeArgumentsInference4(1, _), TypeArgumentsInference2(_, arg)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference5<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = [TypeArgumentsInference5(1, _)];
+        mutable _arr = [TypeArgumentsInference5(1, _)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference6<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ('T => Unit)[0];
+        set arr = [TypeArgumentsInference6(1, _)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference7<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ('T => Unit)[0];
+        set arr += [TypeArgumentsInference7(1, _)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference8<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new ('T => Unit)[1];
+        set arr w/= 0 <- TypeArgumentsInference8(1, _);
+        set arr w/= 0 .. 0 <- [TypeArgumentsInference8(1, _)];
+        arr[0](arg);
+    }
+
+    operation TypeArgumentsInference9<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = new ('T => Unit)[1];
+        let foo = arr w/ 0 <- TypeArgumentsInference9(1, _);
+        let bar = arr w/ 0 .. 0 <- [TypeArgumentsInference9(1, _)];
+        foo[0](arg);
+    }
+
+    operation TypeArgumentsInference10<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr += [TypeArgumentsInference12(_, arg), TypeArgumentsInference12(_, "")]; 
+        arr[0](cnt - 1);
+    }
+
+    operation TypeArgumentsInference11<'T>(cnt: Int, arg : 'T) : Unit {
+        let r1 = TypeArgumentsInference11(_, "");
+        let recur = TypeArgumentsInference11(_, arg);
+        recur(cnt - 1);
+    }
+
+    operation TypeArgumentsInference12<'T>(cnt: Int, arg : 'T) : Unit {
+        let t1 = (1, (TypeArgumentsInference12(_, 1), ""));
+        let tuple = (1, (TypeArgumentsInference12(_, arg), ""));
+        let (_, (recur, _)) = tuple;
+        recur(cnt - 1);
+    }
+
+    operation TypeArgumentsInference13<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = [TypeArgumentsInference13(_, arg), TypeArgumentsInference13(_, 1.)];
+        mutable _arr = [TypeArgumentsInference13(_, arg), TypeArgumentsInference13(_, 1.)];
+        arr[0](cnt - 1);
+    }
+
+    operation TypeArgumentsInference14<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr = [TypeArgumentsInference14(_, PauliX)];
+        set arr = [TypeArgumentsInference14(_, arg)];
+        arr[0](cnt - 1);
+    }
+
+    operation TypeArgumentsInference15<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[0];
+        set arr += [TypeArgumentsInference15(_, PauliX)];
+        set arr += [TypeArgumentsInference15(_, arg)];
+        arr[1](cnt - 1);
+    }
+
+    operation TypeArgumentsInference16<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[1];
+        set arr w/= 0 <- TypeArgumentsInference16(_, arg);
+        set arr w/= 0 <- TypeArgumentsInference16(_, 5);
+        arr[0](cnt - 1);
+    }
+
+    operation TypeArgumentsInference17<'T>(cnt: Int, arg : 'T) : Unit {
+        mutable arr = new (Int => Unit)[2];
+        set arr w/= 0 .. 1 <- [TypeArgumentsInference17(_, arg), TypeArgumentsInference16(_, arg)];
+        arr[0](cnt - 1);
+    }
+
+    operation TypeArgumentsInference18<'T>(cnt: Int, arg : 'T) : Unit {
+        let arr = new (Int => Unit)[1];
+        let foo = arr w/ 0 <- TypeArgumentsInference18(_, arg);
+        let bar = arr w/ 0 <- TypeArgumentsInference18(_, Zero);
+    }
+
+    operation TypeArgumentsInference19<'T>(arg : 'T) : 'T {
+        return TypeArgumentsInference19<'T>(arg);
+    }
+
+    operation TypeArgumentsInference20<'T>(arg : 'T) : 'T {
+        return TypeArgumentsInference20(arg);
+    }
+
+
     // variable declarations 
 
     operation VariableDeclaration1 () : Unit {
@@ -103,90 +225,24 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         let foo = arr w/ 0 <- VariableDeclaration19;
     }
 
-    operation VariableDeclaration20<'T>(arg : 'T) : 'T {
-        return VariableDeclaration20(arg);
-    }
-
-    operation VariableDeclaration21<'T>(cnt: Int, arg : 'T) : Unit {
-        let r1 = VariableDeclaration21(_, "");
-        let recur = VariableDeclaration21(_, arg);
-        recur(cnt - 1);
-    }
-
-    operation VariableDeclaration22<'T>(cnt: Int, arg : 'T) : Unit {
-        let t1 = (1, (VariableDeclaration22(_, 1), ""));
-        let tuple = (1, (VariableDeclaration22(_, arg), ""));
-        let (_, (recur, _)) = tuple;
-        recur(cnt - 1);
-    }
-
-    operation VariableDeclaration23<'T>(cnt: Int, arg : 'T) : Unit {
+    operation VariableDeclaration20<'T>(cnt: Int, arg : 'T) : Unit {
         mutable arr = new ((Int, 'T) => Unit)[2];
         set arr w/= 0 .. 0 <- [VariableDeclaration17];
         arr[0](cnt - 1, arg);
     }
 
-    operation VariableDeclaration24<'T>(cnt: Int, arg : 'T) : Unit {
-        let arr = [VariableDeclaration24(_, arg), VariableDeclaration24(_, 1.)];
-        mutable _arr = [VariableDeclaration24(_, arg), VariableDeclaration24(_, 1.)];
-        arr[0](cnt - 1);
-    }
-
-    operation VariableDeclaration25<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
-        set arr = [VariableDeclaration25(_, PauliX)];
-        set arr = [VariableDeclaration25(_, arg)];
-        arr[0](cnt - 1);
-    }
-
-    operation VariableDeclaration26<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
-        set arr += [VariableDeclaration26(_, PauliX)];
-        set arr += [VariableDeclaration26(_, arg)];
-        arr[1](cnt - 1);
-    }
-
-    operation VariableDeclaration27<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[1];
-        set arr w/= 0 <- VariableDeclaration27(_, arg);
-        set arr w/= 0 <- VariableDeclaration27(_, 5);
-        arr[0](cnt - 1);
-    }
-
-    operation VariableDeclaration28<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[2];
-        set arr w/= 0 .. 1 <- [VariableDeclaration28(_, arg), VariableDeclaration27(_, arg)];
-        arr[0](cnt - 1);
-    }
-
-    operation VariableDeclaration29<'T>(cnt: Int, arg : 'T) : Unit {
-        let arr = new (Int => Unit)[1];
-        let foo = arr w/ 0 <- VariableDeclaration29(_, arg);
-        let bar = arr w/ 0 <- VariableDeclaration29(_, Zero);
-    }
-
-    operation VariableDeclaration30<'T>(arg : 'T) : 'T {
-        return VariableDeclaration30<'T>(arg);
-    }
-
-    operation VariableDeclaration31(cnt: Int, arg : Double) : Unit {
-        let recur = VariableDeclaration31; 
-        let tuple = (1, (VariableDeclaration31, ""));
-        let a1 = [VariableDeclaration31];
-        mutable a2 = [VariableDeclaration31];
+    operation VariableDeclaration21(cnt: Int, arg : Double) : Unit {
+        let recur = VariableDeclaration21; 
+        let tuple = (1, (VariableDeclaration21, ""));
+        let a1 = [VariableDeclaration21];
+        mutable a2 = [VariableDeclaration21];
         mutable arr = new ((Int, Double) => Unit)[0];
-        set arr = [VariableDeclaration31]; 
-        set arr += [VariableDeclaration31]; 
-        set arr w/= 0 <- VariableDeclaration31;
-        set arr w/= 0 .. 1 <- [VariableDeclaration31, VariableDeclaration17<Double>];
-        let foo = arr w/ 0 <- VariableDeclaration31;
-        return VariableDeclaration31(cnt, arg);
-    }
-
-    operation VariableDeclaration32<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
-        set arr += [VariableDeclaration22(_, arg), VariableDeclaration22(_, "")]; 
-        arr[0](cnt - 1);
+        set arr = [VariableDeclaration21]; 
+        set arr += [VariableDeclaration21]; 
+        set arr w/= 0 <- VariableDeclaration21;
+        set arr w/= 0 .. 1 <- [VariableDeclaration21, VariableDeclaration17<Double>];
+        let foo = arr w/ 0 <- VariableDeclaration21;
+        return VariableDeclaration21(cnt, arg);
     }
 
 

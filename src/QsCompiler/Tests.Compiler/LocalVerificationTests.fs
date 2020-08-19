@@ -26,6 +26,30 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
+    member this.``type argument inference`` () = 
+        this.Expect "TypeArgumentsInference1"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference2"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference3"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "TypeArgumentsInference4"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "TypeArgumentsInference5"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference6"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference7"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference8"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference9"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference10" []
+        this.Expect "TypeArgumentsInference11" []
+        this.Expect "TypeArgumentsInference12" []
+        this.Expect "TypeArgumentsInference13" []
+        this.Expect "TypeArgumentsInference14" []
+        this.Expect "TypeArgumentsInference15" []
+        this.Expect "TypeArgumentsInference16" []
+        this.Expect "TypeArgumentsInference17" []
+        this.Expect "TypeArgumentsInference18" []
+        this.Expect "TypeArgumentsInference19" []
+        this.Expect "TypeArgumentsInference20" []
+
+
+    [<Fact>]
     member this.``Variable declarations`` () = 
         this.Expect "VariableDeclaration1"  []
         this.Expect "VariableDeclaration2"  []
@@ -46,19 +70,8 @@ type LocalVerificationTests () =
         this.Expect "VariableDeclaration17" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
         this.Expect "VariableDeclaration18" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.MultipleTypesInArray]
         this.Expect "VariableDeclaration19" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
-        this.Expect "VariableDeclaration20" []
+        this.Expect "VariableDeclaration20" [Error ErrorCode.ConstrainsTypeParameter]
         this.Expect "VariableDeclaration21" []
-        this.Expect "VariableDeclaration22" []
-        this.Expect "VariableDeclaration23" [Error ErrorCode.ConstrainsTypeParameter]
-        this.Expect "VariableDeclaration24" []
-        this.Expect "VariableDeclaration25" []
-        this.Expect "VariableDeclaration26" []
-        this.Expect "VariableDeclaration27" []
-        this.Expect "VariableDeclaration28" []
-        this.Expect "VariableDeclaration29" []
-        this.Expect "VariableDeclaration30" []
-        this.Expect "VariableDeclaration31" []
-        this.Expect "VariableDeclaration32" []
 
 
     [<Fact>]
