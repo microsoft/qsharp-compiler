@@ -202,9 +202,6 @@ module InternalUse =
             "Borrow" 
             "Return"
 
-            "Data"
-            "Item"
-
             "QVoid"
             "Int64" 
             "BigInteger"
