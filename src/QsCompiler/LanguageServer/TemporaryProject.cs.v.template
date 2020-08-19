@@ -1,0 +1,20 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#nullable enable
+
+namespace Microsoft.Quantum.QsLanguageServer
+{
+    internal static class TemporaryProject
+    {
+        internal static string GetFileContents(string compilationScope, string? sdkVersion = null) => $@"
+            <Project Sdk=""Microsoft.Quantum.Sdk/{sdkVersion ?? "#NUGET_VERSION#"}"">
+                <PropertyGroup>
+                    <TargetFramework>netstandard2.1</TargetFramework>
+                </PropertyGroup>
+                <ItemGroup>
+                    <QsharpCompile Include=""{compilationScope}"" />
+                </ItemGroup>
+            </Project>";
+    }
+}
