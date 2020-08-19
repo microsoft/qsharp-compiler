@@ -525,7 +525,6 @@ namespace Microsoft.Quantum.QsCompiler
                 thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs"));
             }
 
-            // FIXME: WE NEED TO REPLACE TARGET SPECIFIC THINGS IN REFERENCES WHEN LOADING
             if (this.config.LoadTargetSpecificDecompositions)
             {
                 this.RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
