@@ -9,10 +9,6 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     open Microsoft.Quantum.Testing.TypeChecking;
 
 
-    // type argument inference
-
-    //operation 
-
     // variable declarations 
 
     operation VariableDeclaration1 () : Unit {

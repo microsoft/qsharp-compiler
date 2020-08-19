@@ -26,11 +26,6 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``type argument inference`` () = 
-        ()
-
-
-    [<Fact>]
     member this.``Variable declarations`` () = 
         this.Expect "VariableDeclaration1"  []
         this.Expect "VariableDeclaration2"  []
