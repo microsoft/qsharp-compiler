@@ -478,11 +478,20 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
 /// Calls IsValidArgument to obtain the type of the expression that would complete the given argument (which may contain missing expressions), 
 /// as well as a lookup for the type parameters that are defined by the non-missing argument items.
 /// Verifies that there is no ambiguity in that lookup, 
-/// and adds a AmbiguousTypeParameterResolution error for the corrsponding range using addError otherwise. 
-/// Adds a ConstrainsTypeParameter error if a type parameter that belongs to the given parent is not resolved to itself. 
+/// and adds a AmbiguousTypeParameterResolution error for the corresponding range using addError otherwise. 
+/// Enforces that direct recursions respect any explicitly specified type arguments (tArgs), and adds a ConstrainsTypeParameter otherwise.
+/// Adds a ConstrainsTypeParameter error if when the call would restrict what the type parameters of the parent callable can resolve to. 
 /// Builds the type of the call expression using buildCallableKind.
 /// Returns the built and verified look-up for the type paramters as well as the type of the call expression.
-let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion) (expectedArgType, expectedResultType) (arg, getType) = 
+let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion, tArgs) (expectedArgType, expectedResultType) (arg, getType) = 
+    // used for and only relevant for directRecursions - see comment further below
+    let requireIdResolution = tArgs |> function
+        | None -> Set.empty
+        | Some (tArgs : ImmutableArray<ResolvedType>) -> new Set<_>(tArgs |> Seq.choose (fun tArg -> tArg.Resolution |> function
+            | TypeParameter tp when tp.Origin = parent -> Some tp.TypeName
+            | _ -> None
+        ))
+    
     let getTypeParameterResolutions (lookUp : ILookup<_,_>) = 
         // IMPORTANT: Note that it is *not* possible to determine something like a "common base type"
         // without knowing the context in which the type parameters given in the lookUp occur!! ("covariant vs contravariant resolution" of the type parameter)
@@ -509,9 +518,15 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
                         // In particular, we need to know when a type argument was a type parameter of the parent callable. 
                         // In that case, the type parameter needs to resolve to itself.
                         // For any other type parameters, we can resolve them to whatever they resolve to, unless it is a type parameter of another callable. 
-                        // Then we need to attach these resolutions as type arguments to the identifier. 
+                        // Then we need to attach these resolutions as type arguments to the identifier (done by the calling method). 
                         // At the end, all type parameters for the parent need to be resolved, and otherwise we need to generate a suitable error. 
-                        r |> addError (ErrorCode.DirectRecursionWithinTemplate, []); invalid // FIXME: support this (see comment above)
+                        if requireIdResolution.Contains (snd entry.Key) then // explicitly specified type argument that needs to resolve to itself (which it doesn't)
+                            r |> addError (ErrorCode.ConstrainsTypeParameter, [typeParam |> toString]); typeParam
+                        else // this could be incorporated into the outer matching, but keeping the logic for the direct recursion case together may be more readable
+                            match res.Resolution with 
+                            | TypeParameter tp when tp.Origin <> parent -> 
+                                r |> addError (ErrorCode.AmbiguousTypeParameterResolution, []); invalid // todo: it would be nice to eventually lift this restriction
+                            | _ -> res |> StripPositionInfo.Apply
                     | _ -> r |> addError (ErrorCode.ConstrainsTypeParameter, [typeParam |> toString]); typeParam
                 else res |> StripPositionInfo.Apply
             match entry |> Seq.distinctBy fst |> Seq.toList with
@@ -840,22 +855,41 @@ type QsExpression with
             let getType (ex : QsExpression) = (ex.Resolve context (fun _ -> ())).ResolvedType // don't push resolution errors when tuple matching arguments
             let (resolvedMethod, resolvedArg) = (InnerExpression method, InnerExpression arg)
             let locQdepClassicalEx = resolvedMethod.InferredInformation.HasLocalQuantumDependency || resolvedArg.InferredInformation.HasLocalQuantumDependency
-            let exprKind = CallLikeExpression (resolvedMethod, resolvedArg)
-            let invalidEx = (exprKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
+            let originalExKind = CallLikeExpression (resolvedMethod, resolvedArg)
+            let invalidEx = (originalExKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
 
-            let isDirectRecursion = resolvedMethod.Expression |> function 
-                | Identifier (GlobalCallable id, _) -> id = symbols.Parent
-                | _ -> false
+            let isDirectRecursion, tArgs = resolvedMethod.Expression |> function 
+                | Identifier (GlobalCallable id, tArgs) -> id = symbols.Parent, tArgs |> QsNullable<_>.Fold (fun _ v -> Some v) None
+                | _ -> false, None
             let callTypeOrPartial build (expectedArgT, expectedResT) = 
-                VerifyCallExpr build addError (symbols.Parent, isDirectRecursion) (expectedArgT, expectedResT) (arg, getType)
+                let (typeParamRes, exType) = VerifyCallExpr build addError (symbols.Parent, isDirectRecursion, tArgs) (expectedArgT, expectedResT) (arg, getType)
+                if isDirectRecursion && symbols.DefinedTypeParameters.Length <> 0 then // we need to attach the resolved type arguments to the identifier
+                    
+                    let tArgs = tArgs |> Option.defaultValue (symbols.DefinedTypeParameters |> Seq.map (fun _ -> ResolvedType.New MissingType) |> ImmutableArray.CreateRange)
+                    QsCompilerError.Verify(tArgs.Length = symbols.DefinedTypeParameters.Length, "length mismatch for type arguments")
+                    let tArgs = tArgs |> Seq.zip symbols.DefinedTypeParameters |> Seq.map (function
+                        | tpName, tArg when tArg.isMissing -> typeParamRes.TryGetValue ((symbols.Parent, tpName)) |> function
+                            | true, res -> (symbols.Parent, tpName), res 
+                            | false, _ -> (symbols.Parent, tpName), ResolvedType.New MissingType // important: these need to be filtered out when building the resolutions dictionary
+                        | tpName, tArg -> (symbols.Parent, tpName), tArg)
+                    if tArgs |> Seq.map snd |> Seq.contains (ResolvedType.New MissingType) then 
+                        method.RangeOrDefault |> addError (ErrorCode.UnresolvedTypeParameterForRecursiveCall, [])
+
+                    let methodTypeParamRes = tArgs |> Seq.filter (snd >> (<>)(ResolvedType.New MissingType)) |> Seq.map KeyValuePair.Create |> ImmutableDictionary.CreateRange
+                    let methodTypeArgs = tArgs |> Seq.map snd |> ImmutableArray.CreateRange |> Value 
+                    let typeParamRes = typeParamRes |> Seq.filter (fun kv -> fst kv.Key <> symbols.Parent) |> ImmutableDictionary.CreateRange
+                    let methodExpr = TypedExpression.New (Identifier (GlobalCallable symbols.Parent, methodTypeArgs), methodTypeParamRes, resolvedMethod.ResolvedType, resolvedMethod.InferredInformation, resolvedMethod.Range)
+                    typeParamRes, exType, CallLikeExpression (methodExpr, resolvedArg)
+                else typeParamRes, exType, originalExKind
 
             match resolvedMethod.ResolvedType.Resolution with 
             | QsTypeKind.InvalidType -> invalidEx
             | QsTypeKind.Function (argT, resT) -> 
-                let typeParamResolutions, exType = (argT, resT) |> callTypeOrPartial QsTypeKind.Function
+                let typeParamResolutions, exType, exprKind = (argT, resT) |> callTypeOrPartial QsTypeKind.Function
                 let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = locQdepClassicalEx)
                 TypedExpression.New (exprKind, typeParamResolutions, exType, exInfo, this.Range) 
             | QsTypeKind.Operation ((argT, resT), characteristics) -> 
+                let typeParamResolutions, exType, exprKind = (argT, resT) |> callTypeOrPartial (fun (i,o) -> QsTypeKind.Operation ((i,o), characteristics))
                 let isPartialApplication = TypedExpression.IsPartialApplication exprKind
                 if not (isPartialApplication || characteristics.Characteristics.AreInvalid) then // check that the functors necessary for auto-generation are supported 
                     let functors = characteristics.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty 
@@ -863,7 +897,6 @@ type QsExpression with
                     if missing.Length <> 0 then method.RangeOrDefault |> addError (ErrorCode.MissingFunctorForAutoGeneration, [String.Join(", ", missing)])
                 let localQDependency = if isPartialApplication then locQdepClassicalEx else true
                 let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = localQDependency)
-                let typeParamResolutions, exType = (argT, resT) |> callTypeOrPartial (fun (i,o) -> QsTypeKind.Operation ((i,o), characteristics))
                 if not (context.IsInOperation || isPartialApplication) then method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, []); invalidEx
                 else TypedExpression.New (exprKind, typeParamResolutions, exType, exInfo, this.Range)
             | _ -> method.RangeOrDefault |> addError (ErrorCode.ExpectingCallableExpr, [resolvedMethod.ResolvedType |> toString]); invalidEx
