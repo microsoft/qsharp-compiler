@@ -37,7 +37,7 @@ type PreEvaluation =
             else tree
 
         let namespaces = arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
-        QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)
+        QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints, arg.CallGraph)
 
     /// Default sequence of optimizing transformations
     static member DefaultScript removeFunctions maxSize : Func<_, TransformationBase seq> = 

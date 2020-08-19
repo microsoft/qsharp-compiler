@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler
                 });
                 return new QsNamespace(ns.Name, elements.ToImmutableArray(), ns.Documentation);
             });
-            built = new QsCompilation(namespaces.ToImmutableArray(), compilation.EntryPoints);
+            built = new QsCompilation(namespaces.ToImmutableArray(), compilation.EntryPoints, compilation.CallGraph);
             return success;
         }
     }

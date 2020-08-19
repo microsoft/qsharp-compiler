@@ -850,7 +850,7 @@ namespace Microsoft.Quantum.QsCompiler
                 LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
             }
 
-            var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty, new CallGraph());
+            var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty, QsNullable<ICallGraph>.Null);
             var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
             return this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TargetSpecificReplacements);
         }
@@ -1008,7 +1008,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             using var writer = new BsonDataWriter(ms) { CloseOutput = false };
             var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
-            var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints, new CallGraph());
+            var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints, QsNullable<ICallGraph>.Null);
             try
             {
                 Json.Serializer.Serialize(writer, compilation);

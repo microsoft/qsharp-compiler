@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
@@ -33,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = new QsCompilation(compilation.Namespaces, compilation.EntryPoints, BuildCallGraph.Apply(compilation));
+            transformed = new QsCompilation(compilation.Namespaces, compilation.EntryPoints, QsNullable<ICallGraph>.NewValue(BuildCallGraph.Apply(compilation)));
             return true;
         }
 

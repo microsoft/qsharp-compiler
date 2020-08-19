@@ -882,7 +882,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = RenameInternalDeclarations(callables, types, predicate: source => this.Externals.Declarations.ContainsKey(source));
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
-                return new QsCompilation(tree, entryPoints.ToImmutable());
+                return new QsCompilation(tree, entryPoints.ToImmutable(), QsNullable<ICallGraph>.Null);
             }
             finally
             {

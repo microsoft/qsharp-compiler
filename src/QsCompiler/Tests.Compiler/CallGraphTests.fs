@@ -43,9 +43,8 @@ type CallGraphTests (output:ITestOutputHelper) =
     let ResolutionFromParamName (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (op, param, _) -> op, param), (fun (_, _, resolution) -> ResolvedType.New resolution))
 
-    let GetEdges (graph: CallGraph) (cycle: ImmutableArray<CallGraphNode>) =
-        List.rev [
-        for i in 0 .. cycle.Length - 1 do
+    let GetEdges (graph: ICallGraph) (cycle: ImmutableArray<ICallGraphNode>) =
+        [ for i in 0 .. cycle.Length - 1 do
             let current = cycle.[i]
             let next = cycle.[(i+1)%(cycle.Length)]
             yield graph.GetDirectDependencies(current).[next] ]
@@ -88,7 +87,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTest testNumber "CycleValidation.qs"
 
         graph.GetCallCycles()
-        |> Seq.map (fun x -> GetEdges graph x) |> Seq.collect (fun x -> CartesianProduct x)
+        |> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
 
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
@@ -119,7 +118,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             let rotations = [0 .. size1 - 1] |> List.map rotate
             List.contains lst2 rotations
 
-    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
+    let CheckForExpectedCycles (actualCycles: seq<#seq<ICallGraphNode>>) expectedCycles =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
 
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
@@ -143,17 +142,17 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<_,_>) expected =
+    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<ICallGraphNode,_>) expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
-        let opNode = new CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let opNode = CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
         Assert.True(given.Contains(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
         let edges = given.[opNode]
         Assert.True(edges.Count() = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo)
-        let given = List.map (fun (x : CallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
+        let given = List.map (fun (x : ICallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
         AssertExpectedResolutionList expected given
 
-    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
+    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : ICallGraph) =
         let strToNode name =
             let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
             CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
@@ -163,17 +162,17 @@ type CallGraphTests (output:ITestOutputHelper) =
             Assert.True(dependencies.Contains(expectedNode),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
-    let AssertNotInGraph (givenGraph : CallGraph) name =
+    let AssertNotInGraph (givenGraph : ICallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
 
-    let AssertValidCycles (cycles: seq<CallGraphEdge list>) =
+    let AssertValidCycles (cycles: seq<ICallGraphEdge list>) =
         for cycle in cycles do
             Assert.True(CallGraph.VerifyCycle(cycle.ToArray()),
                 sprintf "Invalid cycle found:\n%A" (cycle |> List.map (fun x -> x.ParamResolutions)))
 
-    let AssertInvalidCycleExists (cycles: seq<CallGraphEdge list>) =
+    let AssertInvalidCycleExists (cycles: seq<ICallGraphEdge list>) =
         Assert.True(cycles |> Seq.exists (fun cycle -> not (CallGraph.VerifyCycle(cycle.ToArray()))),
                 sprintf "Expected but did not find an invalid cycle")
 
@@ -183,7 +182,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 1
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -217,7 +216,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 2
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -233,7 +232,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 3
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -249,7 +248,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 4
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -265,7 +264,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 5
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -281,7 +280,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 6
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -298,7 +297,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 7
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -316,7 +315,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 8
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -339,7 +338,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTest 9
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -362,7 +361,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let graph = CompileTypeParameterResolutionTestWithExe 10
 
         let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = new CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let dependencies = graph.GetAllDependencies mainNode
 
         [
