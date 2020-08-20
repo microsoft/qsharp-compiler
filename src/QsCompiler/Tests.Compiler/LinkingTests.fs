@@ -67,7 +67,7 @@ type LinkingTests (output:ITestOutputHelper) =
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
-        this.Verify (QsQualifiedName.New (ns, name), diag)
+        this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
     member private this.BuildWithSource input (manager : CompilationUnitManager) = 
         let fileId = getTempFile()
@@ -83,7 +83,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let inFile (c : QsCallable) = c.SourceFile = source
         for callable in built.Callables.Values |> Seq.filter inFile do
-            tests.Verify (callable.FullName, diag)
+            tests.VerifyDiagnostics (callable.FullName, diag)
 
     member private this.BuildContent (manager : CompilationUnitManager, source, ?references) =
         match references with
