@@ -47,6 +47,17 @@ type LocalVerificationTests () =
         this.Expect "TypeArgumentsInference18" []
         this.Expect "TypeArgumentsInference19" []
         this.Expect "TypeArgumentsInference20" []
+        this.Expect "TypeArgumentsInference21" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference22" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference23" []
+        this.Expect "TypeArgumentsInference24" []
+        this.Expect "TypeArgumentsInference25" []
+        this.Expect "TypeArgumentsInference26" []
+        this.Expect "TypeArgumentsInference27" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference28" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference29" []
+        this.Expect "TypeArgumentsInference30" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+        this.Expect "TypeArgumentsInference31" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
 
 
     [<Fact>]

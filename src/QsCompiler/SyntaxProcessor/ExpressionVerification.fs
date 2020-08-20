@@ -484,7 +484,6 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
 /// Builds the type of the call expression using buildCallableType.
 /// Returns the built and verified look-up for the type paramters as well as the type of the call expression.
 let private VerifyCallExpr buildCallableType addError (parent, isDirectRecursion, tArgs) (expectedArgType, expectedResultType) (arg, getType) = 
-    // used for and only relevant for directRecursions - see comment further below
     let requireIdResolution = tArgs |> function
         | Some (tArgs : ImmutableArray<ResolvedType>) -> new Set<_>(tArgs |> Seq.choose (fun tArg -> tArg.Resolution |> function
             | TypeParameter tp when tp.Origin = parent -> Some tp.TypeName
@@ -533,8 +532,15 @@ let private VerifyCallExpr buildCallableType addError (parent, isDirectRecursion
             | [(res, r)] -> uniqueResolution (res, r)
             | _ -> entry |> Seq.distinctBy (fst >> StripInferredInfoFromType) |> Seq.toList |> function
                 | [(res, r)] -> uniqueResolution (res, r)
-                | _ -> for (_, r) in entry do r |> addError (ErrorCode.AmbiguousTypeParameterResolution, [])
-                       invalid
+                | _ -> // either conflicting with internal type parameter or ambiguous
+                    if fst entry.Key <> parent || not <| requireIdResolution.Contains (snd entry.Key) then 
+                        for (_, r) in entry do r |> addError (ErrorCode.AmbiguousTypeParameterResolution, [])
+                        invalid
+                    else // explicitly specified by type argument 
+                        let typeParam = QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
+                        let conflicting = entry |> Seq.filter (fun (t, _) -> typeParam = StripPositionInfo.Apply t)
+                        for (_, r) in conflicting do r |> addError (ErrorCode.TypeParameterResConflictWithTypeArgument, [typeParam |> toString])
+                        typeParam
 
         let tpResolutions = lookUp |> Seq.map (fun entry -> entry.Key, findResolution entry)
         tpResolutions.ToImmutableDictionary(fst, snd)
