@@ -177,11 +177,11 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function TypeArgumentsInference32<'A>(a : 'A) : Unit {
-        TypeArgumentsInference20<'A>(3);
+        TypeArgumentsInference21<'A>(3);
     }
 
     function TypeArgumentsInference33<'A>(a : 'A) : Unit {
-        TypeArgumentsInference20<Int>(a);
+        TypeArgumentsInference21<Int>(a);
     }
 
     function TypeArgumentsInference34<'A, 'B>(a : 'A, b : 'B) : Unit {
@@ -219,7 +219,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function TypeArgumentsInference42<'A,'B>(a : 'A, b : 'B) : Unit {
-        TypeArgumentsInference31<'A, 'A>(a, b);
+        TypeArgumentsInference23<'A, 'A>(a, b);
     }
 
 
