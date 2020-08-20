@@ -269,7 +269,7 @@ let private TryAddDeclaration isMutable (symbols : SymbolTracker<_>) (name : Non
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), errs |> Array.append tpErr
-    
+
 /// Given a Q# symbol, as well as the expression on the right hand side that is assigned to it, 
 /// resolves and verifies the assignment using VerifyBinding and the resolution context.
 /// Pushes all determined variable declarations into the current scope of the symbol tracker, 
