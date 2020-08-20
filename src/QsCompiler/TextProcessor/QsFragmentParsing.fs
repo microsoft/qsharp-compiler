@@ -64,7 +64,7 @@ let private expectedIdentifierDeclaration continuation =
 /// Returns None if the path contains segments that are None (i.e. invalid).
 /// Generates a suitable diagnostic if the namespace name ends in an underscore. 
 let internal namespaceName = // internal for testing purposes
-    let asNamespaceName ((path, sym : string option), range : Position * Position) = 
+    let asNamespaceName ((path, sym : string option), range : Range) =
         let names = path @ [sym]
         let namespaceStr = names |> List.choose id |> String.concat "."
         if names |> List.contains None then (None, range) |> preturn
