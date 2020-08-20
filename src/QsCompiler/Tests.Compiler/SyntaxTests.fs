@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open System
 open System.Collections.Immutable
@@ -33,22 +34,39 @@ let ``Reserved patterns`` () =
     ]
     |> List.iter (testOne (symbolNameLike ErrorCode.InvalidIdentifierName))
     [
-        ("a.b" , true , ([Some "a" ],Some "b"), [])
-        ("_a.b" , true , ([Some "_a" ],Some "b"), [])
-        ("a_.b" , true , ([Some "a_" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a._b" , true , ([Some "a" ],Some "_b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b_" , true , ([Some "a" ],Some "b_"), [])
-        ("_a.b_" , true , ([Some "_a" ],Some "b_"), [])
-        ("a_._b" , true , ([Some "a_" ],Some "_b"), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b" , true , ([Some "__a" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__a.b" , true , ([Some "a__a" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__.b" , true , ([Some "a__" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.__b" , true , ([Some "a" ],Some "__b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__b" , true , ([Some "a" ],Some "b__b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__" , true , ([Some "a" ],Some "b__"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b__" , true , ([Some "__a" ],Some "b__"), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b"    , true , ([Some "a"   ], Some "b"   ), [])
+        ("_a.b"   , true , ([Some "_a"  ], Some "b"   ), [])
+        ("a_.b"   , true , ([Some "a_"  ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a._b"   , true , ([Some "a"   ], Some "_b"  ), [])
+        ("a.b_"   , true , ([Some "a"   ], Some "b_"  ), [])
+        ("_a.b_"  , true , ([Some "_a"  ], Some "b_"  ), [])
+        ("a_._b"  , true , ([Some "a_"  ], Some "_b"  ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b"  , true , ([Some "__a" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__a.b" , true , ([Some "a__a"], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__.b"  , true , ([Some "a__" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.__b"  , true , ([Some "a"   ], Some "__b" ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__b" , true , ([Some "a"   ], Some "b__b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__"  , true , ([Some "a"   ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b__", true , ([Some "__a" ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
     ]
     |> List.iter (testOne (multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> fst))
+    [
+        ("a.b"    , true , Some "a.b"    , [])
+        ("_a.b"   , true , Some "_a.b"   , [])
+        ("a_.b"   , true , Some "a_.b"   , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a._b"   , true , Some "a._b"   , [])
+        ("a.b_"   , true , Some "a.b_"   , [Warning WarningCode.UseOfUnderscorePattern])
+        ("_a.b_"  , true , Some "_a.b_"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a_._b"  , true , Some "a_._b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b"  , true , Some "__a.b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__a.b" , true , Some "a__a.b" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__.b"  , true , Some "a__.b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.__b"  , true , Some "a.__b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__b" , true , Some "a.b__b" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__"  , true , Some "a.b__"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b__", true , Some "__a.b__", [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (namespaceName |>> fst))
 
 
 [<Fact>]

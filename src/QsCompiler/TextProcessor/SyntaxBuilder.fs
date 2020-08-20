@@ -345,11 +345,11 @@ let internal symbolNameLike errCode =
                      preCheckStart = isSymbolStart,
                      preCheckContinue = isSymbolContinuation) |> identifier
         getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
-    let whenValid ((isAfterDot, (name : string, range)), isBeforeDot) =
+    let whenValid ((name : string, range), isBeforeDot) =
         // REL0920: 
         // The warning for reservedUnderscorePattern should be replace with an error in the future, 
         // and the first half of isReserved should be removed.
-        let reservedUnderscorePattern = name.Contains "__" || (isAfterDot && name.StartsWith "_") || (isBeforeDot && name.EndsWith "_")
+        let reservedUnderscorePattern = name.Contains "__" || (isBeforeDot && name.EndsWith "_")
         let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name 
         let isCsKeyword = SyntaxFacts.IsKeywordKind (SyntaxFacts.GetKeywordKind name)
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
@@ -361,9 +361,8 @@ let internal symbolNameLike errCode =
         let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. identifier 
         buildError (getPosition .>> invalidName .>>. getPosition) errCode >>% None
     let validSymbolName = 
-        let checkPrecededByDot = previousCharSatisfies ((=)'.') >>% true <|>% false
         let checkFollowedByDot = nextCharSatisfies ((=)'.') >>% true <|>% false
-        (checkPrecededByDot .>>. identifier .>>. checkFollowedByDot) >>= whenValid        
+        (identifier .>>. checkFollowedByDot) >>= whenValid        
     notFollowedBy qsReservedKeyword >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
 
 /// Handles permissive parsing of a symbol:
@@ -387,14 +386,6 @@ let internal asQualifiedSymbol ((path, sym), range : Position * Position) =
         | parts -> 
             let (ns, sym) = (String.concat "." parts.[0..parts.Length-2]) |> NonNullable<string>.New, parts.[parts.Length-1] |> NonNullable<string>.New
             (QualifiedSymbol (ns, sym), range) |> QsSymbol.New
-
-/// Given the path, the symbol and the range parsed by multiSegmentSymbol, 
-/// concatenates all path segments and the symbol with a dot, and returns a simple Symbol of the concatenated string as QsSymbol. 
-/// Returns a QsSymbol corresponding to an invalid symbol if the path contains segments that are None (i.e. invalid).
-let internal asSymbol ((path, sym), range : Position * Position) = 
-    let names = [for segment in path do yield segment ] @ [sym]
-    if names |> List.contains None then (InvalidSymbol, Null) |> QsSymbol.New
-    else (names |> List.choose id |> String.concat "." |> NonNullable<string>.New |> Symbol, range) |> QsSymbol.New
 
 /// Handles permissive parsing of a qualified symbol:
 /// Uses symbolNameLike for each path fragment separated by dots 
