@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.Loader;
 using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -14,11 +15,27 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        static ProjectLoaderTests() =>
-            MSBuildLocator.RegisterDefaults();
+        static ProjectLoaderTests()
+        {
+            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
+
+            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
+            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
+            {
+                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    return assemblyLoadContext.LoadFromAssemblyPath(path);
+                }
+                return null;
+            };
+        }
 
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
+
+        private static string SourceFileName(string project, string fileName) =>
+            Path.Combine("TestProjects", project, fileName);
 
         private (string, ProjectInformation) Context(string project)
         {
@@ -286,17 +303,33 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
+
+        [TestMethod]
+        public void LoadQsharpTemporaryProject()
+        {
+            var sourceFile = Path.GetFullPath(SourceFileName("test14", "Operation14.qs"));
+            var (projectUri, projectInformation) = CompilationContext.LoadTemporary(new Uri(sourceFile), "0.12.20072031");
+            Assert.IsNotNull(projectUri);
+            Assert.IsNotNull(projectInformation);
+            Assert.IsTrue(projectInformation.UsesCanon());
+
+            var qsFiles = new string[] { sourceFile };
+            CollectionAssert.AreEquivalent(qsFiles, projectInformation.SourceFiles.ToArray());
+        }
     }
 
     internal static class CompilationContext
     {
-        internal static ProjectInformation Load(Uri projectFile)
-        {
-            static void LogOutput(string msg, MessageType level) =>
-                Console.WriteLine($"[{level}]: {msg}");
-            return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
+        private static void LogOutput(string msg, MessageType level) =>
+            Console.WriteLine($"[{level}]: {msg}");
+
+        internal static ProjectInformation Load(Uri projectFile) =>
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
                 .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
-        }
+
+        internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile, string sdkVersion) =>
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
+                .QsTemporaryProjectLoader(sourceFile, sdkVersion, out var projectUri, out var loaded) ? (projectUri, loaded) : (null, null);
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
 
