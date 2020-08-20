@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Bond.fs" />
     <Compile Include="..\..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>

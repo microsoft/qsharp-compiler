@@ -28,20 +28,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public class Headers
         {
             public readonly ImmutableArray<CallableDeclarationHeader> Callables;
-            public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
+            public readonly ImmutableArray<(SpecializationDeclarationHeader, Bond.SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
             internal Headers(
                 string source,
                 IEnumerable<CallableDeclarationHeader> callables = null,
-                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null,
+                IEnumerable<(SpecializationDeclarationHeader, Bond.SpecializationImplementation)> specs = null,
                 IEnumerable<TypeDeclarationHeader> types = null)
             {
                 NonNullable<string> SourceOr(NonNullable<string> origSource) => NonNullable<string>.New(source ?? origSource.Value);
                 this.Types = types?.Select(t => t.FromSource(SourceOr(t.SourceFile))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
                 this.Callables = callables?.Select(c => c.FromSource(SourceOr(c.SourceFile))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
-                this.Specializations = specs?.Select(s => (s.Item1.FromSource(SourceOr(s.Item1.SourceFile)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
-                    ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
+                this.Specializations = specs?.Select(s => (s.Item1.FromSource(SourceOr(s.Item1.SourceFile)), s.Item2)).ToImmutableArray() // [BH]: was null check for s.Item2 and set to SpecDecl.External before
+                    ?? ImmutableArray<(SpecializationDeclarationHeader, Bond.SpecializationImplementation)>.Empty;
             }
 
             /// <summary>
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : this(
                     source.Value,
                     syntaxTree?.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                    syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)),
+                    syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), new Bond.SpecializationImplementation())),
                     syntaxTree?.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             {
             }
@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : this(
                     source.Value,
                     CallableHeaders(attributes),
-                    SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation)null)),
+                    SpecializationHeaders(attributes).Select(h => (h, (Bond.SpecializationImplementation)null)),
                     TypeHeaders(attributes))
             {
             }
@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
+                                   Bond.SpecializationImplementation.Create(rename.Namespaces.OnSpecializationImplementation(specialization.Item2.Deserialize()))));
             return new Headers(source, callables, specializations, types);
         }
 
@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.GlobalSymbols = new NamespaceManager(
                     this,
                     this.Externals.Declarations.Values.SelectMany(h => h.Callables),
-                    this.Externals.Declarations.Values.SelectMany(h => h.Specializations.Select(t => new Tuple<SpecializationDeclarationHeader, SpecializationImplementation>(t.Item1, t.Item2))),
+                    this.Externals.Declarations.Values.SelectMany(h => h.Specializations.Select(t => new Tuple<SpecializationDeclarationHeader, Bond.SpecializationImplementation>(t.Item1, t.Item2))),
                     this.Externals.Declarations.Values.SelectMany(h => h.Types),
                     this.RuntimeCapabilities,
                     this.IsExecutable);

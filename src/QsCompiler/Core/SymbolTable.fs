@@ -245,7 +245,7 @@ and Namespace private
      parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
      CallablesInReferences : ILookup<NonNullable<string>, CallableDeclarationHeader>,
      SpecializationsInReferences : ILookup<NonNullable<string>,
-                                           SpecializationDeclarationHeader * SpecializationImplementation>,
+                                           SpecializationDeclarationHeader * Bond.SpecializationImplementation>,
      TypesInReferences : ILookup<NonNullable<string>, TypeDeclarationHeader>) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
@@ -740,7 +740,7 @@ and Namespace private
 and NamespaceManager
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
-     specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
+     specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * Bond.SpecializationImplementation>,
      typesInRefs : IEnumerable<TypeDeclarationHeader>, 
      runtimeCapabilites, isExecutable) =
     // This class itself does not use any concurrency, 
