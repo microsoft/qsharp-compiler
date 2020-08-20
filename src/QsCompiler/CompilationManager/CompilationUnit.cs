@@ -748,7 +748,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         specHeader.Location,
                         specHeader.TypeArguments,
                         specSignature,
-                        implementation, 
+                        implementation,
                         specHeader.Documentation,
                         QsComments.Empty);
                 })
