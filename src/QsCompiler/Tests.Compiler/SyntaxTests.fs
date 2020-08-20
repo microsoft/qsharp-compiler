@@ -174,7 +174,6 @@ let ``Symbol name tests`` () =
         ("_a",                  true,    "_a",             []);
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
-        ("__a",                 true,    "__a",            []);
         ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
         ("λ",                   true,    "λ",              []); // Greek small letter Lambda
         ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
