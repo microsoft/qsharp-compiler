@@ -107,3 +107,24 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
         Foo<'A>();
     }
 }
+
+// =================================
+
+// Cycle with Rotating Constriction
+namespace Microsoft.Quantum.Testing.CycleDetection {
+
+    operation Foo<'A,'B,'C>() : Unit {
+        Bar<'C,'A,'B>();
+        Bar<'B,'C,'A>();
+    }
+
+    operation Bar<'A,'B,'C>() : Unit {
+        Baz<'C,'A,'B>();
+        Baz<'B,'C,'A>();
+    }
+
+    operation Baz<'A,'B,'C>() : Unit {
+        Foo<'C,'A,'B>();
+        Foo<'B,'C,'A>();
+    }
+}

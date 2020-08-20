@@ -84,10 +84,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         callGraph.GetCallCycles ()
 
     let CompileCycleValidationTest testNumber =
-        let graph = CompileTest testNumber "CycleValidation.qs"
+        CompileTest testNumber "CycleValidation.qs"
 
-        graph.GetCallCycles()
-        |> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
+        //graph.GetCallCycles()
+        //|> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
 
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
@@ -167,14 +167,28 @@ type CallGraphTests (output:ITestOutputHelper) =
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
 
-    let AssertValidCycles (cycles: seq<ICallGraphEdge list>) =
+    let AssertValidCycles (graph: CallGraph) =
+        let cycles =
+            graph.GetCallCycles()
+            |> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
+
         for cycle in cycles do
             Assert.True(CallGraph.VerifyCycle(cycle.ToArray()),
                 sprintf "Invalid cycle found:\n%A" (cycle |> List.map (fun x -> x.ParamResolutions)))
 
-    let AssertInvalidCycleExists (cycles: seq<ICallGraphEdge list>) =
+        // Also test the VerifyAllCycles to see if it gets the same result
+        Assert.True(graph.VerifyAllCycles())
+
+    let AssertInvalidCycleExists (graph: CallGraph) =
+        let cycles =
+            graph.GetCallCycles()
+            |> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
+
         Assert.True(cycles |> Seq.exists (fun cycle -> not (CallGraph.VerifyCycle(cycle.ToArray()))),
                 sprintf "Expected but did not find an invalid cycle")
+
+        // Also test the VerifyAllCycles to see if it gets the same result
+        Assert.False(graph.VerifyAllCycles())
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -704,3 +718,8 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Trait("Category","Cycle Validation")>]
     member this.``Cycle with Multiple Concrete Resolutions`` () =
         CompileCycleValidationTest 6 |> AssertValidCycles
+
+    [<Fact>]
+    [<Trait("Category","Cycle Validation")>]
+    member this.``Cycle with Rotating Constriction`` () =
+        CompileCycleValidationTest 7 |> AssertInvalidCycleExists

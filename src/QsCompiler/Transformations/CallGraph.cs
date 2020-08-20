@@ -534,7 +534,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// i.e Foo.A -> Foo.A[].
         /// Returns true if the cycle is valid, false if invalid.
         /// </summary>
-        public static bool VerifyCycle(params ICallGraphEdge[] edges)
+        internal static bool VerifyCycle(params ICallGraphEdge[] edges)
         {
             var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
             if (!combination.IsValid)
@@ -546,6 +546,30 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             // although this may be valid in other circumstances.
             return combination.CombinedResolutionDictionary
                 .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
+        }
+
+        private IEnumerable<IEnumerable<ICallGraphEdge>> GetEdges(ImmutableArray<ICallGraphNode> cycle)
+            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
+
+        private static IEnumerable<IEnumerable<ICallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<ICallGraphEdge>> sequences)
+        {
+            IEnumerable<IEnumerable<ICallGraphEdge>> result = new[] { Enumerable.Empty<ICallGraphEdge>() };
+            foreach (var sequence in sequences)
+            {
+                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
+            }
+            return result;
+        }
+
+        public bool VerifyAllCycles()
+        {
+            if (this.Nodes.Any())
+            {
+                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
+                return cycles.All(cycle => VerifyCycle(cycle.ToArray()));
+            }
+
+            return true;
         }
 
         /// <summary>
