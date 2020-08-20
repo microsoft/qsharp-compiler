@@ -28,7 +28,7 @@ type private StripInferredInfoFromType () =
     default this.OnCallableInformation opInfo = 
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.OnRange _ = Null
+    override this.OnRangeInformation _ = Null
 let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
