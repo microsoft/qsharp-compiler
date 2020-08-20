@@ -137,7 +137,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     default this.OnSpecializationImplementation (implementation : SpecializationImplementation) = 
         let Build kind transformed = kind |> Node.BuildOr implementation transformed
         match implementation with 
-        | External                  -> this.OnExternalImplementation();                  External
+        | External serialized       -> this.OnSpecializationImplementation(serialized.Deserialize())
         | Intrinsic                 -> this.OnIntrinsicImplementation();                 Intrinsic
         | Generated dir             -> this.OnGeneratedImplementation dir             |> Build Generated
         | Provided (argTuple, body) -> this.OnProvidedImplementation (argTuple, body) |> Build Provided
