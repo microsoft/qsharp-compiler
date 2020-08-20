@@ -538,6 +538,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var steps = new List<(int, Func<QsCompilation>)>();
 
+            // [BH]: this needs to execute after dropping all unused code
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
