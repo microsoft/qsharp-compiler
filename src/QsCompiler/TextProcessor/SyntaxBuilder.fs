@@ -347,7 +347,7 @@ let internal symbolNameLike errCode =
         getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
     let whenValid ((isAfterDot, (name : string, range)), isBeforeDot) =
         // REL0920: 
-        // The warning for reservedUnderscorePattern should be replace with an error in the future, 
+        // The warning for reservedUnderscorePattern should be replaced with an error in the future, 
         // and the first half of isReserved should be removed.
         let reservedUnderscorePattern = name.Contains "__" || (isAfterDot && name.StartsWith "_") || (isBeforeDot && name.EndsWith "_")
         let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name 
