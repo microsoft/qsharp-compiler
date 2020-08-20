@@ -345,17 +345,26 @@ let internal symbolNameLike errCode =
                      preCheckStart = isSymbolStart,
                      preCheckContinue = isSymbolContinuation) |> identifier
         getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
-    let whenValid (name : string, range) = 
-        let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name
+    let whenValid ((isAfterDot, (name : string, range)), isBeforeDot) =
+        // TODO: 
+        // The warning for reservedUnderscorePattern should be replace with an error in the future, 
+        // and the first half of isReserved should be removed.
+        let reservedUnderscorePattern = name.Contains "__" || (isAfterDot && name.StartsWith "_") || (isBeforeDot && name.EndsWith "_")
+        let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name 
         let isCsKeyword = SyntaxFacts.IsKeywordKind (SyntaxFacts.GetKeywordKind name)
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
         if isCsKeyword || isReserved then buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
-        else if moreThanUnderscores then preturn name |>> Some
-        else buildError (preturn range) errCode >>% None
+        elif not moreThanUnderscores then buildError (preturn range) errCode >>% None
+        elif reservedUnderscorePattern then buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% Some name
+        else preturn name |>> Some
     let invalid = 
         let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. identifier 
         buildError (getPosition .>> invalidName .>>. getPosition) errCode >>% None
-    notFollowedBy qsReservedKeyword >>. attempt (identifier >>= whenValid <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
+    let validSymbolName = 
+        let checkPrecededByDot = previousCharSatisfies ((=)'.') >>% true <|>% false
+        let checkFollowedByDot = nextCharSatisfies ((=)'.') >>% true <|>% false
+        (checkPrecededByDot .>>. identifier .>>. checkFollowedByDot) >>= whenValid        
+    notFollowedBy qsReservedKeyword >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
 
 /// Handles permissive parsing of a symbol:
 /// Uses symbolNameLike to generate suitable errors if the current symbol-like text is not a valid symbol in Q#

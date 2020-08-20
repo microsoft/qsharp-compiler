@@ -47,8 +47,9 @@ type ErrorCode =
     | InvalidConstructorExpression = 3030
     | InvalidKeywordWithinExpression = 3032
     | InvalidUseOfReservedKeyword = 3033
-    | ExcessContinuation = 3034
-    | NonCallExprAsStatement = 3035
+    | InvalidUseOfUnderscorePattern = 3034
+    | ExcessContinuation = 3035
+    | NonCallExprAsStatement = 3036
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -320,6 +321,8 @@ type WarningCode =
     | DeprecatedNOToperator = 3301
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
+    | UseOfFutureReservedKeyword = 3304
+    | UseOfUnderscorePattern = 3305
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001 
@@ -428,6 +431,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidConstructorExpression              -> "Syntax error in constructor expression."
             | ErrorCode.InvalidKeywordWithinExpression            -> "Invalid use of a reserved keyword within an expression."
             | ErrorCode.InvalidUseOfReservedKeyword               -> "The symbol is reserved for internal use only."
+            | ErrorCode.InvalidUseOfUnderscorePattern             -> "The use of double underscores, and underscores before and after dots is reserved for internal use only."
             | ErrorCode.ExcessContinuation                        -> "Unexpected code fragment."
             | ErrorCode.NonCallExprAsStatement                    -> "An expression used as a statement must be a call expression."
                                                             
@@ -712,6 +716,8 @@ type DiagnosticItem =
             | WarningCode.DeprecatedNOToperator                   -> "Deprecated syntax. Use \"not\" to denote the logical NOT operator."
             | WarningCode.DeprecatedANDoperator                   -> "Deprecated syntax. Use \"and\" to denote the logical AND operator."
             | WarningCode.DeprecatedORoperator                    -> "Deprecated syntax. Use \"or\" to denote the logical OR operator."
+            | WarningCode.UseOfFutureReservedKeyword              -> "The symbol will be reserved for internal use in the future."
+            | WarningCode.UseOfUnderscorePattern                  -> "The use of double underscores, and underscores before and after dots will be reserved for internal use in the future."
             | WarningCode.DeprecatedRUSloopInFunction             -> "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
                                                                   
             | WarningCode.DiscardingItemInAssignment              -> "The expression on the right hand side is discarded on assignment and can be omitted."

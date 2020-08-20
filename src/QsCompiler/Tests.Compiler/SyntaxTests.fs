@@ -17,7 +17,40 @@ open Xunit
 
 let private rawString = getStringContent (manyChars anyChar) |>> fst
 
-// Component parsers
+
+[<Fact>]
+let ``Reserved patterns`` () = 
+    [
+        ("_mySymbol" , true , Some "_mySymbol" , [])
+        ("mySymbol_" , true , Some "mySymbol_" , [])
+        ("my_symbol" , true , Some "my_symbol" , [])
+        ("my__symbol", true , Some "my__symbol", [Warning WarningCode.UseOfUnderscorePattern])
+        ("__mySymbol", true , Some "__mySymbol", [Warning WarningCode.UseOfUnderscorePattern])
+        ("mySymbol__", true , Some "mySymbol__", [Warning WarningCode.UseOfUnderscorePattern])
+        ("__my__sym" , true , Some "__my__sym" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("my__sym__" , true , Some "my__sym__" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__mysym__" , true , None             , [Error ErrorCode.InvalidUseOfReservedKeyword])
+    ]
+    |> List.iter (testOne (symbolNameLike ErrorCode.InvalidIdentifierName))
+    [
+        ("a.b" , true , ([Some "a" ],Some "b"), [])
+        ("_a.b" , true , ([Some "_a" ],Some "b"), [])
+        ("a_.b" , true , ([Some "a_" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a._b" , true , ([Some "a" ],Some "_b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b_" , true , ([Some "a" ],Some "b_"), [])
+        ("_a.b_" , true , ([Some "_a" ],Some "b_"), [])
+        ("a_._b" , true , ([Some "a_" ],Some "_b"), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b" , true , ([Some "__a" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__a.b" , true , ([Some "a__a" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__.b" , true , ([Some "a__" ],Some "b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.__b" , true , ([Some "a" ],Some "__b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__b" , true , ([Some "a" ],Some "b__b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__" , true , ([Some "a" ],Some "b__"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b__" , true , ([Some "__a" ],Some "b__"), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> fst))
+
+
 [<Fact>]
 let ``String parser tests`` () =
     [
