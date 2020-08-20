@@ -431,7 +431,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidConstructorExpression              -> "Syntax error in constructor expression."
             | ErrorCode.InvalidKeywordWithinExpression            -> "Invalid use of a reserved keyword within an expression."
             | ErrorCode.InvalidUseOfReservedKeyword               -> "The symbol is reserved for internal use only."
-            | ErrorCode.InvalidUseOfUnderscorePattern             -> "The use of double underscores, and underscores before a dot or at the end of a namespace name, is reserved for internal use only."
+            | ErrorCode.InvalidUseOfUnderscorePattern             -> "Double underscores as well as underscores before a dot or at the end of a namespace name are reserved for internal use only."
             | ErrorCode.ExcessContinuation                        -> "Unexpected code fragment."
             | ErrorCode.NonCallExprAsStatement                    -> "An expression used as a statement must be a call expression."
                                                             
@@ -717,7 +717,7 @@ type DiagnosticItem =
             | WarningCode.DeprecatedANDoperator                   -> "Deprecated syntax. Use \"and\" to denote the logical AND operator."
             | WarningCode.DeprecatedORoperator                    -> "Deprecated syntax. Use \"or\" to denote the logical OR operator."
             | WarningCode.UseOfFutureReservedKeyword              -> "The symbol will be reserved for internal use in the future."
-            | WarningCode.UseOfUnderscorePattern                  -> "The use of double underscores, and underscores before a dot or at the end of a namespace name, will be reserved for internal use in the future."
+            | WarningCode.UseOfUnderscorePattern                  -> "Double underscores as well as underscores before a dot or at the end of a namespace name will be reserved for internal use in the future."
             | WarningCode.DeprecatedRUSloopInFunction             -> "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
                                                                   
             | WarningCode.DiscardingItemInAssignment              -> "The expression on the right hand side is discarded on assignment and can be omitted."
