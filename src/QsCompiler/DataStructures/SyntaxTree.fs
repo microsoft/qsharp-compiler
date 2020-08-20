@@ -67,8 +67,8 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
-    with 
-    override this.ToString () = 
+    with
+    override this.ToString () =
         sprintf "%s.%s" this.Namespace.Value this.Name.Value
 
 
@@ -344,8 +344,8 @@ type InferredExpressionInformation = {
 type TypedExpression = {
     /// the content (kind) of the expression
     Expression : QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-    /// contains all type arguments implicitly or explicitly determined by the expression, 
-    /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression, 
+    /// contains all type arguments implicitly or explicitly determined by the expression,
+    /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression,
     /// or who have explicitly been resolved by provided type arguments
     TypeArguments : ImmutableArray<QsQualifiedName * NonNullable<string> * ResolvedType>
     /// the type of the expression after applying the type arguments
@@ -361,13 +361,18 @@ type TypedExpression = {
 
     /// Contains a dictionary mapping the origin and name of all type parameters whose type can either be inferred based on the expression,
     /// or who have explicitly been resolved by provided type arguments to their concrete type within this expression
-    member this.TypeParameterResolutions = 
+    member this.TypeParameterResolutions =
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
+
+    /// Given a dictionary containing the type resolutions for an expression,
+    /// returns the corresponding ImmutableArray to initialize the TypeArguments with.
+    static member AsTypeArguments (typeParamResolutions : ImmutableDictionary<_,_>) =
+        typeParamResolutions |> Seq.map (fun kv -> fst kv.Key, snd kv.Key, kv.Value) |> ImmutableArray.CreateRange
 
     /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
     /// Returns false otherwise.
     static member public IsPartialApplication kind =
-        let rec containsMissing ex = 
+        let rec containsMissing ex =
             match ex.Expression with
             | MissingExpr -> true
             | ValueTuple items -> items |> Seq.exists containsMissing
@@ -564,7 +569,7 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
-| EmptyStatement 
+| EmptyStatement
 
 
 and QsStatement = {
@@ -645,7 +650,7 @@ type QsSpecialization = {
     /// Contains the location information for the declared specialization.
     /// The position offset represents the position in the source file where the specialization is declared,
     /// and the range contains the range of the corresponding specialization header.
-    /// For auto-generated specializations, the location is set to the location of the parent callable declaration. 
+    /// For auto-generated specializations, the location is set to the location of the parent callable declaration.
     Location : QsNullable<QsLocation>
     /// contains the type arguments for which the implementation is specialized
     TypeArguments : QsNullable<ImmutableArray<ResolvedType>>

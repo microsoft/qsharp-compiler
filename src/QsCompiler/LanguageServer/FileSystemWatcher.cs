@@ -152,10 +152,14 @@ namespace Microsoft.Quantum.QsLanguageServer
 
                 foreach (var (pattern, notifyOn) in filters)
                 {
-                    var watcher = this.GetWatcher(folder, pattern, notifyOn);
-                    watcher.IncludeSubdirectories = subfolders;
-                    watcher.EnableRaisingEvents = true;
-                    this.watchers.Add(watcher);
+                    if (!this.watchers.Any(watcher =>
+                        watcher.Path == folder && watcher.Filter == pattern && watcher.NotifyFilter == notifyOn))
+                    {
+                        var watcher = this.GetWatcher(folder, pattern, notifyOn);
+                        watcher.IncludeSubdirectories = subfolders;
+                        watcher.EnableRaisingEvents = true;
+                        this.watchers.Add(watcher);
+                    }
                 }
             });
         }

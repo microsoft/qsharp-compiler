@@ -265,12 +265,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// name of the namespace within which code snippets are compiled
         /// </summary>
-        private const string SNIPPET_NAMESPACE = "_CODE_SNIPPET_NS_";
+        private const string SNIPPET_NAMESPACE = "CODE_SNIPPET_NS";
 
         /// <summary>
         /// name of the callable within which code snippets are compiled
         /// </summary>
-        private const string SNIPPET_CALLABLE = "_CODE_SNIPPET_CALLABLE_";
+        private const string SNIPPET_CALLABLE = "CODE_SNIPPET_CALLABLE";
 
         /// <summary>
         /// wraps the given content into a namespace and callable that maps Unit to Unit

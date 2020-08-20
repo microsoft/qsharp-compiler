@@ -59,15 +59,31 @@ let private buildSymbolTuple (items, range : Range) =
 let private expectedIdentifierDeclaration continuation = 
     expected localIdentifier ErrorCode.InvalidIdentifierDeclaration ErrorCode.MissingIdentifierDeclaration invalidSymbol continuation 
 
+/// Uses multiSegmentSymbol to parse the name of a namespace, 
+/// concatenates all path segments and the symbol with a dot, and returns a the concatenated string as Some.
+/// Returns None if the path contains segments that are None (i.e. invalid).
+/// Generates a suitable diagnostic if the namespace name ends in an underscore. 
+let internal namespaceName = // internal for testing purposes
+    let asNamespaceName ((path, sym : string option), range : Range) =
+        let names = path @ [sym]
+        let namespaceStr = names |> List.choose id |> String.concat "."
+        if names |> List.contains None then (None, range) |> preturn
+        elif sym.Value.EndsWith "_" && not (namespaceStr.Contains "__" || namespaceStr.Contains "_.") then // REL0920: remove the second half and return None for pattern errors
+            buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% (Some namespaceStr, range)
+        else (Some namespaceStr, range) |> preturn
+    multiSegmentSymbol ErrorCode.InvalidPathSegment >>= asNamespaceName
+
 /// Given a continuation (parser), attempts to parse a qualified QsSymbol 
 /// using multiSegmentSymbol to generate suitable errors for invalid symbol and/or path names, 
 /// and returns the parsed symbol, or a QsSymbol representing an invalid symbol (parsing failure) if the parsing fails.
 /// On failure, either raises an MissingQualifiedSymbol if the given continuation succeeds at the current position, 
 /// or raises an InvalidQualifiedSymbol and advances until the given continuation succeeds otherwise. 
 /// Does not apply the given continuation. 
-let private expectedNamespaceName continuation = 
-    let path = multiSegmentSymbol ErrorCode.InvalidPathSegment |>> asSymbol
-    expected path ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
+let private expectedNamespaceName continuation =
+    let namespaceName = namespaceName |>> function 
+        | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
+        | Some name, range -> (name |> NonNullable<string>.New |> Symbol, range) |> QsSymbol.New
+    expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
 /// Parses the condition e.g. for if, elif and until clauses.
 /// Uses optTupleBrackets to raise the corresponding missing bracket errors if the condition is not within tuple brackets.
