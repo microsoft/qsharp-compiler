@@ -176,6 +176,52 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         TypeArgumentsInference31<'A, 'A>(a, b);
     }
 
+    function TypeArgumentsInference32<'A>(a : 'A) : Unit {
+        TypeArgumentsInference20<'A>(3);
+    }
+
+    function TypeArgumentsInference33<'A>(a : 'A) : Unit {
+        TypeArgumentsInference20<Int>(a);
+    }
+
+    function TypeArgumentsInference34<'A, 'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<_,_>(a, b);
+    }
+
+    function TypeArgumentsInference35<'A, 'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<'A,'B>(a, b);
+    }
+
+    function TypeArgumentsInference36<'A,'B>(a : 'A, b : 'B) : Unit {
+        mutable arr = new (Int -> Unit)[1];
+        set arr w/= 0 <- TypeArgumentsInference23<Int, _>(_, b);
+    }
+
+    function TypeArgumentsInference37<'A,'B>(a : 'A, b : 'B) : Unit {
+        mutable arr = new ('A -> Unit)[1];
+        set arr w/= 0 <- TypeArgumentsInference23<'A, _>(_, 4.);
+    }
+
+    function TypeArgumentsInference38<'A,'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<'A, _>(1, 4.);
+    }
+
+    function TypeArgumentsInference39<'A,'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<_, Int>(a, b);
+    }
+
+    function TypeArgumentsInference40<'A,'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<'A, 'A>(a, a);
+    }
+
+    function TypeArgumentsInference41<'A,'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference23<'A, 'A>(a, 3);
+    }
+
+    function TypeArgumentsInference42<'A,'B>(a : 'A, b : 'B) : Unit {
+        TypeArgumentsInference31<'A, 'A>(a, b);
+    }
+
 
     // variable declarations 
 
