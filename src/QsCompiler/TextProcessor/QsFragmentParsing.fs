@@ -65,7 +65,7 @@ let private expectedIdentifierDeclaration continuation =
 /// Generates a suitable diagnostic if the namespace name ends in an underscore. 
 let internal namespaceName = // internal for testing purposes
     let asNamespaceName ((path, sym : string option), range : Position * Position) = 
-        let names = [for segment in path do yield segment ] @ [sym]
+        let names = path @ [sym]
         let namespaceStr = names |> List.choose id |> String.concat "."
         if names |> List.contains None then (None, range) |> preturn
         elif sym.Value.EndsWith "_" && not (namespaceStr.Contains "__" || namespaceStr.Contains "_.") then // REL0920: remove the second half and return None for pattern errors
