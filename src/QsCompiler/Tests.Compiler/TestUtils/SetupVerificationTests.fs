@@ -50,7 +50,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
                 else yield key, containedDiagnostics.ToImmutableArray()
         ].ToImmutableDictionary(fst, snd)
              
-    let VerifyDiagnostics severity name (expected : IEnumerable<_>) = 
+    let VerifyDiagnosticsOfSeverity severity name (expected : IEnumerable<_>) = 
         let exists, diag = diagnostics.TryGetValue name
         Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace.Value name.Name.Value)
         let got = 
@@ -69,17 +69,17 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
 
     member this.Verify (name, expected : IEnumerable<ErrorCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Error name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Error name expected
 
     member this.Verify (name, expected : IEnumerable<WarningCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Warning name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Warning name expected
 
     member this.Verify (name, expected : IEnumerable<InformationCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Information name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Information name expected
 
-    member this.Verify (name, expected : IEnumerable<DiagnosticItem>) = 
+    member this.VerifyDiagnostics (name, expected : IEnumerable<DiagnosticItem>) = 
         let errs = expected |> Seq.choose (function | Error err -> Some err | _ -> None)
         let wrns = expected |> Seq.choose (function | Warning wrn -> Some wrn | _ -> None)
         let infs = expected |> Seq.choose (function | Information inf -> Some inf | _ -> None)

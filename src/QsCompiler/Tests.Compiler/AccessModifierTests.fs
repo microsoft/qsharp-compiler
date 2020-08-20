@@ -19,7 +19,7 @@ type AccessModifierTests () =
     member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
-        this.Verify (QsQualifiedName.New (ns, name), diagnostics)
+        this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diagnostics)
 
     [<Fact>]
     member this.``Callables`` () =
