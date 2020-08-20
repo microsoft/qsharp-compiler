@@ -29,7 +29,7 @@ let private testName name =
                          NonNullable<_>.New name)
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
-let private expect (tester : CompilerTests) errorCodes name = tester.Verify (testName name, Seq.map Error errorCodes)
+let private expect (tester : CompilerTests) errorCodes name = tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
 
 /// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
 /// QPRGen0, and no errors in Unknown.

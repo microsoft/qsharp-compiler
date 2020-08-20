@@ -22,9 +22,55 @@ type LocalVerificationTests () =
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
-        this.Verify (QsQualifiedName.New (ns, name), diag)
+        this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
-    
+
+    [<Fact>]
+    member this.``type argument inference`` () = 
+        this.Expect "TypeArgumentsInference1"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference2"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference3"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "TypeArgumentsInference4"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "TypeArgumentsInference5"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference6"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference7"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference8"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference9"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
+        this.Expect "TypeArgumentsInference10" []
+        this.Expect "TypeArgumentsInference11" []
+        this.Expect "TypeArgumentsInference12" []
+        this.Expect "TypeArgumentsInference13" []
+        this.Expect "TypeArgumentsInference14" []
+        this.Expect "TypeArgumentsInference15" []
+        this.Expect "TypeArgumentsInference16" []
+        this.Expect "TypeArgumentsInference17" []
+        this.Expect "TypeArgumentsInference18" []
+        this.Expect "TypeArgumentsInference19" []
+        this.Expect "TypeArgumentsInference20" []
+        this.Expect "TypeArgumentsInference21" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference22" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference23" []
+        this.Expect "TypeArgumentsInference24" []
+        this.Expect "TypeArgumentsInference25" []
+        this.Expect "TypeArgumentsInference26" []
+        this.Expect "TypeArgumentsInference27" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference28" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference29" []
+        this.Expect "TypeArgumentsInference30" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+        this.Expect "TypeArgumentsInference31" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+        this.Expect "TypeArgumentsInference32" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference33" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference34" []
+        this.Expect "TypeArgumentsInference35" []
+        this.Expect "TypeArgumentsInference36" []
+        this.Expect "TypeArgumentsInference37" []
+        this.Expect "TypeArgumentsInference38" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "TypeArgumentsInference39" [Error ErrorCode.ArgumentTypeMismatch]
+        this.Expect "TypeArgumentsInference40" []
+        this.Expect "TypeArgumentsInference41" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+        this.Expect "TypeArgumentsInference42" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+
+
     [<Fact>]
     member this.``Variable declarations`` () = 
         this.Expect "VariableDeclaration1"  []
@@ -37,6 +83,17 @@ type LocalVerificationTests () =
         this.Expect "VariableDeclaration8"  []
         this.Expect "VariableDeclaration9"  [Error ErrorCode.SymbolTupleShapeMismatch]
         this.Expect "VariableDeclaration10" [Error ErrorCode.SymbolTupleShapeMismatch]
+        this.Expect "VariableDeclaration11" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration12" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration13" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "VariableDeclaration14" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration15" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration16" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration17" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration18" [Error ErrorCode.InvalidUseOfTypeParameterizedObject; Error ErrorCode.MultipleTypesInArray]
+        this.Expect "VariableDeclaration19" [Error ErrorCode.InvalidUseOfTypeParameterizedObject]
+        this.Expect "VariableDeclaration20" [Error ErrorCode.ConstrainsTypeParameter]
+        this.Expect "VariableDeclaration21" []
 
 
     [<Fact>]
