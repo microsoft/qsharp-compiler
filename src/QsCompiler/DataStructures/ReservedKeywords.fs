@@ -202,8 +202,8 @@ module InternalUse =
             "Borrow" 
             "Return"
 
-            "Data"
-            "Item"
+            "Data" // REL0920: can be removed once we give errors for underscore patterns
+            "Item" // REL0920: can be removed once we give errors for underscore patterns
 
             "QVoid"
             "Int64" 
