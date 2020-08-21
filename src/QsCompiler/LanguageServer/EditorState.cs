@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
-            _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
+            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
@@ -256,9 +256,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
                         {
-                            this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile).Wait();
+                            this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
                             this.onTemporaryProjectLoaded(projectUri);
-                            associatedWithProject = true;
                         }
                     }
                     catch (Exception ex)
@@ -266,6 +265,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                         logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
                         manager.LogException(ex);
                     }
+                }
+            }).Wait();
+            _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
+            {
+                if (this.IgnoreFile(textDocument.Uri))
+                {
+                    return;
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
