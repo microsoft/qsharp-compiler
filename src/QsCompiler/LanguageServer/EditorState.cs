@@ -243,6 +243,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
+            var createdTemporaryProject = false;
             this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -258,6 +259,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         {
                             this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
                             this.onTemporaryProjectLoaded(projectUri);
+                            createdTemporaryProject = true;
                         }
                     }
                     catch (Exception ex)
@@ -266,12 +268,17 @@ namespace Microsoft.Quantum.QsLanguageServer
                         manager.LogException(ex);
                     }
                 }
-            }).Wait();
+            });
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
+                }
+
+                if (createdTemporaryProject)
+                {
+                    associatedWithProject = true;
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
