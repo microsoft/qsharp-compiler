@@ -1069,9 +1069,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var results = new ConcurrentBag<WorkspaceEdit>();
 
                     Parallel.ForEach(this.projects.Values, options, project => // the default manager does not support rename operations
-                    {
-                        project.ManagerTask(param.TextDocument.Uri, m => results.Add(m.Rename(param)), projectOutputPaths);
-                    });
+                        {
+                            project.ManagerTask(param.TextDocument.Uri, m => results.Add(m.Rename(param)), projectOutputPaths);
+                        });
                     return results;
                 },
                 out var edits);
