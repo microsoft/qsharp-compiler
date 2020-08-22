@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return;
                 }
 
-                if (!associatedWithProject && textDocument.Uri.LocalPath.EndsWith(".qs"))
+                if (!associatedWithProject && textDocument.Uri.LocalPath.EndsWith(".qs", StringComparison.InvariantCultureIgnoreCase))
                 {
                     try
                     {
