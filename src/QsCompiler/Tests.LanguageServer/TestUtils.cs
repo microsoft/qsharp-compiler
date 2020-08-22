@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Loader;
+using Microsoft.Build.Locator;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
@@ -13,6 +15,22 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
     internal static class TestUtils
     {
+        internal static void SetupMSBuildLocator()
+        {
+            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
+
+            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
+            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
+            {
+                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    return assemblyLoadContext.LoadFromAssemblyPath(path);
+                }
+                return null;
+            };
+        }
+
         internal static Uri GetUri(string filename)
         {
             return new Uri(Path.GetFullPath(filename));
