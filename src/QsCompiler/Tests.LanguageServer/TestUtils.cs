@@ -17,6 +17,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         internal static void SetupMSBuildLocator()
         {
+            if (MSBuildLocator.IsRegistered)
+            {
+                return;
+            }
+
             VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
 
             // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
