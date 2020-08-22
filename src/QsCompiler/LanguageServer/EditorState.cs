@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -163,7 +163,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             info = null;
 
             var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
-            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", $"{localFolderPath.GetHashCode():x8}")).FullName;
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(
+                Path.GetTempPath(),
+                "qsharp",
+                string.Join("_", localFolderPath.Split(Path.GetInvalidFileNameChars())))).FullName;
             var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
             using (var outputFile = new StreamWriter(projectFilePath))
             {
