@@ -245,6 +245,9 @@ namespace Microsoft.Quantum.QsLanguageServer
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
             var createdTemporaryProject = false;
+            // If the file is not associated with a project, we will create a temporary project file for all files in that folder.
+            // We spawn a second query below for the actual processing of the file to ensure that a created project file 
+            // is properly registered with the project manager before processing.
             this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -269,7 +272,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         manager.LogException(ex);
                     }
                 }
-            }).Wait();
+            }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
