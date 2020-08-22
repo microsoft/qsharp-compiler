@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     try
                     {
                         var projectUri = this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null);
-                        this.ProjectDidChangeOnDiskAsync(projectUri).Wait(); // wait for the project loader to finish loading the project
+                        this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
                         this.onTemporaryProjectLoaded(projectUri);
                         createdTemporaryProject = true;
                     }
