@@ -911,9 +911,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ImmutableDictionary<Uri, Uri>.Empty,
                         null,
                         this.MigrateToDefaultManager(openInEditor),
-                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath, AssemblyConstants.RuntimeCapabilities.Unknown))
-                    ?.ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default)
-                    ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
+                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath, AssemblyConstants.RuntimeCapabilities.Unknown))?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
+                    if (existing != null)
+                    {
+                        this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
+                    }
                     return;
                 }
 
@@ -928,8 +930,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.MigrateToProject(openInEditor),
                     this.MigrateToDefaultManager(openInEditor),
                     info)
-                .ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default)
-                .Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
+                .ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default);
             });
         }
 
@@ -1068,9 +1069,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var results = new ConcurrentBag<WorkspaceEdit>();
 
                     Parallel.ForEach(this.projects.Values, options, project => // the default manager does not support rename operations
-                        {
-                            project.ManagerTask(param.TextDocument.Uri, m => results.Add(m.Rename(param)), projectOutputPaths);
-                        });
+                    {
+                        project.ManagerTask(param.TextDocument.Uri, m => results.Add(m.Rename(param)), projectOutputPaths);
+                    });
                     return results;
                 },
                 out var edits);
