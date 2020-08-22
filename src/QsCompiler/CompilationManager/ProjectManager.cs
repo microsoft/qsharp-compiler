@@ -911,11 +911,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ImmutableDictionary<Uri, Uri>.Empty,
                         null,
                         this.MigrateToDefaultManager(openInEditor),
-                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath, AssemblyConstants.RuntimeCapabilities.Unknown))?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
-                    if (existing != null)
-                    {
-                        this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
-                    }
+                        ProjectInformation.Empty("Latest", existing.OutputPath.LocalPath, AssemblyConstants.RuntimeCapabilities.Unknown))
+                    ?.ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default)
+                    ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     return;
                 }
 
@@ -930,7 +928,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.MigrateToProject(openInEditor),
                     this.MigrateToDefaultManager(openInEditor),
                     info)
-                .ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default);
+                .ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default)
+                .Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
             });
         }
 
