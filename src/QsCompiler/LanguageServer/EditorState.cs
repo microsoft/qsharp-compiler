@@ -157,11 +157,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
-        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion, out Uri projectUri, out ProjectInformation info)
+        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion)
         {
-            projectUri = null;
-            info = null;
-
             var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
             var projectFolderPath = Directory.CreateDirectory(Path.Combine(
                 Path.GetTempPath(),
@@ -176,15 +173,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         sdkVersion: sdkVersion));
             }
 
-            projectUri = new Uri(projectFilePath);
-            var success = this.QsProjectLoader(projectUri, out info);
-            if (!success)
-            {
-                File.Delete(projectFilePath);
-                Directory.Delete(projectFolderPath);
-            }
-
-            return success;
+            return new Uri(projectFilePath);
         }
 
         /// <summary>
@@ -262,12 +251,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     try
                     {
-                        if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
-                        {
-                            this.ProjectDidChangeOnDiskAsync(projectUri).Wait(); // wait for the project loader to finish loading the project
-                            this.onTemporaryProjectLoaded(projectUri);
-                            createdTemporaryProject = true;
-                        }
+                        var projectUri = this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null);
+                        this.ProjectDidChangeOnDiskAsync(projectUri).Wait(); // wait for the project loader to finish loading the project
+                        this.onTemporaryProjectLoaded(projectUri);
+                        createdTemporaryProject = true;
                     }
                     catch (Exception ex)
                     {
