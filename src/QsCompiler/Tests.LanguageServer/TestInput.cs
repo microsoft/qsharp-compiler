@@ -65,9 +65,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return lines;
         }
 
-        internal string GenerateRandomFile(int nrLines, bool? emptyLastLine, bool withLanguageKeywords = true)
+        internal string GenerateRandomFile(int nrLines, bool? emptyLastLine, bool withLanguageKeywords = true, bool withQsExtension = false)
         {
-            var filename = Path.Combine(TestInputDirectory, Path.GetRandomFileName());
+            var filename = Path.Combine(TestInputDirectory, Path.GetRandomFileName()) + (withQsExtension ? ".qs" : "");
             var content = this.GetRandomLines(nrLines, withLanguageKeywords);
             using (StreamWriter sw = new StreamWriter(filename))
             {
