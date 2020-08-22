@@ -240,7 +240,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
             await RunTest(emptyLastLine: true, useQsExtension: false);
             await RunTest(emptyLastLine: false, useQsExtension: false);
-            await RunTest(emptyLastLine: true, useQsExtension: true);
         }
 
         [TestMethod]
