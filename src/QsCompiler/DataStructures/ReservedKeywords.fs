@@ -246,6 +246,7 @@ module AssemblyConstants =
     let QuantumSimulator = "QuantumSimulator"
     let ToffoliSimulator = "ToffoliSimulator"
     let ResourcesEstimator = "ResourcesEstimator"
+    let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
 
     // Note: The names of the capabilities here need to match the ones defined by the Sdk.
     type RuntimeCapabilities = 
