@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -243,6 +244,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
+            var createdTemporaryProject = false;
             this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -258,6 +260,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         {
                             this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
                             this.onTemporaryProjectLoaded(projectUri);
+                            createdTemporaryProject = true;
                         }
                     }
                     catch (Exception ex)
@@ -272,6 +275,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
+                }
+
+                if (createdTemporaryProject)
+                {
+                    QsCompilerError.Verify(
+                        associatedWithProject,
+                        "Temporary project should have been created but was not found.");
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
