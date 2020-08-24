@@ -244,47 +244,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
-            var createdTemporaryProject = false;
-            // If the file is not associated with a project, we will create a temporary project file for all files in that folder.
-            // We spawn a second query below for the actual processing of the file to ensure that a created project file 
-            // is properly registered with the project manager before processing.
-            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
-            {
-                if (this.IgnoreFile(textDocument.Uri))
-                {
-                    return;
-                }
-
-                if (!associatedWithProject)
-                {
-                    try
-                    {
-                        if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
-                        {
-                            this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
-                            this.onTemporaryProjectLoaded(projectUri);
-                            createdTemporaryProject = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
-                        manager.LogException(ex);
-                    }
-                }
-            }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
-                }
-
-                if (createdTemporaryProject)
-                {
-                    QsCompilerError.Verify(
-                        associatedWithProject,
-                        "Temporary project should have been created but was not found.");
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
