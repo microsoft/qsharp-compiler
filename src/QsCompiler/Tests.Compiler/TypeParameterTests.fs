@@ -39,6 +39,9 @@ type TypeParameterTests () =
     let MakeTupleType types =
         types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
+    let MakeArrayType ``type`` =
+        ResolvedType.New ``type`` |> ArrayType
+
     let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
@@ -516,6 +519,20 @@ type TypeParameterTests () =
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Array Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, FooA |> TypeParameter |> MakeArrayType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, FooA |> TypeParameter |> MakeArrayType)
+        ]
+
+        AssertCombinedResolutionFailure expected given
+
+    [<Fact>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Constricting Indirect Nested Self Resolution`` () =
         let given = [|
             ResolutionFromParam [
@@ -528,6 +545,24 @@ type TypeParameterTests () =
         let expected = ResolutionFromParam [
             (BarA, [Int; FooA |> TypeParameter] |> MakeTupleType)
             (FooA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolutionFailure expected given
+
+    [<Fact>]
+    [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Array Indirect Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BarA, FooA |> TypeParameter |> MakeArrayType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (BarA, FooA |> TypeParameter |> MakeArrayType)
+            (FooA, FooA |> TypeParameter |> MakeArrayType)
         ]
 
         AssertCombinedResolutionFailure expected given
