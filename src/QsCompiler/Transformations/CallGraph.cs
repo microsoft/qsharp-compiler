@@ -626,6 +626,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
         }
 
+        // Make the default constructor internal so that only the walker can create call graphs.
+        internal CallGraph()
+        {
+        }
+
         /// <summary>
         /// Adds a dependency to the call graph using the caller's specialization and
         /// the called specialization's information.
