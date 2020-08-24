@@ -263,7 +263,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     }
                 }
             }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
-            _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
+            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
