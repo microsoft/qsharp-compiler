@@ -317,7 +317,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 }
 
                 _ = manager.AddOrUpdateSourceFileAsync(file);
-            }).Wait(); // needed to ensure that the ManagerTaskAsync is queued before the SourceFileChangedOnDiskAsync below
+            }).Wait(); // needed to ensure that the AddOrUpdateSourceFileAsync is queued before the SourceFileChangedOnDiskAsync below
             // reloading from disk in case we encountered a file already open error above
             return this.projects.SourceFileChangedOnDiskAsync(textDocument.Uri, this.GetOpenFile); // NOTE: relies on that the manager task is indeed executed first!
         }
