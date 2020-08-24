@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
+using Microsoft.Quantum.QsCompiler.Diagnostics;
+
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
     /// <summary>
@@ -154,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Defines a handler for a type of compilation task event.
         /// </summary>
-        private delegate void CompilationTaskEventTypeHandler(CompilationLoader.CompilationTaskEventArgs eventArgs);
+        private delegate void CompilationTaskEventTypeHandler(string parentTaskName, string taskName);
 
         // Private members.
 
@@ -178,10 +180,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Handlers are assumed to be not null.
         /// Note that thread-safe access to this member is done through the global lock.
         /// </summary>
-        private static readonly IDictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler>
+        private static readonly IDictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler>
         {
-            { CompilationLoader.CompilationTaskEventType.Start, CompilationEventStartHandler },
-            { CompilationLoader.CompilationTaskEventType.End, CompilationEventEndHandler }
+            { CompilationTaskEventType.Start, CompilationEventStartHandler },
+            { CompilationTaskEventType.End, CompilationEventEndHandler }
         };
 
         /// <summary>
@@ -243,26 +245,26 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task start event.
         /// </summary>
-        private static void CompilationEventStartHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
+        private static void CompilationEventStartHandler(string parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
-            string key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            string key = CompilationTask.GenerateKey(parentTaskName, taskName);
             if (CompilationTasks.ContainsKey(key))
             {
                 Warnings.Add(new Warning(WarningType.TaskAlreadyExists, key));
                 return;
             }
 
-            CompilationTasks.Add(key, new CompilationTask(eventArgs.ParentTaskName, eventArgs.TaskName));
+            CompilationTasks.Add(key, new CompilationTask(parentTaskName, taskName));
         }
 
         /// <summary>
         /// Handles a compilation task end event.
         /// </summary>
-        private static void CompilationEventEndHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
+        private static void CompilationEventEndHandler(string parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
-            var key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            var key = CompilationTask.GenerateKey(parentTaskName, taskName);
             if (!CompilationTasks.TryGetValue(key, out var task))
             {
                 Warnings.Add(new Warning(WarningType.TaskDoesNotExist, key));
@@ -283,17 +285,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task event.
         /// </summary>
-        public static void OnCompilationTaskEvent(object sender, CompilationLoader.CompilationTaskEventArgs args)
+        public static void OnCompilationTaskEvent(object sender, CompilationTaskEventType type, string parentTaskName, string taskName)
         {
             lock (GlobalLock)
             {
-                if (CompilationEventTypeHandlers.TryGetValue(args.Type, out var hanlder))
+                if (CompilationEventTypeHandlers.TryGetValue(type, out var hanlder))
                 {
-                    hanlder(args);
+                    hanlder(parentTaskName, taskName);
                 }
                 else
                 {
-                    Warnings.Add(new Warning(WarningType.UknownTaskEventType, args.Type.ToString()));
+                    Warnings.Add(new Warning(WarningType.UknownTaskEventType, type.ToString()));
                 }
             }
         }

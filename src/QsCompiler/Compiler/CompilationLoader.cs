@@ -29,36 +29,6 @@ namespace Microsoft.Quantum.QsCompiler
 {
     public class CompilationLoader
     {
-        /// <summary>
-        /// Represents the type of a task event.
-        /// </summary>
-        public enum CompilationTaskEventType
-        {
-            Start,
-            End
-        }
-
-        /// <summary>
-        /// Represents the arguments associated to a task event.
-        /// </summary>
-        public class CompilationTaskEventArgs : EventArgs
-        {
-            public CompilationTaskEventType Type;
-            public string ParentTaskName;
-            public string TaskName;
-
-            public CompilationTaskEventArgs(CompilationTaskEventType type, string parentTaskName, string taskName)
-            {
-                this.ParentTaskName = parentTaskName;
-                this.TaskName = taskName;
-                this.Type = type;
-            }
-        }
-
-        /// <summary>
-        /// Defines the handler for compilation task events.
-        /// </summary>
-        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
 
         /// <summary>
         /// Given a load function that loads the content of a sequence of files from disk,
@@ -764,13 +734,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Raises a compilation task start event.
         /// </summary>
         private void RaiseCompilationTaskStart(string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
+            CompilationTaskEvent?.Invoke(this, CompilationTaskEventType.Start, parentTaskName, taskName);
 
         /// <summary>
         /// Raises a compilation task end event.
         /// </summary>
         private void RaiseCompilationTaskEnd(string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
+            CompilationTaskEvent?.Invoke(this, CompilationTaskEventType.End, parentTaskName, taskName);
 
         /// <summary>
         /// Executes the given rewrite step on the current CompilationOutput, and updates the given status accordingly.
