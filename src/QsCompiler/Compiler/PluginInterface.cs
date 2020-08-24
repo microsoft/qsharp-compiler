@@ -19,13 +19,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Priority of the built-in transformation that replaces
         /// if-statements with the corresponding calls to built-in quantum operations if possible.
         /// </summary>
-        public const int ControlFlowSubstitutions = 1200;
-
-        /// <summary>
-        /// Priority of the built-in rewrite step that creates
-        /// the call graph and assigns it to the compilation unit.
-        /// </summary>
-        public const int CallGraphGeneration = 1100;
+        public const int ControlFlowSubstitutions = 1100;
 
         /// <summary>
         /// Priority of the built-in transformation that replaces

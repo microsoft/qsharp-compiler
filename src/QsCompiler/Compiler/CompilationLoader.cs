@@ -12,7 +12,6 @@ using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -140,11 +139,6 @@ namespace Microsoft.Quantum.QsCompiler
             public bool SkipMonomorphization;
 
             /// <summary>
-            /// Determines if a call graph is generated for the compilation unit.
-            /// </summary>
-            public bool GenerateCallGraph; // ToDo: is this needed?
-
-            /// <summary>
             /// If the output folder is not null,
             /// documentation is generated in the specified folder based on doc comments in the source code.
             /// </summary>
@@ -261,7 +255,6 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
-            internal Status GenerateCallGraph = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
             internal Status Serialization = Status.NotRun;
@@ -549,12 +542,6 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
-            }
-
-            if (this.config.GenerateCallGraph)
-            {
-                var rewriteStep = new RewriteSteps.LoadedStep(new CallGraphGeneration(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.GenerateCallGraph)));
             }
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
