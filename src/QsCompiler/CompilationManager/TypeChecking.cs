@@ -2030,6 +2030,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
+                diagnostics.AddRange(compilation.VerifyCycles(callables));
                 return diagnostics;
             }
             finally

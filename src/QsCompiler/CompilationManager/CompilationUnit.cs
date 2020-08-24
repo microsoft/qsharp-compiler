@@ -284,10 +284,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// Class representing a compilation;
     /// apart from storing and providing the means to update the compilation itself,
     /// it stores referenced content and provides the infrastructure to track global symbols.
-    /// IMPORTANT: The responsiblity to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
+    /// IMPORTANT: The responsibility to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
+        private QsNullable<ICallGraph> CachedCallGraph { get; set; } = QsNullable<ICallGraph>.Null;
+
         internal References Externals { get; private set; }
 
         internal NamespaceManager GlobalSymbols { get; private set; }
@@ -527,6 +529,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot.EnterWriteLock();
             try
             {
+                this.CachedCallGraph = QsNullable<ICallGraph>.Null; // Invalidate the cached call graph
+
                 if (updates != null)
                 {
                     foreach (var t in updates)
@@ -591,6 +595,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot.EnterWriteLock();
             try
             {
+                this.CachedCallGraph = QsNullable<ICallGraph>.Null; // Invalidate the cached call graph
+
                 foreach (var c in updates ?? Array.Empty<QsCallable>())
                 {
                     if (c?.Specializations == null || c.Specializations.Contains(null))
@@ -882,12 +888,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = RenameInternalDeclarations(callables, types, predicate: source => this.Externals.Declarations.ContainsKey(source));
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
-                return new QsCompilation(tree, entryPoints.ToImmutable(), QsNullable<ICallGraph>.Null);
+
+                if (this.CachedCallGraph.IsNull)
+                {
+                    this.CachedCallGraph = QsNullable<ICallGraph>.NewValue(Transformations.CallGraphWalker.BuildCallGraph.Apply(taggedCallables));
+                }
+
+                return new QsCompilation(tree, entryPoints.ToImmutable(), this.CachedCallGraph);
             }
             finally
             {
                 this.syncRoot.ExitReadLock();
             }
+        }
+
+        public IEnumerable<Diagnostic> VerifyCycles(IEnumerable<QsCallable> callables)
+        {
+            this.CachedCallGraph = QsNullable<ICallGraph>.NewValue(Transformations.CallGraphWalker.BuildCallGraph.Apply(callables));
+
+            return this.CachedCallGraph.Item.VerifyAllCycles()
+                .Select(x => Diagnostics.Generate(x.Item1.Value, x.Item2)).ToArray();
         }
 
         /// <summary>

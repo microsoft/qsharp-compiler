@@ -796,6 +796,9 @@ type TypeParameterResolutions = ImmutableDictionary<TypeParameterName, ResolvedT
 type ICallGraphEdge =
     inherit  IEquatable<ICallGraphEdge>
     abstract member ParamResolutions : TypeParameterResolutions
+    abstract member FileName : NonNullable<string>
+    abstract member Start : QsPositionInfo
+    abstract member End : QsPositionInfo
 
 // Interface used to represent a node in the call graph
 type ICallGraphNode =
@@ -813,7 +816,8 @@ type ICallGraph =
     abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member GetAllDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member GetAllDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
-    abstract member GetCallCycles : Unit -> ImmutableArray<ImmutableArray<ICallGraphNode>>
+    //abstract member GetCallCycles : Unit -> ImmutableArray<ImmutableArray<ICallGraphNode>>
+    abstract member VerifyAllCycles : Unit -> System.Collections.Generic.IEnumerable<NonNullable<string> * QsCompilerDiagnostic>
     abstract member ContainsNode : ICallGraphNode -> bool
 
 /// Describes a compiled Q# library or executable.

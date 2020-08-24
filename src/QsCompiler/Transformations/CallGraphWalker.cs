@@ -25,6 +25,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     public static class BuildCallGraph
     {
         /// <summary>
+        /// Builds and returns the call graph for the given callables.
+        /// </summary>
+        public static CallGraph Apply(IEnumerable<QsCallable> callables)
+        {
+            var walker = new BuildGraph();
+
+            foreach (var callable in callables)
+            {
+                walker.Namespaces.OnCallableDeclaration(callable);
+            }
+
+            return walker.SharedState.Graph;
+        }
+
+        /// <summary>
         /// Builds and returns the call graph for the given compilation.
         /// </summary>
         public static CallGraph Apply(QsCompilation compilation) =>
@@ -104,6 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal QsSpecialization CurrentSpecialization;
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
+            internal QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> CurrentExpressionRange;
 
             // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
             internal bool IsLimitedToEntryPoints = false;
@@ -133,11 +149,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             public override TypedExpression OnTypedExpression(TypedExpression ex)
             {
+                var contextRange = this.SharedState.CurrentExpressionRange;
+                this.SharedState.CurrentExpressionRange = ex.Range;
+
                 if (ex.TypeParameterResolutions.Any())
                 {
                     this.SharedState.TypeParameterResolutions = this.SharedState.TypeParameterResolutions.Prepend(ex.TypeParameterResolutions);
                 }
-                return base.OnTypedExpression(ex);
+                var rtrn = base.OnTypedExpression(ex);
+
+                this.SharedState.CurrentExpressionRange = contextRange;
+
+                return rtrn;
             }
         }
 
@@ -186,6 +209,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeParamRes = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
+                    var (rangeStart, rangeEnd) = this.SharedState.CurrentExpressionRange.IsValue
+                        ? this.SharedState.CurrentExpressionRange.Item.ToValueTuple()
+                        : (QsPositionInfo.Zero, QsPositionInfo.Zero);
+
                     if (this.SharedState.IsInCall)
                     {
                         var kind = QsSpecializationKind.QsBody;
@@ -202,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             kind = QsSpecializationKind.QsControlled;
                         }
 
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes, rangeStart, rangeEnd);
                     }
                     else
                     {
@@ -210,10 +237,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
                         // We're conservative and add all 4 possible kinds.
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsBody, typeArgs, typeParamRes);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlled, typeArgs, typeParamRes);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, typeParamRes);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, typeParamRes);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsBody, typeArgs, typeParamRes, rangeStart, rangeEnd);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlled, typeArgs, typeParamRes, rangeStart, rangeEnd);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, typeParamRes, rangeStart, rangeEnd);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, typeParamRes, rangeStart, rangeEnd);
                     }
 
                     // If we are not processing all elements, then we need to keep track of what elements

@@ -177,7 +177,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 sprintf "Invalid cycle found:\n%A" (cycle |> List.map (fun x -> x.ParamResolutions)))
 
         // Also test the VerifyAllCycles to see if it gets the same result
-        Assert.True(graph.VerifyAllCycles())
+        Assert.True(graph.VerifyAllCycles() |> Seq.isEmpty)
 
     let AssertInvalidCycleExists (graph: CallGraph) =
         let cycles =
@@ -188,7 +188,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 sprintf "Expected but did not find an invalid cycle")
 
         // Also test the VerifyAllCycles to see if it gets the same result
-        Assert.False(graph.VerifyAllCycles())
+        Assert.False(graph.VerifyAllCycles() |> Seq.isEmpty)
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]

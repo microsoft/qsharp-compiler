@@ -33,13 +33,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public TypeParameterResolutions ParamResolutions { get; private set; }
 
+        public NonNullable<string> FileName { get; set; }
+
+        public QsPositionInfo Start { get; set; }
+
+        public QsPositionInfo End { get; set; }
+
         /// <summary>
         /// Constructor for CallGraphEdge objects.
         /// Strips position info from given resolutions before assigning them to ParamResoluitons
         /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
-        public CallGraphEdge(TypeParameterResolutions paramResolutions)
+        public CallGraphEdge(TypeParameterResolutions paramResolutions, NonNullable<string> fileName, QsPositionInfo positionStart, QsPositionInfo positionEnd)
         {
             if (paramResolutions == null)
             {
@@ -50,45 +56,46 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             this.ParamResolutions = paramResolutions.ToImmutableDictionary(
                 kvp => kvp.Key,
                 kvp => StripPositionInfo.Apply(kvp.Value));
+
+            this.FileName = fileName;
+            this.Start = positionStart;
+            this.End = positionEnd;
         }
 
         /// <summary>
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public bool Equals(ICallGraphEdge edge)
-        {
-            if (this.ParamResolutions == edge.ParamResolutions)
-            {
-                return true;
-            }
-            else
-            {
-                return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
-            }
-        }
+        public bool Equals(ICallGraphEdge edge) =>
+            this.FileName.Equals(edge.FileName)
+            && this.Start.Equals(edge.Start)
+            && this.End.Equals(edge.End)
+            && (this.ParamResolutions == edge.ParamResolutions
+                || this.ParamResolutions
+                       .OrderBy(kvp => kvp.Key)
+                       .SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key)));
 
         /// <summary>
         /// Inserts the edge into the given array of edges if the edge is not already in the array.
         /// Ignores order of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public static ImmutableArray<ICallGraphEdge> InsertEdge(ICallGraphEdge edge, ImmutableArray<ICallGraphEdge> edges)
-        {
-            var ordered = edge.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
-
-            if (edges == null || edges.Length == 0)
-            {
-                return ImmutableArray.Create(edge);
-            }
-            else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
-            {
-                return edges;
-            }
-            else
-            {
-                return edges.Add(edge);
-            }
-        }
+        //public static ImmutableArray<ICallGraphEdge> InsertEdge(ICallGraphEdge edge, ImmutableArray<ICallGraphEdge> edges)
+        //{
+        //    var ordered = edge.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
+        //
+        //    if (edges == null || edges.Length == 0)
+        //    {
+        //        return ImmutableArray.Create(edge);
+        //    }
+        //    else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
+        //    {
+        //        return edges;
+        //    }
+        //    else
+        //    {
+        //        return edges.Add(edge);
+        //    }
+        //}
 
         /// <summary>
         /// Creates a call graph edge that represents the combination of several edges that lead to a target node.
@@ -110,15 +117,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
 
             var combination = new TypeResolutionCombination(edges.Select(e => e.ParamResolutions).ToArray());
-
-            if (combination.IsValid)
-            {
-                return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName));
-            }
-            else
-            {
-                return new CallGraphEdge(TypeParameterResolutions.Empty);
-            }
+            var last = edges.Last();
+            return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName), last.FileName, last.Start, last.End);
         }
     }
 
@@ -561,15 +561,32 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return result;
         }
 
-        public bool VerifyAllCycles()
+        public IEnumerable<Tuple<NonNullable<string>, QsCompilerDiagnostic>> VerifyAllCycles()
         {
+            var diagnostics = new List<Tuple<NonNullable<string>, QsCompilerDiagnostic>>();
+
             if (this.Nodes.Any())
             {
                 var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
-                return cycles.All(cycle => VerifyCycle(cycle.ToArray()));
+                foreach (var cycle in cycles)
+                {
+                    if (!VerifyCycle(cycle.ToArray()))
+                    {
+                        foreach (var edge in cycle)
+                        {
+                            diagnostics.Add(Tuple.Create(
+                                edge.FileName,
+                                QsCompilerDiagnostic.Error(
+                                    Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
+                                    Enumerable.Empty<string>(),
+                                    edge.Start,
+                                    edge.End)));
+                        }
+                    }
+                }
             }
 
-            return true;
+            return diagnostics;
         }
 
         /// <summary>
@@ -592,7 +609,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 }
                 else
                 {
-                    deps[calledKey] = CallGraphEdge.InsertEdge(edge, edges);
+                    deps[calledKey] = edges.Add(edge);
                 }
             }
             else
@@ -611,8 +628,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Adds a dependency to the call graph using the caller's specialization and
-        /// the called specialization's information. All parameters are expected to
-        /// be non-null; the QsNullable parameter may take on their associated null value.
+        /// the called specialization's information.
         /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
         /// may have the QsNullable.Null value.
         /// </summary>
@@ -621,7 +637,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             QsQualifiedName calledName,
             QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes)
+            TypeParameterResolutions typeParamRes,
+            QsPositionInfo positionStart,
+            QsPositionInfo positionEnd)
         {
             if (callerSpec == null)
             {
@@ -635,14 +653,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 calledName,
                 calledKind,
                 calledTypeArgs,
-                typeParamRes);
+                typeParamRes,
+                callerSpec.SourceFile,
+                positionStart,
+                positionEnd);
         }
 
         /// <summary>
         /// Adds a dependency to the call graph using the relevant information from the
-        /// caller's specialization and the called specialization. All parameters are
-        /// expected to be non-null; the QsNullable parameters may take on their
-        /// associated null value.
+        /// caller's specialization and the called specialization.
         /// Throws ArgumentNullException if any of the arguments are null, though callerTypeArgs
         /// and calledTypeArgs may have the QsNullable.Null value.
         /// </summary>
@@ -653,13 +672,16 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             QsQualifiedName calledName,
             QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes)
+            TypeParameterResolutions typeParamRes,
+            NonNullable<string> fileName,
+            QsPositionInfo positionStart,
+            QsPositionInfo positionEnd)
         {
             // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
 
-            var edge = new CallGraphEdge(typeParamRes);
+            var edge = new CallGraphEdge(typeParamRes, fileName, positionStart, positionEnd);
             this.RecordDependency(callerKey, calledKey, edge);
         }
 
@@ -736,13 +758,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             var accum = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
 
-            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge edgeFromRoot)
+            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge? edgeFromRoot)
             {
                 if (this.dependencies.TryGetValue(root, out var next))
                 {
                     foreach (var (dependent, edges) in next)
                     {
-                        var combinedEdges = edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
+                        var combinedEdges = edgeFromRoot is null
+                            ? edges
+                            : edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
@@ -762,7 +786,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 }
             }
 
-            WalkDependencyTree(callerSpec, new CallGraphEdge(TypeParameterResolutions.Empty));
+            WalkDependencyTree(callerSpec, null);
 
             return accum
                 .SelectMany(kvp => kvp.Value, Tuple.Create)
@@ -793,7 +817,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
-        public ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
+        internal ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
         {
             var indexToNode = this.dependencies.Keys.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
