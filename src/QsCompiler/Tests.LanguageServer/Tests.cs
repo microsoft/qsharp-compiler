@@ -15,11 +15,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public partial class BasicFunctionality
     {
-        static BasicFunctionality()
-        {
-            TestUtils.SetupMSBuildLocator();
-        }
-
         // server functionality tests
 
         [TestMethod]
