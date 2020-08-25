@@ -216,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             if (options.PerfFolder != null)
             {
-                CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
+                PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);

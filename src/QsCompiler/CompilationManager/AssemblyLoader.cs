@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -24,6 +25,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
