@@ -641,7 +641,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingFullNameAsAttributeArgument      -> "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
             | ErrorCode.AttributeInvalidOnSpecialization          -> "Invalid attribute placement. The attribute {0} cannot be attached to a specialization declaration."
             | ErrorCode.AttributeInvalidOnCallable                -> "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
-            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "Bad Cycle Found" // ToDo: better diagnostic message
+            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "Call cycle results in ambiguous or conflicting type parameter resolution."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
