@@ -8,6 +8,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open System.Collections.Generic
 
 
 // IMPORTANT: if the data structures in this file are changed to classes,
@@ -816,7 +817,7 @@ type ICallGraph =
     abstract member GetAllDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member GetDirectDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
-    abstract member VerifyAllCycles : Unit -> System.Collections.Generic.IEnumerable<NonNullable<string> * QsCompilerDiagnostic>
+    abstract member VerifyAllCycles : Unit -> IEnumerable<NonNullable<string> * QsCompilerDiagnostic>
 
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
