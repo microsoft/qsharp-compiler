@@ -194,6 +194,372 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public class CallGraph : ICallGraph
     {
+        // Static Elements
+
+        /// <summary>
+        /// Represents an empty dependency for a node.
+        /// </summary>
+        private static readonly ILookup<ICallGraphNode, ICallGraphEdge> EmptyDependency =
+            ImmutableArray<KeyValuePair<ICallGraphNode, ICallGraphEdge>>.Empty
+            .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
+
+        /// <summary>
+        /// Given a cycle of call graph edges, determines if the cycle is valid.
+        /// Invalid cycles are those that cause type parameters to be mapped to
+        /// other type parameters of the same callable (constricting resolutions)
+        /// or to a type containing a nested reference to the same type parameter,
+        /// i.e Foo.A -> Foo.A[].
+        /// Returns true if the cycle is valid, false if invalid.
+        /// </summary>
+        internal static bool VerifyCycle(params ICallGraphEdge[] edges)
+        {
+            var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
+            if (!combination.IsValid)
+            {
+                return false;
+            }
+            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
+            // Valid cycles do not contain nested self-references in their type parameter resolutions,
+            // although this may be valid in other circumstances.
+            return combination.CombinedResolutionDictionary
+                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
+        }
+
+        private static IEnumerable<IEnumerable<ICallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<ICallGraphEdge>> sequences)
+        {
+            IEnumerable<IEnumerable<ICallGraphEdge>> result = new[] { Enumerable.Empty<ICallGraphEdge>() };
+            foreach (var sequence in sequences)
+            {
+                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
+            }
+            return result;
+        }
+
+        // Member Fields
+
+        /// <summary>
+        /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
+        /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
+        /// </summary>
+        private readonly Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>> dependencies =
+            new Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>>();
+
+        // Constructors
+
+        /// <summary>
+        /// This default constructor is set to internal so that only the walker can create call graphs.
+        /// </summary>
+        internal CallGraph()
+        {
+        }
+
+        // Properties
+
+        /// <summary>
+        /// The number of nodes in the call graph.
+        /// </summary>
+        public int Count => this.dependencies.Count;
+
+        /// <summary>
+        /// A collection of the nodes in the call graph.
+        /// </summary>
+        public ImmutableHashSet<ICallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
+
+        // Member Methods
+
+        /// <summary>
+        /// Returns true if the given node is found in the call graph, false otherwise.
+        /// Throws ArgumentNullException if argument is null.
+        /// </summary>
+        public bool ContainsNode(ICallGraphNode node)
+        {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
+            return this.dependencies.ContainsKey(node);
+        }
+
+        /// <summary>
+        /// Returns all specializations that are used directly or indirectly within the given caller,
+        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
+        /// represents a specialization that is used by the caller. Each value in the lookup is an
+        /// IEnumerable of edges representing all the different ways the given caller specialization took a
+        /// dependency on the specialization represented by the associated key.
+        /// Throws ArgumentNullException if argument is null.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// </summary>
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(ICallGraphNode callerSpec)
+        {
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            if (!this.dependencies.ContainsKey(callerSpec))
+            {
+                return EmptyDependency;
+            }
+
+            var accum = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+
+            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge? edgeFromRoot)
+            {
+                if (this.dependencies.TryGetValue(root, out var next))
+                {
+                    foreach (var (dependent, edges) in next)
+                    {
+                        var combinedEdges = edgeFromRoot is null
+                            ? edges
+                            : edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
+
+                        if (accum.TryGetValue(dependent, out var existingEdges))
+                        {
+                            combinedEdges = combinedEdges.Where(edge => !existingEdges.Any(existing => edge.Equals(existing)));
+                            accum[dependent] = existingEdges.AddRange(combinedEdges);
+                        }
+                        else
+                        {
+                            accum[dependent] = combinedEdges.ToImmutableArray();
+                        }
+
+                        foreach (var edge in combinedEdges)
+                        {
+                            WalkDependencyTree(dependent, edge);
+                        }
+                    }
+                }
+            }
+
+            WalkDependencyTree(callerSpec, null);
+
+            return accum
+                .SelectMany(kvp => kvp.Value, Tuple.Create)
+                .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
+        }
+
+        /// <summary>
+        /// Returns all specializations that are used directly or indirectly within the given caller,
+        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
+        /// represents a specialization that is used by the caller. Each value in the lookup is an
+        /// IEnumerable of edges representing all the different ways the given caller specialization took a
+        /// dependency on the specialization represented by the associated key.
+        /// Throws ArgumentNullException if argument is null.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// </summary>
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
+        {
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            return this.GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+        }
+
+        /// <summary>
+        /// Returns all specializations that are used directly within the given caller, whether they are
+        /// called, partially applied, or assigned. Each key in the returned lookup represents a
+        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
+        /// representing all the different ways the given caller specialization took a dependency on the
+        /// specialization represented by the associated key.
+        /// Throws ArgumentNullException if argument is null.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// </summary>
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(ICallGraphNode callerNode)
+        {
+            if (callerNode == null)
+            {
+                throw new ArgumentNullException(nameof(callerNode));
+            }
+
+            if (this.dependencies.TryGetValue(callerNode, out var dep))
+            {
+                return dep
+                    .SelectMany(kvp => kvp.Value, Tuple.Create)
+                    .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
+            }
+            else
+            {
+                return EmptyDependency;
+            }
+        }
+
+        /// <summary>
+        /// Returns all specializations that are used directly within the given caller, whether they are
+        /// called, partially applied, or assigned. Each key in the returned lookup represents a
+        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
+        /// representing all the different ways the given caller specialization took a dependency on the
+        /// specialization represented by the associated key.
+        /// Throws ArgumentNullException if argument is null.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// </summary>
+        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
+        {
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            return this.GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+        }
+
+        /// <summary>
+        /// Given a call graph edges, finds all cycles and determines if each is valid.
+        /// Invalid cycles are those that cause type parameters to be mapped to
+        /// other type parameters of the same callable (constricting resolutions)
+        /// or to a type containing a nested reference to the same type parameter,
+        /// i.e Foo.A -> Foo.A[].
+        /// Returns an enumerable of filename-diagnostics tuples for each edge of
+        /// each invalid cycle found.
+        /// </summary>
+        public IEnumerable<Tuple<NonNullable<string>, QsCompilerDiagnostic>> VerifyAllCycles()
+        {
+            var diagnostics = new List<Tuple<NonNullable<string>, QsCompilerDiagnostic>>();
+
+            if (this.Nodes.Any())
+            {
+                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
+                foreach (var cycle in cycles)
+                {
+                    // ToDo: swap out implementation once master is merged in
+                    //var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions).ToArray());
+                    //if (!combination.IsValid)
+                    if (!VerifyCycle(cycle.ToArray()))
+                    {
+                        foreach (var edge in cycle)
+                        {
+                            diagnostics.Add(Tuple.Create(
+                                edge.FileName,
+                                QsCompilerDiagnostic.Error(
+                                    Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
+                                    Enumerable.Empty<string>(),
+                                    edge.Start,
+                                    edge.End)));
+                        }
+                    }
+                }
+            }
+
+            return diagnostics;
+        }
+
+        /// <summary>
+        /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
+        /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
+        /// </summary>
+        internal ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
+        {
+            var indexToNode = this.dependencies.Keys.ToImmutableArray();
+            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
+            var graph = indexToNode
+                .Select((v, i) => (v, i))
+                .ToDictionary(
+                    kvp => kvp.i,
+                    kvp => this.dependencies[kvp.v].Keys
+                        .Select(dep => nodeToIndex[dep])
+                        .ToList());
+
+            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
+            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
+        }
+
+        /// <summary>
+        /// Adds a dependency to the call graph using the caller's specialization and
+        /// the called specialization's information.
+        /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
+        /// may have the QsNullable.Null value.
+        /// </summary>
+        internal void AddDependency(
+            QsSpecialization callerSpec,
+            QsQualifiedName calledName,
+            QsSpecializationKind calledKind,
+            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
+            TypeParameterResolutions typeParamRes,
+            QsPositionInfo positionStart,
+            QsPositionInfo positionEnd)
+        {
+            if (callerSpec == null)
+            {
+                throw new ArgumentNullException(nameof(callerSpec));
+            }
+
+            this.AddDependency(
+                callerSpec.Parent,
+                callerSpec.Kind,
+                callerSpec.TypeArguments,
+                calledName,
+                calledKind,
+                calledTypeArgs,
+                typeParamRes,
+                callerSpec.SourceFile,
+                positionStart,
+                positionEnd);
+        }
+
+        /// <summary>
+        /// Adds a dependency to the call graph using the relevant information from the
+        /// caller's specialization and the called specialization.
+        /// Throws ArgumentNullException if any of the arguments are null, though callerTypeArgs
+        /// and calledTypeArgs may have the QsNullable.Null value.
+        /// </summary>
+        internal void AddDependency(
+            QsQualifiedName callerName,
+            QsSpecializationKind callerKind,
+            QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
+            QsQualifiedName calledName,
+            QsSpecializationKind calledKind,
+            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
+            TypeParameterResolutions typeParamRes,
+            NonNullable<string> fileName,
+            QsPositionInfo positionStart,
+            QsPositionInfo positionEnd)
+        {
+            // Setting TypeArgs to Null because the type specialization is not implemented yet
+            var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
+            var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
+
+            var edge = new CallGraphEdge(typeParamRes, fileName, positionStart, positionEnd);
+            this.RecordDependency(callerKey, calledKey, edge);
+        }
+
+        private void RecordDependency(ICallGraphNode callerKey, ICallGraphNode calledKey, ICallGraphEdge edge)
+        {
+            if (this.dependencies.TryGetValue(callerKey, out var deps))
+            {
+                if (!deps.TryGetValue(calledKey, out var edges))
+                {
+                    deps[calledKey] = ImmutableArray.Create(edge);
+                }
+                else
+                {
+                    deps[calledKey] = edges.Add(edge);
+                }
+            }
+            else
+            {
+                var newDeps = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+                newDeps[calledKey] = ImmutableArray.Create(edge);
+                this.dependencies[callerKey] = newDeps;
+            }
+
+            // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
+            if (!this.dependencies.ContainsKey(calledKey))
+            {
+                this.dependencies[calledKey] = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+            }
+        }
+
+        private IEnumerable<IEnumerable<ICallGraphEdge>> GetEdges(ImmutableArray<ICallGraphNode> cycle)
+            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
+
+        // Inner Classes
+
         /// <summary>
         /// Walker that checks a given type parameter resolution to see if it constricts
         /// the type parameter to another type parameter of the same callable, or contains
@@ -510,346 +876,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                 return cycles;
             }
-        }
-
-        /// <summary>
-        /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
-        /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
-        /// </summary>
-        private readonly Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>> dependencies =
-            new Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>>();
-
-        /// <summary>
-        /// Represents an empty dependency for a node.
-        /// </summary>
-        private static readonly ILookup<ICallGraphNode, ICallGraphEdge> EmptyDependency =
-            ImmutableArray<KeyValuePair<ICallGraphNode, ICallGraphEdge>>.Empty
-            .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
-
-        /// <summary>
-        /// Given a cycle of call graph edges, determines if the cycle is valid.
-        /// Invalid cycles are those that cause type parameters to be mapped to
-        /// other type parameters of the same callable (constricting resolutions)
-        /// or to a type containing a nested reference to the same type parameter,
-        /// i.e Foo.A -> Foo.A[].
-        /// Returns true if the cycle is valid, false if invalid.
-        /// </summary>
-        internal static bool VerifyCycle(params ICallGraphEdge[] edges)
-        {
-            var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
-            if (!combination.IsValid)
-            {
-                return false;
-            }
-            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
-            // Valid cycles do not contain nested self-references in their type parameter resolutions,
-            // although this may be valid in other circumstances.
-            return combination.CombinedResolutionDictionary
-                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
-        }
-
-        private IEnumerable<IEnumerable<ICallGraphEdge>> GetEdges(ImmutableArray<ICallGraphNode> cycle)
-            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
-
-        private static IEnumerable<IEnumerable<ICallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<ICallGraphEdge>> sequences)
-        {
-            IEnumerable<IEnumerable<ICallGraphEdge>> result = new[] { Enumerable.Empty<ICallGraphEdge>() };
-            foreach (var sequence in sequences)
-            {
-                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
-            }
-            return result;
-        }
-
-        public IEnumerable<Tuple<NonNullable<string>, QsCompilerDiagnostic>> VerifyAllCycles()
-        {
-            var diagnostics = new List<Tuple<NonNullable<string>, QsCompilerDiagnostic>>();
-
-            if (this.Nodes.Any())
-            {
-                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
-                foreach (var cycle in cycles)
-                {
-                    if (!VerifyCycle(cycle.ToArray()))
-                    {
-                        foreach (var edge in cycle)
-                        {
-                            diagnostics.Add(Tuple.Create(
-                                edge.FileName,
-                                QsCompilerDiagnostic.Error(
-                                    Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
-                                    Enumerable.Empty<string>(),
-                                    edge.Start,
-                                    edge.End)));
-                        }
-                    }
-                }
-            }
-
-            return diagnostics;
-        }
-
-        /// <summary>
-        /// A collection of the nodes in the call graph.
-        /// </summary>
-        public ImmutableHashSet<ICallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
-
-        /// <summary>
-        /// The number of nodes in the call graph.
-        /// </summary>
-        public int Count => this.dependencies.Count;
-
-        private void RecordDependency(ICallGraphNode callerKey, ICallGraphNode calledKey, ICallGraphEdge edge)
-        {
-            if (this.dependencies.TryGetValue(callerKey, out var deps))
-            {
-                if (!deps.TryGetValue(calledKey, out var edges))
-                {
-                    deps[calledKey] = ImmutableArray.Create(edge);
-                }
-                else
-                {
-                    deps[calledKey] = edges.Add(edge);
-                }
-            }
-            else
-            {
-                var newDeps = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
-                newDeps[calledKey] = ImmutableArray.Create(edge);
-                this.dependencies[callerKey] = newDeps;
-            }
-
-            // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
-            if (!this.dependencies.ContainsKey(calledKey))
-            {
-                this.dependencies[calledKey] = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
-            }
-        }
-
-        // Make the default constructor internal so that only the walker can create call graphs.
-        internal CallGraph()
-        {
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph using the caller's specialization and
-        /// the called specialization's information.
-        /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
-        /// may have the QsNullable.Null value.
-        /// </summary>
-        internal void AddDependency(
-            QsSpecialization callerSpec,
-            QsQualifiedName calledName,
-            QsSpecializationKind calledKind,
-            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes,
-            QsPositionInfo positionStart,
-            QsPositionInfo positionEnd)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            this.AddDependency(
-                callerSpec.Parent,
-                callerSpec.Kind,
-                callerSpec.TypeArguments,
-                calledName,
-                calledKind,
-                calledTypeArgs,
-                typeParamRes,
-                callerSpec.SourceFile,
-                positionStart,
-                positionEnd);
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph using the relevant information from the
-        /// caller's specialization and the called specialization.
-        /// Throws ArgumentNullException if any of the arguments are null, though callerTypeArgs
-        /// and calledTypeArgs may have the QsNullable.Null value.
-        /// </summary>
-        internal void AddDependency(
-            QsQualifiedName callerName,
-            QsSpecializationKind callerKind,
-            QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsQualifiedName calledName,
-            QsSpecializationKind calledKind,
-            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes,
-            NonNullable<string> fileName,
-            QsPositionInfo positionStart,
-            QsPositionInfo positionEnd)
-        {
-            // Setting TypeArgs to Null because the type specialization is not implemented yet
-            var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
-            var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
-
-            var edge = new CallGraphEdge(typeParamRes, fileName, positionStart, positionEnd);
-            this.RecordDependency(callerKey, calledKey, edge);
-        }
-
-        /// <summary>
-        /// Returns all specializations that are used directly within the given caller, whether they are
-        /// called, partially applied, or assigned. Each key in the returned lookup represents a
-        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
-        /// representing all the different ways the given caller specialization took a dependency on the
-        /// specialization represented by the associated key.
-        /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(ICallGraphNode callerNode)
-        {
-            if (callerNode == null)
-            {
-                throw new ArgumentNullException(nameof(callerNode));
-            }
-
-            if (this.dependencies.TryGetValue(callerNode, out var dep))
-            {
-                return dep
-                    .SelectMany(kvp => kvp.Value, Tuple.Create)
-                    .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
-            }
-            else
-            {
-                return EmptyDependency;
-            }
-        }
-
-        /// <summary>
-        /// Returns all specializations that are used directly within the given caller, whether they are
-        /// called, partially applied, or assigned. Each key in the returned lookup represents a
-        /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
-        /// representing all the different ways the given caller specialization took a dependency on the
-        /// specialization represented by the associated key.
-        /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            return this.GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
-        }
-
-        /// <summary>
-        /// Returns all specializations that are used directly or indirectly within the given caller,
-        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
-        /// represents a specialization that is used by the caller. Each value in the lookup is an
-        /// IEnumerable of edges representing all the different ways the given caller specialization took a
-        /// dependency on the specialization represented by the associated key.
-        /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(ICallGraphNode callerSpec)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            if (!this.dependencies.ContainsKey(callerSpec))
-            {
-                return EmptyDependency;
-            }
-
-            var accum = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
-
-            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge? edgeFromRoot)
-            {
-                if (this.dependencies.TryGetValue(root, out var next))
-                {
-                    foreach (var (dependent, edges) in next)
-                    {
-                        var combinedEdges = edgeFromRoot is null
-                            ? edges
-                            : edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
-
-                        if (accum.TryGetValue(dependent, out var existingEdges))
-                        {
-                            combinedEdges = combinedEdges.Where(edge => !existingEdges.Any(existing => edge.Equals(existing)));
-                            accum[dependent] = existingEdges.AddRange(combinedEdges);
-                        }
-                        else
-                        {
-                            accum[dependent] = combinedEdges.ToImmutableArray();
-                        }
-
-                        foreach (var edge in combinedEdges)
-                        {
-                            WalkDependencyTree(dependent, edge);
-                        }
-                    }
-                }
-            }
-
-            WalkDependencyTree(callerSpec, null);
-
-            return accum
-                .SelectMany(kvp => kvp.Value, Tuple.Create)
-                .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
-        }
-
-        /// <summary>
-        /// Returns all specializations that are used directly or indirectly within the given caller,
-        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
-        /// represents a specialization that is used by the caller. Each value in the lookup is an
-        /// IEnumerable of edges representing all the different ways the given caller specialization took a
-        /// dependency on the specialization represented by the associated key.
-        /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            return this.GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
-        }
-
-        /// <summary>
-        /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
-        /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
-        /// </summary>
-        internal ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
-        {
-            var indexToNode = this.dependencies.Keys.ToImmutableArray();
-            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
-            var graph = indexToNode
-                .Select((v, i) => (v, i))
-                .ToDictionary(
-                    kvp => kvp.i,
-                    kvp => this.dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
-                        .ToList());
-
-            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
-            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
-        }
-
-        /// <summary>
-        /// Returns true if the given node is found in the call graph, false otherwise.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public bool ContainsNode(ICallGraphNode node)
-        {
-            if (node == null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            return this.dependencies.ContainsKey(node);
         }
     }
 }

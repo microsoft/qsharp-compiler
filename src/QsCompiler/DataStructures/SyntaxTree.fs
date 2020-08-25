@@ -810,15 +810,14 @@ type ICallGraphNode =
 
 // Interface used to represent a call graph
 type ICallGraph = 
-    abstract member Nodes : ImmutableHashSet<ICallGraphNode>
     abstract member Count : int
-    abstract member GetDirectDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
-    abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member Nodes : ImmutableHashSet<ICallGraphNode>
+    abstract member ContainsNode : ICallGraphNode -> bool
     abstract member GetAllDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member GetAllDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
-    //abstract member GetCallCycles : Unit -> ImmutableArray<ImmutableArray<ICallGraphNode>>
+    abstract member GetDirectDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
+    abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
     abstract member VerifyAllCycles : Unit -> System.Collections.Generic.IEnumerable<NonNullable<string> * QsCompilerDiagnostic>
-    abstract member ContainsNode : ICallGraphNode -> bool
 
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {

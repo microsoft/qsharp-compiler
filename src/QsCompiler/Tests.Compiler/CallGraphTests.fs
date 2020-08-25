@@ -86,9 +86,6 @@ type CallGraphTests (output:ITestOutputHelper) =
     let CompileCycleValidationTest testNumber =
         CompileTest testNumber "CycleValidation.qs"
 
-        //graph.GetCallCycles()
-        //|> Seq.map (fun x -> GetEdges graph x |> List.rev) |> Seq.collect (fun x -> CartesianProduct x)
-
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
 
