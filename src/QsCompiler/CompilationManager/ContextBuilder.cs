@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            var lastPreceding = previous.Last().TranslateLines(start);
+            var lastPreceding = previous.Last().WithLineNumOffset(start);
             var overlaps = includeEnd
                 ? pos <= lastPreceding.Range.End
                 : pos < lastPreceding.Range.End;

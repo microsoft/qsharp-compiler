@@ -97,11 +97,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (start, end) = (range.Start.Line, range.End.Line);
 
             var fragAtStart = file.TryGetFragmentAt(range.Start, out _, includeEnd: true);
-            var inRange = file.GetTokenizedLine(start).Select(t => t.TranslateLines(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
+            var inRange = file.GetTokenizedLine(start).Select(t => t.WithLineNumOffset(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
-                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.TranslateLines(start + 1 + i))))
-                    .Concat(file.GetTokenizedLine(end).Select(t => t.TranslateLines(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
+                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithLineNumOffset(start + 1 + i))))
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithLineNumOffset(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
 
             var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
             if (fragAtStart != null)

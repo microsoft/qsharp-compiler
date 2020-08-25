@@ -60,13 +60,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Translates the line numbers in the diagnostic by the given offset.
+        /// Returns a copy of this diagnostic with the given offset added to the line numbers.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="diagnostic"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the new diagnostic has negative line numbers.
         /// </exception>
-        public static Diagnostic TranslateLines(this Diagnostic diagnostic, int offset)
+        public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {
             if (diagnostic is null)
             {

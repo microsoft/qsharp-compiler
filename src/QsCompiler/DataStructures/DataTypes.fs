@@ -148,8 +148,8 @@ type Range = private Range of Position * Position with
     /// Returns true if the range contains the given position, including the end position.
     member this.ContainsEnd position = this.Start <= position && position <= this.End
 
-    /// Translates the line numbers of the start and end positions by the given offset.
-    member this.TranslateLines offset =
+    /// Returns a copy of this range with the given offset added to the line numbers.
+    member this.WithLineNumOffset offset =
         Range (Position (this.Start.Line + offset, this.Start.Column),
                Position (this.End.Line + offset, this.End.Column))
 

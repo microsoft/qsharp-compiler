@@ -179,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 (this.Kind == null ? other.Kind == null : this.Kind.Equals(other.Kind));
         }
 
-        internal CodeFragment TranslateLines(int offset) => this.SetRange(this.Range.TranslateLines(offset));
+        internal CodeFragment WithLineNumOffset(int offset) => this.SetRange(this.Range.WithLineNumOffset(offset));
 
         internal CodeFragment SetRange(Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
@@ -296,7 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                return this.file.GetTokenizedLine(this.Line)[this.Index].TranslateLines(this.Line);
+                return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
             }
 
             /// <summary>
