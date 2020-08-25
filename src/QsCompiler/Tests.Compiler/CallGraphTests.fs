@@ -10,15 +10,14 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
+open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
+open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.VisualStudio.LanguageServer.Protocol
-open Microsoft.Quantum.QsCompiler.Diagnostics
-
 
 type CallGraphTests (output:ITestOutputHelper) =
 

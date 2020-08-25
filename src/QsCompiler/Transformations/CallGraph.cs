@@ -83,28 +83,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                        .SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key)));
 
         /// <summary>
-        /// Inserts the edge into the given array of edges if the edge is not already in the array.
-        /// Ignores order of key-value pairs in the type parameter dictionaries.
-        /// </summary>
-        //public static ImmutableArray<ICallGraphEdge> InsertEdge(ICallGraphEdge edge, ImmutableArray<ICallGraphEdge> edges)
-        //{
-        //    var ordered = edge.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
-        //
-        //    if (edges == null || edges.Length == 0)
-        //    {
-        //        return ImmutableArray.Create(edge);
-        //    }
-        //    else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
-        //    {
-        //        return edges;
-        //    }
-        //    else
-        //    {
-        //        return edges.Add(edge);
-        //    }
-        //}
-
-        /// <summary>
         /// Creates a call graph edge that represents the combination of several edges that lead to a target node.
         /// The edges should be ordered by their distance to the target node. So the first edge should point directly
         /// to the target node, the next edge should point to the node that has the first edge, the third edge should

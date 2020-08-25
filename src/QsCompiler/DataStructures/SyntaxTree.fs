@@ -807,7 +807,6 @@ type ICallGraphNode =
     abstract member Kind : QsSpecializationKind
     abstract member TypeArgs : QsNullable<ImmutableArray<ResolvedType>>
 
-
 // Interface used to represent a call graph
 type ICallGraph = 
     abstract member Count : int
