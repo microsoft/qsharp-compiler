@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -248,24 +249,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
-                }
-
-                if (!associatedWithProject)
-                {
-                    try
-                    {
-                        if (this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null, out Uri projectUri, out _))
-                        {
-                            this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile).Wait();
-                            this.onTemporaryProjectLoaded(projectUri);
-                            associatedWithProject = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
-                        manager.LogException(ex);
-                    }
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
