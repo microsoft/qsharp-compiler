@@ -12,8 +12,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 #nullable enable
 
-// ToDo: Review access modifiers
-
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -33,10 +31,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public TypeParameterResolutions ParamResolutions { get; private set; }
 
+        /// <summary>
+        /// Name of the file where the call was made.
+        /// </summary>
         public NonNullable<string> FileName { get; set; }
 
+        /// <summary>
+        /// Beginning position of the reference represented by the edge.
+        /// </summary>
         public QsPositionInfo Start { get; set; }
 
+        /// <summary>
+        /// Ending position of the reference represented by the edge.
+        /// </summary>
         public QsPositionInfo End { get; set; }
 
         /// <summary>
