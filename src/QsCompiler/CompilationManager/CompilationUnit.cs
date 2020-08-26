@@ -15,8 +15,9 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -105,12 +106,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl => decl.QualifiedName,
                     decl => SymbolResolution.TryGetTestName(decl.Attributes).ValueOr(decl.QualifiedName));
 
-            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Tuple<int, int> declLocation)
+            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Position declLocation)
             {
                 var attName = new UserDefinedType(
                     NonNullable<string>.New(GeneratedAttributes.Namespace),
                     NonNullable<string>.New(GeneratedAttributes.LoadedViaTestNameInsteadOf),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
                 var attArg = SyntaxGenerator.StringLiteral(
                     NonNullable<string>.New(originalName.ToString()),
                     ImmutableArray<TypedExpression>.Empty);
@@ -946,7 +947,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             out Position specializationPos)
         {
             (callableName, callablePos, specializationPos) = (null, null, null);
-            if (file == null || pos == null || !Utils.IsValidPosition(pos, file))
+            if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
             }
@@ -986,8 +987,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            QsCompilerError.Verify(sPos?.IsSmallerThanOrEqualTo(pos) ?? true, "computed closes preceding specialization does not precede the position in question");
-            QsCompilerError.Verify(sPos != null || relevantSpecialization == null, "the position offset should not be null unless the relevant specialization is");
+            QsCompilerError.Verify(sPos <= pos, "computed closes preceding specialization does not precede the position in question");
             return ((SpecializationImplementation.Provided)relevantSpecialization.Implementation).Item2;
         }
 
@@ -1016,12 +1016,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return LocalDeclarations.Empty;
             }
             declarations ??= TryGetLocalDeclarations();
-
-            Tuple<int, int> AbsolutePosition(QsNullable<Tuple<int, int>> relOffset) =>
-                relOffset.IsNull
-                    ? DiagnosticTools.AsTuple(callablePos)
-                    : DiagnosticTools.AsTuple(specPos.Add(DiagnosticTools.AsPosition(relOffset.Item)));
-            return declarations.WithAbsolutePosition(AbsolutePosition);
+            return declarations.WithAbsolutePosition(
+                relOffset => relOffset.IsNull ? callablePos : specPos + relOffset.Item);
         }
 
         /// <summary>
@@ -1038,7 +1034,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos), includeDeclaredAtPosition);
+            var declarations = implementation?.LocalDeclarationsAt(pos - specPos, includeDeclaredAtPosition);
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations);
         }
 

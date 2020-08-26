@@ -7,7 +7,6 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
-open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -36,8 +35,8 @@ type LinkingTests (output:ITestOutputHelper) =
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     let defaultOffset = {
-        Offset = DiagnosticTools.AsTuple (Position (0, 0))
-        Range = QsCompilerDiagnostic.DefaultRange
+        Offset = Position.Zero
+        Range = Range.Zero
     }
 
     let qualifiedName ns name = {
@@ -68,7 +67,7 @@ type LinkingTests (output:ITestOutputHelper) =
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
-        this.Verify (QsQualifiedName.New (ns, name), diag)
+        this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
     member private this.BuildWithSource input (manager : CompilationUnitManager) = 
         let fileId = getTempFile()
@@ -84,7 +83,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let inFile (c : QsCallable) = c.SourceFile = source
         for callable in built.Callables.Values |> Seq.filter inFile do
-            tests.Verify (callable.FullName, diag)
+            tests.VerifyDiagnostics (callable.FullName, diag)
 
     member private this.BuildContent (manager : CompilationUnitManager, source, ?references) =
         match references with

@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
@@ -177,7 +178,7 @@ seeAlso:
             {
                 var validName = QsLocalSymbol.NewValidName(NonNullable<string>.New(name));
                 var info = new InferredExpressionInformation(false, false);
-                return new ArgDeclType(validName, t, info, QsNullable<Tuple<int, int>>.Null, EmptyRange);
+                return new ArgDeclType(validName, t, info, QsNullable<Position>.Null, Range.Zero);
             }
 
             string[] comments =
@@ -314,7 +315,7 @@ output:
             var oracleType = ResolvedType.New(QsType.NewUserDefinedType(new UserDefinedType(
                 CanonName,
                 NonNullable<string>.New("DiscreteOracle"),
-                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null)));
+                QsNullable<Range>.Null)));
             var noInfo = CallableInformation.NoInformation;
             var acFunctors = ResolvedCharacteristics.FromProperties(new[] { OpProperty.Adjointable, OpProperty.Controllable });
             var acInfo = new CallableInformation(acFunctors, InferredCallableInformation.NoInformation);

@@ -159,7 +159,7 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
         match stmt with
         | QsVariableDeclaration x ->
             let isMutable = x.Kind = MutableBinding
-            let posInfo = (Null, (QsPositionInfo.Zero, QsPositionInfo.Zero))
+            let posInfo = (Null, Range.Zero)
             seq {
                 for lhs, rhs in jointFlatten (x.Lhs, x.Rhs) do
                     match lhs with

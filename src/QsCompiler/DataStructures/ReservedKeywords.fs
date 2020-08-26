@@ -202,8 +202,8 @@ module InternalUse =
             "Borrow" 
             "Return"
 
-            "Data"
-            "Item"
+            "Data" // REL0920: can be removed once we give errors for underscore patterns
+            "Item" // REL0920: can be removed once we give errors for underscore patterns
 
             "QVoid"
             "Int64" 
@@ -246,6 +246,7 @@ module AssemblyConstants =
     let QuantumSimulator = "QuantumSimulator"
     let ToffoliSimulator = "ToffoliSimulator"
     let ResourcesEstimator = "ResourcesEstimator"
+    let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
 
     // Note: The names of the capabilities here need to match the ones defined by the Sdk.
     type RuntimeCapabilities = 

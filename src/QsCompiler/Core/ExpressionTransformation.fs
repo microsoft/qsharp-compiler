@@ -361,8 +361,8 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     // supplementary expression information
 
-    abstract member OnRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
-    default this.OnRangeInformation r = r
+    abstract member OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+    default this.OnRangeInformation range = range
 
     abstract member OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info

@@ -8,198 +8,25 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class DiagnosticTools
     {
         /// <summary>
-        /// Returns the line and character of the given position as tuple without verifying them.
-        /// Throws an ArgumentNullException if the given position is null.
-        /// </summary>
-        public static Tuple<int, int> AsTuple(Position position) =>
-            position != null
-            ? new Tuple<int, int>(position.Line, position.Character)
-            : throw new ArgumentNullException(nameof(position));
-
-        /// <summary>
-        /// Returns a Position with the line and character given as tuple (inverse function for AsTuple).
-        /// Throws an ArgumentNullException if the given tuple is null.
-        /// </summary>
-        public static Position AsPosition(Tuple<int, int> position) =>
-            position != null
-            ? new Position(position.Item1, position.Item2)
-            : throw new ArgumentNullException(nameof(position));
-
-        /// <summary>
-        /// Given the starting position, convertes the relative Position w.r.t. that starting position returned by the Q# compiler into an absolute position as expected by VS.
-        /// IMPORTANT: The position returned by the Q# Compiler is (assumed to be) one-based, whereas the given and returned absolute positions are (assumed to be) zero-based!
-        /// If the starting position is null, then this routine simply converts the PositionInfo given by the Q# compiler to the Position object that VS expects.
-        /// Throws an ArgumentOutOfRangeException if the Line or Column of the given relative position are smaller than one.
-        /// Throws an ArgumentException if the Line or Column of the given offset are smaller than zero.
-        /// </summary>
-        internal static Position GetAbsolutePosition(Position offset, QsPositionInfo relativePosition)
-        {
-            if (relativePosition.Line < 1 || relativePosition.Column < 1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(relativePosition));
-            }
-
-            if (offset == null)
-            {
-                return new Position(relativePosition.Line - 1, relativePosition.Column - 1); // fparsec position info is one based
-            }
-            if (!Utils.IsValidPosition(offset))
-            {
-                throw new ArgumentException(nameof(offset));
-            }
-
-            var absPos = offset.Copy();
-            absPos.Line += relativePosition.Line - 1; // fparsec position info is one based
-            absPos.Character = relativePosition.Line > 1 ? relativePosition.Column - 1 : absPos.Character + relativePosition.Column - 1; // VS expects zero based positions
-            return absPos;
-        }
-
-        /// <summary>
-        /// Creates an absolute position by adding the zero-based offset to the relative position.
-        /// </summary>
-        /// <param name="position">The position.</param>
-        /// <param name="offset">A zero-based line and column offset.</param>
-        /// <exception cref="ArgumentException">Thrown if the position line or column is negative.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if offset line or column is negative.</exception>
-        /// <returns>The absolute position.</returns>
-        internal static Position GetAbsolutePosition(Position position, Tuple<int, int> offset)
-        {
-            var (line, column) = offset;
-            return GetAbsolutePosition(position, new QsPositionInfo(line + 1, column + 1));
-        }
-
-        /// <summary>
-        /// Given the starting position, convertes the relative range returned by the Q# compiler w.r.t. that starting position into an absolute range as expected by VS.
-        /// IMPORTANT: The position returned by the Q# Compiler is (assumed to be) one-based, whereas the given and returned absolute positions are (assumed to be) zero-based!
-        /// If the starting position is null, then this routine simply converts the PositionInfo given by the Q# compiler to the Position object that VS expects.
-        /// Throws an ArgumentNullException if the given relative range is null.
-        /// Throws an ArgumentException if the Line or Column of the given offset are smaller than zero,
-        /// or if the end position (second item) of the given relative range is larger than the start position (first item).
-        /// Throws an ArgumentOutOfRangeException if the Line or Column of the given relative position are smaller than one.
-        /// </summary>
-        internal static LSP.Range GetAbsoluteRange(Position offset, Tuple<QsPositionInfo, QsPositionInfo> relativeRange)
-        {
-            bool LargerThan(QsPositionInfo lhs, QsPositionInfo rhs) =>
-                lhs.Line > rhs.Line || (lhs.Line == rhs.Line && lhs.Column > rhs.Column);
-            if (relativeRange == null)
-            {
-                throw new ArgumentNullException(nameof(relativeRange));
-            }
-            if (LargerThan(relativeRange.Item1, relativeRange.Item2))
-            {
-                throw new ArgumentException("invalid range", nameof(relativeRange));
-            }
-            return new LSP.Range { Start = GetAbsolutePosition(offset, relativeRange.Item1), End = GetAbsolutePosition(offset, relativeRange.Item2) };
-        }
-
-        /// <summary>
         /// Given the location information for a declared symbol,
         /// as well as the position of the declaration within which the symbol is declared,
         /// returns the zero-based line and character index indicating the position of the symbol in the file.
         /// Returns null if the given object is not compatible with the position information generated by this CompilationBuilder.
         /// </summary>
-        public static Tuple<int, int> SymbolPosition(QsLocation rootLocation, QsNullable<Tuple<int, int>> symbolPosition, Tuple<QsPositionInfo, QsPositionInfo> symbolRange)
+        public static Position SymbolPosition(QsLocation rootLocation, QsNullable<Position> symbolPosition, Range symbolRange)
         {
-            var offset = symbolPosition.IsNull // the position offset is set to null (only) for variables defined in the declaration
-                ? DeclarationPosition(rootLocation)
-                : StatementPosition(rootLocation.Offset, symbolPosition.Item);
-            return DeclarationPosition(GetAbsolutePosition(new Position(offset.Item1, offset.Item2), symbolRange.Item1));
-        }
-
-        /// <summary>
-        /// Given the position of the specialization declaration to whose implementation the statement belongs,
-        /// and the position of the statement within the implementation,
-        /// returns the zero-based line and character index indicating the position of the statement in the file.
-        /// Returns null if either one of the given objects is not compatible with the position information generated by this CompilationBuilder.
-        /// </summary>
-        public static Tuple<int, int> StatementPosition(QsLocation rootLocation, QsLocation statementLocation) =>
-            StatementPosition(rootLocation.Offset, statementLocation.Offset);
-
-        internal static Tuple<int, int> StatementPosition(Tuple<int, int> rootOffset, Tuple<int, int> statementPos) =>
-            DeclarationPosition(AsPosition(rootOffset).Add(AsPosition(statementPos)));
-
-        /// <summary>
-        /// Given the location of a callable, type or specialization declaration,
-        /// returns the zero-based line and character index indicating the position of the declaration in the file.
-        /// </summary>
-        public static Tuple<int, int> DeclarationPosition(QsLocation location) => DeclarationPosition(AsPosition(location.Offset));
-
-        private static Tuple<int, int> DeclarationPosition(Position position) => new Tuple<int, int>(position.Line, position.Character);
-
-        /// <summary>
-        /// Returns a new Position with the line number and character of the given Position
-        /// or null in case the given Position is null.
-        /// </summary>
-        public static Position Copy(this Position pos)
-        {
-            return pos == null
-                ? null
-                : new Position(pos.Line, pos.Character);
-        }
-
-        /// <summary>
-        /// Verifies the given Position, and returns a *new* Position with updated line number.
-        /// Throws an ArgumentNullException if the given Position is null.
-        /// Throws an ArgumentException if the given Position is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
-        /// </summary>
-        public static Position WithUpdatedLineNumber(this Position pos, int lineNrChange)
-        {
-            if (!Utils.IsValidPosition(pos))
-            {
-                throw new ArgumentException($"invalid Position in {nameof(WithUpdatedLineNumber)}");
-            }
-            if (pos.Line + lineNrChange < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
-            }
-            var updated = pos.Copy();
-            updated.Line += lineNrChange;
-            return updated;
-        }
-
-        /// <summary>
-        /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range
-        /// (i.e. does a deep copy) or null in case the given Range is null.
-        /// </summary>
-        public static LSP.Range Copy(this LSP.Range r)
-        {
-            return r == null
-                ? null
-                : new LSP.Range { Start = r.Start.Copy(), End = r.End.Copy() };
-        }
-
-        /// <summary>
-        /// Verifies the given Range, and returns a *new* Range with updated line numbers.
-        /// Throws an ArgumentNullException if the given Range is null.
-        /// Throws an ArgumentException if the given Range is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
-        /// </summary>
-        public static LSP.Range WithUpdatedLineNumber(this LSP.Range range, int lineNrChange)
-        {
-            if (lineNrChange == 0)
-            {
-                return range ?? throw new ArgumentNullException(nameof(range));
-            }
-            if (!Utils.IsValidRange(range))
-            {
-                throw new ArgumentException($"invalid Range in {nameof(WithUpdatedLineNumber)}"); // range can be empty
-            }
-            if (range.Start.Line + lineNrChange < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(lineNrChange));
-            }
-            var updated = range.Copy();
-            updated.Start.Line += lineNrChange;
-            updated.End.Line += lineNrChange;
-            return updated;
+            // the position offset is set to null (only) for variables defined in the declaration
+            var offset = symbolPosition.IsNull ? rootLocation.Offset : rootLocation.Offset + symbolPosition.Item;
+            return offset + symbolRange.Start;
         }
 
         /// <summary>
@@ -208,36 +35,52 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Diagnostic Copy(this Diagnostic message)
         {
-            if (message == null)
-            {
-                return null;
-            }
-            return new Diagnostic()
-            {
-                Range = message.Range.Copy(),
-                Severity = message.Severity,
-                Code = message.Code,
-                Source = message.Source,
-                Message = message.Message
-            };
+            Lsp.Position CopyPosition(Lsp.Position position) =>
+                position is null ? null : new Lsp.Position(position.Line, position.Character);
+
+            Lsp.Range CopyRange(Lsp.Range range) =>
+                range is null
+                    ? null
+                    : new Lsp.Range
+                    {
+                        Start = CopyPosition(range.Start),
+                        End = CopyPosition(range.End)
+                    };
+
+            return message is null
+                ? null
+                : new Diagnostic
+                {
+                    Range = CopyRange(message.Range),
+                    Severity = message.Severity,
+                    Code = message.Code,
+                    Source = message.Source,
+                    Message = message.Message
+                };
         }
 
         /// <summary>
-        /// For a given Diagnostic, verifies its range and returns a *new* Diagnostic with updated line numbers.
-        /// Throws an ArgumentNullException if the given Diagnostic is null.
-        /// Throws an ArgumentException if the Range of the given Diagnostic is invalid.
-        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
+        /// Returns a copy of this diagnostic with the given offset added to the line numbers.
         /// </summary>
-        public static Diagnostic WithUpdatedLineNumber(this Diagnostic diagnostic, int lineNrChange)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="diagnostic"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the new diagnostic has negative line numbers.
+        /// </exception>
+        public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {
-            if (lineNrChange == 0)
+            if (diagnostic is null)
             {
-                return diagnostic ?? throw new ArgumentNullException(nameof(diagnostic));
+                throw new ArgumentNullException(nameof(diagnostic));
             }
-            var updatedRange = diagnostic.Range.WithUpdatedLineNumber(lineNrChange); // throws if the given diagnostic is null
-            var updated = diagnostic.Copy();
-            updated.Range = updatedRange;
-            return updated;
+            var copy = diagnostic.Copy();
+            copy.Range.Start.Line += offset;
+            copy.Range.End.Line += offset;
+            if (copy.Range.Start.Line < 0 || copy.Range.End.Line < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(offset), "Translated diagnostic has negative line numbers.");
+            }
+            return copy;
         }
 
         /// <summary>
@@ -336,14 +179,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound.
-        /// </summary>
-        internal static bool SelectByEndLine(this Diagnostic m, int lowerBound)
-        {
-            return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line;
-        }
-
-        /// <summary>
         /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByEndLine(this Diagnostic m, int lowerBound, int upperBound)
@@ -354,33 +189,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
-        internal static bool SelectByStart(this Diagnostic m, Position lowerBound)
-        {
-            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start);
-        }
+        internal static bool SelectByStart(this Diagnostic m, Position lowerBound) =>
+            m?.Range?.Start?.Line != null && lowerBound <= m.Range.Start.ToQSharp();
 
         /// <summary>
-        /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
+        /// Returns true if the start position of the diagnostic range is contained in the given range, excluding the
+        /// given range's end position.
         /// </summary>
-        internal static bool SelectByStart(this Diagnostic m, Position lowerBound, Position upperBound)
-        {
-            return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start) && m.Range.Start.IsSmallerThan(upperBound);
-        }
+        internal static bool SelectByStart(this Diagnostic m, Range range) =>
+            !(m?.Range?.Start is null) && range.Contains(m.Range.Start.ToQSharp());
 
         /// <summary>
         /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
-        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound)
-        {
-            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End);
-        }
+        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound) =>
+            m?.Range?.End?.Line != null && lowerBound <= m.Range.End.ToQSharp();
 
         /// <summary>
-        /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
+        /// Returns true if the end position of the diagnostic range is contained in the given range, excluding the
+        /// given range's end position.
         /// </summary>
-        internal static bool SelectByEnd(this Diagnostic m, Position lowerBound, Position upperBound)
-        {
-            return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End) && m.Range.End.IsSmallerThan(upperBound);
-        }
+        internal static bool SelectByEnd(this Diagnostic m, Range range) =>
+            !(m?.Range?.End is null) && range.Contains(m.Range.End.ToQSharp());
     }
 }
