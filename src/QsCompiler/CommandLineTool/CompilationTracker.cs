@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -19,8 +18,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     /// </summary>
     public static class CompilationTracker
     {
-        // Private classes and types.
-
         /// <summary>
         /// Represents a task performed by the compiler (eg. source loading, reference loading, syntax tree serialization, etc.).
         /// </summary>
@@ -59,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public string Id { get => GenerateKey(this.ParentName, this.Name); }
 
             /// <summary>
-            /// TODO
+            /// Number of intervals (start/stop cycles) measured.
             /// </summary>
             public int IntervalCount { get; private set; }
 
@@ -95,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             /// <summary>
-            /// TODO
+            /// Starts/resumes time accounting for this task.
             /// </summary>
             public void Start()
             {
@@ -108,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             /// <summary>
-            /// TODO
+            /// Stops/pauses time accounting for this task.
             /// </summary>
             public void Stop()
             {
@@ -140,7 +137,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public void WriteToJson(Utf8JsonWriter jsonWriter, string prefix)
             {
                 var preparedPrefix = "";
-                if (!string.IsNullOrEmpty(prefix)) {
+                if (!string.IsNullOrEmpty(prefix))
+                {
                     preparedPrefix = $"{prefix}.";
                 }
 
@@ -262,8 +260,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             task.Stop();
         }
-
-        // Public methods.
 
         /// <summary>
         /// Handles a compilation task event.

@@ -25,7 +25,6 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
-
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -168,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler
             // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
             // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
             // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataToStream);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
             var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
@@ -176,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
             var resourceDataStream = new MemoryStream(resourceData);
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataToStream);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
             return LoadSyntaxTree(resourceDataStream, out compilation, onDeserializationException);
         }
 

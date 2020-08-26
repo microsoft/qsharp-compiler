@@ -29,7 +29,6 @@ namespace Microsoft.Quantum.QsCompiler
 {
     public class CompilationLoader
     {
-
         /// <summary>
         /// Given a load function that loads the content of a sequence of files from disk,
         /// returns the content for all sources to compile.

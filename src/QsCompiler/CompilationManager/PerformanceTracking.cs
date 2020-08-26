@@ -1,23 +1,22 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections;
 using System.Collections.Generic;
 
 namespace Microsoft.Quantum.QsCompiler.Diagnostics
 {
     /// <summary>
-    /// Represents the type of a task event.
+    /// Represents the type of a compilation task event.
     /// </summary>
     public enum CompilationTaskEventType
     {
         /// <summary>
-        /// TODO
+        /// Represents a compilation task start.
         /// </summary>
         Start,
 
         /// <summary>
-        /// TODO
+        /// Represents a compilation task end.
         /// </summary>
         End
     }
@@ -28,83 +27,82 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
     public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventType type, string parentTaskName, string taskName);
 
     /// <summary>
-    /// TODO
+    /// Provides a way to track performance accross the compiler.
     /// </summary>
     public static class PerformanceTracking
     {
-
         /// <summary>
-        /// TODO
+        /// Represents a compiler task whose performance is tracked.
         /// </summary>
         public enum Task
         {
             /// <summary>
-            /// TODO
+            /// Overall compilation process.
             /// </summary>
             OverallCompilation,
 
             /// <summary>
-            /// TODO
+            /// Task that builds the compilation object.
             /// </summary>
             Build,
 
             /// <summary>
-            /// TODO
+            /// Task that generates the compiled binary, DLL and docs.
             /// </summary>
             OutputGeneration,
 
             /// <summary>
-            /// TODO
+            /// Task that loads references.
             /// </summary>
             ReferenceLoading,
 
             /// <summary>
-            /// TODO
+            /// Task that performs rewrite steps.
             /// </summary>
             RewriteSteps,
 
             /// <summary>
-            /// TODO
+            /// Task that loads sources.
             /// </summary>
             SourcesLoading,
 
             /// <summary>
-            /// TODO
+            /// Task that replaces specific implementations as part of the 'Build' task.
             /// </summary>
             ReplaceTargetSpecificImplementations,
 
             /// <summary>
-            /// TODO
+            /// Task that generates a binary as part of the 'OutputGeneration' task.
             /// </summary>
             BinaryGeneration,
 
             /// <summary>
-            /// TODO
+            /// Task that generates a DLL as part of the 'OutputGeneration' task.
             /// </summary>
             DllGeneration,
 
             /// <summary>
-            /// TODO
+            /// Task that generates documentation as part of the 'OutputGeneration' task.
             /// </summary>
             DocumentationGeneration,
 
             /// <summary>
-            /// TODO
+            /// Task that serializes the syntax tree to be appended to the DLL as part of the 'OutputGeneration' task.
             /// </summary>
             SyntaxTreeSerialization,
 
             /// <summary>
-            /// TODO
+            /// Task that loads data from references to a stream as part of the 'ReferenceLoading' task.
             /// </summary>
-            LoadDataToStream,
+            LoadDataFromReferenceToStream,
 
             /// <summary>
-            /// TODO
+            /// Task that initializes the deserializer object as part of the 'ReferenceLoading' task.
             /// </summary>
             DeserializerInit,
 
             /// <summary>
-            /// TODO
+            /// Task that deserializes as part of the 'ReferenceLoading' task.
             /// </summary>
             SyntaxTreeDeserialization
         }
@@ -115,7 +113,8 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         public static event CompilationTaskEventHandler CompilationTaskEvent;
 
         /// <summary>
-        /// TODO
+        /// Describes the hierarchichal relationship between tasks.
+        /// The key represents the task and the associated value represents the parent of that task.
         /// </summary>
         private static IDictionary<Task, Task?> tasksHierarchy = new Dictionary<Task, Task?>()
         {
@@ -130,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.DllGeneration, Task.OutputGeneration },
             { Task.DocumentationGeneration, Task.OutputGeneration },
             { Task.SyntaxTreeSerialization, Task.OutputGeneration },
-            { Task.LoadDataToStream, Task.ReferenceLoading },
+            { Task.LoadDataFromReferenceToStream, Task.ReferenceLoading },
             { Task.DeserializerInit, Task.ReferenceLoading },
             { Task.SyntaxTreeDeserialization, Task.ReferenceLoading }
         };
