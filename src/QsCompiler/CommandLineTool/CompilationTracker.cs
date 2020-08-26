@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
-            public string Id { get => GenerateKey(this.ParentName, this.Name); }
+            public string Id => GenerateKey(this.ParentName, this.Name);
 
             /// <summary>
             /// Number of intervals (start/stop cycles) measured.
@@ -116,7 +116,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
                 this.watch.Stop();
                 this.IntervalCount++;
-                return;
             }
         }
 
@@ -268,12 +267,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             lock (GlobalLock)
             {
-                if (!CompilationEventTypeHandlers.TryGetValue(type, out var hanlder))
+                if (!CompilationEventTypeHandlers.TryGetValue(type, out var handler))
                 {
                     throw new ArgumentException($"No handler for compilation task event type '{type} ({type.ToString()})' exists");
                 }
 
-                hanlder(parentTaskName, taskName);
+                handler(parentTaskName, taskName);
             }
         }
 
