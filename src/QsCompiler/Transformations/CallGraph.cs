@@ -181,28 +181,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             ImmutableArray<KeyValuePair<ICallGraphNode, ICallGraphEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
-        /// <summary>
-        /// Given a cycle of call graph edges, determines if the cycle is valid.
-        /// Invalid cycles are those that cause type parameters to be mapped to
-        /// other type parameters of the same callable (constricting resolutions)
-        /// or to a type containing a nested reference to the same type parameter,
-        /// i.e Foo.A -> Foo.A[].
-        /// Returns true if the cycle is valid, false if invalid.
-        /// </summary>
-        internal static bool VerifyCycle(params ICallGraphEdge[] edges)
-        {
-            var combination = new TypeResolutionCombination(edges.Select(edge => edge.ParamResolutions).ToArray());
-            if (!combination.IsValid)
-            {
-                return false;
-            }
-            // Check for if there is a nested self-reference in the resolutions, i.e. Foo.A -> Foo.A[]
-            // Valid cycles do not contain nested self-references in their type parameter resolutions,
-            // although this may be valid in other circumstances.
-            return combination.CombinedResolutionDictionary
-                .All(kvp => !CheckTypeParameterResolutions.ContainsNestedSelfReference(kvp.Key, kvp.Value));
-        }
-
         private static IEnumerable<IEnumerable<ICallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<ICallGraphEdge>> sequences)
         {
             IEnumerable<IEnumerable<ICallGraphEdge>> result = new[] { Enumerable.Empty<ICallGraphEdge>() };
@@ -405,10 +383,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
                 foreach (var cycle in cycles)
                 {
-                    // ToDo: swap out implementation once master is merged in
-                    //var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions).ToArray());
-                    //if (!combination.IsValid)
-                    if (!VerifyCycle(cycle.ToArray()))
+                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions).ToArray());
+                    if (!combination.IsValid)
                     {
                         foreach (var edge in cycle)
                         {
