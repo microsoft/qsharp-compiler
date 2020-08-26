@@ -1,0 +1,13 @@
+{
+    "image": "mcr.microsoft.com/dotnet/core/sdk:3.1-focal",
+    "extensions": [
+        "ms-dotnettools.csharp",
+        "Ionide.Ionide-fsharp",
+        "ms-vscode.powershell",
+        "quantum.quantum-devkit-vscode",
+        "ms-vscode.cpptools"
+    ],
+    "settings": {
+        "terminal.integrated.shell.linux": "/usr/bin/pwsh"
+    }
+}
