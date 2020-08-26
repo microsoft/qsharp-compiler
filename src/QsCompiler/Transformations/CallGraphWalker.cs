@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public BuildGraph() : base(new TransformationState())
             {
                 this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                this.Statements = new StatementTransformation(this);
                 this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -119,6 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal QsSpecialization CurrentSpecialization;
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
+            internal QsNullable<Position> CurrentStatementOffset;
             internal QsNullable<DataTypes.Range> CurrentExpressionRange;
 
             // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
@@ -138,6 +139,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 this.SharedState.CurrentSpecialization = spec;
                 return base.OnSpecializationDeclaration(spec);
+            }
+        }
+
+        private class StatementTransformation : StatementTransformation<TransformationState>
+        {
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            {
+            }
+
+            public override QsStatement OnStatement(QsStatement stm)
+            {
+                this.SharedState.CurrentStatementOffset = stm.Location.IsValue
+                    ? QsNullable<Position>.NewValue(stm.Location.Item.Offset)
+                    : QsNullable<Position>.Null;
+                return base.OnStatement(stm);
             }
         }
 
@@ -209,9 +225,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeParamRes = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
-                    var referenceRange = this.SharedState.CurrentExpressionRange.IsValue
-                        ? this.SharedState.CurrentExpressionRange.Item
-                        : DataTypes.Range.Zero;
+                    //var referenceRange = this.SharedState.CurrentExpressionRange.IsValue
+                    //    ? this.SharedState.CurrentExpressionRange.Item
+                    //    : DataTypes.Range.Zero;
+
+                    var referenceRange = DataTypes.Range.Zero;
+                    if (this.SharedState.CurrentStatementOffset.IsValue
+                        && this.SharedState.CurrentExpressionRange.IsValue)
+                    {
+                        referenceRange = this.SharedState.CurrentStatementOffset.Item
+                            + this.SharedState.CurrentExpressionRange.Item;
+
+                        if (this.SharedState.CurrentSpecialization.Location.IsValue)
+                        {
+                            referenceRange = this.SharedState.CurrentSpecialization.Location.Item.Offset + referenceRange;
+                        }
+                    }
 
                     if (this.SharedState.IsInCall)
                     {

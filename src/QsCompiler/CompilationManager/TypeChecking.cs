@@ -2015,7 +2015,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                diagnostics.AddRange(compilation.VerifyCycles(callables));
+                foreach (var (parent, diag) in compilation.VerifyCycles(callables))
+                {
+                    var info = callableDeclarations[parent];
+                    var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                }
+
+                //diagnostics.AddRange(compilation.VerifyCycles(callables));
                 return diagnostics;
             }
             finally
