@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 open System
 open System.Collections.Immutable
 open System.Linq
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open System.Collections.Generic
@@ -798,8 +799,7 @@ type ICallGraphEdge =
     inherit  IEquatable<ICallGraphEdge>
     abstract member ParamResolutions : TypeParameterResolutions
     abstract member FileName : NonNullable<string>
-    abstract member Start : QsPositionInfo
-    abstract member End : QsPositionInfo
+    abstract member ReferenceRange : DataTypes.Range
 
 // Interface used to represent a node in the call graph
 type ICallGraphNode =

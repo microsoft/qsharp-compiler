@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal QsSpecialization CurrentSpecialization;
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
-            internal QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> CurrentExpressionRange;
+            internal QsNullable<DataTypes.Range> CurrentExpressionRange;
 
             // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
             internal bool IsLimitedToEntryPoints = false;
@@ -209,9 +209,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeParamRes = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
-                    var (rangeStart, rangeEnd) = this.SharedState.CurrentExpressionRange.IsValue
-                        ? this.SharedState.CurrentExpressionRange.Item.ToValueTuple()
-                        : (QsPositionInfo.Zero, QsPositionInfo.Zero);
+                    var referenceRange = this.SharedState.CurrentExpressionRange.IsValue
+                        ? this.SharedState.CurrentExpressionRange.Item
+                        : DataTypes.Range.Zero;
 
                     if (this.SharedState.IsInCall)
                     {
@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             kind = QsSpecializationKind.QsControlled;
                         }
 
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes, rangeStart, rangeEnd);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes, referenceRange);
                     }
                     else
                     {
@@ -237,10 +237,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
                         // We're conservative and add all 4 possible kinds.
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsBody, typeArgs, typeParamRes, rangeStart, rangeEnd);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlled, typeArgs, typeParamRes, rangeStart, rangeEnd);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, typeParamRes, rangeStart, rangeEnd);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, typeParamRes, rangeStart, rangeEnd);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsBody, typeArgs, typeParamRes, referenceRange);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlled, typeArgs, typeParamRes, referenceRange);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, typeParamRes, referenceRange);
+                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, typeParamRes, referenceRange);
                     }
 
                     // If we are not processing all elements, then we need to keep track of what elements

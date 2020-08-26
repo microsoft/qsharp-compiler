@@ -907,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Checks the cycles of the given callables and returns diagnostics for
         /// any invalid cycles.
         /// </summary>
-        public IEnumerable<Diagnostic> VerifyCycles(IEnumerable<QsCallable> callables)
+        public IEnumerable<Lsp.Diagnostic> VerifyCycles(IEnumerable<QsCallable> callables)
         {
             this.CachedCallGraph = QsNullable<ICallGraph>.NewValue(Transformations.CallGraphWalker.BuildCallGraph.Apply(callables));
 

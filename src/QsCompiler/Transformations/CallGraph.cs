@@ -37,14 +37,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public NonNullable<string> FileName { get; set; }
 
         /// <summary>
-        /// Beginning position of the reference represented by the edge.
+        /// The range of the reference represented by the edge.
         /// </summary>
-        public QsPositionInfo Start { get; set; }
-
-        /// <summary>
-        /// Ending position of the reference represented by the edge.
-        /// </summary>
-        public QsPositionInfo End { get; set; }
+        public DataTypes.Range ReferenceRange { get; set; }
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
@@ -52,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
-        public CallGraphEdge(TypeParameterResolutions paramResolutions, NonNullable<string> fileName, QsPositionInfo positionStart, QsPositionInfo positionEnd)
+        public CallGraphEdge(TypeParameterResolutions paramResolutions, NonNullable<string> fileName, DataTypes.Range referenceRange)
         {
             if (paramResolutions == null)
             {
@@ -65,8 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 kvp => StripPositionInfo.Apply(kvp.Value));
 
             this.FileName = fileName;
-            this.Start = positionStart;
-            this.End = positionEnd;
+            this.ReferenceRange = referenceRange;
         }
 
         /// <summary>
@@ -75,8 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(ICallGraphEdge edge) =>
             this.FileName.Equals(edge.FileName)
-            && this.Start.Equals(edge.Start)
-            && this.End.Equals(edge.End)
+            && this.ReferenceRange.Equals(edge.ReferenceRange)
             && (this.ParamResolutions == edge.ParamResolutions
                 || this.ParamResolutions
                        .OrderBy(kvp => kvp.Key)
@@ -103,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             var combination = new TypeResolutionCombination(edges.Select(e => e.ParamResolutions).ToArray());
             var last = edges.Last();
-            return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName), last.FileName, last.Start, last.End);
+            return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName), last.FileName, last.ReferenceRange);
         }
     }
 
@@ -424,8 +417,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                                 QsCompilerDiagnostic.Error(
                                     Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
                                     Enumerable.Empty<string>(),
-                                    edge.Start,
-                                    edge.End)));
+                                    edge.ReferenceRange)));
                         }
                     }
                 }
@@ -466,8 +458,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             TypeParameterResolutions typeParamRes,
-            QsPositionInfo positionStart,
-            QsPositionInfo positionEnd)
+            DataTypes.Range referenceRange)
         {
             if (callerSpec == null)
             {
@@ -483,8 +474,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 calledTypeArgs,
                 typeParamRes,
                 callerSpec.SourceFile,
-                positionStart,
-                positionEnd);
+                referenceRange);
         }
 
         /// <summary>
@@ -502,14 +492,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             TypeParameterResolutions typeParamRes,
             NonNullable<string> fileName,
-            QsPositionInfo positionStart,
-            QsPositionInfo positionEnd)
+            DataTypes.Range referenceRange)
         {
             // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
 
-            var edge = new CallGraphEdge(typeParamRes, fileName, positionStart, positionEnd);
+            var edge = new CallGraphEdge(typeParamRes, fileName, referenceRange);
             this.RecordDependency(callerKey, calledKey, edge);
         }
 
