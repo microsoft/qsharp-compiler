@@ -100,8 +100,8 @@ and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression li
     | QsExpressionKind.MissingExpr                            -> [], [], [item]
     | QsExpressionKind.InvalidExpr                            -> [], [], [item]
 
-let private AttributeAsCallExpr (sym : QsSymbol, ex : QsExpression) =
-    let combinedRange = QsPositionInfo.CombinedRange (sym.Range, ex.Range)
+let private AttributeAsCallExpr (sym : QsSymbol, ex : QsExpression) = 
+    let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
     let id = {Expression = QsExpressionKind.Identifier (sym, Null); Range = sym.Range}
     {Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange}
 

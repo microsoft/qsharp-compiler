@@ -95,7 +95,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
-                this.OnInternalError);
+                this.OnInternalError,
+                this.OnTemporaryProjectLoaded);
             this.waitForInit.Set();
         }
 
@@ -155,6 +156,9 @@ namespace Microsoft.Quantum.QsLanguageServer
                 this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
             }
         }
+
+        private void OnTemporaryProjectLoaded(Uri projectUri) =>
+            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
         // jsonrpc methods for initialization and shut down
 

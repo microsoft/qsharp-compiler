@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
@@ -45,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
                             callable.FullName,
                             ((QsLocalSymbol.ValidName)param).Item,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))))
+                            QsNullable<Range>.Null))))
                     .ToImmutableArray())
                 : QsNullable<ImmutableArray<ResolvedType>>.Null;
             }
@@ -263,7 +264,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .ToImmutableArray(),
                     generatedOpType,
                     new InferredExpressionInformation(false, false),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
 
                 var knownSymbols = body.KnownSymbols.Variables;
                 TypedExpression arguments = null;
@@ -277,7 +278,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             TypeArgsResolution.Empty,
                             var.Type,
                             var.InferredInformation,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))
+                            QsNullable<Range>.Null))
                         .ToImmutableArray();
 
                     arguments = new TypedExpression(
@@ -285,7 +286,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
                         new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                 }
                 else
                 {
@@ -294,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.UnitType),
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                 }
 
                 var call = new TypedExpression(
@@ -306,7 +307,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .ToImmutableArray(),
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
 
                 // set output parameters
                 callable = generatedOp;

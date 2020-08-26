@@ -1107,7 +1107,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Location DefinitionLocation(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
@@ -1121,7 +1121,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public SignatureHelp SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position, format), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns information about the item at the specified position as Hover information.
@@ -1134,7 +1134,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Hover HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position, format), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
@@ -1147,7 +1147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public DocumentHighlight[] DocumentHighlights(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all locations where the symbol at the given position - if any - is referenced.
@@ -1160,7 +1160,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public Location[] SymbolReferences(ReferenceParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position, param.Context), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position.ToQSharp(), param.Context), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns the SymbolInformation for each namespace declaration,
@@ -1182,7 +1182,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range, param.Context), suppressExceptionLogging: true);
+                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range.ToQSharp(), param.Context), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.
@@ -1194,7 +1194,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public CompletionList Completions(TextDocumentPositionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
-                (file, compilation) => file.Completions(compilation, param?.Position),
+                (file, compilation) => file.Completions(compilation, param?.Position.ToQSharp()),
                 suppressExceptionLogging: true);
 
         /// <summary>

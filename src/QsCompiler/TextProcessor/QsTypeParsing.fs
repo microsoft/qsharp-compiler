@@ -22,10 +22,13 @@ let private invalidCharacteristics = (InvalidSetExpr, Null) |> Characteristics.N
 let private characteristicsExpression = new OperatorPrecedenceParser<Characteristics,_,_>()
 
 /// For a characteristics expression of the given kind that is built from a left and right hand expression with the given ranges,
-/// builds the corresponding expression with its range set to the combined range.
-/// If either one of given ranges is Null, builds an invalid expression with its range set to Null.
+/// builds the corresponding expression with its range set to the combined range. 
+/// If either one of given ranges is Null, builds an invalid expression with its range set to Null. 
 let private buildCombinedExpression kind (lRange, rRange) =
-    QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidSetExpr |> Characteristics.New  // *needs* to be invalid if the combined range is Null!
+    // *needs* to be invalid if the combined range is Null!
+    match QsNullable.Map2 Range.Span lRange rRange with
+    | Value range -> { Characteristics = kind; Range = Value range }
+    | Null -> { Characteristics = InvalidSetExpr; Range = Null }
 
 let private applyBinary operator _ (left : Characteristics) (right : Characteristics) =
     buildCombinedExpression (operator (left, right)) (left.Range, right.Range)
@@ -47,7 +50,7 @@ let private characteristics =
 let internal expectedCharacteristics continuation =
     expected characteristics ErrorCode.InvalidOperationCharacteristics ErrorCode.MissingOperationCharacteristics invalidCharacteristics continuation
 
-let private buildCharacteristics t (range : Position * Position) =
+let private buildCharacteristics t (range : Range) =
     (t, range) |> Characteristics.New
 
 characteristicsExpression.TermParser <-
@@ -70,7 +73,7 @@ characteristicsExpression.TermParser <-
 let internal invalidType =
     (InvalidType, Null) |> QsType.New
 
-let private asType kind (t, range : Position * Position) =
+let private asType kind (t, range : Range) =
     (kind t, range) |> QsType.New
 
 let (internal qsType, private qsTypeImpl) = createParserForwardedToRef()
@@ -90,9 +93,9 @@ let private unitType =
 
 /// Parses a Q# atomic type - i.e. non-array, non-tuple, and not function or operation types.
 /// NOTE: does *not* parse Unit, since Unit must be parsed before trying to parse a tuple type, but after operation and function types.
-/// Does also *not* parse user defined types.
-let private atomicType =
-    let buildType t (range : Position * Position) = (t, range) |> QsType.New
+/// Does also *not* parse user defined types. 
+let private atomicType = 
+    let buildType t (range : Range) = (t, range) |> QsType.New
     choice [
         qsInt.parse          |>> buildType Int
         qsBigInt.parse       |>> buildType BigInt
@@ -108,10 +111,11 @@ let private atomicType =
 /// Parses a Q# user defined type (possibly qualified symbol), raising an InvalidTypeName error if needed.
 /// Note: As long as the parser succeeds, the returned Q# type is of kind UserDefinedType even if the parsed qualified symbol is invalid.
 let private userDefinedType =
-    multiSegmentSymbol ErrorCode.InvalidTypeName |>> asQualifiedSymbol
-    |>> fun sym -> sym.Symbol |> function
-        | InvalidSymbol -> (InvalidType, Null) |> QsType.New
-        | _ -> (UserDefinedType sym, sym.Range) |> QsType.New
+    multiSegmentSymbol ErrorCode.InvalidTypeName
+    |>> asQualifiedSymbol
+    |>> function
+        | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
+        | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New 
 
 
 // composite types
@@ -134,16 +138,19 @@ let private operationType =
             let setExpr = tail |> List.fold (fun acc x -> buildCombinedExpression (CharacteristicsKind.Union (acc, x)) (acc.Range, x.Range)) head
             match setExpr.Range with
             | Null -> preturn setExpr
-            | Value (_, endPos) ->
-                let characteristics =
-                    head :: tail
-                    |> List.choose (fun a -> a.Characteristics |> function
-                        | SimpleSet Controllable -> Some qsCtlSet.id
+            | Value range ->
+                let characteristics = 
+                    head :: tail 
+                    |> List.choose (fun a -> a.Characteristics |> function 
+                        | SimpleSet Controllable -> Some qsCtlSet.id 
                         | SimpleSet Adjointable -> Some qsAdjSet.id
                         | _ -> None)
                     |> String.concat qsSetUnion.op |> sprintf "%s %s" qsCharacteristics.id
-                preturn (startPos |> QsPositionInfo.New, endPos) |>> QsCompilerDiagnostic.Warning (WarningCode.DeprecatedOpCharacteristics, [characteristics])
-                >>= pushDiagnostic >>. preturn setExpr
+                QsCompilerDiagnostic.Warning
+                    (WarningCode.DeprecatedOpCharacteristics, [characteristics])
+                    (Range.Create startPos range.End)
+                |> pushDiagnostic
+                >>. preturn setExpr
         | _ -> fail "not a functor support annotation"
     // the actual type parsing:
     let inAndOutputType =
@@ -152,11 +159,11 @@ let private operationType =
     let opTypeWith characteristics =
         let withInnerBrackets = optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
         let withoutInnerBrackets = optTupleBrackets (inAndOutputType .>>. characteristics)
-        withInnerBrackets <|> withoutInnerBrackets
-    let deprecatedCharacteristics =
-        let colonWithWarning = buildWarning (getPosition .>>. getPosition .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
-        attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor))
-        <|> (qsCharacteristics.parse |>> fst <|> (getPosition .>> colon) >>= functorSupport)
+        withInnerBrackets <|> withoutInnerBrackets 
+    let deprecatedCharacteristics = 
+        let colonWithWarning = buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
+        attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor)) 
+        <|> (qsCharacteristics.parse |>> (fun r -> r.Start) <|> (getPosition .>> colon) >>= functorSupport)
     let characteristics = qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation .>> notFollowedBy (comma >>. quantumFunctor)
     let opTypeWithoutCharacteristics = optTupleBrackets (inAndOutputType .>>. preturn ((EmptySet, Null) |> Characteristics.New))
     opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics |>> asType Operation // keep this order!
@@ -170,7 +177,7 @@ let private functionType =
 /// Parses a Q# tuple type, raising an Missing- or InvalidTypeDeclaration error for missing or invalid items.
 /// The tuple must consist of at least one tuple item.
 let internal tupleType =
-    let buildTupleType (items, range : Position * Position) = (TupleType items, range) |> QsType.New
+    let buildTupleType (items, range : Range) = (TupleType items, range) |> QsType.New
     buildTuple qsType buildTupleType ErrorCode.InvalidType ErrorCode.MissingType invalidType
 
 /// Parses for an arbitrary Q# type, using the given parser to process tuple types.
@@ -184,15 +191,17 @@ let internal typeParser tupleType =
             attempt atomicType
             attempt userDefinedType // needs to be last
         ]
-    let buildArrays p =
+    let buildArrays p = 
         let combine kind (lRange, rRange) =
-            QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidType |> QsType.New // *needs* to be invalid if the combined range is Null!
+            match QsNullable.Map2 Range.Span lRange rRange with
+            | Value range -> { Type = kind; Range = Value range }
+            | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
         let rec applyArrays (t : QsType, item) =
             match item with
             | [] -> t
-            | (_,range)::tail ->
-                let arrType = combine (ArrayType t) (t.Range, range |> QsPositionInfo.Range)
-                applyArrays (arrType, tail)
+            | (_,range)::tail -> 
+                let arrType = combine (ArrayType t) (t.Range, Value range)
+                applyArrays (arrType, tail) 
         p .>>. many (arrayBrackets emptySpace) |>> applyArrays
     let nonGenericType = buildArrays nonArrayTypes
     let genericType = buildArrays typeParameterLike
@@ -200,7 +209,3 @@ let internal typeParser tupleType =
     .>>? notFollowedBy (fctArrow <|> opArrow) // needed to make the error handling for missing brackets on op and fct types work (left recursion)
 
 do qsTypeImpl := typeParser tupleType
-
-
-
-

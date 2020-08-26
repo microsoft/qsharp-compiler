@@ -244,7 +244,14 @@ type TypedExpression with
         let fold ex sub = condition ex || sub |> Seq.exists id
         this |> TypedExpression.MapAndFold (inner, fold)
 
-    /// Recursively applies the given function inner to the given item and
+    /// Returns true if the expression satisfies the given condition or contains a sub-expression that does.
+    /// Returns false otherwise.
+    member public this.Exists (condition : QsExpressionKind<_,_,_> -> bool) =
+        let inner (ex : TypedExpression) = ex.Expression
+        let fold (ex : TypedExpression) sub = condition ex.Expression || sub |> Seq.exists id
+        this |> TypedExpression.MapAndFold (inner, fold)
+
+    /// Recursively applies the given function inner to the given item and  
     /// applies the given extraction function to each contained subitem of the returned expression kind.
     /// Returns an enumerable of all extracted items.
     static member private ExtractAll (inner : 'E -> QsExpressionKind<'E, _, _>, extract : _ -> seq<_>) (this : 'E) : seq<_> =
@@ -257,6 +264,14 @@ type TypedExpression with
     member public this.ExtractAll (extract : _ -> IEnumerable<_>) =
         let inner (ex : TypedExpression) = ex.Expression
         TypedExpression.ExtractAll (inner, extract) this
+
+    /// Applies the given function to the expression kind, 
+    /// and then recurs into each subexpression of the returned expression kind.
+    /// Returns an enumerable of all walked expressions. 
+    member public this.Extract (map : _ -> QsExpressionKind<_,_,_>) = 
+        let inner (ex : TypedExpression) = map ex.Expression
+        let fold ex sub = Seq.concat sub |> Seq.append (ex |> Seq.singleton) 
+        this |> TypedExpression.MapAndFold (inner, fold)
 
 
 type QsExpression with

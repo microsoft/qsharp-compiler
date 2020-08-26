@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler
 {
@@ -23,9 +24,9 @@ namespace Microsoft.Quantum.QsCompiler
             arg != null
             ? SyntaxGenerator.WithControlQubits(
                 arg,
-                QsNullable<Tuple<int, int>>.Null,
+                QsNullable<Position>.Null,
                 QsLocalSymbol.NewValidName(NonNullable<string>.New(InternalUse.ControlQubitsName)),
-                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null)
+                QsNullable<Range>.Null)
             : null;
 
         /// <summary>
