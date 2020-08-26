@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
+using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
@@ -90,7 +91,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         // does not modify range
         internal static int GetRangeLength(VisualStudio.LanguageServer.Protocol.Range range, IReadOnlyList<string> content)
         {
-            Assert.IsTrue(Builder.IsValidRange(range));
+            Assert.IsTrue(IsValidRange(range));
             if (range.Start.Line == range.End.Line)
             {
                 return range.End.Character - range.Start.Character;
@@ -115,7 +116,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 throw new ArgumentException("the given content has to have at least on line");
             }
 
-            Assert.IsTrue(Builder.IsValidRange(change?.Range) && change.Text != null);
+            Assert.IsTrue(IsValidRange(change?.Range) && change.Text != null);
             Assert.IsTrue(change.Range.End.Line < content.Count());
             Assert.IsTrue(change.Range.Start.Character <= content[change.Range.Start.Line].Length);
             Assert.IsTrue(change.Range.End.Character <= content[change.Range.End.Line].Length);
@@ -140,6 +141,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             content.RemoveRange(startLine, endLine - startLine + 1);
             content.InsertRange(startLine, lineChanges);
+        }
+
+        internal static bool IsValidRange(Range range)
+        {
+            static bool IsValidPosition(Position position) => position.Line >= 0 && position.Character >= 0;
+
+            static bool IsBeforeOrEqual(Position a, Position b) =>
+                a.Line < b.Line || (a.Line == b.Line && a.Character <= b.Character);
+
+            return !(range?.Start is null) &&
+                   !(range.End is null) &&
+                   IsValidPosition(range.Start) &&
+                   IsValidPosition(range.End) &&
+                   IsBeforeOrEqual(range.Start, range.End);
         }
     }
 }

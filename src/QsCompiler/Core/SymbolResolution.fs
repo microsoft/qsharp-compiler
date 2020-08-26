@@ -19,7 +19,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 type AttributeAnnotation = {
     Id : QsSymbol
     Argument : QsExpression
-    Position : int * int
+    Position : Position
     Comments : QsComments
 }
     with
@@ -32,8 +32,8 @@ type AttributeAnnotation = {
 
 /// used internally for symbol resolution
 type internal Resolution<'T,'R> = internal {
-    Position : int * int
-    Range : QsPositionInfo * QsPositionInfo
+    Position : Position
+    Range : Range
     Defined : 'T
     Resolved : QsNullable<'R>
     DefinedAttributes : ImmutableArray<AttributeAnnotation>
@@ -299,7 +299,7 @@ module SymbolResolution =
     /// Throws an ArgumentException if the given argument is a QsTupleItem opposed to a QsTuple.
     let private ResolveArgumentTuple (resolveSymbol, resolveType) arg =
         let resolveArg (qsSym : QsSymbol, symType) =
-            let range = qsSym.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+            let range = qsSym.Range.ValueOr Range.Zero
             let t, tErrs = symType |> resolveType
             let variable, symErrs = resolveSymbol (qsSym.Symbol, range) t
             QsTupleItem variable, Array.concat [symErrs; tErrs]
@@ -325,7 +325,7 @@ module SymbolResolution =
     /// Returns the resolved signature and argument tuple, as well as an array with the diagnostics created during resolution.
     /// Throws an ArgumentException if the given list of specialization characteristics is empty.
     let internal ResolveCallableSignature (resolveType, specBundleInfos : CallableInformation list) (signature : CallableSignature) =
-        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let orDefault (range : QsNullable<_>) = range.ValueOr Range.Zero
         let typeParams, tpErrs =
             signature.TypeParameters |> Seq.fold (fun (tps, errs) qsSym ->
                 let range = qsSym.Range |> orDefault
@@ -395,7 +395,7 @@ module SymbolResolution =
         let asResolvedType t = ResolvedType.New (true, t)
         let buildWith builder ts = builder ts |> asResolvedType
         let invalid = InvalidType |> asResolvedType
-        let range = qsType.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let range = qsType.Range.ValueOr Range.Zero
 
         match qsType.Type with
         | ArrayType baseType -> [baseType] |> AccumulateInner resolve (buildWith (fun ts -> ArrayType ts.[0]))
@@ -442,7 +442,7 @@ module SymbolResolution =
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}
         let invalidExpr range = (InvalidExpr, InvalidType) |> asTypedExression range
-        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let orDefault (range : QsNullable<_>) = range.ValueOr Range.Zero
 
         // We may in the future decide to support arbitary expressions as long as they can be evaluated at compile time.
         // At that point it may make sense to replace this with the standard resolution routine for typed expressions.
@@ -526,7 +526,7 @@ module SymbolResolution =
     /// Does *not* generate diagnostics for things that do not require semantic information to detect
     /// (these should be detected and raised upon context verification).
     let private NeedsToBeIntrinsic (gen : QsSpecializationGenerator, allowSelf) =
-        let genRange = gen.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let genRange = gen.Range.ValueOr Range.Zero
         let isSelfInverse = function | SelfInverse -> true | _ -> false
         let isInvalid = function | InvalidGenerator -> true | _ -> false
         match gen.Generator with
@@ -544,7 +544,7 @@ module SymbolResolution =
     /// Does *not* generate diagnostics for things that do not require semantic information to detect
     /// (these should be detected and raised upon context verification).
     let private NeedsToBeSelfInverse (gen : QsSpecializationGenerator) =
-        let genRange = gen.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let genRange = gen.Range.ValueOr Range.Zero
         let isSelfInverse = function | SelfInverse -> true | _ -> false
         let isInvalid = function | InvalidGenerator -> true | _ -> false
         let diagnostics = gen.Generator |> function
@@ -745,5 +745,3 @@ module SymbolResolution =
         let dir = impl |> function | Value (Generated dir) -> Value dir | _ -> Null
         let resolvedGen = spec.Resolved |> QsNullable<_>.Map (fun resolution -> {resolution with Information = bundle.BundleInfo; Directive = dir})
         resolvedGen, err |> Array.map (fun msg -> spec.Position, msg)
-
-

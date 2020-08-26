@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Start = new Position(startLine, startChar),
                 End = new Position(endLine, endChar)
             };
-            Assert.IsTrue(Builder.IsValidRange(range));
+            Assert.IsTrue(TestUtils.IsValidRange(range));
             return range;
         }
 

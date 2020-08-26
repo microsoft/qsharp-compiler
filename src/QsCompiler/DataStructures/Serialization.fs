@@ -7,6 +7,7 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
+open System.Runtime.Serialization
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
@@ -24,6 +25,40 @@ type NonNullableConverter<'T when 'T: equality and 'T: null>()  =
         
     override this.WriteJson(writer : JsonWriter, value : NonNullable<'T>, serializer : JsonSerializer) =
         serializer.Serialize(writer, value.Value)
+
+
+type PositionConverter() =
+    inherit JsonConverter<Position>()
+
+    override this.ReadJson(reader, _, _, _, serializer) =
+        serializer.Deserialize<int * int> reader ||> Position.Create
+
+    override this.WriteJson(writer : JsonWriter, position : Position, serializer : JsonSerializer) =
+        serializer.Serialize(writer, (position.Line, position.Column))
+
+
+[<CLIMutable>]
+[<DataContract>]
+type private RangePosition =
+    { [<DataMember>]
+      Line : int
+      [<DataMember>]
+      Column : int }
+
+type RangeConverter() =
+    inherit JsonConverter<Range>()
+
+    override this.ReadJson(reader, _, _, _, serializer) =
+        let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
+        // For backwards compatibility, convert the serialized one-based positions to zero-based positions.
+        Range.Create (Position.Create (start.Line - 1) (start.Column - 1))
+                     (Position.Create (end'.Line - 1) (end'.Column - 1))
+
+    override this.WriteJson(writer : JsonWriter, range : Range, serializer : JsonSerializer) =
+        // For backwards compatibility, convert the zero-based positions to one-based serialized positions.
+        let start = { Line = range.Start.Line + 1; Column = range.Start.Column + 1 }
+        let end' = { Line = range.End.Line + 1; Column = range.End.Column + 1 }
+        serializer.Serialize(writer, (start, end'))
 
 
 type QsNullableLocationConverter(?ignoreSerializationException) =
@@ -99,11 +134,12 @@ type TypedExpressionConverter() =
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : TypedExpression, hasExistingValue : bool, serializer : JsonSerializer) = 
         let (ex, paramRes, t, info, range) = 
-            serializer.Deserialize< QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-                                    * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType> 
-                                    * ResolvedType 
-                                    * InferredExpressionInformation 
-                                    * QsRangeInfo >(reader) 
+            serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+                                   * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType>
+                                   * ResolvedType
+                                   * InferredExpressionInformation
+                                   * QsNullable<Range>>
+                reader
         {Expression = ex; TypeArguments = paramRes.ToImmutableArray(); ResolvedType = t; InferredInformation = info; Range = range}
 
     override this.WriteJson(writer : JsonWriter, value : TypedExpression, serializer : JsonSerializer) =
@@ -137,6 +173,8 @@ module Json =
     let Converters ignoreSerializationException = 
         [|
             new NonNullableConverter<string>()                                  :> JsonConverter
+            new PositionConverter()                                             :> JsonConverter
+            new RangeConverter()                                                :> JsonConverter
             new QsNullableLocationConverter(ignoreSerializationException)       :> JsonConverter
             new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
             new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
@@ -158,4 +196,3 @@ module Json =
 
     let Serializer = Converters false |> CreateSerializer
     let PermissiveSerializer = Converters true |> CreateSerializer
-

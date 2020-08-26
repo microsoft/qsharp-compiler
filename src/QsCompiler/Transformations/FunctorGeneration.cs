@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 {
@@ -56,8 +57,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 ControlQubitsName,
                 ControlQubits.ResolvedType,
                 ControlQubits.InferredInformation,
-                QsNullable<Tuple<int, int>>.Null,
-                QsCompilerDiagnostic.DefaultRange);
+                QsNullable<Position>.Null,
+                Range.Zero);
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
             new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.OnScope;
