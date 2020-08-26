@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -36,19 +37,31 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public readonly string Name;
 
             /// <summary>
-            /// Contains the UTC datetime when the task started.
+            /// Gets the duration of the task in milliseconds.
             /// </summary>
-            public readonly DateTime UtcStart;
+            public long DurationInMs
+            {
+                get
+                {
+                    if (this.IntervalCount == 0)
+                    {
+                        throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when no interval has been measured");
+                    }
+                    else if (this.IsInProgress())
+                    {
+                        throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when measurement is in progress");
+                    }
+
+                    return this.watch.ElapsedMilliseconds;
+                }
+            }
+
+            public string Id { get => GenerateKey(this.ParentName, this.Name); }
 
             /// <summary>
-            /// Contains the UTC datetime when the task ended.
+            /// TODO
             /// </summary>
-            public DateTime? UtcEnd;
-
-            /// <summary>
-            /// Contains the duration of the task in milliseconds.
-            /// </summary>
-            public long? DurationInMs;
+            public int IntervalCount { get; private set; }
 
             /// <summary>
             /// Stopwatch used to measure the duration of the task.
@@ -70,20 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 this.ParentName = parentName;
                 this.Name = name;
-                this.UtcStart = DateTime.UtcNow;
-                this.UtcEnd = null;
-                this.DurationInMs = null;
-                this.watch = Stopwatch.StartNew();
-            }
-
-            /// <summary>
-            /// Halts the stopwatch of the compilation task and stores its duration.
-            /// </summary>
-            public void End()
-            {
-                this.UtcEnd = DateTime.UtcNow;
-                this.watch.Stop();
-                this.DurationInMs = this.watch.ElapsedMilliseconds;
+                this.watch = new Stopwatch();
             }
 
             /// <summary>
@@ -92,6 +92,34 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool IsInProgress()
             {
                 return this.watch.IsRunning;
+            }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public void Start()
+            {
+                if (this.IsInProgress())
+                {
+                    throw new InvalidOperationException($"Attempt to start task '{this.Id}' when it is already in progress");
+                }
+
+                this.watch.Start();
+            }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public void Stop()
+            {
+                if (!this.IsInProgress())
+                {
+                    throw new InvalidOperationException($"Attempt to stop task '{this.Id}' when it is not in progress");
+                }
+
+                this.watch.Stop();
+                this.IntervalCount++;
+                return;
             }
         }
 
@@ -117,39 +145,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
 
                 var propertyName = $"{preparedPrefix}{this.Task.Name}";
-                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs ?? -1);
+                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs);
                 foreach (var entry in this.Children.OrderBy(e => e.Key))
                 {
                     entry.Value.WriteToJson(jsonWriter, propertyName);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Represents a warning type detected while tracking compilation events.
-        /// </summary>
-        private enum WarningType
-        {
-            TaskAlreadyExists,
-            TaskDoesNotExist,
-            TaskAlreadyEnded,
-            UknownTaskEventType
-        }
-
-        /// <summary>
-        /// Represents a warning detected while tracking compilation events.
-        /// </summary>
-        private class Warning
-        {
-            public readonly WarningType Type;
-            public readonly DateTime UtcDateTime;
-            public readonly string Key;
-
-            public Warning(WarningType type, string key)
-            {
-                this.UtcDateTime = DateTime.UtcNow;
-                this.Type = type;
-                this.Key = key;
             }
         }
 
@@ -164,11 +164,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Represents the file name where the compilation performance data will be stored.
         /// </summary>
         private const string CompilationPerfDataFileName = "CompilationPerfData.json";
-
-        /// <summary>
-        /// Represents the file name where the compilation performance warnings will be stored.
-        /// </summary>
-        private const string CompilationPerfWarningsFileName = "CompilationPerfWarnings.json";
 
         /// <summary>
         /// Provides thread-safe access to the members and methods of this class.
@@ -191,12 +186,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Note that thread-safe access to this member is done through the global lock.
         /// </summary>
         private static readonly IDictionary<string, CompilationTask> CompilationTasks = new Dictionary<string, CompilationTask>();
-
-        /// <summary>
-        /// Contains the warnings generated while handling the compiler tasks events.
-        /// Note that thread-safe access to this member is done through the global lock.
-        /// </summary>
-        private static readonly IList<Warning> Warnings = new List<Warning>();
 
         // Private methods.
 
@@ -249,13 +238,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
             string key = CompilationTask.GenerateKey(parentTaskName, taskName);
-            if (CompilationTasks.ContainsKey(key))
+            CompilationTask task;
+            if (!CompilationTasks.TryGetValue(key, out task))
             {
-                Warnings.Add(new Warning(WarningType.TaskAlreadyExists, key));
-                return;
+                task = new CompilationTask(parentTaskName, taskName);
+                CompilationTasks.Add(key, task);
             }
 
-            CompilationTasks.Add(key, new CompilationTask(parentTaskName, taskName));
+            task.Start();
         }
 
         /// <summary>
@@ -267,17 +257,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var key = CompilationTask.GenerateKey(parentTaskName, taskName);
             if (!CompilationTasks.TryGetValue(key, out var task))
             {
-                Warnings.Add(new Warning(WarningType.TaskDoesNotExist, key));
-                return;
+                throw new InvalidOperationException($"Attempt to stop task '{key}' which does not exist");
             }
 
-            if (!task.IsInProgress())
-            {
-                Warnings.Add(new Warning(WarningType.TaskAlreadyEnded, key));
-                return;
-            }
-
-            task.End();
+            task.Stop();
         }
 
         // Public methods.
@@ -289,14 +272,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             lock (GlobalLock)
             {
-                if (CompilationEventTypeHandlers.TryGetValue(type, out var hanlder))
+                if (!CompilationEventTypeHandlers.TryGetValue(type, out var hanlder))
                 {
-                    hanlder(parentTaskName, taskName);
+                    throw new ArgumentException($"No handler for compilation task event type '{type} ({type.ToString()})' exists");
                 }
-                else
-                {
-                    Warnings.Add(new Warning(WarningType.UknownTaskEventType, type.ToString()));
-                }
+
+                hanlder(parentTaskName, taskName);
             }
         }
 
@@ -326,14 +307,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
                 jsonWriter.WriteEndObject();
                 jsonWriter.Flush();
-            }
-
-            if (Warnings.Count > 0)
-            {
-                using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfWarningsFileName)))
-                {
-                    JsonSerializer.SerializeAsync(file.BaseStream, Warnings).Wait();
-                }
             }
         }
     }

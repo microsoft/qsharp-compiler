@@ -91,7 +91,22 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// <summary>
             /// TODO
             /// </summary>
-            SyntaxTreeSerialization
+            SyntaxTreeSerialization,
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            LoadDataToStream,
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            DeserializerInit,
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            SyntaxTreeDeserialization
         }
 
         /// <summary>
@@ -102,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// TODO
         /// </summary>
-        private static IDictionary<Task, Task?> TasksHierarchy = new Dictionary<Task, Task?>()
+        private static IDictionary<Task, Task?> tasksHierarchy = new Dictionary<Task, Task?>()
         {
             { Task.OverallCompilation, null },
             { Task.Build, Task.OverallCompilation },
@@ -114,7 +129,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.BinaryGeneration, Task.OutputGeneration },
             { Task.DllGeneration, Task.OutputGeneration },
             { Task.DocumentationGeneration, Task.OutputGeneration },
-            { Task.SyntaxTreeSerialization, Task.OutputGeneration }
+            { Task.SyntaxTreeSerialization, Task.OutputGeneration },
+            { Task.LoadDataToStream, Task.ReferenceLoading },
+            { Task.DeserializerInit, Task.ReferenceLoading },
+            { Task.SyntaxTreeDeserialization, Task.ReferenceLoading }
         };
 
         /// <summary>
@@ -122,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public static void TaskStart(Task task, object sender = null)
         {
-            var parent = TasksHierarchy[task];
+            var parent = tasksHierarchy[task];
             CompilationTaskEvent?.Invoke(sender, CompilationTaskEventType.Start, parent?.ToString(), task.ToString());
         }
 
@@ -131,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public static void TaskEnd(Task task, object sender = null)
         {
-            var parent = TasksHierarchy[task];
+            var parent = tasksHierarchy[task];
             CompilationTaskEvent?.Invoke(sender, CompilationTaskEventType.End, parent?.ToString(), task.ToString());
         }
     }
