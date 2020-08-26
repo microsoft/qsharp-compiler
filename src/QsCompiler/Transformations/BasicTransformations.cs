@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             {
                 if (this.SharedState.Predicate(t.SourceFile))
                 {
-                    this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t)));
+                    this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCustomType(t)));
                 }
                 return t;
             }
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             {
                 if (this.SharedState.Predicate(c.SourceFile))
                 {
-                    this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c)));
+                    this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCallable(c)));
                 }
                 return c;
             }

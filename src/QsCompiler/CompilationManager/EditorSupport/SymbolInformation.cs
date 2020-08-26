@@ -12,7 +12,10 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -26,21 +29,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Throws an ArgumentNullException if the given offset or relative range is null.
         /// </summary>
-        internal static Location AsLocation(
-                NonNullable<string> source,
-                Tuple<int, int> offset,
-                Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
+        internal static Location AsLocation(NonNullable<string> source, Position offset, Range relRange) =>
             new Location
             {
                 Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : null,
-                Range = DiagnosticTools.GetAbsoluteRange(DiagnosticTools.AsPosition(offset), relRange)
+                Range = (offset + relRange).ToLsp()
             };
 
         /// <summary>
         /// Throws an ArgumentNullException if the given reference location is null.
         /// </summary>
         internal static Location AsLocation(IdentifierReferences.Location loc) =>
-            AsLocation(loc.SourceFile, DiagnosticTools.StatementPosition(loc.DeclarationOffset, loc.RelativeStatementLocation.Offset), loc.SymbolRange);
+            AsLocation(loc.SourceFile, loc.DeclarationOffset + loc.RelativeStatementLocation.Offset, loc.SymbolRange);
 
         /// <summary>
         /// Returns the SymbolInformation for all namespace declarations in the file.
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Namespace Declarations",
                 Kind = SymbolKind.Namespace,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Type Declarations",
                 Kind = SymbolKind.Struct,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1.Value,
                 ContainerName = "Operation and Function Declarations",
                 Kind = SymbolKind.Method,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
             });
 
         /// <summary>
@@ -98,15 +98,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var fragmentStart = fragment.GetRange().Start;
+            var fragmentStart = fragment.Range.Start;
 
             // getting the symbol information (if any), and return the overlapping items only
 
-            bool OverlapsWithPosition(Tuple<QsPositionInfo, QsPositionInfo> symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), includeEnd);
+            bool OverlapsWithPosition(Range symRange)
+            {
+                var absolute = fragmentStart + symRange;
+                return includeEnd ? absolute.ContainsEnd(position) : absolute.Contains(position);
+            }
 
             var symbolInfo = fragment.Kind.SymbolInformation();
-
             var overlappingDecl = symbolInfo.DeclaredSymbols.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
             QsCompilerError.Verify(overlappingDecl.Count() <= 1, "more than one declaration overlaps with the same position");
             var overlappingVariables = symbolInfo.UsedVariables.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
@@ -151,7 +153,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(ns => new QsNamespace(ns.Key, ns.Select(QsNamespaceElement.NewQsCallable).ToImmutableArray(), emptyDoc));
 
             Tuple<NonNullable<string>, QsLocation> declLoc = null;
-            var defaultOffset = new QsLocation(DiagnosticTools.AsTuple(new Position(0, 0)), QsCompilerDiagnostic.DefaultRange);
+            var defaultOffset = new QsLocation(Position.Zero, Range.Zero);
             referenceLocations = namespaces.SelectMany(ns =>
             {
                 var locs = IdentifierReferences.Find(fullName, ns, defaultOffset, out var dLoc, limitToSourceFiles);
@@ -201,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
+            var declarations = implementation?.LocalDeclarationsAt(position - specPos, includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
@@ -239,9 +241,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return true;
             }
-            var (defOffset, defRange) = (DiagnosticTools.AsPosition(definition.Item.Item2), definition.Item.Item3);
+            var (defOffset, defRange) = (definition.Item.Item2, definition.Item.Item3);
 
-            if (defOffset.Equals(callablePos))
+            if (defOffset == callablePos)
             {
                 // the given position corresponds to a variable declared as part of a callable declaration
                 if (!compilation.GetCallables().TryGetValue(parentName, out var parent))
@@ -259,11 +261,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             else
             {
                 // the given position corresponds to a variable declared as part of a specialization declaration or implementation
-                var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Item1);
-                var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
+                var defStart = defOffset + defRange.Start;
+                var statements = implementation.StatementsAfterDeclaration(defStart - specPos);
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
-                var rootOffset = DiagnosticTools.AsTuple(specPos);
-                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Select(AsLocation);
+                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;

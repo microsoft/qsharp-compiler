@@ -125,14 +125,11 @@ let (private stringContent, private stringContentImpl) = createParserForwardedTo
 /// However, raises the given lbracketErr or rbracketErr if the left, respectively right, bracket are missing. 
 /// Fails without consuming input it the parsing fails. 
 /// IMPORTANT: This parser does does *not* handle whitespace and needs to be wrapped into a term parser for proper processing of all whitespace.
-let private contentDefinedBrackets core (lbracket, rbracket) (lbracketErr, rbracketErr) = 
-    let missingLeftAndCore = 
-        getPosition .>>. getPosition |>> QsCompilerDiagnostic.NewError lbracketErr // only push after core succeeded
+let private contentDefinedBrackets core (lbracket, rbracket) (lbracketErr, rbracketErr) =
+    let missingLeftAndCore =
+        getEmptyRange |>> QsCompilerDiagnostic.NewError lbracketErr // only push after core succeeded
         .>>. core >>= fun (err, res) -> pushDiagnostic err >>% res
-    let missingRight = 
-        getPosition .>>. getPosition |>> QsCompilerDiagnostic.NewError rbracketErr 
-        >>= pushDiagnostic
-    
+    let missingRight = getEmptyRange |>> QsCompilerDiagnostic.NewError rbracketErr >>= pushDiagnostic
     let leftAndCore = attempt (bracket lbracket >>. core) <|> missingLeftAndCore
     let closingRight = attempt rbracket >>% () <|> missingRight // rbracket only, to get correct position info upon applying term
     attempt (leftAndCore .>> closingRight)
@@ -241,16 +238,14 @@ let leftRecursionByInfix breakingDelimiter before after = // before and after br
 /// Does *not* apply the given parser, and the given parser is guaranteed to succeed if this parser succeeds.
 /// Returns an empty range at the beginning of the skipped whitespace sequence.
 /// Fails without consuming input if the parsing fails.
-let internal followedByCode p = 
-    getPosition .>>. getPosition .>>
-    attempt (manyCharsTill (satisfy Text.IsWhitespace) (followedBy p))
+let internal followedByCode p =
+    getEmptyRange .>> attempt (manyCharsTill (satisfy Text.IsWhitespace) (followedBy p))
 
 /// Advances until the given parser succeeds, or the end of the input stream is reached.
 /// Returns the start and end position of the skipped non-whitespace code. 
-let internal skipInvalidUntil p = 
-    let getRange core = getPosition .>> core .>>. getPosition
-    advanceTo (followedByCode p) |> getRange // range of the invalid (non-whitespace) code
-    .>> (followedByCode p >>% () <|> eof) 
+let internal skipInvalidUntil p =
+    followedByCode p |> advanceTo |> getRange |>> snd // range of the invalid (non-whitespace) code
+    .>> (followedByCode p >>% () <|> eof)
 
 /// Attempts to parse the given body. If that fails, returns the given fallback and 
 /// generates an error with the given missingCode if continuation succeeds at the current position. 
@@ -280,8 +275,8 @@ let internal withExcessContinuation nextExpected orig =
 
 /// Tries to apply the comma parser and optionally returns its content. 
 /// If a comma has been consumed, generates an ExcessComma warning at the current position. 
-let internal warnOnComma =  
-    getPosition .>>. getPosition .>> comma 
+let internal warnOnComma =
+    getEmptyRange .>> comma
     |>> QsCompilerDiagnostic.NewWarning WarningCode.ExcessComma >>= pushDiagnostic
     |> opt
 
@@ -337,32 +332,33 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// Returns the parsed symbol name as Some otherwise. 
 /// IMPORTANT: this routines handles the name *only* and does *not* handle whitespace! 
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
-let internal symbolNameLike errCode = 
-    let identifier = 
-        let id = IdentifierOptions(
-                     isAsciiIdStart = isSymbolStart,
-                     isAsciiIdContinue = isSymbolContinuation,
-                     preCheckStart = isSymbolStart,
-                     preCheckContinue = isSymbolContinuation) |> identifier
-        getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
+let internal symbolNameLike errCode =
+    let ident =
+        IdentifierOptions
+            (isAsciiIdStart = isSymbolStart,
+             isAsciiIdContinue = isSymbolContinuation,
+             preCheckStart = isSymbolStart,
+             preCheckContinue = isSymbolContinuation)
+        |> identifier
+        |> getRange
     let whenValid ((name : string, range), isBeforeDot) =
         // REL0920: 
         // The warning for futureReservedUnderscorePattern should be replaced with an error in the future, 
         // and the first half of isReserved should be removed.
         let futureReservedUnderscorePattern = name.Contains "__" || (isBeforeDot && name.EndsWith "_")
-        let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name 
+        let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name
         let isCsKeyword = SyntaxFacts.IsKeywordKind (SyntaxFacts.GetKeywordKind name)
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
         if isCsKeyword || isReserved then buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
         elif not moreThanUnderscores then buildError (preturn range) errCode >>% None
         elif futureReservedUnderscorePattern then buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% Some name
         else preturn name |>> Some
-    let invalid = 
-        let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. identifier 
-        buildError (getPosition .>> invalidName .>>. getPosition) errCode >>% None
-    let validSymbolName = 
+    let invalid =
+        let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
+        buildError (getRange invalidName |>> snd) errCode >>% None
+    let validSymbolName =
         let checkFollowedByDot = nextCharSatisfies ((=)'.') >>% true <|>% false
-        (identifier .>>. checkFollowedByDot) >>= whenValid        
+        (ident .>>. checkFollowedByDot) >>= whenValid
     notFollowedBy qsReservedKeyword >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
 
 /// Handles permissive parsing of a symbol:
@@ -378,7 +374,7 @@ let internal symbolLike errCode =
 /// returns a simple Symbol as QsSymbol if the given path is empty, 
 /// or a QualifiedSymbol as QsSymbol if the given path is non-empty and valid. 
 /// Returns a QsSymbol corresponding to an invalid symbol if the path contains segments that are None (i.e. invalid).
-let internal asQualifiedSymbol ((path, sym), range : Position * Position) = 
+let internal asQualifiedSymbol ((path, sym), range : Range) =
     let names = [for segment in path do yield segment ] @ [sym]
     if names |> List.contains None then (InvalidSymbol, Null) |> QsSymbol.New
     else names |> List.choose id |> function 
@@ -428,14 +424,14 @@ let private filterAndAdapt (diagnostics : QsCompilerDiagnostic list) endPos =
     let excessCont, remainingDiagnostics = 
         diagnostics |> List.partition (fun x -> x.Diagnostic |> function | Error (ErrorCode.ExcessContinuation) -> true | _ -> false)
     let remainingErrs = remainingDiagnostics |> List.filter (fun x -> x.Diagnostic |> function | Error _ -> true | _ -> false)
-    let hasOverlap (x : QsCompilerDiagnostic) = remainingErrs |> List.exists (fun y -> fst y.Range <= fst x.Range && snd y.Range >= fst x.Range) 
+    let hasOverlap (diagnostic : QsCompilerDiagnostic) =
+        remainingErrs
+        |> List.exists (fun other -> diagnostic.Range.Start <= other.Range.Start &&
+                                     diagnostic.Range.End >= other.Range.Start)
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
-
-    let rangeWithinFragment range = 
-        let min (a,b) = if a < b then a else b
-        (min (endPos, fst range), min(endPos, snd range))
+    let rangeWithinFragment (range : Range) = Range.Create (min endPos range.Start) (min endPos range.End)
     filteredExcessCont @ remainingDiagnostics
-    |> List.map (fun diagnostic -> diagnostic.WithRange(rangeWithinFragment diagnostic.Range))
+    |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })
 
 /// Constructs a QsCodeFragment.
 ///
@@ -449,21 +445,24 @@ let private filterAndAdapt (diagnostics : QsCompilerDiagnostic list) endPos =
 /// Determines the Range and Text for the fragment and attaches all current diagnostics saved in the user state to the
 /// QsFragment. Upon fragment construction, clears all diagnostics currently stored in the UserState.
 let internal buildFragment header body (invalid : QsFragmentKind) fragmentKind continuation =
-    let build (kind, (startPos, (text, endPos))) = 
-        getUserState .>> clearDiagnostics 
-        |>> fun diagnostics -> 
-            QsFragment.New(kind, (startPos, endPos), (filterAndAdapt diagnostics (endPos |> QsPositionInfo.New)).ToImmutableArray(), NonNullable<string>.New text)
+    let build (kind, (text, range)) =
+        getUserState .>> clearDiagnostics |>> fun diagnostics ->
+            { Kind = kind
+              Range = range
+              Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
+              Text = NonNullable<_>.New text }
 
-    let buildDiagnostic (errPos, (startPos, (text, endPos))) = 
-        let errPos = if endPos < errPos then endPos else errPos
-        QsCompilerDiagnostic.NewError invalid.ErrorCode (errPos, endPos) |> pushDiagnostic >>. 
-        preturn (invalid, (startPos, (text, endPos))) 
+    let buildDiagnostic (errPos, (text, range : Range)) =
+        let errPos = if range.End < errPos then range.End else errPos
+        QsCompilerDiagnostic.NewError invalid.ErrorCode (Range.Create errPos range.End)
+        |> pushDiagnostic
+        >>. preturn (invalid, (text, range))
 
     let delimiters state = 
         let fragmentEnd = 
             let allWS = emptySpace .>>? eof
-            manyCharsTill anyChar (followedBy allWS) .>>. getPosition
-        (getPosition .>>. fragmentEnd) |> runOnSubstream state
+            manyCharsTill anyChar (followedBy allWS)
+        getRange fragmentEnd |> runOnSubstream state
     
     let continuation = (continuation >>% ()) <|> (qsFragmentHeader >>% ())
     let validBody state headerResult = 

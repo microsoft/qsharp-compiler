@@ -15,6 +15,8 @@ using Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.SyntaxGenerator;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -76,11 +78,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
-            if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
+            if (file == null || compilation == null || position == null)
             {
                 return null;
             }
-            if (file.GetLine(position.Line).WithoutEnding.Length < position.Character)
+            if (file.GetLine(position.Line).WithoutEnding.Length < position.Column)
             {
                 return Enumerable.Empty<CompletionItem>().ToCompletionList(false);
             }
@@ -134,7 +136,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// determined. Stores the code fragment found at or before the given position into an out parameter.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static (CompletionScope, QsFragmentKind) GetCompletionEnvironment(
             FileContentManager file, Position position, out CodeFragment fragment)
         {
@@ -142,11 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
-            }
-            if (!Utils.IsValidPosition(position, file))
+            if (!file.ContainsPosition(position))
             {
                 // FileContentManager.IndentationAt will fail if the position is not within the file.
                 fragment = null;
@@ -211,7 +208,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns completion items that match the given kind.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetCompletionsForKind(
             FileContentManager file,
             CompilationUnit compilation,
@@ -226,10 +222,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null)
             {
                 throw new ArgumentNullException(nameof(compilation));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
             if (kind == null)
             {
@@ -308,9 +300,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // decimal number), then no completions are valid here.
             var nsPath = GetSymbolNamespacePath(file, position);
             if (nsPath == null &&
-                position.Character > 0 &&
-                position.Character <= file.GetLine(position.Line).Text.Length &&
-                file.GetLine(position.Line).Text[position.Character - 1] == '.')
+                position.Column > 0 &&
+                position.Column <= file.GetLine(position.Line).Text.Length &&
+                file.GetLine(position.Line).Text[position.Column - 1] == '.')
             {
                 return Array.Empty<CompletionItem>();
             }
@@ -341,7 +333,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// shows only completions for mutable local variables. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetLocalCompletions(
             FileContentManager file, CompilationUnit compilation, Position position, bool mutableOnly = false)
         {
@@ -352,10 +343,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null)
             {
                 throw new ArgumentNullException(nameof(compilation));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
             return
                 compilation
@@ -532,7 +519,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// a dot.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetNamespaceAliasCompletions(
             FileContentManager file, CompilationUnit compilation, Position position, string prefix = "")
         {
@@ -543,10 +529,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null)
             {
                 throw new ArgumentNullException(nameof(compilation));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
             if (prefix == null)
             {
@@ -629,7 +611,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// position in the file. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<string> GetOpenNamespaces(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -640,10 +621,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null)
             {
                 throw new ArgumentNullException(nameof(compilation));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
 
             var @namespace = file.TryGetNamespaceAt(position);
@@ -663,16 +640,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// symbol.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static string GetSymbolNamespacePath(FileContentManager file, Position position)
         {
             if (file == null)
             {
                 throw new ArgumentNullException(nameof(file));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
 
             var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
@@ -708,10 +680,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
             }
 
-            var relativeLine = position.Line - fragment.GetRange().Start.Line;
+            var relativeLine = position.Line - fragment.Range.Start.Line;
             var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("");
             var relativeCharacter =
-                relativeLine == 0 ? position.Character - fragment.GetRange().Start.Character : position.Character;
+                relativeLine == 0 ? position.Column - fragment.Range.Start.Column : position.Column;
             if (relativeLine < 0 ||
                 relativeLine >= lines.Count() ||
                 relativeCharacter < 0 ||
@@ -727,7 +699,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the alias unchanged.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static string ResolveNamespaceAlias(
             FileContentManager file, CompilationUnit compilation, Position position, string alias)
         {
@@ -738,10 +709,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null)
             {
                 throw new ArgumentNullException(nameof(compilation));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
             if (alias == null)
             {
@@ -762,16 +729,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// no token at or before the given position.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static CodeFragment.TokenIndex GetTokenAtOrBefore(FileContentManager file, Position position)
         {
             if (file == null)
             {
                 throw new ArgumentNullException(nameof(file));
-            }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
             }
 
             var line = position.Line;
@@ -811,20 +773,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
             }
 
-            var end = fragment.GetRange().End;
+            var end = fragment.Range.End;
             var position = file.FragmentEnd(ref end);
-            return new Position(position.Line, position.Character - 1);
+            return Position.Create(position.Line, position.Column - 1);
         }
 
         /// <summary>
         /// Returns true if the fragment has a delimiting character and the given position occurs after it.
         /// </summary>
         private static bool IsPositionAfterDelimiter(
-            FileContentManager file,
-            CodeFragment fragment,
-            Position position) =>
+                FileContentManager file, CodeFragment fragment, Position position) =>
             fragment.FollowedBy != CodeFragment.MissingDelimiter
-            && GetDelimiterPosition(file, fragment).IsSmallerThan(position);
+            && GetDelimiterPosition(file, fragment) < position;
 
         /// <summary>
         /// Returns a substring of the fragment text before the given position.
@@ -834,7 +794,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// space character appended to it.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when file or position is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static string GetFragmentTextBeforePosition(
             FileContentManager file, CodeFragment fragment, Position position)
         {
@@ -842,16 +801,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            if (!Utils.IsValidPosition(position))
-            {
-                throw new ArgumentException(nameof(position));
-            }
-
             if (fragment == null || IsPositionAfterDelimiter(file, fragment, position))
             {
                 return "";
             }
-            return fragment.GetRange().End.IsSmallerThan(position)
+            return fragment.Range.End < position
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
         }
