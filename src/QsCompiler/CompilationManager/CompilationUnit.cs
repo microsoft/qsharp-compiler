@@ -913,9 +913,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.CachedCallGraph = QsNullable<ICallGraph>.NewValue(Transformations.CallGraphWalker.BuildCallGraph.Apply(callables));
 
             return this.CachedCallGraph.Item.VerifyAllCycles();
-
-            //return this.CachedCallGraph.Item.VerifyAllCycles()
-            //    .Select(x => Diagnostics.Generate(x.Item1.Value, x.Item2)).ToArray();
         }
 
         /// <summary>

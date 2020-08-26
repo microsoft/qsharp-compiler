@@ -225,10 +225,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeParamRes = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                     this.SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
-                    //var referenceRange = this.SharedState.CurrentExpressionRange.IsValue
-                    //    ? this.SharedState.CurrentExpressionRange.Item
-                    //    : DataTypes.Range.Zero;
-
                     var referenceRange = DataTypes.Range.Zero;
                     if (this.SharedState.CurrentStatementOffset.IsValue
                         && this.SharedState.CurrentExpressionRange.IsValue)

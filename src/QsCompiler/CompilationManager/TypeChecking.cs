@@ -2021,8 +2021,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                     diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
                 }
-
-                //diagnostics.AddRange(compilation.VerifyCycles(callables));
                 return diagnostics;
             }
             finally
