@@ -60,13 +60,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Translates the line numbers in the diagnostic by the given offset.
+        /// Returns a copy of this diagnostic with the given offset added to the line numbers.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="diagnostic"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the new diagnostic has negative line numbers.
         /// </exception>
-        public static Diagnostic TranslateLines(this Diagnostic diagnostic, int offset)
+        public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {
             if (diagnostic is null)
             {
@@ -193,7 +193,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             m?.Range?.Start?.Line != null && lowerBound <= m.Range.Start.ToQSharp();
 
         /// <summary>
-        /// Returns true if the start position of the diagnostic is contained in the range.
+        /// Returns true if the start position of the diagnostic range is contained in the given range, excluding the
+        /// given range's end position.
         /// </summary>
         internal static bool SelectByStart(this Diagnostic m, Range range) =>
             !(m?.Range?.Start is null) && range.Contains(m.Range.Start.ToQSharp());
@@ -205,7 +206,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             m?.Range?.End?.Line != null && lowerBound <= m.Range.End.ToQSharp();
 
         /// <summary>
-        /// Returns true if the end position of the diagnostic is contained in the range.
+        /// Returns true if the end position of the diagnostic range is contained in the given range, excluding the
+        /// given range's end position.
         /// </summary>
         internal static bool SelectByEnd(this Diagnostic m, Range range) =>
             !(m?.Range?.End is null) && range.Contains(m.Range.End.ToQSharp());

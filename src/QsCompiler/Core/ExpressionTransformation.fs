@@ -361,8 +361,8 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     // supplementary expression information 
 
-    abstract member OnRange : QsNullable<Range> -> QsNullable<Range>
-    default this.OnRange range = range
+    abstract member OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+    default this.OnRangeInformation range = range
 
     abstract member OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info
@@ -386,7 +386,7 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
     abstract member OnTypedExpression : TypedExpression -> TypedExpression
     default this.OnTypedExpression (ex : TypedExpression) =
         if not options.Enable then ex else
-        let range                = this.OnRange ex.Range
+        let range                = this.OnRangeInformation ex.Range
         let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.ExpressionKinds.OnExpressionKind ex.Expression
         let exType               = this.Types.OnType ex.ResolvedType

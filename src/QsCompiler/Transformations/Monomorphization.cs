@@ -365,7 +365,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
-                    var range = this.OnRange(ex.Range);
+                    var range = this.OnRangeInformation(ex.Range);
                     var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
                         .Select(kv => Tuple.Create(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();

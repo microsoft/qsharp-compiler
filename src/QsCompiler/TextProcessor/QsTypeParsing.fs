@@ -25,6 +25,7 @@ let private characteristicsExpression = new OperatorPrecedenceParser<Characteris
 /// builds the corresponding expression with its range set to the combined range. 
 /// If either one of given ranges is Null, builds an invalid expression with its range set to Null. 
 let private buildCombinedExpression kind (lRange, rRange) =
+    // *needs* to be invalid if the combined range is Null!
     match QsNullable.Map2 Range.Span lRange rRange with
     | Value range -> { Characteristics = kind; Range = Value range }
     | Null -> { Characteristics = InvalidSetExpr; Range = Null }
@@ -109,11 +110,12 @@ let private atomicType =
 
 /// Parses a Q# user defined type (possibly qualified symbol), raising an InvalidTypeName error if needed.
 /// Note: As long as the parser succeeds, the returned Q# type is of kind UserDefinedType even if the parsed qualified symbol is invalid.
-let private userDefinedType = 
-    multiSegmentSymbol ErrorCode.InvalidTypeName |>> asQualifiedSymbol
-    |>> fun sym -> sym.Symbol |> function
-        | InvalidSymbol -> (InvalidType, Null) |> QsType.New
-        | _ -> (UserDefinedType sym, sym.Range) |> QsType.New 
+let private userDefinedType =
+    multiSegmentSymbol ErrorCode.InvalidTypeName
+    |>> asQualifiedSymbol
+    |>> function
+        | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
+        | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New 
 
 
 // composite types

@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(diagnostics));
             }
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.TranslateLines(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithLineNumOffset(lineNrChange) : m;
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.TranslateLines(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithLineNumOffset(lineNrChange) : m;
             if (lineNrChange != 0)
             {
                 diagnostics.Transform(UpdateLineNrs);
@@ -275,7 +275,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var end = start + count;
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.TranslateLines(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.WithLineNumOffset(lineNrChange) : m;
 
             this.scopeDiagnostics.SyncRoot.EnterWriteLock();
             try
@@ -363,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var end = start + count;
-            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.TranslateLines(lineNrChange) : m;
+            Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStartLine(end) ? m.WithLineNumOffset(lineNrChange) : m;
 
             this.contextDiagnostics.SyncRoot.EnterWriteLock();
             try
@@ -619,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragmentRanges = fragments.Select(t => t.Range);
                 var (min, max) = (fragmentRanges.Min(frag => frag.Start.Line), fragmentRanges.Max(frag => frag.End.Line));
                 var existing = Enumerable.Range(min, max - min + 1)
-                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.TranslateLines(lineNr).Range.DiagnosticString() + $": {t.Text}"));
+                    .SelectMany(lineNr => this.GetTokenizedLine(lineNr).Select(t => t.WithLineNumOffset(lineNr).Range.DiagnosticString() + $": {t.Text}"));
                 throw new ArgumentException("the given fragments to update overlap with existing tokens - \n" +
                     $"Ranges for updates were: \n{string.Join("\n", fragments.Select(t => t.Range.DiagnosticString() + $": {t.Text}"))} \n" +
                     $"Ranges for existing are: \n{string.Join("\n", existing)}");
@@ -735,7 +735,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var (start, end) = (range.Start.Line, range.End.Line);
-                FilterAndMarkEdited(start, ContextBuilder.NotOverlappingWith(range.TranslateLines(-start)));
+                FilterAndMarkEdited(start, ContextBuilder.NotOverlappingWith(range.WithLineNumOffset(-start)));
                 for (var i = start + 1; i < end; ++i)
                 {
                     FilterAndMarkEdited(i, _ => false); // remove all
@@ -750,7 +750,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var envelopeStart = envelopingFragment.Range.Start.Line;
                     FilterAndMarkEdited(envelopeStart, token =>
-                        !token.Range.TranslateLines(envelopeStart).Contains(range.Start));
+                        !token.Range.WithLineNumOffset(envelopeStart).Contains(range.Start));
                 }
 
                 // which lines get marked as edited depends on the tokens prior to transformation,
@@ -820,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var startLine = fragments.First().Range.Start.Line;
                     var tokens =
                         fragments.TakeWhile(fragment => fragment.Range.Start.Line == startLine)
-                        .Select(token => token.TranslateLines(-startLine)) // token ranges are relative to their start line! (to simplify updating...)
+                        .Select(token => token.WithLineNumOffset(-startLine)) // token ranges are relative to their start line! (to simplify updating...)
                         .ToImmutableArray();
 
                     ImmutableArray<CodeFragment> MergeAndAttachComments(ImmutableArray<CodeFragment> current)

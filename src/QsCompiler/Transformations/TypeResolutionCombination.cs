@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler
         private void UpdateConstrictionFlag(TypeParameterName typeParamName, ResolvedType typeParamResolution)
         {
             this.combinesOverParameterConstriction = this.combinesOverParameterConstriction
-                || CheckForConstriction.Apply(typeParamName, typeParamResolution);
+                || CheckForConstriction.IsConstrictiveResolution(typeParamName, typeParamResolution);
         }
 
         /// <summary>
@@ -282,33 +282,46 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Walker that checks a given type parameter resolution to see if it constricts
-        /// the type parameter to another type parameter of the same callable.
+        /// the type parameter to another type parameter of the same callable or to a
+        /// nested reference of the same type parameter.
         /// </summary>
         private class CheckForConstriction : TypeTransformation<CheckForConstriction.TransformationState>
         {
-            private readonly TypeParameterName typeParamName;
-
             /// <summary>
             /// Walks the given ResolvedType, typeParamRes, and returns true if there is a reference
-            /// to a different type parameter of the same callable as the given type parameter, typeParam.
+            /// to a different type parameter of the same callable as the given type parameter, typeParam,
+            /// or the same type parameter but in a nested type.
             /// Otherwise returns false.
             /// </summary>
-            public static bool Apply(TypeParameterName typeParam, ResolvedType typeParamRes)
+            public static bool IsConstrictiveResolution(TypeParameterName typeParam, ResolvedType typeParamRes)
             {
-                var walker = new CheckForConstriction(typeParam);
+                if (typeParamRes.Resolution is ResolvedTypeKind.TypeParameter tp
+                    && tp.Item.Origin.Equals(typeParam.Item1))
+                {
+                    // If given a type parameter whose origin matches the callable,
+                    // the only valid resolution is a direct self-resolution
+                    return !tp.Item.TypeName.Equals(typeParam.Item2);
+                }
+
+                var walker = new CheckForConstriction(typeParam.Item1);
                 walker.OnType(typeParamRes);
                 return walker.SharedState.IsConstrictive;
             }
 
             internal class TransformationState
             {
+                public readonly QsQualifiedName Origin;
                 public bool IsConstrictive = false;
+
+                public TransformationState(QsQualifiedName origin)
+                {
+                    this.Origin = origin;
+                }
             }
 
-            private CheckForConstriction(TypeParameterName typeParamName)
-                : base(new TransformationState(), TransformationOptions.NoRebuild)
+            private CheckForConstriction(QsQualifiedName origin)
+                : base(new TransformationState(origin), TransformationOptions.NoRebuild)
             {
-                this.typeParamName = typeParamName;
             }
 
             public new ResolvedType OnType(ResolvedType t)
@@ -325,9 +338,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
-                // If the type parameter is from the same callable, but is a different parameter,
+                // If the type parameter is from the same callable,
                 // then the type resolution is constrictive.
-                if (tp.Origin.Equals(this.typeParamName.Item1) && !tp.TypeName.Equals(this.typeParamName.Item2))
+                if (tp.Origin.Equals(this.SharedState.Origin))
                 {
                     this.SharedState.IsConstrictive = true;
                 }
@@ -361,8 +374,8 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             private GetTypeParameterResolutions() : base(new TransformationState(), TransformationOptions.NoRebuild)
-                {
-                }
+            {
+            }
 
             public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {

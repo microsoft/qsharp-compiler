@@ -78,10 +78,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var lastPreceding = file.GetTokenizedLine(pos.Line)
                 .TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, pos.Column)))
-                .LastOrDefault(RelevantToken)?.TranslateLines(pos.Line);
+                .LastOrDefault(RelevantToken)?.WithLineNumOffset(pos.Line);
             for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
             {
-                lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.TranslateLines(lineNr);
+                lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.WithLineNumOffset(lineNr);
             }
 
             var firstRelevant = lastPreceding == null ? 0 : lastPreceding.Range.End.Line + 1;
