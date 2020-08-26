@@ -22,8 +22,8 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     // supplementary type information 
 
-    abstract member OnRangeInformation : QsRangeInfo -> QsRangeInfo
-    default this.OnRangeInformation r = r
+    abstract member OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+    default this.OnRangeInformation range = range
 
     abstract member OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs

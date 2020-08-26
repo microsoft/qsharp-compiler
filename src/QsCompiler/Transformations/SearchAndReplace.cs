@@ -12,11 +12,11 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     // routines for finding occurrences of symbols/identifiers
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// <summary>
             /// contains the offset of the root node relative to which the statement location is given
             /// </summary>
-            public readonly Tuple<int, int> DeclarationOffset;
+            public readonly Position DeclarationOffset;
 
             /// <summary>
             /// contains the location of the statement containing the symbol relative to the root node
@@ -45,9 +45,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// <summary>
             /// contains the range of the symbol relative to the statement position
             /// </summary>
-            public readonly Tuple<QsPositionInfo, QsPositionInfo> SymbolRange;
+            public readonly Range SymbolRange;
 
-            public Location(NonNullable<string> source, Tuple<int, int> declOffset, QsLocation stmLoc, Tuple<QsPositionInfo, QsPositionInfo> range)
+            public Location(NonNullable<string> source, Position declOffset, QsLocation stmLoc, Range range)
             {
                 this.SourceFile = source;
                 this.DeclarationOffset = declOffset ?? throw new ArgumentNullException(nameof(declOffset));
@@ -58,11 +58,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// <inheritdoc/>
             public bool Equals(Location other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
-                && this.DeclarationOffset.Equals(other?.DeclarationOffset)
-                && this.RelativeStatementLocation.Offset.Equals(other?.RelativeStatementLocation.Offset)
-                && this.RelativeStatementLocation.Range.Equals(other?.RelativeStatementLocation.Range)
-                && this.SymbolRange.Item1.Equals(other?.SymbolRange?.Item1)
-                && this.SymbolRange.Item2.Equals(other?.SymbolRange?.Item2);
+                && this.DeclarationOffset == other?.DeclarationOffset
+                && this.RelativeStatementLocation.Offset == other?.RelativeStatementLocation.Offset
+                && this.RelativeStatementLocation.Range == other?.RelativeStatementLocation.Range
+                && this.SymbolRange == other?.SymbolRange;
 
             /// <inheritdoc/>
             public override bool Equals(object obj) =>
@@ -125,11 +124,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
 
             private NonNullable<string> currentSourceFile = NonNullable<string>.New("");
-            private Tuple<int, int> rootOffset = null;
+            private Position rootOffset = null;
             internal QsLocation CurrentLocation = null;
             internal readonly Func<Identifier, bool> TrackIdentifier;
 
-            public Tuple<int, int> DeclarationOffset
+            public Position DeclarationOffset
             {
                 internal get => this.rootOffset;
                 set
@@ -150,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 }
             }
 
-            internal void LogIdentifierLocation(Identifier id, QsRangeInfo range)
+            internal void LogIdentifierLocation(Identifier id, QsNullable<Range> range)
             {
                 if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
                 {
@@ -197,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             NonNullable<string> idName,
             QsScope scope,
             NonNullable<string> sourceFile,
-            Tuple<int, int> rootLoc)
+            Position rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;

@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -28,6 +29,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry;
+        private readonly Action<Uri> onTemporaryProjectLoaded;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -58,7 +60,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams> publishDiagnostics,
             Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry,
             Action<string, MessageType> log,
-            Action<Exception> onException)
+            Action<Exception> onException,
+            Action<Uri> onTemporaryProjectLoaded)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
@@ -83,6 +86,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader = projectLoader ?? throw new ArgumentNullException(nameof(projectLoader));
             this.projects = new ProjectManager(onException, log, this.publish);
             this.openFiles = new ConcurrentDictionary<Uri, FileContentManager>();
+            this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
         /// <summary>
@@ -153,6 +157,33 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion, out Uri projectUri, out ProjectInformation info)
+        {
+            projectUri = null;
+            info = null;
+
+            var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", $"{localFolderPath.GetHashCode():x8}")).FullName;
+            var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
+            using (var outputFile = new StreamWriter(projectFilePath))
+            {
+                outputFile.WriteLine(
+                    TemporaryProject.GetFileContents(
+                        compilationScope: Path.Combine(localFolderPath, "*.qs"),
+                        sdkVersion: sdkVersion));
+            }
+
+            projectUri = new Uri(projectFilePath);
+            var success = this.QsProjectLoader(projectUri, out info);
+            if (!success)
+            {
+                File.Delete(projectFilePath);
+                Directory.Delete(projectFolderPath);
+            }
+
+            return success;
+        }
+
         /// <summary>
         /// For each given uri, loads the corresponding project if the uri contains the project file for a Q# project,
         /// and publishes suitable diagnostics for it.
@@ -219,6 +250,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     return;
                 }
+
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
                 {
                     showError?.Invoke($"Failed to load file '{textDocument.Uri.LocalPath}'", MessageType.Error);
