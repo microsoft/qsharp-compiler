@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -19,11 +19,11 @@
   </PropertyGroup>  
 
   <ItemGroup>
-    <ProjectReference Include="../QsCompiler/Compiler/Compiler.csproj" />
+    <ProjectReference Include="../Compiler/Compiler.csproj" />
   </ItemGroup>
   
   <ItemGroup>
-    <Compile Include="..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
 </Project>
