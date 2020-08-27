@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
     operation Main() : Unit {
         Foo(3, "Hello");
         Bar("World");    // Different as call in Foo
-        Baz("!");        // Same as call in Foo
+        Baz("!");        // Same resolution as call in Foo, but different location
     }
 
     operation Foo<'A, 'B>(a : 'A, b : 'B) : Unit {

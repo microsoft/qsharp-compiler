@@ -219,6 +219,9 @@ type CallGraphTests (output:ITestOutputHelper) =
             [
                 (NonNullable<_>.New "Y", String)
             ]
+            [ // same type parameter resolution, but a different location
+                (NonNullable<_>.New "Y", String)
+            ]
         ]
         |> AssertExpectedDepencency "Main" "Baz" dependencies
 
