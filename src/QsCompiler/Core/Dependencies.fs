@@ -94,6 +94,11 @@ type BuiltIn = {
         Kind = Attribute
     }
 
+    static member Capability = {
+        FullName = {Name = "Capability" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
     // dependencies in Microsoft.Quantum.Diagnostics
 
     static member Test = {

@@ -195,12 +195,9 @@ let InferCapabilities compilation =
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
                 let capability = callableCapability callable
-                let attributeName =
-                    { Namespace = NonNullable<_>.New "Microsoft.Quantum.Core"
-                      Name = NonNullable<_>.New "Capability" }
-                let attributeValue =
+                let arg =
                     SyntaxGenerator.StringLiteral (capability.ToString () |> NonNullable<_>.New, ImmutableArray.Empty)
-                let attribute = AttributeUtils.BuildAttribute (attributeName, attributeValue)
+                let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
                 { callable with Attributes = callable.Attributes.Add attribute }
     }
     transformation.OnCompilation compilation
