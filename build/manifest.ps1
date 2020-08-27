@@ -16,7 +16,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsLanguageServer.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsSyntaxProcessor.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTextProcessor.dll",
-        "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTransformations.dll",
+        "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTransformations.dll"
     );
 
     # The VS2019 extension itself is only built if msbuild is present.
