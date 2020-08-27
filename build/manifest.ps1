@@ -6,9 +6,8 @@
 
 & "$PSScriptRoot/set-env.ps1"
 
-if ("$Env:ENABLE_VSIX" -ne "false") {
+if ("$Env:ENABLE_VSIX" -eq "true") {
     $VsixAssemblies = @(
-        "./src/QsCompiler/DocumentationGenerator/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.DocumentationGenerator.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCompilationManager.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCore.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsDataStructures.dll",
@@ -31,7 +30,7 @@ if ("$Env:ENABLE_VSIX" -ne "false") {
         "Microsoft.Quantum.DocumentationGenerator"
     );
     Assemblies = $VsixAssemblies + @(
-        "./src/DocumentationGenerator/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.DocumentationGenerator.dll",
+        "./src/QsCompiler/DocumentationGenerator/bin/$Env:BUILD_CONFIGURATION/netstandard2.1/Microsoft.Quantum.DocumentationGenerator.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCompiler.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsDocumentationParser.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/qsc.dll",
