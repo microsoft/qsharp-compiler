@@ -2,23 +2,45 @@
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
-type Inference =
+type Pattern =
     | ReturnInResultConditionedBlock of Range QsNullable
     | SetInResultConditionedBlock of string * Range QsNullable
     | ResultEqualityInCondition of Range QsNullable
     | ResultEqualityNotInCondition of Range QsNullable
 
-let private capability = function
-    | ResultEqualityInCondition _ -> RuntimeCapabilities.QPRGen1
+let private toCapability inOperation = function
+    | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
     | ResultEqualityNotInCondition _ -> RuntimeCapabilities.Unknown
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
     | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
+
+let private toDiagnostic context pattern =
+    let unsupported =
+        if context.Capabilities = RuntimeCapabilities.QPRGen0
+        then ErrorCode.UnsupportedResultComparison
+        else ErrorCode.ResultComparisonNotInOperationIf
+    let code, args, range =
+        match pattern with
+        | ReturnInResultConditionedBlock range ->
+            ErrorCode.ReturnInResultConditionedBlock, [ context.ProcessorArchitecture.Value ], range
+        | SetInResultConditionedBlock (name, range) ->
+            ErrorCode.SetInResultConditionedBlock, [ name; context.ProcessorArchitecture.Value ], range
+        | ResultEqualityInCondition range ->
+            unsupported, [ context.ProcessorArchitecture.Value ], range
+        | ResultEqualityNotInCondition range ->
+            unsupported, [ context.ProcessorArchitecture.Value ], range
+    if toCapability context.IsInOperation pattern > context.Capabilities
+    then QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
+    else None
+
+let private toDiagnostics context = toDiagnostic context |> Seq.choose
 
 let private addOffset offset =
     let add = QsNullable.Map2 (+) offset
@@ -47,7 +69,7 @@ let private isResultEquality { TypedExpression.Expression = expression } =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-let private expressionInferences inCondition (expression : TypedExpression) =
+let private expressionPatterns inCondition (expression : TypedExpression) =
     expression.ExtractAll <| fun expression' ->
         if isResultEquality expression'
         then
@@ -77,7 +99,7 @@ let private conditionBlocks condBlocks elseBlock =
 
 /// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
 /// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
-let private conditionalStatementInferences { ConditionalBlocks = condBlocks; Default = elseBlock } =
+let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Default = elseBlock } =
     let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
         match s.Statement with
         | QsReturnStatement _ -> [ s ]
@@ -101,8 +123,8 @@ let private conditionalStatementInferences { ConditionalBlocks = condBlocks; Def
     |> Seq.fold foldInferences (false, Seq.empty)
     |> snd
 
-let private statementInferences statement =
-    let inferences = ResizeArray ()
+let private statementPatterns statement =
+    let patterns = ResizeArray ()
     let mutable offset = Null
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
 
@@ -115,25 +137,27 @@ let private statementInferences statement =
     transformation.StatementKinds <- {
         new StatementKindTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnConditionalStatement statement =
-                conditionalStatementInferences statement |> inferences.AddRange
+                conditionalStatementPatterns statement |> patterns.AddRange
                 for condition, block in conditionBlocks statement.ConditionalBlocks statement.Default do
                     let blockOffset = locationOffset block.Location
-                    expressionInferences true condition |> Seq.map (addOffset blockOffset) |> inferences.AddRange
+                    expressionPatterns true condition |> Seq.map (addOffset blockOffset) |> patterns.AddRange
                     this.Transformation.Statements.OnScope block.Body |> ignore
                 QsConditionalStatement statement
     }
     transformation.Expressions <- {
         new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionInferences false expression |> Seq.map (addOffset offset) |> inferences.AddRange
+                expressionPatterns false expression |> Seq.map (addOffset offset) |> patterns.AddRange
                 expression
     }
     transformation.Statements.OnStatement statement |> ignore
-    inferences
+    patterns
 
-let SpecializationInferences specialization =
+let StatementDiagnostics context = statementPatterns >> toDiagnostics context
+
+let SpecializationPatterns specialization =
     match specialization.Implementation with
     | Provided (_, scope) ->
         let offset = specialization.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        scope.Statements |> Seq.collect statementInferences |> Seq.map (addOffset offset)
+        scope.Statements |> Seq.collect statementPatterns |> Seq.map (addOffset offset)
     | _ -> Seq.empty
