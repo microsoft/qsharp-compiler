@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -242,6 +244,43 @@ namespace Microsoft.Quantum.Documentation
 
         internal static string WithYamlHeader(this string document, object header) =>
             $"---\n{new SerializerBuilder().Build().Serialize(header)}---\n{document}";
+
+        internal static bool IsDeprecated(this QsCallable callable, out string? replacement) =>
+            callable.Attributes.IsDeprecated(out replacement);
+
+        internal static bool IsDeprecated(this QsCustomType type, out string? replacement) =>
+            type.Attributes.IsDeprecated(out replacement);
+
+        internal static bool IsDeprecated(this IEnumerable<QsDeclarationAttribute> attributes, [NotNullWhen(true)]  out string? replacement)
+        {
+            var deprecationAttribute = attributes.SingleOrDefault(attribute =>
+            {
+                if (attribute.TypeId.IsValue)
+                {
+                    var attrType = attribute.TypeId.Item;
+                    if (attrType.Namespace.Value == "Microsoft.Quantum.Core" && attrType.Name.Value == "Deprecated")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            if (deprecationAttribute == null)
+            {
+                replacement = null;
+                return false;
+            }
+            else
+            {
+                var arg = deprecationAttribute.Argument.Expression as QsExpressionKind<TypedExpression, Identifier, ResolvedType>.StringLiteral;
+                Debug.Assert(arg != null, "Argument to deprecated attribute was not a string literal.");
+                replacement = arg.Item1.Value;
+                return true;
+            }
+
+        }
     }
 
 }
