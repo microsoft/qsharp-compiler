@@ -121,6 +121,9 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
 }
 
+Write-Host "##[info]Verifying manifest..."
+& (Join-Path $PSScriptRoot "manifest.ps1")
+
 if (-not $all_ok) {
     throw "Building failed. Check the logs."
     exit 1
