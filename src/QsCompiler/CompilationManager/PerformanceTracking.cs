@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Quantum.QsCompiler.Diagnostics
@@ -113,10 +114,22 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         public static event CompilationTaskEventHandler CompilationTaskEvent;
 
         /// <summary>
+        /// Whether a failure ocurred while tracking performance.
+        /// </summary>
+        public static bool FailureOccurred => FailureException != null;
+
+        /// <summary>
+        /// Exception that caused the failure to occur.
+        /// </summary>
+        #nullable enable
+        public static Exception? FailureException { get; private set; }
+        #nullable disable
+
+        /// <summary>
         /// Describes the hierarchichal relationship between tasks.
         /// The key represents the task and the associated value represents the parent of that task.
         /// </summary>
-        private static IDictionary<Task, Task?> tasksHierarchy = new Dictionary<Task, Task?>()
+        private static readonly IDictionary<Task, Task?> TasksHierarchy = new Dictionary<Task, Task?>()
         {
             { Task.OverallCompilation, null },
             { Task.Build, Task.OverallCompilation },
@@ -139,8 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public static void TaskStart(Task task, object sender = null)
         {
-            var parent = tasksHierarchy[task];
-            CompilationTaskEvent?.Invoke(sender, CompilationTaskEventType.Start, parent?.ToString(), task.ToString());
+            InvokeTaskEvent(CompilationTaskEventType.Start, task, sender);
         }
 
         /// <summary>
@@ -148,8 +160,43 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public static void TaskEnd(Task task, object sender = null)
         {
-            var parent = tasksHierarchy[task];
-            CompilationTaskEvent?.Invoke(sender, CompilationTaskEventType.End, parent?.ToString(), task.ToString());
+            InvokeTaskEvent(CompilationTaskEventType.End, task, sender);
+        }
+
+        /// <summary>
+        /// Gets the parent of the specified task.
+        /// </summary>
+        /// <exception cref="ArgumentException">When the parent is not defined.</exception>
+        private static Task? GetTaskParent(Task task)
+        {
+            if (!TasksHierarchy.TryGetValue(task, out var parent))
+            {
+                throw new ArgumentException($"Task '{task}' does not have a defined parent");
+            }
+
+            return parent;
+        }
+
+        /// <summary>
+        /// Invokes a compilation task event.
+        /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
+        /// </summary>
+        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, object sender = null)
+        {
+            if (FailureOccurred)
+            {
+                return;
+            }
+
+            try
+            {
+                var parent = GetTaskParent(task);
+                CompilationTaskEvent?.Invoke(sender, eventType, parent?.ToString(), task.ToString());
+            }
+            catch (Exception ex)
+            {
+                FailureException = ex;
+            }
         }
     }
 }
