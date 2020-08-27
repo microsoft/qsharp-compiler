@@ -38,10 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 if (element is QsNamespaceElement.QsCallable callable)
                 {
                     Console.WriteLine(callable.Item.FullName);
-                    foreach (var pattern in callable.Item.Specializations.SelectMany(SpecializationPatterns))
-                    {
-                        Console.WriteLine(pattern);
-                    }
+                    Console.WriteLine(CallableCapability(callable.Item));
                     Console.WriteLine();
                 }
             }
