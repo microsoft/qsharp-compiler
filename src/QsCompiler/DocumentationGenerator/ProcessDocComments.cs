@@ -86,6 +86,12 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
 ```
 
 "
+                .MaybeWithSection(
+                    "Named Items",
+                    String.Join("\n", docComment.NamedItems.Select(
+                        item => $"### {item.Key}\n\n{item.Value}\n\n"
+                    ))
+                )
                 .MaybeWithSection("Description", docComment.Description)
                 .MaybeWithSection("Remarks", docComment.Remarks)
                 .MaybeWithSection("References", docComment.References)
