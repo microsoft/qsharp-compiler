@@ -1,7 +1,7 @@
 ﻿module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
 
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -22,7 +22,7 @@ let private attributes (callable : QsCallable) =
     callable.Attributes
     |> QsNullable<_>.Choose (fun attribute ->
            attribute.TypeId |> QsNullable<_>.Map (fun name -> name, attribute.Argument))
-    |> Seq.filter (fun (name, _) -> name.Namespace.Value = "Microsoft.Quantum.Core" && name.Name.Value = "Capability")
+    |> Seq.filter (fun (udt, _) -> { Namespace = udt.Namespace; Name = udt.Name } = BuiltIn.Capability.FullName)
     |> Seq.map (fun (_, value) -> extractString value.Expression)
 
 let private expect capabilities name =
