@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.Serialization;
@@ -81,17 +82,12 @@ namespace Microsoft.Quantum.Documentation
             TypedExpression input
         ) =>
             builder.AddAttribute(
-                new QsDeclarationAttribute(
-                    QsNullable<UserDefinedType>.NewValue(
-                        new UserDefinedType(
-                            NonNullable<string>.New(@namespace),
-                            NonNullable<string>.New(name),
-                            QsNullable<Range>.Null
-                        )
+                AttributeUtils.BuildAttribute(
+                    new QsQualifiedName(
+                        NonNullable<string>.New(@namespace),
+                        NonNullable<string>.New(name)
                     ),
-                    input,
-                    builder.Location.Item.Offset,
-                    QsComments.Empty
+                    input
                 )
             );
 
