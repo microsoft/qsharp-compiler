@@ -132,8 +132,8 @@ let private conditionBlocks condBlocks elseBlock =
     |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
     |> Seq.append condBlocks
 
-/// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
-/// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
+/// Returns all patterns in the conditional statement that are relevant to its conditions. It does not return patterns
+/// for the conditions themselves, or the patterns of nested conditional statements.
 let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Default = elseBlock } =
     let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
         match s.Statement with
