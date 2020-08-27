@@ -7,6 +7,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
+/// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
     CompilerTests.Compile ("TestCases", [ "CapabilityVerification.qs" ])
     |> fun compilation -> compilation.BuiltCompilation
@@ -14,6 +15,7 @@ let private callables =
     |> fun compilation -> compilation.Namespaces
     |> GlobalCallableResolutions
 
+/// Returns the inferred capabilities of the callable based on its attributes.
 let private attributes (callable : QsCallable) =
     let extractString = function
         | StringLiteral (value, _) -> value.Value
@@ -25,16 +27,17 @@ let private attributes (callable : QsCallable) =
     |> Seq.filter (fun (udt, _) -> { Namespace = udt.Namespace; Name = udt.Name } = BuiltIn.Capability.FullName)
     |> Seq.map (fun (_, value) -> extractString value.Expression)
 
-let private expect capabilities name =
+/// Asserts that the inferred capability of the callable with the given name matches the expected capability.
+let private expect capability name =
     let actual = attributes callables.[CapabilityVerificationTests.testName name]
-    Assert.Equal<string> (capabilities, actual)
+    Assert.Equal<string> ([ capability ], actual)
 
 [<Fact>]
 let ``Infers QPRGen0`` () =
     [ "NoOp"
       "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect [ "QPRGen0" ])
+    |> List.iter (expect "QPRGen0")
 
 [<Fact>]
 let ``Infers QPRGen1`` () =
@@ -43,7 +46,7 @@ let ``Infers QPRGen1`` () =
       "EmptyIfNeqOp"
       "Reset"
       "ResetNeq" ]
-    |> List.iter (expect [ "QPRGen1" ])
+    |> List.iter (expect "QPRGen1")
 
 [<Fact>]
 let ``Infers Unknown`` () =
@@ -64,4 +67,4 @@ let ``Infers Unknown`` () =
       "SetTuple"
       "EmptyIf"
       "EmptyIfNeq" ]
-    |> List.iter (expect [ "Unknown" ])
+    |> List.iter (expect "Unknown")

@@ -11,27 +11,42 @@ open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
+/// A syntactic pattern that requires a runtime capability.
 type private Pattern =
+    /// A return statement in the block of an if statement whose condition depends on a result.
     | ReturnInResultConditionedBlock of Range QsNullable
+
+    /// A set statement in the block of an if statement whose condition depends on a result, but which is reassigning a
+    /// variable declared outside the block. Includes the name of the variable.
     | SetInResultConditionedBlock of string * Range QsNullable
+
+    /// An equality expression inside the condition of an if statement, where the operands are results
     | ResultEqualityInCondition of Range QsNullable
+
+    /// An equality expression outside the condition of an if statement, where the operands are results.
     | ResultEqualityNotInCondition of Range QsNullable
 
+/// The level of a runtime capability. Higher levels require more capabilities.
 type private Level = Level of int
 
+/// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private toCapability inOperation = function
     | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
     | ResultEqualityNotInCondition _ -> RuntimeCapabilities.Unknown
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
     | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
 
+/// The runtime capability with the lowest level.
 let private baseCapability = RuntimeCapabilities.QPRGen0
 
+/// Returns the level of the runtime capability.
 let private level = function
     | RuntimeCapabilities.QPRGen0 -> Level 0
     | RuntimeCapabilities.QPRGen1 -> Level 1
     | _ -> Level 2
 
+/// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
+/// level.
 let private toDiagnostic context pattern =
     let error code args (range : QsNullable<_>) =
         if level context.Capabilities >= level (toCapability context.IsInOperation pattern)
@@ -56,6 +71,7 @@ let private toDiagnostic context pattern =
     | ResultEqualityNotInCondition range ->
         error unsupported [ context.ProcessorArchitecture.Value ] range
 
+/// Adds a position offset to the range in the pattern.
 let private addOffset offset =
     let add = QsNullable.Map2 (+) offset
     function
@@ -64,6 +80,7 @@ let private addOffset offset =
     | ResultEqualityInCondition range -> add range |> ResultEqualityInCondition
     | ResultEqualityNotInCondition range -> add range |> ResultEqualityNotInCondition
 
+/// Returns the offset of a nullable location.
 let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
@@ -83,6 +100,8 @@ let private isResultEquality { TypedExpression.Expression = expression } =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
+/// Returns all patterns in the expression, given whether it occurs in an if condition. Ranges are relative to the start
+/// of the statement.
 let private expressionPatterns inCondition (expression : TypedExpression) =
     expression.ExtractAll <| fun expression' ->
         if isResultEquality expression'
@@ -93,7 +112,7 @@ let private expressionPatterns inCondition (expression : TypedExpression) =
         else Seq.empty
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned.
-/// Returns the name of the variable and the location of the reassignment.
+/// Returns the name of the variable and the range of the reassignment.
 let private nonLocalUpdates scope =
     let isKnownSymbol name =
         scope.KnownSymbols.Variables
@@ -105,6 +124,8 @@ let private nonLocalUpdates scope =
     |> Seq.collect (fun group -> group |> Seq.map (fun location -> group.Key, location.Offset + location.Range))
     |> Seq.filter (fst >> isKnownSymbol)
 
+/// Converts the conditional blocks and an optional else block into a single sequence, where the else block is
+/// equivalent to "elif (true) { ... }".
 let private conditionBlocks condBlocks elseBlock =
     elseBlock
     |> QsNullable<_>.Map (fun block -> SyntaxGenerator.BoolLiteral true, block)
@@ -136,6 +157,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
     |> Seq.fold foldPatterns (false, Seq.empty)
     |> snd
 
+/// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray ()
     let mutable offset = Null
@@ -166,15 +188,19 @@ let private statementPatterns statement =
     transformation.Statements.OnStatement statement |> ignore
     patterns
 
+/// Returns all patterns in the scope. Ranges are relative to the start of the specialization.
 let private scopePatterns scope = scope.Statements |> Seq.collect statementPatterns
 
+/// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
 let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
 
+/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
 let private maxCapability capabilities =
     if Seq.isEmpty capabilities
     then baseCapability
     else capabilities |> Seq.maxBy level
 
+/// Returns the required capability of the specialization, given whether it is part of an operation.
 let private specializationCapability inOperation specialization =
     match specialization.Implementation with
     | Provided (_, scope) ->
@@ -182,6 +208,7 @@ let private specializationCapability inOperation specialization =
         scopePatterns scope |> Seq.map (addOffset offset >> toCapability inOperation) |> maxCapability
     | _ -> baseCapability
 
+/// Returns the required capability of the callable.
 let private callableCapability callable =
     let inOperation =
         match callable.Kind with
@@ -189,6 +216,12 @@ let private callableCapability callable =
         | _ -> false
     callable.Specializations |> Seq.map (specializationCapability inOperation) |> maxCapability
 
+/// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
+/// callable.
+///
+/// TODO:
+/// This infers the capability of each callable individually, without looking at the capabilities of anything it
+/// calls or references. The inferred capability is only a lower bound.
 let InferCapabilities compilation =
     let transformation = SyntaxTreeTransformation ()
     transformation.Namespaces <- {
