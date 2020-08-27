@@ -32,7 +32,10 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            // TODO
+            foreach (var inference in SyntaxProcessing.CapabilityInference.Inferences(compilation))
+            {
+                Console.WriteLine(inference);
+            }
             transformed = compilation;
             return true;
         }
