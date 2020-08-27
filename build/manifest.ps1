@@ -6,7 +6,9 @@
 
 & "$PSScriptRoot/set-env.ps1"
 
-if ("$Env:ENABLE_VSIX" -eq "true") {
+if ($Env:ENABLE_VSIX -ne "false") {
+    # The language server is only built if either the VS2019 or VS Code extension
+    # is enabled.
     $VsixAssemblies = @(
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCompilationManager.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCore.dll",
@@ -14,12 +16,19 @@ if ("$Env:ENABLE_VSIX" -eq "true") {
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsLanguageServer.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsSyntaxProcessor.dll",
         "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTextProcessor.dll",
-        "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTransformations.dll"
-        "./src/VisualStudioExtension/QsharpVSIX/bin/$Env:BUILD_CONFIGURATION/Microsoft.Quantum.VisualStudio.Extension.dll"
+        "./src/QsCompiler/LanguageServer/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsTransformations.dll",
     );
+
+    # The VS2019 extension itself is only built if msbuild is present.
+    if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+        $VsixAssemblies += @(
+            "./src/VisualStudioExtension/QsharpVSIX/bin/$Env:BUILD_CONFIGURATION/Microsoft.Quantum.VisualStudio.Extension.dll"
+        );
+    }
 } else {
     $VsixAssemblies = @();
 }
+
 
 @{
     Packages = @(
