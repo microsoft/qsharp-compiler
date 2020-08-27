@@ -17,17 +17,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
 // some utils for text processing
 
-/// one-based start position of a stream 
-let streamStart = { Line = 1; Column = 1 } 
-
-/// Given a position relative to a start position, computes the corresponding absolute position - 
-/// i.e. "adds" the relative position to the given initial position.
-/// IMPORTANT: Both positions are assumed to be one-based, such that this routine is compatible with the position information given by FParsec.
-let private AddRelativePosition (pos : QsPositionInfo, relativePos : QsPositionInfo) = 
-    let line = pos.Line + relativePos.Line - 1 
-    let column = if relativePos.Line > 1 then relativePos.Column else pos.Column + relativePos.Column - 1 
-    {Line = line; Column = column}
-
 /// Applies the given parser to the given text and returns either the parsing result if the parsing succeeds
 /// or the return value of onError if the parsing fails. 
 let private ParseWith parser onError text = 
@@ -39,24 +28,23 @@ let private ParseWith parser onError text =
 /// if the parsing succeeds, returns the parsed start and end position as QsPositionInfo * QsPositionInfo tuple. 
 /// If the parsing fails, returns the default stream start position for both start and end position. 
 let private GetDelimiters parser text = 
-    let onError _ = streamStart, streamStart
+    let onError _ = Range.Zero
     text |> ParseWith parser onError 
 
-let private posInfo = getPosition |>> QsPositionInfo.New
-let private remainingText = posInfo .>>. manyCharsTill anyChar eof
+let private remainingText = getPosition .>>. manyCharsTill anyChar eof
 
 /// Returns an UnknownFragment as QsFragment for the given text, 
 /// as well as a tuple of the text end position and an empty string. 
 let private BuildUnknown text =
-    let unknownFragment text (first,last) = {
+    let unknownFragment text range = {
             Kind = InvalidFragment
-            Range = (first, last)
-            Diagnostics = ImmutableArray.Create (QsCompilerDiagnostic.Error (InvalidFragment.ErrorCode, []) (first, last))
+            Range = range
+            Diagnostics = ImmutableArray.Create (QsCompilerDiagnostic.Error (InvalidFragment.ErrorCode, []) range)
             Text = text
         } 
-    let range = GetDelimiters (remainingText |>> fst .>>. posInfo) text
+    let range = GetDelimiters (getRange remainingText |>> snd) text
     let unknownStatement = unknownFragment (NonNullable<string>.New text) range
-    unknownStatement, (snd unknownStatement.Range, "")
+    unknownStatement, (unknownStatement.Range.End, "")
 
 
 // routines used to translate text to Q# syntax
@@ -67,7 +55,7 @@ let private BuildUnknown text =
 let private NextFragment text = 
     let fragment = codeFragment .>> ParsingPrimitives.emptySpace |>> Value 
     let next =
-        let noMoreFragments = eof >>. posInfo |>> fun pos -> (Null, (pos, "")) 
+        let noMoreFragments = eof >>. getPosition |>> fun pos -> (Null, (pos, ""))
         noMoreFragments <|> (fragment .>>. remainingText) // noMoreFragments needs to be first here!
     let onError _ = 
         QsCompilerError.Raise "error on parsing"
@@ -81,16 +69,14 @@ let private NextFragment text =
 let ProcessFragments text = 
     let (initialPos, text) = 
         let cutLeadingWS = ParsingPrimitives.emptySpace >>. remainingText
-        let onError _ = streamStart, text
+        let onError _ = Position.Zero, text
         text |> ParseWith cutLeadingWS onError 
     let rec doProcessing fragments (startPos,str) =
-        let build (frag : QsFragment) = 
-            let absoluteRange = (AddRelativePosition (startPos, fst frag.Range), AddRelativePosition (startPos, snd frag.Range))
-            frag.WithRange(absoluteRange) 
+        let build (frag : QsFragment) = frag.WithRange (startPos + frag.Range)
         match NextFragment str with 
         | Null, _ -> fragments |> List.rev
         | Value frag, (pos, remaining) when str <> remaining ->
-            doProcessing (build frag :: fragments) (AddRelativePosition (startPos, pos), remaining)
+            doProcessing (build frag :: fragments) (startPos + pos, remaining)
         | _ ->  // adding a protection against an infinite loop in case someone messes up the fragment processing...
             QsCompilerError.Raise "fragment has been built but no input was consumed"
             (BuildUnknown str |> fst |> build) :: fragments |> List.rev
@@ -112,18 +98,20 @@ let ProcessCodeFragment =
 let HeaderDelimiters nrHeaders = 
     let splitHeaders = 
         let letters = many1Satisfy (System.Char.IsLetter)
-        let header = letters >>. posInfo .>> spaces
-        spaces >>. posInfo .>>. many header .>>. posInfo
+        let header = letters >>. getPosition .>> spaces
+        spaces >>. getRange (many header)
     splitHeaders 
-    |>> fun ((pos1, following), pos2) -> 
-        if nrHeaders <= following.Length then (pos1, following.[nrHeaders-1]) else (pos1, pos2)
+    |>> fun (following, range) ->
+        if nrHeaders <= following.Length
+        then Range.Create range.Start following.[nrHeaders - 1]
+        else range
     |> GetDelimiters
 
 /// Parse an illegal array item update set statement for use by the copy-and-update recommendation code action.
 /// Returns the ending position, array identifier and index, and right-hand side.
 let ProcessUpdateOfArrayItemExpr =
     let ParseUpdateOfArrayItemExpr parser text = 
-        let onError _ = streamStart, "", "", ""
+        let onError _ = Position.Zero, "", "", ""
         text |> ParseWith parser onError
     // Parses a single-line, single-dimension array item update, ex: set arr[0] = i
     let parseSimpleUpdateOfArrayItem =
@@ -133,7 +121,7 @@ let ProcessUpdateOfArrayItemExpr =
         let equalOrWs = spaces >>. equal
         let simpleArrIndex = (arrayBrackets nonNewLineChars |>> fst) .>> followedBy equalOrWs
         let rhsContents = equalOrWs >>. (remainingText |>> snd)
-        setStatement >>. arrIdentifier .>>. simpleArrIndex .>>. rhsContents .>>. posInfo
+        setStatement >>. arrIdentifier .>>. simpleArrIndex .>>. rhsContents .>>. getPosition
     parseSimpleUpdateOfArrayItem
     |>> fun (((ident, idx), rhs), pos4) -> (pos4, ident, idx, rhs)
     |> ParseUpdateOfArrayItemExpr

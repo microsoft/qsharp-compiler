@@ -21,34 +21,48 @@ open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 // some utils for type checking statements
 
+/// Given a verification function that takes an error logging function as well as an expression type, expression kind, and its range, 
+/// first resolves the given expression, and then verifies its resolved type with the verification function. 
+/// Returns the typed expression built upon resolution, the return value of the verification function, 
+/// and an array with the diagnostics generated during resolution and verification. 
+let private ExpressionVerifyWith verification context (expr : QsExpression) = 
+    let accumulatedDiagnostics = new List<QsCompilerDiagnostic>() 
+    let addError code = QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
+    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
+    let resVerification = verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
+    typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
+
 /// Given a verification function that takes an error logging function as well as an expression type and its range, 
 /// first resolves the given expression, and then verifies its resolved type with the verification function. 
 /// Returns the typed expression built upon resolution, the return value of the verification function, 
 /// and an array with the diagnostics generated during resolution and verification. 
-let private VerifyWith verification context (expr : QsExpression) = 
-    let accumulatedDiagnostics = new List<QsCompilerDiagnostic>() 
-    let addError code = QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
-    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
-    let resVerification = verification addError (typedExpr.ResolvedType, expr.RangeOrDefault)
-    typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
+let private VerifyWith verification = 
+    ExpressionVerifyWith (fun addErr (exT, _, exRange) -> verification addErr (exT, exRange))
 
 /// Resolves the given expression, and returns the typed expression built upon resolution, 
 /// as well as an array with the diagnostics generated during resolution. 
-let private Verify context expr = 
-    VerifyWith (fun _ _ _ -> ()) context expr |> fun (ex,_,err) -> ex, err
+let private Verify context = 
+    VerifyWith (fun _ _ -> ()) context >> fun (ex,_,err) -> ex, err
+
+/// Helper method that returns a suitable verification method based on VerifyAssignment 
+/// that can be passed to ExpressionVerifyWith.  
+let private AssignmentVerification expected (context : ScopeContext) errCode = 
+    let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
+    let verification addErr (t,e,r) = VerifyAssignment expected parent errCode addErr (t, Some e, r)
+    verification
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// checks if the given typed expression has any local quantum dependencies. 
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements. 
-let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker<_>) (ex : TypedExpression, range) = 
+let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker) (ex : TypedExpression, range) = 
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
     else [| range |> QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) |] 
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
-let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<_>) = 
+let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker) = 
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
@@ -73,7 +87,7 @@ let private isResultComparison ({ Expression = expression } : TypedExpression) =
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
 /// symbol tracker is not modified. Returns the name of the variable and the location of the reassignment.
-let private nonLocalUpdates (symbols : SymbolTracker<_>) (scope : QsScope) =
+let private nonLocalUpdates (symbols : SymbolTracker) (scope : QsScope) =
     // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
     // allowed).
     let identifierExists (name, location : QsLocation) =
@@ -97,15 +111,15 @@ let private verifyResultConditionalBlocks context condBlocks elseBlock =
         | _ -> []
     let returnError (statement : QsStatement) =
         let error = ErrorCode.ReturnInResultConditionedBlock, [context.ProcessorArchitecture.Value]
-        let location = statement.Location.ValueOr { Offset = 0, 0; Range = QsCompilerDiagnostic.DefaultRange }
-        location.Offset, QsCompilerDiagnostic.Error error location.Range
+        let location = statement.Location.ValueOr { Offset = Position.Zero; Range = Range.Zero }
+        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
     let returnErrors (block : QsPositionedBlock) =
         block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
 
     // Diagnostics for variable reassignments.
     let setError (name : NonNullable<string>, location : QsLocation) =
         let error = ErrorCode.SetInResultConditionedBlock, [name.Value; context.ProcessorArchitecture.Value]
-        location.Offset, QsCompilerDiagnostic.Error error location.Range
+        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
     let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
 
     let blocks =
@@ -151,9 +165,9 @@ let NewFailStatement comments location context expr =
 /// and returns it along with an array of diagnostics generated during resolution and verification. 
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations 
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
-let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<_>) expr =
-    let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
-    let verifiedExpr, _, diagnostics = VerifyWith verifyIsReturnType context expr 
+let NewReturnStatement comments (location : QsLocation) (context : ScopeContext) expr =
+    let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
+    let verifiedExpr, _, diagnostics = ExpressionVerifyWith verifyIsReturnType context expr 
     let autoGenErrs =
         context.Symbols
         |> onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range)
@@ -174,34 +188,40 @@ let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<
 /// If warnOnDiscard is set to true, generates a DiscardingItemInAssignment warning if a symbol on the left hand side is missing. 
 /// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration, 
 /// along with an array containing all generated diagnostics. 
-let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsRange)) warnOnDiscard = 
+let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)) warnOnDiscard = 
     let symbolTuple (items : _ list) = 
         if items.Length = 0 then ArgumentException "symbol tuple has to contain at least one item" |> raise
         elif items.Length = 1 then items.[0]
         else VariableNameTuple (items.ToImmutableArray())
 
     let withUnknownExprErr (s, d, errs) = s, d, Array.concat [errs; [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.ExpressionOfUnknownType, []) |]]
-    let rec GetBindings (sym : QsSymbol, exType : ResolvedType) = 
+    let rec GetBindings (sym : QsSymbol, exType : ResolvedType, exKind : QsExpressionKind<_,_,_> option) = 
         match sym.Symbol with 
-        | _ when exType.isMissing -> GetBindings (sym, InvalidType |> ResolvedType.New) |> withUnknownExprErr
+        | _ when exType.isMissing -> GetBindings (sym, InvalidType |> ResolvedType.New, None) |> withUnknownExprErr
         | QsSymbolKind.InvalidSymbol -> InvalidItem, [||], [||]
         | QsSymbolKind.MissingSymbol when warnOnDiscard -> DiscardedItem, [||], [| sym.RangeOrDefault |> QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) |] 
         | QsSymbolKind.MissingSymbol -> DiscardedItem, [||], [||]
         | QsSymbolKind.OmittedSymbols 
         | QsSymbolKind.QualifiedSymbol _ -> InvalidItem, [||], [| sym.RangeOrDefault |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) |] 
-        | QsSymbolKind.Symbol name -> tryBuildDeclaration (name, sym.RangeOrDefault) (exType, rhsRange) |> function
+        | QsSymbolKind.Symbol name -> 
+            match tryBuildDeclaration (name, sym.RangeOrDefault) (exType, exKind, rhsRange) with
             | Some decl, errs -> VariableName name, [|decl|], errs
             | None, errs -> VariableName name, [||], errs
-        | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings (syms.[0], exType)
+        | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings (syms.[0], exType, exKind)
         | QsSymbolKind.SymbolTuple syms -> exType |> function 
             | Tuple ts when syms.Length = ts.Length ->
-                let (symItems, declarations, errs) = Seq.zip syms ts |> Seq.map GetBindings |> Seq.toList |> List.unzip3
+                let (symItems, declarations, errs) = 
+                    match exKind with 
+                    | Some (ValueTuple (vs : ImmutableArray<TypedExpression>)) when vs.Length = ts.Length ->
+                        Seq.zip3 syms ts vs |> Seq.map (fun (s,t,v) -> GetBindings (s, t, Some v.Expression))
+                    | _ -> Seq.zip syms ts |> Seq.map (fun (s,t) -> GetBindings (s, t, None))
+                    |> Seq.toList |> List.unzip3
                 symbolTuple symItems, Array.concat declarations, Array.concat errs
             | _ ->
-                let (symItems, declarations, errs) = syms |> Seq.map (fun s -> (s, InvalidType |> ResolvedType.New) |> GetBindings) |> Seq.toList |> List.unzip3
+                let (symItems, declarations, errs) = syms |> Seq.map (fun s -> (s, InvalidType |> ResolvedType.New, None) |> GetBindings) |> Seq.toList |> List.unzip3
                 let errs = if exType.isInvalid then errs else [| sym.RangeOrDefault |> QsCompilerDiagnostic.Error (ErrorCode.SymbolTupleShapeMismatch, [exType |> toString]) |] :: errs 
                 symbolTuple symItems, Array.concat declarations, Array.concat errs
-    GetBindings (qsSym, rhsType)
+    GetBindings (qsSym, rhsType, rhsEx)
 
 /// Resolves and verifies the given Q# expressions using the resolution context.
 /// Verifies that the type of the resolved right hand side expression is indeed compatible with the resolved type of the left hand side expression.
@@ -212,9 +232,8 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsRange)) warnO
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
 let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression, rhs : QsExpression) =
     let verifiedLhs, lhsErrs = Verify context lhs
-    let VerifyIsCorrectType =
-        VerifyAssignment verifiedLhs.ResolvedType context.Symbols.Parent ErrorCode.TypeMismatchInValueUpdate
-    let verifiedRhs, _, rhsErrs = VerifyWith VerifyIsCorrectType context rhs
+    let VerifyIsCorrectType = AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
+    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith VerifyIsCorrectType context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency 
     let rec VerifyMutability = function
         | Tuple (exs : TypedExpression list) -> exs |> Seq.collect VerifyMutability |> Seq.toArray
@@ -224,7 +243,7 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
             | _ -> ()
             [||]
         | Item (ex : TypedExpression) -> 
-            let range = ex.Range.ValueOr QsCompilerDiagnostic.DefaultRange 
+            let range = ex.Range.ValueOr Range.Zero
             [| range |> QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) |]
         | _ -> [||] // both missing and invalid expressions on the lhs are fine
     let refErrs = verifiedLhs |> VerifyMutability
@@ -242,11 +261,11 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters 
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
-let private TryAddDeclaration isMutable (symbols : SymbolTracker<_>) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsRange) =
-    let typeParametrizedRhs = rhsType.isTypeParametrized symbols.Parent
+let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
     let t, tpErr = 
-        if not typeParametrizedRhs then rhsType, [||]
-        else InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
+        if rhsType.isTypeParametrized symbols.Parent || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then 
+            InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
+        else rhsType, [||]
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), errs |> Array.append tpErr
@@ -263,7 +282,7 @@ let private NewBinding kind comments (location : QsLocation) context (qsSym : Qs
         let isMutable = kind |> function | MutableBinding -> true | ImmutableBinding -> false                
         let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
         let addDeclaration (name, range) = TryAddDeclaration isMutable context.Symbols (name, (Value location.Offset, range), localQdep)
-        VerifyBinding addDeclaration (qsSym, (rhs.ResolvedType, qsExpr.RangeOrDefault)) false
+        VerifyBinding addDeclaration (qsSym, (rhs.ResolvedType, Some rhs.Expression, qsExpr.RangeOrDefault)) false
     let autoGenErrs = (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
     let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
     binding |> asStatement comments location (LocalDeclarations.New varDeclarations), Array.concat [rhsErrs; errs; autoGenErrs]
@@ -296,7 +315,7 @@ let NewForStatement comments (location : QsLocation) context (qsSym : QsSymbol, 
     let symTuple, _, varErrs = 
         let localQdep = iterExpr.InferredInformation.HasLocalQuantumDependency
         let addDeclaration (name, range) = TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), localQdep)
-        VerifyBinding addDeclaration (qsSym, (itemT, qsExpr.RangeOrDefault)) false
+        VerifyBinding addDeclaration (qsSym, (itemT, None, qsExpr.RangeOrDefault)) false
     let autoGenErrs = (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
     let forLoop body = QsForStatement.New ((symTuple, itemT), iterExpr, body) |> QsForStatement
     new BlockStatement<_>(forLoop >> asStatement comments location LocalDeclarations.Empty), Array.concat [iterErrs; varErrs; autoGenErrs] 
@@ -340,7 +359,7 @@ let NewIfStatement context (ifBlock : TypedExpression * QsPositionedBlock) elifB
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
 /// Returns an array with diagnostics generated if the statement does not satisfy the necessary conditions 
 /// for the required auto-generation of specializations (specified by the given SymbolTracker). 
-let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
+let NewRepeatStatement (symbols : SymbolTracker) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
     let location = repeatBlock.Location |> function 
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc 
@@ -366,7 +385,8 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         accumulate.SharedState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
-        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+        |> Seq.map (fun loc -> loc.Offset + loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.toArray
     QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location LocalDeclarations.Empty, updateErrs
 
 /// Given the location of the statement header and the resolution context, 
@@ -391,10 +411,10 @@ let private NewBindingScope kind comments (location : QsLocation) context (qsSym
 
     let initializer, initErrs = VerifyInitializer qsInit
     let symTuple, _, varErrs = 
-        let rhsRange = qsInit.Range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let rhsRange = qsInit.Range.ValueOr Range.Zero
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
-        VerifyBinding addDeclaration (qsSym, (initializer.Type, rhsRange)) true
+        VerifyBinding addDeclaration (qsSym, (initializer.Type, None, rhsRange)) true
     let bindingScope body = QsQubitScope.New kind ((symTuple, initializer), body) |> QsQubitScope
     let statement = BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty)
     statement, Array.append initErrs varErrs

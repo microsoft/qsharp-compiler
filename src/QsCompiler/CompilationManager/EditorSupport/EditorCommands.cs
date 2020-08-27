@@ -12,7 +12,9 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -59,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? compilation.GlobalSymbols.TypeDeclaration(cName.Namespace, file.FileName, symbolInfo.UsedTypes.Single())
                 : symbolInfo.DeclaredSymbols.Any()
                 ? compilation.GlobalSymbols.SymbolDeclaration(locals, cName.Namespace, file.FileName, symbolInfo.DeclaredSymbols.Single())
-                : QsNullable<Tuple<NonNullable<string>, Tuple<int, int>, Tuple<QsPositionInfo, QsPositionInfo>>>.Null;
+                : QsNullable<Tuple<NonNullable<string>, Position, Range>>.Null;
 
             return found.IsValue
                 ? SymbolInfo.AsLocation(found.Item.Item1, found.Item.Item2, found.Item.Item3)
@@ -131,9 +133,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, LSP.Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
-            if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file))
+            if (range?.Start == null || range.End == null || file == null || !file.ContainsRange(range))
             {
                 return null;
             }
@@ -162,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
         {
-            DocumentHighlight AsHighlight(LSP.Range range) =>
+            DocumentHighlight AsHighlight(Lsp.Range range) =>
                 new DocumentHighlight { Range = range, Kind = DocumentHighlightKind.Read };
 
             if (file == null)
@@ -207,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Hover GetHover(string info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new LSP.Range { Start = position, End = position }
+                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -261,12 +263,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var fragmentStart = fragment.GetRange().Start;
+            var fragmentStart = fragment.Range.Start;
 
             // getting the overlapping call expressions (if any), and determine the header of the called callable
 
-            bool OverlapsWithPosition(Tuple<QsPositionInfo, QsPositionInfo> symRange) =>
-                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(fragmentStart, symRange), true);
+            bool OverlapsWithPosition(Range symRange) => (fragmentStart + symRange).ContainsEnd(position);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
             if (!overlappingEx.Any())
@@ -276,8 +277,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             overlappingEx.Sort((ex1, ex2) => // for nested call expressions, the last expressions (by range) is always the closest one
             {
                 var (x, y) = (ex1.Range.Item, ex2.Range.Item);
-                int result = x.Item1.CompareTo(y.Item1);
-                return result == 0 ? x.Item2.CompareTo(y.Item2) : result;
+                int result = x.Start.CompareTo(y.Start);
+                return result == 0 ? x.End.CompareTo(y.End) : result;
             });
 
             var nsName = file.TryGetNamespaceAt(position);
@@ -343,21 +344,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (nrCtlApplications-- > 0)
             {
                 var ctlQsName = QsLocalSymbol.NewValidName(NonNullable<string>.New(nrCtlApplications == 0 ? "cs" : $"cs{nrCtlApplications}"));
-                argTuple = SyntaxGenerator.WithControlQubits(argTuple, QsNullable<Tuple<int, int>>.Null, ctlQsName, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                argTuple = SyntaxGenerator.WithControlQubits(argTuple, QsNullable<Position>.Null, ctlQsName, QsNullable<Range>.Null);
             }
 
             // now that we now what callable is called we need to check which argument should come next
 
-            bool BeforePosition(Tuple<QsPositionInfo, QsPositionInfo> symRange) =>
-                DiagnosticTools.GetAbsolutePosition(fragmentStart, symRange.Item2).IsSmallerThan(position);
+            bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
-            IEnumerable<(Tuple<QsPositionInfo, QsPositionInfo>, string)> ExtractParameterRanges(
+            IEnumerable<(Range, string)> ExtractParameterRanges(
                 QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
             {
-                var @null = ((Tuple<QsPositionInfo, QsPositionInfo>)null, (string)null);
-                IEnumerable<(Tuple<QsPositionInfo, QsPositionInfo>, string)> SingleItem(string paramName)
+                var @null = ((Range)null, (string)null);
+                IEnumerable<(Range, string)> SingleItem(string paramName)
                 {
-                    var arg = ex?.Range == null ? ((Tuple<QsPositionInfo, QsPositionInfo>)null, paramName)
+                    var arg = ex?.Range == null ? ((Range)null, paramName)
                         : ex.Range.IsValue ? (ex.Range.Item, paramName)
                         : @null; // no signature help if there are invalid expressions
                     return new[] { arg };

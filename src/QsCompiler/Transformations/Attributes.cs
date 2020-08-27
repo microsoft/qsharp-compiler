@@ -4,12 +4,12 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using AttributeId = QsNullable<UserDefinedType>;
     using CallablePredicate = Func<QsCallable, bool>;
-    using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
 
     /// <summary>
     /// Contains tools for building and adding attributes to an existing Q# compilation.
@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
             name != null
-            ? AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null))
+            ? AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsNullable<Range>.Null))
             : AttributeId.Null;
 
         // public static methods
@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The attribute argument is set to an invalid expression if the given argument is null.
         /// </summary>
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, null, QsComments.Empty);
+            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, Position.Zero, QsComments.Empty);
 
         /// <summary>
         /// Builds a string literal with the given content that can be used as argument to a Q# attribute.
