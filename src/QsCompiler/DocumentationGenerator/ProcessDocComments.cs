@@ -188,7 +188,9 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                         .MaybeWithSimpleDocumentationAttribute("Description", docComment.Description)
                         .MaybeWithSimpleDocumentationAttribute("Remarks", docComment.Remarks)
                         .MaybeWithSimpleDocumentationAttribute("References", docComment.References)
-                        .WithListOfDocumentationAttributes("See Also", docComment.SeeAlso)
+                        .WithListOfDocumentationAttributes("SeeAlso", docComment.SeeAlso)
+                        .WithListOfDocumentationAttributes("Example", docComment.Examples)
+                        .WithDocumentationAttributesFromDictionary("NamedItem", docComment.NamedItems)
                     .Build();
             }
 
@@ -215,9 +217,10 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                         .MaybeWithSimpleDocumentationAttribute("Description", docComment.Description)
                         .MaybeWithSimpleDocumentationAttribute("Remarks", docComment.Remarks)
                         .MaybeWithSimpleDocumentationAttribute("References", docComment.References)
-                        .WithListOfDocumentationAttributes("See Also", docComment.SeeAlso)
-                        .MaybeWithSimpleDocumentationAttribute("Output", docComment.Output)
+                        .WithListOfDocumentationAttributes("SeeAlso", docComment.SeeAlso)
+                        .WithListOfDocumentationAttributes("Example", docComment.Examples)
                         .WithDocumentationAttributesFromDictionary("Input", docComment.Input)
+                        .MaybeWithSimpleDocumentationAttribute("Output", docComment.Output)
                         .WithDocumentationAttributesFromDictionary("TypeParameter", docComment.TypeParameters)
                     .Build();
             }
