@@ -61,22 +61,6 @@ namespace Microsoft.Quantum.Documentation
             : base(parent)
             { this.outputPath = outputPath; }
             
-            private static QsCallable AddSummaryAttribute(QsCallable callable, string summary) =>
-                callable.AddAttribute(
-                    new QsDeclarationAttribute(
-                        QsNullable<UserDefinedType>.NewValue(
-                            new UserDefinedType(
-                                NonNullable<string>.New("Microsoft.Quantum.Documentation"),
-                                NonNullable<string>.New("Summary"),
-                                QsNullable<Range>.Null
-                            )
-                        ),
-                        SyntaxGenerator.StringLiteral(NonNullable<string>.New(summary), ImmutableArray<TypedExpression>.Empty),
-                        callable.Location.Item.Offset,
-                        QsComments.Empty
-                    )
-                );
-
             private async Task MaybeWriteOutput(QsCustomType type, DocComment docComment)
             {
                 if (outputPath == null) return;
@@ -184,10 +168,16 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             public override QsCustomType OnTypeDeclaration(QsCustomType type)
             {
                 type = base.OnTypeDeclaration(type);
+                // If the UDT didn't come from a Q# source file, then it
+                // came in from a reference, and shouldn't be documented in this
+                // project.
+                if (!type.SourceFile.Value.EndsWith(".qs")) return type;
+
+                var isDeprecated = type.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
                     type.Documentation, type.FullName.Name.Value,
-                    deprecated: false, // FIXME: support deprecated attributes
-                    replacement: null // FIXME
+                    deprecated: isDeprecated,
+                    replacement: replacement
                 );
 
                 MaybeWriteOutput(type, docComment).Wait();
@@ -205,10 +195,16 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             public override QsCallable OnCallableDeclaration(QsCallable callable)
             {
                 callable = base.OnCallableDeclaration(callable);
+                // If the callable didn't come from a Q# source file, then it
+                // came in from a reference, and shouldn't be documented in this
+                // project.
+                if (!callable.SourceFile.Value.EndsWith(".qs")) return callable;
+
+                var isDeprecated = callable.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
                     callable.Documentation, callable.FullName.Name.Value,
-                    deprecated: false, // FIXME: support deprecated attributes
-                    replacement: null // FIXME
+                    deprecated: isDeprecated,
+                    replacement: replacement
                 );
 
                 MaybeWriteOutput(callable, docComment).Wait();
