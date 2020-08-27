@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself. 
 type QsKeyword = {
-    parse : Parser<Position*Position, QsCompilerDiagnostic list>
+    parse : Parser<Range, QsCompilerDiagnostic list>
     id : string
 }
 
@@ -290,4 +290,3 @@ let qsControlledModifier    = QsOperator.New(qsControlledFunctor.id , 951 , fals
 let qsUnwrapModifier        = QsOperator.New("!"                    , 1000, true) 
 let qsArrayAccessCombinator = QsOperator.New("[", "]"               , 1100, true)  // arr[i][j] is fine
 let qsNamedItemCombinator   = QsOperator.New("::"                   , 1100, true)  // any combination of named and array item acces is fine
-

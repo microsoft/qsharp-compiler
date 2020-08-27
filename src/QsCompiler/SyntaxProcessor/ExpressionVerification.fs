@@ -28,7 +28,7 @@ type private StripInferredInfoFromType () =
     default this.OnCallableInformation opInfo = 
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.OnRangeInformation _ = QsRangeInfo.Null
+    override this.OnRangeInformation _ = Null
 let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
@@ -362,7 +362,7 @@ let private VerifyControlledApplication addError (ex : ResolvedType, range) =
 /// If the Identifier could potentially be type parameterized (even if the number of type parameters is null), 
 /// but the number of type arguments does not match the number of type parameters, adds a WrongNumberOfTypeArguments error via addDiagnostic.
 /// Returns the resolved Identifer after type parameter resolution as typed expression. 
-let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tArgs) = 
+let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker) (sym, tArgs) = 
     let resolvedTargs = tArgs |> QsNullable<_>.Map (fun (args : ImmutableArray<QsType>) -> 
         args.Select (fun tArg -> tArg.Type |> function 
             | MissingType -> ResolvedType.New MissingType 
@@ -459,7 +459,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         if containsInvalid then invalid
         else remaining |> function | [] -> None | [t] -> Some t | _ -> TupleType (remaining.ToImmutableArray()) |> ResolvedType.New |> Some
     
-    let lookUp = new List<(QsQualifiedName * NonNullable<string>) * (ResolvedType * (QsPositionInfo * QsPositionInfo))>()
+    let lookUp = new List<(QsQualifiedName * NonNullable<string>) * (ResolvedType * Range)>()
     let addTpResolution range (tp, exT) = lookUp.Add (tp, (exT, range))
     let rec recur (targetT : ResolvedType, argEx : QsExpression) = 
         let pushErrs errCodes = for code in errCodes do argEx.RangeOrDefault |> addError code
@@ -627,7 +627,7 @@ type QsExpression with
                 | _ -> false
             let ConditionalIntExpr (cond : TypedExpression, ifTrue : TypedExpression, ifFalse : TypedExpression) = 
                 let quantumDep = [cond; ifTrue; ifFalse] |> List.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-                (CONDITIONAL (cond, ifTrue, ifFalse), Int |> ResolvedType.New, quantumDep, QsRangeInfo.Null) |> ExprWithoutTypeArgs false
+                (CONDITIONAL (cond, ifTrue, ifFalse), Int |> ResolvedType.New, quantumDep, Null) |> ExprWithoutTypeArgs false
             let OpenStartInSlicing = function 
                 | Some step when validSlicing (Some step) -> ConditionalIntExpr (IsNegative step, LengthMinusOne resolvedArr, SyntaxGenerator.IntLiteral 0L)
                 | _ -> SyntaxGenerator.IntLiteral 0L

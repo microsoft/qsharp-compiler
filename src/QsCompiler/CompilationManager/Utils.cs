@@ -7,7 +7,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -129,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
-            if (!IsValidRange(change.Range, file))
+            if (!file.ContainsRange(change.Range.ToQSharp()))
             {
                 throw new ArgumentOutOfRangeException(nameof(change)); // range can be empty
             }
@@ -177,162 +179,84 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // utils for dealing with positions and ranges
 
         /// <summary>
-        /// Returns true if the given position is valid, i.e. if both the line and character are positive.
-        /// Throws an ArgumentNullException is an argument is null.
+        /// Converts the language server protocol position into a Q# compiler position.
         /// </summary>
-        public static bool IsValidPosition(Position pos)
-        {
-            if (pos == null)
-            {
-                throw new ArgumentNullException(nameof(pos));
-            }
-            return pos.Line >= 0 && pos.Character >= 0;
-        }
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="position"/> is invalid.</exception>
+        public static Position ToQSharp(this Lsp.Position position) =>
+            position is null
+                ? throw new ArgumentNullException(nameof(position))
+                : Position.Create(position.Line, position.Character);
 
         /// <summary>
-        /// Returns true if the given position is valid, i.e. if the line is within the given file,
-        /// and the character is within the text on that line (including text.Length).
-        /// Throws an ArgumentNullException is an argument is null.
+        /// Converts the Q# compiler position into a language server protocol position.
         /// </summary>
-        internal static bool IsValidPosition(Position pos, FileContentManager file)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
+        public static Lsp.Position ToLsp(this Position position) =>
+            position is null
+                ? throw new ArgumentNullException(nameof(position))
+                : new Lsp.Position(position.Line, position.Column);
+
+        /// <summary>
+        /// Converts the language server protocol range into a Q# compiler range.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="range"/> is invalid.</exception>
+        public static Range ToQSharp(this Lsp.Range range) =>
+            range is null
+                ? throw new ArgumentNullException(nameof(range))
+                : Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
+
+        /// <summary>
+        /// Converts the Q# compiler range into a language server protocol range.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
+        public static Lsp.Range ToLsp(this Range range) =>
+            range is null
+                ? throw new ArgumentNullException(nameof(range))
+                : new Lsp.Range { Start = range.Start.ToLsp(), End = range.End.ToLsp() };
+
+        /// <summary>
+        /// Returns true if the position is within the bounds of the file contents.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="file"/> or <paramref name="position"/> is null.
+        /// </exception>
+        internal static bool ContainsPosition(this FileContentManager file, Position position)
         {
-            if (file == null)
+            if (file is null)
             {
                 throw new ArgumentNullException(nameof(file));
             }
-            return IsValidPosition(pos) && pos.Line < file.NrLines() && pos.Character <= file.GetLine(pos.Line).Text.Length;
+            if (position is null)
+            {
+                throw new ArgumentNullException(nameof(position));
+            }
+            return position.Line < file.NrLines() && position.Column <= file.GetLine(position.Line).Text.Length;
         }
 
         /// <summary>
-        /// Verifies both positions, and returns true if the first position comes strictly before the second position.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
+        /// Returns true if the range is within the bounds of the file contents.
         /// </summary>
-        internal static bool IsSmallerThan(this Position first, Position second)
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="file"/> or <paramref name="range"/> is null.
+        /// </exception>
+        internal static bool ContainsRange(this FileContentManager file, Range range)
         {
-            if (!IsValidPosition(first) || !IsValidPosition(second))
+            if (file is null)
             {
-                throw new ArgumentException("invalid position(s) given for comparison");
+                throw new ArgumentNullException(nameof(file));
             }
-            return first.Line < second.Line || (first.Line == second.Line && first.Character < second.Character);
-        }
-
-        /// <summary>
-        /// Verifies both positions, and returns true if the first position comes before the second position, or if both positions are the same.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
-        /// </summary>
-        internal static bool IsSmallerThanOrEqualTo(this Position first, Position second) =>
-            !second.IsSmallerThan(first);
-
-        /// <summary>
-        /// Returns true if the given ranges overlap.
-        /// Throws an ArgumentNullException if any of the given ranges is null.
-        /// Throws an ArgumentException if any of the given ranges is not valid.
-        /// </summary>
-        internal static bool Overlaps(this LSP.Range range1, LSP.Range range2)
-        {
-            if (!IsValidRange(range1) || !IsValidRange(range2))
+            if (range is null)
             {
-                throw new ArgumentException("invalid range given for comparison");
+                throw new ArgumentNullException(nameof(range));
             }
-            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
-            return second.Start.IsSmallerThan(first.End);
-        }
-
-        /// <summary>
-        /// Verifies the given position and range, and returns true if the given position lays within the given range.
-        /// If includeEnd is true then the end point of the range is considered to be part of the range,
-        /// otherwise the range is considered to include the start but excludes the end point.
-        /// Throws an ArgumentNullException if the given position or range is null.
-        /// Throws an ArgumentException if the given position or range is not valid.
-        /// </summary>
-        internal static bool IsWithinRange(this Position pos, LSP.Range range, bool includeEnd = false)
-        {
-            if (!IsValidPosition(pos) || !IsValidRange(range))
-            {
-                throw new ArgumentException("invalid position or range given for comparison");
-            }
-            return range.Start.IsSmallerThanOrEqualTo(pos) && (includeEnd ? pos.IsSmallerThanOrEqualTo(range.End) : pos.IsSmallerThan(range.End));
-        }
-
-        /// <summary>
-        /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
-        /// Throws an ArgumentNullException if an argument is null.
-        /// </summary>
-        public static bool IsValidRange(LSP.Range range) =>
-            IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End);
-
-        /// <summary>
-        /// Returns true if the given range is valid,
-        /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
-        /// Throws an ArgumentNullException if an argument is null.
-        /// </summary>
-        internal static bool IsValidRange(LSP.Range range, FileContentManager file) =>
-            IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End);
-
-        /// <summary>
-        /// Returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid.
-        /// </summary>
-        internal static Position Add(this Position fst, Position snd)
-        {
-            if (!IsValidPosition(fst))
-            {
-                throw new ArgumentException(nameof(fst));
-            }
-            if (!IsValidPosition(snd))
-            {
-                throw new ArgumentException(nameof(snd));
-            }
-            return new Position(fst.Line + snd.Line, snd.Line == 0 ? fst.Character + snd.Character : snd.Character);
-        }
-
-        /// <summary>
-        /// Returns the position of fst relative to snd under the assumption that both positions are zero-based.
-        /// Throws an ArgumentNullException if a given position is null.
-        /// Throws an ArgumentException if a given position is not valid, or if fst is smaller than snd.
-        /// </summary>
-        internal static Position Subtract(this Position fst, Position snd)
-        {
-            if (!IsValidPosition(fst))
-            {
-                throw new ArgumentException(nameof(fst));
-            }
-            if (!IsValidPosition(snd))
-            {
-                throw new ArgumentException(nameof(snd));
-            }
-            if (fst.IsSmallerThan(snd))
-            {
-                throw new ArgumentException(nameof(snd), "the position to subtract from needs to be larger than the position to subract");
-            }
-            var relPos = new Position(fst.Line - snd.Line, fst.Line == snd.Line ? fst.Character - snd.Character : fst.Character);
-            QsCompilerError.Verify(snd.Add(relPos).Equals(fst), "adding the relative position to snd does not equal fst");
-            return relPos;
+            return file.ContainsPosition(range.Start) && file.ContainsPosition(range.End) && range.Start <= range.End;
         }
 
         // tools for debugging
 
-        public static string DiagnosticString(this LSP.Range r) =>
-            $"({r?.Start?.Line},{r?.Start?.Character}) - ({r?.End?.Line},{r?.End?.Character})";
-
-        internal static string DiagnosticString(FileContentManager file)
-        {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            var annotatedContent = new string[file.NrLines()];
-            for (var lineNr = 0; lineNr < file.NrLines(); ++lineNr)
-            {
-                var line = file.GetLine(lineNr);
-                var delimString = "[" + string.Join(",", line.StringDelimiters) + "] ";
-                var prefix = delimString + string.Concat<string>(Enumerable.Repeat("*", line.ExcessBracketPositions.Count()));
-                annotatedContent[lineNr] = $"{prefix}i{line.Indentation}: {line.WithoutEnding}";
-            }
-            return JoinLines(annotatedContent);
-        }
+        public static string DiagnosticString(this Range r) =>
+            $"({r?.Start?.Line},{r?.Start?.Column}) - ({r?.End?.Line},{r?.End?.Column})";
     }
 }

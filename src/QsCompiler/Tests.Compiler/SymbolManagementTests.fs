@@ -10,20 +10,24 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
+let private random = System.Random 1
 
-let private rnd = System.Random(1); 
-let getRange () = ({Line = rnd.Next(); Column = rnd.Next()}, {Line = rnd.Next(); Column = rnd.Next()}) |> Value
+let private randomPosition () = Position.Create (random.Next ()) (random.Next ())
+
+let private randomRange () =
+    let a, b = randomPosition (), randomPosition ()
+    Range.Create (min a b) (max a b)
 
 let toQualName (ns : string, name : string) =
     {Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name}
 
 let toTypeParam (origin : string * string) (name : string) = 
     let ns, originName = origin
-    TypeParameter ({Origin = toQualName (ns, originName); TypeName = NonNullable<_>.New name; Range = getRange()})
+    TypeParameter {Origin = toQualName (ns, originName); TypeName = NonNullable<_>.New name; Range = randomRange () |> Value}
 
 let toUdt (qualName : string * string) =
     let fullName = qualName |> toQualName
-    UserDefinedType {Namespace = fullName.Namespace; Name = fullName.Name; Range = getRange()}
+    UserDefinedType {Namespace = fullName.Namespace; Name = fullName.Name; Range = randomRange () |> Value}
 
 let toTuple (types : _ seq) =
     TupleType ((types |> Seq.map ResolvedType.New).ToImmutableArray())

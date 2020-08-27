@@ -40,7 +40,7 @@ type QsSymbolKind<'Symbol> =
 
 type QsSymbol = {
     Symbol : QsSymbolKind<QsSymbol>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 } // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
 
 
@@ -59,7 +59,7 @@ type CharacteristicsKind<'S> =
 
 type Characteristics = {
     Characteristics : CharacteristicsKind<Characteristics>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 }
 
 type QsTypeKind<'Type,'UdtName,'TParam, 'Characteristics> = 
@@ -85,7 +85,7 @@ type QsTypeKind<'Type,'UdtName,'TParam, 'Characteristics> =
 
 type QsType = {
     Type : QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 } with interface ITuple
 
 
@@ -140,7 +140,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
 
 type QsExpression = {
     Expression : QsExpressionKind<QsExpression, QsSymbol, QsType>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 } with interface ITuple
 
 
@@ -154,7 +154,7 @@ type QsInitializerKind<'Initializer, 'Expr> =
 
 type QsInitializer = {
     Initializer : QsInitializerKind<QsInitializer, QsExpression>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 } with interface ITuple
 
 
@@ -175,7 +175,7 @@ type QsSpecializationGeneratorKind<'Symbol> =
 type QsSpecializationGenerator = {
     TypeArguments : QsNullable<ImmutableArray<QsType>> 
     Generator : QsSpecializationGeneratorKind<QsSymbol>
-    Range : QsRangeInfo
+    Range : QsNullable<Range>
 }
 
 
@@ -311,11 +311,7 @@ with
            
 type QsFragment = {
     Kind : QsFragmentKind
-    Range : QsPositionInfo * QsPositionInfo
+    Range : Range
     Diagnostics : ImmutableArray<QsCompilerDiagnostic>
     Text : NonNullable<string>
 }
-
-        
-
-
