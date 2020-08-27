@@ -1021,7 +1021,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var buildClause = BuildStatement(
                     nodes.Current,
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
-                    context.WithinIfCondition,
+                    context,
                     diagnostics);
                 var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
 
@@ -1033,7 +1033,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     buildClause = BuildStatement(
                         nodes.Current,
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
-                        context.WithinIfCondition,
+                        context,
                         diagnostics);
                     elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
                     proceed = nodes.MoveNext();
@@ -1050,11 +1050,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     proceed = nodes.MoveNext();
                 }
 
-                var (ifStatement, ifDiagnostics) =
-                    Statements.NewIfStatement(context, ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
-                statement = ifStatement;
-                diagnostics.AddRange(ifDiagnostics.Select(diagnostic => Diagnostics.Generate(
-                    context.Symbols.SourceFile.Value, diagnostic, rootPosition)));
+                statement = Statements.NewIfStatement(ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
                 return true;
             }
             (statement, proceed) = (null, true);
@@ -1601,10 +1597,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var implementation = BuildScope(root.Children, context, diagnostics);
             context.Symbols.EndScope();
 
-            // verify that all paths return a value if needed (or fail)
-            var (allPathsReturn, messages) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
+            // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
+            // capabilities are supported by the execution target.
+            var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
+            var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
+            diagnostics.AddRange(
+                returnDiagnostics
+                    .Concat(capabilityDiagnostics)
+                    .Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind.IsControlledAdjointDeclaration ? 2 : 1).Invoke(root.Fragment.Text);

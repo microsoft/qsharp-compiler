@@ -21,26 +21,36 @@ let private toCapability inOperation = function
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
     | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
 
-let private toDiagnostic context pattern =
-    let unsupported =
-        if context.Capabilities = RuntimeCapabilities.QPRGen0
-        then ErrorCode.UnsupportedResultComparison
-        else ErrorCode.ResultComparisonNotInOperationIf
-    let code, args, range =
-        match pattern with
-        | ReturnInResultConditionedBlock range ->
-            ErrorCode.ReturnInResultConditionedBlock, [ context.ProcessorArchitecture.Value ], range
-        | SetInResultConditionedBlock (name, range) ->
-            ErrorCode.SetInResultConditionedBlock, [ name; context.ProcessorArchitecture.Value ], range
-        | ResultEqualityInCondition range ->
-            unsupported, [ context.ProcessorArchitecture.Value ], range
-        | ResultEqualityNotInCondition range ->
-            unsupported, [ context.ProcessorArchitecture.Value ], range
-    if toCapability context.IsInOperation pattern > context.Capabilities
-    then QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
-    else None
+let private hasCapability expected actual =
+    match expected, actual with
+    | _, RuntimeCapabilities.Unknown -> true
+    | RuntimeCapabilities.QPRGen0, _ -> true
+    | RuntimeCapabilities.QPRGen1, RuntimeCapabilities.QPRGen1 -> true
+    | _ -> false
 
-let private toDiagnostics context = toDiagnostic context |> Seq.choose
+let private toDiagnostic context pattern =
+    let error code args (range : QsNullable<_>) =
+        if context.Capabilities |> hasCapability (toCapability context.IsInOperation pattern)
+        then None
+        else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
+    let unsupported =
+        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        then ErrorCode.ResultComparisonNotInOperationIf
+        else ErrorCode.UnsupportedResultComparison
+
+    match pattern with
+    | ReturnInResultConditionedBlock range ->
+        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture.Value ] range
+        else None
+    | SetInResultConditionedBlock (name, range) ->
+        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture.Value ] range
+        else None
+    | ResultEqualityInCondition range ->
+        error unsupported [ context.ProcessorArchitecture.Value ] range
+    | ResultEqualityNotInCondition range ->
+        error unsupported [ context.ProcessorArchitecture.Value ] range
 
 let private addOffset offset =
     let add = QsNullable.Map2 (+) offset
@@ -153,11 +163,13 @@ let private statementPatterns statement =
     transformation.Statements.OnStatement statement |> ignore
     patterns
 
-let StatementDiagnostics context = statementPatterns >> toDiagnostics context
+let private scopePatterns scope = scope.Statements |> Seq.collect statementPatterns
+
+let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
 
 let SpecializationPatterns specialization =
     match specialization.Implementation with
     | Provided (_, scope) ->
         let offset = specialization.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        scope.Statements |> Seq.collect statementPatterns |> Seq.map (addOffset offset)
+        scopePatterns scope |> Seq.map (addOffset offset)
     | _ -> Seq.empty
