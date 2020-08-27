@@ -48,7 +48,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Library2", "src\QsCompiler\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A4A3C7BF-19AD-4916-A4D8-6572C1A11AFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentationGenerator", "src\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentationGenerator", "src\QsCompiler\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
