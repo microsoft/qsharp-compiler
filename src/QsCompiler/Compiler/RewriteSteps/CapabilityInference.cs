@@ -38,10 +38,11 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 if (element is QsNamespaceElement.QsCallable callable)
                 {
                     Console.WriteLine(callable.Item.FullName);
-                    foreach (var inference in callable.Item.Specializations.SelectMany(SpecializationInferences))
+                    foreach (var pattern in callable.Item.Specializations.SelectMany(SpecializationPatterns))
                     {
-                        Console.WriteLine(inference);
+                        Console.WriteLine(pattern);
                     }
+                    Console.WriteLine();
                 }
             }
             transformed = compilation;

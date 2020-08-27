@@ -14,11 +14,11 @@
     </Compile>
     <Compile Include="VerificationTools.fs" />
     <Compile Include="ScopeTools.fs" />
+    <Compile Include="CapabilityInference.fs" />
     <Compile Include="ContextVerification.fs" />
     <Compile Include="ExpressionVerification.fs" />
     <Compile Include="StatementVerification.fs" />
     <Compile Include="TreeVerification.fs" />
-    <Compile Include="CapabilityInference.fs" />
     <Compile Include="DeclarationVerification.fs" />
     <Compile Include="SyntaxExtensions.fs" />
   </ItemGroup>
