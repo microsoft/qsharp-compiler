@@ -33,16 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            foreach (var element in compilation.Namespaces.SelectMany(ns => ns.Elements))
-            {
-                if (element is QsNamespaceElement.QsCallable callable)
-                {
-                    Console.WriteLine(callable.Item.FullName);
-                    Console.WriteLine(CallableCapability(callable.Item));
-                    Console.WriteLine();
-                }
-            }
-            transformed = compilation;
+            transformed = InferCapabilities(compilation);
             return true;
         }
 
