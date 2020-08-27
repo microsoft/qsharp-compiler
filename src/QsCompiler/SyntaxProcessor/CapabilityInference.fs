@@ -116,23 +116,23 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         match s.Statement with
         | QsReturnStatement _ -> [ s ]
         | _ -> []
-    let returnInferences (block : QsPositionedBlock) =
+    let returnPatterns (block : QsPositionedBlock) =
         block.Body.Statements
         |> Seq.collect returnStatements
         |> Seq.map (fun statement ->
                let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
                ReturnInResultConditionedBlock range)
-    let setInferences (block : QsPositionedBlock) =
+    let setPatterns (block : QsPositionedBlock) =
         nonLocalUpdates block.Body
         |> Seq.map (fun (name, location) ->
                SetInResultConditionedBlock (name.Value, location.Offset + location.Range |> Value))
-    let foldInferences (dependsOnResult, diagnostics) (condition : TypedExpression, block : QsPositionedBlock) =
+    let foldPatterns (dependsOnResult, diagnostics) (condition : TypedExpression, block : QsPositionedBlock) =
         if dependsOnResult || condition.Exists isResultEquality
-        then true, Seq.concat [ diagnostics; returnInferences block; setInferences block ]
+        then true, Seq.concat [ diagnostics; returnPatterns block; setPatterns block ]
         else false, diagnostics
 
     conditionBlocks condBlocks elseBlock
-    |> Seq.fold foldInferences (false, Seq.empty)
+    |> Seq.fold foldPatterns (false, Seq.empty)
     |> snd
 
 let private statementPatterns statement =
