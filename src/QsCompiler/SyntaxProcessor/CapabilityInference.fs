@@ -20,6 +20,16 @@ let private capability = function
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
     | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
 
+let private addOffset offset =
+    let add = QsNullable.Map2 (+) offset
+    function
+    | ReturnInResultConditionedBlock range -> add range |> ReturnInResultConditionedBlock
+    | SetInResultConditionedBlock (name, range) -> SetInResultConditionedBlock (name, add range)
+    | ResultEqualityInCondition range -> add range |> ResultEqualityInCondition
+    | ResultEqualityNotInCondition range -> add range |> ResultEqualityNotInCondition
+
+let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
+
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
 let private isResultEquality { TypedExpression.Expression = expression } =
     let validType = function
@@ -37,12 +47,11 @@ let private isResultEquality { TypedExpression.Expression = expression } =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-let private expressionInferences inCondition offset (expression : TypedExpression) =
+let private expressionInferences inCondition (expression : TypedExpression) =
     expression.ExtractAll <| fun expression' ->
         if isResultEquality expression'
         then
             expression'.Range
-            |> QsNullable.Map2 (+) offset
             |> if inCondition then ResultEqualityInCondition else ResultEqualityNotInCondition
             |> Seq.singleton
         else Seq.empty
@@ -84,41 +93,47 @@ let private conditionalStatementInferences { ConditionalBlocks = condBlocks; Def
         |> Seq.map (fun (name, location) ->
                SetInResultConditionedBlock (name.Value, location.Offset + location.Range |> Value))
     let foldInferences (dependsOnResult, diagnostics) (condition : TypedExpression, block : QsPositionedBlock) =
-        let offset = block.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        let conditionInferences = expressionInferences true offset condition
         if dependsOnResult || condition.Exists isResultEquality
-        then true, Seq.concat [ diagnostics; conditionInferences; returnInferences block; setInferences block ]
-        else false, Seq.append diagnostics conditionInferences
+        then true, Seq.concat [ diagnostics; returnInferences block; setInferences block ]
+        else false, diagnostics
 
     conditionBlocks condBlocks elseBlock
     |> Seq.fold foldInferences (false, Seq.empty)
     |> snd
 
-let Inferences compilation =
+let private statementInferences statement =
     let inferences = ResizeArray ()
     let mutable offset = Null
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
 
     transformation.Statements <- {
         new StatementTransformation (transformation, TransformationOptions.NoRebuild) with
-            member this.OnLocation location =
-                offset <- location |> QsNullable<_>.Map (fun location' -> location'.Offset)
+            override this.OnLocation location =
+                offset <- locationOffset location
                 location
     }
     transformation.StatementKinds <- {
         new StatementKindTransformation (transformation, TransformationOptions.NoRebuild) with
-            member this.OnConditionalStatement statement =
+            override this.OnConditionalStatement statement =
                 conditionalStatementInferences statement |> inferences.AddRange
-                for _, block in conditionBlocks statement.ConditionalBlocks statement.Default do
+                for condition, block in conditionBlocks statement.ConditionalBlocks statement.Default do
+                    let blockOffset = locationOffset block.Location
+                    expressionInferences true condition |> Seq.map (addOffset blockOffset) |> inferences.AddRange
                     this.Transformation.Statements.OnScope block.Body |> ignore
                 QsConditionalStatement statement
     }
     transformation.Expressions <- {
         new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
-            member this.OnTypedExpression expression =
-                expressionInferences false offset expression |> inferences.AddRange
+            override this.OnTypedExpression expression =
+                expressionInferences false expression |> Seq.map (addOffset offset) |> inferences.AddRange
                 expression
     }
-
-    transformation.OnCompilation compilation |> ignore
+    transformation.Statements.OnStatement statement |> ignore
     inferences
+
+let SpecializationInferences specialization =
+    match specialization.Implementation with
+    | Provided (_, scope) ->
+        let offset = specialization.Location |> QsNullable<_>.Map (fun location -> location.Offset)
+        scope.Statements |> Seq.collect statementInferences |> Seq.map (addOffset offset)
+    | _ -> Seq.empty
