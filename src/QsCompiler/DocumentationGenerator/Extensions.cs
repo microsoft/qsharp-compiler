@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -15,6 +16,12 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.Serialization;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
+using ResolvedTypeKind = Microsoft.Quantum.QsCompiler.SyntaxTokens.QsTypeKind<
+    Microsoft.Quantum.QsCompiler.SyntaxTree.ResolvedType,
+    Microsoft.Quantum.QsCompiler.SyntaxTree.UserDefinedType,
+    Microsoft.Quantum.QsCompiler.SyntaxTree.QsTypeParameter,
+    Microsoft.Quantum.QsCompiler.SyntaxTree.CallableInformation
+>;
 
 #nullable enable
 
@@ -281,6 +288,59 @@ namespace Microsoft.Quantum.Documentation
             }
 
         }
+
+        internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) =>
+            items.InputDeclarations().ToDictionary(
+                declaration => declaration.Item1,
+                declaration => declaration.Item2
+            );
+
+        private static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
+            {
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple =>
+                    tuple.Item.SelectMany(
+                        item => item.InputDeclarations()
+                    )
+                    .ToList(),
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item =>
+                    new List<(string, ResolvedType)>
+                    {
+                        (
+                            item.Item.VariableName switch
+                            {
+                                QsLocalSymbol.ValidName name => name.Item.Value,
+                                _ => "__invalid__"
+                            },
+                            item.Item.Type
+                        )
+                    }
+            };
+
+        internal static string ToMarkdownLink(this ResolvedType type) => type.Resolution switch
+            {
+                ResolvedTypeKind.ArrayType array => $"{array.Item.ToMarkdownLink()}[]",
+                ResolvedTypeKind.Function function =>
+                    $"{function.Item1.ToMarkdownLink()} -> {function.Item2.ToMarkdownLink()}",
+                ResolvedTypeKind.Operation operation => "TODO",
+                ResolvedTypeKind.TupleType tuple => "TODO",
+                ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
+                _ => type.Resolution.Tag switch
+                {
+                    ResolvedTypeKind.Tags.BigInt => "BigInt",
+                    ResolvedTypeKind.Tags.Bool => "Bool",
+                    ResolvedTypeKind.Tags.Double => "Double",
+                    ResolvedTypeKind.Tags.Int => "Int",
+                    ResolvedTypeKind.Tags.Pauli => "Pauli",
+                    ResolvedTypeKind.Tags.Qubit => "Qubit",
+                    ResolvedTypeKind.Tags.Range => "Range",
+                    ResolvedTypeKind.Tags.String => "String",
+                    ResolvedTypeKind.Tags.UnitType => "Unit",
+                    _ => "__invalid__"
+                }
+            };
+
+        internal static string ToMarkdownLink(this UserDefinedType type) =>
+            $"[{type.Name.Value}](xref:{type.Namespace.Value}.{type.Name.Value})";
     }
 
 }

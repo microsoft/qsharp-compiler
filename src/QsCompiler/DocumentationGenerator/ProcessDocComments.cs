@@ -114,6 +114,8 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
             {
                 if (outputPath == null) return;
 
+                var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
+
                 // Make a new Markdown document for the type declaration.
                 var title = $@"{callable.FullName.Name.Value} {
                     callable.Kind.Tag switch
@@ -153,7 +155,11 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                 .MaybeWithSection(
                     "Input",
                     String.Join("\n", docComment.Input.Select(
-                        item => $"### {item.Key}\n\n{item.Value}\n\n"
+                        item =>
+                        {
+                            var hasInput = inputDeclarations.TryGetValue(item.Key, out var inputType);
+                            return $"### {item.Key}{(hasInput ? $" : {inputType.ToMarkdownLink()}" : "")}\n\n{item.Value}\n\n";
+                        }
                     ))
                 )
                 .MaybeWithSection("Output", docComment.Output)
