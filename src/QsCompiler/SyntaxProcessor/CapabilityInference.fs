@@ -102,7 +102,7 @@ let private nonLocalUpdates scope =
     let accumulator = AccumulateIdentifiers ()
     accumulator.Statements.OnScope scope |> ignore
     accumulator.SharedState.ReassignedVariables
-    |> Seq.collect (fun grouping -> grouping |> Seq.map (fun location -> grouping.Key, location))
+    |> Seq.collect (fun group -> group |> Seq.map (fun location -> group.Key, location.Offset + location.Range))
     |> Seq.filter (fst >> isKnownSymbol)
 
 let private conditionBlocks condBlocks elseBlock =
@@ -126,8 +126,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
                ReturnInResultConditionedBlock range)
     let setPatterns (block : QsPositionedBlock) =
         nonLocalUpdates block.Body
-        |> Seq.map (fun (name, location) ->
-               SetInResultConditionedBlock (name.Value, location.Offset + location.Range |> Value))
+        |> Seq.map (fun (name, range) -> SetInResultConditionedBlock (name.Value, Value range))
     let foldPatterns (dependsOnResult, diagnostics) (condition : TypedExpression, block : QsPositionedBlock) =
         if dependsOnResult || condition.Exists isResultEquality
         then true, Seq.concat [ diagnostics; returnPatterns block; setPatterns block ]
