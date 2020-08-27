@@ -1,5 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -99,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="name">The name of the element</param>
         /// <param name="deprecated">Flag indicating whether or not the element had a Deprecated attribute</param>
         /// <param name="replacement">The name of the replacement element for deprecated elements, if given</param>
-        public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string replacement)
+        public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string? replacement)
         {
             static string GetHeadingText(HeadingBlock heading)
             {
