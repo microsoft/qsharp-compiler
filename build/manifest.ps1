@@ -43,6 +43,6 @@ if ($Env:ENABLE_VSIX -ne "false") {
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCompiler.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsDocumentationParser.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/qsc.dll",
-        "./src/QuantumSdk/Tools/$Env:BUILD_CONFIGURATION/bin/Release/netcoreapp3.1/Microsoft.Quantum.Sdk.BuildConfiguration.dll"
+        "./src/QuantumSdk/Tools/BuildConfiguration/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/publish/Microsoft.Quantum.Sdk.BuildConfiguration.dll"
     ) | ForEach-Object { Get-Item (Join-Path $PSScriptRoot ".." $_) };
 } | Write-Output;

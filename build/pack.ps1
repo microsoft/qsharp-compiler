@@ -231,6 +231,9 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
 }
 
+Write-Host "##[info]Verifying manifest..."
+& (Join-Path $PSScriptRoot "manifest.ps1")
+
 if (-not $all_ok) {
     throw "Packing failed. Check the logs."
     exit 1
