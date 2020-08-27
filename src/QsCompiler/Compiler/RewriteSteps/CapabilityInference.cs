@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using static Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -32,9 +33,16 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            foreach (var inference in SyntaxProcessing.CapabilityInference.Inferences(compilation))
+            foreach (var element in compilation.Namespaces.SelectMany(ns => ns.Elements))
             {
-                Console.WriteLine(inference);
+                if (element is QsNamespaceElement.QsCallable callable)
+                {
+                    Console.WriteLine(callable.Item.FullName);
+                    foreach (var inference in callable.Item.Specializations.SelectMany(SpecializationInferences))
+                    {
+                        Console.WriteLine(inference);
+                    }
+                }
             }
             transformed = compilation;
             return true;
