@@ -164,6 +164,7 @@
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
     <Compile Include="CapabilityVerificationTests.fs" />
+    <Compile Include="CapabilityInferenceTests.fs" />
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />

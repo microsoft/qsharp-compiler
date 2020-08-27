@@ -15,21 +15,22 @@ let private compile capabilities =
     CompilerTests.Compile ("TestCases", ["CapabilityVerification.qs"], capabilities = capabilities)
 
 /// The unknown capability tester.
-let private unknown = CompilerTests (compile RuntimeCapabilities.Unknown)
+let private unknown = compile RuntimeCapabilities.Unknown |> CompilerTests
 
 /// The QPRGen0 capability tester.
-let private gen0 = CompilerTests (compile RuntimeCapabilities.QPRGen0)
+let private gen0 = compile RuntimeCapabilities.QPRGen0 |> CompilerTests
 
 /// The QPRGen1 capability tester.
-let private gen1 = CompilerTests (compile RuntimeCapabilities.QPRGen1)
+let private gen1 = compile RuntimeCapabilities.QPRGen1 |> CompilerTests
 
 /// The qualified name for the test case name.
-let private testName name =
+let internal testName name =
     QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.CapabilityVerification",
                          NonNullable<_>.New name)
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
-let private expect (tester : CompilerTests) errorCodes name = tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
+let private expect (tester : CompilerTests) errorCodes name =
+    tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
 
 /// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
 /// QPRGen0, and no errors in Unknown.
