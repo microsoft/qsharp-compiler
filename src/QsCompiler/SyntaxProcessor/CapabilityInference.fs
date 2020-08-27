@@ -9,11 +9,13 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
-type Pattern =
+type private Pattern =
     | ReturnInResultConditionedBlock of Range QsNullable
     | SetInResultConditionedBlock of string * Range QsNullable
     | ResultEqualityInCondition of Range QsNullable
     | ResultEqualityNotInCondition of Range QsNullable
+
+type private Level = Level of int
 
 let private toCapability inOperation = function
     | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
@@ -21,30 +23,30 @@ let private toCapability inOperation = function
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
     | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
 
-let private hasCapability expected actual =
-    match expected, actual with
-    | _, RuntimeCapabilities.Unknown -> true
-    | RuntimeCapabilities.QPRGen0, _ -> true
-    | RuntimeCapabilities.QPRGen1, RuntimeCapabilities.QPRGen1 -> true
-    | _ -> false
+let private baseCapability = RuntimeCapabilities.QPRGen0
+
+let private level = function
+    | RuntimeCapabilities.QPRGen0 -> Level 0
+    | RuntimeCapabilities.QPRGen1 -> Level 1
+    | _ -> Level 2
 
 let private toDiagnostic context pattern =
     let error code args (range : QsNullable<_>) =
-        if context.Capabilities |> hasCapability (toCapability context.IsInOperation pattern)
+        if level context.Capabilities >= level (toCapability context.IsInOperation pattern)
         then None
         else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
     let unsupported =
-        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.QPRGen1
         then ErrorCode.ResultComparisonNotInOperationIf
         else ErrorCode.UnsupportedResultComparison
 
     match pattern with
     | ReturnInResultConditionedBlock range ->
-        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.QPRGen1
         then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture.Value ] range
         else None
     | SetInResultConditionedBlock (name, range) ->
-        if context.Capabilities |> hasCapability RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.QPRGen1
         then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture.Value ] range
         else None
     | ResultEqualityInCondition range ->
@@ -167,9 +169,21 @@ let private scopePatterns scope = scope.Statements |> Seq.collect statementPatte
 
 let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
 
-let SpecializationPatterns specialization =
+let private maxCapability capabilities =
+    if Seq.isEmpty capabilities
+    then baseCapability
+    else capabilities |> Seq.maxBy level
+
+let private specializationCapability inOperation specialization =
     match specialization.Implementation with
     | Provided (_, scope) ->
         let offset = specialization.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        scopePatterns scope |> Seq.map (addOffset offset)
-    | _ -> Seq.empty
+        scopePatterns scope |> Seq.map (addOffset offset >> toCapability inOperation) |> maxCapability
+    | _ -> baseCapability
+
+let CallableCapability callable =
+    let inOperation =
+        match callable.Kind with
+        | Operation -> true
+        | _ -> false
+    callable.Specializations |> Seq.map (specializationCapability inOperation) |> maxCapability
