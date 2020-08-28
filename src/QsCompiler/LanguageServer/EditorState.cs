@@ -263,18 +263,16 @@ namespace Microsoft.Quantum.QsLanguageServer
                     }
                 }
             }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
-            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
+            _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
                 }
 
-                if (createdTemporaryProject)
+                if (createdTemporaryProject && !associatedWithProject)
                 {
-                    QsCompilerError.Verify(
-                        associatedWithProject,
-                        "Temporary project should have been created but was not found.");
+                    logError?.Invoke($"Failed to load temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
@@ -292,12 +290,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                     showError?.Invoke(
                         $"Version control and opening multiple versions of the same file in the editor are currently not supported. \n" +
                         $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.", MessageType.Error);
-                    #if DEBUG
+#if DEBUG
                     if (showError == null)
                     {
                         logError?.Invoke("Attempting to open a file that is already open in the editor.", MessageType.Error);
                     }
-                    #endif
+#endif
 
                     this.IgnoreEditorUpdatesFor(textDocument.Uri);
                     this.openFiles.TryRemove(textDocument.Uri, out FileContentManager _);
@@ -317,7 +315,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 }
 
                 _ = manager.AddOrUpdateSourceFileAsync(file);
-            }).Wait(); // needed to ensure that the AddOrUpdateSourceFileAsync is queued before the SourceFileChangedOnDiskAsync below
+            });
             // reloading from disk in case we encountered a file already open error above
             return this.projects.SourceFileChangedOnDiskAsync(textDocument.Uri, this.GetOpenFile); // NOTE: relies on that the manager task is indeed executed first!
         }
