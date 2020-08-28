@@ -342,7 +342,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         case "See Also":
                             // seeAlso is a list of UIDs, which are all lower case,
                             // so pass true to lowercase all strings found in this section
-                            ParseListSection(section, this.SeeAlso, true);
+                            ParseListSection(section, this.SeeAlso, false);
                             break;
                         case "References":
                             this.References = ToMarkdown(section);

@@ -291,6 +291,31 @@ namespace Microsoft.Quantum.Documentation
                 declaration => declaration.Item2
             );
 
+        internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<QsTypeItem> typeItems) =>
+            typeItems.TypeDeclarations().ToDictionary(
+                declaration => declaration.Item1,
+                declaration => declaration.Item2
+            );
+
+        private static List<(string, ResolvedType)> TypeDeclarations(this QsTuple<QsTypeItem> typeItems) => typeItems switch
+            {
+                QsTuple<QsTypeItem>.QsTuple tuple =>
+                    tuple.Item.SelectMany(
+                        item => item.TypeDeclarations()
+                    )
+                    .ToList(),
+                QsTuple<QsTypeItem>.QsTupleItem item => item.Item switch
+                    {
+                        QsTypeItem.Anonymous _ => new List<(string, ResolvedType)>(),
+                        QsTypeItem.Named named => 
+                        new List<(string, ResolvedType)>
+                        {(
+                            named.Item.VariableName.Value,
+                            named.Item.Type
+                        )}
+                    }
+            };
+
         private static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
             {
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple =>

@@ -67,6 +67,9 @@ namespace Microsoft.Quantum.Documentation
             transformed = new ProcessDocComments(
                 AssemblyConstants.TryGetValue("OutputPath", out var path)
                 ? path
+                : null,
+                AssemblyConstants.TryGetValue("DocumentationPackageName", out var packageName)
+                ? packageName
                 : null
             ).OnCompilation(compilation);
             return true;
