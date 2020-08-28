@@ -56,7 +56,9 @@ let private simpleTests =
       "EmptyIfOp"
       "EmptyIfNeqOp"
       "Reset"
-      "ResetNeq" ]
+      "ResetNeq"
+      "ResetOverrideHigh"
+      "ResetOverrideLow" ]
 
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
@@ -136,5 +138,7 @@ let ``QPRGen1 allows empty Result if operation`` () =
 [<Fact>]
 let ``QPRGen1 allows operation call from Result if`` () =
     [ "Reset"
-      "ResetNeq" ]
+      "ResetNeq"
+      "ResetOverrideHigh"
+      "ResetOverrideLow" ]
     |> List.iter (expect gen1 [])

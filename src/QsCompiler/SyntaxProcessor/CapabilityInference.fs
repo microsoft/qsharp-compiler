@@ -1,13 +1,11 @@
 ﻿module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
@@ -217,6 +215,13 @@ let private callableCapability callable =
         | _ -> false
     callable.Specializations |> Seq.map (specializationCapability inOperation) |> maxCapability
 
+/// Adds the inferred capability of the callable as an attribute.
+let private addAttribute callable =
+    let capability = callableCapability callable
+    let arg = capability.ToString () |> AttributeUtils.StringArgument
+    let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
+    { callable with Attributes = callable.Attributes.Add attribute }
+
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
 /// callable.
 ///
@@ -228,9 +233,8 @@ let InferCapabilities compilation =
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                let capability = callableCapability callable
-                let arg = capability.ToString () |> AttributeUtils.StringArgument
-                let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
-                { callable with Attributes = callable.Attributes.Add attribute }
+                if callable.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> Seq.isEmpty
+                then addAttribute callable
+                else callable
     }
     transformation.OnCompilation compilation

@@ -3,15 +3,9 @@
 
 /// Test cases for verification of execution target runtime capabilities.
 namespace Microsoft.Quantum.Testing.CapabilityVerification {
-    internal operation X(q : Qubit) : Unit {
-        body intrinsic;
-    }
+    open Microsoft.Quantum.Intrinsic;
 
-    internal operation M(q : Qubit) : Result {
-        body intrinsic;
-    }
-
-    internal operation NoOp() : Unit { }
+    operation NoOp() : Unit { }
 
     function ResultAsBool(result : Result) : Bool {
         return result == Zero ? false | true;
@@ -202,5 +196,39 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
 
     function ResultArray(rs : Result[]) : Bool {
         return rs == [One] ? true | false;
+    }
+    
+    // Inferred capabilities can be overridden.
+
+    @Capability("Unknown")
+    operation ResetOverrideHigh(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+
+    @Capability("QPRGen0")
+    operation ResetOverrideLow(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+}
+
+namespace Microsoft.Quantum.Core {
+    @Attribute()
+    newtype Attribute = Unit;
+
+    @Attribute()
+    newtype Capability = String;
+}
+
+namespace Microsoft.Quantum.Intrinsic {
+    operation X(q : Qubit) : Unit {
+        body intrinsic;
+    }
+
+    operation M(q : Qubit) : Result {
+        body intrinsic;
     }
 }
