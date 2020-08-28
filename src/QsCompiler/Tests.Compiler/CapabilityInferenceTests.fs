@@ -60,6 +60,7 @@ let ``Infers Unknown`` () =
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "ResultAsBoolOpElseSet"
+      "NestedResultIfReturn"
       "ElifSet"
       "ElifElifSet"
       "ElifElseSet"
