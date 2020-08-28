@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
@@ -228,8 +229,7 @@ let InferCapabilities compilation =
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
                 let capability = callableCapability callable
-                let arg =
-                    SyntaxGenerator.StringLiteral (capability.ToString () |> NonNullable<_>.New, ImmutableArray.Empty)
+                let arg = capability.ToString () |> AttributeUtils.StringArgument
                 let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
                 { callable with Attributes = callable.Attributes.Add attribute }
     }
