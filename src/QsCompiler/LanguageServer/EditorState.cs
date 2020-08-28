@@ -290,12 +290,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                     showError?.Invoke(
                         $"Version control and opening multiple versions of the same file in the editor are currently not supported. \n" +
                         $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.", MessageType.Error);
-#if DEBUG
+                    #if DEBUG
                     if (showError == null)
                     {
                         logError?.Invoke("Attempting to open a file that is already open in the editor.", MessageType.Error);
                     }
-#endif
+                    #endif
 
                     this.IgnoreEditorUpdatesFor(textDocument.Uri);
                     this.openFiles.TryRemove(textDocument.Uri, out FileContentManager _);
