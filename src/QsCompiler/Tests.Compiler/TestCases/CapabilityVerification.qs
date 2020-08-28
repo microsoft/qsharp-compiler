@@ -89,6 +89,18 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         return b;
     }
 
+    operation NestedResultIfReturn(b : Bool, result : Result) : Bool {
+        if (b) {
+            if (result == One) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
     operation ElifSet(result : Result, flag : Bool) : Bool {
         mutable b = false;
         if (flag) {

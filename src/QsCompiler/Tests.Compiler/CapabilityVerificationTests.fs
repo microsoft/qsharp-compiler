@@ -45,6 +45,7 @@ let private simpleTests =
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "ResultAsBoolOpElseSet"
+      "NestedResultIfReturn"
       "ElifSet"
       "ElifElifSet"
       "ElifElseSet"
@@ -92,7 +93,8 @@ let ``QPRGen1 restricts non-if Result comparison in operations`` () =
 let ``QPRGen1 restricts return from Result if`` () =
     [ "ResultAsBoolOpReturnIf"
       "ResultAsBoolOpReturnIfNested"
-      "ResultAsBoolNeqOpReturnIf" ]
+      "ResultAsBoolNeqOpReturnIf"
+      "NestedResultIfReturn" ]
     |> List.iter (expect gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
