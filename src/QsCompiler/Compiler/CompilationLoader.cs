@@ -418,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null)
         {
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation, this);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation);
 
             // loading the content to compiler
 
@@ -435,22 +435,22 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus = new ExecutionStatus(this.externalRewriteSteps);
             this.compilationStatus.PluginLoading = rewriteStepLoading;
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.SourcesLoading, this);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.SourcesLoading);
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles)
                 ?? throw new ArgumentNullException("unable to load source files");
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.SourcesLoading, this);
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceLoading, this);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.SourcesLoading);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceLoading);
             var references = loadReferences?.Invoke(
                 refs => this.LoadAssemblies(
                     refs,
                     loadTestNames: this.config.ExposeReferencesViaTestNames,
                     ignoreDllResources: this.config.LoadReferencesBasedOnGeneratedCsharp))
                 ?? throw new ArgumentNullException("unable to load referenced binary files");
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading, this);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
             // building the compilation
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.Build, this);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
@@ -491,12 +491,12 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.LoadTargetSpecificDecompositions)
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReplaceTargetSpecificImplementations, this);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
                 this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.config.TargetPackageAssemblies, thisDllUri, references.Declarations.Count);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReplaceTargetSpecificImplementations, this);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
             }
 
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build, this);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build);
 
             // executing the specified rewrite steps
 
@@ -540,40 +540,40 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((priority, Execute(j)));
             }
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps, this);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             SortRewriteSteps(steps, t => t.Item1);
             foreach (var (_, rewriteStep) in steps)
             {
                 this.CompilationOutput = rewriteStep();
             }
 
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps, this);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
             // generating the compiled binary, dll, and docs
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.OutputGeneration, this);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OutputGeneration);
             using (var ms = new MemoryStream())
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeSerialization, this);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeSerialization);
                 var serialized = this.config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeSerialization, this);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeSerialization);
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
-                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration, this);
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration);
                     this.PathToCompiledBinary = this.GenerateBinary(ms);
-                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration, this);
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
                 if (serialized && this.config.DllOutputPath != null)
                 {
-                    PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration, this);
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration);
                     this.DllOutputPath = this.GenerateDll(ms);
-                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.DllGeneration, this);
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.DllGeneration);
                 }
             }
 
             if (this.config.DocumentationOutputFolder != null)
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.DocumentationGeneration, this);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.DocumentationGeneration);
                 this.compilationStatus.Documentation = Status.Succeeded;
                 var docsFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.DocumentationOutputFolder) ? "." : this.config.DocumentationOutputFolder);
                 void OnDocException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.Documentation, ex);
@@ -582,11 +582,11 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     this.LogAndUpdate(ref this.compilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
                 }
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.DocumentationGeneration, this);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.DocumentationGeneration);
             }
 
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration, this);
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OverallCompilation, this);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OverallCompilation);
         }
 
         /// <summary>

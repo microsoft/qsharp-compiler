@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 
+#nullable enable
+
 namespace Microsoft.Quantum.QsCompiler.Diagnostics
 {
     /// <summary>
@@ -25,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
     /// <summary>
     /// Defines the handler for compilation task events.
     /// </summary>
-    public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventType type, string parentTaskName, string taskName);
+    public delegate void CompilationTaskEventHandler(CompilationTaskEventType type, string? parentTaskName, string taskName);
 
     /// <summary>
     /// Provides a way to track performance accross the compiler.
@@ -111,7 +113,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Used to raise a compilation task event.
         /// </summary>
-        public static event CompilationTaskEventHandler CompilationTaskEvent;
+        public static event CompilationTaskEventHandler? CompilationTaskEvent;
 
         /// <summary>
         /// Whether a failure ocurred while tracking performance.
@@ -121,9 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Exception that caused the failure to occur.
         /// </summary>
-        #nullable enable
         public static Exception? FailureException { get; private set; }
-        #nullable disable
 
         /// <summary>
         /// Describes the hierarchichal relationship between tasks.
@@ -150,17 +150,17 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Raises a task start event.
         /// </summary>
-        public static void TaskStart(Task task, object sender = null)
+        public static void TaskStart(Task task)
         {
-            InvokeTaskEvent(CompilationTaskEventType.Start, task, sender);
+            InvokeTaskEvent(CompilationTaskEventType.Start, task);
         }
 
         /// <summary>
         /// Raises a task end event.
         /// </summary>
-        public static void TaskEnd(Task task, object sender = null)
+        public static void TaskEnd(Task task)
         {
-            InvokeTaskEvent(CompilationTaskEventType.End, task, sender);
+            InvokeTaskEvent(CompilationTaskEventType.End, task);
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Invokes a compilation task event.
         /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
         /// </summary>
-        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, object sender = null)
+        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task)
         {
             if (FailureOccurred)
             {
@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             try
             {
                 var parent = GetTaskParent(task);
-                CompilationTaskEvent?.Invoke(sender, eventType, parent?.ToString(), task.ToString());
+                CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), task.ToString());
             }
             catch (Exception ex)
             {

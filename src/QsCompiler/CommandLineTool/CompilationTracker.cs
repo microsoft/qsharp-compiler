@@ -11,6 +11,8 @@ using System.Threading;
 
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 
+#nullable enable
+
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
     /// <summary>
@@ -26,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Represents the name of the parent compilation task.
             /// </summary>
-            public readonly string ParentName;
+            public readonly string? ParentName;
 
             /// <summary>
             /// Represents the name of the compilation task.
@@ -53,6 +55,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
+            /// <summary>
+            /// Identifier of the task.
+            /// </summary>
             public string Id => GenerateKey(this.ParentName, this.Name);
 
             /// <summary>
@@ -68,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
             /// </summary>
-            internal static string GenerateKey(string parentName, string name)
+            internal static string GenerateKey(string? parentName, string name)
             {
                 return string.Format("{0}.{1}", parentName ?? "ROOT", name);
             }
@@ -76,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Creates a compilation task object and starts its stopwatch.
             /// </summary>
-            public CompilationTask(string parentName, string name)
+            public CompilationTask(string? parentName, string name)
             {
                 this.ParentName = parentName;
                 this.Name = name;
@@ -133,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 this.Children = new Dictionary<string, CompilationTaskNode>();
             }
 
-            public void WriteToJson(Utf8JsonWriter jsonWriter, string prefix)
+            public void WriteToJson(Utf8JsonWriter jsonWriter, string? prefix)
             {
                 var preparedPrefix = "";
                 if (!string.IsNullOrEmpty(prefix))
@@ -153,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Defines a handler for a type of compilation task event.
         /// </summary>
-        private delegate void CompilationTaskEventTypeHandler(string parentTaskName, string taskName);
+        private delegate void CompilationTaskEventTypeHandler(string? parentTaskName, string taskName);
 
         // Private members.
 
@@ -231,12 +236,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task start event.
         /// </summary>
-        private static void CompilationEventStartHandler(string parentTaskName, string taskName)
+        private static void CompilationEventStartHandler(string? parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
             string key = CompilationTask.GenerateKey(parentTaskName, taskName);
-            CompilationTask task;
-            if (!CompilationTasks.TryGetValue(key, out task))
+            if (!CompilationTasks.TryGetValue(key, out var task))
             {
                 task = new CompilationTask(parentTaskName, taskName);
                 CompilationTasks.Add(key, task);
@@ -248,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task end event.
         /// </summary>
-        private static void CompilationEventEndHandler(string parentTaskName, string taskName)
+        private static void CompilationEventEndHandler(string? parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
             var key = CompilationTask.GenerateKey(parentTaskName, taskName);
@@ -263,13 +267,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task event.
         /// </summary>
-        public static void OnCompilationTaskEvent(object sender, CompilationTaskEventType type, string parentTaskName, string taskName)
+        public static void OnCompilationTaskEvent(CompilationTaskEventType type, string parentTaskName, string taskName)
         {
             lock (GlobalLock)
             {
                 if (!CompilationEventTypeHandlers.TryGetValue(type, out var handler))
                 {
-                    throw new ArgumentException($"No handler for compilation task event type '{type} ({type.ToString()})' exists");
+                    throw new ArgumentException($"No handler for compilation task event type '{type}' exists");
                 }
 
                 handler(parentTaskName, taskName);
