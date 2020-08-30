@@ -30,37 +30,6 @@ namespace Microsoft.Quantum.QsCompiler
     public class CompilationLoader
     {
         /// <summary>
-        /// Represents the type of a task event.
-        /// </summary>
-        public enum CompilationTaskEventType
-        {
-            Start,
-            End
-        }
-
-        /// <summary>
-        /// Represents the arguments associated to a task event.
-        /// </summary>
-        public class CompilationTaskEventArgs : EventArgs
-        {
-            public CompilationTaskEventType Type;
-            public string ParentTaskName;
-            public string TaskName;
-
-            public CompilationTaskEventArgs(CompilationTaskEventType type, string parentTaskName, string taskName)
-            {
-                this.ParentTaskName = parentTaskName;
-                this.TaskName = taskName;
-                this.Type = type;
-            }
-        }
-
-        /// <summary>
-        /// Defines the handler for compilation task events.
-        /// </summary>
-        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
-
-        /// <summary>
         /// Given a load function that loads the content of a sequence of files from disk,
         /// returns the content for all sources to compile.
         /// </summary>
@@ -71,11 +40,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation.
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
-
-        /// <summary>
-        /// Used to raise a compilation task event.
-        /// </summary>
-        public static event CompilationTaskEventHandler CompilationTaskEvent;
 
         /// <summary>
         /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
@@ -454,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null)
         {
-            this.RaiseCompilationTaskStart(null, "OverallCompilation");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation);
 
             // loading the content to compiler
 
@@ -471,22 +435,22 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus = new ExecutionStatus(this.externalRewriteSteps);
             this.compilationStatus.PluginLoading = rewriteStepLoading;
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "SourcesLoading");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.SourcesLoading);
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles)
                 ?? throw new ArgumentNullException("unable to load source files");
-            this.RaiseCompilationTaskEnd("OverallCompilation", "SourcesLoading");
-            this.RaiseCompilationTaskStart("OverallCompilation", "ReferenceLoading");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.SourcesLoading);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceLoading);
             var references = loadReferences?.Invoke(
                 refs => this.LoadAssemblies(
                     refs,
                     loadTestNames: this.config.ExposeReferencesViaTestNames,
                     ignoreDllResources: this.config.LoadReferencesBasedOnGeneratedCsharp))
                 ?? throw new ArgumentNullException("unable to load referenced binary files");
-            this.RaiseCompilationTaskEnd("OverallCompilation", "ReferenceLoading");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
             // building the compilation
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "Build");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
@@ -527,12 +491,12 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.LoadTargetSpecificDecompositions)
             {
-                this.RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
                 this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.config.TargetPackageAssemblies, thisDllUri, references.Declarations.Count);
-                this.RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
             }
 
-            this.RaiseCompilationTaskEnd("OverallCompilation", "Build");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build);
 
             // executing the specified rewrite steps
 
@@ -576,40 +540,40 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((priority, Execute(j)));
             }
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             SortRewriteSteps(steps, t => t.Item1);
             foreach (var (_, rewriteStep) in steps)
             {
                 this.CompilationOutput = rewriteStep();
             }
 
-            this.RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
             // generating the compiled binary, dll, and docs
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "OutputGeneration");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OutputGeneration);
             using (var ms = new MemoryStream())
             {
-                this.RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeSerialization);
                 var serialized = this.config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
-                this.RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeSerialization);
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
-                    this.RaiseCompilationTaskStart("OutputGeneration", "BinaryGeneration");
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration);
                     this.PathToCompiledBinary = this.GenerateBinary(ms);
-                    this.RaiseCompilationTaskEnd("OutputGeneration", "BinaryGeneration");
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
                 if (serialized && this.config.DllOutputPath != null)
                 {
-                    this.RaiseCompilationTaskStart("OutputGeneration", "DllGeneration");
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration);
                     this.DllOutputPath = this.GenerateDll(ms);
-                    this.RaiseCompilationTaskEnd("OutputGeneration", "DllGeneration");
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.DllGeneration);
                 }
             }
 
             if (this.config.DocumentationOutputFolder != null)
             {
-                this.RaiseCompilationTaskStart("OutputGeneration", "DocumentationGeneration");
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.DocumentationGeneration);
                 this.compilationStatus.Documentation = Status.Succeeded;
                 var docsFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.DocumentationOutputFolder) ? "." : this.config.DocumentationOutputFolder);
                 void OnDocException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.Documentation, ex);
@@ -618,11 +582,11 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     this.LogAndUpdate(ref this.compilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
                 }
-                this.RaiseCompilationTaskEnd("OutputGeneration", "DocumentationGeneration");
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.DocumentationGeneration);
             }
 
-            this.RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");
-            this.RaiseCompilationTaskEnd(null, "OverallCompilation");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OverallCompilation);
         }
 
         /// <summary>
@@ -759,18 +723,6 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         // private helper methods used during construction
-
-        /// <summary>
-        /// Raises a compilation task start event.
-        /// </summary>
-        private void RaiseCompilationTaskStart(string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
-
-        /// <summary>
-        /// Raises a compilation task end event.
-        /// </summary>
-        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
 
         /// <summary>
         /// Executes the given rewrite step on the current CompilationOutput, and updates the given status accordingly.

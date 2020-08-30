@@ -166,6 +166,30 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 });
         }
 
+        /// <summary>
+        /// Publishes performance tracking data.
+        /// Logs errors if something went wrong while tracking performance or publishing results.
+        /// </summary>
+        private static void PublishPerformanceTrackingData(string perfFolder, ConsoleLogger logger)
+        {
+            if (PerformanceTracking.FailureOccurred)
+            {
+                logger.Log(ErrorCode.PerformanceTrackingFailed, new string[] { PerformanceTracking.FailureException.Message });
+                logger.Log(PerformanceTracking.FailureException);
+                return;
+            }
+
+            try
+            {
+                CompilationTracker.PublishResults(perfFolder);
+            }
+            catch (Exception ex)
+            {
+                logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[] { perfFolder });
+                logger.Log(ex);
+            }
+        }
+
         // publicly accessible routines
 
         /// <summary>
@@ -216,21 +240,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             if (options.PerfFolder != null)
             {
-                CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
+                PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (options.PerfFolder != null)
             {
-                try
-                {
-                    CompilationTracker.PublishResults(options.PerfFolder);
-                }
-                catch (Exception ex)
-                {
-                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[] { options.PerfFolder });
-                    logger.Log(ex);
-                }
+                PublishPerformanceTrackingData(options.PerfFolder, logger);
             }
 
             return ReturnCode.Status(loaded);
