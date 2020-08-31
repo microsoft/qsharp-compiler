@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -476,6 +476,27 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             this.RecordDependency(callerKey, calledKey, edge);
         }
 
+        /// <summary>
+        /// Adds the given node to the call graph, if it is not already in the graph.
+        /// </summary>
+        internal void AddNode(CallGraphNode node)
+        {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
+            if (!this.dependencies.ContainsKey(node))
+            {
+                this.dependencies[node] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+            }
+        }
+
+        /// <summary>
+        /// Adds the given specialization to the call graph as a node, if it is not already in the graph.
+        /// </summary>
+        internal void AddNode(QsSpecialization spec) => this.AddNode(new CallGraphNode(spec));
+
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (this.dependencies.TryGetValue(callerKey, out var deps))
@@ -497,10 +518,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
 
             // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
-            if (!this.dependencies.ContainsKey(calledKey))
-            {
-                this.dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
-            }
+            this.AddNode(calledKey);
         }
 
         private IEnumerable<IEnumerable<CallGraphEdge>> GetEdges(ImmutableArray<CallGraphNode> cycle)
