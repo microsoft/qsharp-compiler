@@ -32,9 +32,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public TypeParameterResolutions ParamResolutions { get; }
 
         /// <summary>
-        /// Name of the callable where the call was made.
+        /// Name of the callable where the reference was made.
         /// </summary>
-        public QsQualifiedName Parent { get; }
+        public QsQualifiedName FromCallableName { get; }
+
+        /// <summary>
+        /// Name of the callable being referenced.
+        /// </summary>
+        public QsQualifiedName ToCallableName { get; }
 
         /// <summary>
         /// The range of the reference represented by the edge.
@@ -47,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
-        internal CallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName parent, DataTypes.Range referenceRange)
+        internal CallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
         {
             if (paramResolutions == null)
             {
@@ -59,7 +64,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 kvp => kvp.Key,
                 kvp => StripPositionInfo.Apply(kvp.Value));
 
-            this.Parent = parent;
+            this.FromCallableName = fromCallableName;
+            this.ToCallableName = toCallableName;
             this.ReferenceRange = referenceRange;
         }
 
@@ -68,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
         public bool Equals(CallGraphEdge edge) =>
-            this.Parent.Equals(edge.Parent)
+            this.FromCallableName.Equals(edge.FromCallableName)
             && this.ReferenceRange.Equals(edge.ReferenceRange)
             && (this.ParamResolutions == edge.ParamResolutions
                 || this.ParamResolutions
@@ -77,12 +83,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Creates a call graph edge that represents the combination of several edges that lead to a target node.
-        /// The edges should be ordered by their distance to the target node. So the first edge should point directly
-        /// to the target node, the next edge should point to the node that has the first edge, the third edge should
-        /// point to the node that has the second edge, and so on.
+        /// The edges should be ordered to represent a path from a source node to the given target node so that
+        /// the final edge points to the target node.
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
-        public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        public static CallGraphEdge CombinePathIntoSingleEdge(IEnumerable<CallGraphEdge> edges, CallGraphNode targetNode)
         {
             if (targetNode == null)
             {
@@ -94,9 +99,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(edges));
             }
 
-            var combination = new TypeResolutionCombination(edges.Select(e => e.ParamResolutions).ToArray());
+            var combination = new TypeResolutionCombination(edges.Select(e => e.ParamResolutions).Reverse().ToArray());
+            var first = edges.First();
             var last = edges.Last();
-            return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName), last.Parent, last.ReferenceRange);
+            return new CallGraphEdge(combination.CombinedResolutionDictionary.FilterByOrigin(targetNode.CallableName), first.FromCallableName, last.ToCallableName, first.ReferenceRange);
         }
     }
 
@@ -269,7 +275,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                     {
                         var combinedEdges = edgeFromRoot is null
                             ? edges
-                            : edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
+                            : edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(new[] { edgeFromRoot, e }, dependent));
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
@@ -371,12 +377,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// other type parameters of the same callable (constricting resolutions)
         /// or to a type containing a nested reference to the same type parameter,
         /// i.e Foo.A -> Foo.A[].
-        /// Returns an enumerable of filename-diagnostics tuples for each edge of
-        /// each invalid cycle found.
+        /// Returns an enumerable of tuples for each edge of each invalid cycle found,
+        /// each tuple containing a diagnostic and the callable name where the diagnostic
+        /// should be placed.
         /// </summary>
-        public IEnumerable<Tuple<QsQualifiedName, QsCompilerDiagnostic>> VerifyAllCycles()
+        public IEnumerable<Tuple<QsCompilerDiagnostic, QsQualifiedName>> VerifyAllCycles()
         {
-            var diagnostics = new List<Tuple<QsQualifiedName, QsCompilerDiagnostic>>();
+            var diagnostics = new List<Tuple<QsCompilerDiagnostic, QsQualifiedName>>();
 
             if (this.Nodes.Any())
             {
@@ -389,11 +396,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                         foreach (var edge in cycle)
                         {
                             diagnostics.Add(Tuple.Create(
-                                edge.Parent,
                                 QsCompilerDiagnostic.Error(
                                     Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
                                     Enumerable.Empty<string>(),
-                                    edge.ReferenceRange)));
+                                    edge.ReferenceRange),
+                                edge.FromCallableName));
                         }
                     }
                 }
@@ -428,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(referenceRange));
             }
 
-            var edge = new CallGraphEdge(typeParamRes, callerKey.CallableName, referenceRange);
+            var edge = new CallGraphEdge(typeParamRes, callerKey.CallableName, calledKey.CallableName, referenceRange);
 
             if (this.dependencies.TryGetValue(callerKey, out var deps))
             {
