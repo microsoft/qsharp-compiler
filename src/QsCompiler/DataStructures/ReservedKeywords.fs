@@ -258,9 +258,9 @@ module AssemblyConstants =
         /// Measurement results cannot be compared for equality.
         | QPRGen0 = 1
 
-        /// Measurement results can be compared for equality only in if-statement conditional expressions. The block of
-        /// an if-statement that depends on a result cannot contain set statements for mutable variables declared
-        /// outside the block, or return statements.
+        /// Measurement results can be compared for equality only in if-statement conditional expressions in operations.
+        /// The block of an if-statement that depends on a result cannot contain set statements for mutable variables
+        /// declared outside the block, or return statements.
         | QPRGen1 = 2
 
 
