@@ -1,19 +1,5 @@
 name: $(Build.Major).$(Build.Minor).$(BuildId)
 
-variables:
-  Build.Major: 0
-  Build.Minor: 0
-  Build.ReleaseType: vnext
-  Assembly.Constants: 'SIGNED%3BTELEMETRY'
-  IQSharp.Hosting.Env: 'build-agent'
-  runCodesignValidationInjection: false
-  Build.Repo: qsharp-compiler
-
-pr:
-- master
-- feature/*
-
-
 resources:
   repositories:
   - repository: qdk
@@ -22,13 +8,8 @@ resources:
     name: microsoft/qdk
     ref: refs/heads/feature/qdk-ci
 
-jobs:
-- job: e2e
-  displayName: 'End-to-end build'
-  pool: 
-    vmImage: 'ubuntu-latest'
-  steps:
-  - script: echo Build.Repository.Name $(Build.Repository.Name)!!
-  - template: build.vnext/step-init-main.yml@qdk
-
+extends:
+  template: qdk-module-e2e.yml
+  parameters:
+    module: qsharp-compiler
 
