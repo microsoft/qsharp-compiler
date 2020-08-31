@@ -1,4 +1,14 @@
-name: $(Build.Major).$(Build.Minor).$(BuildId)
+name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(BuildId)
+
+parameters:
+- name: validation_level
+  displayName: Validation Level
+  type: string
+  default: normal
+  values:
+  - minimal
+  - normal
+  - full
 
 pr:
 - master
@@ -13,7 +23,8 @@ resources:
     ref: refs/heads/feature/qdk-ci
 
 extends:
-  template: build.vnext/qdk-module-e2e.yml@qdk
+  template: build/qdk-module-e2e.yml@qdk
   parameters:
     module: qsharp-compiler
+    validation_level: validation_level
 
