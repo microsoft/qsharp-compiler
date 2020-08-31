@@ -1,5 +1,9 @@
 name: $(Build.Major).$(Build.Minor).$(BuildId)
 
+pr:
+- master
+- feature/qdk-ci
+
 resources:
   repositories:
   - repository: qdk
