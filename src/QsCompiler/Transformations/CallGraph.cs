@@ -375,6 +375,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// each invalid cycle found.
         /// </summary>
         public IEnumerable<Tuple<QsQualifiedName, QsCompilerDiagnostic>> VerifyAllCycles()
+        // ToDo: When Compiler Diagnostics support Source File, all the information should be in the diagnostic. Don't return a tuple.
         {
             var diagnostics = new List<Tuple<QsQualifiedName, QsCompilerDiagnostic>>();
 
