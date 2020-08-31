@@ -24,22 +24,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public sealed class CallGraphEdge
+    public sealed class CallGraphEdge : IEquatable<CallGraphEdge>
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
         /// </summary>
-        public TypeParameterResolutions ParamResolutions { get; private set; }
+        public TypeParameterResolutions ParamResolutions { get; }
 
         /// <summary>
         /// Name of the callable where the call was made.
         /// </summary>
-        public QsQualifiedName Parent { get; set; }
+        public QsQualifiedName Parent { get; }
 
         /// <summary>
         /// The range of the reference represented by the edge.
         /// </summary>
-        public DataTypes.Range ReferenceRange { get; set; }
+        public DataTypes.Range ReferenceRange { get; }
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
@@ -104,22 +104,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on nodes in a call graph.
     /// The CallableName and Kind are expected to be non-null.
     /// </summary>
-    public sealed class CallGraphNode
+    public sealed class CallGraphNode : IEquatable<CallGraphNode>
     {
         /// <summary>
         /// The name of the represented callable.
         /// </summary>
-        public QsQualifiedName CallableName { get; private set; }
+        public QsQualifiedName CallableName { get; }
 
         /// <summary>
         /// The specialization represented.
         /// </summary>
-        public QsSpecializationKind Kind { get; private set; }
+        public QsSpecializationKind Kind { get; }
 
         /// <summary>
         /// The type arguments associated with this specialization.
         /// </summary>
-        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; private set; }
+        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; }
 
         /// <summary>
         /// Constructor for CallGraphNode objects.
