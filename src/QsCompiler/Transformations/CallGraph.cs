@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
-        public CallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName parent, DataTypes.Range referenceRange)
+        internal CallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName parent, DataTypes.Range referenceRange)
         {
             if (paramResolutions == null)
             {
@@ -403,77 +403,53 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
-        /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
+        /// Adds a dependency to the call graph using the two nodes and the edge between them.
+        /// Throws ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
+        internal void AddDependency(CallGraphNode callerKey, CallGraphNode calledKey, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange)
         {
-            var indexToNode = this.dependencies.Keys.ToImmutableArray();
-            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
-            var graph = indexToNode
-                .Select((v, i) => (v, i))
-                .ToDictionary(
-                    kvp => kvp.i,
-                    kvp => this.dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
-                        .ToList());
-
-            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
-            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph using the caller's specialization and
-        /// the called specialization's information.
-        /// Throws ArgumentNullException if any of the arguments are null, though calledTypeArgs
-        /// may have the QsNullable.Null value.
-        /// </summary>
-        internal void AddDependency(
-            QsSpecialization callerSpec,
-            QsQualifiedName calledName,
-            QsSpecializationKind calledKind,
-            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes,
-            DataTypes.Range referenceRange)
-        {
-            if (callerSpec == null)
+            if (callerKey is null)
             {
-                throw new ArgumentNullException(nameof(callerSpec));
+                throw new ArgumentNullException(nameof(callerKey));
             }
 
-            this.AddDependency(
-                callerSpec.Parent,
-                callerSpec.Kind,
-                callerSpec.TypeArguments,
-                calledName,
-                calledKind,
-                calledTypeArgs,
-                typeParamRes,
-                referenceRange);
-        }
+            if (calledKey is null)
+            {
+                throw new ArgumentNullException(nameof(calledKey));
+            }
 
-        /// <summary>
-        /// Adds a dependency to the call graph using the relevant information from the
-        /// caller's specialization and the called specialization.
-        /// Throws ArgumentNullException if any of the arguments are null, though callerTypeArgs
-        /// and calledTypeArgs may have the QsNullable.Null value.
-        /// </summary>
-        internal void AddDependency(
-            QsQualifiedName callerName,
-            QsSpecializationKind callerKind,
-            QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsQualifiedName calledName,
-            QsSpecializationKind calledKind,
-            QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes,
-            DataTypes.Range referenceRange)
-        {
-            // Setting TypeArgs to Null because the type specialization is not implemented yet
-            var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
-            var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
+            if (typeParamRes is null)
+            {
+                throw new ArgumentNullException(nameof(typeParamRes));
+            }
 
-            var edge = new CallGraphEdge(typeParamRes, callerName, referenceRange);
-            this.RecordDependency(callerKey, calledKey, edge);
+            if (referenceRange is null)
+            {
+                throw new ArgumentNullException(nameof(referenceRange));
+            }
+
+            var edge = new CallGraphEdge(typeParamRes, callerKey.CallableName, referenceRange);
+
+            if (this.dependencies.TryGetValue(callerKey, out var deps))
+            {
+                if (!deps.TryGetValue(calledKey, out var edges))
+                {
+                    deps[calledKey] = ImmutableArray.Create(edge);
+                }
+                else
+                {
+                    deps[calledKey] = edges.Add(edge);
+                }
+            }
+            else
+            {
+                var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+                newDeps[calledKey] = ImmutableArray.Create(edge);
+                this.dependencies[callerKey] = newDeps;
+            }
+
+            // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
+            this.AddNode(calledKey);
         }
 
         /// <summary>
@@ -497,28 +473,24 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         internal void AddNode(QsSpecialization spec) => this.AddNode(new CallGraphNode(spec));
 
-        private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
+        /// <summary>
+        /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
+        /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
+        /// </summary>
+        internal ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            if (this.dependencies.TryGetValue(callerKey, out var deps))
-            {
-                if (!deps.TryGetValue(calledKey, out var edges))
-                {
-                    deps[calledKey] = ImmutableArray.Create(edge);
-                }
-                else
-                {
-                    deps[calledKey] = edges.Add(edge);
-                }
-            }
-            else
-            {
-                var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
-                newDeps[calledKey] = ImmutableArray.Create(edge);
-                this.dependencies[callerKey] = newDeps;
-            }
+            var indexToNode = this.dependencies.Keys.ToImmutableArray();
+            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
+            var graph = indexToNode
+                .Select((v, i) => (v, i))
+                .ToDictionary(
+                    kvp => kvp.i,
+                    kvp => this.dependencies[kvp.v].Keys
+                        .Select(dep => nodeToIndex[dep])
+                        .ToList());
 
-            // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
-            this.AddNode(calledKey);
+            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
+            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
         }
 
         private IEnumerable<IEnumerable<CallGraphEdge>> GetEdges(ImmutableArray<CallGraphNode> cycle)

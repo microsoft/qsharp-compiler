@@ -183,6 +183,11 @@ type CallGraphTests (output:ITestOutputHelper) =
             Assert.True(dependencies.Contains(expectedNode),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
+    let AssertInGraph (givenGraph : CallGraph) name =
+        let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        Assert.True(givenGraph.ContainsNode(node), sprintf "Expected %s to be in the call graph." name)
+
     let AssertNotInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
@@ -453,13 +458,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         Assert.True(mainDependencies.Contains(adjFooNode),
             sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo")
 
-        [
-            "Foo", [
-                "Bar"
-            ]
-        ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
-        |> ignore
+        AssertNotInGraph graph "Foo" // Asserts Foo's Body isn't in the graph
+        AssertNotInGraph graph "Bar" // Asserts Bar's Body isn't in the graph
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
@@ -475,11 +475,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        [
-            "NotCalled"
-        ]
-        |> List.map (AssertNotInGraph graph)
-        |> ignore
+        AssertNotInGraph graph "NotCalled"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
@@ -495,11 +491,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        [
-            "NotCalled"
-        ]
-        |> List.map (AssertNotInGraph graph)
-        |> ignore
+        AssertInGraph graph "NotCalled"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
@@ -523,7 +515,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 17
-        Assert.True(graph.Count = 0, "Expected call graph to be empty.")
+        AssertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]

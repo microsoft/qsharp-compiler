@@ -56,25 +56,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             var walker = new BuildGraph();
 
-            walker.SharedState.IsLimitedToEntryPoints = true;
-            walker.SharedState.RequestStack = new Stack<QsQualifiedName>(compilation.EntryPoints);
-            walker.SharedState.ResolvedCallableSet = new HashSet<QsQualifiedName>();
-            var globals = compilation.Namespaces.GlobalCallableResolutions();
-            while (walker.SharedState.RequestStack.Any())
-            {
-                var currentRequest = walker.SharedState.RequestStack.Pop();
+            var entryPointNodes = compilation.EntryPoints.Select(name =>
+                new CallGraphNode(name, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null));
 
+            walker.SharedState.IsLimitedToEntryPoints = true;
+            walker.SharedState.RequestStack = new Stack<CallGraphNode>(entryPointNodes);
+            walker.SharedState.ResolvedNodeSet = new HashSet<CallGraphNode>();
+
+            var globals = compilation.Namespaces.GlobalCallableResolutions();
+            while (walker.SharedState.RequestStack.TryPop(out var currentRequest))
+            {
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.TryGetValue(currentRequest, out QsCallable currentCallable))
+                if (!globals.TryGetValue(currentRequest.CallableName, out QsCallable currentCallable))
                 {
-                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest}");
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.CallableName}");
                 }
+
+                var relevantSpecs = currentCallable.Specializations.Where(s => s.Kind == currentRequest.Kind);
 
                 // The current request must be added before it is processed to prevent
                 // self-references from duplicating on the stack.
-                walker.SharedState.ResolvedCallableSet.Add(currentRequest);
+                walker.SharedState.ResolvedNodeSet.Add(currentRequest);
 
-                walker.Namespaces.OnCallableDeclaration(currentCallable);
+                var spec = relevantSpecs.First();
+                walker.Namespaces.OnSpecializationDeclaration(spec);
             }
 
             return walker.SharedState.Graph;
@@ -88,13 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         private static CallGraph ApplyWithoutEntryPoints(QsCompilation compilation)
         {
             var walker = new BuildGraph();
-
-            // ToDo: This can be simplified once the OnCompilation method is merged in
-            foreach (var ns in compilation.Namespaces)
-            {
-                walker.Namespaces.OnNamespace(ns);
-            }
-
+            walker.OnCompilation(compilation);
             return walker.SharedState.Graph;
         }
 
@@ -125,8 +124,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
             internal bool IsLimitedToEntryPoints = false;
             // RequestStack and ResolvedCallableSet are not used if IsLimitedToEntryPoints is false.
-            internal Stack<QsQualifiedName> RequestStack = null; // Used to keep track of the callables that still need to be walked by the walker.
-            internal HashSet<QsQualifiedName> ResolvedCallableSet = null; // Used to keep track of the callables that have already been walked by the walker.
+            internal Stack<CallGraphNode> RequestStack = null; // Used to keep track of the nodes that still need to be walked by the walker.
+            internal HashSet<CallGraphNode> ResolvedNodeSet = null; // Used to keep track of the nodes that have already been walked by the walker.
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -183,6 +182,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
         {
+            /// <summary>
+            /// Adds an edge from the current caller to the called node to the call graph.
+            /// </summary>
+            private void PushEdge(CallGraphNode called, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange)
+            {
+                this.SharedState.Graph.AddDependency(new CallGraphNode(this.SharedState.CurrentSpecialization), called, typeParamRes, referenceRange);
+                // If we are not processing all elements, then we need to keep track of what elements
+                // have been processed, and which elements still need to be processed.
+                if (this.SharedState.IsLimitedToEntryPoints
+                    && !this.SharedState.RequestStack.Contains(called)
+                    && !this.SharedState.ResolvedNodeSet.Contains(called))
+                {
+                    this.SharedState.RequestStack.Push(called);
+                }
+            }
+
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
             {
             }
@@ -250,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             kind = QsSpecializationKind.QsControlled;
                         }
 
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes, referenceRange);
+                        this.PushEdge(new CallGraphNode(global.Item, kind, typeArgs), typeParamRes, referenceRange);
                     }
                     else
                     {
@@ -258,19 +273,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
                         // We're conservative and add all 4 possible kinds.
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsBody, typeArgs, typeParamRes, referenceRange);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlled, typeArgs, typeParamRes, referenceRange);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, typeParamRes, referenceRange);
-                        this.SharedState.Graph.AddDependency(this.SharedState.CurrentSpecialization, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, typeParamRes, referenceRange);
-                    }
-
-                    // If we are not processing all elements, then we need to keep track of what elements
-                    // have been processed, and which elements still need to be processed.
-                    if (this.SharedState.IsLimitedToEntryPoints
-                        && !this.SharedState.RequestStack.Contains(global.Item)
-                        && !this.SharedState.ResolvedCallableSet.Contains(global.Item))
-                    {
-                        this.SharedState.RequestStack.Push(global.Item);
+                        this.PushEdge(new CallGraphNode(global.Item, QsSpecializationKind.QsBody, typeArgs), typeParamRes, referenceRange);
+                        this.PushEdge(new CallGraphNode(global.Item, QsSpecializationKind.QsControlled, typeArgs), typeParamRes, referenceRange);
+                        this.PushEdge(new CallGraphNode(global.Item, QsSpecializationKind.QsAdjoint, typeArgs), typeParamRes, referenceRange);
+                        this.PushEdge(new CallGraphNode(global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs), typeParamRes, referenceRange);
                     }
                 }
 
