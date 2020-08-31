@@ -231,11 +231,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         referenceRange = this.SharedState.CurrentStatementOffset.Item
                             + this.SharedState.CurrentExpressionRange.Item;
-
-                        if (this.SharedState.CurrentSpecialization.Location.IsValue)
-                        {
-                            referenceRange = this.SharedState.CurrentSpecialization.Location.Item.Offset + referenceRange;
-                        }
                     }
 
                     if (this.SharedState.IsInCall)
