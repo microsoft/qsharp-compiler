@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public sealed class CallGraphEdge : ICallGraphEdge
+    public sealed class CallGraphEdge
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public bool Equals(ICallGraphEdge edge) =>
+        public bool Equals(CallGraphEdge edge) =>
             this.Parent.Equals(edge.Parent)
             && this.ReferenceRange.Equals(edge.ReferenceRange)
             && (this.ParamResolutions == edge.ParamResolutions
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// point to the node that has the second edge, and so on.
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
-        public static ICallGraphEdge CombinePathIntoSingleEdge(ICallGraphNode targetNode, params ICallGraphEdge[] edges)
+        public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
             if (targetNode == null)
             {
@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on nodes in a call graph.
     /// The CallableName and Kind are expected to be non-null.
     /// </summary>
-    public sealed class CallGraphNode : ICallGraphNode
+    public sealed class CallGraphNode
     {
         /// <summary>
         /// The name of the represented callable.
@@ -151,11 +151,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is ICallGraphNode && this.Equals((ICallGraphNode)obj);
+            return obj is CallGraphNode && this.Equals((CallGraphNode)obj);
         }
 
         /// <inheritdoc/>
-        public bool Equals(ICallGraphNode other)
+        public bool Equals(CallGraphNode other)
         {
             return (this.CallableName, this.Kind, this.TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
         }
@@ -170,20 +170,20 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Class used to track call graph of a compilation.
     /// </summary>
-    public class CallGraph : ICallGraph
+    public class CallGraph
     {
         // Static Elements
 
         /// <summary>
         /// Represents an empty dependency for a node.
         /// </summary>
-        private static readonly ILookup<ICallGraphNode, ICallGraphEdge> EmptyDependency =
-            ImmutableArray<KeyValuePair<ICallGraphNode, ICallGraphEdge>>.Empty
+        private static readonly ILookup<CallGraphNode, CallGraphEdge> EmptyDependency =
+            ImmutableArray<KeyValuePair<CallGraphNode, CallGraphEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
-        private static IEnumerable<IEnumerable<ICallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<ICallGraphEdge>> sequences)
+        private static IEnumerable<IEnumerable<CallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<CallGraphEdge>> sequences)
         {
-            IEnumerable<IEnumerable<ICallGraphEdge>> result = new[] { Enumerable.Empty<ICallGraphEdge>() };
+            IEnumerable<IEnumerable<CallGraphEdge>> result = new[] { Enumerable.Empty<CallGraphEdge>() };
             foreach (var sequence in sequences)
             {
                 result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
@@ -197,8 +197,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
-        private readonly Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>> dependencies =
-            new Dictionary<ICallGraphNode, Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>>();
+        private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> dependencies =
+            new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
         // Constructors
 
@@ -219,7 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// A collection of the nodes in the call graph.
         /// </summary>
-        public ImmutableHashSet<ICallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
+        public ImmutableHashSet<CallGraphNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
 
         // Member Methods
 
@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns true if the given node is found in the call graph, false otherwise.
         /// Throws ArgumentNullException if argument is null.
         /// </summary>
-        public bool ContainsNode(ICallGraphNode node)
+        public bool ContainsNode(CallGraphNode node)
         {
             if (node == null)
             {
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(ICallGraphNode callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(CallGraphNode callerSpec)
         {
             if (callerSpec == null)
             {
@@ -259,9 +259,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 return EmptyDependency;
             }
 
-            var accum = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+            var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
-            void WalkDependencyTree(ICallGraphNode root, ICallGraphEdge? edgeFromRoot)
+            void WalkDependencyTree(CallGraphNode root, CallGraphEdge? edgeFromRoot)
             {
                 if (this.dependencies.TryGetValue(root, out var next))
                 {
@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null)
             {
@@ -326,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(ICallGraphNode callerNode)
+        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode callerNode)
         {
             if (callerNode == null)
             {
@@ -355,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<ICallGraphNode, ICallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
+        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null)
             {
@@ -406,7 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
-        internal ImmutableArray<ImmutableArray<ICallGraphNode>> GetCallCycles()
+        internal ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
             var indexToNode = this.dependencies.Keys.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
@@ -476,7 +476,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             this.RecordDependency(callerKey, calledKey, edge);
         }
 
-        private void RecordDependency(ICallGraphNode callerKey, ICallGraphNode calledKey, ICallGraphEdge edge)
+        private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (this.dependencies.TryGetValue(callerKey, out var deps))
             {
@@ -491,7 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
             else
             {
-                var newDeps = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+                var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
                 newDeps[calledKey] = ImmutableArray.Create(edge);
                 this.dependencies[callerKey] = newDeps;
             }
@@ -499,11 +499,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
             if (!this.dependencies.ContainsKey(calledKey))
             {
-                this.dependencies[calledKey] = new Dictionary<ICallGraphNode, ImmutableArray<ICallGraphEdge>>();
+                this.dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
             }
         }
 
-        private IEnumerable<IEnumerable<ICallGraphEdge>> GetEdges(ImmutableArray<ICallGraphNode> cycle)
+        private IEnumerable<IEnumerable<CallGraphEdge>> GetEdges(ImmutableArray<CallGraphNode> cycle)
             => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
 
         // Inner Classes

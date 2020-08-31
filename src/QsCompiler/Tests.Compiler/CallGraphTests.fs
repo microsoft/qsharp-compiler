@@ -139,7 +139,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             let rotations = [0 .. size1 - 1] |> List.map rotate
             List.contains lst2 rotations
 
-    let CheckForExpectedCycles (actualCycles: seq<#seq<ICallGraphNode>>) expectedCycles =
+    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
 
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
@@ -163,17 +163,17 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<ICallGraphNode,_>) expected =
+    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<CallGraphNode,_>) expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
         let opNode = CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
         Assert.True(given.Contains(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
         let edges = given.[opNode]
         Assert.True(edges.Count() = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo)
-        let given = List.map (fun (x : ICallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
+        let given = List.map (fun (x : CallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
         AssertExpectedResolutionList expected given
 
-    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : ICallGraph) =
+    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
         let strToNode name =
             let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
             CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
@@ -183,7 +183,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             Assert.True(dependencies.Contains(expectedNode),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
-    let AssertNotInGraph (givenGraph : ICallGraph) name =
+    let AssertNotInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
