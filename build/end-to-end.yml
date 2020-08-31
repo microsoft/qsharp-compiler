@@ -9,7 +9,7 @@ resources:
     ref: refs/heads/feature/qdk-ci
 
 extends:
-  template: qdk-module-e2e.yml
+  template: qdk-module-e2e.yml@qdk
   parameters:
     module: qsharp-compiler
 
