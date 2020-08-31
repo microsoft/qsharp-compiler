@@ -2015,7 +2015,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                foreach (var (parent, diag) in compilation.VerifyCycles(callables))
+                var callGraph = Transformations.CallGraphWalker.BuildCallGraph.Apply(callables);
+                foreach (var (parent, diag) in callGraph.VerifyAllCycles())
                 {
                     var info = callableDeclarations[parent];
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
