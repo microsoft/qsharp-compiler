@@ -31,8 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
                         ? MergeNamespaces(envNs, ns)
                         : ns))
                     .ToImmutableArray(),
-                target.EntryPoints,
-                target.CallGraph);
+                target.EntryPoints);
         }
 
         /// <summary>

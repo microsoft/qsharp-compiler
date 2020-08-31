@@ -54,7 +54,7 @@ type SyntaxTreeTransformation<'T> private (state : 'T, options : TransformationO
     member this.OnCompilation compilation = 
         if options.Rebuild then
             let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
-            QsCompilation.New (namespaces, compilation.EntryPoints, compilation.CallGraph)
+            QsCompilation.New (namespaces, compilation.EntryPoints)
         else compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore); compilation
 
     member this.SharedState = state
@@ -313,7 +313,7 @@ type SyntaxTreeTransformation private (options : TransformationOptions, _interna
     member this.OnCompilation compilation = 
         if options.Rebuild then
             let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
-            QsCompilation.New (namespaces, compilation.EntryPoints, compilation.CallGraph)
+            QsCompilation.New (namespaces, compilation.EntryPoints)
         else compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore); compilation
 
     new (options : TransformationOptions) as this =

@@ -566,7 +566,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 AssertSource (sDecl.Parent, sDecl.SourceFile, None)
                 sDecl
             let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
-            checker.OnCompilation(QsCompilation.New (combined, ImmutableArray<QsQualifiedName>.Empty, QsNullable.Null)) |> ignore
+            checker.OnCompilation(QsCompilation.New (combined, ImmutableArray<QsQualifiedName>.Empty)) |> ignore
 
         let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"

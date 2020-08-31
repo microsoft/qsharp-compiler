@@ -875,7 +875,4 @@ type QsCompilation = {
     /// Contains the names of all entry points of the compilation.
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
-    /// Contains the Call Graph for the compilation.
-    /// Null if no call graph has been generated.
-    CallGraph : QsNullable<ICallGraph>
 }

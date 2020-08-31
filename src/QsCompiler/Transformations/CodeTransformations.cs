@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             }
             var inline = new InlineConjugations(onException);
             var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
-            inlined = new QsCompilation(namespaces, compilation.EntryPoints, compilation.CallGraph);
+            inlined = new QsCompilation(namespaces, compilation.EntryPoints);
             return inline.SharedState.Success;
         }
 

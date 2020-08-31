@@ -246,9 +246,8 @@ type QsNamespace with
     }
 
 type QsCompilation with
-    static member New (namespaces, entryPoints, callGraph) = {
+    static member New (namespaces, entryPoints) = {
         Namespaces = namespaces
         EntryPoints = entryPoints
-        CallGraph = callGraph
     }
 
