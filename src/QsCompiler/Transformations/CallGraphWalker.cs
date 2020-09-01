@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 //    MyTypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
 
                 var combinations = new TypeResolutionCombination(MyTypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
-                var typeParamRes = combinations.CombinedResolutionDictionary;
+                var typeParamRes = combinations.CombinedResolutionDictionary.FilterByOrigin(called);
                 MyTypeParameterResolutions = new List<TypeParameterResolutions>();
 
                 var typeArgsCalled = QsNullable<ImmutableArray<ResolvedType>>.Null;

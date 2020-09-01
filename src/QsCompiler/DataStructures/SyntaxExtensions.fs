@@ -371,6 +371,12 @@ let (| Missing | _ |) arg =
     match TupleItems arg with
     | Some [] -> Some Missing
     | _ -> None
+    
+// filter for type parameter resolution dictionaries
+    
+[<Extension>]
+let FilterByOrigin (this : ImmutableDictionary<(QsQualifiedName * NonNullable<string>), ResolvedType>) origin =
+    this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange
 
 
 // look-up for udt and global callables
