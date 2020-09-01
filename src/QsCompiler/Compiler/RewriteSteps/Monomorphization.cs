@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
@@ -33,6 +34,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            var callGraph = BuildCallGraph.Apply(compilation);
+
             transformed = Monomorphize.Apply(compilation);
             return true;
         }

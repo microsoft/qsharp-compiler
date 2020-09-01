@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal readonly HashSet<CallGraphNode> ResolvedCallableSet;
             internal readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
 
-            internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions;
+            internal IEnumerable<TypeParameterResolutions> MyTypeParameterResolutions;
             internal TypeParameterResolutions CallerTypeParameterResolutions;
 
             internal CallGraphNode CurrentCaller { get; private set; }
@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 this.ResolvedCallableSet = new HashSet<CallGraphNode>(resolved ?? Array.Empty<CallGraphNode>());
 
                 this.EnableFullConcretization = this.RequestStack.Any();
-                this.TypeParameterResolutions = new List<TypeParameterResolutions>();
+                this.MyTypeParameterResolutions = new List<TypeParameterResolutions>();
                 this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
                 this.Graph = new CallGraph();
             }
@@ -218,10 +218,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             /// </summary>
             internal void BuildEdge(QsQualifiedName called)
             {
-                TypeParamUtils.TryCombineTypeResolutionsForTarget(
-                    called, out var typeParamRes,
-                    TypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
-                TypeParameterResolutions = new List<TypeParameterResolutions>();
+                //TypeParamUtils.TryCombineTypeResolutionsForTarget(
+                //    called, out var typeParamRes,
+                //    MyTypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
+
+                var combinations = new TypeResolutionCombination(MyTypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
+                var typeParamRes = combinations.CombinedResolutionDictionary;
+                MyTypeParameterResolutions = new List<TypeParameterResolutions>();
 
                 var typeArgsCalled = QsNullable<ImmutableArray<ResolvedType>>.Null;
                 if (this.EnableFullConcretization)
@@ -289,7 +292,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (ex.TypeParameterResolutions.Any())
                 {
-                    SharedState.TypeParameterResolutions = SharedState.TypeParameterResolutions.Prepend(ex.TypeParameterResolutions);
+                    SharedState.MyTypeParameterResolutions = SharedState.MyTypeParameterResolutions.Prepend(ex.TypeParameterResolutions);
                 }
                 return base.OnTypedExpression(ex);
             }
