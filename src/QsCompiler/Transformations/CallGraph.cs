@@ -75,6 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(CallGraphEdge edge) =>
             this.FromCallableName.Equals(edge.FromCallableName)
+            && this.ToCallableName.Equals(edge.ToCallableName)
             && this.ReferenceRange.Equals(edge.ReferenceRange)
             && (this.ParamResolutions == edge.ParamResolutions
                 || this.ParamResolutions
