@@ -1,5 +1,5 @@
 {
-    "image": "mcr.microsoft.com/dotnet/core/sdk:3.1-focal",
+    "dockerFile": "./Dockerfile",
     "extensions": [
         "ms-dotnettools.csharp",
         "Ionide.Ionide-fsharp",
