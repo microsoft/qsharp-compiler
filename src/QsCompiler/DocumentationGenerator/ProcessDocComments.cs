@@ -27,22 +27,20 @@ namespace Microsoft.Quantum.Documentation
         public class TransformationState
         { }
 
-        private string? OutputPath;
+        private readonly DocumentationWriter? writer;
 
         public ProcessDocComments(
-            string? outputPath = null
+            string? outputPath = null,
+            string? packageName = null
         )
         : base(new TransformationState())
         {
-            OutputPath = outputPath;
-            // If the output path is not null, make sure the directory exists.
-            if (outputPath != null && !Directory.Exists(outputPath))
-            {
-                Directory.CreateDirectory(outputPath);
-            }
+            writer = outputPath == null
+                     ? null
+                     : new DocumentationWriter(outputPath, packageName);
 
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, outputPath);
+            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, writer);
         }
 
         public QsCompilation OnCompilation(QsCompilation compilation) =>
@@ -56,126 +54,10 @@ namespace Microsoft.Quantum.Documentation
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
         {
-            private string? outputPath;
-            internal NamespaceTransformation(ProcessDocComments parent, string? outputPath)
+            private DocumentationWriter? writer;
+            internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
             : base(parent)
-            { this.outputPath = outputPath; }
-            
-            private async Task MaybeWriteOutput(QsCustomType type, DocComment docComment)
-            {
-                if (outputPath == null) return;
-
-                // Make a new Markdown document for the type declaration.
-                var title = $"{type.FullName.Name.Value} user defined type";
-                var header = new Dictionary<string, object>
-                {
-                    ["uid"] = type.FullName.ToString(),
-                    ["title"] = title,
-                    ["ms.date"] = DateTime.Today.ToString(),
-                    ["ms.topic"] = "article"
-                };
-                var document = $@"
-Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
-
-# {title}
-
-{docComment.Summary}
-
-```Q#
-{type.ToSyntax()}
-```
-
-"
-                .MaybeWithSection(
-                    "Named Items",
-                    String.Join("\n", docComment.NamedItems.Select(
-                        item => $"### {item.Key}\n\n{item.Value}\n\n"
-                    ))
-                )
-                .MaybeWithSection("Description", docComment.Description)
-                .MaybeWithSection("Remarks", docComment.Remarks)
-                .MaybeWithSection("References", docComment.References)
-                .MaybeWithSection(
-                    "See Also",
-                    String.Join("\n", docComment.SeeAlso.Select(
-                        seeAlso => $"- {seeAlso}"
-                    ))
-                )
-                .WithYamlHeader(header);
-
-                // Open a file to write the new doc to.
-                await File.WriteAllTextAsync(
-                    Path.Join(outputPath, $"{type.FullName.Namespace.Value.ToLowerInvariant()}.{type.FullName.Name.Value.ToLowerInvariant()}.md"),
-                    document
-                );
-            }
-
-            private async Task MaybeWriteOutput(QsCallable callable, DocComment docComment)
-            {
-                if (outputPath == null) return;
-
-                var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
-
-                // Make a new Markdown document for the type declaration.
-                var title = $@"{callable.FullName.Name.Value} {
-                    callable.Kind.Tag switch
-                    {
-                        QsCallableKind.Tags.Function => "function",
-                        QsCallableKind.Tags.Operation => "operation",
-                        QsCallableKind.Tags.TypeConstructor => "type constructor"
-                    }
-                }";
-                var header = new Dictionary<string, object>
-                {
-                    ["uid"] = callable.FullName.ToString(),
-                    ["title"] = title,
-                    ["ms.date"] = DateTime.Today.ToString(),
-                    ["ms.topic"] = "article"
-                };
-                var document = $@"
-Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})
-
-# {title}
-
-{docComment.Summary}
-
-```Q#
-{callable.ToSyntax()}
-```
-"
-                .MaybeWithSection("Description", docComment.Description)
-                .MaybeWithSection("Remarks", docComment.Remarks)
-                .MaybeWithSection("References", docComment.References)
-                .MaybeWithSection(
-                    "See Also",
-                    String.Join("\n", docComment.SeeAlso.Select(
-                        seeAlso => $"- {seeAlso}"
-                    ))
-                )
-                .MaybeWithSection(
-                    "Input",
-                    String.Join("\n", docComment.Input.Select(
-                        item =>
-                        {
-                            var hasInput = inputDeclarations.TryGetValue(item.Key, out var inputType);
-                            return $"### {item.Key}{(hasInput ? $" : {inputType.ToMarkdownLink()}" : "")}\n\n{item.Value}\n\n";
-                        }
-                    ))
-                )
-                .MaybeWithSection("Output", docComment.Output)
-                .MaybeWithSection("Type Parameters",
-                    String.Join("\n", docComment.TypeParameters.Select(
-                        item => $"### {item.Key}\n\n{item.Value}\n\n"
-                    ))
-                )
-                .WithYamlHeader(header);
-
-                // Open a file to write the new doc to.
-                await File.WriteAllTextAsync(
-                    Path.Join(outputPath, $"{callable.FullName.Namespace.Value.ToLowerInvariant()}.{callable.FullName.Name.Value.ToLowerInvariant()}.md"),
-                    document
-                );
-            }
+            { this.writer = writer; }
 
             public override QsCustomType OnTypeDeclaration(QsCustomType type)
             {
@@ -192,7 +74,7 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                     replacement: replacement
                 );
 
-                MaybeWriteOutput(type, docComment).Wait();
+                writer?.WriteOutput(type, docComment)?.Wait();
 
                 return type
                     .AttributeBuilder()
@@ -221,7 +103,7 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                     replacement: replacement
                 );
 
-                MaybeWriteOutput(callable, docComment).Wait();
+                writer?.WriteOutput(callable, docComment)?.Wait();
 
                 return callable
                     .AttributeBuilder()
