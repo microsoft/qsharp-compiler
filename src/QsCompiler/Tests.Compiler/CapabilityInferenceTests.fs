@@ -25,7 +25,7 @@ let private expect capability name =
 [<Fact>]
 let ``Infers QPRGen0`` () =
     [ "NoOp"
-      "ResetOverrideLow"
+      "OverrideGen1ToGen0"
 
       // Tuples and arrays don't support equality, so they are inferred as QPRGen0 for now. If tuple and array equality
       // is supported, ResultTuple and ResultArray should be inferred as Unknown instead.
@@ -39,7 +39,9 @@ let ``Infers QPRGen1`` () =
       "EmptyIfOp"
       "EmptyIfNeqOp"
       "Reset"
-      "ResetNeq" ]
+      "ResetNeq"
+      "OverrideGen0ToGen1"
+      "ExplicitGen1" ]
     |> List.iter (expect RuntimeCapabilities.QPRGen1)
 
 [<Fact>]
@@ -62,5 +64,5 @@ let ``Infers Unknown`` () =
       "SetTuple"
       "EmptyIf"
       "EmptyIfNeq"
-      "ResetOverrideHigh" ]
+      "OverrideGen1ToUnknown" ]
     |> List.iter (expect RuntimeCapabilities.Unknown)

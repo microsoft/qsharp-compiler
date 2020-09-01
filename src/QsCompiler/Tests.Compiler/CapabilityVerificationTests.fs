@@ -57,8 +57,9 @@ let private simpleTests =
       "EmptyIfNeqOp"
       "Reset"
       "ResetNeq"
-      "ResetOverrideHigh"
-      "ResetOverrideLow" ]
+      "OverrideGen1ToUnknown"
+      "OverrideGen1ToGen0"
+      "ExplicitGen1" ]
 
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
@@ -67,6 +68,11 @@ let ``Unknown allows all Result comparison`` () =
     [ "ResultTuple"
       "ResultArray" ]
     |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+
+let ``QPRGen0 allows callables without Result comparison`` () =
+    [ "NoOp"
+      "OverrideGen0ToGen1" ]
+    |> List.iter (expect gen0 [])
 
 [<Fact>]
 let ``QPRGen0 restricts all Result comparison`` () =
@@ -139,6 +145,7 @@ let ``QPRGen1 allows empty Result if operation`` () =
 let ``QPRGen1 allows operation call from Result if`` () =
     [ "Reset"
       "ResetNeq"
-      "ResetOverrideHigh"
-      "ResetOverrideLow" ]
+      "OverrideGen1ToUnknown"
+      "OverrideGen1ToGen0"
+      "ExplicitGen1" ]
     |> List.iter (expect gen1 [])
