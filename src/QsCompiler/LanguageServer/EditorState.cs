@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
             var projectFileName = string.Join("_x2f_", // arbitrary string to help avoid collisions
                 sourceFolderPath
-                    .Replace("_", "x5f") // arbitrary string to help avoid collisions
+                    .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
                     .Split(Path.GetInvalidFileNameChars()));
             var projectFolderPath = Directory.CreateDirectory(Path.Combine(
                 Path.GetTempPath(),
