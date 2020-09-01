@@ -159,17 +159,21 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion)
         {
-            var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var projectFileName = string.Join("_x2f_", // arbitrary string to help avoid collisions
+                sourceFolderPath
+                    .Replace("_", "x5f") // arbitrary string to help avoid collisions
+                    .Split(Path.GetInvalidFileNameChars()));
             var projectFolderPath = Directory.CreateDirectory(Path.Combine(
                 Path.GetTempPath(),
                 "qsharp",
-                string.Join("_", localFolderPath.Split(Path.GetInvalidFileNameChars())))).FullName;
+                projectFileName)).FullName;
             var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
             using (var outputFile = new StreamWriter(projectFilePath))
             {
                 outputFile.WriteLine(
                     TemporaryProject.GetFileContents(
-                        compilationScope: Path.Combine(localFolderPath, "*.qs"),
+                        compilationScope: Path.Combine(sourceFolderPath, "*.qs"),
                         sdkVersion: sdkVersion));
             }
 
