@@ -41,6 +41,7 @@ let ``Infers QPRGen1`` () =
       "Reset"
       "ResetNeq"
       "OverrideGen0ToGen1"
+      "OverrideUnknownToGen1"
       "ExplicitGen1" ]
     |> List.iter (expect RuntimeCapabilities.QPRGen1)
 

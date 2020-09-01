@@ -220,6 +220,11 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
     }
 
     @Capability("QPRGen1")
+    operation OverrideUnknownToGen1(q : Qubit) : Bool {
+        return M(q) == One ? true | false;
+    }
+
+    @Capability("QPRGen1")
     operation ExplicitGen1(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);

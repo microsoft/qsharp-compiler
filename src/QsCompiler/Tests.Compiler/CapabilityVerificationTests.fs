@@ -59,6 +59,7 @@ let private simpleTests =
       "ResetNeq"
       "OverrideGen1ToUnknown"
       "OverrideGen1ToGen0"
+      "OverrideUnknownToGen1"
       "ExplicitGen1" ]
 
 [<Fact>]
