@@ -198,17 +198,29 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         return rs == [One] ? true | false;
     }
     
-    // Inferred capabilities can be overridden.
+    // Inferred capabilities can be overridden or given explicitly.
+
+    @Capability("QPRGen1")
+    operation OverrideGen0ToGen1(q : Qubit) : Unit {
+        X(q);
+    }
 
     @Capability("Unknown")
-    operation ResetOverrideHigh(q : Qubit) : Unit {
+    operation OverrideGen1ToUnknown(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
     @Capability("QPRGen0")
-    operation ResetOverrideLow(q : Qubit) : Unit {
+    operation OverrideGen1ToGen0(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+
+    @Capability("QPRGen1")
+    operation ExplicitGen1(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
