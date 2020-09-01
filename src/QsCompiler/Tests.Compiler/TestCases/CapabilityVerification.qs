@@ -3,15 +3,9 @@
 
 /// Test cases for verification of execution target runtime capabilities.
 namespace Microsoft.Quantum.Testing.CapabilityVerification {
-    internal operation X(q : Qubit) : Unit {
-        body intrinsic;
-    }
+    open Microsoft.Quantum.Intrinsic;
 
-    internal operation M(q : Qubit) : Result {
-        body intrinsic;
-    }
-
-    internal operation NoOp() : Unit { }
+    operation NoOp() : Unit { }
 
     function ResultAsBool(result : Result) : Bool {
         return result == Zero ? false | true;
@@ -87,6 +81,18 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
             set b = true;
         }
         return b;
+    }
+
+    operation NestedResultIfReturn(b : Bool, result : Result) : Bool {
+        if (b) {
+            if (result == One) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     operation ElifSet(result : Result, flag : Bool) : Bool {
@@ -190,5 +196,56 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
 
     function ResultArray(rs : Result[]) : Bool {
         return rs == [One] ? true | false;
+    }
+    
+    // Inferred capabilities can be overridden or given explicitly.
+
+    @Capability("QPRGen1")
+    operation OverrideGen0ToGen1(q : Qubit) : Unit {
+        X(q);
+    }
+
+    @Capability("Unknown")
+    operation OverrideGen1ToUnknown(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+
+    @Capability("QPRGen0")
+    operation OverrideGen1ToGen0(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+
+    @Capability("QPRGen1")
+    operation OverrideUnknownToGen1(q : Qubit) : Bool {
+        return M(q) == One ? true | false;
+    }
+
+    @Capability("QPRGen1")
+    operation ExplicitGen1(q : Qubit) : Unit {
+        if (M(q) == One) {
+            X(q);
+        }
+    }
+}
+
+namespace Microsoft.Quantum.Core {
+    @Attribute()
+    newtype Attribute = Unit;
+
+    @Attribute()
+    newtype Capability = String;
+}
+
+namespace Microsoft.Quantum.Intrinsic {
+    operation X(q : Qubit) : Unit {
+        body intrinsic;
+    }
+
+    operation M(q : Qubit) : Result {
+        body intrinsic;
     }
 }

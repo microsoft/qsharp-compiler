@@ -1,0 +1,69 @@
+﻿module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
+
+open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing
+open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Xunit
+
+/// A mapping of all callables in the capability verification tests, after inferring capabilities.
+let private callables =
+    CompilerTests.Compile ("TestCases", [ "CapabilityVerification.qs" ])
+    |> fun compilation -> compilation.BuiltCompilation
+    |> CapabilityInference.InferCapabilities
+    |> fun compilation -> compilation.Namespaces
+    |> GlobalCallableResolutions
+
+/// Asserts that the inferred capability of the callable with the given name matches the expected capability.
+let private expect capability name =
+    let actual =
+        callables.[CapabilityVerificationTests.testName name].Attributes
+        |> QsNullable<_>.Choose BuiltIn.GetCapability
+    Assert.Equal<RuntimeCapabilities> ([ capability ], actual)
+
+[<Fact>]
+let ``Infers QPRGen0`` () =
+    [ "NoOp"
+      "OverrideGen1ToGen0"
+
+      // Tuples and arrays don't support equality, so they are inferred as QPRGen0 for now. If tuple and array equality
+      // is supported, ResultTuple and ResultArray should be inferred as Unknown instead.
+      "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect RuntimeCapabilities.QPRGen0)
+
+[<Fact>]
+let ``Infers QPRGen1`` () =
+    [ "SetLocal"
+      "EmptyIfOp"
+      "EmptyIfNeqOp"
+      "Reset"
+      "ResetNeq"
+      "OverrideGen0ToGen1"
+      "OverrideUnknownToGen1"
+      "ExplicitGen1" ]
+    |> List.iter (expect RuntimeCapabilities.QPRGen1)
+
+[<Fact>]
+let ``Infers Unknown`` () =
+    [ "ResultAsBool"
+      "ResultAsBoolNeq"
+      "ResultAsBoolOp"
+      "ResultAsBoolNeqOp"
+      "ResultAsBoolOpReturnIf"
+      "ResultAsBoolNeqOpReturnIf"
+      "ResultAsBoolOpReturnIfNested"
+      "ResultAsBoolOpSetIf"
+      "ResultAsBoolNeqOpSetIf"
+      "ResultAsBoolOpElseSet"
+      "NestedResultIfReturn"
+      "ElifSet"
+      "ElifElifSet"
+      "ElifElseSet"
+      "SetReusedName"
+      "SetTuple"
+      "EmptyIf"
+      "EmptyIfNeq"
+      "OverrideGen1ToUnknown" ]
+    |> List.iter (expect RuntimeCapabilities.Unknown)

@@ -248,11 +248,20 @@ module AssemblyConstants =
     let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
 
-    // Note: The names of the capabilities here need to match the ones defined by the Sdk.
+    /// The runtime capabilities supported by an execution target.
     type RuntimeCapabilities = 
-    | Unknown = 0 
-    | QPRGen0 = 1
-    | QPRGen1 = 2
+        // Note: The names of the capabilities here need to match the ones defined by the Sdk.
+
+        /// No known runtime restrictions. Any Q# program can be executed.
+        | Unknown = 0
+
+        /// Measurement results cannot be compared for equality.
+        | QPRGen0 = 1
+
+        /// Measurement results can be compared for equality only in if-statement conditional expressions in operations.
+        /// The block of an if-statement that depends on a result cannot contain set statements for mutable variables
+        /// declared outside the block, or return statements.
+        | QPRGen1 = 2
 
 
 /// contains reserved names for command line arguments of Q# projects

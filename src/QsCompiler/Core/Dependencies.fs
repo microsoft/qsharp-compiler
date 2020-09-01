@@ -3,9 +3,13 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -66,6 +70,18 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = GeneratedAttributes.Namespace && tId.Name.Value = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
+    /// Returns the runtime capabilities if the attribute is a valid capability attribute, or Null otherwise.
+    static member GetCapability attribute =
+        let isCapability udt =
+            { Namespace = udt.Namespace; Name = udt.Name } = BuiltIn.Capability.FullName
+
+        match attribute.TypeId, attribute.Argument.Expression with
+        | Value udt, StringLiteral (string, _) when isCapability udt ->
+            match Enum.TryParse<RuntimeCapabilities> string.Value with
+            | true, capability -> Value capability
+            | false, _ -> Null
+        | _ -> Null
+
 
     // dependencies in Microsoft.Quantum.Core
 
@@ -91,6 +107,11 @@ type BuiltIn = {
 
     static member Deprecated = {
         FullName = {Name = "Deprecated" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
+    static member Capability = {
+        FullName = {Name = "Capability" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
         Kind = Attribute
     }
 
