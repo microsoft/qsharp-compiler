@@ -12,13 +12,14 @@ parameters:
 
 pr:
 - master
-- feature/qdk-ci
+- feature/*
+- features/*
 
 resources:
   repositories:
   - repository: qdk
     type: github
-    endpoint: Microsoft
+    endpoint: github
     name: microsoft/qdk
     ref: refs/heads/feature/qdk-ci
 
@@ -26,5 +27,5 @@ extends:
   template: build/qdk-module-e2e.yml@qdk
   parameters:
     module: qsharp-compiler
-    validation_level: validation_level
+    validation_level: ${{ parameters.validation_level }}
 
