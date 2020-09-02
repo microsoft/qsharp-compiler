@@ -41,7 +41,7 @@
     }
 
     operation CallGen1B(q : Qubit) : Unit {
-        if (M(q)) == One) {
+        if (M(q) == One) {
             X(q);
         }
     }
@@ -152,7 +152,7 @@
     }
 
     operation ReferenceGen1B(q : Qubit) : Unit {
-        if (M(q)) == One) {
+        if (M(q) == One) {
             X(q);
         }
     }
