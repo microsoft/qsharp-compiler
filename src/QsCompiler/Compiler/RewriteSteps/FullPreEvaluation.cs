@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
