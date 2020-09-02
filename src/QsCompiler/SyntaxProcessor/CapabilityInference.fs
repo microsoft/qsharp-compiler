@@ -227,16 +227,16 @@ let private specSourceCapability inOperation spec =
 /// Returns the required capability of the specialization based on its source code and callable dependencies.
 let rec private specDependentCapability
         (callables : IImmutableDictionary<_, _>) (graph : CallGraph) visited (spec : QsSpecialization) =
-    let visited' = Set.add spec.Parent visited
+    let visited = Set.add spec.Parent visited
     let inOperation = callables.TryGetValue spec.Parent |> tryToOption |> Option.exists isOperation
     let dependencies =
         graph.GetDirectDependencies spec
         |> Seq.map (fun group -> group.Key.CallableName)
         |> Set.ofSeq
-        |> fun names -> Set.difference names visited'
+        |> fun names -> Set.difference names visited
     dependencies
     |> Seq.choose (callables.TryGetValue >> tryToOption)
-    |> Seq.map (callableDependentCapability callables graph visited')
+    |> Seq.map (callableDependentCapability callables graph visited)
     |> Seq.append (specSourceCapability inOperation spec |> Seq.singleton)
     |> maxCapability
 
