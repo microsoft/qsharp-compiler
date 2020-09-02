@@ -6,10 +6,8 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 open System
 open System.Collections.Immutable
 open System.Linq
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open System.Collections.Generic
 
 
 // IMPORTANT: if the data structures in this file are changed to classes,
@@ -793,80 +791,6 @@ type QsNamespace = {
 
 type TypeParameterName = QsQualifiedName * NonNullable<string>
 type TypeParameterResolutions = ImmutableDictionary<TypeParameterName, ResolvedType>
-
-// Interface used to represent an edge in the call graph
-//type ICallGraphEdge =
-//    inherit  IEquatable<ICallGraphEdge>
-//    /// Contains the type parameter resolutions associated with this edge.
-//    abstract member ParamResolutions : TypeParameterResolutions
-//    /// Name of the callable where the call was made.
-//    abstract member Parent : QsQualifiedName
-//    /// The range of the reference represented by the edge.
-//    abstract member ReferenceRange : DataTypes.Range
-
-//// Interface used to represent a node in the call graph
-//type ICallGraphNode =
-//    inherit IEquatable<ICallGraphNode>
-//    /// The name of the represented callable.
-//    abstract member CallableName : QsQualifiedName
-//    /// The specialization represented.
-//    abstract member Kind : QsSpecializationKind
-//    /// The type arguments associated with this specialization.
-//    abstract member TypeArgs : QsNullable<ImmutableArray<ResolvedType>>
-
-//// Interface used to represent a call graph
-//type ICallGraph =
-//    /// The number of nodes in the call graph.
-//    abstract member Count : int
-//    /// A collection of the nodes in the call graph.
-//    abstract member Nodes : ImmutableHashSet<ICallGraphNode>
-//    /// Returns true if the given node is found in the call graph, false otherwise.
-//    /// Throws ArgumentNullException if argument is null.
-//    abstract member ContainsNode : ICallGraphNode -> bool
-//    /// Returns all specializations that are used directly or indirectly within the given caller,
-//    /// whether they are called, partially applied, or assigned. Each key in the returned lookup
-//    /// represents a specialization that is used by the caller. Each value in the lookup is an
-//    /// IEnumerable of edges representing all the different ways the given caller specialization took a
-//    /// dependency on the specialization represented by the associated key.
-//    /// Throws ArgumentNullException if argument is null.
-//    /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-//    /// the graph.
-//    abstract member GetAllDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
-//    /// Returns all specializations that are used directly or indirectly within the given caller,
-//    /// whether they are called, partially applied, or assigned. Each key in the returned lookup
-//    /// represents a specialization that is used by the caller. Each value in the lookup is an
-//    /// IEnumerable of edges representing all the different ways the given caller specialization took a
-//    /// dependency on the specialization represented by the associated key.
-//    /// Throws ArgumentNullException if argument is null.
-//    /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-//    /// the graph.
-//    abstract member GetAllDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
-//    /// Returns all specializations that are used directly within the given caller, whether they are
-//    /// called, partially applied, or assigned. Each key in the returned lookup represents a
-//    /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
-//    /// representing all the different ways the given caller specialization took a dependency on the
-//    /// specialization represented by the associated key.
-//    /// Throws ArgumentNullException if argument is null.
-//    /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-//    /// the graph.
-//    abstract member GetDirectDependencies : ICallGraphNode -> ILookup<ICallGraphNode, ICallGraphEdge>
-//    /// Returns all specializations that are used directly within the given caller, whether they are
-//    /// called, partially applied, or assigned. Each key in the returned lookup represents a
-//    /// specialization that is used by the caller. Each value in the lookup is an IEnumerable of edges
-//    /// representing all the different ways the given caller specialization took a dependency on the
-//    /// specialization represented by the associated key.
-//    /// Throws ArgumentNullException if argument is null.
-//    /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-//    /// the graph.
-//    abstract member GetDirectDependencies : QsSpecialization -> ILookup<ICallGraphNode, ICallGraphEdge>
-//    /// Given a call graph edges, finds all cycles and determines if each is valid.
-//    /// Invalid cycles are those that cause type parameters to be mapped to
-//    /// other type parameters of the same callable (constricting resolutions)
-//    /// or to a type containing a nested reference to the same type parameter,
-//    /// i.e Foo.A -> Foo.A[].
-//    /// Returns an enumerable of filename-diagnostics tuples for each edge of
-//    /// each invalid cycle found.
-//    abstract member VerifyAllCycles : Unit -> IEnumerable<QsQualifiedName * QsCompilerDiagnostic>
 
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
