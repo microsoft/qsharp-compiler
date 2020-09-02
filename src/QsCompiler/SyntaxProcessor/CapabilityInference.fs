@@ -216,7 +216,8 @@ let private isOperation callable =
     | Operation -> true
     | _ -> false
 
-/// Returns the required capability of the specialization, given whether it is part of an operation.
+/// Given whether the specialization is part of an operation, returns its required capability based on its source code,
+/// ignoring callable dependencies.
 let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
