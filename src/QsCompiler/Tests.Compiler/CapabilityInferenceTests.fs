@@ -116,3 +116,9 @@ let ``Infers with indirect recursion`` () =
       "Gen1Recursion3B"
       "Gen1Recursion3C" ]
     |> List.iter (expect RuntimeCapabilities.QPRGen1)
+
+[<Fact>]
+let ``Infers with uncalled reference`` () =
+    [ "ReferenceGen1A"
+      "ReferenceGen1B" ]
+    |> List.iter (expect RuntimeCapabilities.QPRGen1)
