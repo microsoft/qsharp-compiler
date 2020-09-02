@@ -144,6 +144,18 @@
     operation Gen1Recursion3C(q : Qubit) : Unit {
         Gen1Recursion3A(q);
     }
+
+    // QPRGen1 reference without call
+
+    operation ReferenceGen1A() : (Qubit => Unit) {
+        return ReferenceGen1B;
+    }
+
+    operation ReferenceGen1B(q : Qubit) : Unit {
+        if (M(q)) == One) {
+            X(q);
+        }
+    }
 }
 
 namespace Microsoft.Quantum.Core {
