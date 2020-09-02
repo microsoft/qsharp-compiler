@@ -12,7 +12,8 @@ open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
 let private compile capabilities =
-    CompilerTests.Compile ("TestCases", ["CapabilityVerification.qs"], capabilities = capabilities)
+    CompilerTests.Compile
+        ("TestCases", ["CapabilityVerification.qs"; "CapabilityInference.qs"], capabilities = capabilities)
 
 /// The unknown capability tester.
 let private unknown = compile RuntimeCapabilities.Unknown |> CompilerTests
@@ -25,7 +26,7 @@ let private gen1 = compile RuntimeCapabilities.QPRGen1 |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =
-    QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.CapabilityVerification",
+    QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.Capability",
                          NonNullable<_>.New name)
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.

@@ -9,7 +9,7 @@ open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    CompilerTests.Compile ("TestCases", [ "CapabilityVerification.qs" ])
+    CompilerTests.Compile ("TestCases", [ "CapabilityVerification.qs"; "CapabilityInference.qs" ])
     |> fun compilation -> compilation.BuiltCompilation
     |> CapabilityInference.InferCapabilities
     |> fun compilation -> compilation.Namespaces
@@ -23,7 +23,7 @@ let private expect capability name =
     Assert.Equal<RuntimeCapabilities> ([ capability ], actual)
 
 [<Fact>]
-let ``Infers QPRGen0`` () =
+let ``Infers QPRGen0 by source code`` () =
     [ "NoOp"
       "OverrideGen1ToGen0"
 
@@ -34,7 +34,7 @@ let ``Infers QPRGen0`` () =
     |> List.iter (expect RuntimeCapabilities.QPRGen0)
 
 [<Fact>]
-let ``Infers QPRGen1`` () =
+let ``Infers QPRGen1 by source code`` () =
     [ "SetLocal"
       "EmptyIfOp"
       "EmptyIfNeqOp"
@@ -46,7 +46,7 @@ let ``Infers QPRGen1`` () =
     |> List.iter (expect RuntimeCapabilities.QPRGen1)
 
 [<Fact>]
-let ``Infers Unknown`` () =
+let ``Infers Unknown by source code`` () =
     [ "ResultAsBool"
       "ResultAsBoolNeq"
       "ResultAsBoolOp"
