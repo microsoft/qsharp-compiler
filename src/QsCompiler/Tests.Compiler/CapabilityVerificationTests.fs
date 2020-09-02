@@ -13,7 +13,7 @@ open Xunit
 /// Compiles the capability verification test cases using the given capability.
 let private compile capabilities =
     CompilerTests.Compile
-        ("TestCases", ["CapabilityVerification.qs"; "CapabilityInference.qs"], capabilities = capabilities)
+        ("TestCases", ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"], capabilities = capabilities)
 
 /// The unknown capability tester.
 let private unknown = compile RuntimeCapabilities.Unknown |> CompilerTests

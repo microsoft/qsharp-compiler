@@ -21,6 +21,12 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
+    <None Include="TestCases\CapabilityTests\Verification.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\CapabilityTests\Inference.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -119,12 +125,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LocalVerification.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\CapabilityVerification.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\CapabilityInference.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\Transformation.qs">
