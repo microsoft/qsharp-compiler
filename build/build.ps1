@@ -43,7 +43,7 @@ function Build-VSCode() {
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
-            npm install
+            npm ci
             npm run compile
     
             if  ($LastExitCode -ne 0) {
