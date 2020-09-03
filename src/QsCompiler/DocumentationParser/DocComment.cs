@@ -339,11 +339,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             if (deprecated)
             {
-                var shortDeprecationText = DeprecatedWarning + "\r" + deprecationSummary;
-                var longDeprecationText = shortDeprecationText + (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
-                this.Summary += "\r" + longDeprecationText;
-                this.ShortSummary = shortDeprecationText;
-                this.Documentation = deprecationSummary;
+                var longDeprecationText =
+                    DeprecatedWarning + "\r" +
+                    deprecationSummary +
+                    (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r" + deprecationDetails);
+                this.Summary += "\r\r" + longDeprecationText;
+                this.ShortSummary = deprecationSummary;
+                this.Documentation += "\r\r" + longDeprecationText;
             }
         }
 
