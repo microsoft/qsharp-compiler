@@ -96,7 +96,7 @@
         },
         {
           "name": "support.function.builtin.qsharp",
-          "match": "\\b(Message|Length|Assert|AssertProb|AssertEqual|Random|Floor|Float)\\b"
+          "match": "\\b(Message|Length|Floor)\\b"
         }
       ]
     },
