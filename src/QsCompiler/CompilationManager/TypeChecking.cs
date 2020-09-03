@@ -2015,7 +2015,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                var callGraph = Transformations.CallGraphWalker.BuildCallGraph.Apply(callables);
+                var callGraph = Transformations.CallGraphWalker.BuildCallGraph.CreateSimpleGraph(callables);
                 foreach (var (diag, parent) in callGraph.VerifyAllCycles())
                 {
                     var info = callableDeclarations[parent];

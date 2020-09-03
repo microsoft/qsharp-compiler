@@ -121,25 +121,49 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// The specialization represented.
         /// </summary>
-        public QsSpecializationKind Kind { get; }
+        //public QsSpecializationKind Kind { get; }
 
         /// <summary>
         /// The type arguments associated with this specialization.
         /// </summary>
-        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; }
+        //public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; }
+
+        public TypeParameterResolutions ParamResolutions { get; }
 
         /// <summary>
         /// Constructor for CallGraphNode objects.
         /// Strips position info from given type arguments before assigning them to TypeArgs.
         /// Throws an ArgumentNullException if callableName or kind is null.
         /// </summary>
-        public CallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
+        public CallGraphNode(QsQualifiedName callableName, TypeParameterResolutions paramResolutions)
         {
-            this.CallableName = callableName ?? throw new ArgumentNullException(nameof(callableName));
-            this.Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-            this.TypeArgs = typeArgs.IsValue
-                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
-                : typeArgs;
+            if (callableName is null)
+            {
+                throw new ArgumentException(nameof(callableName));
+            }
+
+            if (paramResolutions is null)
+            {
+                throw new ArgumentException(nameof(paramResolutions));
+            }
+
+            this.CallableName = callableName;
+
+            // Remove position info from type parameter resolutions
+            this.ParamResolutions = paramResolutions.ToImmutableDictionary(
+                kvp => kvp.Key,
+                kvp => StripPositionInfo.Apply(kvp.Value));
+        }
+
+        public CallGraphNode(QsQualifiedName callableName)
+        {
+            if (callableName is null)
+            {
+                throw new ArgumentException(nameof(callableName));
+            }
+
+            this.CallableName = callableName;
+            this.ParamResolutions = TypeParameterResolutions.Empty;
         }
 
         /// <summary>
@@ -147,11 +171,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Strips position info from given type arguments before assigning them to TypeArgs.
         /// Throws an ArgumentNullException if specialization is null.
         /// </summary>
-        public CallGraphNode(QsSpecialization specialization) : this(
-            specialization == null ? throw new ArgumentNullException(nameof(specialization)) :
-            specialization.Parent,
-            specialization.Kind,
-            specialization.TypeArguments)
+        public CallGraphNode(QsCallable callable) : this(
+            callable == null ? throw new ArgumentNullException(nameof(callable)) :
+            callable.FullName)
         {
         }
 
@@ -162,15 +184,28 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <inheritdoc/>
-        public bool Equals(CallGraphNode other)
-        {
-            return (this.CallableName, this.Kind, this.TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
-        }
+        //public bool Equals(CallGraphNode other)
+        //{
+        //    return (this.CallableName, this.Kind, this.TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
+        //}
+
+        public bool Equals(CallGraphNode other) =>
+            this.CallableName.Equals(other.CallableName)
+            && (this.ParamResolutions == other.ParamResolutions
+                || this.ParamResolutions
+                       .OrderBy(kvp => kvp.Key)
+                       .SequenceEqual(other.ParamResolutions.OrderBy(kvp => kvp.Key)));
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return (this.CallableName, this.Kind, this.TypeArgs).GetHashCode();
+            HashCode hash = default;
+            hash.Add(this.CallableName);
+            foreach (var kvp in this.ParamResolutions)
+            {
+                hash.Add(kvp);
+            }
+            return hash.ToHashCode();
         }
     }
 
@@ -313,15 +348,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            return this.GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
-        }
+        //public ILookup<CallGraphNode, CallGraphEdge> GetAllDependencies(QsSpecialization callerSpec)
+        //{
+        //    if (callerSpec == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(callerSpec));
+        //    }
+        //
+        //    return this.GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+        //}
 
         /// <summary>
         /// Returns all specializations that are used directly within the given caller, whether they are
@@ -362,15 +397,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
         /// </summary>
-        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsSpecialization callerSpec)
-        {
-            if (callerSpec == null)
-            {
-                throw new ArgumentNullException(nameof(callerSpec));
-            }
-
-            return this.GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
-        }
+        //public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(QsCallable caller)
+        //{
+        //    if (caller == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(caller));
+        //    }
+        //
+        //    return this.GetDirectDependencies(new CallGraphNode(caller.Parent, callerSpec.Kind, callerSpec.TypeArguments));
+        //}
 
         /// <summary>
         /// Given a call graph edges, finds all cycles and determines if each is valid.
@@ -479,7 +514,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Adds the given specialization to the call graph as a node, if it is not already in the graph.
         /// </summary>
-        internal void AddNode(QsSpecialization spec) => this.AddNode(new CallGraphNode(spec));
+        internal void AddNode(QsCallable spec) => this.AddNode(new CallGraphNode(spec));
 
         /// <summary>
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.

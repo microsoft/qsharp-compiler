@@ -90,7 +90,16 @@ type CallGraphTests (output:ITestOutputHelper) =
         let srcChunks = ReadAndChunkSourceFile fileName
         srcChunks.Length >= testNumber |> Assert.True
         let compilationDataStructures = BuildContent srcChunks.[testNumber-1]
-        let callGraph = BuildCallGraph.Apply compilationDataStructures.BuiltCompilation
+        Assert.NotNull compilationDataStructures.BuiltCompilation
+        compilationDataStructures.BuiltCompilation
+
+    let BuildSimpleGraph (compilation : QsCompilation) =
+        let callGraph = BuildCallGraph.CreateSimpleGraph compilation
+        Assert.NotNull callGraph
+        callGraph
+
+    let BuildTrimmedGraph (compilation : QsCompilation) =
+        let callGraph = BuildCallGraph.CreateTrimmedGraph compilation
         Assert.NotNull callGraph
         callGraph
 
@@ -100,7 +109,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         BuildContentWithErrors srcChunks.[testNumber-1] expect
 
     let CompileCycleDetectionTest testNumber =
-        let callGraph = CompileTest testNumber "CycleDetection.qs"
+        let callGraph = CompileTest testNumber "CycleDetection.qs" |> BuildSimpleGraph
         callGraph.GetCallCycles ()
 
     let CompileCycleValidationTest testNumber =
@@ -124,10 +133,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         compilationManagerExe.TryRemoveSourceFileAsync(fileId, false) |> ignore
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
         Assert.NotNull compilationDataStructures.BuiltCompilation
-
-        let callGraph = BuildCallGraph.Apply compilationDataStructures.BuiltCompilation
-        Assert.NotNull callGraph
-        callGraph
+        compilationDataStructures.BuiltCompilation
 
     /// Checks if one of the given lists can be rotated into the other given list
     let CyclicEquivalence lst1 lst2 =
@@ -163,20 +169,20 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<CallGraphNode,_>) expected =
+    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<CallGraphNode,CallGraphEdge>) expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
-        let opNode = CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let opNode = CallGraphNode(opName)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
         Assert.True(given.Contains(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
         let edges = given.[opNode]
         Assert.True(edges.Count() = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo)
-        let given = List.map (fun (x : CallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
+        let given = edges |> Seq.toList |> List.map (fun x -> x.ParamResolutions)
         AssertExpectedResolutionList expected given
 
     let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
         let strToNode name =
             let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+            CallGraphNode(nodeName)
         let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
         for nameTo in nameToList do
             let expectedNode = strToNode nameTo
@@ -185,21 +191,24 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let AssertInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-        let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-        Assert.True(givenGraph.ContainsNode(node), sprintf "Expected %s to be in the call graph." name)
+        let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
+        Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
     let AssertNotInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-        let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-        Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
+        let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
+        Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
+
+    let MakeMainNode () =
+        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
+        CallGraphNode(mainName)
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Get All Dependencies`` () =
-        let graph = CompileTypeParameterResolutionTest 1
+        let graph = CompileTypeParameterResolutionTest 1 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -233,10 +242,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Argument Resolution`` () =
-        let graph = CompileTypeParameterResolutionTest 2
+        let graph = CompileTypeParameterResolutionTest 2 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -249,10 +257,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Type List Resolution`` () =
-        let graph = CompileTypeParameterResolutionTest 3
+        let graph = CompileTypeParameterResolutionTest 3 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -265,10 +272,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Argument and Type List Resolution`` () =
-        let graph = CompileTypeParameterResolutionTest 4
+        let graph = CompileTypeParameterResolutionTest 4 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -281,10 +287,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Partial Application One Argument`` () =
-        let graph = CompileTypeParameterResolutionTest 5
+        let graph = CompileTypeParameterResolutionTest 5 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -297,10 +302,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Partial Application Two Arguments`` () =
-        let graph = CompileTypeParameterResolutionTest 6
+        let graph = CompileTypeParameterResolutionTest 6 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -314,10 +318,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Complex Partial Application`` () =
-        let graph = CompileTypeParameterResolutionTest 7
+        let graph = CompileTypeParameterResolutionTest 7 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -332,10 +335,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Nested Partial Application`` () =
-        let graph = CompileTypeParameterResolutionTest 8
+        let graph = CompileTypeParameterResolutionTest 8 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -355,10 +357,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Operation Returns Operation`` () =
-        let graph = CompileTypeParameterResolutionTest 9
+        let graph = CompileTypeParameterResolutionTest 9 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -378,10 +379,9 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
     member this.``Operation Takes Operation`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 10
+        let graph = CompileTypeParameterResolutionTestWithExe 10 |> BuildSimpleGraph
 
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        let mainNode = CallGraphNode(mainName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let mainNode = MakeMainNode ()
         let dependencies = graph.GetAllDependencies mainNode
 
         [
@@ -401,7 +401,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Basic Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 11
+        let graph = CompileTypeParameterResolutionTestWithExe 11 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -420,7 +420,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated To Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 12
+        let graph = CompileTypeParameterResolutionTestWithExe 12 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -438,33 +438,33 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> List.map (AssertNotInGraph graph)
         |> ignore
 
-    [<Fact>]
-    [<Trait("Category","Populate Call Graph")>]
-    member this.``Separated From Entry Point By Specialization`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 13
-
-        // The generalized methods of asserting dependencies assumes Body nodes, but
-        // this relationship is between a Body and an Adjoint specializations, so we
-        // will check manually.
-        let mainNode =
-            CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" },
-                QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-
-        let adjFooNode =
-            CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Foo" },
-                QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
-
-        let mainDependencies = graph.GetDirectDependencies mainNode
-        Assert.True(mainDependencies.Contains(adjFooNode),
-            sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo")
-
-        AssertNotInGraph graph "Foo" // Asserts Foo's Body isn't in the graph
-        AssertNotInGraph graph "Bar" // Asserts Bar's Body isn't in the graph
+    //[<Fact>]
+    //[<Trait("Category","Populate Call Graph")>]
+    //member this.``Separated From Entry Point By Specialization`` () =
+    //    let graph = CompileTypeParameterResolutionTestWithExe 13 |> BuildTrimmedGraph
+    //
+    //    // The generalized methods of asserting dependencies assumes Body nodes, but
+    //    // this relationship is between a Body and an Adjoint specializations, so we
+    //    // will check manually.
+    //    let mainNode =
+    //        CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" },
+    //            QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+    //
+    //    let adjFooNode =
+    //        CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Foo" },
+    //            QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
+    //
+    //    let mainDependencies = graph.GetDirectDependencies mainNode
+    //    Assert.True(mainDependencies.Contains(adjFooNode),
+    //        sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo")
+    //
+    //    AssertNotInGraph graph "Foo" // Asserts Foo's Body isn't in the graph
+    //    AssertNotInGraph graph "Bar" // Asserts Bar's Body isn't in the graph
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called With Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 14
+        let graph = CompileTypeParameterResolutionTestWithExe 14 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -480,7 +480,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 15
+        let graph = CompileTypeParameterResolutionTest 15 |> BuildSimpleGraph
 
         [
             "Main", [
@@ -496,7 +496,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 16
+        let graph = CompileTypeParameterResolutionTest 16 |> BuildSimpleGraph
 
         [
             "Main", [
@@ -514,13 +514,13 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 17
+        let graph = CompileTypeParameterResolutionTestWithExe 17 |> BuildTrimmedGraph
         AssertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 18
+        let graph = CompileTypeParameterResolutionTestWithExe 18 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -536,7 +536,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 19
+        let graph = CompileTypeParameterResolutionTestWithExe 19 |> BuildTrimmedGraph
 
         [
             "Main", [
