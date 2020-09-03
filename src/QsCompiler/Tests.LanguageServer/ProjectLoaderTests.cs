@@ -15,7 +15,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        static ProjectLoaderTests()
+        [AssemblyInitialize]
+        public static void SetupMSBuildLocator(TestContext testContext)
         {
             VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
 
@@ -308,12 +309,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public void LoadQsharpTemporaryProject()
         {
             var sourceFile = Path.GetFullPath(SourceFileName("test14", "Operation14.qs"));
-            var (projectUri, projectInformation) = CompilationContext.LoadTemporary(new Uri(sourceFile), "0.12.20072031");
+            var projectUri = CompilationContext.CreateTemporaryProject(new Uri(sourceFile), "0.12.20072031");
             Assert.IsNotNull(projectUri);
-            Assert.IsNotNull(projectInformation);
-            Assert.IsTrue(projectInformation.UsesCanon());
 
             var qsFiles = new string[] { sourceFile };
+            var projectInformation = CompilationContext.Load(projectUri);
+            Assert.IsTrue(projectInformation.UsesCanon());
             CollectionAssert.AreEquivalent(qsFiles, projectInformation.SourceFiles.ToArray());
         }
     }
@@ -327,9 +328,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
                 .QsProjectLoader(projectFile, out var loaded) ? loaded : null;
 
-        internal static (Uri, ProjectInformation) LoadTemporary(Uri sourceFile, string sdkVersion) =>
+        internal static Uri CreateTemporaryProject(Uri sourceFile, string sdkVersion) =>
             new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null)
-                .QsTemporaryProjectLoader(sourceFile, sdkVersion, out var projectUri, out var loaded) ? (projectUri, loaded) : (null, null);
+                .QsTemporaryProjectLoader(sourceFile, sdkVersion);
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
 
