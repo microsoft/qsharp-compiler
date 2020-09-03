@@ -10,6 +10,8 @@ parameters:
   - normal
   - full
 
+trigger: none
+
 pr:
 - master
 - feature/*
@@ -21,7 +23,6 @@ resources:
     type: github
     endpoint: github
     name: microsoft/qdk
-    ref: refs/heads/feature/qdk-ci
 
 extends:
   template: build/qdk-module-e2e.yml@qdk
