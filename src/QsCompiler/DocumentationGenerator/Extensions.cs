@@ -342,8 +342,13 @@ namespace Microsoft.Quantum.Documentation
                 ResolvedTypeKind.ArrayType array => $"{array.Item.ToMarkdownLink()}[]",
                 ResolvedTypeKind.Function function =>
                     $"{function.Item1.ToMarkdownLink()} -> {function.Item2.ToMarkdownLink()}",
-                ResolvedTypeKind.Operation operation => "TODO",
-                ResolvedTypeKind.TupleType tuple => "TODO",
+                ResolvedTypeKind.Operation operation =>
+                    $@"{operation.Item1.Item1.ToMarkdownLink()} => {operation.Item1.Item2.ToMarkdownLink()} {
+                        operation.Item2.Characteristics.ToSyntax()
+                    }",
+                ResolvedTypeKind.TupleType tuple => "(" + String.Join(",",
+                        tuple.Item.Select(ToMarkdownLink)
+                    ) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
                 _ => type.Resolution.Tag switch
                 {
