@@ -65,10 +65,10 @@ namespace Microsoft.Quantum.Documentation
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = new ProcessDocComments(
-                AssemblyConstants.TryGetValue("OutputPath", out var path)
+                AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
                 ? path
                 : null,
-                AssemblyConstants.TryGetValue("DocumentationPackageName", out var packageName)
+                AssemblyConstants.TryGetValue("PackageId", out var packageName)
                 ? packageName
                 : null
             ).OnCompilation(compilation);

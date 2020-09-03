@@ -26,4 +26,11 @@
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="DocumentationGenerator.props">
+      <Pack>true</Pack>
+      <PackagePath>build\Microsoft.Quantum.DocumentationGenerator.props</PackagePath>
+    </Content>
+  </ItemGroup>
+
 </Project>
