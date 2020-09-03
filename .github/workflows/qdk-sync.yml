@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+      - anpaz/ci
 
 jobs:
   sync-repos:
