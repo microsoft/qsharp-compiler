@@ -13,6 +13,7 @@ parameters:
 trigger: none
 
 pr:
+- main
 - master
 - feature/*
 - features/*
@@ -23,6 +24,7 @@ resources:
     type: github
     endpoint: github
     name: microsoft/qdk
+    ref: refs/heads/main
 
 extends:
   template: build/qdk-module-e2e.yml@qdk
