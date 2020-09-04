@@ -41,6 +41,42 @@ namespace Microsoft.Quantum.Documentation
                 ? ""
                 : $"Package: [{PackageName}](https://nuget.org/packages/{PackageName})\n";
         }
+
+        public async Task WriteOutput(QsNamespace ns, DocComment docComment)
+        {
+            var name = ns.Name.Value;
+            var uid = name;
+            var title = $"{name} namespace";
+            var header = new Dictionary<string, object>
+            {
+                // DocFX metadata
+                ["uid"] = name,
+                ["title"] = title,
+
+                // docs.ms metadata
+                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.topic"] = "article",
+
+                // Q# metadata
+                ["qsharp.kind"] = "udt",
+                ["qsharp.name"] = name,
+                ["qsharp.summary"] = docComment.Summary
+            };
+            var document = $@"
+# {title}
+
+{docComment.Summary}
+
+"
+                .MaybeWithSection("Description", docComment.Description)
+                .WithYamlHeader(header);
+
+            // Open a file to write the new doc to.
+            await File.WriteAllTextAsync(
+                Path.Join(outputPath, $"{name.ToLowerInvariant()}.md"),
+                document
+            );
+        }
    
         public async Task WriteOutput(QsCustomType type, DocComment docComment)
         {
@@ -49,10 +85,19 @@ namespace Microsoft.Quantum.Documentation
             var title = $"{type.FullName.Name.Value} user defined type";
             var header = new Dictionary<string, object>
             {
+                // DocFX metadata
                 ["uid"] = type.FullName.ToString(),
                 ["title"] = title,
+
+                // docs.ms metadata
                 ["ms.date"] = DateTime.Today.ToString(),
-                ["ms.topic"] = "article"
+                ["ms.topic"] = "article",
+
+                // Q# metadata
+                ["qsharp.kind"] = "udt",
+                ["qsharp.namespace"] = type.FullName.Namespace.Value,
+                ["qsharp.name"] = type.FullName.Name.Value,
+                ["qsharp.summary"] = docComment.Summary
             };
             var document = $@"
 Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
@@ -102,20 +147,28 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
             var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
 
             // Make a new Markdown document for the type declaration.
-            var title = $@"{callable.FullName.Name.Value} {
-                callable.Kind.Tag switch
-                {
-                    QsCallableKind.Tags.Function => "function",
-                    QsCallableKind.Tags.Operation => "operation",
-                    QsCallableKind.Tags.TypeConstructor => "type constructor"
-                }
-            }";
+            var kind = callable.Kind.Tag switch
+            {
+                QsCallableKind.Tags.Function => "function",
+                QsCallableKind.Tags.Operation => "operation",
+                QsCallableKind.Tags.TypeConstructor => "type constructor"
+            };
+            var title = $@"{callable.FullName.Name.Value} {kind}";
             var header = new Dictionary<string, object>
             {
+                // DocFX metadata
                 ["uid"] = callable.FullName.ToString(),
                 ["title"] = title,
+
+                // docs.ms metadata
                 ["ms.date"] = DateTime.Today.ToString(),
-                ["ms.topic"] = "article"
+                ["ms.topic"] = "article",
+
+                // Q# metadata
+                ["qsharp.kind"] = kind,
+                ["qsharp.namespace"] = callable.FullName.Namespace.Value,
+                ["qsharp.name"] = callable.FullName.Name.Value,
+                ["qsharp.summary"] = docComment.Summary
             };
             var document = $@"
 Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})

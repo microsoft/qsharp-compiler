@@ -65,13 +65,10 @@ namespace Microsoft.Quantum.Documentation
                 if (ns.Elements.Any(element => element.IsInCompilationUnit()))
                 {
                     // Concatenate everything into one documentation comment.
-                    var comment = String.Join("\n",
-                        ns.Documentation.SelectMany(group => group)
+                    var comment = new DocComment(
+                        ns.Documentation.SelectMany(group => group).SelectMany(comments => comments)
                     );
-                    if (comment.Trim().Length != 0)
-                    {
-                        // TODO
-                    }
+                    writer?.WriteOutput(ns, comment)?.Wait();
                 }
 
                 return ns;
