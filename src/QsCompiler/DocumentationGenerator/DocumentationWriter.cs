@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.Documentation
                 ["ms.topic"] = "article",
 
                 // Q# metadata
-                ["qsharp.kind"] = "udt",
+                ["qsharp.kind"] = "namespace",
                 ["qsharp.name"] = name,
                 ["qsharp.summary"] = docComment.Summary
             };
