@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 uid: microsoft.quantum.canon.generatorindex
 name: GeneratorIndex
 type: newtype
-namespace: Microsoft.Quantum.Canon
+namespace: microsoft.quantum.canon
 summary: |-
   Represents a single primitive term in the set of all dynamical generators, e.g.
   Hermitian operators, for which there exists a map from that generator
@@ -220,7 +220,7 @@ seeAlso:
 uid: microsoft.quantum.canon.adiabaticstateenergyunitary
 name: AdiabaticStateEnergyUnitary
 type: operation
-namespace: Microsoft.Quantum.Canon
+namespace: microsoft.quantum.canon
 summary: |-
   Convenience function that performs state preparation by applying a
   `statePrepUnitary` on the input state, followed by adiabatic state
