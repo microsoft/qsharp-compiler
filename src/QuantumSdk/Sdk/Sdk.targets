@@ -70,7 +70,7 @@
     <PropertyGroup>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
       <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
-      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration) AND 'QsharpDocGenerationMode' == 'yaml')">--doc "$(QsharpDocsOutputPath)"</_QscCommandDocsFlag>
+      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration) AND ('QsharpDocGenerationMode' == 'yaml')">--doc "$(QsharpDocsOutputPath)"</_QscCommandDocsFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
