@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.Documentation
                 AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
                 ? path
                 : null,
-                AssemblyConstants.TryGetValue("PackageId", out var packageName)
+                AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
                 ? packageName
                 : null
             ).OnCompilation(compilation);
