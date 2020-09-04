@@ -1,6 +1,6 @@
 name: Sync QDK repos
 
-on: 
+on:
   push:
     branches:
       - master
