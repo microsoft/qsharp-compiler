@@ -788,10 +788,6 @@ type QsNamespace = {
     with
     member this.WithElements (getElements : Func<_,_>) = {this with Elements = getElements.Invoke(this.Elements)}
 
-
-type TypeParameterName = QsQualifiedName * NonNullable<string>
-type TypeParameterResolutions = ImmutableDictionary<TypeParameterName, ResolvedType>
-
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
     /// Contains all compiled namespaces
