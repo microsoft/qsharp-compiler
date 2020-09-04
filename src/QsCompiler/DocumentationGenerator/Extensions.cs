@@ -28,6 +28,10 @@ using ResolvedTypeKind = Microsoft.Quantum.QsCompiler.SyntaxTokens.QsTypeKind<
 
 namespace Microsoft.Quantum.Documentation
 {
+    // The next several types allow for adding attributes to
+    // callables and UDTs with a single API, so that the extension
+    // methods in this file can be written once for both kinds of
+    // AST items.
     internal interface IAttributeBuilder<T>
     {
         public IAttributeBuilder<T> AddAttribute(QsDeclarationAttribute attribute);
@@ -77,6 +81,16 @@ namespace Microsoft.Quantum.Documentation
             this QsCustomType type
         ) => new Udt(type);
 
+        /// <summary>
+        ///      Given an attribute builder, returns a new copy of that builder
+        ///      with one additional attribute.
+        /// </summary>
+        /// <typeparam name="T">The type of AST item decorated by the attribute builder.</typeparam>
+        /// <param name="builder">The attribute builder to which the new attribute should be added.</param>
+        /// <param name="namespace">The Q# namespace containing the new attribute.</param>
+        /// <param name="name">The name of the Q# UDT for the new attribute.</param>
+        /// <param name="input">The input to the Q# UDT's type constructor function for the given attribute.</param>
+        /// <returns>A new attribute builder with the new attribute added.</returns>
         internal static IAttributeBuilder<T> WithAttribute<T>(
             this IAttributeBuilder<T> builder, string @namespace, string name,
             TypedExpression input
@@ -102,6 +116,16 @@ namespace Microsoft.Quantum.Documentation
                 ImmutableArray<TypedExpression>.Empty
             );
 
+        /// <summary>
+        ///      Given an attribute builder, either returns it unmodified,
+        ///      or returns a new copy of the attribute builder with a new
+        ///      string-valued documentation attribute added.
+        /// </summary>
+        /// <typeparam name="T">The type of AST item decorated by the attribute builder.</typeparam>
+        /// <param name="builder">The attribute builder to which the new attribute should be added.</param>
+        /// <param name="attributeName">The name of the Q# UDT for the new attribute.</param>
+        /// <param name="value">The value of the new attribute to be added, or <c>null</c> if no attribute is to be added.</param>
+        /// <returns>A new attribute builder with the new attribute added, or <paramref name="builder"/> if <paramref name="value"/> is <c>null</c>.</returns>
         internal static IAttributeBuilder<T> MaybeWithSimpleDocumentationAttribute<T>(
             this IAttributeBuilder<T> builder, string attributeName, string? value
         ) =>
@@ -111,6 +135,15 @@ namespace Microsoft.Quantum.Documentation
                 attributeName, value.AsLiteralExpression()
             );
 
+        /// <summary>
+        ///      Given an attribute builder, returns a new attribute builder with
+        ///      an attribute added for each string in a given collection.
+        /// </summary>
+        /// <typeparam name="T">The type of AST item decorated by the attribute builder.</typeparam>
+        /// <param name="builder">The attribute builder to which the new attributes should be added.</param>
+        /// <param name="attributeName">The name of the Q# UDT for the new attributes.</param>
+        /// <param name="items">The values of the new attributes to be added.</param>
+        /// <returns>A new attribute builder with the one new attribute added for each element of <paramref name="items"/>.</returns>
         internal static IAttributeBuilder<T> WithListOfDocumentationAttributes<T>(
             this IAttributeBuilder<T> builder, string attributeName, IEnumerable<string> items
         ) =>
