@@ -367,6 +367,20 @@ namespace Microsoft.Quantum.Documentation
 
         internal static string ToMarkdownLink(this UserDefinedType type) =>
             $"[{type.Name.Value}](xref:{type.Namespace.Value}.{type.Name.Value})";
+
+        internal static bool IsInCompilationUnit(this QsNamespaceElement element) =>
+            element switch
+            {
+                QsNamespaceElement.QsCallable callable => callable.Item.IsInCompilationUnit(),
+                QsNamespaceElement.QsCustomType type => type.Item.IsInCompilationUnit(),
+                _ => false
+            };
+
+        internal static bool IsInCompilationUnit(this QsCallable callable) =>
+            callable.SourceFile.Value.EndsWith(".qs");
+
+        internal static bool IsInCompilationUnit(this QsCustomType type) =>
+            type.SourceFile.Value.EndsWith(".qs");
     }
 
 }

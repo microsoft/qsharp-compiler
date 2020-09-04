@@ -59,13 +59,31 @@ namespace Microsoft.Quantum.Documentation
             : base(parent)
             { this.writer = writer; }
 
+            public override QsNamespace OnNamespace(QsNamespace ns)
+            {
+                ns = base.OnNamespace(ns);
+                if (ns.Elements.Any(element => element.IsInCompilationUnit()))
+                {
+                    // Concatenate everything into one documentation comment.
+                    var comment = String.Join("\n",
+                        ns.Documentation.SelectMany(group => group)
+                    );
+                    if (comment.Trim().Length != 0)
+                    {
+                        // TODO
+                    }
+                }
+
+                return ns;
+            }
+
             public override QsCustomType OnTypeDeclaration(QsCustomType type)
             {
                 type = base.OnTypeDeclaration(type);
                 // If the UDT didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.
-                if (!type.SourceFile.Value.EndsWith(".qs")) return type;
+                if (!type.IsInCompilationUnit()) return type;
 
                 var isDeprecated = type.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
@@ -94,7 +112,7 @@ namespace Microsoft.Quantum.Documentation
                 // If the callable didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.
-                if (!callable.SourceFile.Value.EndsWith(".qs")) return callable;
+                if (!callable.IsInCompilationUnit()) return callable;
 
                 var isDeprecated = callable.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
