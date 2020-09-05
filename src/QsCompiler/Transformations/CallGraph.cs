@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
 #nullable enable
 
@@ -302,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// This default constructor is set to internal so that only the walker can create call graphs.
         /// </summary>
-        internal BaseCallGraph()
+        protected BaseCallGraph()
         {
         }
 
@@ -450,6 +451,23 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
     public class SimpleCallGraph : BaseCallGraph<SimpleCallGraphNode, SimpleCallGraphEdge>
     {
+        public SimpleCallGraph(QsCompilation compilation, bool trim = false)
+        {
+            if (trim)
+            {
+                BuildCallGraph.PopulateTrimmedGraph(this, compilation);
+            }
+            else
+            {
+                BuildCallGraph.PopulateSimpleGraph(this, compilation);
+            }
+        }
+
+        public SimpleCallGraph(IEnumerable<QsCallable> callables)
+        {
+            BuildCallGraph.PopulateSimpleGraph(this, callables);
+        }
+
         private static IEnumerable<IEnumerable<SimpleCallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<SimpleCallGraphEdge>> sequences)
         {
             IEnumerable<IEnumerable<SimpleCallGraphEdge>> result = new[] { Enumerable.Empty<SimpleCallGraphEdge>() };
@@ -789,6 +807,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
     public class ConcreteCallGraph : BaseCallGraph<ConcreteCallGraphNode, ConcreteCallGraphEdge>
     {
+        public ConcreteCallGraph(QsCompilation compilation)
+        {
+            BuildCallGraph.PopulateConcreteGraph(this, compilation);
+        }
+
         /// <summary>
         /// Returns all specializations that are used directly or indirectly within the given caller,
         /// whether they are called, partially applied, or assigned. Each key in the returned lookup

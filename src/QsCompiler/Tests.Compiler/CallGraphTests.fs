@@ -93,15 +93,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         Assert.NotNull compilationDataStructures.BuiltCompilation
         compilationDataStructures.BuiltCompilation
 
-    let BuildSimpleGraph (compilation : QsCompilation) =
-        let SimpleCallGraph = BuildCallGraph.CreateSimpleGraph compilation
-        Assert.NotNull SimpleCallGraph
-        SimpleCallGraph
-
-    let BuildTrimmedGraph (compilation : QsCompilation) =
-        let SimpleCallGraph = BuildCallGraph.CreateTrimmedGraph compilation
-        Assert.NotNull SimpleCallGraph
-        SimpleCallGraph
+    let BuildTrimmedGraph (compilation : QsCompilation) = SimpleCallGraph(compilation, true)
 
     let CompileTestExpectingErrors testNumber fileName expect =
         let srcChunks = ReadAndChunkSourceFile fileName
@@ -109,7 +101,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         BuildContentWithErrors srcChunks.[testNumber-1] expect
 
     let CompileCycleDetectionTest testNumber =
-        let SimpleCallGraph = CompileTest testNumber "CycleDetection.qs" |> BuildSimpleGraph
+        let SimpleCallGraph = CompileTest testNumber "CycleDetection.qs" |> SimpleCallGraph
         SimpleCallGraph.GetCallCycles ()
 
     let CompileCycleValidationTest testNumber =
@@ -206,7 +198,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Get All Dependencies`` () =
-    //    let graph = CompileTypeParameterResolutionTest 1 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 1 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -242,7 +234,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Argument Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 2 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 2 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -257,7 +249,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Type List Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 3 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 3 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -272,7 +264,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Argument and Type List Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 4 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 4 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -287,7 +279,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Partial Application One Argument`` () =
-    //    let graph = CompileTypeParameterResolutionTest 5 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 5 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -302,7 +294,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Partial Application Two Arguments`` () =
-    //    let graph = CompileTypeParameterResolutionTest 6 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 6 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -318,7 +310,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Complex Partial Application`` () =
-    //    let graph = CompileTypeParameterResolutionTest 7 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 7 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -335,7 +327,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Nested Partial Application`` () =
-    //    let graph = CompileTypeParameterResolutionTest 8 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 8 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -357,7 +349,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Operation Returns Operation`` () =
-    //    let graph = CompileTypeParameterResolutionTest 9 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTest 9 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -379,7 +371,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     //[<Fact>]
     //[<Trait("Category","Get Dependencies")>]
     //member this.``Operation Takes Operation`` () =
-    //    let graph = CompileTypeParameterResolutionTestWithExe 10 |> BuildSimpleGraph
+    //    let graph = CompileTypeParameterResolutionTestWithExe 10 |> SimpleCallGraph
     //
     //    let mainNode = MakeMainNode ()
     //    let dependencies = graph.GetAllDependencies mainNode
@@ -480,7 +472,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 15 |> BuildSimpleGraph
+        let graph = CompileTypeParameterResolutionTest 15 |> SimpleCallGraph
 
         [
             "Main", [
@@ -496,7 +488,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 16 |> BuildSimpleGraph
+        let graph = CompileTypeParameterResolutionTest 16 |> SimpleCallGraph
 
         [
             "Main", [

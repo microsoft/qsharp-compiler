@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -2015,7 +2016,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                var callGraph = Transformations.CallGraphWalker.BuildCallGraph.CreateSimpleGraph(callables);
+                var callGraph = new SimpleCallGraph(callables);
                 foreach (var (diag, parent) in callGraph.VerifyAllCycles())
                 {
                     var info = callableDeclarations[parent];
