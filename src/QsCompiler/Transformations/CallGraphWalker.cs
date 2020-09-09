@@ -17,28 +17,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
-    /// This transformation walks through the compilation without changing it, building up a call graph as it does.
-    /// This call graph is then returned to the user.
+    /// This transformation walks through the compilation without changing it, populating a given call graph as it does.
     /// </summary>
     internal static class BuildCallGraph
     {
         /// <summary>
-        /// Builds and returns the call graph for the given callables.
+        /// Populates the given graph based on the given callables.
         /// </summary>
-        public static SimpleCallGraph PopulateSimpleGraph(SimpleCallGraph graph, IEnumerable<QsCallable> callables) => SimpleStuff.PopulateSimpleGraph(graph, callables);
+        public static void PopulateSimpleGraph(SimpleCallGraph graph, IEnumerable<QsCallable> callables) => SimpleCallGraphWalker.PopulateSimpleGraph(graph, callables);
 
         /// <summary>
-        /// Runs the transformation on the a compilation without any entry points. This
-        /// will produce a call graph that contains all relationships amongst all callables
-        /// in the compilation.
+        /// Populates the given graph based on the given compilation. This will produce a call graph that
+        /// contains all relationships amongst all callables in the compilation.
         /// </summary>
-        public static SimpleCallGraph PopulateSimpleGraph(SimpleCallGraph graph, QsCompilation compilation) => SimpleStuff.PopulateSimpleGraph(graph, compilation);
+        public static void PopulateSimpleGraph(SimpleCallGraph graph, QsCompilation compilation) => SimpleCallGraphWalker.PopulateSimpleGraph(graph, compilation);
 
-        public static SimpleCallGraph PopulateTrimmedGraph(SimpleCallGraph graph, QsCompilation compilation) => SimpleStuff.PopulateTrimmedGraph(graph, compilation);
+        /// <summary>
+        /// Populates the given graph based on the given compilation. Only the compilation's entry points and
+        /// those callables that the entry points depend on will be included in the graph.
+        /// </summary>
+        public static void PopulateTrimmedGraph(SimpleCallGraph graph, QsCompilation compilation) => SimpleCallGraphWalker.PopulateTrimmedGraph(graph, compilation);
 
-        public static ConcreteCallGraph PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation) => ConcreteStuff.PopulateConcreteGraph(graph, compilation);
+        /// <summary>
+        /// Populates the given graph based on the given compilation. Only the compilation's entry points and
+        /// those callables that the entry points depend on will be included in the graph.
+        /// </summary>
+        public static void PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation) => ConcreteCallGraphWalker.PopulateConcreteGraph(graph, compilation);
 
-        private static class GenericStuff<TGraph, TNode, TEdge>
+        private static class BaseCallGraphWalker<TGraph, TNode, TEdge>
             where TGraph : BaseCallGraph<TNode, TEdge>
             where TNode : BaseCallGraphNode
             where TEdge : BaseCallGraphEdge
@@ -47,6 +53,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 internal TNode CurrentCallable;
                 internal readonly TGraph Graph;
+
+                // The type parameter resolutions of the current expression.
                 internal IEnumerable<TypeParameterResolutions> ExpTypeParamResolutions = new List<TypeParameterResolutions>();
                 internal QsNullable<Position> CurrentStatementOffset;
                 internal QsNullable<DataTypes.Range> CurrentExpressionRange;
@@ -58,10 +66,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     this.Graph = graph;
                 }
 
+                /// <summary>
+                /// Get the array of type parameter resolutions for AddDependency to process.
+                /// </summary>
                 protected abstract TypeParameterResolutions[] GetTypeParamResolutions();
 
+                /// <summary>
+                /// Adds an edge from the current caller to the called node to the call graph.
+                /// </summary>
                 protected abstract void PushEdge(QsQualifiedName calledName, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange);
 
+                /// <summary>
+                /// Adds dependency to the graph from the current callable to the callable referenced by the given identifier.
+                /// </summary>
                 internal void AddDependency(QsQualifiedName identifier)
                 {
                     var combination = new TypeResolutionCombination(this.GetTypeParamResolutions());
@@ -138,34 +155,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        private static class SimpleStuff
+        private static class SimpleCallGraphWalker
         {
             /// <summary>
-            /// Builds and returns the call graph for the given callables.
+            /// Populates the given graph based on the given callables.
             /// </summary>
-            public static SimpleCallGraph PopulateSimpleGraph(SimpleCallGraph graph, IEnumerable<QsCallable> callables)
+            public static void PopulateSimpleGraph(SimpleCallGraph graph, IEnumerable<QsCallable> callables)
             {
                 var walker = new BuildGraph(graph);
                 foreach (var callable in callables)
                 {
                     walker.Namespaces.OnCallableDeclaration(callable);
                 }
-                return walker.SharedState.Graph;
             }
 
             /// <summary>
-            /// Runs the transformation on the a compilation without any entry points. This
-            /// will produce a call graph that contains all relationships amongst all callables
-            /// in the compilation.
+            /// Populates the given graph based on the given compilation. This will produce a call graph that
+            /// contains all relationships amongst all callables in the compilation.
             /// </summary>
-            public static SimpleCallGraph PopulateSimpleGraph(SimpleCallGraph graph, QsCompilation compilation)
+            public static void PopulateSimpleGraph(SimpleCallGraph graph, QsCompilation compilation)
             {
                 var walker = new BuildGraph(graph);
                 walker.OnCompilation(compilation);
-                return walker.SharedState.Graph;
             }
 
-            public static SimpleCallGraph PopulateTrimmedGraph(SimpleCallGraph graph, QsCompilation compilation)
+            /// <summary>
+            /// Populates the given graph based on the given compilation. Only the compilation's entry points and
+            /// those callables that the entry points depend on will be included in the graph.
+            /// </summary>
+            public static void PopulateTrimmedGraph(SimpleCallGraph graph, QsCompilation compilation)
             {
                 var walker = new BuildGraph(graph);
                 var entryPointNodes = compilation.EntryPoints.Select(name => new SimpleCallGraphNode(name));
@@ -192,8 +210,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     walker.SharedState.CurrentCallable = currentRequest;
                     walker.Namespaces.OnCallableDeclaration(currentCallable);
                 }
-
-                return walker.SharedState.Graph;
             }
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
@@ -201,15 +217,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public BuildGraph(SimpleCallGraph graph) : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
-                    this.Statements = new GenericStuff<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.StatementWalker<TransformationState>(this);
+                    this.Statements = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new GenericStuff<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new GenericStuff<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
+                    this.Expressions = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionWalker<TransformationState>(this);
+                    this.ExpressionKinds = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
 
-            private class TransformationState : GenericStuff<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.TransformationState
+            private class TransformationState : BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.TransformationState
             {
                 // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
                 internal bool WithTrimming = false;
@@ -218,11 +234,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 {
                 }
 
+                /// <inheritdoc/>
                 protected override TypeParameterResolutions[] GetTypeParamResolutions() => this.ExpTypeParamResolutions.ToArray();
 
-                /// <summary>
-                /// Adds an edge from the current caller to the called node to the call graph.
-                /// </summary>
+                /// <inheritdoc/>
                 protected override void PushEdge(QsQualifiedName calledName, TypeParameterResolutions edgeTypeParamRes, DataTypes.Range referenceRange)
                 {
                     var called = new SimpleCallGraphNode(calledName);
@@ -257,9 +272,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        private static class ConcreteStuff
+        private static class ConcreteCallGraphWalker
         {
-            public static ConcreteCallGraph PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation)
+            /// <summary>
+            /// Populates the given graph based on the given compilation. Only the compilation's entry points and
+            /// those callables that the entry points depend on will be included in the graph.
+            /// </summary>
+            public static void PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation)
             {
                 var walker = new BuildGraph(graph);
                 var entryPointNodes = compilation.EntryPoints.Select(name => new ConcreteCallGraphNode(name, TypeParameterResolutions.Empty));
@@ -285,8 +304,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     walker.SharedState.CurrentCallable = currentRequest;
                     walker.Namespaces.OnCallableDeclaration(currentCallable);
                 }
-
-                return walker.SharedState.Graph;
             }
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
@@ -294,26 +311,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public BuildGraph(ConcreteCallGraph graph) : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Statements = new GenericStuff<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
+                    this.Statements = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new GenericStuff<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new GenericStuff<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
+                    this.Expressions = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
+                    this.ExpressionKinds = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
 
-            private class TransformationState : GenericStuff<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
+            private class TransformationState : BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
             {
                 internal TransformationState(ConcreteCallGraph graph) : base(graph)
                 {
                 }
 
+                /// <inheritdoc/>
                 protected override TypeParameterResolutions[] GetTypeParamResolutions() =>
                     this.ExpTypeParamResolutions.Append(this.CurrentCallable.ParamResolutions).ToArray();
 
-                /// <summary>
-                /// Adds an edge from the current caller to the called node to the call graph.
-                /// </summary>
+                /// <inheritdoc/>
                 protected override void PushEdge(QsQualifiedName calledName, TypeParameterResolutions nodeTypeParamRes, DataTypes.Range referenceRange)
                 {
                     var called = new ConcreteCallGraphNode(calledName, nodeTypeParamRes);
