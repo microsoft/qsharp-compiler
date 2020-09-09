@@ -199,27 +199,6 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
 // =================================
 
-// Separated From Entry Point By Specialization
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
-
-    @ EntryPoint()
-    operation Main() : Unit {
-        Adjoint Foo();
-    }
-
-    operation Foo() : Unit is Adj {
-        body(...) {
-            Bar();
-        }
-
-        adjoint(...) { }
-    }
-
-    operation Bar() : Unit { }
-}
-
-// =================================
-
 // Not Called With Entry Point
 namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 

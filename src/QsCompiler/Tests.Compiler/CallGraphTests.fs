@@ -430,33 +430,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> List.map (AssertNotInGraph graph)
         |> ignore
 
-    //[<Fact>]
-    //[<Trait("Category","Populate Call Graph")>]
-    //member this.``Separated From Entry Point By Specialization`` () =
-    //    let graph = CompileTypeParameterResolutionTestWithExe 13 |> BuildTrimmedGraph
-    //
-    //    // The generalized methods of asserting dependencies assumes Body nodes, but
-    //    // this relationship is between a Body and an Adjoint specializations, so we
-    //    // will check manually.
-    //    let mainNode =
-    //        SimpleCallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" },
-    //            QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-    //
-    //    let adjFooNode =
-    //        SimpleCallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Foo" },
-    //            QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
-    //
-    //    let mainDependencies = graph.GetDirectDependencies mainNode
-    //    Assert.True(mainDependencies.Contains(adjFooNode),
-    //        sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo")
-    //
-    //    AssertNotInGraph graph "Foo" // Asserts Foo's Body isn't in the graph
-    //    AssertNotInGraph graph "Bar" // Asserts Bar's Body isn't in the graph
-
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called With Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 14 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 13 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -472,7 +449,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 15 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 14 |> SimpleCallGraph
 
         [
             "Main", [
@@ -488,7 +465,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 16 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 15 |> SimpleCallGraph
 
         [
             "Main", [
@@ -506,13 +483,13 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 17 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 16 |> BuildTrimmedGraph
         AssertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 18 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 17 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -528,7 +505,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 19 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 18 |> BuildTrimmedGraph
 
         [
             "Main", [
