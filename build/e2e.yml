@@ -14,9 +14,9 @@ trigger: none
 
 pr:
 - main
-- master
 - feature/*
 - features/*
+- release/*
 
 resources:
   repositories:

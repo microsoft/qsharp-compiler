@@ -1,6 +1,4 @@
 name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
-trigger:
-- master
 
 variables:
   Build.Major: 0
@@ -12,9 +10,12 @@ variables:
   VSIX.Outdir: $(Drops.Dir)/vsix
   Blobs.Outdir: $(Drops.Dir)/blobs
 
+trigger: none
+
 pr:
-- master
+- main
 - feature/*
+- release/*
 
 jobs:
 - job: "QsCompiler"
