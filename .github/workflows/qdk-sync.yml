@@ -26,3 +26,4 @@ jobs:
           azure-devops-project-url: 'https://dev.azure.com/ms-quantum-public/Microsoft Quantum (public)'
           azure-pipeline-name: 'microsoft.qdk.sync' 
           azure-devops-token: ${{ steps.AzureKeyVault.outputs.qdkBuildPAT }}
+
