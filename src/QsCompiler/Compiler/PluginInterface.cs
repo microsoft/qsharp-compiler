@@ -17,6 +17,12 @@ namespace Microsoft.Quantum.QsCompiler
     public static class RewriteStepPriorities
     {
         /// <summary>
+        /// Priority of the built-in transformation that infers the minimum runtime capabilities required by each
+        /// callable.
+        /// </summary>
+        public const int CapabilityInference = 1200;
+
+        /// <summary>
         /// Priority of the built-in transformation that replaces
         /// if-statements with the corresponding calls to built-in quantum operations if possible.
         /// </summary>
@@ -45,12 +51,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// evaluates classical computations as much as possible.
         /// </summary>
         public const int EvaluationOfClassicalComputations = 100;
-
-        /// <summary>
-        /// Priority of the built-in transformation that infers the minimum runtime capabilities required by each
-        /// callable.
-        /// </summary>
-        public const int CapabilityInference = 90;
     }
 
     public interface IRewriteStep
