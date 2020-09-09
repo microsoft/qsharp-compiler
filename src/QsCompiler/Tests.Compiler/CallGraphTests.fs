@@ -4,17 +4,12 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
-open System.Collections.Immutable
 open System.IO
-open System.Linq
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
-open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
 
@@ -40,9 +35,6 @@ type CallGraphTests (output:ITestOutputHelper) =
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
-    let ResolutionFromParamName (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
-        res.ToImmutableDictionary((fun (op, param, _) -> op, param), (fun (_, _, resolution) -> ResolvedType.New resolution))
-
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
@@ -61,30 +53,6 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         compilationDataStructures
 
-    let BuildContentWithErrors content (expectedErrors : seq<_>) =
-
-        let fileId = getTempFile()
-        let file = getManager fileId content
-
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        let compilationDataStructures = compilationManager.Build()
-        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-
-        let expected = Seq.map (fun code -> int code) expectedErrors
-        let got =
-            compilationDataStructures.Diagnostics()
-            |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error)
-            |> Seq.choose (fun d -> Diagnostics.TryGetCode d.Code |> function
-                | true, code -> Some code
-                | false, _ -> None)
-        let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
-        let gotLookup = got.ToLookup(new Func<_,_>(id))
-        let expectedLookup = expected.ToLookup(new Func<_,_>(id))
-        let nrMismatch = gotLookup.Where (fun g -> g.Count() <> expectedLookup.[g.Key].Count())
-        Assert.False(codeMismatch.Any() || nrMismatch.Any(),
-            sprintf "%A code mismatch\nexpected: %s\ngot: %s"
-                DiagnosticSeverity.Error (String.Join(", ", expected)) (String.Join(", ", got)))
-
     let CompileTest testNumber fileName =
         let srcChunks = ReadAndChunkSourceFile fileName
         srcChunks.Length >= testNumber |> Assert.True
@@ -94,21 +62,9 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let BuildTrimmedGraph (compilation : QsCompilation) = SimpleCallGraph(compilation, true)
 
-    let CompileTestExpectingErrors testNumber fileName expect =
-        let srcChunks = ReadAndChunkSourceFile fileName
-        srcChunks.Length >= testNumber |> Assert.True
-        BuildContentWithErrors srcChunks.[testNumber-1] expect
-
     let CompileCycleDetectionTest testNumber =
         let SimpleCallGraph = CompileTest testNumber "CycleDetection.qs" |> SimpleCallGraph
         SimpleCallGraph.GetCallCycles ()
-
-    let CompileCycleValidationTest testNumber =
-        CompileTest testNumber "CycleValidation.qs" |> ignore
-
-    let CompileInvalidCycleTest testNumber expected =
-        let errors = expected |> Seq.choose (function | Error error -> Some error | _ -> None)
-        CompileTestExpectingErrors testNumber "CycleValidation.qs" errors
 
     let CompileTypeParameterResolutionTest testNumber =
         CompileTest testNumber "TypeParameterResolution.qs"
@@ -431,41 +387,3 @@ type CallGraphTests (output:ITestOutputHelper) =
             [ "_2k2"; "_3k2"; "_3k3" ]
         ]
         |> CheckForExpectedCycles result
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Generic Resolution`` () =
-        CompileCycleValidationTest 1
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Concrete Resolution`` () =
-        CompileCycleValidationTest 2
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Constricting Cycle`` () =
-        Error ErrorCode.InvalidCyclicTypeParameterResolution |> List.replicate 3
-        |> CompileInvalidCycleTest 3
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Rotating Parameters`` () =
-        CompileCycleValidationTest 4
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Mutated Forwarding`` () =
-        Error ErrorCode.InvalidCyclicTypeParameterResolution |> List.replicate 3
-        |> CompileInvalidCycleTest 5
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Multiple Concrete Resolutions`` () =
-        CompileCycleValidationTest 6
-
-    [<Fact>]
-    [<Trait("Category","Cycle Validation")>]
-    member this.``Cycle with Rotating Constriction`` () =
-        Error ErrorCode.InvalidCyclicTypeParameterResolution |> List.replicate 18
-        |> CompileInvalidCycleTest 7
