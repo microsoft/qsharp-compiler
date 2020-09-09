@@ -28,4 +28,3 @@ jobs:
     displayName: 'Component detection'
     inputs:
       failOnAlert: true
-
