@@ -14,7 +14,6 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
@@ -152,25 +151,6 @@ type CallGraphTests (output:ITestOutputHelper) =
             Assert.True(List.exists (CyclicEquivalence cycle) actual,
                 sprintf "Did not find expected cycle: %s" (cycleToString cycle))
 
-    let CheckResolutionMatch (res1 : ImmutableDictionary<_,_>) (res2 : ImmutableDictionary<_,_> ) =
-        let keysMismatch = ImmutableHashSet.CreateRange(res1.Keys).SymmetricExcept res2.Keys
-        keysMismatch.Count = 0 && res1 |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value) |> not
-
-    let AssertExpectedResolutionList (expected : ImmutableDictionary<_,_> list) (given : ImmutableDictionary<_,_> list) =
-        let sameLength = expected.Length = given.Length
-        let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
-        Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
-
-    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<SimpleCallGraphNode,SimpleCallGraphEdge>) expected =
-        let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
-        let opNode = SimpleCallGraphNode(opName)
-        let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
-        Assert.True(given.Contains(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
-        let edges = given.[opNode]
-        Assert.True(edges.Count() = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo)
-        let given = edges |> Seq.toList |> List.map (fun x -> x.ParamResolutions)
-        AssertExpectedResolutionList expected given
-
     let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : SimpleCallGraph) =
         let strToNode name =
             let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
@@ -191,209 +171,10 @@ type CallGraphTests (output:ITestOutputHelper) =
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
-    let MakeMainNode () =
-        let mainName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" }
-        SimpleCallGraphNode(mainName)
-
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Get All Dependencies`` () =
-    //    let graph = CompileTypeParameterResolutionTest 1 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //            (NonNullable<_>.New "B", String)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "X", Int)
-    //        ]
-    //        [
-    //            (NonNullable<_>.New "X", String)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Bar" dependencies
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "Y", String)
-    //        ]
-    //        [ // same type parameter resolution, but a different location
-    //            (NonNullable<_>.New "Y", String)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Baz" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Argument Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 2 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Type List Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 3 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Argument and Type List Resolution`` () =
-    //    let graph = CompileTypeParameterResolutionTest 4 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Partial Application One Argument`` () =
-    //    let graph = CompileTypeParameterResolutionTest 5 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Partial Application Two Arguments`` () =
-    //    let graph = CompileTypeParameterResolutionTest 6 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Double)
-    //            (NonNullable<_>.New "B", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Complex Partial Application`` () =
-    //    let graph = CompileTypeParameterResolutionTest 7 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", String)
-    //            (NonNullable<_>.New "B", Double)
-    //            (NonNullable<_>.New "C", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Nested Partial Application`` () =
-    //    let graph = CompileTypeParameterResolutionTest 8 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "B", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Bar" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Operation Returns Operation`` () =
-    //    let graph = CompileTypeParameterResolutionTest 9 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "B", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Bar" dependencies
-    //
-    //[<Fact>]
-    //[<Trait("Category","Get Dependencies")>]
-    //member this.``Operation Takes Operation`` () =
-    //    let graph = CompileTypeParameterResolutionTestWithExe 10 |> SimpleCallGraph
-    //
-    //    let mainNode = MakeMainNode ()
-    //    let dependencies = graph.GetAllDependencies mainNode
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "A", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Foo" dependencies
-    //
-    //    [
-    //        [
-    //            (NonNullable<_>.New "B", Int)
-    //        ]
-    //    ]
-    //    |> AssertExpectedDepencency "Main" "Bar" dependencies
-
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Basic Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 11 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 1 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -412,7 +193,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated To Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 12 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 2 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -433,7 +214,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called With Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 13 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 3 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -449,7 +230,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 14 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 4 |> SimpleCallGraph
 
         [
             "Main", [
@@ -465,7 +246,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 15 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 5 |> SimpleCallGraph
 
         [
             "Main", [
@@ -483,13 +264,13 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 16 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 6 |> BuildTrimmedGraph
         AssertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 17 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 7 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -505,7 +286,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 18 |> BuildTrimmedGraph
+        let graph = CompileTypeParameterResolutionTestWithExe 8 |> BuildTrimmedGraph
 
         [
             "Main", [

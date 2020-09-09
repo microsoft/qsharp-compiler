@@ -808,65 +808,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Returns all callables that are used directly or indirectly within the given caller,
-        /// whether they are called, partially applied, or assigned. Each key in the returned lookup
-        /// represents a callable that is used by the caller. Each value in the lookup is an
-        /// IEnumerable of edges representing all the different ways the given caller took a
-        /// dependency on the callable represented by the associated key.
-        /// Throws ArgumentNullException if argument is null.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// </summary>
-        public ILookup<ConcreteCallGraphNode, ConcreteCallGraphEdge> GetAllDependencies(ConcreteCallGraphNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            if (!this.dependencies.ContainsKey(node))
-            {
-                return EmptyDependency();
-            }
-
-            var accum = new Dictionary<ConcreteCallGraphNode, ImmutableArray<ConcreteCallGraphEdge>>();
-
-            void WalkDependencyTree(ConcreteCallGraphNode root, ConcreteCallGraphEdge? edgeFromRoot)
-            {
-                if (this.dependencies.TryGetValue(root, out var next))
-                {
-                    foreach (var (dependent, edges) in next)
-                    {
-                        var combinedEdges = edgeFromRoot is null
-                            ? edges
-                            : edges.Select(e => new ConcreteCallGraphEdge(edgeFromRoot.FromCallableName, e.ToCallableName, edgeFromRoot.ReferenceRange));
-
-                        if (accum.TryGetValue(dependent, out var existingEdges))
-                        {
-                            combinedEdges = combinedEdges.Where(edge => !existingEdges.Any(existing => edge.Equals(existing)));
-                            accum[dependent] = existingEdges.AddRange(combinedEdges);
-                        }
-                        else
-                        {
-                            accum[dependent] = combinedEdges.ToImmutableArray();
-                        }
-
-                        foreach (var edge in combinedEdges)
-                        {
-                            WalkDependencyTree(dependent, edge);
-                        }
-                    }
-                }
-            }
-
-            WalkDependencyTree(node, null);
-
-            return accum
-                .SelectMany(kvp => kvp.Value, Tuple.Create)
-                .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
-        }
-
-        /// <summary>
         /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
         /// Throws an ArgumentNullException if any argument is null.
         /// </summary>
