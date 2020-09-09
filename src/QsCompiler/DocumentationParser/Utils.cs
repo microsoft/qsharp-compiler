@@ -474,6 +474,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
         }
+
+        internal static string NamespaceAsUid(this string namespaceName) =>
+            namespaceName.ToLowerInvariant();
     }
 
     // See https://stackoverflow.com/a/5037815/267841.

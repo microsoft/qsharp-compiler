@@ -157,31 +157,27 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
-        internal bool QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion, out Uri projectUri, out ProjectInformation info)
+        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion)
         {
-            projectUri = null;
-            info = null;
-
-            var localFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
-            var projectFolderPath = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "qsharp", $"{localFolderPath.GetHashCode():x8}")).FullName;
+            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var projectFileName = string.Join("_x2f_", // arbitrary string to help avoid collisions
+                sourceFolderPath
+                    .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
+                    .Split(Path.GetInvalidFileNameChars()));
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(
+                Path.GetTempPath(),
+                "qsharp",
+                projectFileName)).FullName;
             var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
             using (var outputFile = new StreamWriter(projectFilePath))
             {
                 outputFile.WriteLine(
                     TemporaryProject.GetFileContents(
-                        compilationScope: Path.Combine(localFolderPath, "*.qs"),
+                        compilationScope: Path.Combine(sourceFolderPath, "*.qs"),
                         sdkVersion: sdkVersion));
             }
 
-            projectUri = new Uri(projectFilePath);
-            var success = this.QsProjectLoader(projectUri, out info);
-            if (!success)
-            {
-                File.Delete(projectFilePath);
-                Directory.Delete(projectFolderPath);
-            }
-
-            return success;
+            return new Uri(projectFilePath);
         }
 
         /// <summary>
@@ -244,11 +240,43 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentNullException(nameof(textDocument.Text));
             }
+            // If the file is not associated with a project, we will create a temporary project file for all files in that folder.
+            // We spawn a second query below for the actual processing of the file to ensure that a created project file
+            // is properly registered with the project manager before processing.
+            var createdTemporaryProject = false;
+            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
+            {
+                if (this.IgnoreFile(textDocument.Uri))
+                {
+                    return;
+                }
+
+                if (!associatedWithProject && textDocument.Uri.LocalPath.EndsWith(".qs", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    try
+                    {
+                        var projectUri = this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null); // null means the Sdk version will be set to the extension version
+                        this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
+                        this.onTemporaryProjectLoaded(projectUri);
+                        createdTemporaryProject = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
+                        manager.LogException(ex);
+                    }
+                }
+            }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
+                }
+
+                if (createdTemporaryProject && !associatedWithProject)
+                {
+                    logError?.Invoke($"Failed to load temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
