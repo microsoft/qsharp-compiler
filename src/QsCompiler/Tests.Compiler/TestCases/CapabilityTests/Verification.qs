@@ -197,6 +197,20 @@ namespace Microsoft.Quantum.Testing.Capability {
     function ResultArray(rs : Result[]) : Bool {
         return rs == [One] ? true | false;
     }
+
+    // Test calls to operations in referenced libraries.
+
+    operation CallLibraryGen0(q : Qubit) : Unit {
+        LibraryGen0(q);
+    }
+
+    operation CallLibraryGen1(q : Qubit) : Unit {
+        LibraryGen1(q);
+    }
+
+    operation CallLibraryUnknown(q : Qubit) : Unit {
+        LibraryUnknown(q);
+    }
 }
 
 namespace Microsoft.Quantum.Intrinsic {
