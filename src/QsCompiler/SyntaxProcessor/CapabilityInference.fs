@@ -2,13 +2,18 @@
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open System.Collections.Generic
+open System.Collections.Immutable
+open System.Linq
 
 /// A syntactic pattern that requires a runtime capability.
 type private Pattern =
@@ -142,8 +147,8 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         block.Body.Statements
         |> Seq.collect returnStatements
         |> Seq.map (fun statement ->
-               let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
-               ReturnInResultConditionedBlock range)
+            let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
+            ReturnInResultConditionedBlock range)
     let setPatterns (block : QsPositionedBlock) =
         nonLocalUpdates block.Body
         |> Seq.map (fun (name, range) -> SetInResultConditionedBlock (name.Value, Value range))
@@ -193,48 +198,129 @@ let private scopePatterns scope = scope.Statements |> Seq.collect statementPatte
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
 let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
 
-/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
-let private maxCapability capabilities =
+/// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
+let private tryMaxCapability capabilities =
     if Seq.isEmpty capabilities
-    then baseCapability
-    else capabilities |> Seq.maxBy level
+    then None
+    else capabilities |> Seq.maxBy level |> Some
 
-/// Returns the required capability of the specialization, given whether it is part of an operation.
-let private specializationCapability inOperation specialization =
-    match specialization.Implementation with
+/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
+let private maxCapability = tryMaxCapability >> Option.defaultValue baseCapability
+
+/// Looks up a key in the dictionary, returning Some value if it is found and None if not.
+let private tryGetValue key (dict : IReadOnlyDictionary<_, _>) =
+    match dict.TryGetValue key with
+    | true, value -> Some value
+    | false, _ -> None
+
+/// Returns true if the callable is an operation.
+let private isOperation callable =
+    match callable.Kind with
+    | Operation -> true
+    | _ -> false
+
+/// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
+/// library.
+let private isDeclaredInSourceFile (callable : QsCallable) =
+    callable.SourceFile.Value.EndsWith ".qs"
+
+/// Given whether the specialization is part of an operation, returns its required capability based on its source code,
+/// ignoring callable dependencies.
+let private specSourceCapability inOperation spec =
+    match spec.Implementation with
     | Provided (_, scope) ->
-        let offset = specialization.Location |> QsNullable<_>.Map (fun location -> location.Offset)
+        let offset = spec.Location |> QsNullable<_>.Map (fun location -> location.Offset)
         scopePatterns scope |> Seq.map (addOffset offset >> toCapability inOperation) |> maxCapability
     | _ -> baseCapability
 
-/// Returns the required capability of the callable.
-let private callableCapability callable =
-    let inOperation =
-        match callable.Kind with
-        | Operation -> true
-        | _ -> false
-    callable.Specializations |> Seq.map (specializationCapability inOperation) |> maxCapability
+/// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
+let private callableSourceCapability callable =
+    callable.Specializations
+    |> Seq.map (isOperation callable |> specSourceCapability)
+    |> maxCapability
 
-/// Adds the inferred capability of the callable as an attribute.
-let private addAttribute callable =
-    let capability = callableCapability callable
+/// Returns the required capability of the callable based on its capability attribute if one is present. If no attribute
+/// is present and the callable is not defined in a reference, returns the capability based on its source code and
+/// callable dependencies. Otherwise, returns the base capability.
+///
+/// Partially applying the first argument creates a memoized function that caches computed runtime capabilities by
+/// callable name. The memoized function is not thread-safe.
+let private callableDependentCapability (callables : IImmutableDictionary<_, QsCallable>, graph : CallGraph) =
+    // A mapping from callable name to runtime capability based on callable source code patterns and cycles the callable
+    // is a member of, but not other dependencies. This is the initial set of capabilities that will be used later.
+    let initialCapabilities =
+        callables
+        |> Seq.filter (fun item -> isDeclaredInSourceFile item.Value)
+        |> fun items -> items.ToDictionary ((fun item -> item.Key), fun item -> callableSourceCapability item.Value)
+    let sourceCycles =
+        graph.GetCallCycles ()
+        |> Seq.filter (Seq.exists <| fun node ->
+            callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile)
+    for cycle in sourceCycles do
+        let cycleCapability =
+            cycle
+            |> Seq.choose (fun node -> callables |> tryGetValue node.CallableName)
+            |> Seq.map callableSourceCapability
+            |> maxCapability
+        for node in cycle do
+            initialCapabilities.[node.CallableName] <-
+                maxCapability [ initialCapabilities.[node.CallableName]; cycleCapability ]
+
+    // The memoization cache.
+    let cache = Dictionary<_, _> ()
+
+    // The capability of a specialization based on its initial capability and the capability of all dependencies.
+    let rec specCapability visited (spec : QsSpecialization) =
+        let visited = Set.add spec.Parent visited
+        let dependencies =
+            graph.GetDirectDependencies spec
+            |> Seq.map (fun group -> group.Key.CallableName)
+            |> Set.ofSeq
+            |> fun names -> Set.difference names visited
+        dependencies
+        |> Seq.choose (fun name -> callables |> tryGetValue name)
+        |> Seq.map (callableCapability visited)
+        |> Seq.append (initialCapabilities |> tryGetValue spec.Parent |> Option.toList)
+        |> maxCapability
+
+    // The capability of a callable based on its initial capability and the capability of all dependencies.
+    and callableCapability visited (callable : QsCallable) =
+        cache
+        |> tryGetValue callable.FullName
+        |> Option.defaultWith (fun () ->
+            let capability =
+                callable.Attributes
+                |> QsNullable<_>.Choose BuiltIn.GetCapability
+                |> tryMaxCapability
+                |> Option.defaultWith (fun () ->
+                    if isDeclaredInSourceFile callable
+                    then callable.Specializations |> Seq.map (specCapability visited) |> maxCapability
+                    else baseCapability)
+            cache.[callable.FullName] <- capability
+            capability)
+
+    callableCapability Set.empty
+
+/// Adds the given capability to the callable as an attribute.
+let private addAttribute callable capability =
     let arg = capability.ToString () |> AttributeUtils.StringArgument
     let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
-    { callable with Attributes = callable.Attributes.Add attribute }
+    { callable with QsCallable.Attributes = callable.Attributes.Add attribute }
 
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
 /// callable.
-///
-/// TODO:
-/// This infers the capability of each callable individually, without looking at the capabilities of anything it
-/// calls or references. The inferred capability is only a lower bound.
 let InferCapabilities compilation =
+    let callables = GlobalCallableResolutions compilation.Namespaces
+    let graph = BuildCallGraph.Apply compilation
     let transformation = SyntaxTreeTransformation ()
+    let callableCapability = callableDependentCapability (callables, graph)
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                if callable.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> Seq.isEmpty
-                then addAttribute callable
+                let isMissingCapability =
+                    callable.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> Seq.isEmpty
+                if isMissingCapability && isDeclaredInSourceFile callable
+                then callableCapability callable |> addAttribute callable
                 else callable
     }
     transformation.OnCompilation compilation
