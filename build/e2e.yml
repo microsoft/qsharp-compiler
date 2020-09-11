@@ -24,7 +24,7 @@ resources:
     type: github
     endpoint: github
     name: microsoft/qdk
-    ref: refs/heads/main
+    ref: refs/heads/anpaz/sync-repos
 
 extends:
   template: build/qdk-module-e2e.yml@qdk
