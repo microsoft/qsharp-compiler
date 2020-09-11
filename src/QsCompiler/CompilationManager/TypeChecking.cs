@@ -16,7 +16,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
@@ -2016,10 +2015,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                var callGraph = new SimpleCallGraph(callables);
+
+                var allCallableDeclarations = compilation.GlobalSymbols.DefinedCallables().ToImmutableDictionary(x => x.QualifiedName);
+
+                var callGraph = new SimpleCallGraph(compilation.GetCallables().Values);
                 foreach (var (diag, parent) in callGraph.VerifyAllCycles())
                 {
-                    var info = callableDeclarations[parent];
+                    var info = allCallableDeclarations[parent];
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                     diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
                 }
@@ -2215,6 +2217,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, CancellationToken.None), "error on running type checking");
+
+                var numRemovedCycleDiags = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
+                    - diagnostics.Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
+
+                if (numRemovedCycleDiags > 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+                {
+                    file.TriggerGlobalTypeChecking();
+                }
+
                 if (sameImports)
                 {
                     file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
