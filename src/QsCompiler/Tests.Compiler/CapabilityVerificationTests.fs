@@ -157,22 +157,31 @@ let ``QPRGen1 allows operation call from Result if`` () =
     |> List.iter (expect gen1 [])
 
 [<Fact>]
-let ``Unknown allows all library calls`` () =
+let ``Unknown allows all library calls and references`` () =
     [ "CallLibraryGen0"
+      "ReferenceLibraryGen0"
       "CallLibraryGen1"
-      "CallLibraryUnknown" ]
+      "ReferenceLibraryGen1"
+      "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
     |> List.iter (expect unknown [])
 
 [<Fact>]
-let ``QPRGen1 restricts library calls`` () =
+let ``QPRGen1 restricts library calls and references`` () =
     [ "CallLibraryGen0"
       "CallLibraryGen1" ]
     |> List.iter (expect gen1 [])
-    "CallLibraryUnknown" |> expect gen1 [ErrorCode.UnsupportedCapability]
+    [ "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
+    |> List.iter (expect gen1 [ErrorCode.UnsupportedCapability])
 
 [<Fact>]
-let ``QPRGen0 restricts library calls`` () =
-    "CallLibraryGen0" |> expect gen0 []
+let ``QPRGen0 restricts library calls and references`` () =
+    [ "CallLibraryGen0"
+      "ReferenceLibraryGen0" ]
+    |> List.iter (expect gen0 [])
     [ "CallLibraryGen1"
-      "CallLibraryUnknown" ]
+      "ReferenceLibraryGen1"
+      "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
     |> List.iter (expect gen0 [ErrorCode.UnsupportedCapability])
