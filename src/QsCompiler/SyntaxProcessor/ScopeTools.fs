@@ -285,17 +285,23 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
-    { /// The symbol tracker for the parent callable.
+    { /// The namespace manager for global symbols.
+      Globals : NamespaceManager
+
+      /// The symbol tracker for the parent callable.
       Symbols : SymbolTracker
+
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
+
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities
+
       /// The name of the processor architecture for the compilation unit.
       ProcessorArchitecture : NonNullable<string> }
-    with
 
     /// <summary>
     /// Creates a scope context for the specialization.
@@ -314,7 +320,8 @@ type ScopeContext =
                          (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
-            { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
+            { Globals = nsManager
+              Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities
