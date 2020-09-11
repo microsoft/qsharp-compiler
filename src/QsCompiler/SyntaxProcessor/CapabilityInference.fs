@@ -242,7 +242,7 @@ let private referenceDiagnostic context (name, range : _ QsNullable) =
         let capability = declaration.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> maxCapability
         if level capability > level context.Capabilities
         then
-            let error = ErrorCode.UnsupportedCapability, [ name.Name.Value ]
+            let error = ErrorCode.UnsupportedCapability, [ name.Name.Value; context.ProcessorArchitecture.Value ]
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
         else None
     | _ -> None
