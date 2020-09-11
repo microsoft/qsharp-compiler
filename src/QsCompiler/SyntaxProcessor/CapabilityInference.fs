@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
