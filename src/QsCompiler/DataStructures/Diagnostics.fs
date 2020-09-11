@@ -567,7 +567,7 @@ type DiagnosticItem =
             | ErrorCode.SetInResultConditionedBlock               ->
                 "The variable \"{0}\" cannot be reassigned here. " +
                 "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
-            | ErrorCode.UnsupportedCapability                     -> "{0} requires runtime capabilities that are not supported by the target {1}."
+            | ErrorCode.UnsupportedCapability                     -> "The callable {0} requires runtime capabilities that are not supported by the target {1}."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
