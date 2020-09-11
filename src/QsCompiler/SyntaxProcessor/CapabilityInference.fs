@@ -36,6 +36,22 @@ type private Pattern =
 /// The level of a runtime capability. Higher levels require more capabilities.
 type private Level = Level of int
 
+/// Returns the offset of a nullable location.
+let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
+
+/// Tracks the most recently seen statement location.
+type private StatementLocationTracker (parent, options) =
+    inherit StatementTransformation (parent, options)
+
+    let mutable offset = Null
+
+    /// The offset of the most recently seen statement location.
+    member this.Offset = offset
+
+    override this.OnLocation location =
+        offset <- locationOffset location
+        base.OnLocation location
+
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private toCapability inOperation = function
     | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
@@ -86,9 +102,6 @@ let private addOffset offset =
     | SetInResultConditionedBlock (name, range) -> SetInResultConditionedBlock (name, add range)
     | ResultEqualityInCondition range -> add range |> ResultEqualityInCondition
     | ResultEqualityNotInCondition range -> add range |> ResultEqualityNotInCondition
-
-/// Returns the offset of a nullable location.
-let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
 let private isResultEquality { TypedExpression.Expression = expression } =
@@ -167,15 +180,9 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray ()
-    let mutable offset = Null
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
-
-    transformation.Statements <- {
-        new StatementTransformation (transformation, TransformationOptions.NoRebuild) with
-            override this.OnLocation location =
-                offset <- locationOffset location
-                location
-    }
+    let location = StatementLocationTracker (transformation, TransformationOptions.NoRebuild)
+    transformation.Statements <- location
     transformation.StatementKinds <- {
         new StatementKindTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnConditionalStatement statement =
@@ -189,7 +196,7 @@ let private statementPatterns statement =
     transformation.Expressions <- {
         new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionPatterns false expression |> Seq.map (addOffset offset) |> patterns.AddRange
+                expressionPatterns false expression |> Seq.map (addOffset location.Offset) |> patterns.AddRange
                 expression
     }
     transformation.Statements.OnStatement statement |> ignore
@@ -198,8 +205,31 @@ let private statementPatterns statement =
 /// Returns all patterns in the scope. Ranges are relative to the start of the specialization.
 let private scopePatterns scope = scope.Statements |> Seq.collect statementPatterns
 
+/// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
+/// the start of the specialization.
+let private globalReferences scope =
+    let mutable references = []
+    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
+    let location = StatementLocationTracker (transformation, TransformationOptions.NoRebuild)
+    transformation.Statements <- location
+    transformation.Expressions <- {
+        new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
+            override this.OnTypedExpression expression =
+                match expression.Expression with
+                | Identifier (GlobalCallable name, _) ->
+                    let range = QsNullable.Map2 (+) location.Offset expression.Range
+                    references <- (name, range) :: references
+                | _ -> ()
+                base.OnTypedExpression expression
+    }
+    transformation.Statements.OnScope scope |> ignore
+    references
+
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
-let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
+let ScopeDiagnostics context scope =
+    let references = globalReferences scope
+    // TODO: Look up Capability attribute for each reference.
+    scopePatterns scope |> Seq.choose (toDiagnostic context)
 
 /// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
 let private tryMaxCapability capabilities =
