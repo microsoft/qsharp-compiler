@@ -85,8 +85,8 @@
 
     // Override QPRGen1 to Unknown (2 dependencies)
 
-    operation CallUnknownOverrideA(q : Qubit) : Bool {
-        return CallUnknownOverrideB(q);
+    operation CallUnknownOverrideA(q : Qubit) : Unit {
+        CallUnknownOverrideB(q);
     }
 
     @Capability("Unknown")
@@ -107,11 +107,11 @@
     }
 
     @Capability("QPRGen1")
-    operation CallQPRGen1OverrideB(q : Qubit) : Result {
+    operation CallQPRGen1OverrideB(q : Qubit) : Bool {
         return CallQPRGen1OverrideC(q);
     }
 
-    operation CallQPRGen1OverrideC(q : Qubit) : Result {
+    operation CallQPRGen1OverrideC(q : Qubit) : Bool {
         let r = M(q);
         if (r == One) {
             X(q);
