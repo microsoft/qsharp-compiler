@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -33,8 +36,24 @@ type private Pattern =
 /// The level of a runtime capability. Higher levels require more capabilities.
 type private Level = Level of int
 
+/// Returns the offset of a nullable location.
+let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
+
+/// Tracks the most recently seen statement location.
+type private StatementLocationTracker (parent, options) =
+    inherit StatementTransformation (parent, options)
+
+    let mutable offset = Null
+
+    /// The offset of the most recently seen statement location.
+    member this.Offset = offset
+
+    override this.OnLocation location =
+        offset <- locationOffset location
+        base.OnLocation location
+
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
-let private toCapability inOperation = function
+let private patternCapability inOperation = function
     | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
     | ResultEqualityNotInCondition _ -> RuntimeCapabilities.Unknown
     | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
@@ -49,11 +68,20 @@ let private level = function
     | RuntimeCapabilities.QPRGen1 -> Level 1
     | _ -> Level 2
 
+/// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
+let private tryMaxCapability capabilities =
+    if Seq.isEmpty capabilities
+    then None
+    else capabilities |> Seq.maxBy level |> Some
+
+/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
+let private maxCapability = tryMaxCapability >> Option.defaultValue baseCapability
+
 /// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
 /// level.
-let private toDiagnostic context pattern =
-    let error code args (range : QsNullable<_>) =
-        if level context.Capabilities >= level (toCapability context.IsInOperation pattern)
+let private patternDiagnostic context pattern =
+    let error code args (range : _ QsNullable) =
+        if level context.Capabilities >= level (patternCapability context.IsInOperation pattern)
         then None
         else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
     let unsupported =
@@ -83,9 +111,6 @@ let private addOffset offset =
     | SetInResultConditionedBlock (name, range) -> SetInResultConditionedBlock (name, add range)
     | ResultEqualityInCondition range -> add range |> ResultEqualityInCondition
     | ResultEqualityNotInCondition range -> add range |> ResultEqualityNotInCondition
-
-/// Returns the offset of a nullable location.
-let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
 let private isResultEquality { TypedExpression.Expression = expression } =
@@ -164,15 +189,9 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray ()
-    let mutable offset = Null
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
-
-    transformation.Statements <- {
-        new StatementTransformation (transformation, TransformationOptions.NoRebuild) with
-            override this.OnLocation location =
-                offset <- locationOffset location
-                location
-    }
+    let location = StatementLocationTracker (transformation, TransformationOptions.NoRebuild)
+    transformation.Statements <- location
     transformation.StatementKinds <- {
         new StatementKindTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnConditionalStatement statement =
@@ -186,7 +205,7 @@ let private statementPatterns statement =
     transformation.Expressions <- {
         new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionPatterns false expression |> Seq.map (addOffset offset) |> patterns.AddRange
+                expressionPatterns false expression |> Seq.map (addOffset location.Offset) |> patterns.AddRange
                 expression
     }
     transformation.Statements.OnStatement statement |> ignore
@@ -195,17 +214,44 @@ let private statementPatterns statement =
 /// Returns all patterns in the scope. Ranges are relative to the start of the specialization.
 let private scopePatterns scope = scope.Statements |> Seq.collect statementPatterns
 
+/// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
+/// the start of the specialization.
+let private globalReferences scope =
+    let mutable references = []
+    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
+    let location = StatementLocationTracker (transformation, TransformationOptions.NoRebuild)
+    transformation.Statements <- location
+    transformation.Expressions <- {
+        new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
+            override this.OnTypedExpression expression =
+                match expression.Expression with
+                | Identifier (GlobalCallable name, _) ->
+                    let range = QsNullable.Map2 (+) location.Offset expression.Range
+                    references <- (name, range) :: references
+                | _ -> ()
+                base.OnTypedExpression expression
+    }
+    transformation.Statements.OnScope scope |> ignore
+    references
+
+/// Returns a diagnostic for a reference to a global callable with the given name based on its capability attribute and
+/// the context's supported runtime capabilities.
+let private referenceDiagnostic context (name, range : _ QsNullable) =
+    match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
+    | Found declaration ->
+        let capability = declaration.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> maxCapability
+        if level capability > level context.Capabilities
+        then
+            let error = ErrorCode.UnsupportedCapability, [ name.Name.Value; context.ProcessorArchitecture.Value ]
+            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
+        else None
+    | _ -> None
+
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
-let ScopeDiagnostics context scope = scopePatterns scope |> Seq.choose (toDiagnostic context)
-
-/// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
-let private tryMaxCapability capabilities =
-    if Seq.isEmpty capabilities
-    then None
-    else capabilities |> Seq.maxBy level |> Some
-
-/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
-let private maxCapability = tryMaxCapability >> Option.defaultValue baseCapability
+let ScopeDiagnostics context scope =
+    [ globalReferences scope |> Seq.choose (referenceDiagnostic context)
+      scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
+    |> Seq.concat
 
 /// Looks up a key in the dictionary, returning Some value if it is found and None if not.
 let private tryGetValue key (dict : IReadOnlyDictionary<_, _>) =
@@ -230,7 +276,7 @@ let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
         let offset = spec.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        scopePatterns scope |> Seq.map (addOffset offset >> toCapability inOperation) |> maxCapability
+        scopePatterns scope |> Seq.map (addOffset offset >> patternCapability inOperation) |> maxCapability
     | _ -> baseCapability
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.

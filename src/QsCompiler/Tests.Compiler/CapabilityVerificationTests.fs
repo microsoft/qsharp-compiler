@@ -8,12 +8,16 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.IO
 open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
 let private compile capabilities =
     CompilerTests.Compile
-        ("TestCases", ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"], capabilities = capabilities)
+        ("TestCases",
+         ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"],
+         references = [File.ReadAllLines("ReferenceTargets.txt").[1]],
+         capabilities = capabilities)
 
 /// The unknown capability tester.
 let private unknown = compile RuntimeCapabilities.Unknown |> CompilerTests
@@ -151,3 +155,33 @@ let ``QPRGen1 allows operation call from Result if`` () =
       "OverrideGen1ToGen0"
       "ExplicitGen1" ]
     |> List.iter (expect gen1 [])
+
+[<Fact>]
+let ``Unknown allows all library calls and references`` () =
+    [ "CallLibraryGen0"
+      "ReferenceLibraryGen0"
+      "CallLibraryGen1"
+      "ReferenceLibraryGen1"
+      "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
+    |> List.iter (expect unknown [])
+
+[<Fact>]
+let ``QPRGen1 restricts library calls and references`` () =
+    [ "CallLibraryGen0"
+      "CallLibraryGen1" ]
+    |> List.iter (expect gen1 [])
+    [ "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
+    |> List.iter (expect gen1 [ErrorCode.UnsupportedCapability])
+
+[<Fact>]
+let ``QPRGen0 restricts library calls and references`` () =
+    [ "CallLibraryGen0"
+      "ReferenceLibraryGen0" ]
+    |> List.iter (expect gen0 [])
+    [ "CallLibraryGen1"
+      "ReferenceLibraryGen1"
+      "CallLibraryUnknown"
+      "ReferenceLibraryUnknown" ]
+    |> List.iter (expect gen0 [ErrorCode.UnsupportedCapability])
