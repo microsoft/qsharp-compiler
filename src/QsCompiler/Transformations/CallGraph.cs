@@ -255,46 +255,46 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Returns an empty dependency for a node.
         /// </summary>
-        protected static ILookup<TNode, TEdge> EmptyDependency() =>
+        private static ILookup<TNode, TEdge> EmptyDependency() =>
             ImmutableArray<KeyValuePair<TNode, TEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
         // Member Fields
 
         /// <summary>
-        /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
-        /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
+        /// This is a dictionary mapping source nodes and target node tuples to the list
+        /// of edges going from the source node to the target node.
         /// </summary>
-        protected readonly Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>> dependencies =
-            new Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>>();
+        private readonly Dictionary<Tuple<TNode, TNode>, List<TEdge>> edges =
+            new Dictionary<Tuple<TNode, TNode>, List<TEdge>>();
+
+        /// <summary>
+        /// The hash set of nodes in the call graph.
+        /// </summary>
+        private readonly HashSet<TNode> nodes = new HashSet<TNode>();
 
         // Properties
 
         /// <summary>
         /// The number of nodes in the call graph.
         /// </summary>
-        public int Count => this.dependencies.Count;
+        public int Count => this.nodes.Count;
 
         /// <summary>
-        /// A hash set of the nodes in the call graph.
+        /// A lookup for the edges in the call graph. Given a tuple of source node
+        /// and target node, returns the list of edges going from the source node
+        /// to the target node.
         /// </summary>
-        public ImmutableHashSet<TNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
+        public ILookup<Tuple<TNode, TNode>, TEdge> Edges => this.edges
+            .SelectMany(kvp => kvp.Value.ToImmutableArray(), Tuple.Create)
+            .ToLookup(x => x.Item1.Key, x => x.Item2);
+
+        /// <summary>
+        /// The hash set of nodes in the call graph.
+        /// </summary>
+        public ImmutableHashSet<TNode> Nodes => this.nodes.ToImmutableHashSet();
 
         // Member Methods
-
-        /// <summary>
-        /// Returns true if the given node is found in the call graph, false otherwise.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public bool ContainsNode(TNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            return this.dependencies.ContainsKey(node);
-        }
 
         /// <summary>
         /// Returns the children nodes of a given node. Each key in the returned lookup is a child
@@ -311,16 +311,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(node));
             }
 
-            if (this.dependencies.TryGetValue(node, out var dep))
-            {
-                return dep
-                    .SelectMany(kvp => kvp.Value, Tuple.Create)
-                    .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
-            }
-            else
+            if (!this.Nodes.Contains(node))
             {
                 return EmptyDependency();
             }
+
+            return this.Edges
+                .Where(g => g.Key.Item1.Equals(node))
+                .SelectMany(g => g, (g, e) => Tuple.Create(g.Key.Item2, e))
+                .ToLookup(tup => tup.Item1, tup => tup.Item2);
         }
 
         /// <summary>
@@ -345,22 +344,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(edge));
             }
 
-            if (this.dependencies.TryGetValue(fromNode, out var deps))
+            var key = Tuple.Create(fromNode, toNode);
+
+            if (this.edges.TryGetValue(key, out var val))
             {
-                if (!deps.TryGetValue(toNode, out var edges))
-                {
-                    deps[toNode] = ImmutableArray.Create(edge);
-                }
-                else
-                {
-                    deps[toNode] = edges.Add(edge);
-                }
+                val.Add(edge);
             }
             else
             {
-                var newDeps = new Dictionary<TNode, ImmutableArray<TEdge>>();
-                newDeps[toNode] = ImmutableArray.Create(edge);
-                this.dependencies[fromNode] = newDeps;
+                this.edges[key] = new List<TEdge>() { edge };
             }
 
             // Need to make sure the each dependencies has an entry for each node
@@ -379,10 +371,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(node));
             }
 
-            if (!this.dependencies.ContainsKey(node))
-            {
-                this.dependencies[node] = new Dictionary<TNode, ImmutableArray<TEdge>>();
-            }
+            this.nodes.Add(node);
         }
     }
 
@@ -519,14 +508,15 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         internal ImmutableArray<ImmutableArray<SimpleCallGraphNode>> GetCallCycles()
         {
-            var indexToNode = this.dependencies.Keys.ToImmutableArray();
+            var indexToNode = this.Nodes.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
             var graph = indexToNode
                 .Select((v, i) => (v, i))
                 .ToDictionary(
                     kvp => kvp.i,
-                    kvp => this.dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
+                    kvp => this.Edges
+                        .Where(g => g.Key.Item1.Equals(kvp.v))
+                        .Select(g => nodeToIndex[g.Key.Item2])
                         .ToList());
 
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
@@ -534,7 +524,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         private IEnumerable<IEnumerable<SimpleCallGraphEdge>> GetEdges(ImmutableArray<SimpleCallGraphNode> cycle)
-            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
+            => cycle.Select((curr, i) => this.Edges[Tuple.Create(curr, cycle[(i + 1) % cycle.Length])]);
 
         // Inner Classes
 
