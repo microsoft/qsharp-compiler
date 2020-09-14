@@ -45,9 +45,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         public static void PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation) => ConcreteCallGraphWalker.PopulateConcreteGraph(graph, compilation);
 
         private static class BaseCallGraphWalker<TGraph, TNode, TEdge>
-            where TGraph : BaseCallGraph<TNode, TEdge>
-            where TNode : BaseCallGraphNode
-            where TEdge : BaseCallGraphEdge
+            where TGraph : CallGraphBase<TNode, TEdge>
+            where TNode : CallGraphNodeBase
+            where TEdge : CallGraphEdgeBase
         {
             public abstract class TransformationState
             {

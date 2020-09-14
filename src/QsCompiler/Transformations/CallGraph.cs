@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Base class for call graph edge types.
     /// </summary>
-    public abstract class BaseCallGraphEdge : IEquatable<BaseCallGraphEdge>
+    public abstract class CallGraphEdgeBase : IEquatable<CallGraphEdgeBase>
     {
         /// <summary>
         /// Name of the callable where the reference was made.
@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Base constructor for call graph edges. Initializes BaseCallGraphEdge properties.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        protected BaseCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
+        protected CallGraphEdgeBase(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
         {
             if (fromCallableName is null)
             {
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public bool Equals(BaseCallGraphEdge edge) =>
+        public bool Equals(CallGraphEdgeBase edge) =>
             this.FromCallableName.Equals(edge.FromCallableName)
             && this.ToCallableName.Equals(edge.ToCallableName)
             && this.ReferenceRange.Equals(edge.ReferenceRange);
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Edge type for Simple Call Graphs.
     /// </summary>
-    public class SimpleCallGraphEdge : BaseCallGraphEdge, IEquatable<SimpleCallGraphEdge>
+    public class SimpleCallGraphEdge : CallGraphEdgeBase, IEquatable<SimpleCallGraphEdge>
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Edge type for Concrete Call Graphs.
     /// </summary>
-    public class ConcreteCallGraphEdge : BaseCallGraphEdge
+    public class ConcreteCallGraphEdge : CallGraphEdgeBase
     {
         /// <summary>
         /// Constructor for ConcreteCallGraphEdge objects.
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Base class for call graph node types.
     /// </summary>
-    public abstract class BaseCallGraphNode : IEquatable<BaseCallGraphNode>
+    public abstract class CallGraphNodeBase : IEquatable<CallGraphNodeBase>
     {
         /// <summary>
         /// The name of the represented callable.
@@ -141,7 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Base constructor for call graph nodes. Initializes CallableName.
         /// Throws an ArgumentNullException if argument is null.
         /// </summary>
-        protected BaseCallGraphNode(QsQualifiedName callableName)
+        protected CallGraphNodeBase(QsQualifiedName callableName)
         {
             if (callableName is null)
             {
@@ -154,11 +154,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is BaseCallGraphNode && this.Equals((BaseCallGraphNode)obj);
+            return obj is CallGraphNodeBase && this.Equals((CallGraphNodeBase)obj);
         }
 
         /// <inheritdoc/>
-        public bool Equals(BaseCallGraphNode other) =>
+        public bool Equals(CallGraphNodeBase other) =>
             this.CallableName.Equals(other.CallableName);
 
         /// <inheritdoc/>
@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Node type that represents Q# callables.
     /// </summary>
-    public class SimpleCallGraphNode : BaseCallGraphNode
+    public class SimpleCallGraphNode : CallGraphNodeBase
     {
         /// <summary>
         /// Constructor for SimpleCallGraphNode objects.
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Node type that represents concrete instances of Q# callables.
     /// </summary>
-    public class ConcreteCallGraphNode : BaseCallGraphNode, IEquatable<ConcreteCallGraphNode>
+    public class ConcreteCallGraphNode : CallGraphNodeBase, IEquatable<ConcreteCallGraphNode>
     {
         /// <summary>
         /// The concrete type mappings for the type parameters for the callable.
@@ -246,9 +246,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Base class for call graph types.
     /// </summary>
-    public abstract class BaseCallGraph<TNode, TEdge>
-        where TNode : BaseCallGraphNode
-        where TEdge : BaseCallGraphEdge
+    public abstract class CallGraphBase<TNode, TEdge>
+        where TNode : CallGraphNodeBase
+        where TEdge : CallGraphEdgeBase
     {
         // Static Elements
 
@@ -389,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// A kind of call graph whose nodes represent Q# callables.
     /// </summary>
-    public class SimpleCallGraph : BaseCallGraph<SimpleCallGraphNode, SimpleCallGraphEdge>
+    public class SimpleCallGraph : CallGraphBase<SimpleCallGraphNode, SimpleCallGraphEdge>
     {
         // Static Elements
 
@@ -790,7 +790,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// A kind of call graph whose nodes represent concrete instances of Q# callables.
     /// </summary>
-    public class ConcreteCallGraph : BaseCallGraph<ConcreteCallGraphNode, ConcreteCallGraphEdge>
+    public class ConcreteCallGraph : CallGraphBase<ConcreteCallGraphNode, ConcreteCallGraphEdge>
     {
         /// <summary>
         /// Constructs a call graph with concretizations of callables that is trimmed to only
