@@ -650,7 +650,7 @@ type DiagnosticItem =
             | ErrorCode.AttributeInvalidOnCallable                -> "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
             | ErrorCode.UnresolvedTypeParameterForRecursiveCall   -> "The type argument(s) for the recursive call could not be inferred. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.TypeParameterResConflictWithTypeArgument  -> "The type of the expression needs to match the defined type argument. Expecting an expression of type {0}."
-            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "Call cycle results in ambiguous or conflicting type parameter resolution."
+            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "The call cycle results in an ambiguous or conflicting type parameter resolution."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
