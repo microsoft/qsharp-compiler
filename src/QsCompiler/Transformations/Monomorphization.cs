@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -51,12 +52,54 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 throw new ArgumentNullException(nameof(compilation));
             }
 
+            var graph = new ConcreteCallGraph(compilation);
             var globals = compilation.Namespaces.GlobalCallableResolutions();
+            var concretizations = new List<QsCallable>();
+            var concreteNames = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
+
+            // Loop through the nodes, getting a list of concrete callables
+            foreach (var node in graph.Nodes)
+            {
+                // If there is a call to an unknown callable, throw exception
+                if (!globals.TryGetValue(node.CallableName, out QsCallable originalGlobal))
+                {
+                    throw new ArgumentException($"Couldn't find definition for callable: {node.CallableName}");
+                }
+
+                if (node.ParamResolutions.Any())
+                {
+                    // Get concrete name
+                    var concreteName = UniqueVariableNames.PrependGuid(node.CallableName);
+
+                    // Add to concrete name mapping
+                    concreteNames[node] = concreteName;
+
+                    // Generate the concrete version of the callable
+                    var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions);
+                    concretizations.Add(concrete.WithFullName(oldName => concreteName));
+                }
+                else
+                {
+                    concretizations.Add(originalGlobal);
+                }
+            }
+
+            GetConcreteIdentifierFunc getConcreteIdentifier2 = (globalCallable, types) =>
+                    GetConcreteIdentifier(concreteNames, globalCallable, types);
 
             var intrinsicCallableSet = globals
                 .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
                 .Select(kvp => kvp.Key)
                 .ToImmutableHashSet();
+
+            var final = new List<QsCallable>();
+            // Loop through concretizations, replacing all references to generics with their concrete counterparts
+            foreach (var callable in concretizations)
+            {
+                final.Add(ReplaceTypeParamCalls.Apply(callable, getConcreteIdentifier2, intrinsicCallableSet));
+            }
+
+            return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet);
 
             var entryPoints = compilation.EntryPoints
                 .Select(call => new Request
@@ -99,6 +142,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
 
             return ResolveGenerics.Apply(compilation, responses, intrinsicCallableSet);
+        }
+
+        private static Identifier GetConcreteIdentifier(
+            Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
+            Identifier.GlobalCallable globalCallable,
+            ImmutableConcretion types)
+        {
+            if (types is null || types.IsEmpty)
+            {
+                return globalCallable;
+            }
+
+            var node = new ConcreteCallGraphNode(globalCallable.Item, types);
+
+            if (concreteNames.TryGetValue(node, out var name))
+            {
+                return Identifier.NewGlobalCallable(name);
+            }
+            else
+            {
+                return globalCallable;
+            }
         }
 
         private static Identifier GetConcreteIdentifier(
@@ -184,6 +249,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 return filter.OnCompilation(compilation);
             }
 
+            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            {
+                var filter = new ResolveGenerics(callables.ToLookup(res => res.FullName.Namespace), intrinsicCallableSet);
+
+                return filter.OnCompilation(compilation);
+            }
+
             public class TransformationState
             {
                 public readonly ILookup<NonNullable<string>, QsCallable> NamespaceCallables;
@@ -265,6 +337,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 };
             }
 
+            public static QsCallable Apply(QsCallable callable, ImmutableConcretion typeParams)
+            {
+                var filter = new ReplaceTypeParamImplementations(typeParams);
+                return filter.Namespaces.OnCallableDeclaration(callable);
+            }
+
             public class TransformationState
             {
                 public readonly ImmutableConcretion TypeParams;
@@ -334,6 +412,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     TypeResolutions = current.TypeResolutions,
                     ConcreteCallable = filter.Namespaces.OnCallableDeclaration(current.ConcreteCallable)
                 };
+            }
+
+            public static QsCallable Apply(QsCallable current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            {
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
+                return filter.Namespaces.OnCallableDeclaration(current);
             }
 
             public class TransformationState
@@ -429,6 +513,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
+            // ToDo: I don't understand why this is needed.
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
