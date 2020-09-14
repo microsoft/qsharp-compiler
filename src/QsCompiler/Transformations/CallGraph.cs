@@ -262,7 +262,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         // Member Fields
 
         /// <summary>
-        /// This is a dictionary mapping source nodes and target node tuples to the list
+        /// This is a dictionary mapping source node and target node tuples to the list
         /// of edges going from the source node to the target node.
         /// </summary>
         private readonly Dictionary<Tuple<TNode, TNode>, List<TEdge>> edges =
