@@ -5,7 +5,6 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
@@ -13,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
+    using Range = DataTypes.Range;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Constructor for ConcreteCallGraphEdge objects.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal ConcreteCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
+        internal ConcreteCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
             : base(fromCallableName, toCallableName, referenceRange)
         {
         }

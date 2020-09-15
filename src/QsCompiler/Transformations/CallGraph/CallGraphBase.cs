@@ -11,6 +11,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
+    using Range = DataTypes.Range;
+
     /// <summary>
     /// Base class for call graph edge types.
     /// </summary>
@@ -29,13 +31,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// The range of the reference represented by the edge.
         /// </summary>
-        public DataTypes.Range ReferenceRange { get; }
+        public Range ReferenceRange { get; }
 
         /// <summary>
-        /// Base constructor for call graph edges. Initializes BaseCallGraphEdge properties.
+        /// Base constructor for call graph edges. Initializes CallGraphEdgeBase properties.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        protected CallGraphEdgeBase(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
+        protected CallGraphEdgeBase(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
         {
             if (fromCallableName is null)
             {
@@ -57,10 +59,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             this.ReferenceRange = referenceRange;
         }
 
-        /// <summary>
-        /// Determines if the object is the same as the given edge, ignoring the
-        /// ordering of key-value pairs in the type parameter dictionaries.
-        /// </summary>
+        /// <inheritdoc/>
         public bool Equals(CallGraphEdgeBase edge) =>
             this.FromCallableName.Equals(edge.FromCallableName)
             && this.ToCallableName.Equals(edge.ToCallableName)
@@ -102,12 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             this.CallableName.Equals(other.CallableName);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            HashCode hash = default;
-            hash.Add(this.CallableName);
-            return hash.ToHashCode();
-        }
+        public override int GetHashCode() => this.CallableName.GetHashCode();
     }
 
     /// <summary>
@@ -122,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Returns an empty dependency for a node.
         /// </summary>
-        protected static ILookup<TNode, TEdge> EmptyDependency() =>
+        private static ILookup<TNode, TEdge> EmptyDependency() =>
             ImmutableArray<KeyValuePair<TNode, TEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
@@ -132,7 +126,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
-        protected readonly Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>> dependencies =
+        private readonly Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>> dependencies =
             new Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>>();
 
         // Properties
@@ -148,20 +142,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public ImmutableHashSet<TNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
 
         // Member Methods
-
-        /// <summary>
-        /// Returns true if the given node is found in the call graph, false otherwise.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public bool ContainsNode(TNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            return this.dependencies.ContainsKey(node);
-        }
 
         /// <summary>
         /// Returns the children nodes of a given node. Each key in the returned lookup is a child

@@ -14,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using Range = DataTypes.Range;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
@@ -57,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 // The type parameter resolutions of the current expression.
                 internal IEnumerable<TypeParameterResolutions> ExpTypeParamResolutions = new List<TypeParameterResolutions>();
                 internal QsNullable<Position> CurrentStatementOffset;
-                internal QsNullable<DataTypes.Range> CurrentExpressionRange;
+                internal QsNullable<Range> CurrentExpressionRange;
                 internal readonly Stack<TNode> RequestStack = new Stack<TNode>(); // Used to keep track of the nodes that still need to be walked by the walker.
                 internal readonly HashSet<TNode> ResolvedNodeSet = new HashSet<TNode>(); // Used to keep track of the nodes that have already been walked by the walker.
 
@@ -198,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
                     this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
 
-                    var referenceRange = DataTypes.Range.Zero;
+                    var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue
                         && this.CurrentExpressionRange.IsValue)
                     {
@@ -392,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
                     this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
 
-                    var referenceRange = DataTypes.Range.Zero;
+                    var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue
                         && this.CurrentExpressionRange.IsValue)
                     {

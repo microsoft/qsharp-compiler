@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
+    using Range = DataTypes.Range;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
@@ -30,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Strips position info from the given type parameter resolutions.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
+        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
             : base(fromCallableName, toCallableName, referenceRange)
         {
             if (paramResolutions is null)
@@ -171,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
         /// Throws an ArgumentNullException if any argument is null.
         /// </summary>
-        internal void AddDependency(SimpleCallGraphNode fromNode, SimpleCallGraphNode toNode, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange)
+        internal void AddDependency(SimpleCallGraphNode fromNode, SimpleCallGraphNode toNode, TypeParameterResolutions typeParamRes, Range referenceRange)
         {
             if (typeParamRes is null)
             {
@@ -204,14 +205,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         internal ImmutableArray<ImmutableArray<SimpleCallGraphNode>> GetCallCycles()
         {
-            var indexToNode = this.dependencies.Keys.ToImmutableArray();
+            var indexToNode = this.Nodes.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
             var graph = indexToNode
                 .Select((v, i) => (v, i))
                 .ToDictionary(
                     kvp => kvp.i,
-                    kvp => this.dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
+                    kvp => this.GetDirectDependencies(kvp.v)
+                        .Select(g => nodeToIndex[g.Key])
                         .ToList());
 
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
