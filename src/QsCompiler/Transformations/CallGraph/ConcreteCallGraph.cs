@@ -5,6 +5,7 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
@@ -35,6 +36,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     public class ConcreteCallGraphNode : CallGraphNodeBase, IEquatable<ConcreteCallGraphNode>
     {
         /// <summary>
+        /// The specific functor specialization represented.
+        /// </summary>
+        public QsSpecializationKind Kind { get; }
+
+        /// <summary>
         /// The concrete type mappings for the type parameters for the callable.
         /// </summary>
         public TypeParameterResolutions ParamResolutions { get; }
@@ -44,12 +50,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Strips position info from the given type parameter resolutions.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        public ConcreteCallGraphNode(QsQualifiedName callableName, TypeParameterResolutions paramResolutions) : base(callableName)
+        public ConcreteCallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, TypeParameterResolutions paramResolutions) : base(callableName)
         {
             if (paramResolutions is null)
             {
                 throw new ArgumentException(nameof(paramResolutions));
             }
+
+            this.Kind = kind;
 
             // Remove position info from type parameter resolutions
             this.ParamResolutions = paramResolutions.ToImmutableDictionary(
@@ -69,6 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(ConcreteCallGraphNode other) =>
             base.Equals(other)
+            && this.Kind.Equals(other.Kind)
             && (this.ParamResolutions == other.ParamResolutions
                 || this.ParamResolutions
                        .OrderBy(kvp => kvp.Key)
@@ -79,6 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         {
             HashCode hash = default;
             hash.Add(this.CallableName);
+            hash.Add(this.Kind);
             foreach (var kvp in this.ParamResolutions)
             {
                 hash.Add(kvp);

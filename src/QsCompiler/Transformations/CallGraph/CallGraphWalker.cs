@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             public abstract class TransformationState
             {
-                internal TNode CurrentCallable;
+                internal TNode CurrentNode;
                 internal readonly TGraph Graph;
 
                 // The type parameter resolutions of the current expression.
@@ -67,33 +67,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 }
 
                 /// <summary>
-                /// Get the array of type parameter resolutions for AddDependency to process.
-                /// </summary>
-                protected abstract TypeParameterResolutions[] GetTypeParamResolutions();
-
-                /// <summary>
-                /// Adds an edge from the current caller to the called node to the call graph.
-                /// </summary>
-                protected abstract void PushEdge(QsQualifiedName calledName, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange);
-
-                /// <summary>
                 /// Adds dependency to the graph from the current callable to the callable referenced by the given identifier.
                 /// </summary>
-                internal void AddDependency(QsQualifiedName identifier)
-                {
-                    var combination = new TypeResolutionCombination(this.GetTypeParamResolutions());
-                    var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
-                    this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
-
-                    var referenceRange = DataTypes.Range.Zero;
-                    if (this.CurrentStatementOffset.IsValue
-                        && this.CurrentExpressionRange.IsValue)
-                    {
-                        referenceRange = this.CurrentStatementOffset.Item + this.CurrentExpressionRange.Item;
-                    }
-
-                    this.PushEdge(identifier, typeRes, referenceRange);
-                }
+                internal abstract void AddDependency(QsQualifiedName identifier);
             }
 
             public class StatementWalker<TState> : StatementTransformation<TState>
@@ -133,24 +109,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     this.SharedState.CurrentExpressionRange = contextRange;
 
                     return rtrn;
-                }
-            }
-
-            public class ExpressionKindWalker<TState> : ExpressionKindTransformation<TState>
-                where TState : TransformationState
-            {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TState> parent) : base(parent, TransformationOptions.NoRebuild)
-                {
-                }
-
-                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-                {
-                    if (sym is Identifier.GlobalCallable global)
-                    {
-                        this.SharedState.AddDependency(global.Item);
-                    }
-
-                    return ExpressionKind.InvalidExpr;
                 }
             }
         }
@@ -207,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // The current request must be added before it is processed to prevent
                     // self-references from duplicating on the stack.
                     walker.SharedState.ResolvedNodeSet.Add(currentRequest);
-                    walker.SharedState.CurrentCallable = currentRequest;
+                    walker.SharedState.CurrentNode = currentRequest;
                     walker.Namespaces.OnCallableDeclaration(currentCallable);
                 }
             }
@@ -220,7 +178,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     this.Statements = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                     this.Expressions = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new BaseCallGraphWalker<SimpleCallGraph, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
+                    this.ExpressionKinds = new ExpressionKindWalker(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
@@ -234,14 +192,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 {
                 }
 
-                /// <inheritdoc/>
-                protected override TypeParameterResolutions[] GetTypeParamResolutions() => this.ExpTypeParamResolutions.ToArray();
-
-                /// <inheritdoc/>
-                protected override void PushEdge(QsQualifiedName calledName, TypeParameterResolutions edgeTypeParamRes, DataTypes.Range referenceRange)
+                internal override void AddDependency(QsQualifiedName identifier)
                 {
-                    var called = new SimpleCallGraphNode(calledName);
-                    this.Graph.AddDependency(this.CurrentCallable, called, edgeTypeParamRes, referenceRange);
+                    var combination = new TypeResolutionCombination(this.ExpTypeParamResolutions.ToArray());
+                    var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
+                    this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
+
+                    var referenceRange = DataTypes.Range.Zero;
+                    if (this.CurrentStatementOffset.IsValue
+                        && this.CurrentExpressionRange.IsValue)
+                    {
+                        referenceRange = this.CurrentStatementOffset.Item + this.CurrentExpressionRange.Item;
+                    }
+
+                    var called = new SimpleCallGraphNode(identifier);
+                    this.Graph.AddDependency(this.CurrentNode, called, typeRes, referenceRange);
                     // If we are not processing all elements, then we need to keep track of what elements
                     // have been processed, and which elements still need to be processed.
                     if (this.WithTrimming
@@ -264,10 +229,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     if (!this.SharedState.WithTrimming)
                     {
                         var node = new SimpleCallGraphNode(c.FullName);
-                        this.SharedState.CurrentCallable = node;
+                        this.SharedState.CurrentNode = node;
                         this.SharedState.Graph.AddNode(node);
                     }
                     return base.OnCallableDeclaration(c);
+                }
+            }
+
+            private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
+            {
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                {
+                }
+
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (sym is Identifier.GlobalCallable global)
+                    {
+                        this.SharedState.AddDependency(global.Item);
+                    }
+
+                    return ExpressionKind.InvalidExpr;
                 }
             }
         }
@@ -281,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public static void PopulateConcreteGraph(ConcreteCallGraph graph, QsCompilation compilation)
             {
                 var walker = new BuildGraph(graph);
-                var entryPointNodes = compilation.EntryPoints.Select(name => new ConcreteCallGraphNode(name, TypeParameterResolutions.Empty));
+                var entryPointNodes = compilation.EntryPoints.Select(name => new ConcreteCallGraphNode(name, QsSpecializationKind.QsBody, TypeParameterResolutions.Empty));
                 foreach (var entryPoint in entryPointNodes)
                 {
                     // Make sure all the entry points are added to the graph
@@ -298,46 +280,221 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.CallableName}");
                     }
 
+                    var spec = GetSpecializationFromRequest(currentRequest, currentCallable);
+
                     // The current request must be added before it is processed to prevent
                     // self-references from duplicating on the stack.
                     walker.SharedState.ResolvedNodeSet.Add(currentRequest);
-                    walker.SharedState.CurrentCallable = currentRequest;
-                    walker.Namespaces.OnCallableDeclaration(currentCallable);
+                    walker.SharedState.CurrentNode = currentRequest;
+                    walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
                 }
+            }
+
+            /// <summary>
+            /// Returns the specialization that the request is referring to.
+            /// </summary>
+            private static QsSpecialization GetSpecializationFromRequest(ConcreteCallGraphNode request, QsCallable callable)
+            {
+                var relevantSpecs = callable.Specializations.Where(s => s.Kind == request.Kind);
+                var typeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                if (callable.Signature.TypeParameters.Any())
+                {
+                    // Convert ParamResolutions from a dictionary to a type argument list
+                    typeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters.Select(typeParam =>
+                    {
+                        if (typeParam is QsLocalSymbol.ValidName name)
+                        {
+                            if (request.ParamResolutions.TryGetValue(Tuple.Create(callable.FullName, name.Item), out var res))
+                            {
+                                return res;
+                            }
+                            else
+                            {
+                                throw new ArgumentException($"Couldn't resolve all type parameters for {callable.FullName}");
+                            }
+                        }
+                        else
+                        {
+                            throw new ArgumentException("Encountered invalid type parameter name during call graph construction");
+                        }
+                    }).ToImmutableArray());
+                    typeArgs = SpecializationBundleProperties.BundleId(typeArgs);
+                }
+                else if (relevantSpecs.Count() != 1)
+                {
+                    throw new ArgumentException($"Missing specialization {request.Kind} for {request.CallableName}");
+                }
+
+                if (!typeArgs.IsNull)
+                {
+                    // Finds the correct type specialization for the type arguments of the currentRequest.
+                    // The assumption is that upon resolution, these type arguments have been cast to
+                    // the type of any explicitly defined ones in the closest matching specialization.
+                    var specArgMatches = relevantSpecs.Select(spec =>
+                    {
+                        if (spec.TypeArguments.IsNull)
+                        {
+                            return (0, spec);
+                        }
+                        if (spec.TypeArguments.Item.Count() != typeArgs.Item.Count())
+                        {
+                            throw new ArgumentException($"Incorrect number of type arguments in request for {request.CallableName}");
+                        }
+                        var specTypeArgs = spec.TypeArguments.Item.Select(StripPositionInfo.Apply).ToImmutableArray();
+                        var mismatch = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && !tArg.Resolution.Equals(typeArgs.Item[idx])).Any();
+                        if (mismatch)
+                        {
+                            return (-1, spec);
+                        }
+                        var matches = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && tArg.Resolution.Equals(typeArgs.Item[idx])).Count();
+                        return (matches, spec);
+                    });
+
+                    if (!specArgMatches.Any(m => m.Item1 >= 0))
+                    {
+                        throw new ArgumentException($"Could not find a suitable {request.Kind} specialization for {request.CallableName}");
+                    }
+
+                    relevantSpecs = specArgMatches
+                        .OrderByDescending(match => match.Item1)
+                        .Select(match => match.spec);
+                }
+
+                return relevantSpecs.First();
             }
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
             {
                 public BuildGraph(ConcreteCallGraph graph) : base(new TransformationState(graph))
                 {
-                    this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                    this.Namespaces = new NamespaceWalker(this);
                     this.Statements = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                     this.Expressions = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionKindWalker<TransformationState>(this);
+                    this.ExpressionKinds = new ExpressionKindWalker(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
 
             private class TransformationState : BaseCallGraphWalker<ConcreteCallGraph, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
             {
+                public bool IsInCall = false;
+                public bool HasAdjointDependency = false;
+                public bool HasControlledDependency = false;
+
                 internal TransformationState(ConcreteCallGraph graph) : base(graph)
                 {
                 }
 
-                /// <inheritdoc/>
-                protected override TypeParameterResolutions[] GetTypeParamResolutions() =>
-                    this.ExpTypeParamResolutions.Append(this.CurrentCallable.ParamResolutions).ToArray();
-
-                /// <inheritdoc/>
-                protected override void PushEdge(QsQualifiedName calledName, TypeParameterResolutions nodeTypeParamRes, DataTypes.Range referenceRange)
+                internal override void AddDependency(QsQualifiedName identifier)
                 {
-                    var called = new ConcreteCallGraphNode(calledName, nodeTypeParamRes);
-                    this.Graph.AddDependency(this.CurrentCallable, called, referenceRange);
-                    if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
+                    var combination = new TypeResolutionCombination(this.ExpTypeParamResolutions.Append(this.CurrentNode.ParamResolutions).ToArray());
+                    var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
+                    this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
+
+                    var referenceRange = DataTypes.Range.Zero;
+                    if (this.CurrentStatementOffset.IsValue
+                        && this.CurrentExpressionRange.IsValue)
                     {
-                        this.RequestStack.Push(called);
+                        referenceRange = this.CurrentStatementOffset.Item + this.CurrentExpressionRange.Item;
                     }
+
+                    void AddEdge(QsSpecializationKind kind)
+                    {
+                        var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
+                        this.Graph.AddDependency(this.CurrentNode, called, referenceRange);
+                        if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
+                        {
+                            this.RequestStack.Push(called);
+                        }
+                    }
+
+                    if (this.IsInCall)
+                    {
+                        if (this.HasAdjointDependency && this.HasControlledDependency)
+                        {
+                            AddEdge(QsSpecializationKind.QsControlledAdjoint);
+                        }
+                        else if (this.HasAdjointDependency)
+                        {
+                            AddEdge(QsSpecializationKind.QsAdjoint);
+                        }
+                        else if (this.HasControlledDependency)
+                        {
+                            AddEdge(QsSpecializationKind.QsControlled);
+                        }
+                        else
+                        {
+                            AddEdge(QsSpecializationKind.QsBody);
+                        }
+                    }
+                    else
+                    {
+                        // The callable is being used in a non-call context, such as being
+                        // assigned to a variable or passed as an argument to another callable,
+                        // which means it could get a functor applied at some later time.
+                        // We're conservative and add all 4 possible kinds.
+                        AddEdge(QsSpecializationKind.QsBody);
+                        AddEdge(QsSpecializationKind.QsAdjoint);
+                        AddEdge(QsSpecializationKind.QsControlled);
+                        AddEdge(QsSpecializationKind.QsControlledAdjoint);
+                    }
+                }
+            }
+
+            private class NamespaceWalker : NamespaceTransformation<TransformationState>
+            {
+                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                {
+                }
+
+                public override QsGeneratorDirective OnGeneratedImplementation(QsGeneratorDirective directive)
+                {
+                    throw new ArgumentException("Encountered unresolved generated specialization while constructing concrete call graph.");
+                }
+            }
+
+            private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
+            {
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                {
+                }
+
+                public override ExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
+                {
+                    var contextInCall = this.SharedState.IsInCall;
+                    this.SharedState.IsInCall = true;
+                    this.Expressions.OnTypedExpression(method);
+                    this.SharedState.IsInCall = contextInCall;
+                    this.Expressions.OnTypedExpression(arg);
+                    return ExpressionKind.InvalidExpr;
+                }
+
+                public override ExpressionKind OnAdjointApplication(TypedExpression ex)
+                {
+                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
+                    var result = base.OnAdjointApplication(ex);
+                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
+                    return result;
+                }
+
+                public override ExpressionKind OnControlledApplication(TypedExpression ex)
+                {
+                    var contextControlled = this.SharedState.HasControlledDependency;
+                    this.SharedState.HasControlledDependency = true;
+                    var result = base.OnControlledApplication(ex);
+                    this.SharedState.HasControlledDependency = contextControlled;
+                    return result;
+                }
+
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (sym is Identifier.GlobalCallable global)
+                    {
+                        this.SharedState.AddDependency(global.Item);
+                    }
+
+                    return ExpressionKind.InvalidExpr;
                 }
             }
         }
