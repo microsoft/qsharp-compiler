@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Edge type for Simple Call Graphs.
     /// </summary>
-    public class SimpleCallGraphEdge : CallGraphEdgeBase, IEquatable<SimpleCallGraphEdge>
+    public sealed class SimpleCallGraphEdge : CallGraphEdgeBase, IEquatable<SimpleCallGraphEdge>
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Node type that represents Q# callables.
     /// </summary>
-    public class SimpleCallGraphNode : CallGraphNodeBase
+    public sealed class SimpleCallGraphNode : CallGraphNodeBase
     {
         /// <summary>
         /// Constructor for SimpleCallGraphNode objects.
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// A kind of call graph whose nodes represent Q# callables.
     /// </summary>
-    public class SimpleCallGraph : CallGraphBase<SimpleCallGraphNode, SimpleCallGraphEdge>
+    public sealed class SimpleCallGraph
     {
         // Static Elements
 
@@ -88,6 +88,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
             return result;
         }
+
+        // Member Fields
+
+        private CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge> graphBuilder = new CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge>();
+
+        // Properties
+
+        /// <summary>
+        /// The number of nodes in the call graph.
+        /// </summary>
+        public int Count => this.graphBuilder.Count;
+
+        /// <summary>
+        /// A hash set of the nodes in the call graph.
+        /// </summary>
+        public ImmutableHashSet<SimpleCallGraphNode> Nodes => this.graphBuilder.Nodes;
 
         // Constructors
 
@@ -106,11 +122,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             if (trim)
             {
-                BuildCallGraph.PopulateTrimmedGraph(this, compilation);
+                BuildCallGraph.PopulateTrimmedGraph(this.graphBuilder, compilation);
             }
             else
             {
-                BuildCallGraph.PopulateSimpleGraph(this, compilation);
+                BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, compilation);
             }
         }
 
@@ -125,10 +141,20 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(callables));
             }
 
-            BuildCallGraph.PopulateSimpleGraph(this, callables);
+            BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, callables);
         }
 
         // Member Methods
+
+        /// <summary>
+        /// Returns the children nodes of a given node. Each key in the returned lookup is a child
+        /// node of the given node. Each value in the lookup is an edge connecting the given node to
+        /// the child node represented by the associated key.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// Throws ArgumentNullException if argument is null.
+        /// </summary>
+        public ILookup<SimpleCallGraphNode, SimpleCallGraphEdge> GetDirectDependencies(SimpleCallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
 
         /// <summary>
         /// Given a call graph edges, finds all cycles and determines if each is valid.
@@ -166,37 +192,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
 
             return diagnostics;
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
-        /// Throws an ArgumentNullException if any argument is null.
-        /// </summary>
-        internal void AddDependency(SimpleCallGraphNode fromNode, SimpleCallGraphNode toNode, TypeParameterResolutions typeParamRes, Range referenceRange)
-        {
-            if (typeParamRes is null)
-            {
-                throw new ArgumentNullException(nameof(typeParamRes));
-            }
-
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            var edge = new SimpleCallGraphEdge(typeParamRes, fromNode.CallableName, toNode.CallableName, referenceRange);
-
-            this.AddDependency(fromNode, toNode, edge);
         }
 
         /// <summary>

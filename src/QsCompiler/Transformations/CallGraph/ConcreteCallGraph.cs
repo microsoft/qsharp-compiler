@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Edge type for Concrete Call Graphs.
     /// </summary>
-    public class ConcreteCallGraphEdge : CallGraphEdgeBase
+    public sealed class ConcreteCallGraphEdge : CallGraphEdgeBase
     {
         /// <summary>
         /// Constructor for ConcreteCallGraphEdge objects.
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Node type that represents concrete instances of Q# callables.
     /// </summary>
-    public class ConcreteCallGraphNode : CallGraphNodeBase, IEquatable<ConcreteCallGraphNode>
+    public sealed class ConcreteCallGraphNode : CallGraphNodeBase, IEquatable<ConcreteCallGraphNode>
     {
         /// <summary>
         /// The specific functor specialization represented.
@@ -100,8 +100,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// A kind of call graph whose nodes represent concrete instances of Q# callables.
     /// </summary>
-    public class ConcreteCallGraph : CallGraphBase<ConcreteCallGraphNode, ConcreteCallGraphEdge>
+    public sealed class ConcreteCallGraph
     {
+        private CallGraphBuilder<ConcreteCallGraphNode, ConcreteCallGraphEdge> graphBuilder = new CallGraphBuilder<ConcreteCallGraphNode, ConcreteCallGraphEdge>();
+
+        // Properties
+
+        /// <summary>
+        /// The number of nodes in the call graph.
+        /// </summary>
+        public int Count => this.graphBuilder.Count;
+
+        /// <summary>
+        /// A hash set of the nodes in the call graph.
+        /// </summary>
+        public ImmutableHashSet<ConcreteCallGraphNode> Nodes => this.graphBuilder.Nodes;
+
         /// <summary>
         /// Constructs a call graph with concretizations of callables that is trimmed to only
         /// include callables that entry points are dependent on.
@@ -114,33 +128,17 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(compilation));
             }
 
-            BuildCallGraph.PopulateConcreteGraph(this, compilation);
+            BuildCallGraph.PopulateConcreteGraph(this.graphBuilder, compilation);
         }
 
         /// <summary>
-        /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
-        /// Throws an ArgumentNullException if any argument is null.
+        /// Returns the children nodes of a given node. Each key in the returned lookup is a child
+        /// node of the given node. Each value in the lookup is an edge connecting the given node to
+        /// the child node represented by the associated key.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// Throws ArgumentNullException if argument is null.
         /// </summary>
-        internal void AddDependency(ConcreteCallGraphNode fromNode, ConcreteCallGraphNode toNode, Range referenceRange)
-        {
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            var edge = new ConcreteCallGraphEdge(fromNode.CallableName, toNode.CallableName, referenceRange);
-
-            this.AddDependency(fromNode, toNode, edge);
-        }
+        public ILookup<ConcreteCallGraphNode, ConcreteCallGraphEdge> GetDirectDependencies(ConcreteCallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
     }
 }

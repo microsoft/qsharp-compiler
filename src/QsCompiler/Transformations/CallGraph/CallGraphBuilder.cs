@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Base class for call graph types.
     /// </summary>
-    public abstract class CallGraphBase<TNode, TEdge>
+    internal class CallGraphBuilder<TNode, TEdge>
         where TNode : CallGraphNodeBase
         where TEdge : CallGraphEdgeBase
     {
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// The nodes are added to the graph if they are not already there. The edge is always added.
         /// Throws ArgumentNullException if any of the arguments are null.
         /// </summary>
-        protected void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
+        internal void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
         {
             if (fromNode is null)
             {
