@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
         /// Throws an ArgumentNullException if any argument is null.
         /// </summary>
-        internal void AddDependency(ConcreteCallGraphNode fromNode, ConcreteCallGraphNode toNode, DataTypes.Range referenceRange)
+        internal void AddDependency(ConcreteCallGraphNode fromNode, ConcreteCallGraphNode toNode, Range referenceRange)
         {
             if (fromNode is null)
             {
