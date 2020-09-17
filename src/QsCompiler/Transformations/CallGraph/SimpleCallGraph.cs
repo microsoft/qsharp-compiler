@@ -96,11 +96,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         // Properties
 
         /// <summary>
-        /// The number of nodes in the call graph.
-        /// </summary>
-        public int Count => this.graphBuilder.Count;
-
-        /// <summary>
         /// A hash set of the nodes in the call graph.
         /// </summary>
         public ImmutableHashSet<SimpleCallGraphNode> Nodes => this.graphBuilder.Nodes;

@@ -130,11 +130,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         // Properties
 
         /// <summary>
-        /// The number of nodes in the call graph.
-        /// </summary>
-        public int Count => this.dependencies.Count;
-
-        /// <summary>
         /// A hash set of the nodes in the call graph.
         /// </summary>
         public ImmutableHashSet<TNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
