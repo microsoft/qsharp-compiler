@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
     internal static partial class BuildCallGraph
     {
-        private static class BaseCallGraphWalker<TGraph, TNode, TEdge>
+        private static class CallGraphWalkerBase<TGraph, TNode, TEdge>
             where TGraph : CallGraphBuilder<TNode, TEdge>
             where TNode : CallGraphNodeBase
             where TEdge : CallGraphEdgeBase

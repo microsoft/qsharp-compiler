@@ -99,15 +99,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public BuildGraph(SimpleGraphBuilder graph) : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
-                    this.Statements = new BaseCallGraphWalker<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.StatementWalker<TransformationState>(this);
+                    this.Statements = new CallGraphWalkerBase<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new BaseCallGraphWalker<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionWalker<TransformationState>(this);
+                    this.Expressions = new CallGraphWalkerBase<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.ExpressionWalker<TransformationState>(this);
                     this.ExpressionKinds = new ExpressionKindWalker(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
 
-            private class TransformationState : BaseCallGraphWalker<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.TransformationState
+            private class TransformationState : CallGraphWalkerBase<SimpleGraphBuilder, SimpleCallGraphNode, SimpleCallGraphEdge>.TransformationState
             {
                 // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
                 internal bool WithTrimming = false;

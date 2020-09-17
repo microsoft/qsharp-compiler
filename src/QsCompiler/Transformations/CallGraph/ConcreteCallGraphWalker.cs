@@ -140,15 +140,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public BuildGraph(ConcreteGraphBuilder graph) : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
-                    this.Statements = new BaseCallGraphWalker<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
+                    this.Statements = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
                     this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new BaseCallGraphWalker<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
+                    this.Expressions = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
                     this.ExpressionKinds = new ExpressionKindWalker(this);
                     this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 }
             }
 
-            private class TransformationState : BaseCallGraphWalker<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
+            private class TransformationState : CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
             {
                 public bool IsInCall = false;
                 public bool HasAdjointDependency = false;
