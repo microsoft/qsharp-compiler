@@ -52,13 +52,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 throw new ArgumentNullException(nameof(compilation));
             }
 
-            var graph = new ConcreteCallGraph(compilation);
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
             var concreteNames = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
+            var nodes = new ConcreteCallGraph(compilation).Nodes
+                // Remove specialization information so that we only deal with the full callables.
+                .Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions))
+                .ToImmutableHashSet();
+
             // Loop through the nodes, getting a list of concrete callables
-            foreach (var node in graph.Nodes)
+            foreach (var node in nodes)
             {
                 // If there is a call to an unknown callable, throw exception
                 if (!globals.TryGetValue(node.CallableName, out QsCallable originalGlobal))
@@ -154,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 return globalCallable;
             }
 
-            var node = new ConcreteCallGraphNode(globalCallable.Item, types);
+            var node = new ConcreteCallGraphNode(globalCallable.Item, QsSpecializationKind.QsBody, types);
 
             if (concreteNames.TryGetValue(node, out var name))
             {
