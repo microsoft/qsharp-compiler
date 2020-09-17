@@ -161,9 +161,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// each tuple containing a diagnostic and the callable name where the diagnostic
         /// should be placed.
         /// </summary>
-        public IEnumerable<Tuple<QsCompilerDiagnostic, QsQualifiedName>> VerifyAllCycles()
+        public IEnumerable<(QsCompilerDiagnostic, QsQualifiedName)> VerifyAllCycles()
         {
-            var diagnostics = new List<Tuple<QsCompilerDiagnostic, QsQualifiedName>>();
+            var diagnostics = new List<(QsCompilerDiagnostic, QsQualifiedName)>();
 
             if (this.Nodes.Any())
             {
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                     {
                         foreach (var edge in cycle)
                         {
-                            diagnostics.Add(Tuple.Create(
+                            diagnostics.Add((
                                 QsCompilerDiagnostic.Error(
                                     Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
                                     Enumerable.Empty<string>(),
