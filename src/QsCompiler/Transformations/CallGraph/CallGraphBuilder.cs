@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public ImmutableHashSet<TNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
 
-        // Member Methods
+        // Common Member Methods
 
         /// <summary>
         /// Returns the children nodes of a given node. Each key in the returned lookup is a child
@@ -163,12 +163,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
         }
 
+        // Mutator Methods
+
         /// <summary>
         /// Adds a dependency to the call graph using the two nodes and the edge between them.
         /// The nodes are added to the graph if they are not already there. The edge is always added.
         /// Throws ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
+        public void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
         {
             if (fromNode is null)
             {
@@ -212,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Adds the given node to the call graph, if it is not already in the graph.
         /// Throws ArgumentNullException if the argument is null.
         /// </summary>
-        internal void AddNode(TNode node)
+        public void AddNode(TNode node)
         {
             if (node is null)
             {
