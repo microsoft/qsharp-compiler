@@ -31,8 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Strips position info from the given type parameter resolutions.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
-            : base(fromCallableName, toCallableName, referenceRange)
+        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, Range referenceRange)
+            : base(referenceRange)
         {
             if (paramResolutions is null)
             {
@@ -167,10 +167,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             if (this.Nodes.Any())
             {
-                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
+                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdgesWithNames(x).Reverse()));
                 foreach (var cycle in cycles)
                 {
-                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions));
+                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.Item1.ParamResolutions));
                     if (!combination.IsValid)
                     {
                         foreach (var edge in cycle)
@@ -179,8 +179,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                                 QsCompilerDiagnostic.Error(
                                     Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
                                     Enumerable.Empty<string>(),
-                                    edge.ReferenceRange),
-                                edge.FromCallableName));
+                                    edge.Item1.ReferenceRange),
+                                edge.Item2));
                         }
                     }
                 }
@@ -209,8 +209,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
         }
 
-        private IEnumerable<IEnumerable<SimpleCallGraphEdge>> GetEdges(ImmutableArray<SimpleCallGraphNode> cycle)
-            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
+        private IEnumerable<IEnumerable<(SimpleCallGraphEdge, QsQualifiedName)>> GetEdgesWithNames(ImmutableArray<SimpleCallGraphNode> cycle)
+            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]].Select(x => (x, curr.CallableName)));
 
         // Inner Classes
 

@@ -19,51 +19,26 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     public abstract class CallGraphEdgeBase : IEquatable<CallGraphEdgeBase>
     {
         /// <summary>
-        /// Name of the callable where the reference was made.
-        /// </summary>
-        public QsQualifiedName FromCallableName { get; }
-
-        /// <summary>
-        /// Name of the callable being referenced.
-        /// </summary>
-        public QsQualifiedName ToCallableName { get; }
-
-        /// <summary>
         /// The range of the reference represented by the edge.
         /// </summary>
         public Range ReferenceRange { get; }
 
         /// <summary>
         /// Base constructor for call graph edges. Initializes CallGraphEdgeBase properties.
-        /// Throws an ArgumentNullException if any of the arguments are null.
+        /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
-        protected CallGraphEdgeBase(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
+        protected CallGraphEdgeBase(Range referenceRange)
         {
-            if (fromCallableName is null)
-            {
-                throw new ArgumentNullException(nameof(fromCallableName));
-            }
-
-            if (toCallableName is null)
-            {
-                throw new ArgumentNullException(nameof(toCallableName));
-            }
-
             if (referenceRange is null)
             {
                 throw new ArgumentNullException(nameof(referenceRange));
             }
 
-            this.FromCallableName = fromCallableName;
-            this.ToCallableName = toCallableName;
             this.ReferenceRange = referenceRange;
         }
 
         /// <inheritdoc/>
-        public bool Equals(CallGraphEdgeBase edge) =>
-            this.FromCallableName.Equals(edge.FromCallableName)
-            && this.ToCallableName.Equals(edge.ToCallableName)
-            && this.ReferenceRange.Equals(edge.ReferenceRange);
+        public bool Equals(CallGraphEdgeBase edge) => this.ReferenceRange.Equals(edge.ReferenceRange);
     }
 
     /// <summary>

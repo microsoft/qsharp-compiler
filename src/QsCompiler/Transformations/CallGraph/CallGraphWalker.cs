@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     }
 
                     var called = new SimpleCallGraphNode(identifier);
-                    var edge = new SimpleCallGraphEdge(typeRes, this.CurrentNode.CallableName, called.CallableName, referenceRange);
+                    var edge = new SimpleCallGraphEdge(typeRes, referenceRange);
                     this.Graph.AddDependency(this.CurrentNode, called, edge);
                     // If we are not processing all elements, then we need to keep track of what elements
                     // have been processed, and which elements still need to be processed.
@@ -404,7 +404,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     void AddEdge(QsSpecializationKind kind)
                     {
                         var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
-                        var edge = new ConcreteCallGraphEdge(this.CurrentNode.CallableName, called.CallableName, referenceRange);
+                        var edge = new ConcreteCallGraphEdge(referenceRange);
                         this.Graph.AddDependency(this.CurrentNode, called, edge);
                         if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
                         {

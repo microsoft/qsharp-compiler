@@ -22,10 +22,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     {
         /// <summary>
         /// Constructor for ConcreteCallGraphEdge objects.
-        /// Throws an ArgumentNullException if any of the arguments are null.
+        /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
-        internal ConcreteCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, Range referenceRange)
-            : base(fromCallableName, toCallableName, referenceRange)
+        internal ConcreteCallGraphEdge(Range referenceRange)
+            : base(referenceRange)
         {
         }
     }
