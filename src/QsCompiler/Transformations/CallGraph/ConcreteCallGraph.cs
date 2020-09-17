@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <inheritdoc/>
         public override bool Equals(object obj) =>
-            obj is ConcreteCallGraphNode && this.Equals((ConcreteCallGraphNode)obj);
+            obj is ConcreteCallGraphNode node && this.Equals(node);
 
         /// <summary>
         /// Determines if the object is the same as the given node, ignoring the
