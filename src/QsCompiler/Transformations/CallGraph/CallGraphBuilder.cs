@@ -91,10 +91,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is CallGraphNodeBase && this.Equals((CallGraphNodeBase)obj);
-        }
+        public override bool Equals(object obj) =>
+            obj is CallGraphNodeBase && this.Equals((CallGraphNodeBase)obj);
 
         /// <inheritdoc/>
         public bool Equals(CallGraphNodeBase other) =>
