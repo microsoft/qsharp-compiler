@@ -31,20 +31,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     /// </summary>
     public static class Monomorphize
     {
-        private struct Request
-        {
-            public QsQualifiedName OriginalName;
-            public ImmutableConcretion TypeResolutions;
-            public QsQualifiedName ConcreteName;
-        }
-
-        private struct Response
-        {
-            public QsQualifiedName OriginalName;
-            public ImmutableConcretion TypeResolutions;
-            public QsCallable ConcreteCallable;
-        }
-
         public static QsCompilation Apply(QsCompilation compilation)
         {
             if (compilation == null || compilation.Namespaces.Contains(null))
@@ -88,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            GetConcreteIdentifierFunc getConcreteIdentifier2 = (globalCallable, types) =>
+            GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
                     GetConcreteIdentifier(concreteNames, globalCallable, types);
 
             var intrinsicCallableSet = globals
@@ -100,52 +86,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             // Loop through concretizations, replacing all references to generics with their concrete counterparts
             foreach (var callable in concretizations)
             {
-                final.Add(ReplaceTypeParamCalls.Apply(callable, getConcreteIdentifier2, intrinsicCallableSet));
+                final.Add(ReplaceTypeParamCalls.Apply(callable, getConcreteIdentifier, intrinsicCallableSet));
             }
 
             return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet);
-
-            var entryPoints = compilation.EntryPoints
-                .Select(call => new Request
-                {
-                    OriginalName = call,
-                    TypeResolutions = ImmutableConcretion.Empty,
-                    ConcreteName = call
-                });
-
-            var requests = new Stack<Request>(entryPoints);
-            var responses = new List<Response>();
-
-            while (requests.Any())
-            {
-                Request currentRequest = requests.Pop();
-
-                // If there is a call to an unknown callable, throw exception
-                if (!globals.TryGetValue(currentRequest.OriginalName, out QsCallable originalGlobal))
-                {
-                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.OriginalName}");
-                }
-
-                var currentResponse = new Response
-                {
-                    OriginalName = currentRequest.OriginalName,
-                    TypeResolutions = currentRequest.TypeResolutions,
-                    ConcreteCallable = originalGlobal.WithFullName(name => currentRequest.ConcreteName)
-                };
-
-                GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
-                    GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
-
-                // Rewrite implementation
-                currentResponse = ReplaceTypeParamImplementations.Apply(currentResponse);
-
-                // Rewrite calls
-                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier, intrinsicCallableSet);
-
-                responses.Add(currentResponse);
-            }
-
-            return ResolveGenerics.Apply(compilation, responses, intrinsicCallableSet);
         }
 
         private static Identifier GetConcreteIdentifier(
@@ -170,89 +114,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        private static Identifier GetConcreteIdentifier(
-                Response currentResponse,
-                Stack<Request> requests,
-                List<Response> responses,
-                Identifier.GlobalCallable globalCallable,
-                ImmutableConcretion types)
-        {
-            QsQualifiedName concreteName = globalCallable.Item;
-
-            var typesHashSet = ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>.Empty;
-            if (types != null && !types.IsEmpty)
-            {
-                typesHashSet = types.ToImmutableHashSet();
-            }
-
-            string name = null;
-
-            // Check for recursive call
-            if (currentResponse.OriginalName.Equals(globalCallable.Item) &&
-                typesHashSet.SetEquals(currentResponse.TypeResolutions))
-            {
-                name = currentResponse.ConcreteCallable.FullName.Name.Value;
-            }
-
-            // Search requests for identifier
-            if (name == null)
-            {
-                name = requests
-                    .Where(req =>
-                        req.OriginalName.Equals(globalCallable.Item) &&
-                        typesHashSet.SetEquals(req.TypeResolutions))
-                    .Select(req => req.ConcreteName.Name.Value)
-                    .FirstOrDefault();
-            }
-
-            // Search responses for identifier
-            if (name == null)
-            {
-                name = responses
-                    .Where(res =>
-                        res.OriginalName.Equals(globalCallable.Item) &&
-                        typesHashSet.SetEquals(res.TypeResolutions))
-                    .Select(res => res.ConcreteCallable.FullName.Name.Value)
-                    .FirstOrDefault();
-            }
-
-            // If identifier can't be found, make a new request
-            if (name == null)
-            {
-                // If this is not a generic, do not change the name
-                if (!typesHashSet.IsEmpty)
-                {
-                    // Create new name
-                    concreteName = UniqueVariableNames.PrependGuid(globalCallable.Item);
-                }
-
-                requests.Push(new Request()
-                {
-                    OriginalName = globalCallable.Item,
-                    TypeResolutions = types,
-                    ConcreteName = concreteName
-                });
-            }
-            else
-            {
-                // If the identifier was found, update with the name
-                concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
-            }
-
-            return Identifier.NewGlobalCallable(concreteName);
-        }
-
         #region ResolveGenerics
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
-            {
-                var filter = new ResolveGenerics(responses.ToLookup(res => res.ConcreteCallable.FullName.Namespace, res => res.ConcreteCallable), intrinsicCallableSet);
-
-                return filter.OnCompilation(compilation);
-            }
-
             public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
                 var filter = new ResolveGenerics(callables.ToLookup(res => res.FullName.Namespace), intrinsicCallableSet);
@@ -322,25 +187,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamImplementations :
             SyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
         {
-            public static Response Apply(Response current)
-            {
-                // Nothing to change if the current callable is already concrete
-                if (current.TypeResolutions == ImmutableConcretion.Empty)
-                {
-                    return current;
-                }
-
-                var filter = new ReplaceTypeParamImplementations(current.TypeResolutions);
-
-                // Create a new response with the transformed callable
-                return new Response
-                {
-                    OriginalName = current.OriginalName,
-                    TypeResolutions = current.TypeResolutions,
-                    ConcreteCallable = filter.Namespaces.OnCallableDeclaration(current.ConcreteCallable)
-                };
-            }
-
             public static QsCallable Apply(QsCallable callable, ImmutableConcretion typeParams)
             {
                 var filter = new ReplaceTypeParamImplementations(typeParams);
@@ -405,19 +251,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamCalls :
             SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
-            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
-            {
-                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
-
-                // Create a new response with the transformed callable
-                return new Response
-                {
-                    OriginalName = current.OriginalName,
-                    TypeResolutions = current.TypeResolutions,
-                    ConcreteCallable = filter.Namespaces.OnCallableDeclaration(current.ConcreteCallable)
-                };
-            }
-
             public static QsCallable Apply(QsCallable current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
                 var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
@@ -517,7 +350,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            // ToDo: I don't understand why this is needed.
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
