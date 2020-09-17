@@ -131,3 +131,79 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
         Main();
     }
 }
+
+// =================================
+
+// Concrete Graph has Concretizations
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo<Double>();
+        Bar<String>();
+    }
+
+    operation Foo<'A>() : Unit { }
+
+    operation Bar<'A>() : Unit {
+        Foo<'A>();
+    }
+}
+
+// =================================
+
+// Concrete Graph Trims Specializations
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Adjoint FooAdj();
+        using (q = Qubit()) {
+            (Controlled FooCtl)([q], ());
+            (Controlled Adjoint FooCtlAdj)([q], ());
+        }
+    }
+
+    operation FooAdj() : Unit is Adj {
+        body(...) {
+            Unused();
+        }
+
+        adjoint(...) {
+            BarAdj();
+        }
+    }
+
+    operation FooCtl() : Unit is Ctl {
+        body(...) {
+            Unused();
+        }
+
+        controlled(ctl, ...) {
+            BarCtl();
+        }
+    }
+
+    operation FooCtlAdj() : Unit is Ctl+Adj {
+        body(...) {
+            Unused();
+        }
+
+        adjoint(...) {
+            Unused();
+        }
+
+        controlled(ctl, ...) {
+            Unused();
+        }
+
+        controlled adjoint(ctl, ...) {
+            BarCtlAdj();
+        }
+    }
+
+    operation BarAdj() : Unit { }
+    operation BarCtl() : Unit { }
+    operation BarCtlAdj() : Unit { }
+    operation Unused() : Unit { }
+}

@@ -12,6 +12,8 @@ open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open System.Collections.Immutable
 
 type CallGraphTests (output:ITestOutputHelper) =
 
@@ -126,6 +128,14 @@ type CallGraphTests (output:ITestOutputHelper) =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
+
+    let AssertInConcreteGraph (givenGraph : ConcreteCallGraph) node =
+        Assert.True(givenGraph.Nodes.Contains(node),
+            sprintf "Expected %A (%A) to be in the call graph with the following type parameter resolutions:\n%A" node.CallableName node.Kind node.ParamResolutions)
+
+    let AssertNotInConcreteGraph (givenGraph : ConcreteCallGraph) node =
+        Assert.False(givenGraph.Nodes.Contains(node),
+            sprintf "Expected %A (%A) to not be in the call graph with the following type parameter resolutions:\n%A" node.CallableName node.Kind node.ParamResolutions)
 
     // ToDo: Add tests for cycle validation once that is implemented.
     // ToDo: Add tests for concrete call graph once it is finalized.
@@ -257,6 +267,61 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> ignore
 
         AssertNotInGraph graph "Bar"
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph has Concretizations`` () = 
+        let graph = CompileTypeParameterResolutionTestWithExe 9 |> ConcreteCallGraph
+
+        let makeNode name resType =
+            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+            let res = dict[(qalifiedName, NonNullable<_>.New "A"), ResolvedType.New resType].ToImmutableDictionary()
+            ConcreteCallGraphNode(qalifiedName, QsSpecializationKind.QsBody, res)
+
+        let makeNodeNoRes name =
+            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+            let res = ImmutableDictionary.Empty
+            ConcreteCallGraphNode(qalifiedName, QsSpecializationKind.QsBody, res)
+
+        let FooDouble = makeNode "Foo" Double
+        let FooString = makeNode "Foo" String
+        let FooEmpty = makeNodeNoRes "Foo"
+        let BarString = makeNode "Bar" String
+        let BarEmpty = makeNodeNoRes "Bar"
+
+        AssertInConcreteGraph graph FooDouble
+        AssertInConcreteGraph graph FooString
+        AssertInConcreteGraph graph BarString
+
+        AssertNotInConcreteGraph graph FooEmpty
+        AssertNotInConcreteGraph graph BarEmpty
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph Trims Specializations`` () = 
+        let graph = CompileTypeParameterResolutionTestWithExe 10 |> ConcreteCallGraph
+
+        let makeNode name spec =
+            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+            let res = ImmutableDictionary.Empty
+            ConcreteCallGraphNode(qalifiedName, spec, res)
+
+        let FooAdj = makeNode "FooAdj" QsAdjoint
+        let FooCtl = makeNode "FooCtl" QsControlled
+        let FooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
+        let BarAdj = makeNode "BarAdj" QsBody
+        let BarCtl = makeNode "BarCtl" QsBody
+        let BarCtlAdj = makeNode "BarCtlAdj" QsBody
+        let Unused = makeNode "Unused" QsBody
+
+        AssertInConcreteGraph graph FooAdj
+        AssertInConcreteGraph graph FooCtl
+        AssertInConcreteGraph graph FooCtlAdj
+        AssertInConcreteGraph graph BarAdj
+        AssertInConcreteGraph graph BarCtl
+        AssertInConcreteGraph graph BarCtlAdj
+
+        AssertNotInConcreteGraph graph Unused
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
