@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 internal readonly TGraph Graph;
 
                 // The type parameter resolutions of the current expression.
-                internal IEnumerable<TypeParameterResolutions> ExpTypeParamResolutions = new List<TypeParameterResolutions>();
+                internal IEnumerable<TypeParameterResolutions> ExprTypeParamResolutions = new List<TypeParameterResolutions>();
                 internal QsNullable<Position> CurrentStatementOffset;
                 internal QsNullable<Range> CurrentExpressionRange;
                 internal readonly Stack<TNode> RequestStack = new Stack<TNode>(); // Used to keep track of the nodes that still need to be walked by the walker.
@@ -105,13 +105,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                     if (ex.TypeParameterResolutions.Any())
                     {
-                        this.SharedState.ExpTypeParamResolutions = this.SharedState.ExpTypeParamResolutions.Prepend(ex.TypeParameterResolutions);
+                        this.SharedState.ExprTypeParamResolutions = this.SharedState.ExprTypeParamResolutions.Prepend(ex.TypeParameterResolutions);
                     }
-                    var rtrn = base.OnTypedExpression(ex);
-
+                    var result = base.OnTypedExpression(ex);
                     this.SharedState.CurrentExpressionRange = contextRange;
-
-                    return rtrn;
+                    return result;
                 }
             }
         }
@@ -197,9 +195,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 internal override void AddDependency(QsQualifiedName identifier)
                 {
-                    var combination = new TypeResolutionCombination(this.ExpTypeParamResolutions.ToArray());
+                    var combination = new TypeResolutionCombination(this.ExprTypeParamResolutions);
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
-                    this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
+                    this.ExprTypeParamResolutions = new List<TypeParameterResolutions>();
 
                     var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue
@@ -392,9 +390,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 internal override void AddDependency(QsQualifiedName identifier)
                 {
-                    var combination = new TypeResolutionCombination(this.ExpTypeParamResolutions.Append(this.CurrentNode.ParamResolutions).ToArray());
+                    var combination = new TypeResolutionCombination(this.ExprTypeParamResolutions.Append(this.CurrentNode.ParamResolutions));
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
-                    this.ExpTypeParamResolutions = new List<TypeParameterResolutions>();
+                    this.ExprTypeParamResolutions = new List<TypeParameterResolutions>();
 
                     var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue

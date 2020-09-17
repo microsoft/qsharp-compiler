@@ -79,12 +79,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     {
         // Static Elements
 
-        private static IEnumerable<IEnumerable<SimpleCallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<SimpleCallGraphEdge>> sequences)
+        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences)
         {
-            IEnumerable<IEnumerable<SimpleCallGraphEdge>> result = new[] { Enumerable.Empty<SimpleCallGraphEdge>() };
+            IEnumerable<IEnumerable<T>> result = new[] { Enumerable.Empty<T>() };
             foreach (var sequence in sequences)
             {
-                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
+                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item }));
             }
             return result;
         }
@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
                 foreach (var cycle in cycles)
                 {
-                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions).ToArray());
+                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions));
                     if (!combination.IsValid)
                     {
                         foreach (var edge in cycle)
