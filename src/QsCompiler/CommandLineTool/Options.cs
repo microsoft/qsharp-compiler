@@ -41,14 +41,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-        public IEnumerable<string> Plugins { get; set; }
+        public IEnumerable<string>? Plugins { get; set; }
 
         [Option(
             "target-specific-decompositions",
             Required = false,
             SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
-        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
+        public IEnumerable<string>? TargetSpecificDecompositions { get; set; }
 
         [Option(
             "load-test-names",
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
-        public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
+        public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
             "runtime",
@@ -91,8 +91,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
                 var pieces = keyValue?.Split(":");
-                var valid = pieces != null && pieces.Length == 2;
-                success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
+                success =
+                    success && !(pieces is null) && pieces.Length == 2 &&
+                    parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
             }
             return success;
         }
@@ -117,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = DefaultOptions.Verbosity,
             HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
-        public string Verbosity { get; set; }
+        public string? Verbosity { get; set; }
 
         [Option(
             "format",
@@ -132,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = true,
             SetName = CODE_MODE,
             HelpText = "Q# code or name of the Q# file to compile.")]
-        public IEnumerable<string> Input { get; set; }
+        public IEnumerable<string>? Input { get; set; }
 
         [Option(
             's',
@@ -140,7 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = true,
             SetName = SNIPPET_MODE,
             HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
-        public string CodeSnippet { get; set; }
+        public string? CodeSnippet { get; set; }
 
         [Option(
             'f',
@@ -157,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = new string[0],
             HelpText = "Referenced binaries to include in the compilation.")]
-        public IEnumerable<string> References { get; set; }
+        public IEnumerable<string>? References { get; set; }
 
         [Option(
             'n',
@@ -165,14 +166,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = new int[0],
             HelpText = "Warnings with the given code(s) will be ignored.")]
-        public IEnumerable<int> NoWarn { get; set; }
+        public IEnumerable<int>? NoWarn { get; set; }
 
         [Option(
             "package-load-fallback-folders",
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
-        public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+        public IEnumerable<string>? PackageLoadFallbackFolders { get; set; }
 
         /// <summary>
         /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
@@ -192,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// If a logger is given, logs the options as CommandLineArguments Information before returning the printed string.
         /// </summary>
-        public string[] Print(ILogger logger = null)
+        public string[] Print(ILogger? logger = null)
         {
             string Value(PropertyInfo p)
             {

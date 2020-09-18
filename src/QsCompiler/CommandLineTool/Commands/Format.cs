@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = true,
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where the formatted files will be generated.")]
-            public string OutputFolder { get; set; }
+            public string? OutputFolder { get; set; }
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Returns true if the generation succeeded, and false if an exception was thrown.
         /// Throws an ArgumentNullException if the given compilation, the file uri or its absolute path are null.
         /// </summary>
-        private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string outputFolder, ILogger logger)
+        private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string? outputFolder, ILogger logger)
         {
             if (compilation == null)
             {
