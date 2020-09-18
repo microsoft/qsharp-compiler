@@ -4,16 +4,16 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open System.Collections.Immutable
 
 type CallGraphTests (output:ITestOutputHelper) =
 
