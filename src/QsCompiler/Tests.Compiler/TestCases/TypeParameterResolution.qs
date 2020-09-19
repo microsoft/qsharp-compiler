@@ -207,3 +207,61 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
     operation BarCtlAdj() : Unit { }
     operation Unused() : Unit { }
 }
+
+// =================================
+
+// Concrete Graph Double Reference Resolution
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+    function Foo<'a>(x : 'a) : 'a {
+        return x;
+    }
+    
+    @EntryPoint()
+    function Main() : Unit {
+        let x = (Foo(Foo))(0);
+    }
+}
+
+// =================================
+
+// Concrete Graph Non-Call Reference Only Body
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+    operation Foo() : Unit { }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        let f = Foo;
+    }
+}
+
+// =================================
+
+// Concrete Graph Non-Call Reference With Adjoint
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+    operation Foo() : Unit is Adj {
+        body(...) { }
+        adjoint(...) { }
+    }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        let f = Foo;
+    }
+}
+
+// =================================
+
+// Concrete Graph Non-Call Reference With All
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+    operation Foo() : Unit is Ctl+Adj {
+        body(...) { }
+        controlled(ctl, ...) { }
+        adjoint(...) { }
+        controlled adjoint (ctl, ...) { }
+    }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        let f = Foo;
+    }
+}
