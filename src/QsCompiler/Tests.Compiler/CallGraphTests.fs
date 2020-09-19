@@ -350,9 +350,9 @@ type CallGraphTests (output:ITestOutputHelper) =
             ConcreteCallGraphNode(qalifiedName, spec, res)
 
         let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "FooAdj" QsAdjoint
-        let FooCtl = makeNode "FooCtl" QsControlled
-        let FooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
+        let FooAdj = makeNode "Foo" QsAdjoint
+        let FooCtl = makeNode "Foo" QsControlled
+        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
 
@@ -371,9 +371,9 @@ type CallGraphTests (output:ITestOutputHelper) =
             ConcreteCallGraphNode(qalifiedName, spec, res)
 
         let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "FooAdj" QsAdjoint
-        let FooCtl = makeNode "FooCtl" QsControlled
-        let FooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
+        let FooAdj = makeNode "Foo" QsAdjoint
+        let FooCtl = makeNode "Foo" QsControlled
+        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
         AssertInConcreteGraph graph FooAdj
@@ -392,9 +392,9 @@ type CallGraphTests (output:ITestOutputHelper) =
             ConcreteCallGraphNode(qalifiedName, spec, res)
 
         let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "FooAdj" QsAdjoint
-        let FooCtl = makeNode "FooCtl" QsControlled
-        let FooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
+        let FooAdj = makeNode "Foo" QsAdjoint
+        let FooCtl = makeNode "Foo" QsControlled
+        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
         AssertInConcreteGraph graph FooAdj

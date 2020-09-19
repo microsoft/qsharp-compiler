@@ -58,8 +58,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // self-references from duplicating on the stack.
                     walker.SharedState.ResolvedNodeSet.Add(currentRequest);
                     walker.SharedState.CurrentNode = currentRequest;
+                    walker.SharedState.GetSpecializationKinds = (callableName) => GetSpecializationKinds(globals, callableName);
                     walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
                 }
+            }
+
+            private static IEnumerable<QsSpecializationKind> GetSpecializationKinds(ImmutableDictionary<QsQualifiedName, QsCallable> globals, QsQualifiedName callableName)
+            {
+                // If there is a call to an unknown callable, throw exception
+                if (!globals.TryGetValue(callableName, out QsCallable currentCallable))
+                {
+                    throw new ArgumentException($"Couldn't find definition for callable: {callableName}");
+                }
+
+                return currentCallable.Specializations.Select(x => x.Kind).Distinct();
             }
 
             /// <summary>
@@ -153,6 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public bool IsInCall = false;
                 public bool HasAdjointDependency = false;
                 public bool HasControlledDependency = false;
+                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = (_) => new QsSpecializationKind[] { };
 
                 internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
                 {
@@ -206,11 +219,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         // The callable is being used in a non-call context, such as being
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
-                        // We're conservative and add all 4 possible kinds.
-                        AddEdge(QsSpecializationKind.QsBody);
-                        AddEdge(QsSpecializationKind.QsAdjoint);
-                        AddEdge(QsSpecializationKind.QsControlled);
-                        AddEdge(QsSpecializationKind.QsControlledAdjoint);
+                        // We're conservative and add all possible kinds defined for the callable.
+                        foreach (var kind in this.GetSpecializationKinds(identifier))
+                        {
+                            AddEdge(kind);
+                        }
+
                     }
                 }
             }
