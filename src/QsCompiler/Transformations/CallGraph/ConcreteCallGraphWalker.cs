@@ -224,7 +224,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         {
                             AddEdge(kind);
                         }
-
                     }
                 }
             }
