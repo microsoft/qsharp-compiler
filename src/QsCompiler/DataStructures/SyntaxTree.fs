@@ -591,6 +591,11 @@ and QsStatement = {
 type QsLocalSymbol =
 | ValidName of NonNullable<string>
 | InvalidName
+    with
+    member this.TryGetValidName(validName: NonNullable<string> byref) =
+        match this with
+        | ValidName value -> validName <- value; true
+        | _ -> false
 
 
 /// used to represent an attribute attached to a type, callable, or specialization declaration.
@@ -762,12 +767,19 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
-
     with
     member this.GetFullName () =
         match this with
         | QsCallable call -> call.FullName
         | QsCustomType typ -> typ.FullName
+    member this.TryGetCallable(callable: QsCallable byref) =
+        match this with
+        | QsCallable value -> callable <- value; true
+        | _ -> false
+    member this.TryGetCustomType(customType: QsCustomType byref) =
+        match this with
+        | QsCustomType value -> customType <- value; true
+        | _ -> false
 
 
 /// Describes a Q# namespace.
