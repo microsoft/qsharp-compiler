@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
 // Concrete Graph Double Reference Resolution
 namespace Microsoft.Quantum.Testing.TypeParameterResolution {
-    function Foo<'a>(x : 'a) : 'a {
+    function Foo<'A>(x : 'A) : 'A {
         return x;
     }
 
