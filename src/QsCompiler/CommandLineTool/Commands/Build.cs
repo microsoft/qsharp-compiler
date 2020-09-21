@@ -19,6 +19,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         [Verb("build", HelpText = "Builds a compilation unit to run on the Q# quantum simulation framework.")]
         public class BuildOptions : CompilationOptions
         {
+            // TODO: Disabling nullable annotations is a workaround for
+            // https://github.com/commandlineparser/commandline/issues/136.
+#nullable disable annotations
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -44,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = true,
                 SetName = RESPONSE_FILES,
                 HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
-            public IEnumerable<string>? ResponseFiles { get; set; }
+            public IEnumerable<string> ResponseFiles { get; set; }
 
             [Option(
                 'o',
@@ -52,14 +55,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
-            public string? OutputFolder { get; set; }
+            public string OutputFolder { get; set; }
 
             [Option(
                 "doc",
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where documentation will be generated.")]
-            public string? DocFolder { get; set; }
+            public string DocFolder { get; set; }
+#nullable restore annotations
 
             [Option(
                 "proj",
