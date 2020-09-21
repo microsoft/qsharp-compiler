@@ -285,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// Class representing a compilation;
     /// apart from storing and providing the means to update the compilation itself,
     /// it stores referenced content and provides the infrastructure to track global symbols.
-    /// IMPORTANT: The responsiblity to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
+    /// IMPORTANT: The responsibility to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {

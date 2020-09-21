@@ -30,7 +30,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
                         envNames.TryGetValue(ns.Name, out var envNs)
                         ? MergeNamespaces(envNs, ns)
                         : ns))
-                    .ToImmutableArray(), target.EntryPoints);
+                    .ToImmutableArray(),
+                target.EntryPoints);
         }
 
         /// <summary>

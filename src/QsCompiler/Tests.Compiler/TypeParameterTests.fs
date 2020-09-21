@@ -531,7 +531,7 @@ type TypeParameterTests () =
 
         AssertCombinedResolutionFailure expected given
 
-    [<Fact(Skip="Will be fixed in Diagnostics PR")>] // ToDo
+    [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Constricting Indirect Nested Self Resolution`` () =
         let given = [|
@@ -543,13 +543,13 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+            (BarA, [Int; [Int; FooA |> TypeParameter] |> MakeTupleType] |> MakeTupleType)
             (FooA, [Int; FooA |> TypeParameter] |> MakeTupleType)
         ]
 
         AssertCombinedResolutionFailure expected given
 
-    [<Fact(Skip="Will be fixed in Diagnostics PR")>] // ToDo
+    [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Constricting Array Indirect Nested Self Resolution`` () =
         let given = [|
@@ -561,7 +561,7 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, FooA |> TypeParameter |> MakeArrayType)
+            (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
             (FooA, FooA |> TypeParameter |> MakeArrayType)
         ]
 

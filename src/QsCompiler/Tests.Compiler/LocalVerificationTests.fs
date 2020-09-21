@@ -26,7 +26,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``type argument inference`` () = 
+    member this.``Type argument inference`` () = 
         this.Expect "TypeArgumentsInference1"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference2"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference3"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
