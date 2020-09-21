@@ -801,7 +801,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if file is null.
         /// Any other exceptions should be throws (and caught, and possibly re-thrown) during the updating.
         /// </summary>
-        internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent change)
+        internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent? change)
         {
             if (file == null)
             {
@@ -848,7 +848,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 // process the currently queued changes if necessary
-                if (file.DequeueUnprocessedChanges(out int start, out string text))
+                if (file.DequeueUnprocessedChanges(out var start, out var text))
                 {
                     ComputeUpdate(start, start, text);
                 }

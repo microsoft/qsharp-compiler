@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal CodeFragment ClearComments() =>
             new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, null, this.Kind, this.IncludeInCompilation);
 
-        internal CodeFragment SetOpeningComments(IEnumerable<string> commentsBefore)
+        internal CodeFragment SetOpeningComments(IEnumerable<string?> commentsBefore)
         {
             var relevantComments = commentsBefore.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             return new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
         }
 
-        internal CodeFragment SetClosingComments(IEnumerable<string> commentsAfter)
+        internal CodeFragment SetClosingComments(IEnumerable<string?> commentsAfter)
         {
             var relevantComments = commentsAfter.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
