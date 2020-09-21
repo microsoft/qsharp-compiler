@@ -34,25 +34,29 @@ struct Modifiers
 
 // Data structures from SynatxTree.fs
 
-enum QsBindingKind {
+enum QsBindingKind
+{
     ImmutableBinding,
     MutableBinding
 }
 
-enum QsSpecializationKind {
+enum QsSpecializationKind
+{
     QsBody,
     QsAdjoint,
     QsControlled,
     QsControlledAdjoint
 }
 
-enum QsCallableKind {
+enum QsCallableKind
+{
     Operation,
     Function,
     TypeConstructor
 }
 
-enum QsQubitScopeKind {
+enum QsQubitScopeKind
+{
     Allocate,
     Borrow
 }
@@ -64,7 +68,8 @@ struct QsQualifiedName
     10: required string Name;
 }
 
-enum SymbolTupleKind {
+enum SymbolTupleKind
+{
     InvalidItem,
     VariableName,
     VariableNameTuple,
@@ -84,9 +89,6 @@ struct SymbolTuple
     25: nullable<list<string>> DiscardedItem = nothing;
 }
 
-/*
-    
-*/
 struct QsBinding<T>
 {
     5: required QsBindingKind Kind = ImmutableBinding;
@@ -96,7 +98,8 @@ struct QsBinding<T>
     15: required T Rhs;
 }
 
-enum IdentifierKind {
+enum IdentifierKind
+{
     LocalVariable,
     GlobalCallable,
     InvalidIdentifier
@@ -192,7 +195,8 @@ struct CallableInformation
     10: required InferredCallableInformation InferredInformation;
 }
 
-enum QsTypeKind {
+enum QsTypeKind
+{
     UnitType,
     Int,
     BigInt,
@@ -264,7 +268,8 @@ struct InferredExpressionInformation
     10: required bool HasLocalQuantumDependency;
 }
 
-enum QsExpressionKind {
+enum QsExpressionKind
+{
     UnitValue,
     Identifier,
     ValueTuple,
@@ -337,7 +342,6 @@ struct TypedExpression
     25: nullable<Range> Range;
 
     // TODO: Add a nullable field per expression.
-
 }
 
 enum QsInitializerKind
