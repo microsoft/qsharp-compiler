@@ -269,6 +269,10 @@ let private isOperation callable =
 let private isDeclaredInSourceFile (callable : QsCallable) =
     callable.SourceFile.Value.EndsWith ".qs"
 
+/// Returns the maximum capability given by the attributes, if any.
+let private attributeCapability : _ seq -> _ =
+    QsNullable<_>.Choose BuiltIn.GetCapability >> tryMaxCapability
+
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.
 let private specSourceCapability inOperation spec =
@@ -290,7 +294,7 @@ let private callableSourceCapability callable =
 ///
 /// Partially applying the first argument creates a memoized function that caches computed runtime capabilities by
 /// callable name. The memoized function is not thread-safe.
-let private callableDependentCapability (callables : IImmutableDictionary<_, QsCallable>, graph : CallGraph) =
+let private callableDependentCapability (callables : IImmutableDictionary<_, _>, graph : CallGraph) =
     // A mapping from callable name to runtime capability based on callable source code patterns and cycles the callable
     // is a member of, but not other dependencies. This is the initial set of capabilities that will be used later.
     let initialCapabilities =
@@ -298,8 +302,7 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, QsC
         |> Seq.filter (fun item -> isDeclaredInSourceFile item.Value)
         |> fun items -> items.ToDictionary ((fun item -> item.Key), fun item -> callableSourceCapability item.Value)
     let sourceCycles =
-        graph.GetCallCycles ()
-        |> Seq.filter (Seq.exists <| fun node ->
+        graph.GetCallCycles () |> Seq.filter (Seq.exists <| fun node ->
             callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile)
     for cycle in sourceCycles do
         let cycleCapability =
@@ -314,33 +317,31 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, QsC
     // The memoization cache.
     let cache = Dictionary<_, _> ()
 
-    // The capability of a specialization based on its initial capability and the capability of all dependencies.
-    let rec specCapability visited (spec : QsSpecialization) =
-        let visited = Set.add spec.Parent visited
-        let dependencies =
-            CallGraphNode spec.Parent
+    // The capability of a callable's dependencies, if any.
+    let rec dependentCapability visited name =
+        let visited = Set.add name visited
+        let newDependencies =
+            CallGraphNode name
             |> graph.GetDirectDependencies
             |> Seq.map (fun group -> group.Key.CallableName)
             |> Set.ofSeq
             |> fun names -> Set.difference names visited
-        dependencies
+        newDependencies
         |> Seq.choose (fun name -> callables |> tryGetValue name)
         |> Seq.map (callableCapability visited)
-        |> Seq.append (initialCapabilities |> tryGetValue spec.Parent |> Option.toList)
-        |> maxCapability
+        |> tryMaxCapability
 
     // The capability of a callable based on its initial capability and the capability of all dependencies.
     and callableCapability visited (callable : QsCallable) =
-        cache
-        |> tryGetValue callable.FullName
-        |> Option.defaultWith (fun () ->
+        cache |> tryGetValue callable.FullName |> Option.defaultWith (fun () ->
             let capability =
-                callable.Attributes
-                |> QsNullable<_>.Choose BuiltIn.GetCapability
-                |> tryMaxCapability
-                |> Option.defaultWith (fun () ->
+                attributeCapability callable.Attributes |> Option.defaultWith (fun () ->
                     if isDeclaredInSourceFile callable
-                    then callable.Specializations |> Seq.map (specCapability visited) |> maxCapability
+                    then
+                        [ initialCapabilities |> tryGetValue callable.FullName
+                          dependentCapability visited callable.FullName ]
+                        |> List.choose id
+                        |> maxCapability
                     else baseCapability)
             cache.[callable.FullName] <- capability
             capability)
@@ -363,8 +364,7 @@ let InferCapabilities compilation =
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability =
-                    callable.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> Seq.isEmpty
+                let isMissingCapability = attributeCapability callable.Attributes |> Option.isNone
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> addAttribute callable
                 else callable
