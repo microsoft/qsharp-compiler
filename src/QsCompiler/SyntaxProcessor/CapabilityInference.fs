@@ -328,25 +328,29 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
             |> fun names -> Set.difference names visited
         newDependencies
         |> Seq.choose (fun name -> callables |> tryGetValue name)
-        |> Seq.map (callableCapability visited)
+        |> Seq.map (cachedCapability visited)
         |> tryMaxCapability
 
     // The capability of a callable based on its initial capability and the capability of all dependencies.
     and callableCapability visited (callable : QsCallable) =
+        attributeCapability callable.Attributes |> Option.defaultWith (fun () ->
+            if isDeclaredInSourceFile callable
+            then
+                [ initialCapabilities |> tryGetValue callable.FullName
+                  dependentCapability visited callable.FullName ]
+                |> List.choose id
+                |> maxCapability
+            else baseCapability)
+
+    // Tries to retrieve the capability of the callable from the cache first; otherwise, computes the capability and
+    // saves it in the cache.
+    and cachedCapability visited (callable : QsCallable) =
         cache |> tryGetValue callable.FullName |> Option.defaultWith (fun () ->
-            let capability =
-                attributeCapability callable.Attributes |> Option.defaultWith (fun () ->
-                    if isDeclaredInSourceFile callable
-                    then
-                        [ initialCapabilities |> tryGetValue callable.FullName
-                          dependentCapability visited callable.FullName ]
-                        |> List.choose id
-                        |> maxCapability
-                    else baseCapability)
+            let capability = callableCapability visited callable
             cache.[callable.FullName] <- capability
             capability)
 
-    callableCapability Set.empty
+    cachedCapability Set.empty
 
 /// Adds the given capability to the callable as an attribute.
 let private addAttribute callable capability =
