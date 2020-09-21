@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             IEnumerable<IEnumerable<T>> result = new[] { Enumerable.Empty<T>() };
             foreach (var sequence in sequences)
             {
-                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item }));
+                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
             }
             return result;
         }
