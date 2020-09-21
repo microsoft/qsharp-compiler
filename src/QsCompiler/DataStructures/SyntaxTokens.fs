@@ -56,6 +56,19 @@ type CharacteristicsKind<'S> =
 | Union of 'S * 'S
 | Intersection of 'S * 'S
 | InvalidSetExpr
+    with
+    member this.TryGetSimpleSet(simpleSet: OpProperty byref) =
+        match this with
+        | SimpleSet value -> simpleSet <- value; true
+        | _ -> false
+    member this.TryGetUnion(union: ('S * 'S) byref) =
+        match this with
+        | Union(setA , setB) -> union <- (setA, setB); true
+        | _ -> false
+    member this.TryGetIntersection(intersection: ('S * 'S) byref) =
+        match this with
+        | Intersection(setA , setB) -> intersection <- (setA, setB); true
+        | _ -> false
 
 type Characteristics = {
     Characteristics : CharacteristicsKind<Characteristics>
@@ -82,6 +95,31 @@ type QsTypeKind<'Type,'UdtName,'TParam, 'Characteristics> =
 | Function of 'Type * 'Type
 | MissingType // used (only!) upon determining the type of expressions (for MissingExpr)
 | InvalidType // to be used e.g. for parsing errors
+    with
+    member this.TryGetArrayType(arrayType: 'Type byref) =
+        match this with
+        | ArrayType value -> arrayType <- value; true
+        | _ -> false
+    member this.TryGetTupleType(tupleType: ImmutableArray<'Type> byref) =
+        match this with
+        | TupleType value -> tupleType <- value; true
+        | _ -> false
+    member this.TryGetUserDefinedType(userDefinedType: 'UdtName byref) =
+        match this with
+        | UserDefinedType value -> userDefinedType <- value; true
+        | _ -> false
+    member this.TryGetTypeParameter(typeParameter: 'TParam byref) =
+        match this with
+        | TypeParameter value -> typeParameter <- value; true
+        | _ -> false
+    member this.TryGetOperation(operation: (('Type * 'Type) * 'Characteristics) byref) =
+        match this with
+        | Operation((typeA ,typeB), characteristics) -> operation <- ((typeA, typeB), characteristics); true
+        | _ -> false
+    member this.TryGetFunction(functionObject: ('Type * 'Type) byref) =
+        match this with
+        | Function(typeA ,typeB) -> functionObject <- (typeA ,typeB); true
+        | _ -> false
 
 type QsType = {
     Type : QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>
@@ -184,6 +222,15 @@ type QsSpecializationGenerator = {
 type QsTuple<'Item> = 
 | QsTupleItem of 'Item
 | QsTuple of ImmutableArray<QsTuple<'Item>> 
+    with
+    member this.TryGetQsTupleItem(qsTupleItem: 'Item byref) =
+        match this with
+        | QsTupleItem value -> qsTupleItem <- value; true
+        | _ -> false
+    member this.TryGetQsTuple(qsTuple: ImmutableArray<QsTuple<'Item>> byref) =
+        match this with
+        | QsTuple value -> qsTuple <- value; true
+        | _ -> false
 
 type CallableSignature = { 
     TypeParameters : ImmutableArray<QsSymbol>
