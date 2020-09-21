@@ -861,7 +861,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before getting the file content by calling FlushAndExecute.
         /// </summary>
-        public QsFragmentKind[][]? GetTokenization(TextDocumentIdentifier textDocument) =>
+        public QsFragmentKind?[][]? GetTokenization(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
                 this.FileQuery(textDocument, (file, _) => file.GetTokenizedLines(0, file.NrLines()).Select(line => line.Select(frag => frag.Kind).ToArray()).ToArray()));
 

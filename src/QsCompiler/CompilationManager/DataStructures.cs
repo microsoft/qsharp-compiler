@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments.
         /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </summary>
-        public readonly string EndOfLineComment;
+        public readonly string? EndOfLineComment;
 
         internal readonly int Indentation; // Note: This denotes the initial indentation at the beginning of the line
         internal readonly ImmutableArray<int> ExcessBracketPositions;
@@ -125,14 +125,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly string Text;
         internal readonly char FollowedBy;
         internal readonly QsComments Comments;
-        public readonly QsFragmentKind Kind;
+        public readonly QsFragmentKind? Kind;
 
         internal bool IncludeInCompilation { get; private set; } // used to exclude certain code fragments from the compilation if they are e.g. misplaced
 
         internal const char MissingDelimiter = '@'; // arbitrarily chosen
         internal static readonly ImmutableArray<char> DelimitingChars = ImmutableArray.Create('}', '{', ';');
 
-        private static Range GetHeaderRange(string text, QsFragmentKind kind) =>
+        private static Range GetHeaderRange(string text, QsFragmentKind? kind) =>
             kind == null ? Range.Zero : kind.IsControlledAdjointDeclaration
                 ? Parsing.HeaderDelimiters(2).Invoke(text ?? "")
                 : Parsing.HeaderDelimiters(1).Invoke(text ?? "");
@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, Range range, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, Range range, string text, char next, QsComments? comments, QsFragmentKind? kind, bool include)
         {
             if (!DelimitingChars.Contains(next) && next != MissingDelimiter)
             {
@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, Range range, string text, char next, QsFragmentKind kind = null)
+        internal CodeFragment(int indent, Range range, string text, char next, QsFragmentKind? kind = null)
             : this(indent, range, text, next, null, kind, true)
         {
         }
@@ -326,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// Throws an ArgumentNullException if the TokenIndex to increment is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex operator ++(TokenIndex tIndex)
+            public static TokenIndex? operator ++(TokenIndex tIndex)
             {
                 if (tIndex == null)
                 {
@@ -353,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// Throws an ArgumentNullException if the TokenIndex to decrement is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex operator --(TokenIndex tIndex)
+            public static TokenIndex? operator --(TokenIndex tIndex)
             {
                 if (tIndex == null)
                 {
@@ -420,7 +420,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         public readonly NonNullable<string> Source;
         public readonly NonNullable<string> Namespace;
         public readonly NonNullable<string> Callable;
-        public readonly IReadOnlyList<TreeNode> Specializations;
+        public readonly IReadOnlyList<TreeNode>? Specializations;
 
         public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode> specs)
         {
@@ -484,7 +484,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             CodeFragment.TokenIndex tIndex,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
-            string keepInvalid = null)
+            string? keepInvalid = null)
         {
             if (getDeclaration == null)
             {
@@ -622,19 +622,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             IsCallableDeclaration(fragment) ||
             IsCallableSpecialization(fragment);
 
-        public static IEnumerable<CodeFragment> FilterNamespaceDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterNamespaceDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsNamespaceDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterOpenDirectives(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterOpenDirectives(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsOpenDirective);
 
-        public static IEnumerable<CodeFragment> FilterTypeDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterTypeDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsTypeDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterCallableDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterCallableDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsCallableDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterCallableSpecializations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterCallableSpecializations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsCallableSpecialization);
     }
 
