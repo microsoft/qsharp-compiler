@@ -13,68 +13,13 @@ using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
+    using Range = DataTypes.Range;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-
-    /// <summary>
-    /// Base class for call graph edge types.
-    /// </summary>
-    public abstract class BaseCallGraphEdge : IEquatable<BaseCallGraphEdge>
-    {
-        /// <summary>
-        /// Name of the callable where the reference was made.
-        /// </summary>
-        public QsQualifiedName FromCallableName { get; }
-
-        /// <summary>
-        /// Name of the callable being referenced.
-        /// </summary>
-        public QsQualifiedName ToCallableName { get; }
-
-        /// <summary>
-        /// The range of the reference represented by the edge.
-        /// </summary>
-        public DataTypes.Range ReferenceRange { get; }
-
-        /// <summary>
-        /// Base constructor for call graph edges. Initializes BaseCallGraphEdge properties.
-        /// Throws an ArgumentNullException if any of the arguments are null.
-        /// </summary>
-        protected BaseCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
-        {
-            if (fromCallableName is null)
-            {
-                throw new ArgumentNullException(nameof(fromCallableName));
-            }
-
-            if (toCallableName is null)
-            {
-                throw new ArgumentNullException(nameof(toCallableName));
-            }
-
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            this.FromCallableName = fromCallableName;
-            this.ToCallableName = toCallableName;
-            this.ReferenceRange = referenceRange;
-        }
-
-        /// <summary>
-        /// Determines if the object is the same as the given edge, ignoring the
-        /// ordering of key-value pairs in the type parameter dictionaries.
-        /// </summary>
-        public bool Equals(BaseCallGraphEdge edge) =>
-            this.FromCallableName.Equals(edge.FromCallableName)
-            && this.ToCallableName.Equals(edge.ToCallableName)
-            && this.ReferenceRange.Equals(edge.ReferenceRange);
-    }
 
     /// <summary>
     /// Edge type for Simple Call Graphs.
     /// </summary>
-    public class SimpleCallGraphEdge : BaseCallGraphEdge, IEquatable<SimpleCallGraphEdge>
+    public sealed class SimpleCallGraphEdge : CallGraphEdgeBase, IEquatable<SimpleCallGraphEdge>
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
@@ -86,8 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Strips position info from the given type parameter resolutions.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
-            : base(fromCallableName, toCallableName, referenceRange)
+        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, Range referenceRange)
+            : base(referenceRange)
         {
             if (paramResolutions is null)
             {
@@ -113,67 +58,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     }
 
     /// <summary>
-    /// Edge type for Concrete Call Graphs.
-    /// </summary>
-    public class ConcreteCallGraphEdge : BaseCallGraphEdge
-    {
-        /// <summary>
-        /// Constructor for ConcreteCallGraphEdge objects.
-        /// Throws an ArgumentNullException if any of the arguments are null.
-        /// </summary>
-        internal ConcreteCallGraphEdge(QsQualifiedName fromCallableName, QsQualifiedName toCallableName, DataTypes.Range referenceRange)
-            : base(fromCallableName, toCallableName, referenceRange)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Base class for call graph node types.
-    /// </summary>
-    public abstract class BaseCallGraphNode : IEquatable<BaseCallGraphNode>
-    {
-        /// <summary>
-        /// The name of the represented callable.
-        /// </summary>
-        public QsQualifiedName CallableName { get; }
-
-        /// <summary>
-        /// Base constructor for call graph nodes. Initializes CallableName.
-        /// Throws an ArgumentNullException if argument is null.
-        /// </summary>
-        protected BaseCallGraphNode(QsQualifiedName callableName)
-        {
-            if (callableName is null)
-            {
-                throw new ArgumentException(nameof(callableName));
-            }
-
-            this.CallableName = callableName;
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is BaseCallGraphNode && this.Equals((BaseCallGraphNode)obj);
-        }
-
-        /// <inheritdoc/>
-        public bool Equals(BaseCallGraphNode other) =>
-            this.CallableName.Equals(other.CallableName);
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            HashCode hash = default;
-            hash.Add(this.CallableName);
-            return hash.ToHashCode();
-        }
-    }
-
-    /// <summary>
     /// Node type that represents Q# callables.
     /// </summary>
-    public class SimpleCallGraphNode : BaseCallGraphNode
+    public sealed class SimpleCallGraphNode : CallGraphNodeBase
     {
         /// <summary>
         /// Constructor for SimpleCallGraphNode objects.
@@ -186,222 +73,32 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     }
 
     /// <summary>
-    /// Node type that represents concrete instances of Q# callables.
+    /// A kind of call graph whose nodes represent Q# callables.
     /// </summary>
-    public class ConcreteCallGraphNode : BaseCallGraphNode, IEquatable<ConcreteCallGraphNode>
-    {
-        /// <summary>
-        /// The concrete type mappings for the type parameters for the callable.
-        /// </summary>
-        public TypeParameterResolutions ParamResolutions { get; }
-
-        /// <summary>
-        /// Constructor for ConcreteCallGraphNode objects.
-        /// Strips position info from the given type parameter resolutions.
-        /// Throws an ArgumentNullException if any of the arguments are null.
-        /// </summary>
-        public ConcreteCallGraphNode(QsQualifiedName callableName, TypeParameterResolutions paramResolutions) : base(callableName)
-        {
-            if (paramResolutions is null)
-            {
-                throw new ArgumentException(nameof(paramResolutions));
-            }
-
-            // Remove position info from type parameter resolutions
-            this.ParamResolutions = paramResolutions.ToImmutableDictionary(
-                kvp => kvp.Key,
-                kvp => StripPositionInfo.Apply(kvp.Value));
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is ConcreteCallGraphNode && this.Equals((ConcreteCallGraphNode)obj);
-        }
-
-        /// <summary>
-        /// Determines if the object is the same as the given node, ignoring the
-        /// ordering of key-value pairs in the type parameter dictionaries.
-        /// </summary>
-        public bool Equals(ConcreteCallGraphNode other) =>
-            base.Equals(other)
-            && (this.ParamResolutions == other.ParamResolutions
-                || this.ParamResolutions
-                       .OrderBy(kvp => kvp.Key)
-                       .SequenceEqual(other.ParamResolutions.OrderBy(kvp => kvp.Key)));
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            HashCode hash = default;
-            hash.Add(this.CallableName);
-            foreach (var kvp in this.ParamResolutions)
-            {
-                hash.Add(kvp);
-            }
-            return hash.ToHashCode();
-        }
-    }
-
-    /// <summary>
-    /// Base class for call graph types.
-    /// </summary>
-    public abstract class BaseCallGraph<TNode, TEdge>
-        where TNode : BaseCallGraphNode
-        where TEdge : BaseCallGraphEdge
+    public sealed class SimpleCallGraph
     {
         // Static Elements
 
-        /// <summary>
-        /// Returns an empty dependency for a node.
-        /// </summary>
-        protected static ILookup<TNode, TEdge> EmptyDependency() =>
-            ImmutableArray<KeyValuePair<TNode, TEdge>>.Empty
-            .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
+        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences)
+        {
+            IEnumerable<IEnumerable<T>> result = new[] { Enumerable.Empty<T>() };
+            foreach (var sequence in sequences)
+            {
+                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item }));
+            }
+            return result;
+        }
 
         // Member Fields
 
-        /// <summary>
-        /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
-        /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
-        /// </summary>
-        protected readonly Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>> dependencies =
-            new Dictionary<TNode, Dictionary<TNode, ImmutableArray<TEdge>>>();
+        private CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge> graphBuilder = new CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge>();
 
         // Properties
 
         /// <summary>
-        /// The number of nodes in the call graph.
-        /// </summary>
-        public int Count => this.dependencies.Count;
-
-        /// <summary>
         /// A hash set of the nodes in the call graph.
         /// </summary>
-        public ImmutableHashSet<TNode> Nodes => this.dependencies.Keys.ToImmutableHashSet();
-
-        // Member Methods
-
-        /// <summary>
-        /// Returns true if the given node is found in the call graph, false otherwise.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public bool ContainsNode(TNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            return this.dependencies.ContainsKey(node);
-        }
-
-        /// <summary>
-        /// Returns the children nodes of a given node. Each key in the returned lookup is a child
-        /// node of the given node. Each value in the lookup is an edge connecting the given node to
-        /// the child node represented by the associated key.
-        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
-        /// the graph.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public ILookup<TNode, TEdge> GetDirectDependencies(TNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            if (this.dependencies.TryGetValue(node, out var dep))
-            {
-                return dep
-                    .SelectMany(kvp => kvp.Value, Tuple.Create)
-                    .ToLookup(tup => tup.Item1.Key, tup => tup.Item2);
-            }
-            else
-            {
-                return EmptyDependency();
-            }
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph using the two nodes and the edge between them.
-        /// The nodes are added to the graph if they are not already there. The edge is always added.
-        /// Throws ArgumentNullException if any of the arguments are null.
-        /// </summary>
-        protected void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
-        {
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            if (edge is null)
-            {
-                throw new ArgumentNullException(nameof(edge));
-            }
-
-            if (this.dependencies.TryGetValue(fromNode, out var deps))
-            {
-                if (!deps.TryGetValue(toNode, out var edges))
-                {
-                    deps[toNode] = ImmutableArray.Create(edge);
-                }
-                else
-                {
-                    deps[toNode] = edges.Add(edge);
-                }
-            }
-            else
-            {
-                var newDeps = new Dictionary<TNode, ImmutableArray<TEdge>>();
-                newDeps[toNode] = ImmutableArray.Create(edge);
-                this.dependencies[fromNode] = newDeps;
-            }
-
-            // Need to make sure the each dependencies has an entry for each node
-            // in the graph, even if node has no dependencies.
-            this.AddNode(toNode);
-        }
-
-        /// <summary>
-        /// Adds the given node to the call graph, if it is not already in the graph.
-        /// Throws ArgumentNullException if the argument is null.
-        /// </summary>
-        internal void AddNode(TNode node)
-        {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
-            if (!this.dependencies.ContainsKey(node))
-            {
-                this.dependencies[node] = new Dictionary<TNode, ImmutableArray<TEdge>>();
-            }
-        }
-    }
-
-    /// <summary>
-    /// A kind of call graph whose nodes represent Q# callables.
-    /// </summary>
-    public class SimpleCallGraph : BaseCallGraph<SimpleCallGraphNode, SimpleCallGraphEdge>
-    {
-        // Static Elements
-
-        private static IEnumerable<IEnumerable<SimpleCallGraphEdge>> CartesianProduct(IEnumerable<IEnumerable<SimpleCallGraphEdge>> sequences)
-        {
-            IEnumerable<IEnumerable<SimpleCallGraphEdge>> result = new[] { Enumerable.Empty<SimpleCallGraphEdge>() };
-            foreach (var sequence in sequences)
-            {
-                result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
-            }
-            return result;
-        }
+        public ImmutableHashSet<SimpleCallGraphNode> Nodes => this.graphBuilder.Nodes;
 
         // Constructors
 
@@ -420,11 +117,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
             if (trim)
             {
-                BuildCallGraph.PopulateTrimmedGraph(this, compilation);
+                BuildCallGraph.PopulateTrimmedGraph(this.graphBuilder, compilation);
             }
             else
             {
-                BuildCallGraph.PopulateSimpleGraph(this, compilation);
+                BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, compilation);
             }
         }
 
@@ -439,10 +136,20 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 throw new ArgumentNullException(nameof(callables));
             }
 
-            BuildCallGraph.PopulateSimpleGraph(this, callables);
+            BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, callables);
         }
 
         // Member Methods
+
+        /// <summary>
+        /// Returns the children nodes of a given node. Each key in the returned lookup is a child
+        /// node of the given node. Each value in the lookup is an edge connecting the given node to
+        /// the child node represented by the associated key.
+        /// Returns an empty ILookup if the node was found with no dependencies or was not found in
+        /// the graph.
+        /// Throws ArgumentNullException if argument is null.
+        /// </summary>
+        public ILookup<SimpleCallGraphNode, SimpleCallGraphEdge> GetDirectDependencies(SimpleCallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
 
         /// <summary>
         /// Given a call graph edges, finds all cycles and determines if each is valid.
@@ -454,26 +161,26 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// each tuple containing a diagnostic and the callable name where the diagnostic
         /// should be placed.
         /// </summary>
-        public IEnumerable<Tuple<QsCompilerDiagnostic, QsQualifiedName>> VerifyAllCycles()
+        public IEnumerable<(QsCompilerDiagnostic, QsQualifiedName)> VerifyAllCycles()
         {
-            var diagnostics = new List<Tuple<QsCompilerDiagnostic, QsQualifiedName>>();
+            var diagnostics = new List<(QsCompilerDiagnostic, QsQualifiedName)>();
 
             if (this.Nodes.Any())
             {
-                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdges(x).Reverse()));
+                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdgesWithNames(x).Reverse()));
                 foreach (var cycle in cycles)
                 {
-                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.ParamResolutions).ToArray());
+                    var combination = new TypeResolutionCombination(cycle.Select(edge => edge.Item1.ParamResolutions));
                     if (!combination.IsValid)
                     {
                         foreach (var edge in cycle)
                         {
-                            diagnostics.Add(Tuple.Create(
+                            diagnostics.Add((
                                 QsCompilerDiagnostic.Error(
                                     Diagnostics.ErrorCode.InvalidCyclicTypeParameterResolution,
                                     Enumerable.Empty<string>(),
-                                    edge.ReferenceRange),
-                                edge.FromCallableName));
+                                    edge.Item1.ReferenceRange),
+                                edge.Item2));
                         }
                     }
                 }
@@ -483,58 +190,27 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
-        /// Throws an ArgumentNullException if any argument is null.
-        /// </summary>
-        internal void AddDependency(SimpleCallGraphNode fromNode, SimpleCallGraphNode toNode, TypeParameterResolutions typeParamRes, DataTypes.Range referenceRange)
-        {
-            if (typeParamRes is null)
-            {
-                throw new ArgumentNullException(nameof(typeParamRes));
-            }
-
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            var edge = new SimpleCallGraphEdge(typeParamRes, fromNode.CallableName, toNode.CallableName, referenceRange);
-
-            this.AddDependency(fromNode, toNode, edge);
-        }
-
-        /// <summary>
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
         internal ImmutableArray<ImmutableArray<SimpleCallGraphNode>> GetCallCycles()
         {
-            var indexToNode = this.dependencies.Keys.ToImmutableArray();
+            var indexToNode = this.Nodes.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
             var graph = indexToNode
                 .Select((v, i) => (v, i))
                 .ToDictionary(
                     kvp => kvp.i,
-                    kvp => this.dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
+                    kvp => this.GetDirectDependencies(kvp.v)
+                        .Select(g => nodeToIndex[g.Key])
                         .ToList());
 
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
         }
 
-        private IEnumerable<IEnumerable<SimpleCallGraphEdge>> GetEdges(ImmutableArray<SimpleCallGraphNode> cycle)
-            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]]);
+        private IEnumerable<IEnumerable<(SimpleCallGraphEdge, QsQualifiedName)>> GetEdgesWithNames(ImmutableArray<SimpleCallGraphNode> cycle)
+            => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]].Select(x => (x, curr.CallableName)));
 
         // Inner Classes
 
@@ -784,53 +460,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                 return cycles;
             }
-        }
-    }
-
-    /// <summary>
-    /// A kind of call graph whose nodes represent concrete instances of Q# callables.
-    /// </summary>
-    public class ConcreteCallGraph : BaseCallGraph<ConcreteCallGraphNode, ConcreteCallGraphEdge>
-    {
-        /// <summary>
-        /// Constructs a call graph with concretizations of callables that is trimmed to only
-        /// include callables that entry points are dependent on.
-        /// Throws ArgumentNullException if argument is null.
-        /// </summary>
-        public ConcreteCallGraph(QsCompilation compilation)
-        {
-            if (compilation is null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
-            BuildCallGraph.PopulateConcreteGraph(this, compilation);
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph from the fromNode to the toNode, creating an edge in between them.
-        /// Throws an ArgumentNullException if any argument is null.
-        /// </summary>
-        internal void AddDependency(ConcreteCallGraphNode fromNode, ConcreteCallGraphNode toNode, DataTypes.Range referenceRange)
-        {
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            var edge = new ConcreteCallGraphEdge(fromNode.CallableName, toNode.CallableName, referenceRange);
-
-            this.AddDependency(fromNode, toNode, edge);
         }
     }
 }
