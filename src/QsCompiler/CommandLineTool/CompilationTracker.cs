@@ -107,10 +107,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 this.Children = new Dictionary<string, CompilationTaskNode>();
             }
 
-            public void WriteToJson(Utf8JsonWriter jsonWriter, string prefix)
+            public void WriteToJson(Utf8JsonWriter jsonWriter, string? prefix)
             {
                 var preparedPrefix = "";
-                if (!string.IsNullOrEmpty(prefix)) {
+                if (!string.IsNullOrEmpty(prefix))
+                {
                     preparedPrefix = $"{prefix}.";
                 }
 
