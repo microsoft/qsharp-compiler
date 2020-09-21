@@ -1,0 +1,14 @@
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.QsCompiler.BondSchemas;
+
+
+/*
+    Data structures from SyntaxTokens.fs
+*/
+
+struct QsCompilation
+{
+    // TODO: Implement.
+}

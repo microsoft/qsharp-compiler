@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="CompilerDataStructures.bond" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bond.CSharp" Version="8.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+  </ItemGroup>
+
+</Project>
