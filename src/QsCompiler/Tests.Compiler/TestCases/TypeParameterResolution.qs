@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
     function Foo<'a>(x : 'a) : 'a {
         return x;
     }
-    
+
     @EntryPoint()
     function Main() : Unit {
         let x = (Foo(Foo))(0);

@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public bool IsInCall = false;
                 public bool HasAdjointDependency = false;
                 public bool HasControlledDependency = false;
-                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = (_) => new QsSpecializationKind[] { };
+                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
 
                 internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
                 {

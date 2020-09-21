@@ -34,6 +34,11 @@ type CallGraphTests (output:ITestOutputHelper) =
             getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManagerExe.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
+    let MakeNode name specKind (paramRes : _ list) =
+        let qualifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let res = paramRes.ToImmutableDictionary((fun kvp -> (qualifiedName, NonNullable<_>.New (fst kvp))), (fun kvp -> ResolvedType.New (snd kvp)))
+        ConcreteCallGraphNode(qualifiedName, specKind, res)
+
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
@@ -138,7 +143,6 @@ type CallGraphTests (output:ITestOutputHelper) =
             sprintf "Expected %A (%A) to not be in the call graph with the following type parameter resolutions:\n%A" node.CallableName node.Kind node.ParamResolutions)
 
     // ToDo: Add tests for cycle validation once that is implemented.
-    // ToDo: Add tests for concrete call graph once it is finalized.
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
@@ -273,15 +277,8 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph has Concretizations`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 9 |> ConcreteCallGraph
 
-        let makeNode name resType =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = dict[(qalifiedName, NonNullable<_>.New "A"), ResolvedType.New resType].ToImmutableDictionary()
-            ConcreteCallGraphNode(qalifiedName, QsSpecializationKind.QsBody, res)
-
-        let makeNodeNoRes name =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = ImmutableDictionary.Empty
-            ConcreteCallGraphNode(qalifiedName, QsSpecializationKind.QsBody, res)
+        let makeNode name resType = MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
+        let makeNodeNoRes name = MakeNode name QsSpecializationKind.QsBody []
 
         let FooDouble = makeNode "Foo" Double
         let FooString = makeNode "Foo" String
@@ -301,10 +298,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph Trims Specializations`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 10 |> ConcreteCallGraph
 
-        let makeNode name spec =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = ImmutableDictionary.Empty
-            ConcreteCallGraphNode(qalifiedName, spec, res)
+        let makeNode name spec = MakeNode name spec []
 
         let FooAdj = makeNode "FooAdj" QsAdjoint
         let FooCtl = makeNode "FooCtl" QsControlled
@@ -328,13 +322,10 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph Double Reference Resolution`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 11 |> ConcreteCallGraph
 
-        let makeNode name resType =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = dict[(qalifiedName, NonNullable<_>.New "A"), ResolvedType.New resType].ToImmutableDictionary()
-            ConcreteCallGraphNode(qalifiedName, QsSpecializationKind.QsBody, res)
+        let makeNode resType = MakeNode "Foo" QsSpecializationKind.QsBody [ ("A", resType) ]
 
-        let FooInt = makeNode "Foo" Int
-        let FooFunc = makeNode "Foo" ((ResolvedType.New Int, ResolvedType.New Int) |> QsTypeKind.Function)
+        let FooInt = makeNode Int
+        let FooFunc = makeNode ((ResolvedType.New Int, ResolvedType.New Int) |> QsTypeKind.Function)
 
         AssertInConcreteGraph graph FooInt
         AssertInConcreteGraph graph FooFunc
@@ -344,15 +335,12 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph Non-Call Reference Only Body`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 12 |> ConcreteCallGraph
 
-        let makeNode name spec =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = ImmutableDictionary.Empty
-            ConcreteCallGraphNode(qalifiedName, spec, res)
+        let makeNode spec = MakeNode "Foo" spec []
 
-        let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "Foo" QsAdjoint
-        let FooCtl = makeNode "Foo" QsControlled
-        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
+        let Foo = makeNode QsBody
+        let FooAdj = makeNode QsAdjoint
+        let FooCtl = makeNode QsControlled
+        let FooCtlAdj = makeNode QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
 
@@ -365,15 +353,12 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph Non-Call Reference With Adjoint`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 13 |> ConcreteCallGraph
 
-        let makeNode name spec =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = ImmutableDictionary.Empty
-            ConcreteCallGraphNode(qalifiedName, spec, res)
+        let makeNode spec = MakeNode "Foo" spec []
 
-        let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "Foo" QsAdjoint
-        let FooCtl = makeNode "Foo" QsControlled
-        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
+        let Foo = makeNode QsBody
+        let FooAdj = makeNode QsAdjoint
+        let FooCtl = makeNode QsControlled
+        let FooCtlAdj = makeNode QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
         AssertInConcreteGraph graph FooAdj
@@ -386,15 +371,12 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Concrete Graph Non-Call Reference With All`` () =
         let graph = CompileTypeParameterResolutionTestWithExe 14 |> ConcreteCallGraph
 
-        let makeNode name spec =
-            let qalifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            let res = ImmutableDictionary.Empty
-            ConcreteCallGraphNode(qalifiedName, spec, res)
+        let makeNode spec = MakeNode "Foo" spec []
 
-        let Foo = makeNode "Foo" QsBody
-        let FooAdj = makeNode "Foo" QsAdjoint
-        let FooCtl = makeNode "Foo" QsControlled
-        let FooCtlAdj = makeNode "Foo" QsControlledAdjoint
+        let Foo = makeNode QsBody
+        let FooAdj = makeNode QsAdjoint
+        let FooCtl = makeNode QsControlled
+        let FooCtlAdj = makeNode QsControlledAdjoint
 
         AssertInConcreteGraph graph Foo
         AssertInConcreteGraph graph FooAdj
