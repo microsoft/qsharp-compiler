@@ -177,6 +177,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public IEnumerable<(string, string?)>? RewriteSteps;
 
+            public IEnumerable<(Type, string)> RewriteStepTypes;
+
+            public IEnumerable<(IRewriteStep, string)> RewriteStepInstances;
+
             /// <summary>
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
             /// Otherwise post-condition verifications are skipped.
@@ -407,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Contains all loaded rewrite steps found in the specified plugin dlls,
         /// where configurable properties such as the output folder have already been initialized to suitable values.
         /// </summary>
-        private readonly ImmutableArray<RewriteSteps.LoadedStep> externalRewriteSteps;
+        private readonly ImmutableArray<LoadedStep> externalRewriteSteps;
 
         /// <summary>
         /// Contains all diagnostics generated upon source file and reference loading.
@@ -542,31 +546,31 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.ConvertClassicalControl)
             {
-                var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
             }
 
             if (this.config.GenerateFunctorSupport)
             {
-                var rewriteStep = new RewriteSteps.LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
             if (!this.config.SkipSyntaxTreeTrimming)
             {
-                var rewriteStep = new RewriteSteps.LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.AttemptFullPreEvaluation)
             {
-                var rewriteStep = new RewriteSteps.LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
@@ -740,7 +744,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Logs the names and origins of the given rewrite steps as Information.
         /// Does nothing if the given argument is null.
         /// </summary>
-        private void PrintLoadedRewriteSteps(IEnumerable<RewriteSteps.LoadedStep> rewriteSteps)
+        private void PrintLoadedRewriteSteps(IEnumerable<LoadedStep> rewriteSteps)
         {
             if (rewriteSteps == null)
             {
@@ -771,7 +775,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// status accordingly. Sets the CompilationOutput to the transformed compilation if the status indicates
         /// success.
         /// </summary>
-        private QsCompilation? ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status)
+        private QsCompilation? ExecuteAsAtomicTransformation(LoadedStep rewriteStep, ref Status status)
         {
             QsCompilation? transformed = null;
             if (this.CompilationOutput is null || this.compilationStatus.Validation != Status.Succeeded)
@@ -826,7 +830,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
-            var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
+            var rewriteStep = new LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
             return this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TargetSpecificReplacements);
         }
 
@@ -834,7 +838,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Executes the given rewrite step on the given compilation, returning a transformed compilation as an out parameter.
         /// Catches and logs any thrown exception. Returns the status of the rewrite step.
         /// </summary>
-        private Status ExecuteRewriteStep(RewriteSteps.LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation? transformed)
+        private Status ExecuteRewriteStep(LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation? transformed)
         {
             string? GetDiagnosticsCode(DiagnosticSeverity severity) =>
                 rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
@@ -849,7 +853,7 @@ namespace Microsoft.Quantum.QsCompiler
                     var steps = rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty;
                     foreach (var diagnostic in steps)
                     {
-                        this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode));
+                        this.LogAndUpdate(ref status, LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode));
                     }
                 }
                 catch
