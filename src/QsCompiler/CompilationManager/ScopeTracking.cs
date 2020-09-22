@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given line is not null and the line contains a (last) delimiter
         /// that is equal to the text length, and returns false otherwise.
         /// </summary>
-        private static bool ContinueString(CodeLine line)
+        private static bool ContinueString(CodeLine? line)
         {
             if (line == null)
             {
@@ -288,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static int IndexInFullString(int indexInTrimmed, CodeLine line)
         {
-            var index = IndexIncludingStrings(indexInTrimmed, line?.StringDelimiters);
+            var index = IndexIncludingStrings(indexInTrimmed, line.StringDelimiters);
             foreach (var pos in line.ExcessBracketPositions)
             {
                 if (pos <= index)
@@ -339,7 +339,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static string RelevantCode(CodeLine line)
         {
-            var delimiters = line?.StringDelimiters;
+            var delimiters = line.StringDelimiters;
             var stripped = RemoveStringsAndComment(line); // will raise an exception if line is null
             foreach (var index in line.ExcessBracketPositions.Reverse().Select(pos => IndexExcludingStrings(pos, delimiters)))
             {
@@ -423,7 +423,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
-            var truncatedDelims = TruncateStringDelimiters(line?.StringDelimiters, start, count); // TruncateStringDelimiters will throw if line is null
+            var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count); // TruncateStringDelimiters will throw if line is null
             var truncatedText = line.Text.Substring(start, count); // will throw if start and count are out of range
             var truncatedExcessClosings =
                 line.ExcessBracketPositions
@@ -555,7 +555,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The previous line being null or not provided indicates that there is no previous line.
         /// Throws an ArgumentNullExceptions if the given texts are null.
         /// </summary>
-        private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine previousLine = null)
+        private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
             if (texts == null)
             {
@@ -618,7 +618,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The previous line being null or not provided indicates that there is no previous line.
         /// Throws an ArgumentNullExceptions if the given texts are null.
         /// </summary>
-        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine previousLine = null)
+        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
             return SetIndentations(InitializeCodeLines(texts, previousLine), previousLine == null ? 0 : previousLine.FinalIndentation());
         }
@@ -640,7 +640,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if replacements does not at least contain one CodeLine.
         /// Throws an ArgumentOutOfRangeException if the range defined by start and count is not within the given file, where count needs to be at least one.
         /// </summary>
-        private static IEnumerable<CodeLine> ComputeUpdates(FileContentManager file, int start, int count, CodeLine[] replacements)
+        private static IEnumerable<CodeLine>? ComputeUpdates(FileContentManager file, int start, int count, CodeLine[] replacements)
         {
             if (file == null)
             {
@@ -760,7 +760,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 () => ComputeCodeLines(newText, start > 0 ? file.GetLine(start - 1) : null).ToArray(),
                 "scope tracking update failed during computing the replacements");
 
-            IEnumerable<CodeLine> updateRemaining = QsCompilerError.RaiseOnFailure(
+            IEnumerable<CodeLine>? updateRemaining = QsCompilerError.RaiseOnFailure(
                 () => ComputeUpdates(file, start, count, replacements),
                 "scope tracking update failed during computing the updates");
 
