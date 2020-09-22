@@ -39,8 +39,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static CallableInformation ToBondSchema(this SyntaxTree.CallableInformation callableInformation) =>
             new CallableInformation
             {
-                Characteristics = callableInformation.Characteristics.ToBondSchema()
-                // TODO: Implement InferredInformation.
+                Characteristics = callableInformation.Characteristics.ToBondSchema(),
+                InferredInformation = callableInformation.InferredInformation.ToBondSchema()
+            };
+
+        private static InferredCallableInformation ToBondSchema(this SyntaxTree.InferredCallableInformation inferredCallableInformation) =>
+            new InferredCallableInformation
+            {
+                IsSelfAdjoint = inferredCallableInformation.IsSelfAdjoint,
+                IsIntrinsic = inferredCallableInformation.IsIntrinsic
             };
 
         private static Modifiers ToBondSchema(this SyntaxTokens.Modifiers modifiers) =>
@@ -75,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Location = qsCallable.Location.IsNull ? null : qsCallable.Location.Item.ToBondSchema(),
                 Signature = qsCallable.Signature.ToBondSchema(),
                 ArgumentTuple = qsCallable.ArgumentTuple.ToBondSchema(),
-                // TODO: Implement Specializations.
+                Specializations = qsCallable.Specializations.Select(s => s.ToBondSchema()).ToList(),
                 Documentation = qsCallable.Documentation.ToList(),
                 Comments = qsCallable.Comments.ToBondSchema()
             };
@@ -126,6 +133,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 // TODO: Implement Argument
                 Offset = qsDeclarationAttribute.Offset.ToBondSchema(),
                 Comments = qsDeclarationAttribute.Comments.ToBondSchema()
+            };
+
+        private static QsGeneratorDirective ToBondShema(this SyntaxTokens.QsGeneratorDirective qsGeneratorDirective) =>
+            qsGeneratorDirective.Tag switch
+            {
+                SyntaxTokens.QsGeneratorDirective.Tags.Distribute => QsGeneratorDirective.Distribute,
+                SyntaxTokens.QsGeneratorDirective.Tags.InvalidGenerator => QsGeneratorDirective.InvalidGenerator,
+                SyntaxTokens.QsGeneratorDirective.Tags.Invert => QsGeneratorDirective.Invert,
+                SyntaxTokens.QsGeneratorDirective.Tags.SelfInverse => QsGeneratorDirective.SelfInverse,
+                _ => throw new ArgumentException($"Unsupported QsGeneratorDirective {qsGeneratorDirective}")
             };
 
         private static QsQualifiedName ToBondSchema(this SyntaxTree.QsQualifiedName qsQualifiedName) =>
@@ -206,6 +223,62 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return bondQsNamespaceElement;
         }
 
+        private static QsScope ToBondSchema(this SyntaxTree.QsScope qsScope) =>
+            new QsScope
+            {
+                // TODO: Implement Statements.
+                // TOOD: Implement LocalDeclarations.
+            };
+
+        private static LinkedList<QsSourceFileDocumentation> ToBondSchema(this QsDocumentation qsDocumentation)
+        {
+            var documentationList = new LinkedList<QsSourceFileDocumentation>();
+            foreach (var qsSourceFileDocumentation in qsDocumentation)
+            {
+                foreach (var items in qsSourceFileDocumentation)
+                {
+                    var qsDocumentationItem = new QsSourceFileDocumentation
+                    {
+                        FileName = qsSourceFileDocumentation.Key.Value,
+                        DocumentationItems = items.ToList()
+                    };
+
+                    documentationList.AddLast(qsDocumentationItem);
+                }
+            }
+
+            return documentationList;
+        }
+
+        private static QsSpecialization ToBondSchema(this SyntaxTree.QsSpecialization qsSpecialization) =>
+            new QsSpecialization
+            {
+                Kind = qsSpecialization.Kind.ToBondSchema(),
+                Parent = qsSpecialization.Parent.ToBondSchema(),
+                Attributes = qsSpecialization.Attributes.Select(a => a.ToBondSchema()).ToList(),
+                SourceFile = qsSpecialization.SourceFile.Value,
+                Location = qsSpecialization.Location.IsNull ?
+                    null :
+                    qsSpecialization.Location.Item.ToBondSchema(),
+                TypeArguments = qsSpecialization.TypeArguments.IsNull ?
+                    null :
+                    qsSpecialization.TypeArguments.Item.Select(t => t.ToBondSchema()).ToList(),
+                Signature = qsSpecialization.Signature.ToBondSchema(),
+                Implementation = qsSpecialization.Implementation.ToBondSchema(),
+                Documentation = qsSpecialization.Documentation.ToList(),
+                Comments = qsSpecialization.Comments.ToBondSchema()
+            };
+
+        private static QsSpecializationKind ToBondSchema(this SyntaxTree.QsSpecializationKind qsSpecializationKind) =>
+            qsSpecializationKind.Tag switch
+            {
+                SyntaxTree.QsSpecializationKind.Tags.QsAdjoint => QsSpecializationKind.QsAdjoint,
+                SyntaxTree.QsSpecializationKind.Tags.QsBody => QsSpecializationKind.QsBody,
+                SyntaxTree.QsSpecializationKind.Tags.QsControlled => QsSpecializationKind.QsControlled,
+                SyntaxTree.QsSpecializationKind.Tags.QsControlledAdjoint => QsSpecializationKind.QsControlledAdjoint,
+                _ => throw new ArgumentException($"Unsupported QsSpecializationKind {qsSpecializationKind}")
+            };
+
         private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ToBondSchema(
             this SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> localVariableDeclaration) =>
             localVariableDeclaration.ToBondSchemaGeneric(ToBondSchema);
@@ -234,26 +307,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Range = qsTypeParameter.Range.IsNull ? null : qsTypeParameter.Range.Item.ToBondSchema()
             };
 
-        private static LinkedList<QsSourceFileDocumentation> ToBondSchema(this QsDocumentation qsDocumentation)
-        {
-            var documentationList = new LinkedList<QsSourceFileDocumentation>();
-            foreach (var qsSourceFileDocumentation in qsDocumentation)
-            {
-                foreach (var items in qsSourceFileDocumentation)
-                {
-                    var qsDocumentationItem = new QsSourceFileDocumentation
-                    {
-                        FileName = qsSourceFileDocumentation.Key.Value,
-                        DocumentationItems = items.ToList()
-                    };
-
-                    documentationList.AddLast(qsDocumentationItem);
-                }
-            }
-
-            return documentationList;
-        }
-
         private static Range ToBondSchema(this DataTypes.Range range) =>
             new Range
             {
@@ -281,6 +334,42 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 TypeKind = resolvedType.Resolution.ToBondSchema()
             };
+
+        private static SpecializationImplementation ToBondSchema(this SyntaxTree.SpecializationImplementation specializationImplementation)
+        {
+            var kind = specializationImplementation.Tag switch
+            {
+                SyntaxTree.SpecializationImplementation.Tags.External => SpecializationImplementationKind.External,
+                SyntaxTree.SpecializationImplementation.Tags.Generated => SpecializationImplementationKind.Generated,
+                SyntaxTree.SpecializationImplementation.Tags.Intrinsic => SpecializationImplementationKind.Intrinsic,
+                SyntaxTree.SpecializationImplementation.Tags.Provided => SpecializationImplementationKind.Provided,
+                _ => throw new ArgumentException($"Unsupported SpecializationImplementation {specializationImplementation}")
+            };
+
+            QsGeneratorDirective? bondGenerated = null;
+            SyntaxTokens.QsGeneratorDirective compilerGenerated = null;
+            SpecializationImplementationKindProvided bondProvided = null;
+            Tuple<SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>>, SyntaxTree.QsScope> compilerProvided = null;
+            if (specializationImplementation.TryGetGenerated(ref compilerGenerated))
+            {
+                bondGenerated = compilerGenerated.ToBondShema();
+            }
+            else if (specializationImplementation.TryGetProvided(ref compilerProvided))
+            {
+                bondProvided = new SpecializationImplementationKindProvided
+                {
+                    Tuple = compilerProvided.Item1.ToBondSchema(),
+                    Implementation = compilerProvided.Item2.ToBondSchema()
+                };
+            }
+            
+            return new SpecializationImplementation
+            {
+                Kind = kind,
+                Provided = bondProvided,
+                Generated = bondGenerated
+            };
+        }
 
         private static UserDefinedType ToBondSchema(this SyntaxTree.UserDefinedType userDefinedType) =>
             new UserDefinedType
