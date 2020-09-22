@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// to be used as "counter-piece" to SplitLines
         /// </summary>
-        public static string JoinLines(string[] content) =>
+        public static string? JoinLines(string[] content) =>
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given text to insert is null.
         /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
-        internal static string GetChangedText(string lineText, int startChar, int endChar, string insert)
+        internal static string? GetChangedText(string lineText, int startChar, int endChar, string insert)
         {
             if (lineText == null)
             {
@@ -161,16 +161,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false.
-        /// Returns (null, null) if the given IEnumerable is null.
-        /// Throws an ArgumentNullException if predicate is null.
+        /// Throws an ArgumentNullException if the given IEnumerable or predicate is null.
         /// </summary>
         public static (List<T>, List<T>) Partition<T>(this IEnumerable<T> collection, Func<T, bool> predicate)
         {
+            if (collection is null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
             if (predicate == null)
             {
                 throw new ArgumentNullException(nameof(predicate));
             }
-            return (collection?.Where(predicate).ToList(), collection?.Where(x => !predicate(x)).ToList());
+            return (collection.Where(predicate).ToList(), collection.Where(x => !predicate(x)).ToList());
         }
 
         /// <summary>
