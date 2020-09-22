@@ -38,7 +38,7 @@ type RewriteStepsTests () =
 
     [<Fact>]
     member this.``Loading Type based steps`` () =
-        let config = new CompilationLoader.Configuration(RewriteStepTypes = [(typedefof<IRewriteStep>, "")])
+        let config = new CompilationLoader.Configuration(RewriteStepTypes = [(typedefof<TestRewriteStep>, "")])
         let loadedSteps = RewriteSteps.Load(config)
 
         Assert.NotEmpty loadedSteps
