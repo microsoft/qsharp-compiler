@@ -107,7 +107,18 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// <summary>
             /// Task that deserializes as part of the 'ReferenceLoading' task.
             /// </summary>
-            SyntaxTreeDeserialization
+            SyntaxTreeDeserialization,
+
+            // TODO: Remove these since they are only used for experimentation.
+            NewSerializerInit,
+            NewSerialization,
+            NewDeserializerInit,
+            NewDeserialization,
+            TranslationToBond,
+            TranslationFromBond,
+            NewtonsoftOriginalSerialization,
+            NewtonsoftComparableSerialization,
+            NewtonsoftComparableDeserialization
         }
 
         /// <summary>
@@ -144,7 +155,18 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.SyntaxTreeSerialization, Task.OutputGeneration },
             { Task.LoadDataFromReferenceToStream, Task.ReferenceLoading },
             { Task.DeserializerInit, Task.ReferenceLoading },
-            { Task.SyntaxTreeDeserialization, Task.ReferenceLoading }
+            { Task.SyntaxTreeDeserialization, Task.ReferenceLoading },
+
+            // TODO: Remove these since they are only used for experimentation.
+            { Task.NewSerializerInit, Task.ReferenceLoading },
+            { Task.NewSerialization, Task.ReferenceLoading },
+            { Task.TranslationToBond, Task.NewSerialization },
+            { Task.NewDeserializerInit, Task.ReferenceLoading },
+            { Task.NewDeserialization, Task.ReferenceLoading },
+            { Task.TranslationFromBond, Task.NewDeserialization },
+            { Task.NewtonsoftOriginalSerialization, Task.ReferenceLoading },
+            { Task.NewtonsoftComparableSerialization, Task.ReferenceLoading },
+            { Task.NewtonsoftComparableDeserialization, Task.ReferenceLoading }
         };
 
         /// <summary>

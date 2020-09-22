@@ -117,6 +117,57 @@ namespace Microsoft.Quantum.QsCompiler
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
+
+                // TODO: Remove this code since these are just experiments used to explore different performance enhancings.
+
+                // TODO: Add a newtonsoft serialization task  to be able to easily compare everything here.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftOriginalSerialization);
+                var newtonsoftMemoryStreamA = new MemoryStream();
+                using var newtonsoftWriterA = new BsonDataWriter(newtonsoftMemoryStreamA) { CloseOutput = false };
+                Json.Serializer.Serialize(newtonsoftWriterA, compilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftOriginalSerialization);
+
+                // TODO: Remove - New serializer init.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewSerializerInit);
+                var (bondSerializer, bondWriter, bondBuffer) = PerformanceExperiments.CreateSimpleBinaryBufferSerializationTuple();
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewSerializerInit);
+
+                // TODO: Remove - New serialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewSerialization);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.TranslationToBond);
+                var bondQsCompilation = BondSchemas.BondSchemaTranslator.CreateBondCompilation(compilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.TranslationToBond);
+
+                bondSerializer.Serialize(bondQsCompilation, bondWriter);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewSerialization);
+
+                // TODO: Remove - New deserializer init.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewDeserializerInit);
+                var (bondDeserializer, bondReader) = PerformanceExperiments.CreateSimpleBinaryBufferDeserializationTuple(bondBuffer);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewDeserializerInit);
+
+                // TODO: Remove - New deserialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewDeserialization);
+                var deserializedBondCompilation = bondDeserializer.Deserialize<BondSchemas.QsCompilation>(bondReader);
+
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.TranslationFromBond);
+                var deserializedOriginalCompilation = BondSchemas.CompilerObjectTranslator.CreateQsCompilation(deserializedBondCompilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.TranslationFromBond);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewDeserialization);
+
+                // TODO: Remove - Comparable Newtonsoft serialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftComparableSerialization);
+                var newtonsoftMemoryStreamB = new MemoryStream();
+                using var newtonsoftWriterB = new BsonDataWriter(newtonsoftMemoryStreamB) { CloseOutput = false };
+                Json.Serializer.Serialize(newtonsoftWriterB, deserializedOriginalCompilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftComparableSerialization);
+
+                // TODO: Remove - Comparable Newtonsoft deserialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftComparableDeserialization);
+                using var newtonsoftReader = new BsonDataReader(newtonsoftMemoryStreamB);
+                var deserializedByNewtonsoftCompilation = Json.Serializer.Deserialize<QsCompilation>(newtonsoftReader);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftComparableDeserialization);
+
                 return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
             }
             catch (Exception ex)
