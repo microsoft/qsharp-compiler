@@ -175,10 +175,18 @@ namespace Microsoft.Quantum.QsCompiler
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(string, string?)>? RewriteSteps;
+            public IEnumerable<(string, string?)>? RewriteStepAssemblies;
 
+            /// <summary>
+            /// Contains a sequence of tuples with the types (classes implementing IRewriteStep) and the corresponding output folder.
+            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
+            /// </summary>
             public IEnumerable<(Type, string)> RewriteStepTypes;
 
+            /// <summary>
+            /// Contains a sequence of tuples with the objects (instances of IRewriteStep) and the corresponding output folder.
+            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
+            /// </summary>
             public IEnumerable<(IRewriteStep, string)> RewriteStepInstances;
 
             /// <summary>
@@ -408,7 +416,8 @@ namespace Microsoft.Quantum.QsCompiler
         private readonly ExecutionStatus compilationStatus;
 
         /// <summary>
-        /// Contains all loaded rewrite steps found in the specified plugin dlls,
+        /// Contains all loaded rewrite steps found in the specified plugin DLLs,
+        /// the passed in types implementing IRewriteStep and instances of IRewriteStep,
         /// where configurable properties such as the output folder have already been initialized to suitable values.
         /// </summary>
         private readonly ImmutableArray<LoadedStep> externalRewriteSteps;

@@ -47,6 +47,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     continue;
                 }
+
                 foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
                 {
                     assemblyConstants[kvPair.Key] = kvPair.Value;

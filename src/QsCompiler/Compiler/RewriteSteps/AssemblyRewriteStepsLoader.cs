@@ -13,6 +13,10 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
+    /// Loads all DLLs passed into the configuration as containing external rewrite steps.
+    /// Disocvers and instantiates all types implementing IRewriteStep 
+    /// </summary>
     internal class AssemblyRewriteStepsLoader : AbstractRewriteStepsLoader
     {
         public AssemblyRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
@@ -21,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
         {
-            if (config.RewriteSteps == null)
+            if (config.RewriteStepAssemblies == null)
             {
                 return ImmutableArray<LoadedStep>.Empty;
             }
@@ -41,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            var specifiedPluginDlls = config.RewriteSteps.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
+            var specifiedPluginDlls = config.RewriteStepAssemblies.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
             {

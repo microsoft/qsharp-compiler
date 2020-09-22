@@ -7,6 +7,9 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
+    /// Loads all rewrite steps passed into the configuration as instances of objects implementing IRewriteStep
+    /// </summary>
     internal class InstanceRewriteStepsLoader : AbstractRewriteStepsLoader
     {
         public InstanceRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
