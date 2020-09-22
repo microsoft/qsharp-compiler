@@ -32,7 +32,15 @@ struct Modifiers
     5: required AccessModifier Access = DefaultAccess;
 }
 
-// Data structures from SynatxTree.fs
+enum QsGeneratorDirective
+{
+    SelfInverse,
+    Invert,
+    Distribute,
+    InvalidGenerator
+}
+
+// Data structures from SyntaxTree.fs
 
 enum QsBindingKind
 {
@@ -420,6 +428,13 @@ struct QsStatement
     // TODO: Add fiedls depending on 'Kind'.
 }
 
+struct QsScope
+{
+    5: required vector<QsStatement> Statements;
+
+    10: required LocalDeclarations KnownSymbols;
+}
+
 enum QsLocalSymbolKind
 {
     ValidName,
@@ -456,6 +471,23 @@ struct ResolvedSignature
     20: required CallableInformation Information;
 }
 
+enum QsTupleKind
+{
+    QsTupleItem,
+    QsTuple
+}
+
+struct QsTuple<T>
+{
+    5: required QsTupleKind Kind = QsTupleItem;
+
+    // Not null when Kind is QsTupleItem.
+    10: nullable<T> Item = nothing;
+
+    // Not null when Kind is QsTuple.
+    15: nullable<vector<QsTuple<T>>> Items = nothing;
+}
+
 enum SpecializationImplementationKind
 {
     Provided,
@@ -464,11 +496,22 @@ enum SpecializationImplementationKind
     Generated
 }
 
+struct SpecializationImplementationKindProvided
+{
+    5: required QsTuple<LocalVariableDeclaration<QsLocalSymbol>> Tuple;
+
+    10: required QsScope Implementation;
+}
+
 struct SpecializationImplementation
 {
     5: required SpecializationImplementationKind Kind = Generated;
 
-    // TODO: Add a field nullable field that represents each 'Kind'.
+    // Not null when Kind is Provided.
+    10: nullable<SpecializationImplementationKindProvided> Provided = nothing;
+
+    // Not null when Kind is Generated.
+    15: nullable<QsGeneratorDirective> Generated = nothing;
 }
 
 struct QsSpecialization
@@ -492,23 +535,6 @@ struct QsSpecialization
     45: required vector<string> Documentation;
 
     50: required QsComments Comments;
-}
-
-enum QsTupleKind
-{
-    QsTupleItem,
-    QsTuple
-}
-
-struct QsTuple<T>
-{
-    5: required QsTupleKind Kind = QsTupleItem;
-
-    // Not null when Kind is QsTupleItem.
-    10: nullable<T> Item = nothing;
-
-    // Not null when Kind is QsTuple.
-    15: nullable<vector<QsTuple<T>>> Items = nothing;
 }
 
 struct QsCallable
