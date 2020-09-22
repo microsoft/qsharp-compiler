@@ -732,6 +732,14 @@ type QsTypeItem =
 | Named of LocalVariableDeclaration<NonNullable<string>>
 /// represents an anonymous item in a user defined type
 | Anonymous of ResolvedType
+    member this.TryGetNamed(named: LocalVariableDeclaration<NonNullable<string>> byref) =
+        match this with
+        | Named value -> named <- value; true
+        | _ -> false
+    member this.TryGetAnonymous(anonymous: ResolvedType byref) =
+        match this with
+        | Anonymous value -> anonymous <- value; true
+        | _ -> false
 
 
 /// describes a Q# user defined type

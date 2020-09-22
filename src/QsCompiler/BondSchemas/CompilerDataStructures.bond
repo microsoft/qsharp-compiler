@@ -572,9 +572,9 @@ struct QsTypeItem
 {
     5: required QsTypeItemKind Kind = Named;
 
-    10: nullable<LocalVariableDeclaration<string>> NamedItem = nothing;
+    10: nullable<LocalVariableDeclaration<string>> Named = nothing;
 
-    15: nullable<ResolvedType> AnonymousItem = nothing;
+    15: nullable<ResolvedType> Anonymous = nothing;
 }
 
 struct QsCustomType
@@ -591,7 +591,6 @@ struct QsCustomType
 
     30: required ResolvedType Type;
 
-    // TODO: This should be a templated tuple.
     35: required QsTuple<QsTypeItem> TypeItems;
 
     40: required vector<string> Documentation;
