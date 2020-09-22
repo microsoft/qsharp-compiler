@@ -1,13 +1,7 @@
 ﻿namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System
-open System.IO
-open System.Linq
-open System.Text
-open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
 open Xunit
-open Xunit.Abstractions
 open System.Collections.Generic
 
 type TestRewriteStep () =
@@ -23,12 +17,13 @@ type TestRewriteStep () =
         member this.Priority: int = 0
         member this.Transformation(compilation: SyntaxTree.QsCompilation, transformed: byref<SyntaxTree.QsCompilation>): bool = true
 
-type RewriteStepsTests () =
+type ExternalRewriteStepsManagerTests () =
     
     [<Fact>]
     member this.``Loading Assembly based steps`` () =
         let config = new CompilationLoader.Configuration(RewriteSteps = [(this.GetType().Assembly.Location, "")])
-        let loadedSteps = RewriteSteps.Load(config)
+        let manager = new ExternalRewriteStepsManager();
+        let loadedSteps = manager.Load(config)
 
         Assert.NotEmpty loadedSteps
         Assert.Equal(1, loadedSteps.Length)
@@ -39,7 +34,8 @@ type RewriteStepsTests () =
     [<Fact>]
     member this.``Loading Type based steps`` () =
         let config = new CompilationLoader.Configuration(RewriteStepTypes = [(typedefof<TestRewriteStep>, "")])
-        let loadedSteps = RewriteSteps.Load(config)
+        let manager = new ExternalRewriteStepsManager();
+        let loadedSteps = manager.Load(config);
 
         Assert.NotEmpty loadedSteps
         Assert.Equal(1, loadedSteps.Length)
@@ -51,10 +47,22 @@ type RewriteStepsTests () =
     member this.``Loading instance based steps`` () =
         let stepInstance = new TestRewriteStep()
         let config = new CompilationLoader.Configuration(RewriteStepInstances = [(stepInstance :> IRewriteStep, "")])
-        let loadedSteps = RewriteSteps.Load(config)
+        let manager = new ExternalRewriteStepsManager();
+        let loadedSteps = manager.Load(config);
 
         Assert.NotEmpty loadedSteps
         Assert.Equal(1, loadedSteps.Length)
 
         let loadedStep = loadedSteps.[0]
         Assert.Equal("Test Rewrite Step", loadedStep.Name)
+
+    [<Fact>]
+    member this.``Loading assembly, type and instance based steps simultaneously`` () =
+        let stepInstance = new TestRewriteStep()
+        let config = new CompilationLoader.Configuration(RewriteSteps = [(this.GetType().Assembly.Location, "")], RewriteStepTypes = [(typedefof<TestRewriteStep>, "")], RewriteStepInstances = [(stepInstance :> IRewriteStep, "")])
+        let manager = new ExternalRewriteStepsManager();
+        let loadedSteps = manager.Load(config);
+
+        Assert.NotEmpty loadedSteps
+        Assert.Equal(3, loadedSteps.Length)
+        Assert.All(loadedSteps, fun step -> step.Name = "Test Rewrite Step" |> ignore)

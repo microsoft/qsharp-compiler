@@ -15,7 +15,11 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class AssemblyRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config, Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        public AssemblyRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
+        {
+        }
+
+        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
         {
             if (config.RewriteSteps == null)
             {
@@ -31,8 +35,8 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch (Exception ex)
                 {
-                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                    onException?.Invoke(ex);
+                    this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
+                    this.onException?.Invoke(ex);
                     return null;
                 }
             }
@@ -41,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
             {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
+                this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
             }
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
@@ -73,8 +77,8 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch (BadImageFormatException ex)
                 {
-                    onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.FileIsNotAnAssembly, target.LocalPath));
-                    onException?.Invoke(ex);
+                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.FileIsNotAnAssembly, target.LocalPath));
+                    this.onException?.Invoke(ex);
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
@@ -94,19 +98,19 @@ namespace Microsoft.Quantum.QsCompiler
                         }
                     }
 
-                    onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
-                    onException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
+                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
+                    this.onException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
                 }
                 catch (Exception ex)
                 {
-                    onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
-                    onException?.Invoke(ex);
+                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
+                    this.onException?.Invoke(ex);
                 }
 
                 var loadedSteps = new List<LoadedStep>();
                 foreach (var type in relevantTypes)
                 {
-                    var initializedStep = this.CreateStep(type, target, outputFolder, onDiagnostic, onException);
+                    var initializedStep = this.CreateStep(type, target, outputFolder);
                     if (initializedStep != null)
                     {
                         loadedSteps.Add(initializedStep);

@@ -9,7 +9,11 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class InstanceRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config, Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        public InstanceRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
+        {
+        }
+
+        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
         {
             if (config.RewriteStepInstances == null)
             {

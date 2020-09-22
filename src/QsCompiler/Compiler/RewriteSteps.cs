@@ -10,10 +10,17 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal class RewriteSteps
+    internal class ExternalRewriteStepsManager
     {
-        private static ImmutableArray<IRewriteStepsLoader> rewriteStepsLoaders =
-            ImmutableArray.Create<IRewriteStepsLoader>(new InstanceRewriteStepsLoader(), new TypeRewriteStepsLoader(), new AssemblyRewriteStepsLoader());
+        private ImmutableArray<IRewriteStepsLoader> rewriteStepsLoaders;
+
+        public ExternalRewriteStepsManager(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        {
+            this.rewriteStepsLoaders = ImmutableArray.Create<IRewriteStepsLoader>(
+                new InstanceRewriteStepsLoader(onDiagnostic, onException),
+                new TypeRewriteStepsLoader(onDiagnostic, onException),
+                new AssemblyRewriteStepsLoader(onDiagnostic, onException));
+        }
 
         /// <summary>
         /// Loads all dlls listed as containing rewrite steps to include in the compilation process in the given configuration.
@@ -24,16 +31,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// and calls onException on all caught exceptions if it is specified and not null.
         /// Returns an empty array if the rewrite steps in the given configurations are set to null.
         /// </summary>
-        internal static ImmutableArray<LoadedStep> Load(
-            CompilationLoader.Configuration config,
-            Action<Diagnostic> onDiagnostic = null,
-            Action<Exception> onException = null)
+        internal ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config)
         {
             var loadedSteps = new List<LoadedStep>();
 
-            foreach (var loader in rewriteStepsLoaders)
+            foreach (var loader in this.rewriteStepsLoaders)
             {
-                loadedSteps.AddRange(loader.GetLoadedSteps(config, onDiagnostic, onException));
+                loadedSteps.AddRange(loader.GetLoadedSteps(config));
             }
 
             foreach (var loaded in loadedSteps)

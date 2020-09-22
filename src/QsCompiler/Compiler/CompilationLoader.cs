@@ -468,10 +468,8 @@ namespace Microsoft.Quantum.QsCompiler
             this.config = options ?? default;
 
             Status rewriteStepLoading = Status.Succeeded;
-            this.externalRewriteSteps = RewriteSteps.Load(
-                this.config,
-                d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
-                ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            var externalStepManager = new ExternalRewriteStepsManager(d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d), ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.externalRewriteSteps = externalStepManager.Load(this.config);
             this.PrintLoadedRewriteSteps(this.externalRewriteSteps);
             this.compilationStatus = new ExecutionStatus(this.externalRewriteSteps);
             this.compilationStatus.PluginLoading = rewriteStepLoading;

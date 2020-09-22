@@ -12,13 +12,22 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal abstract class AbstractRewriteStepsLoader : IRewriteStepsLoader
     {
-        public abstract ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config, Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null);
+        protected readonly Action<Diagnostic> onDiagnostic;
+        protected readonly Action<Exception> onException;
+
+        protected AbstractRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        {
+            this.onDiagnostic = onDiagnostic;
+            this.onException = onException;
+        }
+
+        public abstract ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config);
 
         protected Diagnostic LoadError(Uri target, ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
 
         protected Diagnostic LoadWarning(Uri target, WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
 
-        protected LoadedStep CreateStep(Type type, Uri target, string outputFolder, Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        protected LoadedStep CreateStep(Type type, Uri target, string outputFolder)
         {
             try
             {
@@ -33,22 +42,23 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     var interfaceType = type.GetInterfaces().First(t => t.FullName == typeof(IRewriteStep).FullName);
                     var loadedStep = new LoadedStep(instance, interfaceType, target, outputFolder);
-                    onDiagnostic?.Invoke(this.LoadWarning(target, WarningCode.RewriteStepLoadedViaReflection, loadedStep.Name, target.LocalPath));
+                    this.onDiagnostic?.Invoke(this.LoadWarning(target, WarningCode.RewriteStepLoadedViaReflection, loadedStep.Name, target.LocalPath));
                     return loadedStep;
                 }
                 catch
                 {
                     // we don't log the exception, since it is perfectly possible that we should have ignored this type in the first place
-                    onDiagnostic?.Invoke(this.LoadWarning(target, WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath));
+                    this.onDiagnostic?.Invoke(this.LoadWarning(target, WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath));
                 }
             }
             catch (Exception ex)
             {
-                onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotInstantiateRewriteStep, type.ToString(), target.LocalPath));
-                onException?.Invoke(ex);
+                this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotInstantiateRewriteStep, type.ToString(), target.LocalPath));
+                this.onException?.Invoke(ex);
             }
 
             return null;
         }
+
     }
 }

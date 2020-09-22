@@ -9,8 +9,6 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal interface IRewriteStepsLoader
     {
-        ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config,
-            Action<Diagnostic> onDiagnostic = null,
-            Action<Exception> onException = null);
+        ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config);
     }
 }

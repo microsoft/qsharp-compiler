@@ -9,7 +9,11 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class TypeRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config, Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        public TypeRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
+        {
+        }
+
+        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
         {
             if (config.RewriteStepTypes == null)
             {
@@ -18,10 +22,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
 
-            // add steps specified in the config as IRewriteStep types
             foreach (var definedStep in config.RewriteStepTypes)
             {
-                var loadedStep = this.CreateStep(definedStep.Item1, new Uri(definedStep.Item1.Assembly.Location), definedStep.Item2, onDiagnostic, onException);
+                var loadedStep = this.CreateStep(definedStep.Item1, new Uri(definedStep.Item1.Assembly.Location), definedStep.Item2);
                 if (loadedStep != null)
                 {
                     rewriteSteps.Add(loadedStep);
