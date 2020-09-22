@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an array with completion suggestions for the given file and position.
         /// Returns null if the given uri is null or if the specified file is not listed as source file.
         /// </summary>
-        public static SymbolInformation[] DocumentSymbols(this FileContentManager file)
+        public static SymbolInformation[]? DocumentSymbols(this FileContentManager file)
         {
             if (file == null)
             {
@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
         /// </summary>
-        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
+        public static WorkspaceEdit? Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
             if (newName == null || file == null)
             {
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // extracting and adapting the relevant information for the called callable
 
-            ResolutionResult<CallableDeclarationHeader>.Found methodDecl = null;
+            ResolutionResult<CallableDeclarationHeader>.Found? methodDecl = null;
             if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
             {
                 methodDecl =
@@ -351,13 +351,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
-            IEnumerable<(Range, string)> ExtractParameterRanges(
-                QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
+            IEnumerable<(Range?, string?)> ExtractParameterRanges(
+                QsExpression? ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
             {
-                var @null = ((Range)null, (string)null);
-                IEnumerable<(Range, string)> SingleItem(string paramName)
+                var @null = ((Range?)null, (string?)null);
+                IEnumerable<(Range?, string?)> SingleItem(string paramName)
                 {
-                    var arg = ex?.Range == null ? ((Range)null, paramName)
+                    var arg = ex?.Range == null ? ((Range?)null, paramName)
                         : ex.Range.IsValue ? (ex.Range.Item, paramName)
                         : @null; // no signature help if there are invalid expressions
                     return new[] { arg };
@@ -379,8 +379,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return SingleItem(decl.PrintArgumentTuple());
                 }
 
-                var argItems = exItems != null ? exItems.Item : (ex == null ? ImmutableArray<QsExpression>.Empty : ImmutableArray.Create(ex));
-                return argItems.AddRange(Enumerable.Repeat<QsExpression>(null, declItems.Item.Length - argItems.Length))
+                var argItems = exItems != null
+                    ? exItems.Item.ToImmutableArray<QsExpression?>()
+                    : ex == null
+                    ? ImmutableArray<QsExpression?>.Empty
+                    : ImmutableArray.Create<QsExpression?>(ex);
+                return argItems.AddRange(Enumerable.Repeat<QsExpression?>(null, declItems.Item.Length - argItems.Length))
                     .Zip(declItems.Item, (e, d) => (e, d))
                     .SelectMany(arg => ExtractParameterRanges(arg.Item1, arg.Item2));
             }
@@ -394,7 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // finally we can build the signature help information
 
             MarkupContent AsMarkupContent(string str) => new MarkupContent { Kind = format, Value = str };
-            ParameterInformation AsParameterInfo(NonNullable<string> paramName) => new ParameterInformation
+            ParameterInformation AsParameterInfo(NonNullable<string?> paramName) => new ParameterInformation
             {
                 Label = paramName.Value,
                 Documentation = AsMarkupContent(documentation.ParameterDescription(paramName.Value))
