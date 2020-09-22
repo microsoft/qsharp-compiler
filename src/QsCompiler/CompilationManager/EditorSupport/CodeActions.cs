@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForAmbiguousIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
+            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic> diagnostics)
+            this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax(
-            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -309,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUpdateAndReassignStatements(
-            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -433,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnreachableCode(
-            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {

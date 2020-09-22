@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static CodeFragment? TryGetFragmentAt(
             this FileContentManager file,
-            Position pos,
+            Position? pos,
             out CodeFragment.TokenIndex? tIndex,
             bool includeEnd = false)
         {

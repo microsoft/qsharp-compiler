@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static QsSymbolInfo TryGetQsSymbolInfo(
             this FileContentManager file,
-            Position position,
+            Position? position,
             bool includeEnd,
             out CodeFragment fragment)
         {

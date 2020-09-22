@@ -790,8 +790,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// NOTE: In debug mode, exceptions are always logged even if this parameter is true.
         /// </param>
         internal T? FileQuery<T>(
-            TextDocumentIdentifier textDocument,
-            Func<FileContentManager, CompilationUnit, T> query,
+            TextDocumentIdentifier? textDocument,
+            Func<FileContentManager, CompilationUnit, T?> query,
             bool suppressExceptionLogging = false)
             where T : class
         {

@@ -75,8 +75,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if any argument is null or the position is invalid.
         /// Returns an empty completion list if the given position is within a comment.
         /// </summary>
-        public static CompletionList Completions(
-            this FileContentManager file, CompilationUnit compilation, Position position)
+        public static CompletionList? Completions(
+            this FileContentManager file, CompilationUnit compilation, Position? position)
         {
             if (file == null || compilation == null || position == null)
             {
@@ -116,8 +116,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// Returns null (and the item is not updated) if any argument is null.
         /// </summary>
-        public static CompletionItem ResolveCompletion(
-            this CompilationUnit compilation, CompletionItem item, CompletionItemData data, MarkupKind format)
+        public static CompletionItem? ResolveCompletion(
+            this CompilationUnit compilation, CompletionItem item, CompletionItemData? data, MarkupKind format)
         {
             if (compilation == null || item == null || data == null)
             {

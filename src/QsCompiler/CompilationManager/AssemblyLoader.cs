@@ -252,11 +252,7 @@ namespace Microsoft.Quantum.QsCompiler
             var metadataReader = assemblyFile.GetMetadataReader();
             return metadataReader.GetAssemblyDefinition().GetCustomAttributes()
                 .Select(metadataReader.GetCustomAttribute)
-                .SelectMany(attribute =>
-                {
-                    var ctorItems = GetAttribute(metadataReader, attribute);
-                    return ctorItems.HasValue ? new[] { ctorItems.Value } : Enumerable.Empty<(string, string)>();
-                })
+                .SelectNotNull(attribute => GetAttribute(metadataReader, attribute))
                 .ToImmutableArray();
         }
     }

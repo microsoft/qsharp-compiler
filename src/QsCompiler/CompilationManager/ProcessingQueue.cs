@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private readonly ConcurrentExclusiveSchedulerPair scheduler;
 
-        public ProcessingQueue(Action<Exception> exceptionLogger, string? exceptionHeader = null)
+        public ProcessingQueue(Action<Exception>? exceptionLogger, string? exceptionHeader = null)
         {
             this.exceptionHeader = exceptionHeader ?? "error while running queued task";
             this.logException = exceptionLogger ?? Console.Error.WriteLine;
