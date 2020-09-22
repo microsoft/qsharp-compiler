@@ -11,7 +11,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
@@ -186,7 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a callable name as well as existing specializations can be found, but no specialization precedes the given position,
         /// returns null for the specialization kind as well as for its position.
         /// </summary>
-        public static ((NonNullable<string>, Position), (QsSpecializationKind, Position))? TryGetClosestSpecialization(
+        public static ((NonNullable<string>, Position), (QsSpecializationKind?, Position?))? TryGetClosestSpecialization(
             this FileContentManager file, Position pos)
         {
             QsSpecializationKind? GetSpecializationKind(CodeFragment fragment)
@@ -365,7 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var tokenIndex = new CodeFragment.TokenIndex(tIndex);
             var indentation = tokenIndex.GetFragment().Indentation;
-            while (--tokenIndex != null)
+            while ((tokenIndex = tokenIndex.Previous()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
                 if (fragment.Kind != null && fragment.Indentation < indentation)
@@ -409,7 +408,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var tokenIndex = new CodeFragment.TokenIndex(tIndex);
             var indentation = tokenIndex.GetFragment().Indentation;
-            while (++tokenIndex != null && tokenIndex.GetFragment().Indentation > indentation)
+            while ((tokenIndex = tokenIndex.Next()) != null && tokenIndex.GetFragment().Indentation > indentation)
             {
                 if (deep || tokenIndex.GetFragment().Indentation == indentation + 1)
                 {
@@ -432,7 +431,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var tokenIndex = new CodeFragment.TokenIndex(tIndex);
             var indentation = tokenIndex.GetFragment().Indentation;
-            while (--tokenIndex != null)
+            while ((tokenIndex = tokenIndex.Previous()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
@@ -457,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var tokenIndex = new CodeFragment.TokenIndex(tIndex);
             var indentation = tokenIndex.GetFragment().Indentation;
-            while (++tokenIndex != null)
+            while ((tokenIndex = tokenIndex.Next()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))

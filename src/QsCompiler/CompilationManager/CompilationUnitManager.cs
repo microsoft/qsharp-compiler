@@ -746,7 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 file.ReplaceHeaderDiagnostics(diagnostics);
 
                 diagnostics = TypeChecking.RunTypeChecking(this.compilationUnit, file.GetDeclarationTrees(contentToCompile), CancellationToken.None);
-                file.ReplaceSemanticDiagnostics(diagnostics);
+                diagnostics?.Apply(file.ReplaceSemanticDiagnostics);
                 this.PublishDiagnostics(file.Diagnostics());
             }
             finally

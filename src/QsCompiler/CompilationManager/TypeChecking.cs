@@ -554,7 +554,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(compilation));
             }
-            if (files == null || files.Contains(null))
+            if (files == null || files.Contains(null!))
             {
                 throw new ArgumentNullException(nameof(files));
             }

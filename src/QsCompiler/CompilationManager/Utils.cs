@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -94,6 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// to be used as "counter-piece" to SplitLines
         /// </summary>
+        [return: NotNullIfNotNull("content")]
         public static string? JoinLines(string[] content) =>
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
@@ -103,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given text to insert is null.
         /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
+        [return: NotNullIfNotNull("lineText")]
         internal static string? GetChangedText(string lineText, int startChar, int endChar, string insert)
         {
             if (lineText == null)

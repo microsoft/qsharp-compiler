@@ -327,7 +327,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             this.syncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.dependentLocks = new HashSet<ReaderWriterLockSlim>(dependentLocks);
-            if (dependentLocks.Contains(null))
+            if (dependentLocks.Contains(null!))
             {
                 throw new ArgumentNullException(nameof(dependentLocks), "one or more of the given locks is null");
             }
@@ -928,10 +928,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file,
             Position pos,
             out QsQualifiedName? callableName,
-            out Position callablePos,
-            out Position specializationPos)
+            out Position? callablePos,
+            out Position? specializationPos)
         {
-            (callableName, callablePos, specializationPos) = (null, Position.Zero, Position.Zero);
+            (callableName, callablePos, specializationPos) = (null, null, null);
             if (file == null || pos == null || !file.ContainsPosition(pos))
             {
                 return null;
@@ -952,7 +952,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (callablePos, specializationPos) = (cPos, sPos);
             callableName = new QsQualifiedName(NonNullable<string>.New(nsName), cName);
 
-            QsSpecialization? GetSpecialization(QsQualifiedName fullName, QsSpecializationKind kind)
+            QsSpecialization? GetSpecialization(QsQualifiedName fullName, QsSpecializationKind? kind)
             {
                 if (kind == null || fullName == null)
                 {
@@ -984,7 +984,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value.
         /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
         /// </summary>
-        internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position callablePos, Position specPos, LocalDeclarations? declarations = null)
+        internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position? callablePos, Position? specPos, LocalDeclarations? declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
             {
@@ -996,7 +996,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new LocalDeclarations(definedVars);
             }
 
-            if (parentCallable == null)
+            if (parentCallable == null || callablePos is null || specPos is null)
             {
                 return LocalDeclarations.Empty;
             }
@@ -1052,16 +1052,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentNullException(nameof(types));
             }
-            predicate ??= _ => true;
 
             // Assign a unique ID to each reference.
 
-            var decorator = new NameDecorator($"QsRef");
-            var ids =
+            NameDecorator decorator = new NameDecorator($"QsRef");
+            ImmutableDictionary<string, int> ids =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
-                .Where(source => predicate(NonNullable<string>.New(source)))
+                .Where(source => predicate?.Invoke(NonNullable<string>.New(source)) ?? true)
                 // this setup will mean that internal declarations won't get replaced with target specific implementations
                 .Select((source, idx) => (source, idx))
                 // we need an id here that is uniquely associated with a source name
@@ -1073,7 +1072,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 group
                 .Where(item =>
                     !Namespace.IsDeclarationAccessible(false, item.Access) &&
-                    predicate(NonNullable<string>.New(item.Source)))
+                    (predicate?.Invoke(NonNullable<string>.New(item.Source)) ?? true))
                 .ToImmutableDictionary(
                     item => item.Name,
                     item => decorator.Decorate(item.Name, ids[item.Source]));

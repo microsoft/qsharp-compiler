@@ -843,7 +843,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ProjectInformation.Loader projectLoader,
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
-            if (projectFiles == null || projectFiles.Contains(null))
+            if (projectFiles == null || projectFiles.Contains(null!))
             {
                 throw new ArgumentNullException(nameof(projectFiles));
             }

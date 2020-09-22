@@ -323,20 +323,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the next token in File or null if no such token exists.
-            /// Throws an ArgumentNullException if the TokenIndex to increment is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex? operator ++(TokenIndex tIndex)
+            public TokenIndex? Next()
             {
-                if (tIndex == null)
-                {
-                    throw new ArgumentNullException(nameof(tIndex));
-                }
-                if (!tIndex.IsWithinFile())
+                if (!this.IsWithinFile())
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(tIndex); // the overload for ++ must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this); // the overload for ++ must *not* mutate the argument - this is handled/done by the compiler
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
                 {
                     return res;
@@ -350,20 +345,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the previous token in File or null if no such token exists.
-            /// Throws an ArgumentNullException if the TokenIndex to decrement is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex? operator --(TokenIndex tIndex)
+            public TokenIndex? Previous()
             {
-                if (tIndex == null)
-                {
-                    throw new ArgumentNullException(nameof(tIndex));
-                }
-                if (!tIndex.IsWithinFile())
+                if (!this.IsWithinFile())
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(tIndex); // the overload for -- must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this); // the overload for -- must *not* mutate the argument - this is handled/done by the compiler
                 if (res.Index-- > 0)
                 {
                     return res;
