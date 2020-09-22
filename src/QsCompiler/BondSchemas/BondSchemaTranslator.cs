@@ -119,9 +119,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Attributes = qsCustomType.Attributes.Select(a => a.ToBondSchema()).ToList(),
                 Modifiers = qsCustomType.Modifiers.ToBondSchema(),
                 SourceFile = qsCustomType.SourceFile.Value,
-                // TODO: Implement Location.
-                // TODO: Implement Type.
-                // TODO: Implement TypeItems.
+                Location = qsCustomType.Location.IsNull ?
+                    null :
+                    qsCustomType.Location.Item.ToBondSchema(),
+                Type = qsCustomType.Type.ToBondSchema(),
+                TypeItems = qsCustomType.TypeItems.ToBondSchema(),
                 Documentation = qsCustomType.Documentation.ToList(),
                 Comments = qsCustomType.Comments.ToBondSchema()
             };
@@ -223,6 +225,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return bondQsNamespaceElement;
         }
 
+        private static string ToBondSchema(this NonNullable<string> s) => s.Value;
+
         private static QsScope ToBondSchema(this SyntaxTree.QsScope qsScope) =>
             new QsScope
             {
@@ -283,6 +287,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             this SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> localVariableDeclaration) =>
             localVariableDeclaration.ToBondSchemaGeneric(ToBondSchema);
 
+        private static QsTuple<QsTypeItem> ToBondSchema(
+            this SyntaxTokens.QsTuple<SyntaxTree.QsTypeItem> qsTypeItem) =>
+            qsTypeItem.ToBondSchemaGeneric(ToBondSchema);
+
         private static QsTypeKindDetails<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> ToBondSchema(
             this SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> qsTypeKind) =>
             qsTypeKind.ToBondSchemaGeneric
@@ -298,6 +306,36 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             ToBondSchema,
             ToBondSchema,
             ToBondSchema);
+
+        private static QsTypeItem ToBondSchema(this SyntaxTree.QsTypeItem qsTypeItem)
+        {
+            ResolvedType bondAnonymous = null;
+            LocalVariableDeclaration<string> bondNamed = null;
+            SyntaxTree.ResolvedType compilerAnonymous = null;
+            SyntaxTree.LocalVariableDeclaration<NonNullable<string>> compilerNamed = null;
+            QsTypeItemKind kind;
+            if (qsTypeItem.TryGetAnonymous(ref compilerAnonymous))
+            {
+                kind = QsTypeItemKind.Anonymous;
+                bondAnonymous = compilerAnonymous.ToBondSchema();
+            }
+            else if (qsTypeItem.TryGetNamed(ref compilerNamed))
+            {
+                kind = QsTypeItemKind.Named;
+                bondNamed = compilerNamed.ToBondSchemaGeneric(ToBondSchema);
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported QsTypeItem {qsTypeItem}");
+            }
+
+            return new QsTypeItem
+            {
+                Kind = kind,
+                Anonymous = bondAnonymous,
+                Named = bondNamed
+            };
+        }
 
         private static QsTypeParameter ToBondSchema(this SyntaxTree.QsTypeParameter qsTypeParameter) =>
             new QsTypeParameter
