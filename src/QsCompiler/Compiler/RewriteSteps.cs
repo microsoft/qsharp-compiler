@@ -7,14 +7,12 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Newtonsoft.Json.Serialization;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
     internal class RewriteSteps
     {
-        private static ImmutableArray<IRewriteStepsLoader> RewriteStepsLoaders =
+        private static ImmutableArray<IRewriteStepsLoader> rewriteStepsLoaders =
             ImmutableArray.Create<IRewriteStepsLoader>(new InstanceRewriteStepsLoader(), new TypeRewriteStepsLoader(), new AssemblyRewriteStepsLoader());
 
         /// <summary>
@@ -33,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             var loadedSteps = new List<LoadedStep>();
 
-            foreach (var loader in RewriteStepsLoaders)
+            foreach (var loader in rewriteStepsLoaders)
             {
                 loadedSteps.AddRange(loader.GetLoadedSteps(config, onDiagnostic, onException));
             }

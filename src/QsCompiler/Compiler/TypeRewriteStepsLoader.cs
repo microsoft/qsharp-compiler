@@ -19,9 +19,13 @@ namespace Microsoft.Quantum.QsCompiler
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
 
             // add steps specified in the config as IRewriteStep types
-            foreach (var step in config.RewriteStepTypes)
+            foreach (var definedStep in config.RewriteStepTypes)
             {
-                rewriteSteps.Add(this.CreateStep(step.Item1, new Uri(step.Item1.Assembly.Location), step.Item2, onDiagnostic, onException));
+                var loadedStep = this.CreateStep(definedStep.Item1, new Uri(definedStep.Item1.Assembly.Location), definedStep.Item2, onDiagnostic, onException);
+                if (loadedStep != null)
+                {
+                    rewriteSteps.Add(loadedStep);
+                }
             }
 
             return rewriteSteps.ToImmutable();
