@@ -113,6 +113,18 @@ type BuiltIn = {
         Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
+    // dependencies in Microsoft.Quantum.QsCompiler.QirGenerator
+
+    static member Intrinsic = {
+        FullName = {Name = "Intrinsic" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
+    static member Inline = {
+        FullName = {Name = "Inline" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)

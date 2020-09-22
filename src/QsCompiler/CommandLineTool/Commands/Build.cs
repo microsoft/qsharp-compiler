@@ -82,6 +82,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string PerfFolder { get; set; }
 
+            [Option(
+                "qir",
+                Required = false,
+                SetName = CODE_MODE,
+                HelpText = "Specifies whether or not to generate QIR.")]
+            public bool Qir { get; set; }
+
+
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles.
             /// Updates the settings accordingly, prioritizing already specified non-default values over the values from response-files.
@@ -211,7 +219,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 IsExecutable = options.MakeExecutable,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
-                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
+                GenerateQir = options.Qir
             };
 
             if (options.PerfFolder != null)

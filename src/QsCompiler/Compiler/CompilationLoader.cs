@@ -197,6 +197,11 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string> TargetPackageAssemblies;
 
             /// <summary>
+            /// Whether or not QIR should be generated for this compilation.
+            /// </summary>
+            public bool GenerateQir;
+
+            /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
             /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
@@ -620,6 +625,28 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 this.RaiseCompilationTaskEnd("OutputGeneration", "DocumentationGeneration");
             }
+
+            if (options?.GenerateQir ?? false)
+            {
+                RaiseCompilationTaskStart("OverallCompilation", "QirGeneration");
+                var outFileName = this.config.ProjectName ?? "test";
+                if (this.Validation == Status.Succeeded)
+                {
+                    var gen = new QirGeneratorStep(outFileName);
+                    gen.Transformation(this.CompilationOutput, out QsCompilation ignore);
+                }
+                else
+                {
+                    File.WriteAllText($"{outFileName}.log", "Q# errors\n");
+                    foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
+                    {
+                        File.AppendAllText($"{outFileName}.log", $"  {diag.Message} at line {diag.Range.Start.Line}\n");
+                    }
+                }
+                RaiseCompilationTaskEnd("OverallCompilation", "QirGeneration");
+            }
+
+
 
             this.RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");
             this.RaiseCompilationTaskEnd(null, "OverallCompilation");
