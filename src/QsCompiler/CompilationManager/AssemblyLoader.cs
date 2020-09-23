@@ -4,9 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws a FileNotFoundException if no file with the given name exists.
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception> onDeserializationException = null)
+        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
         {
             if (asm == null)
             {
@@ -67,7 +67,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws an ArgumentNullException if the given uri is null.
         /// Throws a FileNotFoundException if no file with the given name exists.
         /// </summary>
-        public static bool LoadReferencedAssembly(string asmPath, out QsCompilation compilation, Action<Exception> onException = null)
+        public static bool LoadReferencedAssembly(
+            string asmPath,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onException = null)
         {
             if (asmPath == null)
             {
@@ -100,7 +103,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// Throws an ArgumentNullException if the given stream is null, but ignores exceptions thrown during deserialization.
         /// </summary>
-        public static bool LoadSyntaxTree(Stream stream, out QsCompilation compilation, Action<Exception> onDeserializationException = null)
+        public static bool LoadSyntaxTree(
+            Stream stream,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
         {
             if (stream == null)
             {
@@ -122,10 +128,9 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Creates a dictionary of all manifest resources in the given reader.
-        /// Returns null if the given reader is null.
         /// </summary>
         private static ImmutableDictionary<string, ManifestResource> Resources(this MetadataReader reader) =>
-            reader?.ManifestResources
+            reader.ManifestResources
                 .Select(reader.GetManifestResource)
                 .ToImmutableDictionary(
                     resource => reader.GetString(resource.Name),
@@ -138,7 +143,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws an ArgumentNullException if any of the given readers is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        private static bool FromResource(PEReader assemblyFile, out QsCompilation compilation, Action<Exception> onDeserializationException = null)
+        private static bool FromResource(
+            PEReader assemblyFile,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
         {
             if (assemblyFile == null)
             {
@@ -242,9 +250,8 @@ namespace Microsoft.Quantum.QsCompiler
             var metadataReader = assemblyFile.GetMetadataReader();
             return metadataReader.GetAssemblyDefinition().GetCustomAttributes()
                 .Select(metadataReader.GetCustomAttribute)
-                .Select(attribute => GetAttribute(metadataReader, attribute))
-                .Where(ctorItems => ctorItems.HasValue)
-                .Select(ctorItems => ctorItems.Value).ToImmutableArray();
+                .SelectNotNull(attribute => GetAttribute(metadataReader, attribute))
+                .ToImmutableArray();
         }
     }
 }

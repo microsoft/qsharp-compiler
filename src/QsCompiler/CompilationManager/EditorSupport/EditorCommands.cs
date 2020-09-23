@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an array with completion suggestions for the given file and position.
         /// Returns null if the given uri is null or if the specified file is not listed as source file.
         /// </summary>
-        public static SymbolInformation[] DocumentSymbols(this FileContentManager file)
+        public static SymbolInformation[]? DocumentSymbols(this FileContentManager file)
         {
             if (file == null)
             {
@@ -40,10 +40,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
-        public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position position)
+        public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position
-            if (symbolInfo == null || compilation == null)
+            if (file is null || symbolInfo is null || compilation is null || position is null)
             {
                 return null;
             }
@@ -74,9 +74,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
         /// </summary>
-        public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position position, ReferenceContext context)
+        public static Location[]? SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position? position, ReferenceContext? context)
         {
-            if (file == null)
+            if (file == null || position is null)
             {
                 return null;
             }
@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
         /// </summary>
-        public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
+        public static WorkspaceEdit? Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
             if (newName == null || file == null)
             {
@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
         {
             if (range?.Start == null || range.End == null || file == null || !file.ContainsRange(range))
             {
@@ -162,12 +162,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
         /// </summary>
-        public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
+        public static DocumentHighlight[]? DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
             DocumentHighlight AsHighlight(Lsp.Range range) =>
                 new DocumentHighlight { Range = range, Kind = DocumentHighlightKind.Read };
 
-            if (file == null)
+            if (file == null || position is null)
             {
                 return null;
             }
@@ -200,21 +200,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no token exists at the specified position.
         /// </summary>
-        public static Hover HoverInformation(
+        public static Hover? HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position position,
+            Position? position,
             MarkupKind format = MarkupKind.PlainText)
         {
-            Hover GetHover(string info) => info == null ? null : new Hover
+            Hover? GetHover(string? info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
+                Range = new Lsp.Range { Start = position?.ToLsp(), End = position?.ToLsp() }
             };
 
             var markdown = format == MarkupKind.Markdown;
             var symbolInfo = file?.TryGetQsSymbolInfo(position, false, out var _);
-            if (symbolInfo == null || compilation == null)
+            if (file is null || symbolInfo == null || compilation == null || position is null)
             {
                 return null;
             }
@@ -250,16 +250,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if no call expression exists at the specified position at this time,
         /// or if no signature help information can be provided for the call expression at the specified position.
         /// </summary>
-        public static SignatureHelp SignatureHelp(
+        public static SignatureHelp? SignatureHelp(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position position,
+            Position? position,
             MarkupKind format = MarkupKind.PlainText)
         {
             // getting the relevant token (if any)
 
             var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
-            if (fragment?.Kind == null || compilation == null)
+            if (file is null || position is null || fragment?.Kind == null || compilation == null)
             {
                 return null;
             }
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // extracting and adapting the relevant information for the called callable
 
-            ResolutionResult<CallableDeclarationHeader>.Found methodDecl = null;
+            ResolutionResult<CallableDeclarationHeader>.Found? methodDecl = null;
             if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
             {
                 methodDecl =
@@ -351,13 +351,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
-            IEnumerable<(Range, string)> ExtractParameterRanges(
-                QsExpression ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
+            IEnumerable<(Range?, string?)> ExtractParameterRanges(
+                QsExpression? ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
             {
-                var @null = ((Range)null, (string)null);
-                IEnumerable<(Range, string)> SingleItem(string paramName)
+                var @null = ((Range?)null, (string?)null);
+                IEnumerable<(Range?, string?)> SingleItem(string paramName)
                 {
-                    var arg = ex?.Range == null ? ((Range)null, paramName)
+                    var arg = ex?.Range == null ? ((Range?)null, paramName)
                         : ex.Range.IsValue ? (ex.Range.Item, paramName)
                         : @null; // no signature help if there are invalid expressions
                     return new[] { arg };
@@ -379,8 +379,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return SingleItem(decl.PrintArgumentTuple());
                 }
 
-                var argItems = exItems != null ? exItems.Item : (ex == null ? ImmutableArray<QsExpression>.Empty : ImmutableArray.Create(ex));
-                return argItems.AddRange(Enumerable.Repeat<QsExpression>(null, declItems.Item.Length - argItems.Length))
+                var argItems = exItems != null
+                    ? exItems.Item.ToImmutableArray<QsExpression?>()
+                    : ex == null
+                    ? ImmutableArray<QsExpression?>.Empty
+                    : ImmutableArray.Create<QsExpression?>(ex);
+                return argItems.AddRange(Enumerable.Repeat<QsExpression?>(null, declItems.Item.Length - argItems.Length))
                     .Zip(declItems.Item, (e, d) => (e, d))
                     .SelectMany(arg => ExtractParameterRanges(arg.Item1, arg.Item2));
             }
@@ -394,7 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // finally we can build the signature help information
 
             MarkupContent AsMarkupContent(string str) => new MarkupContent { Kind = format, Value = str };
-            ParameterInformation AsParameterInfo(NonNullable<string> paramName) => new ParameterInformation
+            ParameterInformation AsParameterInfo(NonNullable<string?> paramName) => new ParameterInformation
             {
                 Label = paramName.Value,
                 Documentation = AsMarkupContent(documentation.ParameterDescription(paramName.Value))
