@@ -16,7 +16,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
