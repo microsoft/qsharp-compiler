@@ -40,6 +40,151 @@ enum QsGeneratorDirective
     InvalidGenerator
 }
 
+enum QsResult
+{
+    Zero,
+    One
+}
+
+enum QsPauli
+{
+    PauliX,
+    PauliY,
+    PauliZ,
+    PauliI
+}
+
+enum QsExpressionKind
+{
+    UnitValue,
+    Identifier,
+    ValueTuple,
+    IntLiteral,
+    BigIntLiteral,
+    DoubleLiteral,
+    BoolLiteral,
+    StringLiteral,
+    ResultLiteral,
+    PauliLiteral,
+    RangeLiteral,
+    NewArray,
+    ValueArray,
+    ArrayItem,
+    NamedItem,
+    NEG,
+    NOT,
+    BNOT,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    POW,
+    EQ,
+    NEQ,
+    LT,
+    LTE,
+    GT,
+    GTE,
+    AND,
+    OR,
+    BOR,
+    BAND,
+    BXOR,
+    LSHIFT,
+    RSHIFT,
+    CONDITIONAL,
+    CopyAndUpdate,
+    UnwrapApplication,
+    AdjointApplication,
+    ControlledApplication,
+    CallLikeExpression,
+    MissingExpr,
+    InvalidExpr
+}
+
+struct QsExpressionKindIdentifier<TSymbol, TType>
+{
+    5: required TSymbol Symbol;
+
+    10: nullable<vector<TType>> Types = nothing;
+}
+
+struct QsExpressionKindStringLiteral<TExpression>
+{
+    5: required string StringLiteral;
+
+    10: required vector<TExpression> Expressions;
+}
+
+struct QsExpressionKindExpressionDouble<TExpression>
+{
+    5: required TExpression Expression1;
+
+    10: required TExpression Expression2;
+}
+
+struct QsExpressionKindExpressionTriple<TExpression>
+{
+    5: required TExpression Expression1;
+
+    10: required TExpression Expression2;
+
+    15: required TExpression Expression3;
+}
+
+struct QsExpressionKindNewArray<TExpression, TType>
+{
+    5: required TType Type;
+
+    10: required TExpression Expression;
+}
+
+struct QsExpressionKindNamedItem<TExpression, TSymbol>
+{
+    5: required TExpression Expression;
+
+    10: required TSymbol Symbol;
+}
+
+// TODO: This could be more compact but first verify that we would have performance benefits.
+struct QsExpressionKindDetail<TExpression, TSymbol, TType>
+{
+    5: required QsExpressionKind Kind = InvalidExpr;
+
+    10: nullable<QsExpressionKindIdentifier<TSymbol, TType>> Identifier = nothing;
+
+    20: nullable<int64> IntLiteral = nothing;
+
+    25: nullable<blob> BigIntLiteral = nothing;
+
+    30: nullable<double> DoubleLiteral = nothing;
+
+    35: nullable<bool> BoolLiteral = nothing;
+
+    40: nullable<QsExpressionKindStringLiteral<TExpression>> StringLiteral = nothing;
+
+    45: nullable<QsResult> ResultLiteral = nothing;
+
+    50: nullable<QsPauli> PauliLiteral = nothing;
+
+    55: nullable<QsExpressionKindNewArray<TExpression, TType>> NewArray = nothing;
+
+    60: nullable<QsExpressionKindNamedItem<TExpression, TSymbol>> NamedItem = nothing;
+
+    // Not null when Kind is NEG, NOT, BNOT, UnwrapApplication, AdjointApplication, ControlledApplication.
+    65: nullable<TExpression> Expression = nothing;
+
+    // Not null when Kind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
+    70: nullable<QsExpressionKindExpressionDouble<TExpression>> ExpressionDouble = nothing;
+
+    // Not null when Kind is CONDITIONAL, CopyAndUpdate.
+    75: nullable<QsExpressionKindExpressionTriple<TExpression>> ExpressionTriple = nothing;
+
+    // Not null when Kind is ValueTuple, ValueArray.
+    80: nullable<vector<TExpression>> ExpressionArray = nothing;
+}
+
 // Data structures from SyntaxTree.fs
 
 enum QsBindingKind
@@ -276,55 +421,6 @@ struct InferredExpressionInformation
     10: required bool HasLocalQuantumDependency;
 }
 
-enum QsExpressionKind
-{
-    UnitValue,
-    Identifier,
-    ValueTuple,
-    IntLiteral,
-    BigIntLiteral,
-    DoubleLiteral,
-    BoolLiteral,
-    StringLiteral,
-    ResultLiteral,
-    PauliLiteral,
-    RangeLiteral,
-    NewArray,
-    ValueArray,
-    ArrayItem,
-    NamedItem,
-    NEG,
-    NOT,
-    BNOT,
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    MOD,
-    POW,
-    EQ,
-    NEQ,
-    LT,
-    LTE,
-    GT,
-    GTE,
-    AND,
-    OR,
-    BOR,
-    BAND,
-    BXOR,
-    LSHIFT,
-    RSHIFT,
-    CONDITIONAL,
-    CopyAndUpdate,
-    UnwrapApplication,
-    AdjointApplication,
-    ControlledApplication,
-    CallLikeExpression,
-    MissingExpr,
-    InvalidExpr
-}
-
 struct TypedArgument
 {
     5: required QsQualifiedName Callable;
@@ -332,24 +428,19 @@ struct TypedArgument
     10: required string Name;
 
     15: required ResolvedType Resolution;
-
-    // TODO: Add a nullable field per expression.
-
 }
 
 struct TypedExpression
 {
-    5: required QsExpressionKind Kind = InvalidExpr;
+    5: required QsExpressionKindDetail<TypedExpression, Identifier, ResolvedType> Expression;
 
     10: required vector<TypedArgument> TypedArguments;
 
-    15: required ResolvedType Resolution;
+    15: required ResolvedType ResolvedType;
 
     20: required InferredExpressionInformation InferredInformation;
 
     25: nullable<Range> Range;
-
-    // TODO: Add a nullable field per expression.
 }
 
 enum QsInitializerKind

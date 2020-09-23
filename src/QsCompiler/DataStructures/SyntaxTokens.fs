@@ -175,6 +175,175 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
 | CallLikeExpression    of 'Expr * 'Expr
 | MissingExpr // for partial application
 | InvalidExpr
+    with
+    member this.TryGetIdentifier(identifier: ('Symbol * QsNullable<ImmutableArray<'Type>>) byref) =
+        match this with
+        | Identifier(symbol, typeParameters) -> identifier <- (symbol, typeParameters); true
+        | _ -> false
+    member this.TryGetValueTuple(valueTuple: ImmutableArray<'Expr> byref) =
+        match this with
+        | ValueTuple value -> valueTuple <- value; true
+        | _ -> false
+    member this.TryGetIntLiteral(intLiteral: int64 byref) =
+        match this with
+        | IntLiteral value -> intLiteral <- value; true
+        | _ -> false
+    member this.TryGetBigIntLiteral(bigIntLiteral: BigInteger byref) =
+        match this with
+        | BigIntLiteral value -> bigIntLiteral <- value; true
+        | _ -> false
+    member this.TryGetDoubleLiteral(doubleLiteral: double byref) =
+        match this with
+        | DoubleLiteral value -> doubleLiteral <- value; true
+        | _ -> false
+    member this.TryGetBoolLiteral(boolLiteral: bool byref) =
+        match this with
+        | BoolLiteral value -> boolLiteral <- value; true
+        | _ -> false
+    member this.TryGetStringLiteral(stringLiteral: (NonNullable<string> * ImmutableArray<'Expr>) byref) =
+        match this with
+        | StringLiteral(str, expressions) -> stringLiteral <- (str, expressions); true
+        | _ -> false
+    member this.TryGetResultLiteral(resultLiteral: QsResult byref) =
+        match this with
+        | ResultLiteral value -> resultLiteral <- value; true
+        | _ -> false
+    member this.TryGetPauliLiteral(pauliLiteral: QsPauli byref) =
+        match this with
+        | PauliLiteral value -> pauliLiteral <- value; true
+        | _ -> false
+    member this.TryGetRangeLiteral(rangeLiteral: ('Expr * 'Expr) byref) =
+        match this with
+        | RangeLiteral(expression1, expression2) -> rangeLiteral <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetNewArray(newArray: ('Type * 'Expr) byref) =
+        match this with
+        | NewArray(t, expression) -> newArray <- (t, expression); true
+        | _ -> false
+    member this.TryGetValueArray(valueArray: ImmutableArray<'Expr> byref) =
+        match this with
+        | ValueArray value -> valueArray <- value; true
+        | _ -> false
+    member this.TryGetArrayItem(arrayItem: ('Expr * 'Expr) byref) =
+        match this with
+        | ArrayItem(expression1, expression2) -> arrayItem <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetNamedItem(namedItem: ('Expr * 'Symbol) byref) =
+        match this with
+        | NamedItem(expression, symbol) -> namedItem <- (expression, symbol); true
+        | _ -> false
+    member this.TryGetNEG(neg: 'Expr byref) =
+        match this with
+        | NEG value -> neg <- value; true
+        | _ -> false
+    member this.TryGetNOT(not: 'Expr byref) =
+        match this with
+        | NOT value -> not <- value; true
+        | _ -> false
+    member this.TryGetBNOT(bnot: 'Expr byref) =
+        match this with
+        | BNOT value -> bnot <- value; true
+        | _ -> false
+    member this.TryGetADD(add: ('Expr * 'Expr) byref) =
+        match this with
+        | ADD(expression1, expression2) -> add <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetSUB(sub: ('Expr * 'Expr) byref) =
+        match this with
+        | SUB(expression1, expression2) -> sub <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetMUL(mul: ('Expr * 'Expr) byref) =
+        match this with
+        | MUL(expression1, expression2) -> mul <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetDIV(div: ('Expr * 'Expr) byref) =
+        match this with
+        | DIV(expression1, expression2) -> div <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetMOD(modValue: ('Expr * 'Expr) byref) =
+        match this with
+        | MOD(expression1, expression2) -> modValue <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetPOW(pow: ('Expr * 'Expr) byref) =
+        match this with
+        | POW(expression1, expression2) -> pow <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetEQ(eq: ('Expr * 'Expr) byref) =
+        match this with
+        | EQ(expression1, expression2) -> eq <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetNEQ(neq: ('Expr * 'Expr) byref) =
+        match this with
+        | NEQ(expression1, expression2) -> neq <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetLT(lt: ('Expr * 'Expr) byref) =
+        match this with
+        | LT(expression1, expression2) -> lt <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetLTE(lte: ('Expr * 'Expr) byref) =
+        match this with
+        | LTE(expression1, expression2) -> lte <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetGT(gt: ('Expr * 'Expr) byref) =
+        match this with
+        | GT(expression1, expression2) -> gt <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetGTE(gte: ('Expr * 'Expr) byref) =
+        match this with
+        | GTE(expression1, expression2) -> gte <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetAND(andValue: ('Expr * 'Expr) byref) =
+        match this with
+        | AND(expression1, expression2) -> andValue <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetOR(orValue: ('Expr * 'Expr) byref) =
+        match this with
+        | OR(expression1, expression2) -> orValue <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetBOR(bor: ('Expr * 'Expr) byref) =
+        match this with
+        | BOR(expression1, expression2) -> bor <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetBAND(band: ('Expr * 'Expr) byref) =
+        match this with
+        | BAND(expression1, expression2) -> band <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetBXOR(bxor: ('Expr * 'Expr) byref) =
+        match this with
+        | BXOR(expression1, expression2) -> bxor <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetLSHIFT(lshift: ('Expr * 'Expr) byref) =
+        match this with
+        | LSHIFT(expression1, expression2) -> lshift <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetRSHIFT(rshift: ('Expr * 'Expr) byref) =
+        match this with
+        | RSHIFT(expression1, expression2) -> rshift <- (expression1, expression2); true
+        | _ -> false
+    member this.TryGetCONDITIONAL(conditional: ('Expr * 'Expr * 'Expr) byref) =
+        match this with
+        | CONDITIONAL(expression1, expression2, expression3) -> conditional <- (expression1, expression2, expression3); true
+        | _ -> false
+    member this.TryGetCopyAndUpdate(copyAndUpdate: ('Expr * 'Expr * 'Expr) byref) =
+        match this with
+        | CopyAndUpdate(expression1, expression2, expression3) -> copyAndUpdate <- (expression1, expression2, expression3); true
+        | _ -> false
+    member this.TryGetUnwrapApplication(unwrapApplication: 'Expr byref) =
+        match this with
+        | UnwrapApplication value -> unwrapApplication <- value; true
+        | _ -> false
+    member this.TryGetAdjointApplication(adjointApplication: 'Expr byref) =
+        match this with
+        | AdjointApplication value -> adjointApplication <- value; true
+        | _ -> false
+    member this.TryGetControlledApplication(controlledApplication: 'Expr byref) =
+        match this with
+        | ControlledApplication value -> controlledApplication <- value; true
+        | _ -> false
+    member this.TryGetCallLikeExpression(callLikeExpression: ('Expr * 'Expr) byref) =
+        match this with
+        | CallLikeExpression(expression1, expression2) -> callLikeExpression <- (expression1, expression2); true
+        | _ -> false
 
 type QsExpression = {
     Expression : QsExpressionKind<QsExpression, QsSymbol, QsType>
