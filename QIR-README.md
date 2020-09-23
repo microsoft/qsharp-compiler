@@ -1,7 +1,11 @@
-# QIR Pre-Release Sharing
+# QIR Pre-Release Instructions
 
-This file contains directions for using this pre-release version of the QIR
+This file contains directions for using the pre-release version of the QIR
 code generation.
+This code is still in flux and will change frequently.
+In particular, there are many usability features that are missing.
+
+See [this list, below](#to-dos) for some specific open issues and work items.
 
 ## Important Notes
 
@@ -52,6 +56,26 @@ If the Q# compilation succeeded but the QIR/LLVM generation threw an exception,
 the exception and stack trace will appear in the LLVM file.
 If the Q# compilation and LLVM generation succeeded, but the generated LLVM did not validate,
 then the LLVM validation status will appear in the log file.
+
+### Entrypoints
+
+If you have a Q# operation with the `@EntryPoint` attribute, the QIR generator
+will create an additional C-callable wrapper function for the entrypoint.
+The name of this wrapper is the same as the full, namespace-qualified name
+of the entrypoint, with periods replaced by underscores.
+
+The entrypoint wrapper performs some translation between QIR types and standard
+C types.
+In particular, a QIR array parameter will be replaced in the input signature by
+two parameters, an i64 array count and a pointer to the element type.
+
+The entrypoint wrapper function gets tagged with an LLVM "EntryPoint" attribute.
+Note that this is a custom attribute, rather than metadata, so that passes should
+not drop it.
+
+The QIR generator does not currently create a `main(argc, argv)` that translates
+string values to QIR types that would allow QIR compiled to executable through clang
+to be executed from the command line.
 
 ## Q# Core
 
@@ -153,3 +177,12 @@ User-level instruction definitions follow this pattern:
 ## QIR Specification
 
 The QIR specification is on the [Q# language repository](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
+
+## To-Dos
+
+- [ ] Add debug information to QIR, issue #637.
+- [ ] Generate a `main` function for an entrypoint, issue #638
+- [ ] Handle structure/tuple mapping for entrypoints, issue #639
+- [ ] Add metadata to QIR from Q# attributes, issue #640
+- [ ] Code clean-up, issue #641
+- [ ] Port to Linux and MacOS, issue #642
