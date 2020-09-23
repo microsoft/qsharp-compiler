@@ -88,7 +88,7 @@ type QsType with
                 [
                     "# Summary"
                     "Represents a deterministic callable"
-                    "that takes exactly one input argument of the type specified to the left of the arrow"
+                    "that takes exactly one input argument of the type specified to the left of the arrow."
                     "and returns one output value of the type specified to the right of the arrow."
                     "The side effects and output value of a function are always fully defined by its input argument."
                 ]
