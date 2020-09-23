@@ -129,12 +129,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class IgnoreOuterBlockInConjugations<T>
     : StatementKindTransformation<T>
     {
-        public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions options = null)
+        public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions? options = null)
         : base(parent, options ?? TransformationOptions.Default)
         {
         }
 
-        public IgnoreOuterBlockInConjugations(T sharedInternalState, TransformationOptions options = null)
+        public IgnoreOuterBlockInConjugations(T sharedInternalState, TransformationOptions? options = null)
         : base(sharedInternalState, options ?? TransformationOptions.Default)
         {
         }
@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector.SharedState.SatisfiesCondition)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         topStatements.Add(statement);
                     }
