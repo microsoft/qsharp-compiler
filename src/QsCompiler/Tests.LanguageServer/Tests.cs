@@ -183,10 +183,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TextContentTrackingAsync()
         {
-            async Task RunTest(bool emptyLastLine)
+            async Task RunTest(bool emptyLastLine, bool useQsExtension)
             {
                 var fileSize = 10;
-                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false);
+                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false, useQsExtension);
                 var expectedContent = TestUtils.GetContent(filename);
                 var openParams = TestUtils.GetOpenFileParams(filename);
                 await this.SetupAsync();
@@ -233,8 +233,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     Assert.AreEqual(expected, got);
                 }
             }
-            await RunTest(emptyLastLine: true);
-            await RunTest(emptyLastLine: false);
+            await RunTest(emptyLastLine: true, useQsExtension: false);
+            await RunTest(emptyLastLine: false, useQsExtension: false);
+            await RunTest(emptyLastLine: true, useQsExtension: true);
         }
 
         [TestMethod]

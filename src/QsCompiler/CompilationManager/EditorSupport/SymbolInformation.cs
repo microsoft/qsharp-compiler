@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -12,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
@@ -85,15 +85,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// that *overlap* with the given position as Q# SymbolInformation.
         /// Returns null if no such fragment exists, or the given file and/or position is null, or the position is invalid.
         /// </summary>
-        internal static QsSymbolInfo TryGetQsSymbolInfo(
+        internal static QsSymbolInfo? TryGetQsSymbolInfo(
             this FileContentManager file,
-            Position position,
+            Position? position,
             bool includeEnd,
-            out CodeFragment fragment)
+            out CodeFragment? fragment)
         {
             // getting the relevant token (if any)
 
-            fragment = file?.TryGetFragmentAt(position, out var _, includeEnd);
+            fragment = file?.TryGetFragmentAt(position, out _, includeEnd);
             if (fragment?.Kind == null)
             {
                 return null;
@@ -136,10 +136,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static bool TryGetReferences(
             this CompilationUnit compilation,
-            QsQualifiedName fullName,
-            out Location declarationLocation,
-            out IEnumerable<Location> referenceLocations,
-            IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+            QsQualifiedName? fullName,
+            out Location? declarationLocation,
+            [NotNullWhen(true)] out IEnumerable<Location>? referenceLocations,
+            IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         {
             (declarationLocation, referenceLocations) = (null, null);
             if (compilation == null || fullName == null)
@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToLookup(c => c.Key.Namespace, c => c.Value)
                 .Select(ns => new QsNamespace(ns.Key, ns.Select(QsNamespaceElement.NewQsCallable).ToImmutableArray(), emptyDoc));
 
-            Tuple<NonNullable<string>, QsLocation> declLoc = null;
+            Tuple<NonNullable<string>, QsLocation>? declLoc = null;
             var defaultOffset = new QsLocation(Position.Zero, Range.Zero);
             referenceLocations = namespaces.SelectMany(ns =>
             {
@@ -178,9 +178,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this FileContentManager file,
             CompilationUnit compilation,
             Position position,
-            out Location declarationLocation,
-            out IEnumerable<Location> referenceLocations,
-            IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+            out Location? declarationLocation,
+            [NotNullWhen(true)] out IEnumerable<Location>? referenceLocations,
+            IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         {
             (referenceLocations, declarationLocation) = (null, null);
             if (file == null || compilation == null)
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (defOffset == callablePos)
             {
                 // the given position corresponds to a variable declared as part of a callable declaration
-                if (!compilation.GetCallables().TryGetValue(parentName, out var parent))
+                if (parentName is null || !compilation.GetCallables().TryGetValue(parentName, out var parent))
                 {
                     return false;
                 }
@@ -257,6 +257,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
                             : ImmutableHashSet<IdentifierReferences.Location>.Empty)
                     .Select(AsLocation);
+            }
+            else if (implementation is null)
+            {
+                return false;
             }
             else
             {

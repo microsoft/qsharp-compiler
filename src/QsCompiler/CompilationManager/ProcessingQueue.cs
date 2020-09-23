@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -26,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private readonly ConcurrentExclusiveSchedulerPair scheduler;
 
-        public ProcessingQueue(Action<Exception> exceptionLogger, string exceptionHeader = null)
+        public ProcessingQueue(Action<Exception>? exceptionLogger, string? exceptionHeader = null)
         {
             this.exceptionHeader = exceptionHeader ?? "error while running queued task";
             this.logException = exceptionLogger ?? Console.Error.WriteLine;
@@ -98,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given function to execute is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue.
         /// </summary>
-        public bool QueueForExecution<T>(Func<T> execute, out T result)
+        public bool QueueForExecution<T>(Func<T> execute, [MaybeNull] out T result)
         {
             if (execute == null)
             {
@@ -169,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given Action is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue.
         /// </summary>
-        public bool ConcurrentExecution<T>(Func<T> execute, out T result)
+        public bool ConcurrentExecution<T>(Func<T> execute, [MaybeNull] out T result)
         {
             if (execute == null)
             {
