@@ -102,6 +102,15 @@ type Identifier =
 | GlobalCallable of QsQualifiedName
 /// an identifier of unknown origin - i.e. the identifier could not be associated with any globally declared callable or local variable
 | InvalidIdentifier
+    with
+    member this.TryGetLocalVariable(localVariable: NonNullable<string> byref) =
+        match this with
+        | LocalVariable value -> localVariable <- value; true
+        | _ -> false
+    member this.TryGetGlobalCallable(globalCallable: QsQualifiedName byref) =
+        match this with
+        | GlobalCallable value -> globalCallable <- value; true
+        | _ -> false
 
 
 /// used to represent position information for declared variables

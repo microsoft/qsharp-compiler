@@ -147,7 +147,6 @@ struct QsExpressionKindNamedItem<TExpression, TSymbol>
     10: required TSymbol Symbol;
 }
 
-// TODO: This could be more compact but first verify that we would have performance benefits.
 struct QsExpressionKindDetail<TExpression, TSymbol, TType>
 {
     5: required QsExpressionKind Kind = InvalidExpr;
@@ -490,6 +489,81 @@ struct QsComments
     10: required vector<string> ClosingComments;
 }
 
+struct QsScope;
+
+struct QsPositionedBlock
+{
+    5: required QsScope Body;
+
+    10: nullable<QsLocation> Location = nothing;
+
+    15: required QsComments Comments;
+}
+
+// N.B. This structure does not have an F# equivalent.
+struct QsConditionalBlock
+{
+    5: required TypedExpression Expression;
+
+    10: required QsPositionedBlock Block;
+}
+
+struct QsConditionalStatement
+{
+    5: required vector<QsConditionalBlock> ConditionalBlocks;
+
+    10: nullable<QsPositionedBlock> Default = nothing;
+}
+
+// N.B. This structure does not have an F# equivalent.
+struct QsLoopItem
+{
+    5: required SymbolTuple SymbolTuple;
+
+    10: required ResolvedType ResolvedType;
+}
+
+struct QsForStatement
+{
+    5: required QsLoopItem LoopItem;
+
+    10: required TypedExpression IterationValues;
+
+    15: required QsScope Body;
+}
+
+struct QsWhileStatement
+{
+    5: required TypedExpression Condition;
+
+    10: required QsScope Body;
+}
+
+struct QsRepeatStatement
+{
+    5: required QsPositionedBlock RepeatBlock;
+
+    10: required TypedExpression SuccessCondition;
+
+    15: required QsPositionedBlock FixupBlock;
+}
+
+struct QsConjugation
+{
+    5: required QsPositionedBlock OuterTransformation;
+
+    10: required QsPositionedBlock InnerTransformation;
+}
+
+struct QsQubitScope
+{
+    5: required QsQubitScopeKind Kind = Allocate;
+
+    10: required QsBinding<ResolvedInitializer> Binding;
+
+    15: required QsScope Body;
+}
+
 enum QsStatementKind
 {
     QsExpressionStatement,
@@ -506,17 +580,47 @@ enum QsStatementKind
     EmptyStatement
 }
 
-struct QsStatement
+struct QsStatementKindDetail
 {
     5: required QsStatementKind Kind = EmptyStatement;
+
+    // Not null when Kind is QsExpressionStatement, QsReturnStatement, QsFailStatement.
+    10: nullable<TypedExpression> TypedExpression = nothing;
+
+    // Not null when Kind is QsVariableDeclaration.
+    15: nullable<QsBinding<TypedExpression>> VariableDeclaration = nothing;
+
+    // Not null when Kind is QsValueUpdate.
+    20: nullable<QsValueUpdate> ValueUpdate = nothing;
+
+    // Not null when Kind is QsConditionalStatement.
+    25: nullable<QsConditionalStatement> ConditionalStatement = nothing;
+
+    // Not null when Kind is QsForStatement.
+    30: nullable<QsForStatement> ForStatement = nothing;
+
+    // Not null when Kind is QsWhileStatement.
+    35: nullable<QsWhileStatement> WhileStatement = nothing;
+
+    // Not null when Kind is QsRepeatStatement.
+    40: nullable<QsRepeatStatement> RepeatStatement = nothing;
+
+    // Not null when Kind is QsConjugation.
+    45: nullable<QsConjugation> Conjugation = nothing;
+
+    // Not null when Kind is QsQubitScope.
+    50: nullable<QsQubitScope> QubitScope = nothing;
+}
+
+struct QsStatement
+{
+    5: required QsStatementKindDetail Statement;
 
     10: required LocalDeclarations SymbolDeclarations;
 
     15: nullable<QsLocation> Location;
 
     20: required QsComments Comments;
-
-    // TODO: Add fiedls depending on 'Kind'.
 }
 
 struct QsScope

@@ -45,13 +45,40 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 InferredInformation = callableInformation.InferredInformation.ToBondSchema()
             };
 
-        private static Identifier ToBondSchema(this SyntaxTree.Identifier identifier) =>
-            new Identifier
+        private static Identifier ToBondSchema(this SyntaxTree.Identifier identifier)
+        {
+            string? bondLocalVariable = null;
+            QsQualifiedName bondGlobalCallable = null;
+            NonNullable<string> compilerLocalVariable = default;
+            SyntaxTree.QsQualifiedName compilerGlobalCallable = default;
+            IdentifierKind kind;
+            if (identifier.TryGetLocalVariable(ref compilerLocalVariable))
             {
-                // TODO: Implement Kind.
-                // TODO: Implement LocalVariable.
-                // TODO: Implement GlobalCallable.
+                kind = IdentifierKind.LocalVariable;
+                bondLocalVariable = compilerLocalVariable.Value;
+            }
+            else if (identifier.TryGetGlobalCallable(ref compilerGlobalCallable))
+            {
+                kind = IdentifierKind.GlobalCallable;
+                bondGlobalCallable = compilerGlobalCallable.ToBondSchema();
+            }
+            else if (identifier.IsInvalidIdentifier)
+            {
+                kind = IdentifierKind.InvalidIdentifier;
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported Identifier {identifier}");
+            }
+
+            return new Identifier
+            {
+                Kind = kind,
+                LocalVariable = bondLocalVariable,
+                GlobalCallable = bondGlobalCallable
             };
+        }
+            
 
         private static InferredCallableInformation ToBondSchema(this SyntaxTree.InferredCallableInformation inferredCallableInformation) =>
             new InferredCallableInformation
