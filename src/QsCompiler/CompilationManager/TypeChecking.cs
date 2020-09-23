@@ -522,8 +522,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<CodeFragment.TokenIndex> ChildrenToCompile(CodeFragment.TokenIndex token) =>
                 token.GetChildren(deep: false).Where(child => child.GetFragment().IncludeInCompilation);
 
-            IReadOnlyList<FragmentTree.TreeNode> BuildNodes(IEnumerable<CodeFragment.TokenIndex>? tokens, Position? rootPos) =>
-                (tokens ?? Enumerable.Empty<CodeFragment.TokenIndex>()).Select(token =>
+            IReadOnlyList<FragmentTree.TreeNode> BuildNodes(IEnumerable<CodeFragment.TokenIndex> tokens, Position? rootPos) =>
+                tokens.Select(token =>
                 {
                     var fragment = token.GetFragmentWithClosingComments();
                     var parentPos = rootPos ?? fragment.Range.Start;
@@ -531,7 +531,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 })
                 .ToList().AsReadOnly();
 
-            var specRoots = content.Select(item => (item.Key, item.Value.Item1, BuildNodes(item.Value.Item2, null)));
+            var specRoots = content.Select(item =>
+            {
+                var nodes = item.Value.Item2?.Apply(tokens => BuildNodes(tokens, null));
+                return (item.Key, item.Value.Item1, nodes);
+            });
             return specRoots.ToImmutableDictionary(
                 spec => spec.Item1,
                 spec => (spec.Item2, new FragmentTree(file.FileName, spec.Item1.Namespace, spec.Item1.Name, spec.Item3)));

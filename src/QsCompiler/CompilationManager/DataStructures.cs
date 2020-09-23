@@ -412,7 +412,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         public readonly NonNullable<string> Callable;
         public readonly IReadOnlyList<TreeNode>? Specializations;
 
-        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode> specs)
+        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode>? specs)
         {
             this.Source = source;
             this.Namespace = ns;
