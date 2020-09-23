@@ -3,8 +3,9 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
-    open System;
-    open System.Runtime.CompilerServices;
+    open System
+    open System.Diagnostics.CodeAnalysis
+    open System.Runtime.CompilerServices
 
 
     /// Exception raised for compiler internal errors (i.e. failures of the Q# compiler). 
@@ -20,20 +21,23 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
+        [<DoesNotReturn>]
         static member Raise (message, innerException : Exception) : unit =
             if innerException = null then new QsCompilerException(message) |> raise
             else new QsCompilerException(message, innerException) |> raise
 
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
+        [<DoesNotReturn>]
         static member Raise message = QsCompilerError.Raise (message, null)
 
         /// If the given condition is not satisfied, calls QsCompilerError.Raise with the given message.
-        static member Verify (condition, message) =
+        static member Verify ([<DoesNotReturnIf false>] condition, message) =
             if not condition then QsCompilerError.Raise(message); 
 
         /// If the given condition is not satisfied, calls QsCompilerError.Raise with the given message.
-        static member Verify condition = QsCompilerError.Verify (condition, null)
+        static member Verify ([<DoesNotReturnIf false>] condition) =
+            QsCompilerError.Verify (condition, null)
 
         /// Generates a string with full information about the given exception, prepending the given header. 
         static member private Log(ex : Exception, header) =
