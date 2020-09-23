@@ -325,7 +325,8 @@ type WarningCode =
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
     | UseOfFutureReservedKeyword = 3304
-    | UseOfUnderscorePattern = 3305
+    | [<Obsolete("This diagnostic is no longer in use.")>] 
+      UseOfUnderscorePattern = 3305
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001 
