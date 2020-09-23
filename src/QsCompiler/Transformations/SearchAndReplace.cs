@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             NonNullable<string> idName,
             QsScope scope,
             NonNullable<string> sourceFile,
-            Position rootLoc)
+            Position? rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;

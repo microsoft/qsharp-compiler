@@ -7,18 +7,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// <summary>
     /// Helpful utility functions.
     /// </summary>
-    internal static class Utils
+    public static class Utils
     {
+        /// <summary>
+        /// Applies the action <paramref name="f"/> to the value <paramref name="x"/>.
+        /// </summary>
+        public static void Apply<T>(this T x, Action<T> f) => f(x);
+
         /// <summary>
         /// Applies the function <paramref name="f"/> to the value <paramref name="x"/> and returns the result.
         /// </summary>
-        internal static TOut Apply<TIn, TOut>(this TIn x, Func<TIn, TOut> f) => f(x);
+        public static TOut Apply<TIn, TOut>(this TIn x, Func<TIn, TOut> f) => f(x);
 
         /// <summary>
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for reference types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : class =>
             source.SelectMany(item =>
@@ -29,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for value types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : struct =>
             source.SelectMany(item =>
