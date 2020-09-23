@@ -212,10 +212,9 @@ namespace Microsoft.Quantum.QsCompiler
         // have a single constructor taking a single string argument.
         private static (string, string)? GetAttribute(MetadataReader metadataReader, CustomAttribute attribute)
         {
-            var attrType =
-                GetAttributeType(metadataReader, attribute)
-                ?? throw new Exception("the type of the custom attribute could not be determined");
-            var (ns, name) = attrType;
+            var attrType = GetAttributeType(metadataReader, attribute);
+            QsCompilerError.Verify(attrType.HasValue, "the type of the custom attribute could not be determined");
+            var (ns, name) = attrType.Value;
 
             var attrNS = metadataReader.GetString(ns);
             if (attrNS.StartsWith("Microsoft.Quantum", StringComparison.InvariantCulture))
