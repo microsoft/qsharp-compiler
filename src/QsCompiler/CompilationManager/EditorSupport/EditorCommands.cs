@@ -43,7 +43,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position
-            if (file is null || symbolInfo == null || compilation == null || position == null)
+            if (file is null || symbolInfo is null || compilation is null || position is null)
             {
                 return null;
             }
