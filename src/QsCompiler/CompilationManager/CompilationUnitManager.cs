@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <returns>True if converting the URI to a file ID succeeded.</returns>
         [Obsolete("Use GetFileId instead after ensuring that the URI is an absolute file URI.")]
-        public static bool TryGetFileId(Uri uri, out NonNullable<string> fileId)
+        public static bool TryGetFileId(Uri? uri, out NonNullable<string> fileId)
         {
             if (!(uri is null) && uri.IsFile && uri.IsAbsoluteUri)
             {
@@ -766,11 +766,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public WorkspaceEdit? Rename(RenameParams param)
         {
-            if (param?.TextDocument is null)
+            if (param is null || !TryGetFileId(param.TextDocument?.Uri, out NonNullable<string> docKey))
             {
                 return null;
             }
-            var docKey = GetFileId(param.TextDocument.Uri);
             // FIXME: the correct thing to do here would be to call FlushAndExecute...!
             var success = this.Processing.QueueForExecution(
                 () => this.fileContentManagers.TryGetValue(docKey, out FileContentManager file)
@@ -811,11 +810,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return null;
                 }
             }
-            if (textDocument?.Uri is null)
+            if (!TryGetFileId(textDocument?.Uri, out NonNullable<string> docKey))
             {
                 return null;
             }
-            var docKey = GetFileId(textDocument.Uri);
             var isSource = this.fileContentManagers.TryGetValue(docKey, out FileContentManager file);
             return isSource ? TryQueryFile(file) : null;
         }

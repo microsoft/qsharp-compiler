@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : this(
                     source.Value,
                     syntaxTree?.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                    syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s?.Implementation)),
+                    syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
                     syntaxTree?.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             {
             }
@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   rename.Namespaces?.OnSpecializationImplementation(specialization.Item2)));
+                                   (SpecializationImplementation?)rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
             return new Headers(source, callables, specializations, types);
         }
 

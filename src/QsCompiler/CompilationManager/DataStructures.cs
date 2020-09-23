@@ -331,7 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(this); // the overload for ++ must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
                 {
                     return res;
@@ -353,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(this); // the overload for -- must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this);
                 if (res.Index-- > 0)
                 {
                     return res;
