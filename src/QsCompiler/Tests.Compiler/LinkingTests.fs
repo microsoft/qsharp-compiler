@@ -285,7 +285,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify compilationManager entryPoint []
-        this.Expect "EntryPointInLibrary" [Error ErrorCode.EntryPointInLibrary]
+        this.Expect "EntryPointInLibrary" [Warning WarningCode.EntryPointInLibrary]
 
 
     [<Fact>]

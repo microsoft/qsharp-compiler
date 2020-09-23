@@ -984,7 +984,7 @@ and NamespaceManager
             // check that there is no more than one entry point, and no entry point if the project is not executable
             if signatureErrs.Any() then false, errs
             elif not isExecutable then 
-                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.EntryPointInLibrary, [])) 
+                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.EntryPointInLibrary, [])) 
                 false, errs
             else GetEntryPoints() |> Seq.tryHead |> function
                 | None -> isExecutable, errs
