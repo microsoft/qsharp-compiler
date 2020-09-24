@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             public int Priority { get; }
 
-            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string> getCode = null)
+            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string?>? getCode = null)
             {
                 var severity =
                     diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
@@ -183,9 +183,10 @@ namespace Microsoft.Quantum.QsCompiler
                 this.selfAsStep?.PreconditionVerification(compilation)
                 ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PreconditionVerification), compilation);
 
-            public bool PostconditionVerification(QsCompilation compilation) =>
-                this.selfAsStep?.PostconditionVerification(compilation)
-                ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PostconditionVerification), compilation);
+            public bool PostconditionVerification(QsCompilation? compilation) =>
+                !(compilation is null)
+                && (this.selfAsStep?.PostconditionVerification(compilation)
+                    ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PostconditionVerification), compilation));
         }
 
         /// <summary>

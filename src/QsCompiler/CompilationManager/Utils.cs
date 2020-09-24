@@ -155,12 +155,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Applies the action <paramref name="f"/> to the value <paramref name="x"/>.
         /// </summary>
-        internal static void Apply<T>(this T x, Action<T> f) => f(x);
+        public static void Apply<T>(this T x, Action<T> f) => f(x);
 
         /// <summary>
         /// Applies the function <paramref name="f"/> to the value <paramref name="x"/> and returns the result.
         /// </summary>
-        internal static TOut Apply<TIn, TOut>(this TIn x, Func<TIn, TOut> f) => f(x);
+        public static TOut Apply<TIn, TOut>(this TIn x, Func<TIn, TOut> f) => f(x);
 
         /// <summary>
         /// Partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false.
@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for reference types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : class =>
             source.SelectMany(item =>
@@ -194,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for value types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : struct =>
             source.SelectMany(item =>
