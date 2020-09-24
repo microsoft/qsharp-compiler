@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -44,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     public class ProjectInformation
     {
-        public delegate bool Loader(Uri projectFile, out ProjectInformation projectInfo);
+        public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
         internal readonly ProjectProperties Properties;
         public readonly ImmutableArray<string> SourceFiles;
@@ -903,10 +904,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // TODO: allow to cancel this task via cancellation token?
             return this.load.QueueForExecutionAsync(() =>
             {
-                var loaded = projectLoader(projectFile, out ProjectInformation info);
+                var loaded = projectLoader(projectFile, out var info);
                 var existing = this.projects.TryRemove(projectFile, out Project current) ? current : null;
 
-                if (!loaded)
+                if (!loaded || info is null)
                 {
                     existing?.LoadProjectAsync(
                         ImmutableDictionary<Uri, Uri?>.Empty,
@@ -985,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// if the modified file is a source file of that project and not open in the editor
         /// (i.e. openInEditor is null or returns null for that file) at the time of execution.
         /// </summary>
-        public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager>? openInEditor = null)
+        public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null)
         {
             if (sourceFile == null)
             {
@@ -1060,7 +1061,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the file,
         /// or if a file affected by the rename operation belongs to several compilation units.
         /// </summary>
-        public WorkspaceEdit? Rename(RenameParams param, bool versionedChanges) // versionedChanges is unused (WorkspaceEdit contains both Changes and DocumentChanges, but the version nr is null)
+        public WorkspaceEdit? Rename(RenameParams? param, bool versionedChanges) // versionedChanges is unused (WorkspaceEdit contains both Changes and DocumentChanges, but the version nr is null)
         {
             if (param?.TextDocument?.Uri == null)
             {
@@ -1110,7 +1111,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Location? DefinitionLocation(TextDocumentPositionParams param) =>
+        public Location? DefinitionLocation(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
@@ -1124,7 +1125,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public SignatureHelp? SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+        public SignatureHelp? SignatureHelp(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
@@ -1137,7 +1138,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Hover? HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+        public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
@@ -1150,7 +1151,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams param) =>
+        public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
@@ -1163,7 +1164,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Location[]? SymbolReferences(ReferenceParams param) =>
+        public Location[]? SymbolReferences(ReferenceParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
@@ -1174,7 +1175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams param) =>
+        public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, _) => file.DocumentSymbols(), suppressExceptionLogging: true);
 
@@ -1185,7 +1186,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams param) =>
+        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
@@ -1196,7 +1197,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// without logging anything if an exception occurs upon evaluating the query (occasional failures are to be
         /// expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public CompletionList? Completions(TextDocumentPositionParams param) =>
+        public CompletionList? Completions(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
                 (file, compilation) => file.Completions(compilation, param?.Position?.ToQSharp()),
@@ -1212,7 +1213,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// failures are to be expected as the evaluation is a read-only query running in parallel to the ongoing
         /// processing).
         /// </summary>
-        public CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
+        public CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData? data, MarkupKind format) =>
             this.Manager(data?.TextDocument?.Uri)?.FileQuery(
                 data?.TextDocument,
                 (_, compilation) => compilation.ResolveCompletion(item, data, format),
@@ -1255,7 +1256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before accumulating the diagnostics by calling FlushAndExecute.
         /// </summary>
-        public PublishDiagnosticParams[]? GetDiagnostics(Uri file)
+        public PublishDiagnosticParams[]? GetDiagnostics(Uri? file)
         {
             this.load.QueueForExecution(
                 () =>
