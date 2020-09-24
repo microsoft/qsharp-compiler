@@ -2242,7 +2242,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var numRemovedCycleDiags = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
                 - diagnostics.Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
 
-            if (numRemovedCycleDiags > 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            if (numRemovedCycleDiags != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
             {
                 file.TriggerGlobalTypeChecking();
             }
