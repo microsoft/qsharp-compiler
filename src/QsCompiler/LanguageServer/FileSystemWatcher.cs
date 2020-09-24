@@ -119,9 +119,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and - if subfolders is set to true - all its subfolders.
         /// Does nothing if no folder with the give path exists.
         /// </summary>
-        public Task ListenAsync(string folder, bool subfolders, Action<ImmutableDictionary<Uri, ImmutableHashSet<string>>> onInitialState, params string[] globPatterns)
+        public Task ListenAsync(string? folder, bool subfolders, Action<ImmutableDictionary<Uri, ImmutableHashSet<string>>>? onInitialState, params string[] globPatterns)
         {
-            if (!Directory.Exists(folder))
+            if (folder is null || !Directory.Exists(folder))
             {
                 return Task.CompletedTask;
             }

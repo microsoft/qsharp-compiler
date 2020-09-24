@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// if such a declaration exists, and returns the given position and file otherwise.
         /// Returns null if the given file is listed as to be ignored or if the information cannot be determined at this point.
         /// </summary>
-        public Location? DefinitionLocation(TextDocumentPositionParams param) =>
+        public Location? DefinitionLocation(TextDocumentPositionParams? param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.DefinitionLocation(param) : null;
 
         /// <summary>
@@ -530,7 +530,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns null if any parameter is null or the file given in the original completion request is invalid or
         /// ignored.
         /// </summary>
-        internal CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
+        internal CompletionItem? ResolveCompletion(CompletionItem? item, CompletionItemData data, MarkupKind format) =>
             item != null && ValidFileUri(data?.TextDocument?.Uri) && !this.IgnoreFile(data?.TextDocument?.Uri)
             ? this.projects.ResolveCompletion(item, data, format)
             : null;
