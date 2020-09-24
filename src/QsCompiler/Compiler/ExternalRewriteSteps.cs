@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,28 +27,30 @@ namespace Microsoft.Quantum.QsCompiler
         internal class LoadedStep : IRewriteStep
         {
             internal readonly Uri Origin;
-            private readonly IRewriteStep selfAsStep;
+            private readonly IRewriteStep? selfAsStep;
             private readonly object selfAsObject;
 
-            private readonly MethodInfo[] interfaceMethods;
+            private readonly MethodInfo[]? interfaceMethods;
 
-            private MethodInfo InterfaceMethod(string name) =>
+            private MethodInfo? InterfaceMethod(string name) =>
                 // This choice of filtering the interface methods may seem a bit particular.
                 // However, unless you know what you are doing, please don't change it.
                 // If you are sure you know what you are doing, please make sure the loading via reflection works for rewrite steps
                 // implemented in both F# or C#, and whether they are compiled against the current compiler version or an older one.
                 this.interfaceMethods?.FirstOrDefault(method => method.Name.Split("-").Last() == name);
 
-            private object GetViaReflection(string name) =>
+            private object? GetViaReflection(string name) =>
                 this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
 
+            [return: MaybeNull]
             private T GetViaReflection<T>(string name) =>
                 (T)this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
 
             private void SetViaReflection<T>(string name, T arg) =>
-                this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object[] { arg });
+                this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object?[] { arg });
 
-            private T InvokeViaReflection<T>(string name, params object[] args) =>
+            [return: MaybeNull]
+            private T InvokeViaReflection<T>(string name, params object?[] args) =>
                 (T)this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args);
 
             /// <summary>
@@ -75,7 +78,9 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // The Name and Priority need to be fixed throughout the loading,
                 // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
-                this.Name = this.selfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name));
+                this.Name = this.selfAsStep?.Name
+                    ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name))
+                    ?? "(no name)";
                 this.Priority = this.selfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority));
             }
 
@@ -108,10 +113,11 @@ namespace Microsoft.Quantum.QsCompiler
                 };
             }
 
-            public IDictionary<string, string> AssemblyConstants
+            public IDictionary<string, string?> AssemblyConstants
             {
                 get => this.selfAsStep?.AssemblyConstants
-                    ?? this.GetViaReflection<IDictionary<string, string>>(nameof(IRewriteStep.AssemblyConstants));
+                    ?? this.GetViaReflection<IDictionary<string, string?>>(nameof(IRewriteStep.AssemblyConstants))
+                    ?? throw new NotSupportedException("Could not find assembly constants.");
             }
 
             public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics
@@ -125,9 +131,9 @@ namespace Microsoft.Quantum.QsCompiler
                     static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
                     var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
                     var itemType = enumerable?.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments().FirstOrDefault();
-                    if (itemType == null)
+                    if (enumerable is null || itemType is null)
                     {
-                        return null;
+                        return Enumerable.Empty<IRewriteStep.Diagnostic>();
                     }
 
                     var diagnostics = ImmutableArray.CreateBuilder<IRewriteStep.Diagnostic>();
@@ -173,9 +179,9 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     return this.selfAsStep.Transformation(compilation, out transformed);
                 }
-                var args = new object[] { compilation, null };
+                var args = new object?[] { compilation, null };
                 var success = this.InvokeViaReflection<bool>(nameof(IRewriteStep.Transformation), args);
-                transformed = success ? (QsCompilation)args[1] : compilation;
+                transformed = success ? args[1] as QsCompilation ?? compilation : compilation;
                 return success;
             }
 
@@ -200,15 +206,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         internal static ImmutableArray<LoadedStep> Load(
             CompilationLoader.Configuration config,
-            Action<Diagnostic> onDiagnostic = null,
-            Action<Exception> onException = null)
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
         {
             if (config.RewriteSteps == null)
             {
                 return ImmutableArray<LoadedStep>.Empty;
             }
             static Assembly LoadAssembly(string path) => CompilationLoader.LoadAssembly?.Invoke(path) ?? Assembly.LoadFrom(path);
-            Uri WithFullPath(string file)
+            Uri? WithFullPath(string file)
             {
                 try
                 {
@@ -222,7 +228,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            var specifiedPluginDlls = config.RewriteSteps.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
+            var specifiedPluginDlls = config.RewriteSteps.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
             {
