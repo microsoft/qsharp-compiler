@@ -410,7 +410,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlMappingNode? fileMap = new YamlMappingNode();
+            var fileMap = new YamlMappingNode();
             DoIgnoringExceptions(() =>
             {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
@@ -418,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     yamlReader.Load(readStream);
                 }
-                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode;
+                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode ?? fileMap;
             });
             foreach (var entry in map.Children)
             {
