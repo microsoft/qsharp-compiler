@@ -2015,20 +2015,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-
-                var compilationCallables = compilation.GetCallables();
-                var callGraph = new SimpleCallGraph(compilationCallables.Values);
-                foreach (var (diag, parent) in callGraph.VerifyAllCycles())
-                {
-                    var callable = compilationCallables[parent];
-                    var offset = callable.Location.ValueOr(null)?.Offset;
-                    diagnostics.Add(Diagnostics.Generate(callable.SourceFile.Value, diag, offset));
-                }
+                UpdateDiagnosticsWithCycleVerification(compilation, diagnostics);
                 return diagnostics;
             }
             finally
             {
                 compilation.ExitUpgradeableReadLock();
+            }
+        }
+
+        private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics)
+        {
+            var compilationCallables = compilation.GetCallables();
+            var callGraph = new SimpleCallGraph(compilationCallables.Values);
+            foreach (var (diag, parent) in callGraph.VerifyAllCycles())
+            {
+                var callable = compilationCallables[parent];
+                var offset = callable.Location.ValueOr(null)?.Offset;
+                diagnostics.Add(Diagnostics.Generate(callable.SourceFile.Value, diag, offset));
             }
         }
 
@@ -2216,15 +2220,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, CancellationToken.None), "error on running type checking");
-
-                var numRemovedCycleDiags = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
-                    - diagnostics.Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
-
-                if (numRemovedCycleDiags > 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
-                {
-                    file.TriggerGlobalTypeChecking();
-                }
-
+                CheckForGlobalCycleChange(file, diagnostics);
                 if (sameImports)
                 {
                     file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
@@ -2238,6 +2234,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 file.SyncRoot.ExitUpgradeableReadLock();
                 compilation.ExitWriteLock();
+            }
+        }
+
+        private static void CheckForGlobalCycleChange(FileContentManager file, List<Diagnostic> diagnostics)
+        {
+            var numRemovedCycleDiags = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
+                - diagnostics.Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
+
+            if (numRemovedCycleDiags > 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            {
+                file.TriggerGlobalTypeChecking();
             }
         }
     }
