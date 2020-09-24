@@ -46,16 +46,16 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <inheritdoc/>
-        protected override Assembly Load(AssemblyName name)
+        protected override Assembly? Load(AssemblyName name)
         {
-            string path = this.resolver.ResolveAssemblyToPath(name);
+            var path = this.resolver.ResolveAssemblyToPath(name);
             return path == null ? null : this.LoadFromAssemblyPath(path);
         }
 
         /// <inheritdoc/>
         protected override IntPtr LoadUnmanagedDll(string name)
         {
-            string path = this.resolver.ResolveUnmanagedDllToPath(name);
+            var path = this.resolver.ResolveUnmanagedDllToPath(name);
             return path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
         }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Search all fallback paths for a suitable .dll ignoring all exceptions.
         /// Returns the full path to the dll if a suitable assembly could was found.
         /// </summary>
-        private string ResolveFromFallbackPaths(AssemblyName name)
+        private string? ResolveFromFallbackPaths(AssemblyName name)
         {
             bool MatchByName(string file) =>
                 Path.GetFileNameWithoutExtension(file)
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var tempContext = new LoadContext(this.PathToParentAssembly);
-            var versions = new List<(string, Version)>();
+            var versions = new List<(string, Version?)>();
             foreach (var file in found)
             {
                 try
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Search for a suitable .dll in the specified fallback locations.
         /// Does not load any dependencies.
         /// </summary>
-        private Assembly OnResolving(AssemblyLoadContext context, AssemblyName name)
+        private Assembly? OnResolving(AssemblyLoadContext context, AssemblyName name)
         {
             var path = this.ResolveFromFallbackPaths(name);
             return path == null ? null : this.LoadFromAssemblyPath(path);
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// to the list of paths where the context will try to look for assemblies that could otherwise not be loaded.
         /// Throws a FileNotFoundException if no file with the given path exists.
         /// </summary>
-        public static Assembly LoadAssembly(string path, string[] fallbackPaths = null)
+        public static Assembly LoadAssembly(string path, string[]? fallbackPaths = null)
         {
             if (!File.Exists(path))
             {

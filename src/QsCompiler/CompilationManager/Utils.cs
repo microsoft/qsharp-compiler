@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -94,7 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// to be used as "counter-piece" to SplitLines
         /// </summary>
-        public static string JoinLines(string[] content) =>
+        [return: NotNullIfNotNull("content")]
+        public static string? JoinLines(string[] content) =>
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
         /// <summary>
@@ -103,7 +105,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given text to insert is null.
         /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
-        internal static string GetChangedText(string lineText, int startChar, int endChar, string insert)
+        [return: NotNullIfNotNull("lineText")]
+        internal static string? GetChangedText(string lineText, int startChar, int endChar, string insert)
         {
             if (lineText == null)
             {
@@ -150,18 +153,53 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // general purpose type extensions
 
         /// <summary>
+        /// Applies the action <paramref name="f"/> to the value <paramref name="x"/>.
+        /// </summary>
+        internal static void Apply<T>(this T x, Action<T> f) => f(x);
+
+        /// <summary>
+        /// Applies the function <paramref name="f"/> to the value <paramref name="x"/> and returns the result.
+        /// </summary>
+        internal static TOut Apply<TIn, TOut>(this TIn x, Func<TIn, TOut> f) => f(x);
+
+        /// <summary>
         /// Partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false.
-        /// Returns (null, null) if the given IEnumerable is null.
-        /// Throws an ArgumentNullException if predicate is null.
+        /// Throws an ArgumentNullException if the given IEnumerable or predicate is null.
         /// </summary>
         public static (List<T>, List<T>) Partition<T>(this IEnumerable<T> collection, Func<T, bool> predicate)
         {
+            if (collection is null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
             if (predicate == null)
             {
                 throw new ArgumentNullException(nameof(predicate));
             }
-            return (collection?.Where(predicate).ToList(), collection?.Where(x => !predicate(x)).ToList());
+            return (collection.Where(predicate).ToList(), collection.Where(x => !predicate(x)).ToList());
         }
+
+        /// <summary>
+        /// Projects each element of a sequence into a new form and discards null values.
+        /// </summary>
+        /// <remarks>Overload for reference types.</remarks>
+        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+            this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
+            where TResult : class =>
+            source.SelectMany(item =>
+                selector(item)?.Apply(result => new[] { result })
+                ?? Enumerable.Empty<TResult>());
+
+        /// <summary>
+        /// Projects each element of a sequence into a new form and discards null values.
+        /// </summary>
+        /// <remarks>Overload for value types.</remarks>
+        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+            this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
+            where TResult : struct =>
+            source.SelectMany(item =>
+                selector(item)?.Apply(result => new[] { result })
+                ?? Enumerable.Empty<TResult>());
 
         /// <summary>
         /// Returns true if the given lock is either ReadLockHeld, or is UpgradeableReadLockHeld, or isWriteLockHeld.
