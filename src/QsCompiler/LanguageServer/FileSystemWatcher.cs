@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 pattern => Directory.EnumerateFiles(root.LocalPath, pattern, SearchOption.TopDirectoryOnly), out var files)
                 && success;
 
-            directories[root] = subfolders.Concat(files.SelectMany(items => items)).Select(Path.GetFileName).ToImmutableHashSet();
+            directories[root] = subfolders.Concat(files.SelectMany(items => items)).SelectNotNull(Path.GetFileName).ToImmutableHashSet();
             foreach (var subfolder in subfolders)
             {
                 success = GlobDirectoryStructure(directories, subfolder, globPatterns) && success;

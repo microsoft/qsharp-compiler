@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for reference types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : class =>
             source.SelectMany(item =>
@@ -194,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Projects each element of a sequence into a new form and discards null values.
         /// </summary>
         /// <remarks>Overload for value types.</remarks>
-        internal static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
+        public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(
             this IEnumerable<TSource> source, Func<TSource, TResult?> selector)
             where TResult : struct =>
             source.SelectMany(item =>
