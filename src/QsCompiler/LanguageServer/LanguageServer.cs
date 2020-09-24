@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         // methods required for basic functionality
 
-        public QsLanguageServer(Stream sender, Stream reader)
+        public QsLanguageServer(Stream? sender, Stream? reader)
         {
             this.waitForInit = new ManualResetEvent(false);
             this.rpc = new JsonRpc(sender, reader, this)
