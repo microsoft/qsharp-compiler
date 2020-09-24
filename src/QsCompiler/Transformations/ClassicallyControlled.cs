@@ -253,9 +253,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 /// <summary>
                 /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
-                /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
-                /// If valid, returns true with the identifier of the call like expression and the arguments of the
-                /// call like expression, otherwise returns false with nulls.
+                /// It is valid if there is exactly one statement in it and that statement is a call like expression
+                /// statement. If valid, returns the identifier of the call like expression and the arguments of the
+                /// call like expression, otherwise returns null.
                 /// </summary>
                 [return: NotNullIfNotNull("scope")]
                 private (TypedExpression Id, TypedExpression Args)? IsValidScope(QsScope? scope)
@@ -660,8 +660,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 /// <summary>
                 /// Checks if the statement is a condition statement that only has one conditional block in it (default blocks are optional).
-                /// If it is, returns true along with the condition, the body of the conditional block, and, optionally, the body of the
-                /// default block, otherwise returns false with nulls. If there is no default block, the last value of the return tuple will be null.
+                /// If it is, returns the condition, the body of the conditional block, and, optionally, the body of the
+                /// default block, otherwise returns null. If there is no default block, the last value of the return tuple will be null.
                 /// </summary>
                 private (TypedExpression Condition, QsScope Body, QsScope? Default)? IsConditionWithSingleBlock(QsStatement statement)
                 {
