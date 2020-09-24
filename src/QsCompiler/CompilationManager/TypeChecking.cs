@@ -2016,14 +2016,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
 
-                var allCallableDeclarations = compilation.GlobalSymbols.DefinedCallables().ToImmutableDictionary(x => x.QualifiedName);
-
-                var callGraph = new SimpleCallGraph(compilation.GetCallables().Values);
+                var compilationCallables = compilation.GetCallables();
+                var callGraph = new SimpleCallGraph(compilationCallables.Values);
                 foreach (var (diag, parent) in callGraph.VerifyAllCycles())
                 {
-                    var info = allCallableDeclarations[parent];
-                    var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                    var callable = compilationCallables[parent];
+                    var offset = callable.Location.ValueOr(null)?.Offset;
+                    diagnostics.Add(Diagnostics.Generate(callable.SourceFile.Value, diag, offset));
                 }
                 return diagnostics;
             }
