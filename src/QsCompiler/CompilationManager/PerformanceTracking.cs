@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             RewriteSteps,
 
             /// <summary>
-            /// A task for a specific rewrite step.
+            /// Task for a specific rewrite step.
             /// These tasks should be accompanied with details of which rewrite step it is specific to.
             /// </summary>
             SingleRewriteStep,
