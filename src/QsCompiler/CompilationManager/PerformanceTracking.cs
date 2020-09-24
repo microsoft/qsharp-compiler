@@ -65,6 +65,12 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             RewriteSteps,
 
             /// <summary>
+            /// A task for a specific rewrite step.
+            /// These tasks should be accompanied with details of which rewrite step it is specific to.
+            /// </summary>
+            SingleRewriteStep,
+
+            /// <summary>
             /// Task that loads sources.
             /// </summary>
             SourcesLoading,
@@ -136,6 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.OutputGeneration, Task.OverallCompilation },
             { Task.ReferenceLoading, Task.OverallCompilation },
             { Task.RewriteSteps, Task.OverallCompilation },
+            { Task.SingleRewriteStep, Task.RewriteSteps },
             { Task.SourcesLoading, Task.OverallCompilation },
             { Task.ReplaceTargetSpecificImplementations, Task.Build },
             { Task.BinaryGeneration, Task.OutputGeneration },
@@ -190,17 +197,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
             try
             {
-                if (details is null)
-                {
-                    var parent = GetTaskParent(task);
-                    CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), task.ToString());
-                }
-                else
-                {
-                    var parent = task.ToString();
-                    CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), details.ToString());
-                }
-
+                var parent = GetTaskParent(task);
+                var taskId = task.ToString() + (details is null ? string.Empty : $"-{details}");
+                CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), taskId.ToString());
             }
             catch (Exception ex)
             {

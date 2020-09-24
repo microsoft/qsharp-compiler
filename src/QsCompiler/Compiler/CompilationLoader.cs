@@ -545,9 +545,9 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             foreach (var (_, name, rewriteStep) in steps)
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps, name);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, name);
                 this.CompilationOutput = rewriteStep();
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps, name);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SingleRewriteStep, name);
             }
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
