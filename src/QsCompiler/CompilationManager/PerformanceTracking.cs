@@ -150,17 +150,17 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Raises a task start event.
         /// </summary>
-        public static void TaskStart(Task task)
+        public static void TaskStart(Task task, string? details = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.Start, task);
+            InvokeTaskEvent(CompilationTaskEventType.Start, task, details);
         }
 
         /// <summary>
         /// Raises a task end event.
         /// </summary>
-        public static void TaskEnd(Task task)
+        public static void TaskEnd(Task task, string? details = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.End, task);
+            InvokeTaskEvent(CompilationTaskEventType.End, task, details);
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Invokes a compilation task event.
         /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
         /// </summary>
-        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task)
+        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, string? details = null)
         {
             if (FailureOccurred)
             {
@@ -190,8 +190,17 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
             try
             {
-                var parent = GetTaskParent(task);
-                CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), task.ToString());
+                if (details is null)
+                {
+                    var parent = GetTaskParent(task);
+                    CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), task.ToString());
+                }
+                else
+                {
+                    var parent = task.ToString();
+                    CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), details.ToString());
+                }
+
             }
             catch (Exception ex)
             {

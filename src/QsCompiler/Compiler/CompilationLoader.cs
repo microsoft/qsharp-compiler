@@ -500,53 +500,55 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps
 
-            var steps = new List<(int, Func<QsCompilation>)>();
+            var steps = new List<(int, string, Func<QsCompilation>)>();
 
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
             }
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
             if (this.config.GenerateFunctorSupport)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
             if (!this.config.SkipSyntaxTreeTrimming)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.AttemptFullPreEvaluation)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
             {
-                var priority = this.externalRewriteSteps[j].Priority;
+                var rewriteStep = this.externalRewriteSteps[j];
+                var priority = rewriteStep.Priority;
                 Func<QsCompilation> Execute(int index) => () =>
-                    this.ExecuteAsAtomicTransformation(this.externalRewriteSteps[index], ref this.compilationStatus.LoadedRewriteSteps[index]);
-                steps.Add((priority, Execute(j)));
+                    this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.LoadedRewriteSteps[index]);
+                steps.Add((priority, rewriteStep.Name, Execute(j)));
             }
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             SortRewriteSteps(steps, t => t.Item1);
-            foreach (var (_, rewriteStep) in steps)
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
+            foreach (var (_, name, rewriteStep) in steps)
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps, name);
                 this.CompilationOutput = rewriteStep();
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps, name);
             }
-
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
             // generating the compiled binary, dll, and docs
