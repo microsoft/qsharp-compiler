@@ -904,10 +904,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // TODO: allow to cancel this task via cancellation token?
             return this.load.QueueForExecutionAsync(() =>
             {
-                var loaded = projectLoader(projectFile, out var info);
                 var existing = this.projects.TryRemove(projectFile, out Project current) ? current : null;
 
-                if (!loaded || info is null)
+                if (!projectLoader(projectFile, out var info))
                 {
                     existing?.LoadProjectAsync(
                         ImmutableDictionary<Uri, Uri?>.Empty,
