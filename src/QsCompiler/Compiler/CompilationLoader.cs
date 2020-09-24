@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// The name of the project. Used as assembly name in the generated dll.
             /// The name of the project with a suitable extension will also be used as the name of the generated binary file.
             /// </summary>
-            public string ProjectName;
+            public string? ProjectName;
 
             /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives
@@ -149,13 +149,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Directory where the compiled binaries will be generated.
             /// No binaries will be written to disk unless this path is specified and valid.
             /// </summary>
-            public string BuildOutputFolder;
+            public string? BuildOutputFolder;
 
             /// <summary>
             /// Output path for the dll containing the compiled binaries.
             /// No dll will be generated unless this path is specified and valid.
             /// </summary>
-            public string DllOutputPath;
+            public string? DllOutputPath;
 
             /// <summary>
             /// If set to true, then referenced dlls will be loaded purely based on attributes in the contained C# code.
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(string, string)> RewriteSteps;
+            public IEnumerable<(string, string?)> RewriteSteps;
 
             /// <summary>
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.

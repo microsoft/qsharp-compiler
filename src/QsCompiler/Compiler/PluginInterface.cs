@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -173,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <param name="compilation">Q# compilation that satisfies the implemented precondition, if any.</param>
         /// <param name="transformed">Q# compilation after transformation. This value should not be null if the transformation succeeded.</param>
         /// <returns>Whether or not the transformation succeeded.</returns>
-        public bool Transformation(QsCompilation compilation, out QsCompilation transformed);
+        public bool Transformation(QsCompilation compilation, [NotNullWhen(true)] out QsCompilation? transformed);
 
         /// <summary>
         /// Verifies whether a given compilation satisfies the postcondition after executing the implemented transformation (if any).

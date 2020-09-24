@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 get => this.selfAsStep?.AssemblyConstants
                     ?? this.GetViaReflection<IDictionary<string, string?>>(nameof(IRewriteStep.AssemblyConstants))
-                    ?? throw new NotSupportedException("Could not find assembly constants.");
+                    ?? ImmutableDictionary<string, string?>.Empty;
             }
 
             public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics
@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler
                     ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPostconditionVerification));
             }
 
-            public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
+            public bool Transformation(QsCompilation compilation, [NotNullWhen(true)] out QsCompilation? transformed)
             {
                 if (this.selfAsStep != null)
                 {
