@@ -5,6 +5,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsDocumentationParser</AssemblyName>
     <RootNamespace>Microsoft.Quantum.QsCompiler.Documentation</RootNamespace>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
