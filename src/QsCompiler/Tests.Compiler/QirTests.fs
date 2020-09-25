@@ -42,6 +42,10 @@ let private checkOutput name =
     let actualText = name |> File.ReadAllText
     Assert.Contains(expectedText, actualText)
 
+let private checkAltOutput name actualText =
+    let expectedText = ("TestCases","QirTests",name) |> Path.Combine |> File.ReadAllText
+    Assert.Contains(expectedText, actualText)
+
 let private qirTest target name =
     clearOutput (name+".ll")
     [|
@@ -79,6 +83,26 @@ let private qirExeTest target name =
     |]
     |> testOne ReturnCode.SUCCESS
     checkOutput (name+".ll")
+
+let private qirExeMultiTest target name snippets =
+    [|
+        "build"
+        "-o"
+        "outputFolder"
+        "--proj"
+        name
+        "--build-exe"
+        "--input"
+        ("TestCases","QirTests",name+".qs") |> Path.Combine
+        ("TestCases","QirTests","QirCore.qs") |> Path.Combine
+        (if target then ("TestCases","QirTests","QirTarget.qs") |> Path.Combine else "")
+        "--qir"
+        "--verbosity" 
+        "Diagnostic"
+    |]
+    |> testOne ReturnCode.SUCCESS
+    let actualText = (name+".ll") |> File.ReadAllText
+    snippets |> List.map (fun s -> checkAltOutput (s+".ll") actualText)
 
 [<Fact>]
 let ``QIR using`` () =
@@ -139,6 +163,10 @@ let ``QIR bigints`` () =
 [<Fact>]
 let ``QIR entry points`` () =
     qirExeTest false "TestEntryPoint"
+
+[<Fact>]
+let ``QIR partial applications`` () =
+    qirExeMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"]
 
 [<Fact>]
 let ``QIR paulis`` () =
