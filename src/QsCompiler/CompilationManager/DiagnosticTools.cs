@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -33,12 +34,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a new Diagnostic, making a deep copy of the given one (in particular a deep copy of it's Range)
         /// or null if the given Diagnostic is null.
         /// </summary>
-        public static Diagnostic Copy(this Diagnostic message)
+        [return: NotNullIfNotNull("message")]
+        public static Diagnostic? Copy(this Diagnostic message)
         {
-            Lsp.Position CopyPosition(Lsp.Position position) =>
+            Lsp.Position? CopyPosition(Lsp.Position? position) =>
                 position is null ? null : new Lsp.Position(position.Line, position.Character);
 
-            Lsp.Range CopyRange(Lsp.Range range) =>
+            Lsp.Range? CopyRange(Lsp.Range? range) =>
                 range is null
                     ? null
                     : new Lsp.Range
@@ -124,7 +126,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Diagnostics without any range information are only extracted if no lower bound is specified or the specified lower bound is smaller than zero.
         /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound = -1)
+        [return: NotNullIfNotNull("orig")]
+        public static IEnumerable<Diagnostic>? Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound = -1)
         {
             if (condition == null)
             {
@@ -137,7 +140,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound and smaller than upperBound.
         /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound, int upperBound)
+        [return: NotNullIfNotNull("orig")]
+        public static IEnumerable<Diagnostic>? Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound, int upperBound)
         {
             if (condition == null)
             {
@@ -149,7 +153,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Extracts all elements which start at a line that is larger or equal to lowerBound.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound)
+        [return: NotNullIfNotNull("orig")]
+        public static IEnumerable<Diagnostic>? Filter(this IEnumerable<Diagnostic> orig, int lowerBound)
         {
             return orig?.Filter(m => true, lowerBound);
         }
@@ -157,7 +162,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Extracts all elements which start at a line that is larger or equal to lowerBound and smaller than upperBound.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound, int upperBound)
+        [return: NotNullIfNotNull("orig")]
+        public static IEnumerable<Diagnostic>? Filter(this IEnumerable<Diagnostic> orig, int lowerBound, int upperBound)
         {
             return orig?.Filter(m => true, lowerBound, upperBound);
         }

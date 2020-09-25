@@ -362,10 +362,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="rootPath">The directory where the file should exist.</param>
         /// <param name="fileBaseName">The base name of the file, not including the ".yml" extension.</param>
-        internal static YamlNode ReadYamlFile(string rootPath, string fileBaseName)
+        internal static YamlNode? ReadYamlFile(string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlNode fileNode = null;
+            YamlNode? fileNode = null;
             DoIgnoringExceptions(() =>
             {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
@@ -410,7 +410,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlMappingNode fileMap = new YamlMappingNode();
+            var fileMap = new YamlMappingNode();
             DoIgnoringExceptions(() =>
             {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
@@ -418,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     yamlReader.Load(readStream);
                 }
-                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode;
+                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode ?? fileMap;
             });
             foreach (var entry in map.Children)
             {
@@ -434,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="act">The action to run.</param>
         /// <param name="logFileName">The name of the file to log exceptions to.
         /// If omitted, the exception is not logged at all.</param>
-        internal static void DoIgnoringExceptions(Action act, string logFileName = null)
+        internal static void DoIgnoringExceptions(Action act, string? logFileName = null)
         {
             try
             {
