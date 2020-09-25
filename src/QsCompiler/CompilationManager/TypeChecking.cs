@@ -2015,7 +2015,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                UpdateDiagnosticsWithCycleVerification(compilation, diagnostics);
+                UpdateDiagnosticsWithCycleVerification(compilation, diagnostics, callableDeclarations);
                 return diagnostics;
             }
             finally
@@ -2024,15 +2024,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
-        private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics)
+        private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics, ImmutableDictionary<QsQualifiedName, CallableDeclarationHeader> callableDeclarations)
         {
-            var compilationCallables = compilation.GetCallables();
-            var callGraph = new SimpleCallGraph(compilationCallables.Values);
+            // Need to consider the whole compilation to detect cycles
+            var callGraph = new SimpleCallGraph(compilation.GetCallables().Values);
             foreach (var (diag, parent) in callGraph.VerifyAllCycles())
             {
-                var callable = compilationCallables[parent];
-                var offset = callable.Location.ValueOr(null)?.Offset;
-                diagnostics.Add(Diagnostics.Generate(callable.SourceFile.Value, diag, offset));
+                // Only keep diagnostics for callables that are currently available in the editor
+                if (callableDeclarations.TryGetValue(parent, out var info))
+                {
+                    var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                }
             }
         }
 
