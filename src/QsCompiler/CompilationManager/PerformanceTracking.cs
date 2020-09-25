@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 #nullable enable
 
@@ -198,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             try
             {
                 var parent = GetTaskParent(task);
-                var taskId = task.ToString() + (details is null ? string.Empty : $"-{details}");
+                var taskId = task.ToString() + (details is null ? string.Empty : $"-{Regex.Replace(details, @"\s+", "")}");
                 CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), taskId.ToString());
             }
             catch (Exception ex)

@@ -500,8 +500,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps
 
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation>)>();
-
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
@@ -542,7 +542,6 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             SortRewriteSteps(steps, t => t.Item1);
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             foreach (var (_, name, rewriteStep) in steps)
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, name);
