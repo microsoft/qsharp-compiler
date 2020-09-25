@@ -2239,7 +2239,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         private static void CheckForGlobalCycleChange(FileContentManager file, List<Diagnostic> diagnostics)
         {
-            file.TriggerGlobalTypeChecking();
+            var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
+                - diagnostics.Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
+
+            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            {
+                file.TriggerGlobalTypeChecking();
+            }
         }
     }
 }
