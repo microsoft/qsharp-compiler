@@ -158,17 +158,27 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Raises a task start event.
         /// </summary>
-        public static void TaskStart(Task task, string? details = null)
+        /// <param name="task">Indicates the task to start.</param>
+        /// <param name="leafSuffix">
+        /// Supplies a string to label the task more precisely.
+        /// N.B. Can only be non-null on tasks that are not a parent of another task.
+        /// </param>
+        public static void TaskStart(Task task, string? leafSuffix = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.Start, task, details);
+            InvokeTaskEvent(CompilationTaskEventType.Start, task, leafSuffix);
         }
 
         /// <summary>
         /// Raises a task end event.
         /// </summary>
-        public static void TaskEnd(Task task, string? details = null)
+        /// <param name="task">Indicates the task to end.</param>
+        /// <param name="leafSuffix">
+        /// Supplies a string to label the task more precisely.
+        /// N.B. Can only be non-null on tasks that are not a parent of another task.
+        /// </param>
+        public static void TaskEnd(Task task, string? leafSuffix = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.End, task, details);
+            InvokeTaskEvent(CompilationTaskEventType.End, task, leafSuffix);
         }
 
         /// <summary>
@@ -185,21 +195,28 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             return parent;
         }
 
+        private static bool IsLeaf(this Task task) => !TasksHierarchy.Values.Contains(task);
+
         /// <summary>
         /// Invokes a compilation task event.
         /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
         /// </summary>
-        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, string? details = null)
+        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, string? leafSuffix = null)
         {
             if (FailureOccurred)
             {
                 return;
             }
 
+            if (!(leafSuffix is null) && !task.IsLeaf())
+            {
+                throw new ArgumentException($"Non-leaf Task '{task}' cannot use a suffix");
+            }
+
             try
             {
                 var parent = GetTaskParent(task);
-                var taskId = task.ToString() + (details is null ? string.Empty : $"-{Regex.Replace(details, @"\s+", string.Empty)}");
+                var taskId = task.ToString() + (leafSuffix is null ? string.Empty : $"-{Regex.Replace(leafSuffix, @"\s+", string.Empty)}");
                 CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), taskId.ToString());
             }
             catch (Exception ex)
