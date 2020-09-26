@@ -81,7 +81,16 @@ type SymbolTuple =
 | VariableNameTuple of ImmutableArray<SymbolTuple>
 /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
 | DiscardedItem
-    with interface ITuple
+    with
+    interface ITuple
+    member this.TryGetVariableName(variableName: NonNullable<string> byref) =
+        match this with
+        | VariableName value -> variableName <- value; true
+        | _ -> false
+    member this.TryGetVariableNameTuple(variableNameTuple: ImmutableArray<SymbolTuple> byref) =
+        match this with
+        | VariableNameTuple value -> variableNameTuple <- value; true
+        | _ -> false
 
 
 /// use to represent all forms of Q# bindings
@@ -579,6 +588,51 @@ and QsStatementKind =
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
 | EmptyStatement
+    with
+    member this.TryGetExpressionStatement(expressionStatement: TypedExpression byref) =
+        match this with
+        | QsExpressionStatement value -> expressionStatement <- value; true
+        | _ -> false
+    member this.TryGetReturnStatement(returnStatement: TypedExpression byref) =
+        match this with
+        | QsReturnStatement value -> returnStatement <- value; true
+        | _ -> false
+    member this.TryGetFailStatement(failStatement: TypedExpression byref) =
+        match this with
+        | QsFailStatement value -> failStatement <- value; true
+        | _ -> false
+    member this.TryGetVariableDeclaration(variableDeclaration: QsBinding<TypedExpression> byref) =
+        match this with
+        | QsVariableDeclaration value -> variableDeclaration <- value; true
+        | _ -> false
+    member this.TryGetValueUpdate(valueUpdate: QsValueUpdate byref) =
+        match this with
+        | QsValueUpdate value -> valueUpdate <- value; true
+        | _ -> false
+    member this.TryGetConditionalStatement(conditionalStatement: QsConditionalStatement byref) =
+        match this with
+        | QsConditionalStatement value -> conditionalStatement <- value; true
+        | _ -> false
+    member this.TryGetForStatement(forStatement: QsForStatement byref) =
+        match this with
+        | QsForStatement value -> forStatement <- value; true
+        | _ -> false
+    member this.TryGetWhileStatement(whileStatement: QsWhileStatement byref) =
+        match this with
+        | QsWhileStatement value -> whileStatement <- value; true
+        | _ -> false
+    member this.TryGetRepeatStatement(repeatStatement: QsRepeatStatement byref) =
+        match this with
+        | QsRepeatStatement value -> repeatStatement <- value; true
+        | _ -> false
+    member this.TryGetConjugation(conjugation: QsConjugation byref) =
+        match this with
+        | QsConjugation value -> conjugation <- value; true
+        | _ -> false
+    member this.TryGetQubitScope(qubitScope: QsQubitScope byref) =
+        match this with
+        | QsQubitScope value -> qubitScope <- value; true
+        | _ -> false
 
 
 and QsStatement = {

@@ -450,11 +450,22 @@ enum QsInitializerKind
     InvalidInitializer
 }
 
+struct QsInitializerKindDetail<TInitializer, TExpression>
+{
+    5: required QsInitializerKind Kind = InvalidInitializer;
+
+    // Not null when Kind is QubitRegisterAllocation.
+    10: nullable<TExpression> QubitRegisterAllocation = nothing;
+
+    // Not null when Kind is QubitTupleAllocation.
+    15: nullable<vector<TInitializer>> QubitTupleAllocation = nothing;
+}
+
 struct ResolvedInitializer
 {
-    5: required QsInitializerKind InitializerKind = InvalidInitializer;
+    5: required QsInitializerKindDetail<ResolvedInitializer, TypedExpression> Initializer;
 
-    10: required ResolvedType Resolution;
+    10: required ResolvedType ResolvedType;
 }
 
 struct LocalVariableDeclaration<NameType>
@@ -580,6 +591,7 @@ enum QsStatementKind
     EmptyStatement
 }
 
+// N.B. This structure is needed for the complete representation of F#'s QsStatementKind.
 struct QsStatementKindDetail
 {
     5: required QsStatementKind Kind = EmptyStatement;

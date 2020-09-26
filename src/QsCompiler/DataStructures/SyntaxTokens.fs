@@ -358,6 +358,15 @@ type QsInitializerKind<'Initializer, 'Expr> =
 | QubitRegisterAllocation of 'Expr
 | QubitTupleAllocation of ImmutableArray<'Initializer>
 | InvalidInitializer
+    with
+    member this.TryGetQubitRegisterAllocation(qubitRegisterAllocation: 'Expr byref) =
+        match this with
+        | QubitRegisterAllocation value -> qubitRegisterAllocation <- value; true
+        | _ -> false
+    member this.TryGetQubitTupleAllocation(qubitTupleAllocation: ImmutableArray<'Initializer> byref) =
+        match this with
+        | QubitTupleAllocation value -> qubitTupleAllocation <- value; true
+        | _ -> false
 
 type QsInitializer = {
     Initializer : QsInitializerKind<QsInitializer, QsExpression>
