@@ -66,12 +66,6 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             RewriteSteps,
 
             /// <summary>
-            /// Task for a specific rewrite step.
-            /// These tasks should be accompanied with details of which rewrite step it is specific to.
-            /// </summary>
-            SingleRewriteStep,
-
-            /// <summary>
             /// Task that loads sources.
             /// </summary>
             SourcesLoading,
@@ -114,7 +108,13 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// <summary>
             /// Task that deserializes as part of the 'ReferenceLoading' task.
             /// </summary>
-            SyntaxTreeDeserialization
+            SyntaxTreeDeserialization,
+
+            /// <summary>
+            /// Task for a specific rewrite step.
+            /// These tasks should be accompanied with details of which rewrite step it is specific to.
+            /// </summary>
+            SingleRewriteStep
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             try
             {
                 var parent = GetTaskParent(task);
-                var taskId = task.ToString() + (details is null ? string.Empty : $"-{Regex.Replace(details, @"\s+", "")}");
+                var taskId = task.ToString() + (details is null ? string.Empty : $"-{Regex.Replace(details, @"\s+", string.Empty)}");
                 CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), taskId.ToString());
             }
             catch (Exception ex)
