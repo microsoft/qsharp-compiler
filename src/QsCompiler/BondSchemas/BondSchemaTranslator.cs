@@ -729,11 +729,19 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
         }
 
+        private static TypedArgument ToBondSchema(this Tuple<SyntaxTree.QsQualifiedName, NonNullable<string>, SyntaxTree.ResolvedType> typedArgumet) =>
+            new TypedArgument
+            {
+                Callable = typedArgumet.Item1.ToBondSchema(),
+                Name = typedArgumet.Item2.Value,
+                Resolution = typedArgumet.Item3.ToBondSchema()
+            };
+
         private static TypedExpression ToBondSchema(this SyntaxTree.TypedExpression typedExpression) =>
             new TypedExpression
             {
                 Expression = typedExpression.Expression.ToBondSchema(),
-                // TODO: Implement TypeArguments.
+                TypedArguments = typedExpression.TypeArguments.Select(t => t.ToBondSchema()).ToList(),
                 ResolvedType = typedExpression.ResolvedType.ToBondSchema(),
                 Range = typedExpression.Range.IsNull ?
                     null :
