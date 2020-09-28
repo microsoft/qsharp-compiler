@@ -86,6 +86,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 IsIntrinsic = inferredCallableInformation.IsIntrinsic
             };
 
+        private static InferredExpressionInformation ToBondSchema(this SyntaxTree.InferredExpressionInformation inferredExpressionInformation) =>
+            new InferredExpressionInformation
+            {
+                IsMutable = inferredExpressionInformation.IsMutable,
+                HasLocalQuantumDependency = inferredExpressionInformation.HasLocalQuantumDependency
+            };
+
         private static LocalDeclarations ToBondSchema(this SyntaxTree.LocalDeclarations localDeclarations) =>
             new LocalDeclarations
             {
@@ -382,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new QsScope
             {
                 Statements = qsScope.Statements.Select(s => s.ToBondSchema()).ToList()
-                // TOOD: Implement LocalDeclarations.
+                // TODO: Implement LocalDeclarations.
             };
 
         private static LinkedList<QsSourceFileDocumentation> ToBondSchema(this QsDocumentation qsDocumentation)
@@ -816,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 VariableName = typeTranslator(localVariableDeclaration.VariableName),
                 Type = localVariableDeclaration.Type.ToBondSchema(),
-                // TODO: Implement InferredInformation.
+                InferredInformation = localVariableDeclaration.InferredInformation.ToBondSchema(),
                 Position = localVariableDeclaration.Position.IsNull ?
                     null :
                     localVariableDeclaration.Position.Item.ToBondSchema(),
