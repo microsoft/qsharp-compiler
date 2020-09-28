@@ -544,12 +544,6 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
             }
 
-            if (this.config.IsExecutable && !this.config.SkipMonomorphization)
-            {
-                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
-            }
-
             if (this.config.GenerateFunctorSupport)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
@@ -566,6 +560,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
+            }
+
+            if (this.config.IsExecutable && !this.config.SkipMonomorphization)
+            {
+                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
