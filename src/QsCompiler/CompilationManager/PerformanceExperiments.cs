@@ -27,17 +27,17 @@ namespace Microsoft.Quantum.QsCompiler
             OutputBuffer dataBuffer)
         {
             var inputBuffer = new InputBuffer(dataBuffer.Data);
-            var deserializer = new Deserializer<SimpleBinaryReader<InputBuffer>>(typeof(BondSchemas.QsCompilation));
+            //var deserializer = new Deserializer<SimpleBinaryReader<InputBuffer>>(typeof(BondSchemas.QsCompilation));
             var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
-            return (deserializer, reader);
+            return (null, reader);
         }
 
         public static (Serializer<SimpleBinaryWriter<OutputBuffer>>, SimpleBinaryWriter<OutputBuffer>, OutputBuffer) CreateSimpleBinaryBufferSerializationTuple()
         {
             var outputBuffer = new OutputBuffer();
-            var serializer = new Serializer<SimpleBinaryWriter<OutputBuffer>>(typeof(BondSchemas.QsCompilation));
+            //var serializer = new Serializer<SimpleBinaryWriter<OutputBuffer>>(typeof(BondSchemas.QsCompilation));
             var binaryWriter = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
-            return (serializer, binaryWriter, outputBuffer);
+            return (null, binaryWriter, outputBuffer);
         }
     }
 }

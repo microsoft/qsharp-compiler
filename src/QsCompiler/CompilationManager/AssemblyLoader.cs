@@ -9,6 +9,9 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Bond;
+using Bond.IO.Unsafe;
+using Bond.Protocols;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -25,6 +28,12 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+
+        private static Deserializer<SimpleBinaryReader<InputBuffer>>? deserializer = null;
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>>? serializer = null;
+        private static (Deserializer<SimpleBinaryReader<InputBuffer>>, SimpleBinaryReader<InputBuffer>)? simpleDeserializationTuple = null;
+        private static (Serializer<SimpleBinaryWriter<OutputBuffer>> Serializer, SimpleBinaryWriter<OutputBuffer> Writer, OutputBuffer Buffer)? simpleSerializationTuple = null;
+
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -129,7 +138,9 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // TODO: Remove - New serializer init.
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.NewSerializerInit);
-                var (bondSerializer, bondWriter, bondBuffer) = PerformanceExperiments.CreateSimpleBinaryBufferSerializationTuple();
+                var (_, bondWriter, bondBuffer) = PerformanceExperiments.CreateSimpleBinaryBufferSerializationTuple();
+                //var (bondSerializer, bondWriter, bondBuffer) = GetSimpleSerializationTuple();
+                var bondSerializer = GetSimpleSerializer();
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewSerializerInit);
 
                 // TODO: Remove - New serialization.
@@ -143,7 +154,9 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // TODO: Remove - New deserializer init.
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.NewDeserializerInit);
-                var (bondDeserializer, bondReader) = PerformanceExperiments.CreateSimpleBinaryBufferDeserializationTuple(bondBuffer);
+                var (_, bondReader) = PerformanceExperiments.CreateSimpleBinaryBufferDeserializationTuple(bondBuffer);
+                var bondDeserializer = GetSimpleDeserializer();
+                //var (bondDeserializer, bondReader) = GetSimpleDeserializationTuple();
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewDeserializerInit);
 
                 // TODO: Remove - New deserialization.
@@ -284,6 +297,26 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
             return null;
+        }
+
+        private static Deserializer<SimpleBinaryReader<InputBuffer>> GetSimpleDeserializer()
+        {
+            if (deserializer is null)
+            {
+                deserializer = new Deserializer<SimpleBinaryReader<InputBuffer>>(typeof(BondSchemas.QsCompilation));
+            }
+
+            return deserializer;
+        }
+
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>> GetSimpleSerializer()
+        {
+            if (serializer is null)
+            {
+                serializer = new Serializer<SimpleBinaryWriter<OutputBuffer>>(typeof(BondSchemas.QsCompilation));
+            }
+
+            return serializer;
         }
 
         /// <summary>

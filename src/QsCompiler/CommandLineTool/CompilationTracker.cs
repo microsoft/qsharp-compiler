@@ -147,6 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
 
                 var propertyName = $"{preparedPrefix}{this.Task.Name}";
+                Console.WriteLine($"{propertyName} - {this.Task.IntervalCount}");
                 jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs);
                 foreach (var entry in this.Children.OrderBy(e => e.Key))
                 {
