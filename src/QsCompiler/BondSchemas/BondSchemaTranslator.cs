@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
-using Bond;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
 using QsDocumentation = System.Linq.ILookup<Microsoft.Quantum.QsCompiler.DataTypes.NonNullable<string>, System.Collections.Immutable.ImmutableArray<string>>;
@@ -85,6 +84,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 IsSelfAdjoint = inferredCallableInformation.IsSelfAdjoint,
                 IsIntrinsic = inferredCallableInformation.IsIntrinsic
+            };
+
+        private static LocalDeclarations ToBondSchema(this SyntaxTree.LocalDeclarations localDeclarations) =>
+            new LocalDeclarations
+            {
+                Variables = localDeclarations.Variables.Select(v => v.ToBondSchemaGeneric(typeTranslator: ToBondSchema)).ToList()
             };
 
         private static Modifiers ToBondSchema(this SyntaxTokens.Modifiers modifiers) =>
@@ -433,7 +438,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new QsStatement
             {
                 Statement = qsStatement.Statement.ToBondSchema(),
-                // TODO: Implement SymbolDeclarations.
+                SymbolDeclarations = qsStatement.SymbolDeclarations.ToBondSchema(),
                 Location = qsStatement.Location.IsNull ? null : qsStatement.Location.Item.ToBondSchema(),
                 Comments = qsStatement.Comments.ToBondSchema()
             };
@@ -639,10 +644,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static ResolvedSignature ToBondSchema(this SyntaxTree.ResolvedSignature resolvedSignature) =>
             new ResolvedSignature
             {
-                TypeParameters = resolvedSignature.TypeParameters.Select(tp => tp.ToBondSchema()).ToList()
-                // TODO: Implement ArgumentType
-                // TODO: Implement ReturnType
-                // TODO: Implement Information
+                TypeParameters = resolvedSignature.TypeParameters.Select(tp => tp.ToBondSchema()).ToList(),
+                ArgumentType = resolvedSignature.ArgumentType.ToBondSchema(),
+                ReturnType = resolvedSignature.ReturnType.ToBondSchema(),
+                Information = resolvedSignature.Information.ToBondSchema()
             };
 
         private static ResolvedType ToBondSchema(this SyntaxTree.ResolvedType resolvedType) =>
