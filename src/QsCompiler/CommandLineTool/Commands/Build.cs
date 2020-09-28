@@ -208,7 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions,
                 RuntimeCapabilities = options.RuntimeCapabilites,
-                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
+                SkipMonomorphization = false,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
