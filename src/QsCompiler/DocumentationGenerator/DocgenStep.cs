@@ -9,7 +9,6 @@ using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.Experimental;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-
 namespace Microsoft.Quantum.Documentation
 {
     public class DocumentationGenerationStep : IRewriteStep
