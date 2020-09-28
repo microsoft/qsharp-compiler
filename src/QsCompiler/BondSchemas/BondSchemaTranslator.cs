@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
-using Bond;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
 using QsDocumentation = System.Linq.ILookup<Microsoft.Quantum.QsCompiler.DataTypes.NonNullable<string>, System.Collections.Immutable.ImmutableArray<string>>;
@@ -85,6 +84,19 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 IsSelfAdjoint = inferredCallableInformation.IsSelfAdjoint,
                 IsIntrinsic = inferredCallableInformation.IsIntrinsic
+            };
+
+        private static InferredExpressionInformation ToBondSchema(this SyntaxTree.InferredExpressionInformation inferredExpressionInformation) =>
+            new InferredExpressionInformation
+            {
+                IsMutable = inferredExpressionInformation.IsMutable,
+                HasLocalQuantumDependency = inferredExpressionInformation.HasLocalQuantumDependency
+            };
+
+        private static LocalDeclarations ToBondSchema(this SyntaxTree.LocalDeclarations localDeclarations) =>
+            new LocalDeclarations
+            {
+                Variables = localDeclarations.Variables.Select(v => v.ToBondSchemaGeneric(typeTranslator: ToBondSchema)).ToList()
             };
 
         private static Modifiers ToBondSchema(this SyntaxTokens.Modifiers modifiers) =>
@@ -377,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new QsScope
             {
                 Statements = qsScope.Statements.Select(s => s.ToBondSchema()).ToList()
-                // TOOD: Implement LocalDeclarations.
+                // TODO: Implement LocalDeclarations.
             };
 
         private static LinkedList<QsSourceFileDocumentation> ToBondSchema(this QsDocumentation qsDocumentation)
@@ -433,7 +445,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new QsStatement
             {
                 Statement = qsStatement.Statement.ToBondSchema(),
-                // TODO: Implement SymbolDeclarations.
+                SymbolDeclarations = qsStatement.SymbolDeclarations.ToBondSchema(),
                 Location = qsStatement.Location.IsNull ? null : qsStatement.Location.Item.ToBondSchema(),
                 Comments = qsStatement.Comments.ToBondSchema()
             };
@@ -639,10 +651,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static ResolvedSignature ToBondSchema(this SyntaxTree.ResolvedSignature resolvedSignature) =>
             new ResolvedSignature
             {
-                TypeParameters = resolvedSignature.TypeParameters.Select(tp => tp.ToBondSchema()).ToList()
-                // TODO: Implement ArgumentType
-                // TODO: Implement ReturnType
-                // TODO: Implement Information
+                TypeParameters = resolvedSignature.TypeParameters.Select(tp => tp.ToBondSchema()).ToList(),
+                ArgumentType = resolvedSignature.ArgumentType.ToBondSchema(),
+                ReturnType = resolvedSignature.ReturnType.ToBondSchema(),
+                Information = resolvedSignature.Information.ToBondSchema()
             };
 
         private static ResolvedType ToBondSchema(this SyntaxTree.ResolvedType resolvedType) =>
@@ -724,11 +736,19 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
         }
 
+        private static TypedArgument ToBondSchema(this Tuple<SyntaxTree.QsQualifiedName, NonNullable<string>, SyntaxTree.ResolvedType> typedArgumet) =>
+            new TypedArgument
+            {
+                Callable = typedArgumet.Item1.ToBondSchema(),
+                Name = typedArgumet.Item2.Value,
+                Resolution = typedArgumet.Item3.ToBondSchema()
+            };
+
         private static TypedExpression ToBondSchema(this SyntaxTree.TypedExpression typedExpression) =>
             new TypedExpression
             {
                 Expression = typedExpression.Expression.ToBondSchema(),
-                // TODO: Implement TypeArguments.
+                TypedArguments = typedExpression.TypeArguments.Select(t => t.ToBondSchema()).ToList(),
                 ResolvedType = typedExpression.ResolvedType.ToBondSchema(),
                 Range = typedExpression.Range.IsNull ?
                     null :
@@ -803,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 VariableName = typeTranslator(localVariableDeclaration.VariableName),
                 Type = localVariableDeclaration.Type.ToBondSchema(),
-                // TODO: Implement InferredInformation.
+                InferredInformation = localVariableDeclaration.InferredInformation.ToBondSchema(),
                 Position = localVariableDeclaration.Position.IsNull ?
                     null :
                     localVariableDeclaration.Position.Item.ToBondSchema(),
