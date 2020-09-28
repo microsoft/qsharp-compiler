@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 #nullable enable
 
@@ -107,7 +108,13 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// <summary>
             /// Task that deserializes as part of the 'ReferenceLoading' task.
             /// </summary>
-            SyntaxTreeDeserialization
+            SyntaxTreeDeserialization,
+
+            /// <summary>
+            /// Task for a specific rewrite step.
+            /// These tasks should be accompanied with details of which rewrite step it is specific to.
+            /// </summary>
+            SingleRewriteStep
         }
 
         /// <summary>
@@ -136,6 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.OutputGeneration, Task.OverallCompilation },
             { Task.ReferenceLoading, Task.OverallCompilation },
             { Task.RewriteSteps, Task.OverallCompilation },
+            { Task.SingleRewriteStep, Task.RewriteSteps },
             { Task.SourcesLoading, Task.OverallCompilation },
             { Task.ReplaceTargetSpecificImplementations, Task.Build },
             { Task.BinaryGeneration, Task.OutputGeneration },
@@ -150,17 +158,27 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Raises a task start event.
         /// </summary>
-        public static void TaskStart(Task task)
+        /// <param name="task">Indicates the task to start.</param>
+        /// <param name="leafSuffix">
+        /// Supplies a string to label the task more precisely.
+        /// N.B. Can only be non-null on tasks that are not a parent of another task.
+        /// </param>
+        public static void TaskStart(Task task, string? leafSuffix = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.Start, task);
+            InvokeTaskEvent(CompilationTaskEventType.Start, task, leafSuffix);
         }
 
         /// <summary>
         /// Raises a task end event.
         /// </summary>
-        public static void TaskEnd(Task task)
+        /// <param name="task">Indicates the task to end.</param>
+        /// <param name="leafSuffix">
+        /// Supplies a string to label the task more precisely.
+        /// N.B. Can only be non-null on tasks that are not a parent of another task.
+        /// </param>
+        public static void TaskEnd(Task task, string? leafSuffix = null)
         {
-            InvokeTaskEvent(CompilationTaskEventType.End, task);
+            InvokeTaskEvent(CompilationTaskEventType.End, task, leafSuffix);
         }
 
         /// <summary>
@@ -177,21 +195,29 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             return parent;
         }
 
+        private static bool IsLeaf(this Task task) => !TasksHierarchy.Values.Contains(task);
+
         /// <summary>
         /// Invokes a compilation task event.
         /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
         /// </summary>
-        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task)
+        private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, string? leafSuffix = null)
         {
             if (FailureOccurred)
             {
                 return;
             }
 
+            if (!(leafSuffix is null) && !task.IsLeaf())
+            {
+                throw new ArgumentException($"Non-leaf Task '{task}' cannot use a suffix");
+            }
+
             try
             {
                 var parent = GetTaskParent(task);
-                CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), task.ToString());
+                var taskId = task.ToString() + (leafSuffix is null ? string.Empty : $"-{Regex.Replace(leafSuffix, @"\s+", string.Empty)}");
+                CompilationTaskEvent?.Invoke(eventType, parent?.ToString(), taskId.ToString());
             }
             catch (Exception ex)
             {
