@@ -55,11 +55,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static readonly string YamlExtension = ".yml";
         internal static readonly string LogExtension = ".log";
 
-        internal static YamlNode BuildStringNode(string item)
+        internal static YamlNode BuildStringNode(string? item)
         {
             var node = new YamlScalarNode(item);
             // Set the style to literal (YAML |-) if the string is multi-line
-            if (item.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
+            if (item?.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
             {
                 node.Style = YamlDotNet.Core.ScalarStyle.Literal;
             }
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void AddString(this YamlSequenceNode root, string item) => root.Add(BuildStringNode(item));
 
         // We don't need to set the key to literal because all of our keys are simple one-line strings.
-        internal static void AddStringMapping(this YamlMappingNode root, string key, string item)
+        internal static void AddStringMapping(this YamlMappingNode root, string key, string? item)
         {
             root.Children[new YamlScalarNode(key)] = BuildStringNode(item);
         }
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
-        internal static string ResolvedTypeToString(ResolvedType t) =>
+        internal static string? ResolvedTypeToString(ResolvedType t) =>
             SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>

@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
-            if (namespaces == null || namespaces.Contains(null))
+            if (namespaces == null || namespaces.Contains(null!))
             {
                 throw new ArgumentNullException(nameof(namespaces));
             }
@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public class StatementTransformation<TSelector>
         : Core.StatementTransformation<TransformationState> where TSelector : SelectByFoldingOverExpressions
         {
-            protected TSelector SubSelector;
+            protected TSelector? SubSelector;
             protected readonly Func<TransformationState, TSelector> CreateSelector;
 
             /// <summary>
@@ -267,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector.SharedState.SatisfiesCondition)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         statements.Add(transformed);
                     }
