@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -82,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the Range of the given CompilerDiagnostic is null.
         /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
-        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null)
+        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, [AllowNull] Position? positionOffset = null)
         {
             if (msg.Range == null)
             {

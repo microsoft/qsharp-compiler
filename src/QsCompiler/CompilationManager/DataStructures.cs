@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -474,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             CodeFragment.TokenIndex tIndex,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
-            string? keepInvalid = null)
+            [AllowNull] string? keepInvalid = null)
         {
             if (getDeclaration == null)
             {
