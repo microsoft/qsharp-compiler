@@ -34,9 +34,6 @@
     <PackageReference Include="System.Security.Permissions" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 </Project>

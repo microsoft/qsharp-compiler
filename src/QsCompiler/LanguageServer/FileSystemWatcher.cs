@@ -11,6 +11,7 @@ using System.Security.Permissions;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsLanguageServer
