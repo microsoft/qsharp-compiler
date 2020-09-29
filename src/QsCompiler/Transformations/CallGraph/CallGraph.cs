@@ -17,9 +17,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
-    /// Edge type for Simple Call Graphs.
+    /// Edge type for Call Graphs.
     /// </summary>
-    public sealed class SimpleCallGraphEdge : CallGraphEdgeBase, IEquatable<SimpleCallGraphEdge>
+    public sealed class CallGraphEdge : CallGraphEdgeBase, IEquatable<CallGraphEdge>
     {
         /// <summary>
         /// Contains the type parameter resolutions associated with this edge.
@@ -27,11 +27,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public TypeParameterResolutions ParamResolutions { get; }
 
         /// <summary>
-        /// Constructor for SimpleCallGraphEdge objects.
+        /// Constructor for CallGraphEdge objects.
         /// Strips position info from the given type parameter resolutions.
         /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
-        internal SimpleCallGraphEdge(TypeParameterResolutions paramResolutions, Range referenceRange)
+        internal CallGraphEdge(TypeParameterResolutions paramResolutions, Range referenceRange)
             : base(referenceRange)
         {
             if (paramResolutions is null)
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
-        public bool Equals(SimpleCallGraphEdge edge) =>
+        public bool Equals(CallGraphEdge edge) =>
             base.Equals(edge)
             && (this.ParamResolutions == edge.ParamResolutions
                 || this.ParamResolutions
@@ -60,13 +60,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// Node type that represents Q# callables.
     /// </summary>
-    public sealed class SimpleCallGraphNode : CallGraphNodeBase
+    public sealed class CallGraphNode : CallGraphNodeBase
     {
         /// <summary>
-        /// Constructor for SimpleCallGraphNode objects.
+        /// Constructor for CallGraphNode objects.
         /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
-        public SimpleCallGraphNode(QsQualifiedName callableName)
+        public CallGraphNode(QsQualifiedName callableName)
             : base(callableName)
         {
         }
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// <summary>
     /// A kind of call graph whose nodes represent Q# callables.
     /// </summary>
-    public sealed class SimpleCallGraph
+    public sealed class CallGraph
     {
         // Static Elements
 
@@ -92,14 +92,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         // Member Fields
 
-        private CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge> graphBuilder = new CallGraphBuilder<SimpleCallGraphNode, SimpleCallGraphEdge>();
+        private CallGraphBuilder<CallGraphNode, CallGraphEdge> graphBuilder = new CallGraphBuilder<CallGraphNode, CallGraphEdge>();
 
         // Properties
 
         /// <summary>
         /// A hash set of the nodes in the call graph.
         /// </summary>
-        public ImmutableHashSet<SimpleCallGraphNode> Nodes => this.graphBuilder.Nodes;
+        public ImmutableHashSet<CallGraphNode> Nodes => this.graphBuilder.Nodes;
 
         // Constructors
 
@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// entry points are dependent on.
         /// Throws ArgumentNullException if compilation argument is null.
         /// </summary>
-        public SimpleCallGraph(QsCompilation compilation, bool trim = false)
+        public CallGraph(QsCompilation compilation, bool trim = false)
         {
             if (compilation is null)
             {
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             }
             else
             {
-                BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, compilation);
+                BuildCallGraph.PopulateGraph(this.graphBuilder, compilation);
             }
         }
 
@@ -130,14 +130,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Constructs a call graph from callables.
         /// Throws an ArgumentNullException if the argument is null or any of the callables are null.
         /// </summary>
-        public SimpleCallGraph(IEnumerable<QsCallable> callables)
+        public CallGraph(IEnumerable<QsCallable> callables)
         {
             if (callables is null || callables.Any(x => x is null))
             {
                 throw new ArgumentNullException(nameof(callables));
             }
 
-            BuildCallGraph.PopulateSimpleGraph(this.graphBuilder, callables);
+            BuildCallGraph.PopulateGraph(this.graphBuilder, callables);
         }
 
         // Member Methods
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// the graph.
         /// Throws ArgumentNullException if argument is null.
         /// </summary>
-        public ILookup<SimpleCallGraphNode, SimpleCallGraphEdge> GetDirectDependencies(SimpleCallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
+        public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
 
         /// <summary>
         /// Given a call graph edges, finds all cycles and determines if each is valid.
@@ -194,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
-        internal ImmutableArray<ImmutableArray<SimpleCallGraphNode>> GetCallCycles()
+        internal ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
             var indexToNode = this.Nodes.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
@@ -210,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToImmutableArray();
         }
 
-        private IEnumerable<IEnumerable<(SimpleCallGraphEdge, QsQualifiedName)>> GetEdgesWithNames(ImmutableArray<SimpleCallGraphNode> cycle)
+        private IEnumerable<IEnumerable<(CallGraphEdge, QsQualifiedName)>> GetEdgesWithNames(ImmutableArray<CallGraphNode> cycle)
             => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]].Select(x => (x, curr.CallableName)));
 
         // Inner Classes

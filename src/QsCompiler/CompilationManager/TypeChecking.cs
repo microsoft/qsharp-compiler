@@ -2032,7 +2032,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics, ImmutableDictionary<QsQualifiedName, CallableDeclarationHeader> callableDeclarations)
         {
             // Need to consider the whole compilation to detect cycles
-            var callGraph = new SimpleCallGraph(compilation.GetCallables().Values);
+            var callGraph = new CallGraph(compilation.GetCallables().Values);
             foreach (var (diag, parent) in callGraph.VerifyAllCycles())
             {
                 // Only keep diagnostics for callables that are currently available in the editor

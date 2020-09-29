@@ -97,7 +97,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         Assert.NotNull compilationDataStructures.BuiltCompilation
         compilationDataStructures.BuiltCompilation
 
-    let BuildTrimmedGraph (compilation : QsCompilation) = SimpleCallGraph(compilation, true)
+    let BuildTrimmedGraph (compilation : QsCompilation) = CallGraph(compilation, true)
 
     let CompileTestExpectingErrors testNumber fileName expect =
         let srcChunks = ReadAndChunkSourceFile fileName
@@ -105,8 +105,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         BuildContentWithErrors srcChunks.[testNumber-1] expect
 
     let CompileCycleDetectionTest testNumber =
-        let SimpleCallGraph = CompileTest testNumber "CycleDetection.qs" |> SimpleCallGraph
-        SimpleCallGraph.GetCallCycles ()
+        let CallGraph = CompileTest testNumber "CycleDetection.qs" |> CallGraph
+        CallGraph.GetCallCycles ()
 
     let CompileCycleValidationTest testNumber =
         CompileTest testNumber "CycleValidation.qs" |> ignore
@@ -141,7 +141,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             let rotations = [0 .. size1 - 1] |> List.map rotate
             List.contains lst2 rotations
 
-    let CheckForExpectedCycles (actualCycles: seq<#seq<SimpleCallGraphNode>>) expectedCycles =
+    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
 
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
@@ -156,22 +156,22 @@ type CallGraphTests (output:ITestOutputHelper) =
             Assert.True(List.exists (CyclicEquivalence cycle) actual,
                 sprintf "Did not find expected cycle: %s" (cycleToString cycle))
 
-    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : SimpleCallGraph) =
+    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
         let strToNode name =
             let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
-            SimpleCallGraphNode(nodeName)
+            CallGraphNode(nodeName)
         let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
         for nameTo in nameToList do
             let expectedNode = strToNode nameTo
             Assert.True(dependencies.Contains(expectedNode),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
-    let AssertInGraph (givenGraph : SimpleCallGraph) name =
+    let AssertInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
-    let AssertNotInGraph (givenGraph : SimpleCallGraph) name =
+    let AssertNotInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
@@ -245,7 +245,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 4 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 4 |> CallGraph
 
         [
             "Main", [
@@ -261,7 +261,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 5 |> SimpleCallGraph
+        let graph = CompileTypeParameterResolutionTest 5 |> CallGraph
 
         [
             "Main", [
