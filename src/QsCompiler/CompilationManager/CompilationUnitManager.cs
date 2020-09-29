@@ -14,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -930,7 +931,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up
             /// containing the names and corresponding short form (if any) of all opened namespaces for that (part of the) namespace in a particular source file.
             /// </summary>
-            private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string)>> openDirectivesForEachFile;
+            private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string?)>> openDirectivesForEachFile;
 
             /// <summary>
             /// Contains a dictionary that given the ID of a file included in the compilation
@@ -1022,11 +1023,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// returns the names and corresponding short form (if any) of all opened namespaces for the (part of the) namespace in that file.
             /// Returns an empy sequence if no source file with the given ID and/or namespace with the given name exists in the compilation.
             /// </summary>
-            public IEnumerable<(NonNullable<string>, string)> OpenDirectives(NonNullable<string> sourceFile, NonNullable<string> nsName) =>
-                this.openDirectivesForEachFile
-                    .TryGetValue(nsName, out ILookup<NonNullable<string>, (NonNullable<string>, string)> lookUp)
-                        ? lookUp[sourceFile]
-                        : Enumerable.Empty<(NonNullable<string>, string)>();
+            public IEnumerable<(NonNullable<string>, string?)> OpenDirectives(NonNullable<string> sourceFile, NonNullable<string> nsName) =>
+                this.openDirectivesForEachFile.TryGetValue(nsName, out var lookUp)
+                    ? lookUp[sourceFile]
+                    : Enumerable.Empty<(NonNullable<string>, string?)>();
 
             /// <summary>
             /// Returns all the names of all callable and types defined in the namespace with the given name.
