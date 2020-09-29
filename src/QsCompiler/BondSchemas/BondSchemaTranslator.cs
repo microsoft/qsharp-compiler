@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Comments = qsDeclarationAttribute.Comments.ToBondSchema()
             };
 
-        private static QsExpressionKindDetail<TypedExpression, Identifier, ResolvedType> ToBondSchema(
+        private static QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> ToBondSchema(
             this SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> qsExpressionKind) =>
             qsExpressionKind.ToBondSchemaGeneric<
                 TypedExpression,
@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Comments = qsStatement.Comments.ToBondSchema()
             };
 
-        private static QsStatementKindDetail ToBondSchema(this SyntaxTree.QsStatementKind qsStatementKind)
+        private static QsStatementKindComposition ToBondSchema(this SyntaxTree.QsStatementKind qsStatementKind)
         {
             SyntaxTree.TypedExpression? compilerTypedExpression = null;
             SyntaxTree.QsBinding<SyntaxTree.TypedExpression>? compilerVariableDeclaration = null;
@@ -476,7 +476,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 throw new ArgumentException($"Unsupported QsStatementKind {qsStatementKind}");
             }
 
-            return new QsStatementKindDetail
+            return new QsStatementKindComposition
             {
                 Kind = kind,
                 TypedExpression = compilerTypedExpression?.ToBondSchema(),
@@ -499,7 +499,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             this SyntaxTokens.QsTuple<SyntaxTree.QsTypeItem> qsTypeItem) =>
             qsTypeItem.ToBondSchemaGeneric(typeTranslator: ToBondSchema);
 
-        private static QsTypeKindDetails<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> ToBondSchema(
+        private static QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> ToBondSchema(
             this SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> qsTypeKind) =>
             qsTypeKind.ToBondSchemaGeneric
                 <ResolvedType,
@@ -691,7 +691,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     userDefinedType.Range.Item.ToBondSchema()
             };
 
-        private static CharacteristicsKindDetail<TBond> ToBondSchemaGeneric<TBond, TCompiler>(
+        private static CharacteristicsKindComposition<TBond> ToBondSchemaGeneric<TBond, TCompiler>(
             this SyntaxTokens.CharacteristicsKind<TCompiler> characteristicsKind,
             Func<TCompiler, TBond> typeTranslator)
             where TBond : class
@@ -722,7 +722,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 };
             }
 
-            return new CharacteristicsKindDetail<TBond>
+            return new CharacteristicsKindComposition<TBond>
             {
                 Kind = kind,
                 SimpleSet = compilerSimpleSet?.ToBondSchema(),
@@ -754,7 +754,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Rhs = typeTranslator(qsBinding.Rhs)
             };
 
-        private static QsExpressionKindDetail<TBondExpression, TBondSymbol, TBondType> ToBondSchemaGeneric<
+        private static QsExpressionKindComposition<TBondExpression, TBondSymbol, TBondType> ToBondSchemaGeneric<
             TBondExpression,
             TBondSymbol,
             TBondType,
@@ -977,7 +977,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 };
             }
 
-            return new QsExpressionKindDetail<TBondExpression, TBondSymbol, TBondType>
+            return new QsExpressionKindComposition<TBondExpression, TBondSymbol, TBondType>
             {
                 Kind = kind,
                 Identifier = compilerIdentifier?.ToQsExpressionKindIdentifierGeneric(
@@ -1007,7 +1007,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
         }
 
-        private static QsInitializerKindDetail<TBondInitializer, TBondExpression> ToBondSchemaGeneric<
+        private static QsInitializerKindComposition<TBondInitializer, TBondExpression> ToBondSchemaGeneric<
             TBondInitializer,
             TBondExpression,
             TCompilerInitializer,
@@ -1045,7 +1045,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 };
             }
 
-            return new QsInitializerKindDetail<TBondInitializer, TBondExpression>
+            return new QsInitializerKindComposition<TBondInitializer, TBondExpression>
             {
                 Kind = kind,
                 QubitRegisterAllocation = bondQubitRegisterAllocation!,
@@ -1087,7 +1087,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
         }
 
-        private static QsTypeKindDetails<TBondData, TBondUdt, TBondParam, TBondCharacteristics> ToBondSchemaGeneric
+        private static QsTypeKindComposition<TBondData, TBondUdt, TBondParam, TBondCharacteristics> ToBondSchemaGeneric
             <TBondData,
              TBondUdt,
              TBondParam,
@@ -1169,7 +1169,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 };
             }
 
-            return new QsTypeKindDetails<TBondData, TBondUdt, TBondParam, TBondCharacteristics>
+            return new QsTypeKindComposition<TBondData, TBondUdt, TBondParam, TBondCharacteristics>
             {
                 Kind = kind,
                 ArrayType = bondArrayType!,
