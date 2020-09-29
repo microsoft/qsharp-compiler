@@ -9,7 +9,11 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Bond;
+using Bond.IO.Unsafe;
+using Bond.Protocols;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -24,6 +28,12 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+
+        private static Deserializer<SimpleBinaryReader<InputBuffer>>? deserializer = null;
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>>? serializer = null;
+        private static (Deserializer<SimpleBinaryReader<InputBuffer>>, SimpleBinaryReader<InputBuffer>)? simpleDeserializationTuple = null;
+        private static (Serializer<SimpleBinaryWriter<OutputBuffer>> Serializer, SimpleBinaryWriter<OutputBuffer> Writer, OutputBuffer Buffer)? simpleSerializationTuple = null;
+
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -106,11 +116,71 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new ArgumentNullException(nameof(stream));
             }
+
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.DeserializerInit);
             using var reader = new BsonDataReader(stream);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.DeserializerInit);
             (compilation, reader.ReadRootValueAsArray) = (null, false);
             try
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
+
+                // TODO: Remove this code since these are just experiments used to explore different performance enhancings.
+
+                // TODO: Add a newtonsoft serialization task  to be able to easily compare everything here.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftOriginalSerialization);
+                var newtonsoftMemoryStreamA = new MemoryStream();
+                using var newtonsoftWriterA = new BsonDataWriter(newtonsoftMemoryStreamA) { CloseOutput = false };
+                Json.Serializer.Serialize(newtonsoftWriterA, compilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftOriginalSerialization);
+
+                // TODO: Remove - New serializer init.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewSerializerInit);
+                var (_, bondWriter, bondBuffer) = PerformanceExperiments.CreateSimpleBinaryBufferSerializationTuple();
+                //var (bondSerializer, bondWriter, bondBuffer) = GetSimpleSerializationTuple();
+                var bondSerializer = GetSimpleSerializer();
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewSerializerInit);
+
+                // TODO: Remove - New serialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewSerialization);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.TranslationToBond);
+                var bondQsCompilation = BondSchemas.BondSchemaTranslator.CreateBondCompilation(compilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.TranslationToBond);
+
+                bondSerializer.Serialize(bondQsCompilation, bondWriter);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewSerialization);
+
+                // TODO: Remove - New deserializer init.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewDeserializerInit);
+                var (_, bondReader) = PerformanceExperiments.CreateSimpleBinaryBufferDeserializationTuple(bondBuffer);
+                var bondDeserializer = GetSimpleDeserializer();
+                //var (bondDeserializer, bondReader) = GetSimpleDeserializationTuple();
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewDeserializerInit);
+
+                // TODO: Remove - New deserialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewDeserialization);
+                var deserializedBondCompilation = bondDeserializer.Deserialize<BondSchemas.QsCompilation>(bondReader);
+
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.TranslationFromBond);
+                var deserializedOriginalCompilation = BondSchemas.CompilerObjectTranslator.CreateQsCompilation(deserializedBondCompilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.TranslationFromBond);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewDeserialization);
+
+                // TODO: Remove - Comparable Newtonsoft serialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftComparableSerialization);
+                var newtonsoftMemoryStreamB = new MemoryStream();
+                using var newtonsoftWriterB = new BsonDataWriter(newtonsoftMemoryStreamB) { CloseOutput = false };
+                Json.Serializer.Serialize(newtonsoftWriterB, deserializedOriginalCompilation);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftComparableSerialization);
+
+                // TODO: Remove - Comparable Newtonsoft deserialization.
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.NewtonsoftComparableDeserialization);
+                using var newtonsoftReader = new BsonDataReader(newtonsoftMemoryStreamB);
+                var deserializedByNewtonsoftCompilation = Json.Serializer.Deserialize<QsCompilation>(newtonsoftReader);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.NewtonsoftComparableDeserialization);
+
                 return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
             }
             catch (Exception ex)
@@ -161,13 +231,16 @@ namespace Microsoft.Quantum.QsCompiler
             // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
             // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
             // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
             var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+            var resourceDataStream = new MemoryStream(resourceData);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            return LoadSyntaxTree(resourceDataStream, out compilation, onDeserializationException);
         }
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
@@ -224,6 +297,26 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
             return null;
+        }
+
+        private static Deserializer<SimpleBinaryReader<InputBuffer>> GetSimpleDeserializer()
+        {
+            if (deserializer is null)
+            {
+                deserializer = new Deserializer<SimpleBinaryReader<InputBuffer>>(typeof(BondSchemas.QsCompilation));
+            }
+
+            return deserializer;
+        }
+
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>> GetSimpleSerializer()
+        {
+            if (serializer is null)
+            {
+                serializer = new Serializer<SimpleBinaryWriter<OutputBuffer>>(typeof(BondSchemas.QsCompilation));
+            }
+
+            return serializer;
         }
 
         /// <summary>
