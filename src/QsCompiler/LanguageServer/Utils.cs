@@ -17,12 +17,12 @@ namespace Microsoft.Quantum.QsLanguageServer
         // language server tools -
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
-        public static T TryJTokenAs<T>(JToken arg) where T : class =>
+        public static T TryJTokenAs<T>(JToken? arg) where T : class =>
             QsCompilerError.RaiseOnFailure(
                 () => arg == null ? throw new ArgumentNullException(nameof(arg)) : arg.ToObject<T>(),
                 "could not cast given JToken");
 
-        private static ShowMessageParams AsMessageParams(string text, MessageType severity) =>
+        private static ShowMessageParams? AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
 
         /// <summary>
