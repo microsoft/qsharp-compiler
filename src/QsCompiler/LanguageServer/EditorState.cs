@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,7 +29,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void Dispose() => this.projects.Dispose();
 
         private readonly Action<PublishDiagnosticParams> publish;
-        private readonly Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry;
+        private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry;
         private readonly Action<Uri> onTemporaryProjectLoaded;
 
         /// <summary>
@@ -37,7 +38,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles;
 
-        private FileContentManager GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
+        private FileContentManager? GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
 
         /// <summary>
         /// any edits in the editor to the listed files (keys) are ignored, while changes on disk are still being processed
@@ -46,9 +47,9 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal void IgnoreEditorUpdatesFor(Uri uri) => this.ignoreEditorUpdatesForFiles.TryAdd(uri, default);
 
-        private static bool ValidFileUri(Uri file) => file != null && file.IsFile && file.IsAbsoluteUri;
+        private static bool ValidFileUri(Uri? file) => file != null && file.IsFile && file.IsAbsoluteUri;
 
-        private bool IgnoreFile(Uri file) => file == null || this.ignoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
+        private bool IgnoreFile(Uri? file) => file == null || this.ignoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
 
         /// <summary>
         /// Calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed,
@@ -58,7 +59,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal EditorState(
             ProjectLoader projectLoader,
             Action<PublishDiagnosticParams> publishDiagnostics,
-            Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry,
+            Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry,
             Action<string, MessageType> log,
             Action<Exception> onException,
             Action<Uri> onTemporaryProjectLoaded)
@@ -73,7 +74,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     // Some editors (e.g. Visual Studio) will actually ignore diagnostics for .csproj files.
                     // Since all errors on project loading are associated with the corresponding project file for publishing,
                     // we need to replace the project file ending before publishing. This issue is naturally resolved once we have our own project files...
-                    var parentDir = Path.GetDirectoryName(param.Uri.AbsolutePath);
+                    var parentDir = Path.GetDirectoryName(param.Uri.AbsolutePath) ?? "";
                     var projFileWithoutExtension = Path.GetFileNameWithoutExtension(param.Uri.AbsolutePath);
                     if (onProjFile && Uri.TryCreate(Path.Combine(parentDir, $"{projFileWithoutExtension}.qsproj"), UriKind.Absolute, out var parentFolder))
                     {
@@ -94,9 +95,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and returns the combined path of the project directory and the evaluated include.
         /// </summary>
         private static IEnumerable<string> GetItemsByType(ProjectInstance project, string itemType) =>
-            project?.Items
-                ?.Where(item => item.ItemType == itemType && item.EvaluatedInclude != null)
-                ?.Select(item => Path.Combine(project.Directory, item.EvaluatedInclude));
+            project.Items
+                .Where(item => item.ItemType == itemType && item.EvaluatedInclude != null)
+                .Select(item => Path.Combine(project.Directory, item.EvaluatedInclude));
 
         /// <summary>
         /// If the given uri corresponds to a C# project file,
@@ -106,7 +107,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns null if it isn't, or if the project file itself has been listed as to be ignored.
         /// Calls SendTelemetry with suitable data if the project is a recognized Q# project.
         /// </summary>
-        internal bool QsProjectLoader(Uri projectFile, out ProjectInformation info)
+        internal bool QsProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             info = null;
             if (projectFile == null || !ValidFileUri(projectFile) || this.IgnoreFile(projectFile))
@@ -157,9 +158,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
-        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string sdkVersion)
+        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string? sdkVersion)
         {
-            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath);
+            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath) ?? "";
             var projectFileName = string.Join("_x2f_", // arbitrary string to help avoid collisions
                 sourceFolderPath
                     .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
@@ -229,10 +230,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task OpenFileAsync(
             TextDocumentItem textDocument,
-            Action<string, MessageType> showError = null,
-            Action<string, MessageType> logError = null)
+            Action<string, MessageType>? showError = null,
+            Action<string, MessageType>? logError = null)
         {
-            if (!ValidFileUri(textDocument?.Uri))
+            if (textDocument is null || !ValidFileUri(textDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
             }
@@ -332,7 +333,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task DidChangeAsync(DidChangeTextDocumentParams param)
         {
-            if (!ValidFileUri(param?.TextDocument?.Uri))
+            if (param is null || param.TextDocument is null || !ValidFileUri(param.TextDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
             }
@@ -366,7 +367,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task SaveFileAsync(TextDocumentIdentifier textDocument, string fileContent)
         {
-            if (!ValidFileUri(textDocument?.Uri))
+            if (textDocument is null || !ValidFileUri(textDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
             }
@@ -403,9 +404,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Invokes the given Action onError with a suitable message if the given file is not listed as being open in the editor.
         /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
-        internal Task CloseFileAsync(TextDocumentIdentifier textDocument, Action<string, MessageType> onError = null)
+        internal Task CloseFileAsync(TextDocumentIdentifier textDocument, Action<string, MessageType>? onError = null)
         {
-            if (!ValidFileUri(textDocument?.Uri))
+            if (textDocument is null || !ValidFileUri(textDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
             }
@@ -445,16 +446,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified uri is not a valid file uri.
         /// or if some parameters are unspecified (null) or inconsistent with the tracked editor state.
         /// </summary>
-        public WorkspaceEdit Rename(RenameParams param, bool versionedChanges = false) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.Rename(param, versionedChanges) : null;
+        public WorkspaceEdit? Rename(RenameParams param, bool versionedChanges = false) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Rename(param, versionedChanges) : null;
 
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns the given position and file otherwise.
         /// Returns null if the given file is listed as to be ignored or if the information cannot be determined at this point.
         /// </summary>
-        public Location DefinitionLocation(TextDocumentPositionParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.DefinitionLocation(param) : null;
+        public Location? DefinitionLocation(TextDocumentPositionParams? param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.DefinitionLocation(param) : null;
 
         /// <summary>
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
@@ -464,8 +465,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if no call expression exists at the specified position at this time
         /// or if no signature help information can be provided for the call expression at the specified position.
         /// </summary>
-        public SignatureHelp SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.SignatureHelp(param, format) : null;
+        public SignatureHelp? SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.SignatureHelp(param, format) : null;
 
         /// <summary>
         /// Returns information about the item at the specified position as Hover information.
@@ -474,8 +475,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no token exists at the specified position at this time.
         /// </summary>
-        public Hover HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.HoverInformation(param, format) : null;
+        public Hover? HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.HoverInformation(param, format) : null;
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
@@ -484,8 +485,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
         /// </summary>
-        public DocumentHighlight[] DocumentHighlights(TextDocumentPositionParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.DocumentHighlights(param) : null;
+        public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.DocumentHighlights(param) : null;
 
         /// <summary>
         /// Returns an array with all locations where the symbol at the given position - if any - is referenced.
@@ -494,31 +495,31 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
         /// </summary>
-        public Location[] SymbolReferences(ReferenceParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.SymbolReferences(param) : null;
+        public Location[]? SymbolReferences(ReferenceParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.SymbolReferences(param) : null;
 
         /// <summary>
         /// Returns the SymbolInformation for each namespace declaration, type declaration, and function or operation declaration.
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
         /// </summary>
-        public SymbolInformation[] DocumentSymbols(DocumentSymbolParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.DocumentSymbols(param) : null;
+        public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.DocumentSymbols(param) : null;
 
         /// <summary>
         /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
         /// </summary>
-        public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri) ? this.projects.CodeActions(param) : null;
+        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.CodeActions(param) : null;
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.
         /// <para/>
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri or position is null.
         /// </summary>
-        public CompletionList Completions(TextDocumentPositionParams param) =>
-            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param.TextDocument.Uri)
+        public CompletionList? Completions(TextDocumentPositionParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri)
             ? this.projects.Completions(param)
             : null;
 
@@ -529,8 +530,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns null if any parameter is null or the file given in the original completion request is invalid or
         /// ignored.
         /// </summary>
-        internal CompletionItem ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
-            item != null && ValidFileUri(data?.TextDocument?.Uri) && !this.IgnoreFile(data.TextDocument.Uri)
+        internal CompletionItem? ResolveCompletion(CompletionItem? item, CompletionItemData data, MarkupKind format) =>
+            item != null && ValidFileUri(data?.TextDocument?.Uri) && !this.IgnoreFile(data?.TextDocument?.Uri)
             ? this.projects.ResolveCompletion(item, data, format)
             : null;
 
@@ -541,14 +542,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Waits for all currently running or queued tasks to finish before getting the file content in memory.
         /// -> Method to be used for testing/diagnostic purposes only!
         /// </summary>
-        internal string[] FileContentInMemory(TextDocumentIdentifier textDocument) =>
+        internal string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
             this.projects.FileContentInMemory(textDocument);
 
         /// <summary>
         /// Waits for all currently running or queued tasks to finish before getting the diagnostics for the given file.
         /// -> Method to be used for testing purposes only!
         /// </summary>
-        internal Diagnostic[] FileDiagnostics(TextDocumentIdentifier textDocument)
+        internal Diagnostic[]? FileDiagnostics(TextDocumentIdentifier textDocument)
         {
             var allDiagnostics = this.projects.GetDiagnostics(textDocument?.Uri);
             return allDiagnostics?.Count() == 1 ? allDiagnostics.Single().Diagnostics : null; // count is > 1 if the given uri corresponds to a project file

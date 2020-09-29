@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#nullable enable
-
 namespace Microsoft.Quantum.QsLanguageServer
 {
     internal static class TemporaryProject
