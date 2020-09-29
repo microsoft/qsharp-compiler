@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
-        private static void PrintSyntaxTree(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
+        private static void PrintSyntaxTree(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null)
             {
@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
-        private static void PrintGeneratedQs(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
+        private static void PrintGeneratedQs(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null)
             {
@@ -281,7 +281,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 IsExecutable = options.MakeExecutable,
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };

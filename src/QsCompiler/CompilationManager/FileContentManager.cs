@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,14 +92,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// publish an event to notify all subscribers when the timer for queued changes expires
         /// </summary>
-        internal event TimerTriggeredUpdate TimerTriggeredUpdateEvent;
+        internal event TimerTriggeredUpdate? TimerTriggeredUpdateEvent;
 
         internal delegate Task TimerTriggeredUpdate(Uri file);
 
         /// <summary>
         /// publish an event to notify all subscribers when the entire type checking needs to be re-run
         /// </summary>
-        internal event GlobalTypeChecking GlobalTypeCheckingEvent;
+        internal event GlobalTypeChecking? GlobalTypeCheckingEvent;
 
         internal delegate Task GlobalTypeChecking();
 
@@ -835,7 +836,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
 
                         // ... grab all comments associated with the first token and ...
-                        var comments = new List<string>();
+                        var comments = new List<string?>();
                         for (var lineNr = startLine; lineNr > 0 && !this.GetTokenizedLine(--lineNr).Any();)
                         {
                             comments.Add(this.GetLine(lineNr).EndOfLineComment);
@@ -949,7 +950,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns that line number and the text to replace that line with as out parameters.
         /// Returns true if there is anything to replace, and false if the queue was empty.
         /// </summary>
-        internal bool DequeueUnprocessedChanges(out int lineNr, out string textToInsert)
+        internal bool DequeueUnprocessedChanges(out int lineNr, [NotNullWhen(true)] out string? textToInsert)
         {
             if (!this.unprocessedUpdates.Any())
             {
@@ -976,7 +977,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If no change is given or the given change is null, (only) the currently queued changes are to be processed,
         /// otherwise the currently queued changes as well as the given change is processed.
         /// </summary>
-        private void Update(TextDocumentContentChangeEvent change = null)
+        private void Update(TextDocumentContentChangeEvent? change = null)
         {
             this.SyncRoot.EnterUpgradeableReadLock();
             try
@@ -1133,7 +1134,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If FilterBy is null, returns an IEnumerable with the token indices for all tokens on the lines specified by GetLineNumbers.
         /// Returns an empty List if GetLineNumbers is null.
         /// </summary>
-        private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool> filterBy = null)
+        private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
             if (getLineNumbers == null)
             {
@@ -1162,7 +1163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If FilterBy is null, returns an IEnumerable with all fragments on the lines specified by GetLineNumbers.
         /// Returns an empty List if GetLineNumbers is null.
         /// </summary>
-        private List<CodeFragment> FilterFragments(Func<int[]> getLineNumbers, Func<CodeFragment, bool> filterBy = null)
+        private List<CodeFragment> FilterFragments(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
             this.SyncRoot.EnterReadLock();
             try
