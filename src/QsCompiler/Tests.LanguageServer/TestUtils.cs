@@ -107,10 +107,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         internal static void ApplyEdit(TextDocumentContentChangeEvent change, ref List<string> content)
         {
-            if (content == null)
-            {
-                throw new ArgumentNullException(nameof(content));
-            }
             if (!content.Any())
             {
                 throw new ArgumentException("the given content has to have at least on line");
