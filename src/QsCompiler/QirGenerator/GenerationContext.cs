@@ -290,7 +290,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 s => SpecialFunctionName(SpecialFunctionKind.Runtime, s));
 
             #region int library functions
-            this.runtimeLibrary.AddFunction("int_power", this.QirInt, this.QirInt, this.QirInt);
+            this.runtimeLibrary.AddFunction("int_power", this.QirInt, this.QirInt,
+                this.CurrentContext.Int32Type);
             #endregion
             #region Standard result library functions
             //this.runtimeLibrary.AddFunction("result_create", this.QirResult);

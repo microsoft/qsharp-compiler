@@ -1090,8 +1090,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
+                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.CurrentContext.Int32Type, true);
                 var powFunc = this.SharedState.GetRuntimeFunction("int_power");
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, rhsValue));
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
