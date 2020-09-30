@@ -18,8 +18,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         // basic setup
 
-        private Connection connection;
-        private JsonRpc rpc;
+        private Connection? connection;
+        private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
 
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileContentInMemory, TestUtils.GetTextDocumentIdentifier(filename)));
 
-        public Task<Diagnostic[]> GetFileDiagnosticsAsync(string filename = null) =>
+        public Task<Diagnostic[]> GetFileDiagnosticsAsync(string? filename = null) =>
             this.rpc.InvokeWithParameterObjectAsync<Diagnostic[]>(
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = null } : TestUtils.GetTextDocumentIdentifier(filename)));
