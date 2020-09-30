@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry;
-        private readonly Action<Uri> onTemporaryProjectLoaded;
+        private readonly Action<Uri>? onTemporaryProjectLoaded;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -58,11 +58,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal EditorState(
             ProjectLoader projectLoader,
-            Action<PublishDiagnosticParams> publishDiagnostics,
-            Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry,
-            Action<string, MessageType> log,
-            Action<Exception> onException,
-            Action<Uri> onTemporaryProjectLoaded)
+            Action<PublishDiagnosticParams>? publishDiagnostics,
+            Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry,
+            Action<string, MessageType>? log,
+            Action<Exception>? onException,
+            Action<Uri>? onTemporaryProjectLoaded)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
@@ -250,7 +250,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         var projectUri = this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null); // null means the Sdk version will be set to the extension version
                         this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
-                        this.onTemporaryProjectLoaded(projectUri);
+                        this.onTemporaryProjectLoaded?.Invoke(projectUri);
                         createdTemporaryProject = true;
                     }
                     catch (Exception ex)

@@ -635,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// used to log exceptions raised during processing -> may be null!
         /// </summary>
-        private readonly Action<Exception> logException;
+        private readonly Action<Exception>? logException;
 
         /// <summary>
         /// general purpose logging routine used for major loading events -> may be null!
@@ -647,7 +647,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// that action is called whenever diagnostics for the project have changed and are ready for publishing.
         /// Any exceptions caught during processing are logged using the given exception logger.
         /// </summary>
-        public ProjectManager(Action<Exception> exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
+        public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
