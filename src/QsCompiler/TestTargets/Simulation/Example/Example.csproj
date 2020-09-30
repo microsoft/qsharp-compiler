@@ -8,8 +8,6 @@
     <IncludeQsharpCorePackages>false</IncludeQsharpCorePackages>
     <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
     <NoWarn>0219</NoWarn> <!-- suppress C# warning for unused variables -->
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
