@@ -188,7 +188,7 @@ let ``execute rewrite steps only if validation passes`` () =
     let config = new CompilationLoader.Configuration(GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapabilities = AssemblyConstants.RuntimeCapabilities.QPRGen0)
     
     let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source1; source2])
-    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, config);
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.Validation)
@@ -196,7 +196,7 @@ let ``execute rewrite steps only if validation passes`` () =
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization) // no entry point
 
     let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source2])
-    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, config);
+    let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)

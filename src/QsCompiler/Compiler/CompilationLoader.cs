@@ -453,7 +453,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration options = default, ILogger? logger = null)
+        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger? logger = null)
         {
             this.RaiseCompilationTaskStart(null, "OverallCompilation");
 
@@ -461,7 +461,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
-            this.config = options;
+            this.config = options ?? default;
 
             Status rewriteStepLoading = Status.Succeeded;
             this.externalRewriteSteps = RewriteSteps.Load(
@@ -632,7 +632,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
-        public CompilationLoader(IEnumerable<string> sources, IEnumerable<string> references, Configuration options = default, ILogger? logger = null)
+        public CompilationLoader(IEnumerable<string> sources, IEnumerable<string> references, Configuration? options = null, ILogger? logger = null)
             : this(load => load(sources), load => load(references), options, logger)
         {
         }
@@ -642,7 +642,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
-        public CompilationLoader(IEnumerable<string> sources, ReferenceLoader loadReferences, Configuration options = default, ILogger? logger = null)
+        public CompilationLoader(IEnumerable<string> sources, ReferenceLoader loadReferences, Configuration? options = null, ILogger? logger = null)
             : this(load => load(sources), loadReferences, options, logger)
         {
         }
@@ -652,7 +652,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration options = default, ILogger? logger = null)
+        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger? logger = null)
             : this(loadSources, load => load(references), options, logger)
         {
         }
