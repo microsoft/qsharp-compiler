@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             : ImmutableHashSet<IdentifierReferences.Location>.Empty)
                     .Select(AsLocation);
             }
-            else if (implementation is null)
+            else if (implementation is null || specPos is null)
             {
                 return false;
             }
