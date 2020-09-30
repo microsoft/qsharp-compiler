@@ -175,10 +175,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 options.LoadSourcesOrSnippet(logger)(loadFromDisk)
                     .ToImmutableDictionary(entry => entry.Key, entry => UpdateArrayLiterals(entry.Value)); // manually replace array literals
 
-            var loaded = new CompilationLoader(LoadSources, options.References, logger: logger); // no rewrite steps, no generation
+            // no rewrite steps, no generation
+            var loaded =
+                new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
             if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES)
             {
                 return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
+            }
+            else if (loaded.VerifiedCompilation is null)
+            {
+                logger.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>());
+                return ReturnCode.CODE_GENERATION_ERRORS;
             }
 
             // TODO: a lot of the formatting logic defined here and also in the routines above

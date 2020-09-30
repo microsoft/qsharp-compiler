@@ -24,21 +24,21 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly JsonRpc rpc;
         private readonly ManualResetEvent disconnectEvent; // used to keep the server running until it is no longer needed
-        private ManualResetEvent waitForInit; // set to null after initialization
+        private ManualResetEvent? waitForInit; // set to null after initialization
 
         internal bool ReadyForExit { get; private set; }
 
         private readonly System.Timers.Timer internalErrorTimer; // used to avoid spamming users with a lot of errors at once
         private bool showInteralErrorMessage = true; // set via timer as needed
 
-        private string workspaceFolder = null;
+        private string? workspaceFolder = null;
         private readonly HashSet<Uri> projectsInWorkspace;
         private readonly FileWatcher fileWatcher;
         private readonly CoalesceingQueue fileEvents;
 
-        private string clientName;
-        private Version clientVersion;
-        private ClientCapabilities clientCapabilities;
+        private string? clientName;
+        private Version? clientVersion;
+        private ClientCapabilities? clientCapabilities;
         private readonly EditorState editorState;
 
         /// <summary>
@@ -57,21 +57,23 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
         /// </summary>
-        private MarkupKind ChooseFormat(MarkupKind[] supportedFormats) =>
+        private MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
 
         // methods required for basic functionality
 
-        public QsLanguageServer(Stream sender, Stream reader)
+        public QsLanguageServer(Stream? sender, Stream? reader)
         {
             this.waitForInit = new ManualResetEvent(false);
             this.rpc = new JsonRpc(sender, reader, this)
-            { SynchronizationContext = new QsSynchronizationContext() };
+            {
+                SynchronizationContext = new QsSynchronizationContext()
+            };
             this.rpc.StartListening();
             this.disconnectEvent = new ManualResetEvent(false);
-            this.rpc.Disconnected += (object s, JsonRpcDisconnectedEventArgs e) => { this.disconnectEvent.Set(); }; // let's make the server exit if the stream is disconnected
+            this.rpc.Disconnected += (object? s, JsonRpcDisconnectedEventArgs e) => { this.disconnectEvent.Set(); }; // let's make the server exit if the stream is disconnected
             this.ReadyForExit = false;
 
             this.internalErrorTimer = new System.Timers.Timer(60000);
@@ -111,7 +113,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.editorState.Dispose();
             this.rpc.Dispose();
             this.disconnectEvent.Dispose();
-            this.waitForInit.Dispose();
+            this.waitForInit?.Dispose();
         }
 
         // some utils for server -> client communication
@@ -127,7 +129,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task SendTelemetryAsync(
                 string eventName,
-                Dictionary<string, string> properties,
+                Dictionary<string, string?> properties,
                 Dictionary<string, int> measurements) =>
             #if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
@@ -167,7 +169,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var folderItems = folders.SelectMany(entry => entry.Value.Select(name => Path.Combine(entry.Key.LocalPath, name)));
             var initialProjects = folderItems.Select(item =>
             {
-                if (!item.EndsWith(".csproj") || !Uri.TryCreate(item, UriKind.Absolute, out Uri uri))
+                if (!item.EndsWith(".csproj") || !Uri.TryCreate(item, UriKind.Absolute, out var uri))
                 {
                     return null;
                 }
@@ -206,7 +208,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
             bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
 
-            var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
+            var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out var uri) ? uri : null);
             this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
             this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
             this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
@@ -249,7 +251,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.ShutdownName)]
-        public object Shutdown() // shut down and exit is fine even if the server was never initialized
+        public object? Shutdown() // shut down and exit is fine even if the server was never initialized
         {
             this.ReadyForExit = true; // there's nothing else to do here
             return null;
@@ -275,7 +277,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return this.editorState.OpenFileAsync(
                 param.TextDocument,
                 this.ShowInWindow,
-                this.workspaceFolder != null ? this.LogToWindow : (Action<string, MessageType>)null);
+                this.workspaceFolder != null ? this.LogToWindow : (Action<string, MessageType>?)null);
         }
 
         [JsonRpcMethod(Methods.TextDocumentDidCloseName)]
@@ -312,7 +314,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentRenameName)]
-        public object OnTextDocumentRename(JToken arg)
+        public object? OnTextDocumentRename(JToken arg)
         {
             if (this.waitForInit != null)
             {
@@ -400,7 +402,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentHoverName)]
-        public object OnHoverRequest(JToken arg)
+        public object? OnHoverRequest(JToken arg)
         {
             if (this.waitForInit != null)
             {
@@ -422,16 +424,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
-        public Task<object> OnSignatureHelp(JToken arg)
+        public Task<object?> OnSignatureHelp(JToken arg)
         {
             if (this.waitForInit != null)
             {
-                return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = this.ChooseFormat(supportedFormats);
-            var task = new Task<object>(() =>
+            var task = new Task<object?>(() =>
             {
                 // We need to give the file manager some time to actually process the change first,
                 // otherwise we will return null.
@@ -472,14 +474,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public Task<object> OnTextDocumentCompletion(JToken arg)
+        public Task<object?> OnTextDocumentCompletion(JToken arg)
         {
             if (this.waitForInit != null)
             {
-                return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var task = new Task<object>(() =>
+            var task = new Task<object?>(() =>
             {
                 // Wait for the file manager to finish processing any changes
                 // that happened right before this completion request.
@@ -500,7 +502,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
-        public object OnTextDocumentCompletionResolve(JToken arg)
+        public object? OnTextDocumentCompletionResolve(JToken arg)
         {
             if (this.waitForInit != null)
             {
@@ -553,11 +555,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.WorkspaceExecuteCommandName)]
-        public object OnExecuteCommand(JToken arg)
+        public object? OnExecuteCommand(JToken arg)
         {
             var param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
-            object CastAndExecute<T>(Func<T, object> command) where T : class =>
-                QsCompilerError.RaiseOnFailure<object>(
+            object? CastAndExecute<T>(Func<T, object?> command) where T : class =>
+                QsCompilerError.RaiseOnFailure(
                     () => command(Utils.TryJTokenAs<T>(param.Arguments.Single() as JObject)), // currently all supported commands take a single argument
                     "ExecuteCommand threw an exception");
             try
@@ -604,7 +606,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     bool FileIsWithinProjectDir(Uri projFile)
                     {
-                        var projDir = Uri.TryCreate(Path.GetDirectoryName(projFile.LocalPath), UriKind.Absolute, out Uri uri) ? uri : null;
+                        var projDir = Uri.TryCreate(Path.GetDirectoryName(projFile.LocalPath), UriKind.Absolute, out var uri) ? uri : null;
                         QsCompilerError.Verify(projDir != null, "could not determine project directory");
                         return fileName.StartsWith(projDir.LocalPath);
                     }

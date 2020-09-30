@@ -15,11 +15,11 @@ namespace Microsoft.Quantum.QsLanguageServer
     /// </summary>
     public class QsSynchronizationContext : SynchronizationContext
     {
-        private readonly AsyncQueue<(SendOrPostCallback, object)> queued = new AsyncQueue<(SendOrPostCallback, object)>();
+        private readonly AsyncQueue<(SendOrPostCallback, object?)> queued = new AsyncQueue<(SendOrPostCallback, object?)>();
 
         private void ProcessNext()
         {
-            var gotNext = this.queued.TryDequeue(out (SendOrPostCallback, object) next);
+            var gotNext = this.queued.TryDequeue(out var next);
             QsCompilerError.Verify(gotNext, "nothing to process in the SynchronizationContext");
             if (gotNext)
             {
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         /// <inheritdoc/>
-        public override void Post(SendOrPostCallback fct, object arg)
+        public override void Post(SendOrPostCallback fct, object? arg)
         {
             if (fct == null)
             {

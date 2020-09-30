@@ -274,7 +274,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
@@ -285,7 +285,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(
+                options.LoadSourcesOrSnippet(logger),
+                options.References ?? Enumerable.Empty<string>(),
+                loadOptions,
+                logger);
             if (loaded.VerifiedCompilation == null)
             {
                 return ReturnCode.Status(loaded);

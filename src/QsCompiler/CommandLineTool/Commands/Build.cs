@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
@@ -226,7 +226,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(
+                options.LoadSourcesOrSnippet(logger),
+                options.References ?? Enumerable.Empty<string>(),
+                loadOptions,
+                logger);
             if (options.PerfFolder != null)
             {
                 try
