@@ -37,8 +37,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 signature: bondQsCallable.Signature.ToCompilerObject(),
                 // TODO: Implement ArgumentTuple.
                 argumentTuple: default,
-                // TODO: Implement Specializations.
-                specializations: Array.Empty<SyntaxTree.QsSpecialization>().ToImmutableArray(),
+                specializations: bondQsCallable.Specializations.Select(s => s.ToCompilerObject()).ToImmutableArray(),
                 documentation: bondQsCallable.Documentation.ToImmutableArray(),
                 comments: bondQsCallable.Comments.ToCompilerObject());
 
@@ -116,12 +115,33 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName)
-        {
-            return new SyntaxTree.QsQualifiedName(
+        private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
+            new SyntaxTree.QsQualifiedName(
                 @namespace: bondQsQualifiedName.Namespace.ToNonNullable(),
                 name: bondQsQualifiedName.Name.ToNonNullable());
-        }
+
+        private static SyntaxTree.QsSpecialization ToCompilerObject(this QsSpecialization bondQsSpecialization) =>
+            new SyntaxTree.QsSpecialization(
+                // TODO: Implement Kind.
+                kind: default,
+                // TODO: Implement Parent.
+                parent: default,
+                // TODO: Implement Attributes.
+                attributes: Array.Empty<SyntaxTree.QsDeclarationAttribute>().ToImmutableArray(),
+                // TODO: Implement SourceFile.
+                sourceFile: default,
+                // TODO: Implement Location.
+                location: default,
+                // TODO: Implement TypeArguments.
+                typeArguments: default,
+                // TODO: Implement Signature.
+                signature: default,
+                // TODO: Implement Implementation.
+                implementation: default,
+                // TODO: Implement Documentation.
+                documentation: Array.Empty<string>().ToImmutableArray(),
+                // TODO: Implement Comments.
+                comments: default);
 
         private static SyntaxTree.ResolvedSignature ToCompilerObject(this ResolvedSignature bondResolvedSignature) =>
             new SyntaxTree.ResolvedSignature(
@@ -140,12 +160,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 range: userDefinedType.Range.ToQsNullable());
 
         private static SyntaxTokens.AccessModifier ToCompilerObject(this AccessModifier accessModifier) =>
-        accessModifier switch
-        {
-            AccessModifier.DefaultAccess => SyntaxTokens.AccessModifier.DefaultAccess,
-            AccessModifier.Internal => SyntaxTokens.AccessModifier.Internal,
-            _ => throw new ArgumentException($"Unsupported AccessModifier: {accessModifier}")
-        };
+            accessModifier switch
+            {
+                AccessModifier.DefaultAccess => SyntaxTokens.AccessModifier.DefaultAccess,
+                AccessModifier.Internal => SyntaxTokens.AccessModifier.Internal,
+                _ => throw new ArgumentException($"Unsupported AccessModifier: {accessModifier}")
+            };
 
         private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers modifiers) =>
             new SyntaxTokens.Modifiers(
