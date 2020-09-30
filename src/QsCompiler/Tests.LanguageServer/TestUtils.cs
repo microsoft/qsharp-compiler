@@ -112,7 +112,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 throw new ArgumentException("the given content has to have at least on line");
             }
 
-            Assert.IsNotNull(change);
             Assert.IsTrue(IsValidRange(change.Range) && change.Text != null);
             Assert.IsTrue(change.Range.End.Line < content.Count());
             Assert.IsTrue(change.Range.Start.Character <= content[change.Range.Start.Line].Length);
