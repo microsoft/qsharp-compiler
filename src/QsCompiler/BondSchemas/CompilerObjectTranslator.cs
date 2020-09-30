@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsCompilation(
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                 // TODO: Implement EntryPoints.
-                entryPoints: default);
+                entryPoints: Array.Empty<SyntaxTree.QsQualifiedName>().ToImmutableArray());
 
         private static DataTypes.Position ToCompilerObject(this Position position) =>
             DataTypes.Position.Create(
@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 // TODO: Implement ArgumentTuple.
                 argumentTuple: default,
                 // TODO: Implement Specializations.
-                specializations: default,
+                specializations: Array.Empty<SyntaxTree.QsSpecialization>().ToImmutableArray(),
                 documentation: bondQsCallable.Documentation.ToImmutableArray(),
                 comments: bondQsCallable.Comments.ToCompilerObject());
 
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsCustomType(
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 // TODO: Implement Attributes.
-                attributes: default,
+                attributes: Array.Empty<SyntaxTree.QsDeclarationAttribute>().ToImmutableArray(),
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
                 sourceFile: bondQsCustomType.SourceFile.ToNonNullable(),
                 location: bondQsCustomType.Location.ToQsNullable(),
