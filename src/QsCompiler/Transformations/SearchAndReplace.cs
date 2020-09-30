@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
 
             /// <inheritdoc/>
-            public bool Equals(Location other) =>
+            public bool Equals(Location? other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
                 && this.DeclarationOffset == other?.DeclarationOffset
                 && this.RelativeStatementLocation.Offset == other?.RelativeStatementLocation.Offset
@@ -99,36 +99,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// </summary>
         public class TransformationState
         {
-            public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
+            public Tuple<NonNullable<string>, QsLocation>? DeclarationLocation { get; internal set; }
 
             public ImmutableHashSet<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
             /// </summary>
-            private readonly QsLocation defaultOffset = null;
-            private readonly IImmutableSet<NonNullable<string>> relevantSourseFiles = null;
+            private readonly QsLocation? defaultOffset = null;
+            private readonly IImmutableSet<NonNullable<string>>? relevantSourceFiles = null;
 
             internal bool IsRelevant(NonNullable<string> source) =>
-                this.relevantSourseFiles?.Contains(source) ?? true;
+                this.relevantSourceFiles?.Contains(source) ?? true;
 
             internal TransformationState(
                 Func<Identifier, bool> trackId,
-                QsLocation defaultOffset = null,
-                IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+                QsLocation? defaultOffset = null,
+                IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
-                this.relevantSourseFiles = limitToSourceFiles;
+                this.relevantSourceFiles = limitToSourceFiles;
                 this.Locations = ImmutableHashSet<Location>.Empty;
                 this.defaultOffset = defaultOffset;
             }
 
             private NonNullable<string> currentSourceFile = NonNullable<string>.New("");
-            private Position rootOffset = null;
-            internal QsLocation CurrentLocation = null;
+            private Position? rootOffset = null;
+            internal QsLocation? CurrentLocation = null;
             internal readonly Func<Identifier, bool> TrackIdentifier;
 
-            public Position DeclarationOffset
+            public Position? DeclarationOffset
             {
                 internal get => this.rootOffset;
                 set
@@ -151,7 +151,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             internal void LogIdentifierLocation(Identifier id, QsNullable<Range> range)
             {
-                if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
+                if (this.TrackIdentifier(id)
+                    && this.CurrentLocation?.Offset != null
+                    && range.IsValue
+                    && !(this.rootOffset is null))
                 {
                     var idLoc = new Location(this.Source, this.rootOffset, this.CurrentLocation, range.Item);
                     this.Locations = this.Locations.Add(idLoc);
@@ -176,12 +179,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             this.Namespaces = new NamespaceTransformation(this);
         }
 
-        public IdentifierReferences(NonNullable<string> idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+        public IdentifierReferences(NonNullable<string> idName, QsLocation? defaultOffset, IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
         {
         }
 
-        public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+        public IdentifierReferences(QsQualifiedName idName, QsLocation? defaultOffset, IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
             if (idName == null)
@@ -196,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             NonNullable<string> idName,
             QsScope scope,
             NonNullable<string> sourceFile,
-            Position rootLoc)
+            Position? rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;
@@ -209,8 +212,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             QsQualifiedName idName,
             QsNamespace ns,
             QsLocation defaultOffset,
-            out Tuple<NonNullable<string>, QsLocation> declarationLocation,
-            IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
+            out Tuple<NonNullable<string>, QsLocation>? declarationLocation,
+            IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
             finder.Namespaces.OnNamespace(ns ?? throw new ArgumentNullException(nameof(ns)));
@@ -326,37 +329,43 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for finding all symbols/identifiers
 
     /// <summary>
-    /// Generates a look-up for all used local variables and their location in any of the transformed scopes,
-    /// as well as one for all local variables reassigned in any of the transformed scopes and their locations.
-    /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration.
+    /// Generates a look-up for all used local variables and their location (if available) in any of the transformed
+    /// scopes, as well as one for all local variables reassigned in any of the transformed scopes and their locations
+    /// (if available).
     /// </summary>
+    /// <remarks>
+    /// The location information is relative to the root node, i.e. the start position of the containing specialization
+    /// declaration.
+    /// </remarks>
     public class AccumulateIdentifiers
     : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
     {
         public class TransformationState
         {
-            internal QsLocation StatementLocation = null;
+            internal QsLocation? StatementLocation = null;
             internal Func<TypedExpression, TypedExpression> UpdatedExpression;
 
-            private readonly List<(NonNullable<string>, QsLocation)> updatedLocals = new List<(NonNullable<string>, QsLocation)>();
-            private readonly List<(NonNullable<string>, QsLocation)> usedLocals = new List<(NonNullable<string>, QsLocation)>();
+            private readonly List<(NonNullable<string>, QsLocation?)> updatedLocals = new List<(NonNullable<string>, QsLocation?)>();
+            private readonly List<(NonNullable<string>, QsLocation?)> usedLocals = new List<(NonNullable<string>, QsLocation?)>();
 
             internal TransformationState() =>
                 this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).OnTypedExpression;
 
-            public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
+            public ILookup<NonNullable<string>, QsLocation?> ReassignedVariables =>
                 this.updatedLocals.ToLookup(var => var.Item1, var => var.Item2);
 
-            public ILookup<NonNullable<string>, QsLocation> UsedLocalVariables =>
+            public ILookup<NonNullable<string>, QsLocation?> UsedLocalVariables =>
                 this.usedLocals.ToLookup(var => var.Item1, var => var.Item2);
 
-            private Action<TypedExpression> Add(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
+            private Action<TypedExpression> Add(List<(NonNullable<string>, QsLocation?)> accumulate) => (TypedExpression ex) =>
             {
                 if (ex.Expression is QsExpressionKind.Identifier id &&
                     id.Item1 is Identifier.LocalVariable var)
                 {
-                    var range = ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range;
-                    accumulate.Add((var.Item, new QsLocation(this.StatementLocation.Offset, range)));
+                    var location = this.StatementLocation is null ? null : new QsLocation(
+                        this.StatementLocation.Offset,
+                        ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range);
+                    accumulate.Add((var.Item, location));
                 }
             };
 
@@ -458,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// The original name before decoration, if the decorated name uses the same label as this name decorator;
         /// otherwise, null.
         /// </returns>
-        public string Undecorate(string name)
+        public string? Undecorate(string name)
         {
             var match = this.pattern.Match(name).Groups[Original];
             return match.Success ? match.Value : null;

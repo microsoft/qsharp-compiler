@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.SyntaxGenerator;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;
@@ -538,14 +539,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 prefix += ".";
             }
-            var @namespace = file.TryGetNamespaceAt(position);
-            if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
+            var ns = file.TryGetNamespaceAt(position);
+            if (ns == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(ns)))
             {
                 return Array.Empty<CompletionItem>();
             }
             return compilation
-                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                .Where(open => open.Item2 != null && open.Item2.StartsWith(prefix))
+                .GetOpenDirectives(NonNullable<string>.New(ns))[file.FileName]
+                .SelectNotNull(open => open.Item2?.Apply(alias => (open.Item1, alias)))
+                .Where(open => open.Item2.StartsWith(prefix))
                 .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
                 .Select(open => new CompletionItem()
                 {

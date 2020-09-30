@@ -904,7 +904,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// imported within a certain source file for the given namespace.
         /// Throws an ArgumentException if no namespace with the given name exists.
         /// </summary>
-        public ILookup<NonNullable<string>, (NonNullable<string>, string)> GetOpenDirectives(NonNullable<string> nsName)
+        public ILookup<NonNullable<string>, (NonNullable<string>, string?)> GetOpenDirectives(NonNullable<string> nsName)
         {
             this.syncRoot.EnterReadLock();
             try

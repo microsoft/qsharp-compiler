@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsLanguageServer
     {
         public readonly Action<string, MessageType> Log;
 
-        public ProjectLoader(Action<string, MessageType> log = null) =>
+        public ProjectLoader(Action<string, MessageType>? log = null) =>
             this.Log = log ?? ((_, __) => { });
 
         // possibly configurable properties
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns a dictionary with global properties used to load projects at runtime.
         /// BuildProjectReferences is set to false such that references are not built upon ResolveAssemblyReferencesDesignTime.
         /// </summary>
-        internal static Dictionary<string, string> GlobalProperties(string targetFramework = null)
+        internal static Dictionary<string, string> GlobalProperties(string? targetFramework = null)
         {
             var props = new Dictionary<string, string>
             {
@@ -101,16 +101,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal IDictionary<string, string> DesignTimeBuildProperties(
             string projectFile,
-            out Dictionary<string, string> metadata,
-            Comparison<string> preferredFramework = null)
+            out Dictionary<string, string?> metadata,
+            Comparison<string>? preferredFramework = null)
         {
             if (!File.Exists(projectFile))
             {
                 throw new ArgumentException("given project file is null or does not exist", nameof(projectFile));
             }
-            (string, Dictionary<string, string>) FrameworkAndMetadata(Project project)
+            (string?, Dictionary<string, string?>) FrameworkAndMetadata(Project project)
             {
-                string GetVersion(ProjectItem item) => item.DirectMetadata
+                string? GetVersion(ProjectItem item) => item.DirectMetadata
                     .FirstOrDefault(data => data.Name.Equals("Version", StringComparison.InvariantCultureIgnoreCase))?.EvaluatedValue;
                 var packageRefs = project.Items.Where(item =>
                     item.ItemType == "PackageReference" && GeneratePackageInfo(item.EvaluatedInclude))
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     p?.Name != null && PropertiesToTrack.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))
                     .Select(p => (p.Name?.ToLowerInvariant(), p.EvaluatedValue));
 
-                var projInfo = new Dictionary<string, string>();
+                var projInfo = new Dictionary<string, string?>();
                 foreach (var (package, version) in packageRefs)
                 {
                     projInfo[$"pkgref.{package}"] = version;
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 throw new ArgumentException("given project file is null or does not exist", nameof(projectFile));
             }
 
-            Project project = null;
+            Project? project = null;
             try
             {
                 // Unloading the project unloads the project but *doesn't* clear the cache to be resilient to inconsistent states.
@@ -220,9 +220,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns null if this is not the case, or if the given project file is null or does not exist.
         /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// </summary>
-        private ProjectInstance QsProjectInstance(string projectFile, out Dictionary<string, string> metadata)
+        private ProjectInstance? QsProjectInstance(string projectFile, out Dictionary<string, string?> metadata)
         {
-            metadata = new Dictionary<string, string>();
+            metadata = new Dictionary<string, string?>();
             if (!File.Exists(projectFile))
             {
                 return null;
@@ -261,19 +261,19 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Logs whether or not the project is recognized as Q# project.
         /// Throws an ArgumentNullException if the given project file is null.
         /// </summary>
-        public ProjectInstance TryGetQsProjectInstance(string projectFile, out Dictionary<string, string> metadata)
+        public ProjectInstance? TryGetQsProjectInstance(string projectFile, out Dictionary<string, string?> metadata)
         {
             if (projectFile == null)
             {
                 throw new ArgumentNullException(nameof(projectFile));
             }
-            metadata = new Dictionary<string, string>();
+            metadata = new Dictionary<string, string?>();
             if (!projectFile.ToLowerInvariant().EndsWith(".csproj"))
             {
                 return null;
             }
 
-            ProjectInstance instance = null;
+            ProjectInstance? instance = null;
             try
             {
                 instance = this.QsProjectInstance(projectFile, out metadata);

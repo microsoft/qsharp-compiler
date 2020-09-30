@@ -30,9 +30,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         public readonly int Code;
-        public readonly string Message;
+        public readonly string? Message;
 
-        public ProtocolError(int code, string message = null)
+        public ProtocolError(int code, string? message = null)
         {
             this.Code = code;
             this.Message = message;
@@ -56,20 +56,20 @@ namespace Microsoft.Quantum.QsLanguageServer
         public class CodeActionParams
         {
             [DataMember(Name = "textDocument")]
-            public TextDocumentIdentifier TextDocument { get; set; }
+            public TextDocumentIdentifier? TextDocument { get; set; }
 
             [DataMember(Name = "range")]
-            public VisualStudio.LanguageServer.Protocol.Range Range { get; set; }
+            public VisualStudio.LanguageServer.Protocol.Range? Range { get; set; }
 
             [DataMember(Name = "context")]
-            public CodeActionContext Context { get; set; }
+            public CodeActionContext? Context { get; set; }
 
             public VisualStudio.LanguageServer.Protocol.CodeActionParams ToCodeActionParams() =>
                 new VisualStudio.LanguageServer.Protocol.CodeActionParams
                 {
                     TextDocument = this.TextDocument,
                     Range = this.Range,
-                    Context = this.Context.ToCodeActionContext()
+                    Context = this.Context?.ToCodeActionContext()
                 };
         }
 
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public class CodeActionContext
         {
             [DataMember(Name = "diagnostics")]
-            public Diagnostic[] Diagnostics { get; set; }
+            public Diagnostic[]? Diagnostics { get; set; }
 
             public VisualStudio.LanguageServer.Protocol.CodeActionContext ToCodeActionContext() =>
                 new VisualStudio.LanguageServer.Protocol.CodeActionContext

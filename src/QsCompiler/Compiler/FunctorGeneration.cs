@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given the argument tuple of a specialization, returns the argument tuple for its controlled version.
         /// Returns null if the given argument tuple is null.
         /// </summary>
-        private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ControlledArg(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg) =>
+        private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>>? ControlledArg(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg) =>
             arg != null
             ? SyntaxGenerator.WithControlQubits(
                 arg,
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws an ArgumentException if more than one specialization of that kind exist.
         /// Throws an ArgumentNullException if the sequence of specializations is null, or contains any entries that are null.
         /// </summary>
-        private static QsSpecialization GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
+        private static QsSpecialization? GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
         {
             if (specs == null || specs.Any(s => s == null))
             {
@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Return the argument tuple as well as the QsScope if the implementation is provided.
         /// Returns null if the given implementation is null or not provided.
         /// </summary>
-        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? GetContent(this SpecializationImplementation impl) =>
+        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? GetContent(this SpecializationImplementation? impl) =>
             impl is SpecializationImplementation.Provided content
                 ? (content.Item1, content.Item2)
                 : ((QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)?)null;
@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns a boolean indicating if the evaluation of all directives was successful.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool GenerateFunctorSpecializations(QsCompilation compilation, out QsCompilation built, Action<Exception> onException = null)
+        public static bool GenerateFunctorSpecializations(QsCompilation compilation, out QsCompilation built, Action<Exception>? onException = null)
         {
             if (compilation == null)
             {

@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception> onException = null)
+        public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception>? onException = null)
         {
             if (compilation == null)
             {
@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
+        public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception>? onException = null)
         {
             if (compilation == null)
             {
