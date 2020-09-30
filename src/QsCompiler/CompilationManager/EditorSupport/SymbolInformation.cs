@@ -26,9 +26,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         // utils for getting the necessary information for editor commands
 
-        /// <summary>
-        /// Throws an ArgumentNullException if the given offset or relative range is null.
-        /// </summary>
         internal static Location AsLocation(NonNullable<string> source, Position offset, Range relRange) =>
             new Location
             {
@@ -36,9 +33,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Range = (offset + relRange).ToLsp()
             };
 
-        /// <summary>
-        /// Throws an ArgumentNullException if the given reference location is null.
-        /// </summary>
         internal static Location AsLocation(IdentifierReferences.Location loc) =>
             AsLocation(loc.SourceFile, loc.DeclarationOffset + loc.RelativeStatementLocation.Offset, loc.SymbolRange);
 
