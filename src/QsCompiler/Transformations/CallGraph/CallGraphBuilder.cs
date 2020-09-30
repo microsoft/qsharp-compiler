@@ -7,8 +7,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-#nullable enable
-
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using Range = DataTypes.Range;

@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             public abstract class TransformationState
             {
-                internal TNode CurrentNode;
+                internal TNode? CurrentNode;
                 internal readonly TGraph Graph;
 
                 // The type parameter resolutions of the current expression.

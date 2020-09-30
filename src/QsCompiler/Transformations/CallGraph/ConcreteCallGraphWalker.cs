@@ -173,6 +173,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 internal override void AddDependency(QsQualifiedName identifier)
                 {
+                    if (this.CurrentNode is null)
+                    {
+                        throw new ArgumentException("AddDependency requires CurrentNode to be non-null.");
+                    }
+
                     var combination = new TypeResolutionCombination(this.ExprTypeParamResolutions.Append(this.CurrentNode.ParamResolutions));
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
                     this.ExprTypeParamResolutions = new List<TypeParameterResolutions>();

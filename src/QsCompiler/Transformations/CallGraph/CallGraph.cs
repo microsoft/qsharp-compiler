@@ -9,8 +9,6 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
-#nullable enable
-
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using Range = DataTypes.Range;

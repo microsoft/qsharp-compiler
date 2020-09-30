@@ -475,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             CodeFragment.TokenIndex tIndex,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
-            [AllowNull] string? keepInvalid = null)
+            string? keepInvalid = null)
         {
             if (getDeclaration == null)
             {

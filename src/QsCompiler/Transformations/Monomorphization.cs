@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             Identifier.GlobalCallable globalCallable,
             ImmutableConcretion types)
         {
-            if (types is null || types.IsEmpty)
+            if (types.IsEmpty)
             {
                 return globalCallable;
             }
