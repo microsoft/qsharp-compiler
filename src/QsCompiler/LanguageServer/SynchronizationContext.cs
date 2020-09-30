@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.VisualStudio.Threading;
@@ -30,10 +29,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <inheritdoc/>
         public override void Post(SendOrPostCallback fct, object? arg)
         {
-            if (fct == null)
-            {
-                throw new ArgumentNullException(nameof(fct));
-            }
             this.queued.Enqueue((fct, arg));
             this.Send(_ => this.ProcessNext(), null);
         }

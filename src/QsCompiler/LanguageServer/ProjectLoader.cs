@@ -173,20 +173,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// Loads the project corresponding to the given project file with the given properties,
         /// applies the given query to it, and unloads it. Returns the result of the query.
-        /// Throws an ArgumentNullException if the given query or properties are null.
         /// Throws an ArgumentException if the given project file is null or does not exist.
         /// NOTE: unloads the GlobalProjectCollection to force a cache clearing.
         /// </summary>
         private static T LoadAndApply<T>(string projectFile, IDictionary<string, string> properties, Func<Project, T> query)
         {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-            if (properties == null)
-            {
-                throw new ArgumentNullException(nameof(properties));
-            }
             if (!File.Exists(projectFile))
             {
                 throw new ArgumentException("given project file is null or does not exist", nameof(projectFile));
@@ -259,14 +250,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// Logs suitable messages using the given log function if the project file cannot be found, or if the design time build fails.
         /// Logs whether or not the project is recognized as Q# project.
-        /// Throws an ArgumentNullException if the given project file is null.
         /// </summary>
         public ProjectInstance? TryGetQsProjectInstance(string projectFile, out Dictionary<string, string?> metadata)
         {
-            if (projectFile == null)
-            {
-                throw new ArgumentNullException(nameof(projectFile));
-            }
             metadata = new Dictionary<string, string?>();
             if (!projectFile.ToLowerInvariant().EndsWith(".csproj"))
             {

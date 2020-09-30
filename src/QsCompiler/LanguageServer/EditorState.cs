@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 }
             };
 
-            this.projectLoader = projectLoader ?? throw new ArgumentNullException(nameof(projectLoader));
+            this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish);
             this.openFiles = new ConcurrentDictionary<Uri, FileContentManager>();
             this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
@@ -161,7 +161,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string? sdkVersion)
         {
             var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath) ?? "";
-            var projectFileName = string.Join("_x2f_", // arbitrary string to help avoid collisions
+            var projectFileName = string.Join(
+                "_x2f_", // arbitrary string to help avoid collisions
                 sourceFolderPath
                     .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
                     .Split(Path.GetInvalidFileNameChars()));
@@ -184,7 +185,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// For each given uri, loads the corresponding project if the uri contains the project file for a Q# project,
         /// and publishes suitable diagnostics for it.
-        /// Throws an ArgumentNullException if the given sequence of uris, or if any of the contained uris is null.
         /// </summary>
         public Task LoadProjectsAsync(IEnumerable<Uri> projects) =>
             this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile);
@@ -192,7 +192,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,
         /// updates that project in the list of tracked projects or adds it if needed, and publishes suitable diagnostics for it.
-        /// Throws an ArgumentNullException if the given uri is null.
         /// </summary>
         public Task ProjectDidChangeOnDiskAsync(Uri project) =>
             this.projects.ProjectChangedOnDiskAsync(project, this.QsProjectLoader, this.GetOpenFile);
@@ -200,7 +199,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// Updates all tracked Q# projects that reference the assembly with the given uri
         /// either directly or indirectly via a reference to another Q# project, and publishes suitable diagnostics.
-        /// Throws an ArgumentNullException if the given uri is null.
         /// </summary>
         public Task AssemblyDidChangeOnDiskAsync(Uri dllPath) =>
             this.projects.AssemblyChangedOnDiskAsync(dllPath);
@@ -211,7 +209,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// if the file is not listed as currently being open in the editor, publishing suitable diagnostics.
         /// If the file is listed as being open in the editor, updates all load diagnostics for the file,
         /// but does not update the file content, since the editor manages that one.
-        /// Throws an ArgumentNullException if the given uri is null.
         /// </summary>
         public Task SourceFileDidChangeOnDiskAsync(Uri sourceFile) =>
             this.projects.SourceFileChangedOnDiskAsync(sourceFile, this.GetOpenFile);
@@ -225,21 +222,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Invokes the given Action showError with a suitable message if the given file cannot be loaded.
         /// Invokes the given Action logError with a suitable message if the given file cannot be associated with a compilation unit,
         /// or if the given file is already listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
-        /// Throws an ArgumentNullException if the given content is null.
+        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
         internal Task OpenFileAsync(
             TextDocumentItem textDocument,
             Action<string, MessageType>? showError = null,
             Action<string, MessageType>? logError = null)
         {
-            if (textDocument is null || !ValidFileUri(textDocument.Uri))
+            if (!ValidFileUri(textDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
-            }
-            if (textDocument.Text == null)
-            {
-                throw new ArgumentNullException(nameof(textDocument.Text));
             }
             // If the file is not associated with a project, we will create a temporary project file for all files in that folder.
             // We spawn a second query below for the actual processing of the file to ensure that a created project file
@@ -328,18 +320,13 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// To be called whenever a file is changed within the editor (i.e. changes are not necessarily reflected on disk).
         /// Does nothing if the given file is listed as to be ignored.
-        /// Throws an ArgumentException if the uri of the text document identifier in the given parameter is null or not an absolute file uri.
-        /// Throws an ArgumentNullException if the given content changes are null.
+        /// Throws an ArgumentException if the uri of the text document identifier in the given parameter is not an absolute file uri.
         /// </summary>
         internal Task DidChangeAsync(DidChangeTextDocumentParams param)
         {
-            if (param is null || param.TextDocument is null || !ValidFileUri(param.TextDocument.Uri))
+            if (!ValidFileUri(param.TextDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
-            }
-            if (param.ContentChanges == null)
-            {
-                throw new ArgumentNullException(nameof(param.ContentChanges));
             }
             return this.projects.ManagerTaskAsync(param.TextDocument.Uri, (manager, __) =>
             {
@@ -362,18 +349,13 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Used to reload the file content when a file is saved.
         /// Does nothing if the given file is listed as to be ignored.
         /// Expects to get the entire content of the file at the time of saving as argument.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
-        /// Throws an ArgumentNullException if the given content is null.
+        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
         internal Task SaveFileAsync(TextDocumentIdentifier textDocument, string fileContent)
         {
-            if (textDocument is null || !ValidFileUri(textDocument.Uri))
+            if (!ValidFileUri(textDocument.Uri))
             {
                 throw new ArgumentException("invalid text document identifier");
-            }
-            if (fileContent == null)
-            {
-                throw new ArgumentNullException(nameof(fileContent));
             }
             return this.projects.ManagerTaskAsync(textDocument.Uri, (manager, __) =>
             {
