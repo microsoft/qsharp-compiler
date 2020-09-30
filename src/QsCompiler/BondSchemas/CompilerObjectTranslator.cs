@@ -6,8 +6,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
-using QsDocumentation = System.Linq.ILookup<Microsoft.Quantum.QsCompiler.DataTypes.NonNullable<string>, System.Collections.Immutable.ImmutableArray<string>>;
-
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
     public static class CompilerObjectTranslator
@@ -16,12 +14,17 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsCompilation(
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                 // TODO: Implement EntryPoints.
-                entryPoints: Array.Empty<SyntaxTree.QsQualifiedName>().ToImmutableArray());
+                entryPoints: default);
+
         private static DataTypes.Position ToCompilerObject(this Position position) =>
-            DataTypes.Position.Create(position.Line, position.Column);
+            DataTypes.Position.Create(
+                line: position.Line,
+                column: position.Column);
 
         private static DataTypes.Range ToCompilerObject(this Range range) =>
-            DataTypes.Range.Create(range.Start.ToCompilerObject(), range.End.ToCompilerObject());
+            DataTypes.Range.Create(
+                start: range.Start.ToCompilerObject(),
+                end: range.End.ToCompilerObject());
 
         private static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
             new SyntaxTree.QsCallable(
@@ -35,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 // TODO: Implement ArgumentTuple.
                 argumentTuple: default,
                 // TODO: Implement Specializations.
-                specializations: Array.Empty<SyntaxTree.QsSpecialization>().ToImmutableArray(),
+                specializations: default,
                 documentation: bondQsCallable.Documentation.ToImmutableArray(),
                 comments: bondQsCallable.Comments.ToCompilerObject());
 
@@ -50,14 +53,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.QsComments ToCompilerObject(this QsComments bondQsComments) =>
             new SyntaxTree.QsComments(
-                bondQsComments.OpeningComments.ToImmutableArray(),
-                bondQsComments.ClosingComments.ToImmutableArray());
+                openingComments: bondQsComments.OpeningComments.ToImmutableArray(),
+                closingComments: bondQsComments.ClosingComments.ToImmutableArray());
 
         private static SyntaxTree.QsCustomType ToCompilerObject(this QsCustomType bondQsCustomType) =>
             new SyntaxTree.QsCustomType(
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 // TODO: Implement Attributes.
-                attributes: Array.Empty<SyntaxTree.QsDeclarationAttribute>().ToImmutableArray(),
+                attributes: default,
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
                 sourceFile: bondQsCustomType.SourceFile.ToNonNullable(),
                 location: bondQsCustomType.Location.ToQsNullable(),
@@ -116,8 +119,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName)
         {
             return new SyntaxTree.QsQualifiedName(
-                bondQsQualifiedName.Name.ToNonNullable(),
-                bondQsQualifiedName.Namespace.ToNonNullable());
+                @namespace: bondQsQualifiedName.Namespace.ToNonNullable(),
+                name: bondQsQualifiedName.Name.ToNonNullable());
         }
 
         private static SyntaxTree.ResolvedSignature ToCompilerObject(this ResolvedSignature bondResolvedSignature) =>
@@ -145,7 +148,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         };
 
         private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers modifiers) =>
-            new SyntaxTokens.Modifiers(modifiers.Access.ToCompilerObject());
+            new SyntaxTokens.Modifiers(
+                access: modifiers.Access.ToCompilerObject());
 
         private static NonNullable<string> ToNonNullable(this string str) =>
             NonNullable<string>.New(str);
