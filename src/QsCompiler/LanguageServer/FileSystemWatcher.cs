@@ -56,9 +56,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         public delegate void FileEventHandler(FileEvent e);
 
         [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
-        public FileWatcher(Action<Exception>? onException = null)
+        public FileWatcher(Action<Exception> onException)
         {
-            this.onException = onException ?? throw new ArgumentNullException(nameof(onException));
+            this.onException = onException;
             this.watchers = new ConcurrentBag<System.IO.FileSystemWatcher>();
             this.watchedDirectories = new Dictionary<Uri, ImmutableHashSet<string>>();
             this.processing = new ProcessingQueue(this.onException, "error in file system watcher");

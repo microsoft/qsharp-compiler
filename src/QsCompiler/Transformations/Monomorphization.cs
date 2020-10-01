@@ -33,11 +33,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            if (compilation == null || compilation.Namespaces.Contains(null))
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
             var concreteNames = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();

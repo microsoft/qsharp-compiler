@@ -62,8 +62,8 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal LoadedStep(object implementation, Type interfaceType, Uri origin)
             {
-                this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
-                this.selfAsObject = implementation ?? throw new ArgumentNullException(nameof(implementation));
+                this.Origin = origin;
+                this.selfAsObject = implementation;
 
                 // Initializing the _InterfaceMethods even if the implementation implements IRewriteStep
                 // would result in certain properties being loaded via reflection instead of simply being accessed via _SelfAsStep.

@@ -28,8 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
             public readonly QsFunctor FunctorToApply;
 
-            public TransformationsState(QsFunctor functor) =>
-                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+            public TransformationsState(QsFunctor functor) => this.FunctorToApply = functor;
         }
 
         public ApplyFunctorToOperationCalls(QsFunctor functor)
@@ -116,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
         : base(parent) =>
-            this.addedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
+            this.addedVariableDeclarations = addedVars;
 
         /// <inheritdoc/>
         public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>

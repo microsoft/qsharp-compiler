@@ -32,14 +32,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Given a sequence of specializations, returns the implementation of the given kind, or null if no such specialization exists.
         /// Throws an ArgumentException if more than one specialization of that kind exist.
-        /// Throws an ArgumentNullException if the sequence of specializations is null, or contains any entries that are null.
         /// </summary>
         private static QsSpecialization? GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
         {
-            if (specs == null || specs.Any(s => s == null))
-            {
-                throw new ArgumentNullException(nameof(specs));
-            }
             specs = specs.Where(spec => spec.Kind == kind);
             if (specs.Count() > 1)
             {
@@ -91,7 +86,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// Only valid functor generator directives are evaluated, anything else remains unmodified.
         /// The directives 'invert' and 'self' are considered to be valid functor generator directives.
         /// Assumes that operation calls may only ever occur within expression statements.
-        /// Throws an ArgumentNullException if the given callable or a relevant property is null.
         /// Throws an ArgumentException if more than one body or adjoint specialization exists.
         /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided.
         /// </summary>
@@ -100,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler
             var bodyDecl = BodyImplementation(callable);
             if (bodyDecl == null)
             {
-                return callable ?? throw new ArgumentNullException(nameof(callable));
+                return callable;
             }
 
             var adj = callable.Specializations.GetSpecialization(QsSpecializationKind.QsAdjoint);
@@ -125,7 +119,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// or set to the original specialization if the specialization was not requested to be auto-generated.
         /// Only valid functor generator directives are evaluated, anything else remains unmodified.
         /// The directive 'distributed' is the only directive considered to be valid.
-        /// Throws an ArgumentNullException if the given callable or a relevant property is null.
         /// Throws an ArgumentException if more than one body or controlled specialization exists.
         /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided.
         /// </summary>
@@ -134,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler
             var bodyDecl = BodyImplementation(callable);
             if (bodyDecl == null)
             {
-                return callable ?? throw new ArgumentNullException(nameof(callable));
+                return callable;
             }
 
             var ctl = callable.Specializations.GetSpecialization(QsSpecializationKind.QsControlled);
@@ -159,7 +152,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// The directives 'invert', 'self', and 'distributed' are considered to be valid functor generator directives.
         /// Assumes that if the controlled adjoint version is to be generated based on the controlled version,
         /// operation calls may only ever occur within expression statements.
-        /// Throws an ArgumentNullException if the given callable or a relevant property is null.
         /// Throws an ArgumentException if more than one body, adjoint or controlled specialization (depending on the generator directive) exists.
         /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided,
         /// or if the implementation for the adjoint or controlled specialization (depending on the generator directive) is not provided.
@@ -169,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler
             var bodyDecl = BodyImplementation(callable);
             if (bodyDecl == null)
             {
-                return callable ?? throw new ArgumentNullException(nameof(callable));
+                return callable;
             }
 
             var ctlAdj = callable.Specializations.GetSpecialization(QsSpecializationKind.QsControlledAdjoint);
@@ -201,14 +193,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// This is the case e.g. if more than one specialization of the same kind exists for a callable which causes an ArgumentException to be thrown.
         /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
         /// Returns a boolean indicating if the evaluation of all directives was successful.
-        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
         public static bool GenerateFunctorSpecializations(QsCompilation compilation, out QsCompilation built, Action<Exception>? onException = null)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             var success = true;
             var namespaces = compilation.Namespaces.Where(ns => ns != null).Select(ns =>
             {

@@ -148,7 +148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
             }
             this.Indentation = indent < 0 ? throw new ArgumentException("indentation needs to be positive") : indent;
-            this.Text = text?.TrimEnd() ?? throw new ArgumentNullException(nameof(text));
+            this.Text = text.TrimEnd();
             this.FollowedBy = next;
             this.Comments = comments ?? QsComments.Empty;
             this.Kind = kind; // nothing here should be modifiable
@@ -231,14 +231,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the content)
             /// and initializes an instance of TokenIndex.
-            /// Throws an ArgumentNullException if file is null.
             /// Throws an ArgumentOutOfRangeException if line or index are negative,
             /// or line is larger than or equal to the number of Tokens lists in file,
             /// or index is larger than or equal to the number of Tokens on the given line.
             /// </summary>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
-                this.file = file ?? throw new ArgumentNullException(nameof(file));
                 if (line < 0 || line >= file.NrTokenizedLines())
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
@@ -248,6 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
 
+                this.file = file;
                 this.Line = line;
                 this.Index = index;
             }
@@ -392,17 +391,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// Builds the TreeNode consisting of the given fragment and children.
             /// RelativeToRoot is set to the position of the fragment start relative to the given parent start position.
             /// Throws an ArgumentException if the given parent start position is larger than the fragment start position.
-            /// Throws an ArgumentNullException if any of the given arguments is null.
             /// </summary>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
-                this.Fragment = fragment ?? throw new ArgumentNullException(nameof(fragment));
-                this.Children = children ?? throw new ArgumentNullException(nameof(children));
-
                 if (fragment.Range.Start < parentStart)
                 {
                     throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
                 }
+                this.Fragment = fragment;
+                this.Children = children;
                 this.RootPosition = parentStart;
                 this.RelativePosition = fragment.Range.Start - parentStart;
             }
@@ -446,11 +443,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ImmutableArray<string> doc,
             QsComments comments)
         {
-            if (tIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
             this.Position = offset;
             this.SymbolName = sym.Item1;
             this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
@@ -468,7 +460,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
         /// Throws an ArgumentException if this verification fails as well.
         /// Throws an ArgumentException if the extracted declaration is Null.
-        /// Throws an ArgumentNullException if the given token index is null.
         /// </summary>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
@@ -477,15 +468,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ImmutableArray<string> doc,
             string? keepInvalid = null)
         {
-            if (getDeclaration == null)
-            {
-                throw new ArgumentNullException(nameof(getDeclaration));
-            }
-            if (tIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
             var fragment = tIndex.GetFragmentWithClosingComments();
             var extractedDecl = getDeclaration(fragment);
             var (sym, decl) =
@@ -521,7 +503,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public FileHeader(ReaderWriterLockSlim syncRoot)
         {
-            this.SyncRoot = syncRoot ?? throw new ArgumentNullException(nameof(syncRoot));
+            this.SyncRoot = syncRoot;
             this.namespaceDeclarations = new ManagedSortedSet(syncRoot);
             this.openDirectives = new ManagedSortedSet(syncRoot);
             this.typeDeclarations = new ManagedSortedSet(syncRoot);
@@ -936,10 +918,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Replace(int start, int count, IReadOnlyList<T> replacements)
         {
-            if (replacements == null)
-            {
-                throw new ArgumentNullException(nameof(replacements));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -964,10 +942,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void ReplaceAll(IEnumerable<T> replacement)
         {
-            if (replacement == null)
-            {
-                throw new ArgumentNullException(nameof(replacement));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -981,10 +955,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void ReplaceAll(ManagedList<T> replacement)
         {
-            if (replacement == null)
-            {
-                throw new ArgumentNullException(nameof(replacement));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -998,10 +968,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Transform(int index, Func<T, T> transformation)
         {
-            if (transformation == null)
-            {
-                throw new ArgumentNullException(nameof(transformation));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -1015,10 +981,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Transform(Func<T, T> transformation)
         {
-            if (transformation == null)
-            {
-                throw new ArgumentNullException(nameof(transformation));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
