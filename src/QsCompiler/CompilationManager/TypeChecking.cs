@@ -1857,11 +1857,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     CheckForGlobalCycleChange(file, diagnostics);
                     if (sameImports)
                     {
-                        diagnostics.Apply(file.AddAndFinalizeSemanticDiagnostics); // diagnostics have been cleared already for the edited callables (only)
+                        file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
                     }
                     else
                     {
-                        diagnostics.Apply(file.ReplaceSemanticDiagnostics);
+                        file.ReplaceSemanticDiagnostics(diagnostics);
                     }
                 }
             }
