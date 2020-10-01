@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return new InitializeError { Retry = true };
             }
 
-            arg?.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
+            arg.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
             this.clientCapabilities = param.Capabilities;
 
@@ -557,10 +557,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.WorkspaceExecuteCommandName)]
         public object? OnExecuteCommand(JToken arg)
         {
-            var param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
+            ExecuteCommandParams param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
             object? CastAndExecute<T>(Func<T, object?> command) where T : class =>
                 QsCompilerError.RaiseOnFailure(
-                    () => command(Utils.TryJTokenAs<T>(param.Arguments.Single() as JObject)), // currently all supported commands take a single argument
+                    () => command(Utils.TryJTokenAs<T>((JObject)param.Arguments.Single())), // currently all supported commands take a single argument
                     "ExecuteCommand threw an exception");
             try
             {

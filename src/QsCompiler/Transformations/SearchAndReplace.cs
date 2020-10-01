@@ -50,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public Location(NonNullable<string> source, Position declOffset, QsLocation stmLoc, Range range)
             {
                 this.SourceFile = source;
-                this.DeclarationOffset = declOffset ?? throw new ArgumentNullException(nameof(declOffset));
-                this.RelativeStatementLocation = stmLoc ?? throw new ArgumentNullException(nameof(stmLoc));
-                this.SymbolRange = range ?? throw new ArgumentNullException(nameof(range));
+                this.DeclarationOffset = declOffset;
+                this.RelativeStatementLocation = stmLoc;
+                this.SymbolRange = range;
             }
 
             /// <inheritdoc/>
@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 QsLocation? defaultOffset = null,
                 IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
             {
-                this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
+                this.TrackIdentifier = trackId;
                 this.relevantSourceFiles = limitToSourceFiles;
                 this.Locations = ImmutableHashSet<Location>.Empty;
                 this.defaultOffset = defaultOffset;
@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 internal get => this.rootOffset;
                 set
                 {
-                    this.rootOffset = value ?? throw new ArgumentNullException(nameof(value), "declaration offset cannot be null");
+                    this.rootOffset = value;
                     this.CurrentLocation = this.defaultOffset;
                 }
             }
@@ -187,10 +187,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public IdentifierReferences(QsQualifiedName idName, QsLocation? defaultOffset, IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
-            if (idName == null)
-            {
-                throw new ArgumentNullException(nameof(idName));
-            }
         }
 
         // static methods for convenience
@@ -199,12 +195,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             NonNullable<string> idName,
             QsScope scope,
             NonNullable<string> sourceFile,
-            Position? rootLoc)
+            Position rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;
-            finder.SharedState.DeclarationOffset = rootLoc; // will throw if null
-            finder.Statements.OnScope(scope ?? throw new ArgumentNullException(nameof(scope)));
+            finder.SharedState.DeclarationOffset = rootLoc;
+            finder.Statements.OnScope(scope);
             return finder.SharedState.Locations;
         }
 
@@ -216,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
-            finder.Namespaces.OnNamespace(ns ?? throw new ArgumentNullException(nameof(ns)));
+            finder.Namespaces.OnNamespace(ns);
             declarationLocation = finder.SharedState.DeclarationLocation;
             return finder.SharedState.Locations;
         }

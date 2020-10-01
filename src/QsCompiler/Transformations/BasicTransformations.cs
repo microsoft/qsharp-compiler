@@ -33,14 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespaces.
-        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null.
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
-            if (namespaces == null || namespaces.Contains(null!))
-            {
-                throw new ArgumentNullException(nameof(namespaces));
-            }
             var filter = new GetSourceFiles();
             foreach (var ns in namespaces)
             {
@@ -51,7 +46,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null.
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
@@ -96,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 new List<(int?, QsNamespaceElement)>();
 
             public TransformationState(Func<NonNullable<string>, bool> predicate) =>
-                this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+                this.Predicate = predicate;
         }
 
         public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
@@ -112,10 +106,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public static QsNamespace Apply(QsNamespace ns, Func<NonNullable<string>, bool> predicate)
         {
-            if (ns == null)
-            {
-                throw new ArgumentNullException(nameof(ns));
-            }
             var filter = new FilterBySourceFile(predicate);
             return filter.Namespaces.OnNamespace(ns);
         }
@@ -215,8 +205,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this.Recur = recur;
                 this.Seed = seed;
                 this.FoldResult = seed;
-                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
-                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(fold));
+                this.Condition = condition;
+                this.ConstructFold = fold;
             }
         }
 
@@ -244,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// </summary>
             public StatementTransformation(Func<TransformationState, TSelector> createSelector, SyntaxTreeTransformation<TransformationState> parent)
             : base(parent) =>
-                this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
+                this.CreateSelector = createSelector;
 
             /// <inheritdoc/>
             public override QsStatement OnStatement(QsStatement stm)
@@ -357,11 +347,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
         : base(parent, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+            this.OnExpression = onExpression;
 
         public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
         : base(internalState, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+            this.OnExpression = onExpression;
 
         public readonly Action<TypedExpression> OnExpression;
 
