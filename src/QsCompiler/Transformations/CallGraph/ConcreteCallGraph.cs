@@ -20,7 +20,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     {
         /// <summary>
         /// Constructor for ConcreteCallGraphEdge objects.
-        /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
         internal ConcreteCallGraphEdge(Range referenceRange)
             : base(referenceRange)
@@ -46,15 +45,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Constructor for ConcreteCallGraphNode objects.
         /// Strips position info from the given type parameter resolutions.
-        /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
         public ConcreteCallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, TypeParameterResolutions paramResolutions) : base(callableName)
         {
-            if (paramResolutions is null)
-            {
-                throw new ArgumentException(nameof(paramResolutions));
-            }
-
             this.Kind = kind;
 
             // Remove position info from type parameter resolutions
@@ -64,8 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) =>
-            obj is ConcreteCallGraphNode node && this.Equals(node);
+        public override bool Equals(object obj) => obj is ConcreteCallGraphNode node && this.Equals(node);
 
         /// <summary>
         /// Determines if the object is the same as the given node, ignoring the
@@ -110,17 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Constructs a call graph with concretizations of callables that is trimmed to only
         /// include callables that entry points are dependent on.
-        /// Throws ArgumentNullException if argument is null.
         /// </summary>
-        public ConcreteCallGraph(QsCompilation compilation)
-        {
-            if (compilation is null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
-            BuildCallGraph.PopulateConcreteGraph(this.graphBuilder, compilation);
-        }
+        public ConcreteCallGraph(QsCompilation compilation) => BuildCallGraph.PopulateConcreteGraph(this.graphBuilder, compilation);
 
         /// <summary>
         /// Returns the children nodes of a given node. Each key in the returned lookup is a child
@@ -128,7 +111,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// the child node represented by the associated key.
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
-        /// Throws ArgumentNullException if argument is null.
         /// </summary>
         public ILookup<ConcreteCallGraphNode, ConcreteCallGraphEdge> GetDirectDependencies(ConcreteCallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
     }

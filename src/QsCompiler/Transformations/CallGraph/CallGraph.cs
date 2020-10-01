@@ -27,16 +27,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Constructor for CallGraphEdge objects.
         /// Strips position info from the given type parameter resolutions.
-        /// Throws an ArgumentNullException if any of the arguments are null.
         /// </summary>
         internal CallGraphEdge(TypeParameterResolutions paramResolutions, Range referenceRange)
             : base(referenceRange)
         {
-            if (paramResolutions is null)
-            {
-                throw new ArgumentNullException(nameof(paramResolutions));
-            }
-
             // Remove position info from type parameter resolutions
             this.ParamResolutions = paramResolutions.ToImmutableDictionary(
                 kvp => kvp.Key,
@@ -62,7 +56,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     {
         /// <summary>
         /// Constructor for CallGraphNode objects.
-        /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
         public CallGraphNode(QsQualifiedName callableName)
             : base(callableName)
@@ -105,15 +98,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Constructs a call graph from a compilation. The optional trim argument may be
         /// used to specify the call graph to be trimmed to only include callables that
         /// entry points are dependent on.
-        /// Throws ArgumentNullException if compilation argument is null.
         /// </summary>
         public CallGraph(QsCompilation compilation, bool trim = false)
         {
-            if (compilation is null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
             if (trim)
             {
                 BuildCallGraph.PopulateTrimmedGraph(this.graphBuilder, compilation);
@@ -126,17 +113,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Constructs a call graph from callables.
-        /// Throws an ArgumentNullException if the argument is null or any of the callables are null.
         /// </summary>
-        public CallGraph(IEnumerable<QsCallable> callables)
-        {
-            if (callables is null || callables.Any(x => x is null))
-            {
-                throw new ArgumentNullException(nameof(callables));
-            }
-
-            BuildCallGraph.PopulateGraph(this.graphBuilder, callables);
-        }
+        public CallGraph(IEnumerable<QsCallable> callables) => BuildCallGraph.PopulateGraph(this.graphBuilder, callables);
 
         // Member Methods
 
@@ -146,7 +124,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// the child node represented by the associated key.
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
-        /// Throws ArgumentNullException if argument is null.
         /// </summary>
         public ILookup<CallGraphNode, CallGraphEdge> GetDirectDependencies(CallGraphNode node) => this.graphBuilder.GetDirectDependencies(node);
 

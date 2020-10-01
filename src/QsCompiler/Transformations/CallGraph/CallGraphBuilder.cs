@@ -23,17 +23,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Base constructor for call graph edges. Initializes CallGraphEdgeBase properties.
-        /// Throws an ArgumentNullException if the argument is null.
         /// </summary>
-        protected CallGraphEdgeBase(Range referenceRange)
-        {
-            if (referenceRange is null)
-            {
-                throw new ArgumentNullException(nameof(referenceRange));
-            }
-
-            this.ReferenceRange = referenceRange;
-        }
+        protected CallGraphEdgeBase(Range referenceRange) => this.ReferenceRange = referenceRange;
 
         /// <inheritdoc/>
         public bool Equals(CallGraphEdgeBase edge) => this.ReferenceRange.Equals(edge.ReferenceRange);
@@ -51,25 +42,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Base constructor for call graph nodes. Initializes CallableName.
-        /// Throws an ArgumentNullException if argument is null.
         /// </summary>
-        protected CallGraphNodeBase(QsQualifiedName callableName)
-        {
-            if (callableName is null)
-            {
-                throw new ArgumentException(nameof(callableName));
-            }
-
-            this.CallableName = callableName;
-        }
+        protected CallGraphNodeBase(QsQualifiedName callableName) => this.CallableName = callableName;
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) =>
-            obj is CallGraphNodeBase node && this.Equals(node);
+        public override bool Equals(object obj) => obj is CallGraphNodeBase node && this.Equals(node);
 
         /// <inheritdoc/>
-        public bool Equals(CallGraphNodeBase other) =>
-            this.CallableName.Equals(other.CallableName);
+        public bool Equals(CallGraphNodeBase other) => this.CallableName.Equals(other.CallableName);
 
         /// <inheritdoc/>
         public override int GetHashCode() => this.CallableName.GetHashCode();
@@ -115,15 +95,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// the child node represented by the associated key.
         /// Returns an empty ILookup if the node was found with no dependencies or was not found in
         /// the graph.
-        /// Throws ArgumentNullException if argument is null.
         /// </summary>
         public ILookup<TNode, TEdge> GetDirectDependencies(TNode node)
         {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
             if (this.dependencies.TryGetValue(node, out var dep))
             {
                 return dep
@@ -141,25 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Adds a dependency to the call graph using the two nodes and the edge between them.
         /// The nodes are added to the graph if they are not already there. The edge is always added.
-        /// Throws ArgumentNullException if any of the arguments are null.
         /// </summary>
         public void AddDependency(TNode fromNode, TNode toNode, TEdge edge)
         {
-            if (fromNode is null)
-            {
-                throw new ArgumentNullException(nameof(fromNode));
-            }
-
-            if (toNode is null)
-            {
-                throw new ArgumentNullException(nameof(toNode));
-            }
-
-            if (edge is null)
-            {
-                throw new ArgumentNullException(nameof(edge));
-            }
-
             if (this.dependencies.TryGetValue(fromNode, out var deps))
             {
                 if (!deps.TryGetValue(toNode, out var edges))
@@ -185,15 +143,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Adds the given node to the call graph, if it is not already in the graph.
-        /// Throws ArgumentNullException if the argument is null.
         /// </summary>
         public void AddNode(TNode node)
         {
-            if (node is null)
-            {
-                throw new ArgumentNullException(nameof(node));
-            }
-
             if (!this.dependencies.ContainsKey(node))
             {
                 this.dependencies[node] = new Dictionary<TNode, ImmutableArray<TEdge>>();
