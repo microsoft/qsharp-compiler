@@ -252,15 +252,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewOperation(
                     item1: Tuple.Create(
-                        typeTranslator(bondQsTypeKindComposition.Operation.DataA),
-                        typeTranslator(bondQsTypeKindComposition.Operation.DataB)),
+                        typeTranslator(bondQsTypeKindComposition.Operation.Type1),
+                        typeTranslator(bondQsTypeKindComposition.Operation.Type2)),
                     item2: characteristicsTranslator(bondQsTypeKindComposition.Operation.Characteristics));
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.Function)
             {
                 return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewFunction(
-                    item1: typeTranslator(bondQsTypeKindComposition.Function.DataA),
-                    item2: typeTranslator(bondQsTypeKindComposition.Function.DataB));
+                    item1: typeTranslator(bondQsTypeKindComposition.Function.Type1),
+                    item2: typeTranslator(bondQsTypeKindComposition.Function.Type2));
             }
             else
             {
