@@ -96,6 +96,18 @@ type QsTypeKind<'Type,'UdtName,'TParam, 'Characteristics> =
 | MissingType // used (only!) upon determining the type of expressions (for MissingExpr)
 | InvalidType // to be used e.g. for parsing errors
     with
+    static member CreateUnitType() = UnitType
+    static member CreateInt() = Int
+    static member CreateBigInt() = BigInt
+    static member CreateDouble() = Double
+    static member CreateBool() = Bool
+    static member CreateString() = String
+    static member CreateQubit() = Qubit
+    static member CreateResult() = Result
+    static member CreatePauli() = Pauli
+    static member CreateRange() = Range
+    static member CreateMissingType() = MissingType
+    static member CreateInvalidType() = InvalidType
     member this.TryGetArrayType(arrayType: 'Type byref) =
         match this with
         | ArrayType value -> arrayType <- value; true
