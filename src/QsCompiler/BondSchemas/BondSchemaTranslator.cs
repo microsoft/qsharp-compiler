@@ -1087,37 +1087,37 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
         }
 
-        private static QsTypeKindComposition<TBondData, TBondUdt, TBondParam, TBondCharacteristics> ToBondSchemaGeneric
-            <TBondData,
+        private static QsTypeKindComposition<TBondType, TBondUdt, TBondParam, TBondCharacteristics> ToBondSchemaGeneric
+            <TBondType,
              TBondUdt,
              TBondParam,
              TBondCharacteristics,
-             TCompilerData,
+             TCompilerType,
              TCompilerUdt,
              TCompilerParam,
              TCompilerCharacteristics>(
-                this SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics> qsTypeKind,
-                Func<TCompilerData, TBondData> dataTranslator,
+                this SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics> qsTypeKind,
+                Func<TCompilerType, TBondType> dataTranslator,
                 Func<TCompilerUdt, TBondUdt> udtTranslator,
                 Func<TCompilerParam, TBondParam> paramTranslator,
                 Func<TCompilerCharacteristics, TBondCharacteristics> characteristicsTranslator)
-            where TBondData : class
+            where TBondType : class
             where TBondUdt : class
             where TBondParam : class
             where TBondCharacteristics : class
-            where TCompilerData : class
+            where TCompilerType : class
             where TCompilerUdt : class
             where TCompilerParam : class
             where TCompilerCharacteristics : class
         {
-            TBondData? bondArrayType = null;
-            List<TBondData>? bondTupleType = null;
+            TBondType? bondArrayType = null;
+            List<TBondType>? bondTupleType = null;
             TBondParam? bondTypeParameter = null;
             TBondUdt? bondUserDefinedType = null;
-            TCompilerData? compilerArrayType = null;
-            Tuple<TCompilerData, TCompilerData>? compilerFunction = null;
-            Tuple<Tuple<TCompilerData, TCompilerData>, TCompilerCharacteristics>? compilerOperation = null;
-            ImmutableArray<TCompilerData> compilerTupleType = default;
+            TCompilerType? compilerArrayType = null;
+            Tuple<TCompilerType, TCompilerType>? compilerFunction = null;
+            Tuple<Tuple<TCompilerType, TCompilerType>, TCompilerCharacteristics>? compilerOperation = null;
+            ImmutableArray<TCompilerType> compilerTupleType = default;
             TCompilerParam? compilerTyperParameter = null;
             TCompilerUdt? compilerUdtType = null;
             QsTypeKind kind;
@@ -1153,23 +1153,23 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 kind = qsTypeKind.Tag switch
                 {
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.BigInt => QsTypeKind.BigInt,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Bool => QsTypeKind.Bool,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Double => QsTypeKind.Double,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Int => QsTypeKind.Int,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.InvalidType => QsTypeKind.InvalidType,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.MissingType => QsTypeKind.MissingType,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Pauli => QsTypeKind.Pauli,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Qubit => QsTypeKind.Qubit,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Range => QsTypeKind.Range,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Result => QsTypeKind.Result,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.String => QsTypeKind.String,
-                    SyntaxTokens.QsTypeKind<TCompilerData, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.UnitType => QsTypeKind.UnitType,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.BigInt => QsTypeKind.BigInt,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Bool => QsTypeKind.Bool,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Double => QsTypeKind.Double,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Int => QsTypeKind.Int,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.InvalidType => QsTypeKind.InvalidType,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.MissingType => QsTypeKind.MissingType,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Pauli => QsTypeKind.Pauli,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Qubit => QsTypeKind.Qubit,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Range => QsTypeKind.Range,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.Result => QsTypeKind.Result,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.String => QsTypeKind.String,
+                    SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Tags.UnitType => QsTypeKind.UnitType,
                     _ => throw new ArgumentException($"Unsupported QsTypeKind: {qsTypeKind.Tag}")
                 };
             }
 
-            return new QsTypeKindComposition<TBondData, TBondUdt, TBondParam, TBondCharacteristics>
+            return new QsTypeKindComposition<TBondType, TBondUdt, TBondParam, TBondCharacteristics>
             {
                 Kind = kind,
                 ArrayType = bondArrayType!,
@@ -1188,8 +1188,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             Func<TCompiler, TBond> typeTranslator) =>
             new CharacteristicsKindSetOperation<TBond>
             {
-                SetA = typeTranslator(compilerSetOperation.Item1),
-                SetB = typeTranslator(compilerSetOperation.Item2)
+                Set1 = typeTranslator(compilerSetOperation.Item1),
+                Set2 = typeTranslator(compilerSetOperation.Item2)
             };
 
         private static QsConditionalBlock ToQsConditionalBlock(this Tuple<SyntaxTree.TypedExpression, SyntaxTree.QsPositionedBlock> qsConditionalBlock) =>
@@ -1304,22 +1304,22 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             Func<TCompiler, TBond> typeTranslator) =>
             new QsTypeKindFunction<TBond>
             {
-                DataA = typeTranslator(compilerFunction.Item1),
-                DataB = typeTranslator(compilerFunction.Item2)
+                Type1 = typeTranslator(compilerFunction.Item1),
+                Type2 = typeTranslator(compilerFunction.Item2)
             };
 
-        private static QsTypeKindOperation<TBondData, TBondCharacteristics> ToQsTypeKindOperationGeneric<
-            TBondData,
+        private static QsTypeKindOperation<TBondType, TBondCharacteristics> ToQsTypeKindOperationGeneric<
+            TBondType,
             TBondCharacteristics,
             TCompilerData,
             TCompilerCharacteristics>(
                 this Tuple<Tuple<TCompilerData, TCompilerData>, TCompilerCharacteristics> compilerOperation,
-                Func<TCompilerData, TBondData> dataTranslator,
+                Func<TCompilerData, TBondType> dataTranslator,
                 Func<TCompilerCharacteristics, TBondCharacteristics> characteristicsTranslator) =>
-            new QsTypeKindOperation<TBondData, TBondCharacteristics>
+            new QsTypeKindOperation<TBondType, TBondCharacteristics>
             {
-                DataA = dataTranslator(compilerOperation.Item1.Item1),
-                DataB = dataTranslator(compilerOperation.Item1.Item2),
+                Type1 = dataTranslator(compilerOperation.Item1.Item1),
+                Type2 = dataTranslator(compilerOperation.Item1.Item2),
                 Characteristics = characteristicsTranslator(compilerOperation.Item2)
             };
 
