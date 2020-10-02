@@ -111,7 +111,7 @@ struct QsExpressionKindIdentifier<TSymbol, TType>
 {
     5: required TSymbol Symbol;
 
-    10: nullable<vector<TType>> Types = nothing;
+    10: nullable<vector<TType>> Types;
 }
 
 // Used to encapsulate data when QsExpressionKind is StringLiteral.
