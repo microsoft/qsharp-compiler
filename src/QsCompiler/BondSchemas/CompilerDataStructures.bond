@@ -7,16 +7,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas;
 
 struct Position
 {
-    5: required int32 Line;
+    5: int32 Line;
 
-    10: required int32 Column;
+    10: int32 Column;
 }
 
 struct Range
 {
-    5: required Position Start;
+    5: Position Start;
 
-    10: required Position End;
+    10: Position End;
 }
 
 // Data structures from SyntaxTokens.fs
@@ -29,7 +29,7 @@ enum AccessModifier
 
 struct Modifiers
 {
-    5: required AccessModifier Access = DefaultAccess;
+    5: AccessModifier Access = DefaultAccess;
 }
 
 enum QsGeneratorDirective
@@ -109,7 +109,7 @@ enum QsExpressionKind
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindIdentifier<TSymbol, TType>
 {
-    5: required TSymbol Symbol;
+    5: TSymbol Symbol;
 
     10: nullable<vector<TType>> Types;
 }
@@ -118,47 +118,47 @@ struct QsExpressionKindIdentifier<TSymbol, TType>
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindStringLiteral<TExpression>
 {
-    5: required string StringLiteral;
+    5: string StringLiteral;
 
-    10: required vector<TExpression> Expressions;
+    10: vector<TExpression> Expressions;
 }
 
 // Used to encapsulate data when QsExpressionKind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindExpressionDouble<TExpression>
 {
-    5: required TExpression Expression1;
+    5: TExpression Expression1;
 
-    10: required TExpression Expression2;
+    10: TExpression Expression2;
 }
 
 // Used to encapsulate data when QsExpressionKind is CONDITIONAL, CopyAndUpdate.
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindExpressionTriple<TExpression>
 {
-    5: required TExpression Expression1;
+    5: TExpression Expression1;
 
-    10: required TExpression Expression2;
+    10: TExpression Expression2;
 
-    15: required TExpression Expression3;
+    15: TExpression Expression3;
 }
 
 // Used to encapsulate data when QsExpressionKind is NewArray.
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindNewArray<TExpression, TType>
 {
-    5: required TType Type;
+    5: TType Type;
 
-    10: required TExpression Expression;
+    10: TExpression Expression;
 }
 
 // Used to encapsulate data when QsExpressionKind is NamedItem.
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindNamedItem<TExpression, TSymbol>
 {
-    5: required TExpression Expression;
+    5: TExpression Expression;
 
-    10: required TSymbol Symbol;
+    10: TSymbol Symbol;
 }
 
 // Completely represents F#'s QsExpressionKind.
@@ -241,9 +241,9 @@ enum QsQubitScopeKind
 
 struct QsQualifiedName
 {
-    5: required string Namespace;
+    5: string Namespace;
 
-    10: required string Name;
+    10: string Name;
 }
 
 // Represents the possible kinds of SymbolTuple.
@@ -269,11 +269,11 @@ struct SymbolTuple
 
 struct QsBinding<T>
 {
-    5: required QsBindingKind Kind = ImmutableBinding;
+    5: QsBindingKind Kind = ImmutableBinding;
 
-    10: required SymbolTuple Lhs;
+    10: SymbolTuple Lhs;
 
-    15: required T Rhs;
+    15: T Rhs;
 }
 
 // Represents the possible kinds of Identifier.
@@ -298,25 +298,25 @@ struct Identifier
 
 struct QsLocation
 {
-    5: required Position Offset;
+    5: Position Offset;
 
-    10: required Range Range;
+    10: Range Range;
 }
 
 struct QsTypeParameter
 {
-    5: required QsQualifiedName Origin;
+    5: QsQualifiedName Origin;
 
-    10: required string TypeName;
+    10: string TypeName;
 
     15: nullable<Range> Range;
 }
 
 struct UserDefinedType
 {
-    5: required string Namespace;
+    5: string Namespace;
 
-    10: required string Name;
+    10: string Name;
 
     15: nullable<Range> Range;
 }
@@ -342,9 +342,9 @@ enum CharacteristicsKind
 // N.B. Does not have an equivalent F# type.
 struct CharacteristicsKindSetOperation<T>
 {
-    5: required T SetA;
+    5: T Set1;
 
-    10: required T SetB;
+    10: T Set2;
 }
 
 // Completely represents F#'s CharacteristicsKind.
@@ -362,21 +362,21 @@ struct CharacteristicsKindComposition<T>
 
 struct ResolvedCharacteristics
 {
-    5: required CharacteristicsKindComposition<ResolvedCharacteristics> Expression;
+    5: CharacteristicsKindComposition<ResolvedCharacteristics> Expression;
 }
 
 struct InferredCallableInformation
 {
-    5: required bool IsSelfAdjoint;
+    5: bool IsSelfAdjoint;
 
-    10: required bool IsIntrinsic;
+    10: bool IsIntrinsic;
 }
 
 struct CallableInformation
 {
-    5: required ResolvedCharacteristics Characteristics;
+    5: ResolvedCharacteristics Characteristics;
 
-    10: required InferredCallableInformation InferredInformation;
+    10: InferredCallableInformation InferredInformation;
 }
 
 // N.B. Does not completely represent F#'s QsTypeKind.
@@ -407,33 +407,33 @@ enum QsTypeKind
 // N.B. Does not have an equivalent F# type.
 struct QsTypeKindFunction<T>
 {
-    5: required T DataA;
+    5: T Type1;
 
-    10: required T DataB;
+    10: T Type2;
 }
 
 // Used to encapsulate data when QsTypeKind is Operation.
 // N.B. Does not have an equivalent F# type.
-struct QsTypeKindOperation<TData, TCharacteristics>
+struct QsTypeKindOperation<TType, TCharacteristics>
 {
-    5: required TData DataA;
+    5: TType Type1;
 
-    10: required TData DataB;
+    10: TType Type2;
 
-    15: required TCharacteristics Characteristics;
+    15: TCharacteristics Characteristics;
 }
 
 // Completely represents F#'s QsTypeKind.
 // N.B. Does not have an equivalent F# type.
-struct QsTypeKindComposition<TData, TUdt, TParam, TCharacteristics>
+struct QsTypeKindComposition<TType, TUdt, TParam, TCharacteristics>
 {
     5: required QsTypeKind Kind = InvalidType;
 
     // Not null when Kind is ArrayType.
-    10: nullable<TData> ArrayType;
+    10: nullable<TType> ArrayType;
 
     // Not null when Kind is TupleType.
-    15: nullable<vector<TData>> TupleType;
+    15: nullable<vector<TType>> TupleType;
 
     // Not null when Kind is UserDefinedType.
     20: nullable<TUdt> UserDefinedType;
@@ -442,42 +442,42 @@ struct QsTypeKindComposition<TData, TUdt, TParam, TCharacteristics>
     25: nullable<TParam> TypeParameter;
 
     // Not null when Kind is Operation.
-    30: nullable<QsTypeKindOperation<TData, TCharacteristics>> Operation;
+    30: nullable<QsTypeKindOperation<TType, TCharacteristics>> Operation;
 
     // Not null when Kind is Function.
-    35: nullable<QsTypeKindFunction<TData>> Function;
+    35: nullable<QsTypeKindFunction<TType>> Function;
 }
 
 struct ResolvedType
 {
-    5: required QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> TypeKind;
+    5: QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> TypeKind;
 }
 
 struct InferredExpressionInformation
 {
-    5: required bool IsMutable;
+    5: bool IsMutable;
 
-    10: required bool HasLocalQuantumDependency;
+    10: bool HasLocalQuantumDependency;
 }
 
 struct TypedArgument
 {
-    5: required QsQualifiedName Callable;
+    5: QsQualifiedName Callable;
 
-    10: required string Name;
+    10: string Name;
 
-    15: required ResolvedType Resolution;
+    15: ResolvedType Resolution;
 }
 
 struct TypedExpression
 {
-    5: required QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> Expression;
+    5: QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> Expression;
 
-    10: required vector<TypedArgument> TypedArguments;
+    10: vector<TypedArgument> TypedArguments;
 
-    15: required ResolvedType ResolvedType;
+    15: ResolvedType ResolvedType;
 
-    20: required InferredExpressionInformation InferredInformation;
+    20: InferredExpressionInformation InferredInformation;
 
     25: nullable<Range> Range;
 }
@@ -507,66 +507,66 @@ struct QsInitializerKindComposition<TInitializer, TExpression>
 
 struct ResolvedInitializer
 {
-    5: required QsInitializerKindComposition<ResolvedInitializer, TypedExpression> Initializer;
+    5: QsInitializerKindComposition<ResolvedInitializer, TypedExpression> Initializer;
 
-    10: required ResolvedType ResolvedType;
+    10: ResolvedType ResolvedType;
 }
 
 struct LocalVariableDeclaration<TVariableName>
 {
-    5: required TVariableName VariableName;
+    5: TVariableName VariableName;
 
-    10: required ResolvedType Type;
+    10: ResolvedType Type;
 
-    15: required InferredExpressionInformation InferredInformation;
+    15: InferredExpressionInformation InferredInformation;
 
     20: nullable<Position> Position;
 
-    25: required Range Range;
+    25: Range Range;
 }
 
 struct LocalDeclarations
 {
-    5: required vector<LocalVariableDeclaration<string>> Variables;
+    5: vector<LocalVariableDeclaration<string>> Variables;
 }
 
 struct QsValueUpdate
 {
-    5: required TypedExpression Lhs;
+    5: TypedExpression Lhs;
 
-    10: required TypedExpression Rhs;
+    10: TypedExpression Rhs;
 }
 
 struct QsComments
 {
-    5: required vector<string> OpeningComments;
+    5: vector<string> OpeningComments;
 
-    10: required vector<string> ClosingComments;
+    10: vector<string> ClosingComments;
 }
 
 struct QsScope;
 
 struct QsPositionedBlock
 {
-    5: required QsScope Body;
+    5: QsScope Body;
 
     10: nullable<QsLocation> Location;
 
-    15: required QsComments Comments;
+    15: QsComments Comments;
 }
 
 // Used to encapsulate a conditional block tuple.
 // N.B. Does not have an equivalent F# type.
 struct QsConditionalBlock
 {
-    5: required TypedExpression Expression;
+    5: TypedExpression Expression;
 
-    10: required QsPositionedBlock Block;
+    10: QsPositionedBlock Block;
 }
 
 struct QsConditionalStatement
 {
-    5: required vector<QsConditionalBlock> ConditionalBlocks;
+    5: vector<QsConditionalBlock> ConditionalBlocks;
 
     10: nullable<QsPositionedBlock> Default;
 }
@@ -575,50 +575,50 @@ struct QsConditionalStatement
 // N.B. Does not have an equivalent F# type.
 struct QsLoopItem
 {
-    5: required SymbolTuple SymbolTuple;
+    5: SymbolTuple SymbolTuple;
 
-    10: required ResolvedType ResolvedType;
+    10: ResolvedType ResolvedType;
 }
 
 struct QsForStatement
 {
-    5: required QsLoopItem LoopItem;
+    5: QsLoopItem LoopItem;
 
-    10: required TypedExpression IterationValues;
+    10: TypedExpression IterationValues;
 
-    15: required QsScope Body;
+    15: QsScope Body;
 }
 
 struct QsWhileStatement
 {
-    5: required TypedExpression Condition;
+    5: TypedExpression Condition;
 
-    10: required QsScope Body;
+    10: QsScope Body;
 }
 
 struct QsRepeatStatement
 {
-    5: required QsPositionedBlock RepeatBlock;
+    5: QsPositionedBlock RepeatBlock;
 
-    10: required TypedExpression SuccessCondition;
+    10: TypedExpression SuccessCondition;
 
-    15: required QsPositionedBlock FixupBlock;
+    15: QsPositionedBlock FixupBlock;
 }
 
 struct QsConjugation
 {
-    5: required QsPositionedBlock OuterTransformation;
+    5: QsPositionedBlock OuterTransformation;
 
-    10: required QsPositionedBlock InnerTransformation;
+    10: QsPositionedBlock InnerTransformation;
 }
 
 struct QsQubitScope
 {
-    5: required QsQubitScopeKind Kind = Allocate;
+    5: QsQubitScopeKind Kind = Allocate;
 
-    10: required QsBinding<ResolvedInitializer> Binding;
+    10: QsBinding<ResolvedInitializer> Binding;
 
-    15: required QsScope Body;
+    15: QsScope Body;
 }
 
 // N.B. Does not completely represent F#'s QsStatementKind.
@@ -675,20 +675,20 @@ struct QsStatementKindComposition
 
 struct QsStatement
 {
-    5: required QsStatementKindComposition Statement;
+    5: QsStatementKindComposition Statement;
 
-    10: required LocalDeclarations SymbolDeclarations;
+    10: LocalDeclarations SymbolDeclarations;
 
     15: nullable<QsLocation> Location;
 
-    20: required QsComments Comments;
+    20: QsComments Comments;
 }
 
 struct QsScope
 {
-    5: required vector<QsStatement> Statements;
+    5: vector<QsStatement> Statements;
 
-    10: required LocalDeclarations KnownSymbols;
+    10: LocalDeclarations KnownSymbols;
 }
 
 // Represents the possible kinds of QsLocalSymbol.
@@ -711,22 +711,22 @@ struct QsDeclarationAttribute
 {
     5: nullable<UserDefinedType> TypeId;
 
-    10: required TypedExpression Argument;
+    10: TypedExpression Argument;
 
-    15: required Position Offset;
+    15: Position Offset;
 
-    20: required QsComments Comments;
+    20: QsComments Comments;
 }
 
 struct ResolvedSignature
 {
-    5: required vector<QsLocalSymbol> TypeParameters;
+    5: vector<QsLocalSymbol> TypeParameters;
 
-    10: required ResolvedType ArgumentType;
+    10: ResolvedType ArgumentType;
 
-    15: required ResolvedType ReturnType;
+    15: ResolvedType ReturnType;
 
-    20: required CallableInformation Information;
+    20: CallableInformation Information;
 }
 
 // Represents the possible kinds of QsTuple.
@@ -762,9 +762,9 @@ enum SpecializationImplementationKind
 // N.B. Does not have an equivalent F# type.
 struct SpecializationImplementationKindProvided
 {
-    5: required QsTuple<LocalVariableDeclaration<QsLocalSymbol>> Tuple;
+    5: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> Tuple;
 
-    10: required QsScope Implementation;
+    10: QsScope Implementation;
 }
 
 struct SpecializationImplementation
@@ -780,50 +780,50 @@ struct SpecializationImplementation
 
 struct QsSpecialization
 {
-    5: required QsSpecializationKind Kind = QsBody;
+    5: QsSpecializationKind Kind = QsBody;
 
-    10: required QsQualifiedName Parent;
+    10: QsQualifiedName Parent;
 
-    15: required vector<QsDeclarationAttribute> Attributes;
+    15: vector<QsDeclarationAttribute> Attributes;
 
-    20: required string SourceFile;
+    20: string SourceFile;
 
     25: nullable<QsLocation> Location;
 
     30: nullable<vector<ResolvedType>> TypeArguments;
 
-    35: required ResolvedSignature Signature;
+    35: ResolvedSignature Signature;
 
-    40: required SpecializationImplementation Implementation;
+    40: SpecializationImplementation Implementation;
 
-    45: required vector<string> Documentation;
+    45: vector<string> Documentation;
 
-    50: required QsComments Comments;
+    50: QsComments Comments;
 }
 
 struct QsCallable
 {
-    5: required QsCallableKind Kind = Operation;
+    5: QsCallableKind Kind = Operation;
 
-    10: required QsQualifiedName FullName;
+    10: QsQualifiedName FullName;
 
-    15: required vector<QsDeclarationAttribute> Attributes;
+    15: vector<QsDeclarationAttribute> Attributes;
 
-    20: required Modifiers Modifiers;
+    20: Modifiers Modifiers;
 
-    25: required string SourceFile;
+    25: string SourceFile;
 
     30: nullable<QsLocation> Location;
 
-    35: required ResolvedSignature Signature;
+    35: ResolvedSignature Signature;
 
-    40: required QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ArgumentTuple;
+    40: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ArgumentTuple;
 
-    45: required vector<QsSpecialization> Specializations;
+    45: vector<QsSpecialization> Specializations;
 
-    50: required vector<string> Documentation;
+    50: vector<string> Documentation;
 
-    55: required QsComments Comments;
+    55: QsComments Comments;
 }
 
 // Represents the possible kinds of QsTypeItem.
@@ -847,23 +847,23 @@ struct QsTypeItem
 
 struct QsCustomType
 {
-    5: required QsQualifiedName FullName;
+    5: QsQualifiedName FullName;
 
-    10: required vector<QsDeclarationAttribute> Attributes;
+    10: vector<QsDeclarationAttribute> Attributes;
 
-    15: required Modifiers Modifiers;
+    15: Modifiers Modifiers;
 
-    20: required string SourceFile;
+    20: string SourceFile;
 
     25: nullable<QsLocation> Location;
 
-    30: required ResolvedType Type;
+    30: ResolvedType Type;
 
-    35: required QsTuple<QsTypeItem> TypeItems;
+    35: QsTuple<QsTypeItem> TypeItems;
 
-    40: required vector<string> Documentation;
+    40: vector<string> Documentation;
 
-    45: required QsComments Comments;
+    45: QsComments Comments;
 }
 
 // Represents the possible kinds of QsNamespaceElement.
@@ -889,23 +889,23 @@ struct QsNamespaceElement
 // N.B. Does not have an equivalent F# type.
 struct QsSourceFileDocumentation
 {
-    5: required string FileName;
+    5: string FileName;
 
-    10: required vector<string> DocumentationItems;
+    10: vector<string> DocumentationItems;
 }
 
 struct QsNamespace
 {
-    5: required string Name;
+    5: string Name;
 
-    10: required vector<QsNamespaceElement> Elements;
+    10: vector<QsNamespaceElement> Elements;
 
-    15: required list<QsSourceFileDocumentation> Documentation;
+    15: list<QsSourceFileDocumentation> Documentation;
 }
 
 struct QsCompilation
 {
-    5: required vector<QsNamespace> Namespaces;
+    5: vector<QsNamespace> Namespaces;
 
-    10: required vector<QsQualifiedName> EntryPoints;
+    10: vector<QsQualifiedName> EntryPoints;
 }
