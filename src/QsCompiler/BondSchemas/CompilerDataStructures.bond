@@ -111,7 +111,7 @@ struct QsExpressionKindIdentifier<TSymbol, TType>
 {
     5: required TSymbol Symbol;
 
-    10: nullable<vector<TType>> Types = nothing;
+    10: nullable<vector<TType>> Types;
 }
 
 // Used to encapsulate data when QsExpressionKind is StringLiteral.
@@ -168,46 +168,46 @@ struct QsExpressionKindComposition<TExpression, TSymbol, TType>
     5: required QsExpressionKind Kind = InvalidExpr;
 
     // Not null when Kind is Identifier.
-    10: nullable<QsExpressionKindIdentifier<TSymbol, TType>> Identifier = nothing;
+    10: nullable<QsExpressionKindIdentifier<TSymbol, TType>> Identifier;
 
     // Not null when Kind is IntLiteral.
-    20: nullable<int64> IntLiteral = nothing;
+    20: nullable<int64> IntLiteral;
 
     // Not null when Kind is BigIntLiteral.
-    25: nullable<blob> BigIntLiteral = nothing;
+    25: nullable<blob> BigIntLiteral;
 
     // Not null when Kind is DoubleLiteral.
-    30: nullable<double> DoubleLiteral = nothing;
+    30: nullable<double> DoubleLiteral;
 
     // Not null when Kind is BoolLiteral.
-    35: nullable<bool> BoolLiteral = nothing;
+    35: nullable<bool> BoolLiteral;
 
     // Not null when Kind is StringLiteral.
-    40: nullable<QsExpressionKindStringLiteral<TExpression>> StringLiteral = nothing;
+    40: nullable<QsExpressionKindStringLiteral<TExpression>> StringLiteral;
 
     // Not null when Kind is ResultLiteral.
-    45: nullable<QsResult> ResultLiteral = nothing;
+    45: nullable<QsResult> ResultLiteral;
 
     // Not null when Kind is PauliLiteral.
-    50: nullable<QsPauli> PauliLiteral = nothing;
+    50: nullable<QsPauli> PauliLiteral;
 
     // Not null when Kind is NewArray.
-    55: nullable<QsExpressionKindNewArray<TExpression, TType>> NewArray = nothing;
+    55: nullable<QsExpressionKindNewArray<TExpression, TType>> NewArray;
 
     // Not null when Kind is NamedItem.
-    60: nullable<QsExpressionKindNamedItem<TExpression, TSymbol>> NamedItem = nothing;
+    60: nullable<QsExpressionKindNamedItem<TExpression, TSymbol>> NamedItem;
 
     // Not null when Kind is NEG, NOT, BNOT, UnwrapApplication, AdjointApplication, ControlledApplication.
-    65: nullable<TExpression> Expression = nothing;
+    65: nullable<TExpression> Expression;
 
     // Not null when Kind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
-    70: nullable<QsExpressionKindExpressionDouble<TExpression>> ExpressionDouble = nothing;
+    70: nullable<QsExpressionKindExpressionDouble<TExpression>> ExpressionDouble;
 
     // Not null when Kind is CONDITIONAL, CopyAndUpdate.
-    75: nullable<QsExpressionKindExpressionTriple<TExpression>> ExpressionTriple = nothing;
+    75: nullable<QsExpressionKindExpressionTriple<TExpression>> ExpressionTriple;
 
     // Not null when Kind is ValueTuple, ValueArray.
-    80: nullable<vector<TExpression>> ExpressionArray = nothing;
+    80: nullable<vector<TExpression>> ExpressionArray;
 }
 
 // Data structures from SyntaxTree.fs
@@ -261,10 +261,10 @@ struct SymbolTuple
     5: required SymbolTupleKind Kind = InvalidItem;
 
     // Not null when Kind is VariableName.
-    10: nullable<string> VariableName = nothing;
+    10: nullable<string> VariableName;
 
     // Not null when Kind is VariableNameTuple.
-    15: nullable<vector<SymbolTuple>> VariableNameTuple = nothing;
+    15: nullable<vector<SymbolTuple>> VariableNameTuple;
 }
 
 struct QsBinding<T>
@@ -290,10 +290,10 @@ struct Identifier
     5: required IdentifierKind Kind = LocalVariable;
 
     // Not null when Kind is LocalVariable.
-    10: nullable<string> LocalVariable = nothing;
+    10: nullable<string> LocalVariable;
 
     // Not null when Kind is GlobalCallable.
-    15: nullable<QsQualifiedName> GlobalCallable = nothing;
+    15: nullable<QsQualifiedName> GlobalCallable;
 }
 
 struct QsLocation
@@ -309,7 +309,7 @@ struct QsTypeParameter
 
     10: required string TypeName;
 
-    15: nullable<Range> Range = nothing;
+    15: nullable<Range> Range;
 }
 
 struct UserDefinedType
@@ -318,7 +318,7 @@ struct UserDefinedType
 
     10: required string Name;
 
-    15: nullable<Range> Range = nothing;
+    15: nullable<Range> Range;
 }
 
 enum OpProperty
@@ -354,10 +354,10 @@ struct CharacteristicsKindComposition<T>
     5: required CharacteristicsKind Kind = InvalidSetExpr;
 
     // Not null when Kind is SimpleSet.
-    10: nullable<OpProperty> SimpleSet = nothing;
+    10: nullable<OpProperty> SimpleSet;
 
     // Not null when Kind is Union or Intersection.
-    15: nullable<CharacteristicsKindSetOperation<T>> SetOperation = nothing;
+    15: nullable<CharacteristicsKindSetOperation<T>> SetOperation;
 }
 
 struct ResolvedCharacteristics
@@ -430,22 +430,22 @@ struct QsTypeKindComposition<TData, TUdt, TParam, TCharacteristics>
     5: required QsTypeKind Kind = InvalidType;
 
     // Not null when Kind is ArrayType.
-    10: nullable<TData> ArrayType = nothing;
+    10: nullable<TData> ArrayType;
 
     // Not null when Kind is TupleType.
-    15: nullable<vector<TData>> TupleType = nothing;
+    15: nullable<vector<TData>> TupleType;
 
     // Not null when Kind is UserDefinedType.
-    20: nullable<TUdt> UserDefinedType = nothing;
+    20: nullable<TUdt> UserDefinedType;
 
     // Not null when Kind is TypeParameter.
-    25: nullable<TParam> TypeParameter = nothing;
+    25: nullable<TParam> TypeParameter;
 
     // Not null when Kind is Operation.
-    30: nullable<QsTypeKindOperation<TData, TCharacteristics>> Operation = nothing;
+    30: nullable<QsTypeKindOperation<TData, TCharacteristics>> Operation;
 
     // Not null when Kind is Function.
-    35: nullable<QsTypeKindFunction<TData>> Function = nothing;
+    35: nullable<QsTypeKindFunction<TData>> Function;
 }
 
 struct ResolvedType
@@ -499,10 +499,10 @@ struct QsInitializerKindComposition<TInitializer, TExpression>
     5: required QsInitializerKind Kind = InvalidInitializer;
 
     // Not null when Kind is QubitRegisterAllocation.
-    10: nullable<TExpression> QubitRegisterAllocation = nothing;
+    10: nullable<TExpression> QubitRegisterAllocation;
 
     // Not null when Kind is QubitTupleAllocation.
-    15: nullable<vector<TInitializer>> QubitTupleAllocation = nothing;
+    15: nullable<vector<TInitializer>> QubitTupleAllocation;
 }
 
 struct ResolvedInitializer
@@ -520,7 +520,7 @@ struct LocalVariableDeclaration<TVariableName>
 
     15: required InferredExpressionInformation InferredInformation;
 
-    20: nullable<Position> Position = nothing;
+    20: nullable<Position> Position;
 
     25: required Range Range;
 }
@@ -550,7 +550,7 @@ struct QsPositionedBlock
 {
     5: required QsScope Body;
 
-    10: nullable<QsLocation> Location = nothing;
+    10: nullable<QsLocation> Location;
 
     15: required QsComments Comments;
 }
@@ -568,7 +568,7 @@ struct QsConditionalStatement
 {
     5: required vector<QsConditionalBlock> ConditionalBlocks;
 
-    10: nullable<QsPositionedBlock> Default = nothing;
+    10: nullable<QsPositionedBlock> Default;
 }
 
 // Used to encapsulate a loop item tuple.
@@ -646,31 +646,31 @@ struct QsStatementKindComposition
     5: required QsStatementKind Kind = EmptyStatement;
 
     // Not null when Kind is QsExpressionStatement, QsReturnStatement, QsFailStatement.
-    10: nullable<TypedExpression> TypedExpression = nothing;
+    10: nullable<TypedExpression> TypedExpression;
 
     // Not null when Kind is QsVariableDeclaration.
-    15: nullable<QsBinding<TypedExpression>> VariableDeclaration = nothing;
+    15: nullable<QsBinding<TypedExpression>> VariableDeclaration;
 
     // Not null when Kind is QsValueUpdate.
-    20: nullable<QsValueUpdate> ValueUpdate = nothing;
+    20: nullable<QsValueUpdate> ValueUpdate;
 
     // Not null when Kind is QsConditionalStatement.
-    25: nullable<QsConditionalStatement> ConditionalStatement = nothing;
+    25: nullable<QsConditionalStatement> ConditionalStatement;
 
     // Not null when Kind is QsForStatement.
-    30: nullable<QsForStatement> ForStatement = nothing;
+    30: nullable<QsForStatement> ForStatement;
 
     // Not null when Kind is QsWhileStatement.
-    35: nullable<QsWhileStatement> WhileStatement = nothing;
+    35: nullable<QsWhileStatement> WhileStatement;
 
     // Not null when Kind is QsRepeatStatement.
-    40: nullable<QsRepeatStatement> RepeatStatement = nothing;
+    40: nullable<QsRepeatStatement> RepeatStatement;
 
     // Not null when Kind is QsConjugation.
-    45: nullable<QsConjugation> Conjugation = nothing;
+    45: nullable<QsConjugation> Conjugation;
 
     // Not null when Kind is QsQubitScope.
-    50: nullable<QsQubitScope> QubitScope = nothing;
+    50: nullable<QsQubitScope> QubitScope;
 }
 
 struct QsStatement
@@ -704,7 +704,7 @@ struct QsLocalSymbol
     5: required QsLocalSymbolKind Kind = InvalidName;
 
     // Non-null when 'Kind' is 'ValidName'.
-    10: nullable<string> Name = nothing;
+    10: nullable<string> Name;
 }
 
 struct QsDeclarationAttribute
@@ -742,10 +742,10 @@ struct QsTuple<T>
     5: required QsTupleKind Kind = QsTupleItem;
 
     // Not null when Kind is QsTupleItem.
-    10: nullable<T> Item = nothing;
+    10: nullable<T> Item;
 
     // Not null when Kind is QsTuple.
-    15: nullable<vector<QsTuple<T>>> Items = nothing;
+    15: nullable<vector<QsTuple<T>>> Items;
 }
 
 // Represents the possible kinds of SpecializationImplementation.
@@ -772,10 +772,10 @@ struct SpecializationImplementation
     5: required SpecializationImplementationKind Kind = Generated;
 
     // Not null when Kind is Provided.
-    10: nullable<SpecializationImplementationKindProvided> Provided = nothing;
+    10: nullable<SpecializationImplementationKindProvided> Provided;
 
     // Not null when Kind is Generated.
-    15: nullable<QsGeneratorDirective> Generated = nothing;
+    15: nullable<QsGeneratorDirective> Generated;
 }
 
 struct QsSpecialization
@@ -839,10 +839,10 @@ struct QsTypeItem
     5: required QsTypeItemKind Kind = Named;
 
     // Not null when Kind is Named.
-    10: nullable<LocalVariableDeclaration<string>> Named = nothing;
+    10: nullable<LocalVariableDeclaration<string>> Named;
 
     // Not null when Kind is Anonymous.
-    15: nullable<ResolvedType> Anonymous = nothing;
+    15: nullable<ResolvedType> Anonymous;
 }
 
 struct QsCustomType
@@ -879,10 +879,10 @@ struct QsNamespaceElement
     5: required QsNamespaceElementKind Kind = QsCallable;
 
     // Non-null when 'Kind' is 'QsCallable'.
-    10: nullable<QsCallable> Callable = nothing;
+    10: nullable<QsCallable> Callable;
 
     // Non-null when 'Kind' is 'QsCustomType'.
-    15: nullable<QsCustomType> CustomType = nothing;
+    15: nullable<QsCustomType> CustomType;
 }
 
 // Used to encapsulate F#'s representation of namespace documentation.
