@@ -112,6 +112,7 @@ type Identifier =
 /// an identifier of unknown origin - i.e. the identifier could not be associated with any globally declared callable or local variable
 | InvalidIdentifier
     with
+    static member CreateInvalidIdentifier() = InvalidIdentifier
     member this.TryGetLocalVariable(localVariable: NonNullable<string> byref) =
         match this with
         | LocalVariable value -> localVariable <- value; true

@@ -188,6 +188,9 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
 | MissingExpr // for partial application
 | InvalidExpr
     with
+    static member CreateUnitValue() = UnitValue
+    static member CreateMissingExpr() = MissingExpr
+    static member CreateInvalidExpr() = InvalidExpr
     member this.TryGetIdentifier(identifier: ('Symbol * QsNullable<ImmutableArray<'Type>>) byref) =
         match this with
         | Identifier(symbol, typeParameters) -> identifier <- (symbol, typeParameters); true

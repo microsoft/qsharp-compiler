@@ -4,7 +4,10 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+
+
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
@@ -15,6 +18,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                 // TODO: Implement EntryPoints.
                 entryPoints: Array.Empty<SyntaxTree.QsQualifiedName>().ToImmutableArray());
+
+        private static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
+            new BigInteger(blob);
 
         private static DataTypes.Position ToCompilerObject(this Position position) =>
             DataTypes.Position.Create(
@@ -32,6 +38,33 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 characteristics: default,
                 // TODO: Implement InferredInformation.
                 inferredInformation: default);
+
+        private static SyntaxTree.Identifier ToCompilerObject(Identifier bondIdentifier)
+        {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond Identifier '{fieldName}' field is null when Kind is '{bondIdentifier.Kind}'";
+
+            if (bondIdentifier.Kind == IdentifierKind.LocalVariable)
+            {
+                var localVariable =
+                    bondIdentifier.LocalVariable ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("LocalVariable"));
+
+                return SyntaxTree.Identifier.NewLocalVariable(item: localVariable.ToNonNullable());
+            }
+            else if (bondIdentifier.Kind == IdentifierKind.GlobalCallable)
+            {
+                var globalCallable =
+                    bondIdentifier.GlobalCallable ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("GlobalCallable"));
+
+                return SyntaxTree.Identifier.NewGlobalCallable(item: globalCallable.ToCompilerObject());
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported Bond IdentifierKind '{bondIdentifier.Kind}'");
+            }
+        }
 
         private static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
             new SyntaxTree.QsCallable(
@@ -56,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsCallableKind.Operation => SyntaxTree.QsCallableKind.Operation,
                 QsCallableKind.Function => SyntaxTree.QsCallableKind.Function,
                 QsCallableKind.TypeConstructor => SyntaxTree.QsCallableKind.TypeConstructor,
-                _ => throw new ArgumentException($"Unsupported Bond QsCallableKind: {bondQsCallableKind}")
+                _ => throw new ArgumentException($"Unsupported Bond QsCallableKind '{bondQsCallableKind}'")
             };
 
         private static SyntaxTree.QsComments ToCompilerObject(this QsComments bondQsComments) =>
@@ -91,13 +124,25 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 offset: bondQsDeclarationAttribute.Offset.ToCompilerObject(),
                 comments: bondQsDeclarationAttribute.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsLocalSymbol ToCompilerObject(this QsLocalSymbol bondQsLocalSymbol) =>
-            bondQsLocalSymbol.Kind switch
+        private static SyntaxTree.QsLocalSymbol ToCompilerObject(this QsLocalSymbol bondQsLocalSymbol)
+        {
+            if (bondQsLocalSymbol.Kind == QsLocalSymbolKind.ValidName)
             {
-                QsLocalSymbolKind.ValidName => SyntaxTree.QsLocalSymbol.NewValidName(bondQsLocalSymbol.Name.ToNonNullable()),
-                QsLocalSymbolKind.InvalidName => SyntaxTree.QsLocalSymbol.InvalidName,
-                _ => throw new ArgumentException($"Unsupported Bond QsLocalSymbolKind: {bondQsLocalSymbol.Kind}")
-            };
+                var validName =
+                    bondQsLocalSymbol.Name ??
+                    throw new ArgumentNullException($"Bond QsLocalSymbol 'Name' field is null when Kind is '{bondQsLocalSymbol.Kind}'");
+
+                return SyntaxTree.QsLocalSymbol.NewValidName(item: validName.ToNonNullable());
+            }
+            else
+            {
+                return bondQsLocalSymbol.Kind switch
+                {
+                    QsLocalSymbolKind.InvalidName => SyntaxTree.QsLocalSymbol.InvalidName,
+                    _ => throw new ArgumentException($"Unsupported Bond QsLocalSymbolKind '{bondQsLocalSymbol.Kind}'")
+                };
+            }
+        }
 
         private static SyntaxTree.QsLocation ToCompilerObject(this QsLocation bondQsLocation) =>
             new SyntaxTree.QsLocation(
@@ -114,17 +159,28 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
         {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond QsNamespaceElement '{fieldName}' field is null when Kind is '{bondQsNamespaceElement.Kind}'";
+
             if (bondQsNamespaceElement.Kind == QsNamespaceElementKind.QsCallable)
             {
-                return SyntaxTree.QsNamespaceElement.NewQsCallable(bondQsNamespaceElement.Callable.ToCompilerObject());
+                var callable =
+                    bondQsNamespaceElement.Callable ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Callable"));
+
+                return SyntaxTree.QsNamespaceElement.NewQsCallable(item: callable.ToCompilerObject());
             }
             else if (bondQsNamespaceElement.Kind == QsNamespaceElementKind.QsCustomType)
             {
-                return SyntaxTree.QsNamespaceElement.NewQsCustomType(bondQsNamespaceElement.CustomType.ToCompilerObject());
+                var customType =
+                    bondQsNamespaceElement.CustomType ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("CustomType"));
+
+                return SyntaxTree.QsNamespaceElement.NewQsCustomType(item: customType.ToCompilerObject());
             }
             else
             {
-                throw new ArgumentException($"Unsupported Bond QsNamespaceElementKind: {bondQsNamespaceElement.Kind}");
+                throw new ArgumentException($"Unsupported Bond QsNamespaceElementKind '{bondQsNamespaceElement.Kind}'");
             }
         }
 
@@ -161,7 +217,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsSpecializationKind.QsBody => SyntaxTree.QsSpecializationKind.QsBody,
                 QsSpecializationKind.QsControlled => SyntaxTree.QsSpecializationKind.QsControlled,
                 QsSpecializationKind.QsControlledAdjoint => SyntaxTree.QsSpecializationKind.QsControlledAdjoint,
-                _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind {bondQsSpecializationKind}")
+                _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind '{bondQsSpecializationKind}'")
             };
 
         private static SyntaxTree.QsTypeParameter ToCompilerObject(this QsTypeParameter bondQsTypeParameter) =>
@@ -198,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 AccessModifier.DefaultAccess => SyntaxTokens.AccessModifier.DefaultAccess,
                 AccessModifier.Internal => SyntaxTokens.AccessModifier.Internal,
-                _ => throw new ArgumentException($"Unsupported Bond AccessModifier: {accessModifier}")
+                _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{accessModifier}'")
             };
 
         private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers modifiers) =>
@@ -212,6 +268,94 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 udtTranslator: ToCompilerObject,
                 paramTranslator: ToCompilerObject,
                 characteristicsTranslator: ToCompilerObject);
+
+        private static SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType> ToCompilerObjectGeneric<
+            TCompilerExpression,
+            TCompilerSymbol,
+            TCompilerType,
+            TBondExpression,
+            TBondSymbol,
+            TBondType>(
+                this QsExpressionKindComposition<TBondExpression, TBondSymbol, TBondType> bondQsExpressionKindComposition,
+                Func<TBondExpression, TCompilerExpression> expressionTranslator,
+                Func<TBondSymbol, TCompilerSymbol> symbolTranslator,
+                Func<TBondType, TCompilerType> typeTranslator)
+        {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond QsExpressionKindComposition '{fieldName}' field is null when Kind is '{bondQsExpressionKindComposition.Kind}'";
+
+            if (bondQsExpressionKindComposition.Kind == QsExpressionKind.Identifier)
+            {
+                var identifier =
+                    bondQsExpressionKindComposition.Identifier ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Identifier"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewIdentifier(
+                        item1: symbolTranslator(identifier.Symbol),
+                        item2: identifier.Types.Select(t => typeTranslator(t)).ToImmutableArray().ToQsNullableGeneric());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.ValueTuple)
+            {
+                var valueTuple =
+                    bondQsExpressionKindComposition.ExpressionArray ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ExpressionArray"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewValueTuple(item: valueTuple.Select(e => expressionTranslator(e)).ToImmutableArray());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.IntLiteral)
+            {
+                var intLiteral =
+                    bondQsExpressionKindComposition.IntLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("IntLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewIntLiteral(item: intLiteral);
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.BigIntLiteral)
+            {
+                var bigIntLiteral =
+                    bondQsExpressionKindComposition.BigIntLiteral != null ?
+                        bondQsExpressionKindComposition.BigIntLiteral :
+                        throw new ArgumentNullException(UnexpectedNullFieldMessage("BigIntLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewBigIntLiteral(item: bigIntLiteral.ToBigInteger());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.DoubleLiteral)
+            {
+                var doubleLiteral =
+                    bondQsExpressionKindComposition.DoubleLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("DoubleLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewDoubleLiteral(item: doubleLiteral);
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.BoolLiteral)
+            {
+                var boolLiteral =
+                    bondQsExpressionKindComposition.BoolLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("BoolLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewBoolLiteral(item: boolLiteral);
+            }
+            // TODO: Implement the remaining cases.
+            else
+            {
+                return bondQsExpressionKindComposition.Kind switch
+                {
+                    QsExpressionKind.UnitValue => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        CreateUnitValue<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
+                    QsExpressionKind.MissingExpr => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        CreateMissingExpr<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
+                    QsExpressionKind.InvalidExpr => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        CreateInvalidExpr<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
+                    _ => throw new ArgumentException($"Unsupported Bond QsExpressionKind '{bondQsExpressionKindComposition.Kind}'")
+                };
+            }
+        }
 
         private static SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics> ToCompilerObjectGeneric<
             TCompilerType,
@@ -228,39 +372,66 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Func<TBondParam, TCompilerParam> paramTranslator,
                 Func<TBondCharacteristics, TCompilerCharacteristics> characteristicsTranslator)
         {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond QsTypeKindComposition '{fieldName}' field is null when Kind is '{bondQsTypeKindComposition.Kind}'";
+
             if (bondQsTypeKindComposition.Kind == QsTypeKind.ArrayType)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewArrayType(
-                    item: typeTranslator(bondQsTypeKindComposition.ArrayType));
+                var arrayType =
+                    bondQsTypeKindComposition.ArrayType ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ArrayType"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewArrayType(item: typeTranslator(arrayType));
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.TupleType)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewTupleType(
-                    item: bondQsTypeKindComposition.TupleType.Select(t => typeTranslator(t)).ToImmutableArray());
+                var tupleType =
+                    bondQsTypeKindComposition.TupleType ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("TupleType"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewTupleType(item: tupleType.Select(t => typeTranslator(t)).ToImmutableArray());
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.UserDefinedType)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewUserDefinedType(
-                    item: udtTranslator(bondQsTypeKindComposition.UserDefinedType));
+                var userDefinedType =
+                    bondQsTypeKindComposition.UserDefinedType ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("UserDefinedType"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewUserDefinedType(item: udtTranslator(userDefinedType));
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.TypeParameter)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewTypeParameter(
-                    item: paramTranslator(bondQsTypeKindComposition.TypeParameter));
+                var typeParameter =
+                    bondQsTypeKindComposition.TypeParameter ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("TypeParameter"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewTypeParameter(item: paramTranslator(typeParameter));
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.Operation)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewOperation(
-                    item1: Tuple.Create(
-                        typeTranslator(bondQsTypeKindComposition.Operation.Type1),
-                        typeTranslator(bondQsTypeKindComposition.Operation.Type2)),
-                    item2: characteristicsTranslator(bondQsTypeKindComposition.Operation.Characteristics));
+                var operation =
+                    bondQsTypeKindComposition.Operation ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Operation"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewOperation(
+                        item1: Tuple.Create(typeTranslator(operation.Type1), typeTranslator(operation.Type2)),
+                        item2: characteristicsTranslator(operation.Characteristics));
             }
             else if (bondQsTypeKindComposition.Kind == QsTypeKind.Function)
             {
-                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.NewFunction(
-                    item1: typeTranslator(bondQsTypeKindComposition.Function.Type1),
-                    item2: typeTranslator(bondQsTypeKindComposition.Function.Type2));
+                var function =
+                    bondQsTypeKindComposition.Function ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Function"));
+
+                return SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
+                    NewFunction(
+                        item1: typeTranslator(function.Type1),
+                        item2: typeTranslator(function.Type2));
             }
             else
             {
