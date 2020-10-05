@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -19,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class AssemblyRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public AssemblyRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
+        public AssemblyRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null) : base(onDiagnostic, onException)
         {
         }
 
@@ -31,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             static Assembly LoadAssembly(string path) => CompilationLoader.LoadAssembly?.Invoke(path) ?? Assembly.LoadFrom(path);
-            Uri WithFullPath(string file)
+            Uri? WithFullPath(string file)
             {
                 try
                 {
@@ -45,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            var specifiedPluginDlls = config.RewriteStepAssemblies.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
+            var specifiedPluginDlls = config.RewriteStepAssemblies.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
             {

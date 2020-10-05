@@ -12,10 +12,10 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal abstract class AbstractRewriteStepsLoader : IRewriteStepsLoader
     {
-        protected readonly Action<Diagnostic> onDiagnostic;
-        protected readonly Action<Exception> onException;
+        protected readonly Action<Diagnostic>? onDiagnostic;
+        protected readonly Action<Exception>? onException;
 
-        protected AbstractRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        protected AbstractRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
         {
             this.onDiagnostic = onDiagnostic;
             this.onException = onException;
@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         protected Diagnostic LoadWarning(Uri target, WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
 
-        protected LoadedStep CreateStep(Type type, Uri target, string outputFolder)
+        protected LoadedStep CreateStep(Type type, Uri target, string? outputFolder)
         {
             try
             {
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.onException?.Invoke(ex);
             }
 
-            return null;
+            return LoadedStep.Empty;
         }
 
     }

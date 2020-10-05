@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler
     {
         private ImmutableArray<IRewriteStepsLoader> rewriteStepsLoaders;
 
-        public ExternalRewriteStepsManager(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        public ExternalRewriteStepsManager(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
         {
             this.rewriteStepsLoaders = ImmutableArray.Create<IRewriteStepsLoader>(
                 new InstanceRewriteStepsLoader(onDiagnostic, onException),
@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler
                 loadedSteps.AddRange(loader.GetLoadedSteps(config));
             }
 
-            foreach (var loaded in loadedSteps)
+            foreach (var loaded in loadedSteps.Where(loadedStep => loadedStep != LoadedStep.Empty))
             {
                 var assemblyConstants = loaded.AssemblyConstants;
                 if (assemblyConstants == null)

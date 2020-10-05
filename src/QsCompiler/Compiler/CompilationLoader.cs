@@ -181,13 +181,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Contains a sequence of tuples with the types (classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(Type, string)> RewriteStepTypes;
+            public IEnumerable<(Type, string?)>? RewriteStepTypes;
 
             /// <summary>
             /// Contains a sequence of tuples with the objects (instances of IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(IRewriteStep, string)> RewriteStepInstances;
+            public IEnumerable<(IRewriteStep, string?)>? RewriteStepInstances;
 
             /// <summary>
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.

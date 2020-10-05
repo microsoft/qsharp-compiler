@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class InstanceRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public InstanceRewriteStepsLoader(Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null) : base(onDiagnostic, onException)
+        public InstanceRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null) : base(onDiagnostic, onException)
         {
         }
 

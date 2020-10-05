@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -19,34 +20,44 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class LoadedStep : IRewriteStep
     {
+        internal static LoadedStep Empty = new LoadedStep();
         internal readonly Uri Origin;
-        private readonly IRewriteStep selfAsStep;
+        private readonly IRewriteStep? selfAsStep;
         private readonly object selfAsObject;
 
-        private readonly MethodInfo[] interfaceMethods;
+        private readonly MethodInfo[]? interfaceMethods;
 
-        private MethodInfo InterfaceMethod(string name) =>
+        private MethodInfo? InterfaceMethod(string name) =>
             // This choice of filtering the interface methods may seem a bit particular.
             // However, unless you know what you are doing, please don't change it.
             // If you are sure you know what you are doing, please make sure the loading via reflection works for rewrite steps
             // implemented in both F# or C#, and whether they are compiled against the current compiler version or an older one.
             this.interfaceMethods?.FirstOrDefault(method => method.Name.Split("-").Last() == name);
 
-        private object GetViaReflection(string name) =>
+        private object? GetViaReflection(string name) =>
             this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
 
+        [return: MaybeNull]
         private T GetViaReflection<T>(string name) =>
             (T)this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
 
         private void SetViaReflection<T>(string name, T arg) =>
-            this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object[] { arg });
+            this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object?[] { arg });
 
-        private T InvokeViaReflection<T>(string name, params object[] args) =>
+        [return: MaybeNull]
+        private T InvokeViaReflection<T>(string name, params object?[] args) =>
             (T)this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args);
 
-        internal LoadedStep(IRewriteStep rewriteStep, string outputFolder = null)
+        private LoadedStep()
         {
-            this.selfAsObject = rewriteStep ?? throw new ArgumentNullException(nameof(rewriteStep));
+            this.Origin = new Uri(this.GetType().Assembly.Location);
+            this.selfAsObject = new object();
+            this.Name = "Empty";
+        }
+
+        internal LoadedStep(IRewriteStep rewriteStep, string? outputFolder = null)
+        {
+            this.selfAsObject = rewriteStep;
             this.Origin = new Uri(rewriteStep.GetType().Assembly.Location);
             this.OutputFolder = outputFolder;
             this.selfAsStep = rewriteStep;
@@ -61,11 +72,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// has not been copied to output folder of the dll from which the rewrite step is loaded.
         /// Throws the corresponding exception if that construction fails.
         /// </summary>
-        internal LoadedStep(object implementation, Type interfaceType, Uri origin, string outputFolder = null)
+        internal LoadedStep(object implementation, Type interfaceType, Uri origin, string? outputFolder = null)
         {
-            this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
+            this.Origin = origin;
             this.OutputFolder = outputFolder;
-            this.selfAsObject = implementation ?? throw new ArgumentNullException(nameof(implementation));
+            this.selfAsObject = implementation;
 
             // Initializing the _InterfaceMethods even if the implementation implements IRewriteStep
             // would result in certain properties being loaded via reflection instead of simply being accessed via _SelfAsStep.
@@ -80,7 +91,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             // The Name and Priority need to be fixed throughout the loading,
             // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
-            this.Name = this.selfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name));
+            this.Name = this.selfAsStep?.Name
+                ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name))
+                ?? "(no name)";
             this.Priority = this.selfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority));
         }
 
@@ -88,9 +101,9 @@ namespace Microsoft.Quantum.QsCompiler
 
         public int Priority { get; }
 
-        public string OutputFolder { get; }
+        public string? OutputFolder { get; }
 
-        internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string> getCode = null)
+        internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string?>? getCode = null)
         {
             var severity =
                 diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
@@ -115,10 +128,11 @@ namespace Microsoft.Quantum.QsCompiler
             };
         }
 
-        public IDictionary<string, string> AssemblyConstants
+        public IDictionary<string, string?> AssemblyConstants
         {
             get => this.selfAsStep?.AssemblyConstants
-                ?? this.GetViaReflection<IDictionary<string, string>>(nameof(IRewriteStep.AssemblyConstants));
+                ?? this.GetViaReflection<IDictionary<string, string?>>(nameof(IRewriteStep.AssemblyConstants))
+                ?? ImmutableDictionary<string, string?>.Empty;
         }
 
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics
@@ -132,9 +146,9 @@ namespace Microsoft.Quantum.QsCompiler
                 static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
                 var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
                 var itemType = enumerable?.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments().FirstOrDefault();
-                if (itemType == null)
+                if (enumerable is null || itemType is null)
                 {
-                    return null;
+                    return Enumerable.Empty<IRewriteStep.Diagnostic>();
                 }
 
                 var diagnostics = ImmutableArray.CreateBuilder<IRewriteStep.Diagnostic>();
@@ -174,15 +188,15 @@ namespace Microsoft.Quantum.QsCompiler
                 ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPostconditionVerification));
         }
 
-        public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
+        public bool Transformation(QsCompilation compilation, [NotNullWhen(true)] out QsCompilation? transformed)
         {
             if (this.selfAsStep != null)
             {
                 return this.selfAsStep.Transformation(compilation, out transformed);
             }
-            var args = new object[] { compilation, null };
+            var args = new object?[] { compilation, null };
             var success = this.InvokeViaReflection<bool>(nameof(IRewriteStep.Transformation), args);
-            transformed = success ? (QsCompilation)args[1] : compilation;
+            transformed = success ? args[1] as QsCompilation ?? compilation : compilation;
             return success;
         }
 
@@ -190,8 +204,9 @@ namespace Microsoft.Quantum.QsCompiler
             this.selfAsStep?.PreconditionVerification(compilation)
             ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PreconditionVerification), compilation);
 
-        public bool PostconditionVerification(QsCompilation compilation) =>
-            this.selfAsStep?.PostconditionVerification(compilation)
-            ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PostconditionVerification), compilation);
+        public bool PostconditionVerification(QsCompilation? compilation) =>
+            !(compilation is null)
+            && (this.selfAsStep?.PostconditionVerification(compilation)
+                ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PostconditionVerification), compilation));
     }
 }
