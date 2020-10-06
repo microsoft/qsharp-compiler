@@ -98,15 +98,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsCustomType ToCompilerObject(this QsCustomType bondQsCustomType) =>
             new SyntaxTree.QsCustomType(
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
-                // TODO: Implement Attributes.
-                attributes: Array.Empty<SyntaxTree.QsDeclarationAttribute>().ToImmutableArray(),
+                attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
                 sourceFile: bondQsCustomType.SourceFile.ToNonNullable(),
                 location: bondQsCustomType.Location != null ?
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
-                // TODO: Implement Type.
-                type: default,
+                type: bondQsCustomType.Type.ToCompilerObject(),
                 // TODO: Implement TypeItems.
                 typeItems: default,
                 documentation: bondQsCustomType.Documentation.ToImmutableArray(),
@@ -117,8 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 typeId: bondQsDeclarationAttribute.TypeId != null ?
                     bondQsDeclarationAttribute.TypeId.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.UserDefinedType>.Null,
-                // TODO: Implement Argument.
-                argument: default,
+                argument: bondQsDeclarationAttribute.Argument.ToCompilerObject(),
                 offset: bondQsDeclarationAttribute.Offset.ToCompilerObject(),
                 comments: bondQsDeclarationAttribute.Comments.ToCompilerObject());
 
@@ -199,14 +196,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 typeArguments: bondQsSpecialization.TypeArguments != null ?
                     bondQsSpecialization.TypeArguments.Select(t => t.ToCompilerObject()).ToImmutableArray().ToQsNullableGeneric() :
                     QsNullable<ImmutableArray<SyntaxTree.ResolvedType>>.Null,
-                // TODO: Implement Signature.
-                signature: default,
+                signature: bondQsSpecialization.Signature.ToCompilerObject(),
                 // TODO: Implement Implementation.
                 implementation: default,
-                // TODO: Implement Documentation.
-                documentation: Array.Empty<string>().ToImmutableArray(),
-                // TODO: Implement Comments.
-                comments: default);
+                documentation: bondQsSpecialization.Documentation.ToImmutableArray(),
+                comments: bondQsSpecialization.Comments.ToCompilerObject());
 
         private static SyntaxTree.QsSpecializationKind ToCompilerObject(this QsSpecializationKind bondQsSpecializationKind) =>
             bondQsSpecializationKind switch
@@ -229,10 +223,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.ResolvedSignature ToCompilerObject(this ResolvedSignature bondResolvedSignature) =>
             new SyntaxTree.ResolvedSignature(
                 typeParameters: bondResolvedSignature.TypeParameters.Select(tp => tp.ToCompilerObject()).ToImmutableArray(),
-                // Implement ArgumentType
-                argumentType: default,
-                // Implement ReturnType
-                returnType: default,
+                argumentType: bondResolvedSignature.ArgumentType.ToCompilerObject(),
+                returnType: bondResolvedSignature.ReturnType.ToCompilerObject(),
                 // Implement Information
                 information: default);
 
