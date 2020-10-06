@@ -240,7 +240,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 resolvedType: bondTypedExpression.ResolvedType.ToCompilerObject(),
                 // TODO: Implement InferredInformation.
                 inferredInformation: default,
-                range: bondTypedExpression.Range.ToCompilerObject().ToQsNullableGeneric());
+                range: bondTypedExpression.Range != null ?
+                    bondTypedExpression.Range.ToCompilerObject().ToQsNullableGeneric() :
+                    QsNullable<DataTypes.Range>.Null);
 
         private static SyntaxTree.UserDefinedType ToCompilerObject(this UserDefinedType bondUserDefinedType) =>
             new SyntaxTree.UserDefinedType(
@@ -328,7 +330,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                     NewIdentifier(
                         item1: symbolTranslator(identifier.Symbol),
-                        item2: identifier.Types.Select(t => typeTranslator(t)).ToImmutableArray().ToQsNullableGeneric());
+                        item2: identifier.Types != null ?
+                            identifier.Types.Select(t => typeTranslator(t)).ToImmutableArray().ToQsNullableGeneric() :
+                            QsNullable<ImmutableArray<TCompilerType>>.Null);
             }
             else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.IntLiteral)
             {
