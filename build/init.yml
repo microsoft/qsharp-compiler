@@ -27,4 +27,3 @@ steps:
     command: custom
     verbose: false
     customCommand: 'install -g vsce'
- 
