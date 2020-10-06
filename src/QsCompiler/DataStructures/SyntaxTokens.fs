@@ -57,6 +57,8 @@ type CharacteristicsKind<'S> =
 | Intersection of 'S * 'S
 | InvalidSetExpr
     with
+    static member CreateEmptySet() = EmptySet
+    static member CreateInvalidSetExpr() = InvalidSetExpr
     member this.TryGetSimpleSet(simpleSet: OpProperty byref) =
         match this with
         | SimpleSet value -> simpleSet <- value; true

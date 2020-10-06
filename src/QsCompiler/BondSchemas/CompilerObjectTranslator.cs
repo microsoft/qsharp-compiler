@@ -5,6 +5,7 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
@@ -14,8 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         public static SyntaxTree.QsCompilation CreateQsCompilation(QsCompilation bondCompilation) =>
             new SyntaxTree.QsCompilation(
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
-                // TODO: Implement EntryPoints.
-                entryPoints: Array.Empty<SyntaxTree.QsQualifiedName>().ToImmutableArray());
+                entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
 
         private static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
             new BigInteger(blob);
@@ -30,12 +30,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 start: range.Start.ToCompilerObject(),
                 end: range.End.ToCompilerObject());
 
+        private static SyntaxTokens.OpProperty ToCompilerObject(this OpProperty bondOpProperty) =>
+            bondOpProperty switch
+            {
+                OpProperty.Adjointable => SyntaxTokens.OpProperty.Adjointable,
+                OpProperty.Controllable => SyntaxTokens.OpProperty.Controllable,
+                _ => throw new ArgumentException($"Unsupported Bond OpProperty '{bondOpProperty}'")
+            };
+
         private static SyntaxTree.CallableInformation ToCompilerObject(CallableInformation bondCallableInformation) =>
             new SyntaxTree.CallableInformation(
-                // TODO: Implement Characteristics.
-                characteristics: default,
-                // TODO: Implement InferredInformation.
-                inferredInformation: default);
+                characteristics: bondCallableInformation.Characteristics.ToCompilerObject(),
+                inferredInformation: bondCallableInformation.InferredInformation.ToCompilerObject());
 
         private static SyntaxTree.Identifier ToCompilerObject(Identifier bondIdentifier)
         {
@@ -63,6 +69,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 throw new ArgumentException($"Unsupported Bond IdentifierKind '{bondIdentifier.Kind}'");
             }
         }
+
+        private static SyntaxTree.InferredCallableInformation ToCompilerObject(this InferredCallableInformation bondInferredCallableInformation) =>
+            new SyntaxTree.InferredCallableInformation(
+                isSelfAdjoint: bondInferredCallableInformation.IsSelfAdjoint,
+                isIntrinsic: bondInferredCallableInformation.IsIntrinsic);
+
+        private static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
+            this LocalVariableDeclaration<QsLocalSymbol> bondLocalVariableDeclaration) =>
+            bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
         private static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
             new SyntaxTree.QsCallable(
@@ -228,6 +243,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 // Implement Information
                 information: default);
 
+        private static SyntaxTree.ResolvedCharacteristics ToCompilerObject(this ResolvedCharacteristics bondResolvedCharacteristics) =>
+            SyntaxTree.ResolvedCharacteristics.New(kind: bondResolvedCharacteristics.Expression.ToCompilerObject());
+
         private static SyntaxTree.ResolvedType ToCompilerObject(this ResolvedType bondResolvedType) =>
             SyntaxTree.ResolvedType.New(bondResolvedType.TypeKind.ToCompilerObject());
 
@@ -259,6 +277,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 AccessModifier.Internal => SyntaxTokens.AccessModifier.Internal,
                 _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'")
             };
+
+        private static SyntaxTokens.CharacteristicsKind<SyntaxTree.ResolvedCharacteristics> ToCompilerObject(
+            this CharacteristicsKindComposition<ResolvedCharacteristics> bondCharacteristicsKindComposition) =>
+            bondCharacteristicsKindComposition.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
         private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers bondModifiers) =>
             new SyntaxTokens.Modifiers(
@@ -302,6 +324,56 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 udtTranslator: ToCompilerObject,
                 paramTranslator: ToCompilerObject,
                 characteristicsTranslator: ToCompilerObject);
+
+        private static SyntaxTokens.CharacteristicsKind<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+            this CharacteristicsKindComposition<TBond> bondCharacteristicsKindComposition,
+            Func<TBond, TCompiler> typeTranslator)
+        {
+            string InvalidKindForFieldMessage(string fieldName) =>
+                $"Bond CharacteristicsKind '{bondCharacteristicsKindComposition.Kind}' is not related to '{fieldName}' field";
+
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond CharacteristicsKindComposition '{fieldName}' field is null when Kind is '{bondCharacteristicsKindComposition.Kind}'";
+
+            if (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.SimpleSet)
+            {
+                var simpleSet =
+                    bondCharacteristicsKindComposition.SimpleSet ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("SimpleSet"));
+
+                return SyntaxTokens.CharacteristicsKind<TCompiler>.NewSimpleSet(
+                    item: simpleSet.ToCompilerObject());
+            }
+            else if((bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Union) ||
+                    (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Intersection))
+            {
+                var bondSetOperation =
+                    bondCharacteristicsKindComposition.SetOperation ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("SetOperation"));
+
+                var compilerSet1 = typeTranslator(bondSetOperation.Set1);
+                var compilerSet2 = typeTranslator(bondSetOperation.Set2);
+                return bondCharacteristicsKindComposition.Kind switch
+                {
+                    CharacteristicsKind.Union => SyntaxTokens.CharacteristicsKind<TCompiler>.NewUnion(
+                        item1: compilerSet1,
+                        item2: compilerSet2),
+                    CharacteristicsKind.Intersection => SyntaxTokens.CharacteristicsKind<TCompiler>.NewIntersection(
+                        item1: compilerSet1,
+                        item2: compilerSet2),
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("SetOperation"))
+                };
+            }
+            else
+            {
+                return bondCharacteristicsKindComposition.Kind switch
+                {
+                    CharacteristicsKind.EmptySet => SyntaxTokens.CharacteristicsKind<TCompiler>.CreateEmptySet<TCompiler>(),
+                    CharacteristicsKind.InvalidSetExpr => SyntaxTokens.CharacteristicsKind<TCompiler>.CreateInvalidSetExpr<TCompiler>(),
+                    _ => throw new ArgumentException($"Unsupported Bond CharacteristicsKind '{bondCharacteristicsKindComposition.Kind}'")
+                };
+            }
+        }
 
         private static SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType> ToCompilerObjectGeneric<
             TCompilerExpression,
@@ -685,6 +757,49 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 };
 
                 return simpleQsTypeKind;
+            }
+        }
+
+        private static SyntaxTree.LocalVariableDeclaration<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+            this LocalVariableDeclaration<TBond> bondLocalVariableDeclaration,
+            Func<TBond, TCompiler> typeTranslator) =>
+            new SyntaxTree.LocalVariableDeclaration<TCompiler>(
+                variableName: typeTranslator(bondLocalVariableDeclaration.VariableName),
+                type: bondLocalVariableDeclaration.Type.ToCompilerObject(),
+                // TODO: Implement InferredInformation.
+                inferredInformation: default,
+                position: bondLocalVariableDeclaration.Position != null ?
+                    bondLocalVariableDeclaration.Position.ToCompilerObject().ToQsNullableGeneric() :
+                    QsNullable<DataTypes.Position>.Null,
+                range: bondLocalVariableDeclaration.Range.ToCompilerObject());
+
+        private static SyntaxTokens.QsTuple<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+            this QsTuple<TBond> bondQsTuple,
+            Func<TBond, TCompiler> typeTranslator)
+        {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond QsTuple '{fieldName}' field is null when Kind is '{bondQsTuple.Kind}'";
+
+            if (bondQsTuple.Kind == QsTupleKind.QsTuple)
+            {
+                var bondTupleItems =
+                    bondQsTuple.Items ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Items"));
+
+                return SyntaxTokens.QsTuple<TCompiler>.NewQsTuple(
+                    item: bondTupleItems.Select(t => t.ToCompilerObjectGeneric(typeTranslator)).ToImmutableArray());
+            }
+            else if (bondQsTuple.Kind == QsTupleKind.QsTupleItem)
+            {
+                var bondTupleItem =
+                    bondQsTuple.Item ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Item"));
+
+                return SyntaxTokens.QsTuple<TCompiler>.NewQsTupleItem(item: typeTranslator(bondTupleItem));
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported Bond QsTupleKind '{bondQsTuple.Kind}'");
             }
         }
 
