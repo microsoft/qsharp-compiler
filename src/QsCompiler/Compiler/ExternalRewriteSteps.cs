@@ -43,15 +43,21 @@ namespace Microsoft.Quantum.QsCompiler
                 this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
 
             [return: MaybeNull]
-            private T GetViaReflection<T>(string name) =>
-                (T)this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
+            private T GetViaReflection<T>(string name)
+            {
+                var result = this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
+                return result is null ? default : (T)result;
+            }
 
             private void SetViaReflection<T>(string name, T arg) =>
                 this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object?[] { arg });
 
             [return: MaybeNull]
-            private T InvokeViaReflection<T>(string name, params object?[] args) =>
-                (T)this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args);
+            private T InvokeViaReflection<T>(string name, params object?[] args)
+            {
+                var result = this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args);
+                return result is null ? default : (T)result;
+            }
 
             /// <summary>
             /// Attempts to construct a rewrite step via reflection.
