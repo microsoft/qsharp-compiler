@@ -7,8 +7,6 @@ using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
-
-
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
     public static class CompilerObjectTranslator
@@ -241,6 +239,17 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.ResolvedType ToCompilerObject(this ResolvedType bondResolvedType) =>
             SyntaxTree.ResolvedType.New(bondResolvedType.TypeKind.ToCompilerObject());
 
+        private static SyntaxTree.TypedExpression ToCompilerObject(this TypedExpression bondTypedExpression) =>
+            new SyntaxTree.TypedExpression(
+                expression: bondTypedExpression.Expression.ToCompilerObject(),
+                typeArguments: bondTypedExpression.TypedArguments.
+                    Select(t => Tuple.Create(t.Callable.ToCompilerObject(), t.Name.ToNonNullable(), t.Resolution.ToCompilerObject())).
+                    ToImmutableArray(),
+                resolvedType: bondTypedExpression.ResolvedType.ToCompilerObject(),
+                // TODO: Implement InferredInformation.
+                inferredInformation: default,
+                range: bondTypedExpression.Range.ToCompilerObject().ToQsNullableGeneric());
+
         private static SyntaxTree.UserDefinedType ToCompilerObject(this UserDefinedType bondUserDefinedType) =>
             new SyntaxTree.UserDefinedType(
                 @namespace: bondUserDefinedType.Namespace.ToNonNullable(),
@@ -249,17 +258,48 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondUserDefinedType.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
 
-        private static SyntaxTokens.AccessModifier ToCompilerObject(this AccessModifier accessModifier) =>
-            accessModifier switch
+        private static SyntaxTokens.AccessModifier ToCompilerObject(this AccessModifier bondAccessModifier) =>
+            bondAccessModifier switch
             {
                 AccessModifier.DefaultAccess => SyntaxTokens.AccessModifier.DefaultAccess,
                 AccessModifier.Internal => SyntaxTokens.AccessModifier.Internal,
-                _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{accessModifier}'")
+                _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'")
             };
 
-        private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers modifiers) =>
+        private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers bondModifiers) =>
             new SyntaxTokens.Modifiers(
-                access: modifiers.Access.ToCompilerObject());
+                access: bondModifiers.Access.ToCompilerObject());
+
+        private static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
+            this QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> bondQsExpressionKindComposition) =>
+            bondQsExpressionKindComposition.ToCompilerObjectGeneric<
+                SyntaxTree.TypedExpression,
+                SyntaxTree.Identifier,
+                SyntaxTree.ResolvedType,
+                TypedExpression,
+                Identifier,
+                ResolvedType>(
+                    expressionTranslator: ToCompilerObject,
+                    symbolTranslator: ToCompilerObject,
+                    typeTranslator: ToCompilerObject);
+
+        private static SyntaxTokens.QsPauli ToCompilerObject(this QsPauli bondQsPauli) =>
+            bondQsPauli switch
+            {
+                QsPauli.PauliI => SyntaxTokens.QsPauli.PauliI,
+                QsPauli.PauliX => SyntaxTokens.QsPauli.PauliX,
+                QsPauli.PauliY => SyntaxTokens.QsPauli.PauliY,
+                QsPauli.PauliZ => SyntaxTokens.QsPauli.PauliZ,
+                _ => throw new ArgumentException($"Unsupported Bond QsPauli '{bondQsPauli}'")
+            };
+
+        private static SyntaxTokens.QsResult ToCompilerObject(this QsResult bondQsResult) =>
+            bondQsResult switch
+            {
+                QsResult.Zero => SyntaxTokens.QsResult.Zero,
+                QsResult.One => SyntaxTokens.QsResult.One,
+                _ => throw new ArgumentException($"Unsupported Bond QsResult '{bondQsResult}'")
+            };
 
         private static SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> ToCompilerObject(
             this QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> bondQsTypeKindComposition) =>
@@ -281,6 +321,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Func<TBondSymbol, TCompilerSymbol> symbolTranslator,
                 Func<TBondType, TCompilerType> typeTranslator)
         {
+            string InvalidKindForFieldMessage(string fieldName) =>
+                $"Bond QsExpressionKind '{bondQsExpressionKindComposition.Kind}' is not related to '{fieldName}' field";
+
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond QsExpressionKindComposition '{fieldName}' field is null when Kind is '{bondQsExpressionKindComposition.Kind}'";
 
@@ -294,15 +337,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     NewIdentifier(
                         item1: symbolTranslator(identifier.Symbol),
                         item2: identifier.Types.Select(t => typeTranslator(t)).ToImmutableArray().ToQsNullableGeneric());
-            }
-            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.ValueTuple)
-            {
-                var valueTuple =
-                    bondQsExpressionKindComposition.ExpressionArray ??
-                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ExpressionArray"));
-
-                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
-                    NewValueTuple(item: valueTuple.Select(e => expressionTranslator(e)).ToImmutableArray());
             }
             else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.IntLiteral)
             {
@@ -341,7 +375,197 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                     NewBoolLiteral(item: boolLiteral);
             }
-            // TODO: Implement the remaining cases.
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.StringLiteral)
+            {
+                var stringLiteral =
+                    bondQsExpressionKindComposition.StringLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("StringLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewStringLiteral(
+                    item1: stringLiteral.StringLiteral.ToNonNullable(),
+                    item2: stringLiteral.Expressions.Select(e => expressionTranslator(e)).ToImmutableArray());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.ResultLiteral)
+            {
+                var resultLiteral =
+                    bondQsExpressionKindComposition.ResultLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ResultLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewResultLiteral(item: resultLiteral.ToCompilerObject());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.PauliLiteral)
+            {
+                var pauliLiteral =
+                    bondQsExpressionKindComposition.PauliLiteral ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("PauliLiteral"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewPauliLiteral(item: pauliLiteral.ToCompilerObject());
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.NewArray)
+            {
+                var newArray =
+                    bondQsExpressionKindComposition.NewArray ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("NewArray"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewNewArray(
+                        item1: typeTranslator(newArray.Type),
+                        item2: expressionTranslator(newArray.Expression));
+            }
+            else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.NamedItem)
+            {
+                var namedItem =
+                    bondQsExpressionKindComposition.NamedItem ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("NamedItem"));
+
+                return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                    NewNamedItem(
+                        item1: expressionTranslator(namedItem.Expression),
+                        item2: symbolTranslator(namedItem.Symbol));
+            }
+            else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.NEG) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.NOT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.BNOT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.AdjointApplication) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.ControlledApplication))
+            {
+                var bondExpression =
+                    bondQsExpressionKindComposition.Expression ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Expression"));
+
+                var compilerExpression = expressionTranslator(bondExpression);
+                return bondQsExpressionKindComposition.Kind switch
+                {
+                    QsExpressionKind.NEG => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewNEG(item: compilerExpression),
+                    QsExpressionKind.NOT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewNOT(item: compilerExpression),
+                    QsExpressionKind.BNOT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewBNOT(item: compilerExpression),
+                    QsExpressionKind.AdjointApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewAdjointApplication(item: compilerExpression),
+                    QsExpressionKind.ControlledApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewControlledApplication(item: compilerExpression),
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("Expression"))
+                };
+            }
+            else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.RangeLiteral) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.ArrayItem) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.ADD) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.SUB) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.MUL) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.DIV) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.MOD) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.POW) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.EQ) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.NEQ) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.LT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.LTE) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.GT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.GTE) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.AND) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.OR) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.BOR) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.BAND) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.BXOR) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.LSHIFT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.RSHIFT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.CallLikeExpression))
+            {
+                var bondExpressionDouble =
+                    bondQsExpressionKindComposition.ExpressionDouble ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ExpressionDouble"));
+
+                var compilerExpression1 = expressionTranslator(bondExpressionDouble.Expression1);
+                var compilerExpression2 = expressionTranslator(bondExpressionDouble.Expression2);
+                return bondQsExpressionKindComposition.Kind switch
+                {
+                    QsExpressionKind.RangeLiteral => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewRangeLiteral(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.ArrayItem => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewArrayItem(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.ADD => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewADD(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.SUB => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewSUB(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.MUL => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewMUL(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.DIV => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewDIV(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.MOD => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewMOD(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.POW => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewPOW(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.EQ => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewEQ(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.NEQ => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewNEQ(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.LT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewLT(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.LTE => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewLTE(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.GT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewGT(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.GTE => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewGTE(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.AND => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewAND(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.OR => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewOR(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.BOR => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewBOR(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.BAND => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewBAND(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.BXOR => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewBXOR(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.LSHIFT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewLSHIFT(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.RSHIFT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewRSHIFT(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.CallLikeExpression => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewCallLikeExpression(item1: compilerExpression1, item2: compilerExpression2),
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionDouble"))
+                };
+            }
+            else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.CONDITIONAL) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.CopyAndUpdate))
+            {
+                var bondExpressionTriple =
+                    bondQsExpressionKindComposition.ExpressionTriple ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ExpressionTriple"));
+
+                var compilerExpression1 = expressionTranslator(bondExpressionTriple.Expression1);
+                var compilerExpression2 = expressionTranslator(bondExpressionTriple.Expression2);
+                var compilerExpression3 = expressionTranslator(bondExpressionTriple.Expression3);
+                return bondQsExpressionKindComposition.Kind switch
+                {
+                    QsExpressionKind.CONDITIONAL => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewCONDITIONAL(item1: compilerExpression1, item2: compilerExpression2, item3: compilerExpression3),
+                    QsExpressionKind.CopyAndUpdate => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewCopyAndUpdate(item1: compilerExpression1, item2: compilerExpression2, item3: compilerExpression3),
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionTriple"))
+                };
+            }
+            else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.ValueTuple) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.ValueArray))
+            {
+                var bondExpressionArray =
+                    bondQsExpressionKindComposition.ExpressionArray ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("ExpressionArray"));
+
+                var compilerExpressionArray = bondExpressionArray.Select(e => expressionTranslator(e)).ToImmutableArray();
+                return bondQsExpressionKindComposition.Kind switch
+                {
+                    QsExpressionKind.ValueTuple => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewValueTuple(item: compilerExpressionArray),
+                    QsExpressionKind.ValueArray => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewValueArray(item: compilerExpressionArray),
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionArray"))
+                };
+            }
             else
             {
                 return bondQsExpressionKindComposition.Kind switch
