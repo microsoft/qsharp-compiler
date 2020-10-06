@@ -169,7 +169,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// generates a dictionary that maps (the name of) each partial namespace contained in the file
         /// to a string containing the formatted Q# code for the part of the namespace.
         /// Qualified or unqualified names for types and identifiers are generated based on the given namespace and open directives.
-        /// Throws an ArgumentNullException if the given namespace is null.
         /// -> IMPORTANT: The given namespace is expected to contain *all* elements in that namespace for the *entire* compilation unit!
         /// </summary>
         public static bool Apply(
@@ -177,11 +176,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             IEnumerable<QsNamespace> namespaces,
             params (NonNullable<string>, ImmutableDictionary<NonNullable<string>, ImmutableArray<(NonNullable<string>, string?)>>)[] openDirectives)
         {
-            if (namespaces == null)
-            {
-                throw new ArgumentNullException(nameof(namespaces));
-            }
-
             generatedCode = new List<ImmutableDictionary<NonNullable<string>, string>>();
             var symbolsInNS = namespaces.ToImmutableDictionary(ns => ns.Name, ns => ns.Elements
                 .SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name.Value)

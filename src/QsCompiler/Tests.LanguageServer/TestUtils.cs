@@ -107,16 +107,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         internal static void ApplyEdit(TextDocumentContentChangeEvent change, ref List<string> content)
         {
-            if (content == null)
-            {
-                throw new ArgumentNullException(nameof(content));
-            }
             if (!content.Any())
             {
                 throw new ArgumentException("the given content has to have at least on line");
             }
 
-            Assert.IsTrue(IsValidRange(change?.Range) && change.Text != null);
+            Assert.IsTrue(IsValidRange(change.Range) && change.Text != null);
             Assert.IsTrue(change.Range.End.Line < content.Count());
             Assert.IsTrue(change.Range.Start.Character <= content[change.Range.Start.Line].Length);
             Assert.IsTrue(change.Range.End.Character <= content[change.Range.End.Line].Length);
@@ -143,7 +139,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             content.InsertRange(startLine, lineChanges);
         }
 
-        internal static bool IsValidRange(Range range)
+        internal static bool IsValidRange(Range? range)
         {
             static bool IsValidPosition(Position position) => position.Line >= 0 && position.Character >= 0;
 

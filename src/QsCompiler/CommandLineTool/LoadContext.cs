@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         private LoadContext(string parentAssembly)
         {
-            this.PathToParentAssembly = parentAssembly ?? throw new ArgumentNullException(nameof(parentAssembly));
+            this.PathToParentAssembly = parentAssembly;
             this.resolver = new AssemblyDependencyResolver(this.PathToParentAssembly);
             this.fallbackPaths = new HashSet<string>();
             this.Resolving += this.OnResolving;
