@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             bool TryMoveNext() => Try(enumerator.MoveNext, false);
-            (bool, TResult) ApplyToCurrent() => Try(() => (true, mapper(enumerator.Current)), (false, default(TResult)));
+            (bool, TResult) ApplyToCurrent() => Try(() => (true, mapper(enumerator.Current)), (false, default!));
 
             var values = ImmutableArray.CreateBuilder<TResult>();
             while (TryMoveNext())

@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     .Select(item => (item.EvaluatedInclude, GetVersion(item)));
                 var trackedProperties = project.Properties.Where(p =>
                     p?.Name != null && PropertiesToTrack.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))
-                    .Select(p => (p.Name?.ToLowerInvariant(), p.EvaluatedValue));
+                    .Select(p => (p.Name.ToLowerInvariant(), p.EvaluatedValue));
 
                 var projInfo = new Dictionary<string, string?>();
                 foreach (var (package, version) in packageRefs)
