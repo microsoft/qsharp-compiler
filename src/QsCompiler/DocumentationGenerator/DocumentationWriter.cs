@@ -17,8 +17,7 @@ namespace Microsoft.Quantum.Documentation
 
     public class DocumentationWriter
     {
-        private readonly string outputPath;
-        public string OutputPath => outputPath;
+        public string OutputPath { get; }
 
         private readonly string? packageName;
         public string? PackageName => packageName;
