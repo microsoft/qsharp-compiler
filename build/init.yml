@@ -11,20 +11,12 @@ steps:
 # Pre-reqs
 ##
 - task: NuGetToolInstaller@0
-  displayName: 'Use NuGet 5.2.0'
+  displayName: 'Use NuGet 5.6.0'
   inputs:
-    versionSpec: '5.2.0'
+    versionSpec: '5.6.0'
 
 - task: UseDotNet@2
-  displayName: 'Use .NET Core SDK 3.1.100'
+  displayName: 'Use .NET Core SDK 3.1.300'
   inputs:
     packageType: sdk
-    version: '3.1.100'
-
-- task: Npm@1
-  displayName: 'Install vsce'
-  inputs:
-    command: custom
-    verbose: false
-    customCommand: 'install -g vsce'
- 
+    version: '3.1.300'

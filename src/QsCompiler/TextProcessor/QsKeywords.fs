@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself. 
 type QsKeyword = {
-    parse : Parser<Position*Position, QsCompilerDiagnostic list>
+    parse : Parser<Range, QsCompilerDiagnostic list>
     id : string
 }
 
@@ -270,9 +270,9 @@ let qsMULop           = QsOperator.New("*"           ,   35, true)
 let qsMODop           = QsOperator.New("%"           ,   35, true)
 let qsDIVop           = QsOperator.New("/"           ,   35, true)
 let qsPOWop           = QsOperator.New("^"           ,   40, false)
-let qsBNOTop          = QsOperator.New("~~~"         ,   45, true)
-let qsNOTop           = QsOperator.New(notOperator.id,   45, true)
-let qsNEGop           = QsOperator.New("-"           ,   45, true)
+let qsBNOTop          = QsOperator.New("~~~"         ,   45, false)
+let qsNOTop           = QsOperator.New(notOperator.id,   45, false)
+let qsNEGop           = QsOperator.New("-"           ,   45, false)
 
 let qsSetUnion        = QsOperator.New("+"           ,   10, true)
 let qsSetIntersection = QsOperator.New("*"           ,   20, true)

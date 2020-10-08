@@ -9,7 +9,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
-
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
     /// <summary>
@@ -19,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     {
         private readonly string syntax;
         private readonly string inputContent;
-        private readonly string outputType;
+        private readonly string? outputType;
         private readonly List<string> functors = new List<string>();
         private readonly QsCallable callable;
 
@@ -28,27 +27,30 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="ns">The name of the namespace where this callable is defined</param>
         /// <param name="callableObj">The compiled callable</param>
-        internal DocCallable(string ns, QsCallable callableObj) 
-            : base(ns, callableObj.FullName.Name.Value, 
-                  callableObj.Kind.IsFunction ? Utils.FunctionKind : Utils.OperationKind, 
-                  callableObj.Documentation, callableObj.Attributes)
+        internal DocCallable(string ns, QsCallable callableObj)
+            : base(
+                  ns,
+                  callableObj.FullName.Name.Value,
+                  callableObj.Kind.IsFunction ? Utils.FunctionKind : Utils.OperationKind,
+                  callableObj.Documentation,
+                  callableObj.Attributes)
         {
-            syntax = Utils.CallableToSyntax(callableObj);
-            inputContent = Utils.CallableToArguments(callableObj);
-            outputType = Utils.ResolvedTypeToString(callableObj.Signature.ReturnType);
-            functors = new List<string>();
+            this.syntax = Utils.CallableToSyntax(callableObj);
+            this.inputContent = Utils.CallableToArguments(callableObj);
+            this.outputType = Utils.ResolvedTypeToString(callableObj.Signature.ReturnType);
+            this.functors = new List<string>();
             foreach (var functor in callableObj.Signature.Information.Characteristics.SupportedFunctors.ValueOr(ImmutableHashSet<QsFunctor>.Empty))
             {
                 if (functor.IsAdjoint)
                 {
-                    functors.Add(Functors.Adjoint);
+                    this.functors.Add(Functors.Adjoint);
                 }
                 else if (functor.IsControlled)
                 {
-                    functors.Add(Functors.Controlled);
+                    this.functors.Add(Functors.Controlled);
                 }
             }
-            callable = callableObj;
+            this.callable = callableObj;
         }
 
         /// <summary>
@@ -61,17 +63,17 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 var inputNode = new YamlMappingNode();
 
-                inputNode.AddStringMapping(Utils.ContentsKey, inputContent);
+                inputNode.AddStringMapping(Utils.ContentsKey, this.inputContent);
 
                 var typesNode = new YamlSequenceNode();
                 inputNode.Add(Utils.TypesListKey, typesNode);
 
-                foreach (var declaration in SyntaxGenerator.ExtractItems(callable.ArgumentTuple))
+                foreach (var declaration in SyntaxGenerator.ExtractItems(this.callable.ArgumentTuple))
                 {
                     var argNode = new YamlMappingNode();
                     var argName = ((QsLocalSymbol.ValidName)declaration.VariableName).Item.Value;
                     argNode.AddStringMapping(Utils.NameKey, argName);
-                    if (comments.Input.TryGetValue(argName, out string summary))
+                    if (this.comments.Input.TryGetValue(argName, out string summary))
                     {
                         argNode.AddStringMapping(Utils.SummaryKey, summary);
                     }
@@ -86,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 var outputNode = new YamlMappingNode();
 
-                outputNode.AddStringMapping(Utils.ContentsKey, outputType);
+                outputNode.AddStringMapping(Utils.ContentsKey, this.outputType);
 
                 var typesNode = new YamlSequenceNode();
                 outputNode.Add(Utils.TypesListKey, typesNode);
@@ -98,46 +100,46 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     outputTypeNode.AddStringMapping(Utils.SummaryKey, this.comments.Output);
                 }
-                Utils.ResolvedTypeToYaml(callable.Signature.ReturnType, outputTypeNode);
+                Utils.ResolvedTypeToYaml(this.callable.Signature.ReturnType, outputTypeNode);
 
                 return outputNode;
             }
 
             var rootNode = new YamlMappingNode();
-            rootNode.AddStringMapping(Utils.UidKey, uid);
-            rootNode.AddStringMapping(Utils.NameKey, name);
-            rootNode.AddStringMapping(Utils.TypeKey, itemType);
-            rootNode.AddStringMapping(Utils.NamespaceKey, namespaceName);
-            if (!string.IsNullOrWhiteSpace(comments.Documentation))
+            rootNode.AddStringMapping(Utils.UidKey, this.uid);
+            rootNode.AddStringMapping(Utils.NameKey, this.name);
+            rootNode.AddStringMapping(Utils.TypeKey, this.itemType);
+            rootNode.AddStringMapping(Utils.NamespaceKey, this.namespaceName.NamespaceAsUid());
+            if (!string.IsNullOrWhiteSpace(this.comments.Documentation))
             {
-                rootNode.AddStringMapping(Utils.SummaryKey, comments.Documentation);
+                rootNode.AddStringMapping(Utils.SummaryKey, this.comments.Documentation);
             }
-            if (!string.IsNullOrWhiteSpace(comments.Remarks))
+            if (!string.IsNullOrWhiteSpace(this.comments.Remarks))
             {
-                rootNode.AddStringMapping(Utils.RemarksKey, comments.Remarks);
+                rootNode.AddStringMapping(Utils.RemarksKey, this.comments.Remarks);
             }
-            if (!string.IsNullOrWhiteSpace(comments.Example))
+            if (!string.IsNullOrWhiteSpace(this.comments.Example))
             {
-                rootNode.AddStringMapping(Utils.ExamplesKey, comments.Example);
+                rootNode.AddStringMapping(Utils.ExamplesKey, this.comments.Example);
             }
-            rootNode.AddStringMapping(Utils.SyntaxKey, syntax);
-            if (!string.IsNullOrWhiteSpace(comments.References))
+            rootNode.AddStringMapping(Utils.SyntaxKey, this.syntax);
+            if (!string.IsNullOrWhiteSpace(this.comments.References))
             {
-                rootNode.AddStringMapping(Utils.ReferencesKey, comments.References);
+                rootNode.AddStringMapping(Utils.ReferencesKey, this.comments.References);
             }
             rootNode.Add(Utils.InputKey, BuildInputNode());
             rootNode.Add(Utils.OutputKey, BuildOutputNode());
-            if (comments.TypeParameters.Count > 0)
+            if (this.comments.TypeParameters.Count > 0)
             {
-                rootNode.Add(Utils.TypeParamsKey, Utils.BuildSequenceMappingNode(comments.TypeParameters));
+                rootNode.Add(Utils.TypeParamsKey, Utils.BuildSequenceMappingNode(this.comments.TypeParameters));
             }
-            if (functors.Count > 0)
+            if (this.functors.Count > 0)
             {
-                rootNode.Add(Utils.FunctorsKey, Utils.BuildSequenceNode(functors));
+                rootNode.Add(Utils.FunctorsKey, Utils.BuildSequenceNode(this.functors));
             }
-            if (comments.SeeAlso.Count > 0)
+            if (this.comments.SeeAlso.Count > 0)
             {
-                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(comments.SeeAlso));
+                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.comments.SeeAlso));
             }
 
             var doc = new YamlDocument(rootNode);

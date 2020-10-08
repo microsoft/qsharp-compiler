@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open System
 open System.Collections.Immutable
@@ -17,7 +18,57 @@ open Xunit
 
 let private rawString = getStringContent (manyChars anyChar) |>> fst
 
-// Component parsers
+
+[<Fact>]
+let ``Reserved patterns`` () = 
+    [
+        ("_mySymbol" , true , Some "_mySymbol" , [])
+        ("mySymbol_" , true , Some "mySymbol_" , [])
+        ("my_symbol" , true , Some "my_symbol" , [])
+        ("my__symbol", true , Some "my__symbol", [Warning WarningCode.UseOfUnderscorePattern])
+        ("__mySymbol", true , Some "__mySymbol", [Warning WarningCode.UseOfUnderscorePattern])
+        ("mySymbol__", true , Some "mySymbol__", [Warning WarningCode.UseOfUnderscorePattern])
+        ("__my__sym" , true , Some "__my__sym" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("my__sym__" , true , Some "my__sym__" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__mysym__" , true , None             , [Error ErrorCode.InvalidUseOfReservedKeyword])
+    ]
+    |> List.iter (testOne (symbolNameLike ErrorCode.InvalidIdentifierName))
+    [
+        ("a.b"    , true , ([Some "a"   ], Some "b"   ), [])
+        ("_a.b"   , true , ([Some "_a"  ], Some "b"   ), [])
+        ("a_.b"   , true , ([Some "a_"  ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a._b"   , true , ([Some "a"   ], Some "_b"  ), [])
+        ("a.b_"   , true , ([Some "a"   ], Some "b_"  ), [])
+        ("_a.b_"  , true , ([Some "_a"  ], Some "b_"  ), [])
+        ("a_._b"  , true , ([Some "a_"  ], Some "_b"  ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b"  , true , ([Some "__a" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__a.b" , true , ([Some "a__a"], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__.b"  , true , ([Some "a__" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.__b"  , true , ([Some "a"   ], Some "__b" ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__b" , true , ([Some "a"   ], Some "b__b"), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__"  , true , ([Some "a"   ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b__", true , ([Some "__a" ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> fst))
+    [
+        ("a.b"    , true , Some "a.b"    , [])
+        ("_a.b"   , true , Some "_a.b"   , [])
+        ("a_.b"   , true , Some "a_.b"   , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a._b"   , true , Some "a._b"   , [])
+        ("a.b_"   , true , Some "a.b_"   , [Warning WarningCode.UseOfUnderscorePattern])
+        ("_a.b_"  , true , Some "_a.b_"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a_._b"  , true , Some "a_._b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b"  , true , Some "__a.b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__a.b" , true , Some "a__a.b" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a__.b"  , true , Some "a__.b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.__b"  , true , Some "a.__b"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__b" , true , Some "a.b__b" , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b__"  , true , Some "a.b__"  , [Warning WarningCode.UseOfUnderscorePattern])
+        ("__a.b__", true , Some "__a.b__", [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (namespaceName |>> fst))
+
+
 [<Fact>]
 let ``String parser tests`` () =
     [
@@ -141,7 +192,6 @@ let ``Symbol name tests`` () =
         ("_a",                  true,    "_a",             []);
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
-        ("__a",                 true,    "__a",            []);
         ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
         ("λ",                   true,    "λ",              []); // Greek small letter Lambda
         ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
@@ -159,10 +209,10 @@ let ``Expression literal tests`` () =
     let doubleString (n : IFormattable) = n.ToString ("R", CultureInfo.InvariantCulture)
 
     // constants that should be handled
-    let minInt = System.Int64.MinValue // -9223372036854775808L
-    let maxInt = System.Int64.MaxValue // 9223372036854775807L
-    let minDouble = System.Double.MinValue // -1.7976931348623157E+308
-    let maxDouble = System.Double.MaxValue // 1.7976931348623157E+308
+    let minInt = Int64.MinValue // -9223372036854775808L
+    let maxInt = Int64.MaxValue // 9223372036854775807L
+    let minDouble = Double.MinValue // -1.7976931348623157E+308
+    let maxDouble = Double.MaxValue // 1.7976931348623157E+308
     Assert.Equal(minInt, -(-minInt))
 
     // constants that should raise an error
@@ -287,7 +337,7 @@ let ``Simple comparison expression tests`` () =
 [<Fact>]
 let ``Identifier tests`` () =
     [
-        ("x",                   true,    toSymbol "x",                                                          []); 
+        ("x",                   true,    toIdentifier "x",                                                          []); 
         ("a.b.c",               true,    toExpr (Identifier ({Symbol=QualifiedSymbol("a.b" |> NonNullable<string>.New,
                                                                                      "c" |> NonNullable<string>.New);
                                                               Range=Null}, Null)),                              []); 
@@ -299,21 +349,21 @@ let ``Identifier tests`` () =
 let ``Complex literal tests`` () =
     [
         ("[1,2,3]",             true,    toArray [ toInt 1; toInt 2; toInt 3 ],                                 []); 
-        ("[1,x,3]",             true,    toArray [ toInt 1; toSymbol "x"; toInt 3 ],                            []); 
+        ("[1,x,3]",             true,    toArray [ toInt 1; toIdentifier "x"; toInt 3 ],                            []); 
         ("(1,2,3)",             true,    toTuple [ toInt 1; toInt 2; toInt 3 ],                                 []); 
-        ("(x,2,3)",             true,    toTuple [ toSymbol "x"; toInt 2; toInt 3 ],                            []); 
+        ("(x,2,3)",             true,    toTuple [ toIdentifier "x"; toInt 2; toInt 3 ],                            []); 
         ("1..2",                true,    toExpr (RangeLiteral (toInt 1,
                                                         toInt 2)),                                              []); 
         ("1..2..3",             true,    toExpr (RangeLiteral (RangeLiteral (toInt 1, toInt 2) |> toExpr,
                                                         toInt 3)),                                              []); 
         ("1..2..x",             true,    toExpr (RangeLiteral (RangeLiteral (toInt 1, toInt 2) |> toExpr,
-                                                        toSymbol "x")),                                         []); 
-        ("1..x..3",             true,    toExpr (RangeLiteral (RangeLiteral (toInt 1, toSymbol "x") |> toExpr, toInt 3)),     []); 
-        ("x..2..3",             true,    toExpr (RangeLiteral (RangeLiteral (toSymbol "x", toInt 2) |> toExpr,
+                                                        toIdentifier "x")),                                         []); 
+        ("1..x..3",             true,    toExpr (RangeLiteral (RangeLiteral (toInt 1, toIdentifier "x") |> toExpr, toInt 3)),     []); 
+        ("x..2..3",             true,    toExpr (RangeLiteral (RangeLiteral (toIdentifier "x", toInt 2) |> toExpr,
                                                         toInt 3)),                                              []); 
-        ("1..x",                true,    toExpr (RangeLiteral (toInt 1, toSymbol "x")),                                []); 
-        ("x..2",                true,    toExpr (RangeLiteral (toSymbol "x", toInt 2)),                                []); 
-        ("x..y",                true,    toExpr (RangeLiteral (toSymbol "x", toSymbol "y")),                           []); 
+        ("1..x",                true,    toExpr (RangeLiteral (toInt 1, toIdentifier "x")),                                []); 
+        ("x..2",                true,    toExpr (RangeLiteral (toIdentifier "x", toInt 2)),                                []); 
+        ("x..y",                true,    toExpr (RangeLiteral (toIdentifier "x", toIdentifier "y")),                           []); 
     ]
     |> List.iter testExpr
 
@@ -321,31 +371,31 @@ let ``Complex literal tests`` () =
 [<Fact>]
 let ``Call tests`` () =
     [
-        ("x()",                 true,    toExpr (CallLikeExpression (toSymbol "x", UnitValue |> toExpr)),       []);
-        ("x(1,2)",              true,    toExpr (CallLikeExpression (toSymbol "x", 
+        ("x()",                 true,    toExpr (CallLikeExpression (toIdentifier "x", UnitValue |> toExpr)),       []);
+        ("x(1,2)",              true,    toExpr (CallLikeExpression (toIdentifier "x", 
                                                                      toTuple [ toInt 1; 
                                                                                toInt 2])),      []);
-        ("Adjoint x()",         true,    toExpr (CallLikeExpression (AdjointApplication (toSymbol "x") |> toExpr, 
+        ("Adjoint x()",         true,    toExpr (CallLikeExpression (AdjointApplication (toIdentifier "x") |> toExpr, 
                                                                      UnitValue |> toExpr)),                     []);
-        ("Controlled x()",      true,    toExpr (CallLikeExpression (ControlledApplication (toSymbol "x") |> toExpr, 
+        ("Controlled x()",      true,    toExpr (CallLikeExpression (ControlledApplication (toIdentifier "x") |> toExpr, 
                                                                      UnitValue |> toExpr)),                     []);
 
-        ("(x(_,1))(2)",         true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toSymbol "x", 
+        ("(x(_,1))(2)",         true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
                                                                                                  toTuple [ MissingExpr |> toExpr;
                                                                                                            toInt 1])
                                                                     )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,1))(1,2)",       true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toSymbol "x", 
+        ("(x(_,1))(1,2)",       true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
                                                                                                  toTuple [ MissingExpr |> toExpr;
                                                                                                            toInt 1])
                                                                     )], toTuple [ toInt 1;
                                                                                  toInt 2 ])),                   []);
-        ("(x(1,(2, _)))(2)",    true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toSymbol "x", 
+        ("(x(1,(2, _)))(2)",    true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
                                                                                                  toTuple [ toInt 1;
                                                                                                            toTuple [ toInt 2;
                                                                                                                      MissingExpr |> toExpr];
                                                                                                          ])
                                                                     )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,(2, _)))(1,2)",  true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toSymbol "x", 
+        ("(x(_,(2, _)))(1,2)",  true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
                                                                                                  toTuple [ MissingExpr |> toExpr;
                                                                                                            toTuple [ toInt 2;
                                                                                                                      MissingExpr |> toExpr];
@@ -360,50 +410,72 @@ let ``Call tests`` () =
 let ``Modifier tests`` () = // modifiers can only be applied to identifiers, arity-1 tuples, and array item expressions
     [
         // modifiers on identifiers:
-        ("ab!",                      true,    toExpr (UnwrapApplication (toSymbol "ab")),                                        []); 
-        ("!ab!",                     true,    toExpr (NOT (UnwrapApplication (toSymbol "ab") |> toExpr)),                        [Warning WarningCode.DeprecatedNOToperator]); 
-        ("ab!!",                     true,    toExpr (UnwrapApplication (UnwrapApplication (toSymbol "ab") |> toExpr)),          []); 
-        ("Adjoint x",                true,    toExpr (AdjointApplication (toSymbol "x")),                                        []);
-        ("Controlled Adjoint x",     true,    toExpr (ControlledApplication (AdjointApplication (toSymbol "x") |> toExpr)),      []);
-        ("ab! ()",                   true,    toExpr (CallLikeExpression (UnwrapApplication (toSymbol "ab") |> toExpr, 
+        ("ab!",                      true,    toExpr (UnwrapApplication (toIdentifier "ab")),                                        []); 
+        ("!ab!",                     true,    toExpr (NOT (UnwrapApplication (toIdentifier "ab") |> toExpr)),                        [Warning WarningCode.DeprecatedNOToperator]); 
+        ("ab!!",                     true,    toExpr (UnwrapApplication (UnwrapApplication (toIdentifier "ab") |> toExpr)),          []); 
+        ("Adjoint x",                true,    toExpr (AdjointApplication (toIdentifier "x")),                                        []);
+        ("Controlled Adjoint x",     true,    toExpr (ControlledApplication (AdjointApplication (toIdentifier "x") |> toExpr)),      []);
+        ("ab! ()",                   true,    toExpr (CallLikeExpression (UnwrapApplication (toIdentifier "ab") |> toExpr, 
                                                                           UnitValue |> toExpr)),                                 []); 
-        ("ab!! ()",                  true,    toExpr (CallLikeExpression (UnwrapApplication (UnwrapApplication (toSymbol "ab") |> toExpr) |> toExpr, 
+        ("ab!! ()",                  true,    toExpr (CallLikeExpression (UnwrapApplication (UnwrapApplication (toIdentifier "ab") |> toExpr) |> toExpr, 
                                                                           UnitValue |> toExpr)),                                 []); 
-        ("Adjoint x()",              true,    toExpr (CallLikeExpression (AdjointApplication (toSymbol "x") |> toExpr,
+        ("Adjoint x()",              true,    toExpr (CallLikeExpression (AdjointApplication (toIdentifier "x") |> toExpr,
                                                                           UnitValue |> toExpr)),                                 []);
-        ("Adjoint Controlled x()",   true,    toExpr (CallLikeExpression (AdjointApplication (ControlledApplication (toSymbol "x") |> toExpr) |> toExpr,
+        ("Adjoint Controlled x()",   true,    toExpr (CallLikeExpression (AdjointApplication (ControlledApplication (toIdentifier "x") |> toExpr) |> toExpr,
                                                                           UnitValue |> toExpr)),                                 []);
-        ("Adjoint x! ()",            true,    toExpr (CallLikeExpression (AdjointApplication (UnwrapApplication (toSymbol "x") |> toExpr) |> toExpr,
+        ("Adjoint x! ()",            true,    toExpr (CallLikeExpression (AdjointApplication (UnwrapApplication (toIdentifier "x") |> toExpr) |> toExpr,
                                                                           UnitValue |> toExpr)),                                 []);
         // modifiers on arity-1 tuples:
-        ("(udt(x))!",                true,    toExpr (UnwrapApplication (toTuple [(CallLikeExpression (toSymbol "udt",
-                                                                                    toTuple [toSymbol "x"]) |> toExpr)])),       []);
+        ("(udt(x))!",                true,    toExpr (UnwrapApplication (toTuple [(CallLikeExpression (toIdentifier "udt",
+                                                                                    toTuple [toIdentifier "x"]) |> toExpr)])),       []);
         ("(udt(x))! ()",             true,    toExpr (CallLikeExpression ((UnwrapApplication (toTuple [CallLikeExpression (
-                                                                                                        toSymbol "udt",
-                                                                                                        toTuple [toSymbol "x"]) |> toExpr])) |> toExpr, 
+                                                                                                        toIdentifier "udt",
+                                                                                                        toTuple [toIdentifier "x"]) |> toExpr])) |> toExpr, 
                                                                           UnitValue |> toExpr)),                                 []);
         ("Controlled (udt(x))! ()",  true,    toExpr (CallLikeExpression (ControlledApplication ((UnwrapApplication (toTuple [CallLikeExpression (
-                                                                                                                                toSymbol "udt",
-                                                                                                                                toTuple [toSymbol "x"]) |> toExpr])) |> toExpr) |> toExpr, 
+                                                                                                                                toIdentifier "udt",
+                                                                                                                                toTuple [toIdentifier "x"]) |> toExpr])) |> toExpr) |> toExpr, 
                                                                           UnitValue |> toExpr)),                                 []);
         ("(Controlled (udt(x))!)()", true,    toExpr (CallLikeExpression (toTuple [ControlledApplication ((UnwrapApplication (toTuple [CallLikeExpression (
-                                                                                                                                        toSymbol "udt",
-                                                                                                                                        toTuple [toSymbol "x"]) |> toExpr])) |> toExpr) |> toExpr], 
+                                                                                                                                        toIdentifier "udt",
+                                                                                                                                        toTuple [toIdentifier "x"]) |> toExpr])) |> toExpr) |> toExpr], 
                                                                           UnitValue |> toExpr)),                                 []);
         // modifiers on array item expressions
-        ("x[i]!",                    true,    toExpr (UnwrapApplication (ArrayItem(toSymbol "x", 
-                                                                                   toSymbol "i") |> toExpr)),                               []); 
-        ("Adjoint x[i]",             true,    toExpr (AdjointApplication (ArrayItem(toSymbol "x", 
-                                                                                    toSymbol "i") |> toExpr)),                   []);
-        ("x[i]! ()",                 true,    toExpr (CallLikeExpression (UnwrapApplication (ArrayItem(toSymbol "x", 
-                                                                                                       toSymbol "i") |> toExpr) |> toExpr, 
+        ("x[i]!",                    true,    toExpr (UnwrapApplication (ArrayItem(toIdentifier "x", 
+                                                                                   toIdentifier "i") |> toExpr)),                               []); 
+        ("Adjoint x[i]",             true,    toExpr (AdjointApplication (ArrayItem(toIdentifier "x", 
+                                                                                    toIdentifier "i") |> toExpr)),                   []);
+        ("x[i]! ()",                 true,    toExpr (CallLikeExpression (UnwrapApplication (ArrayItem(toIdentifier "x", 
+                                                                                                       toIdentifier "i") |> toExpr) |> toExpr, 
                                                                           UnitValue |> toExpr)),                                 []); 
-        ("Adjoint x[i] ()",          true,    toExpr (CallLikeExpression (AdjointApplication (ArrayItem(toSymbol "x", 
-                                                                                                        toSymbol "i") |> toExpr) |> toExpr,
+        ("Adjoint x[i] ()",          true,    toExpr (CallLikeExpression (AdjointApplication (ArrayItem(toIdentifier "x", 
+                                                                                                        toIdentifier "i") |> toExpr) |> toExpr,
                                                                           UnitValue |> toExpr)),                                 []);
-        ("Controlled x[i]! ()",      true,    toExpr (CallLikeExpression (ControlledApplication (UnwrapApplication (ArrayItem(toSymbol "x", 
-                                                                                                                              toSymbol "i") |> toExpr) |> toExpr) |> toExpr,
+        ("Controlled x[i]! ()",      true,    toExpr (CallLikeExpression (ControlledApplication (UnwrapApplication (ArrayItem(toIdentifier "x", 
+                                                                                                                              toIdentifier "i") |> toExpr) |> toExpr) |> toExpr,
                                                                           UnitValue |> toExpr)),                                 []);
+        // modifiers combined with named and array item access
+        ("x[i]::Re",                 true,    toExpr (NamedItem (ArrayItem(toIdentifier "x", 
+                                                                           toIdentifier "i") |> toExpr, 
+                                                                 toSymbol "Re")),                                                []); 
+        ("x[i]!::Re",                true,    toExpr (NamedItem (UnwrapApplication (ArrayItem(toIdentifier "x", 
+                                                                                              toIdentifier "i") |> toExpr) |> toExpr, 
+                                                                 toSymbol "Re")),                                                []); 
+        ("x[i]::Re!",                true,    toExpr (UnwrapApplication (NamedItem (ArrayItem(toIdentifier "x", 
+                                                                                              toIdentifier "i") |> toExpr, 
+                                                                                    toSymbol "Re") |> toExpr)),                      []); 
+        ("x[i]![j]",                 true,    toExpr (ArrayItem (UnwrapApplication (ArrayItem(toIdentifier "x", 
+                                                                                              toIdentifier "i") |> toExpr) |> toExpr, 
+                                                                 toIdentifier "j")),                                                []); 
+        ("x::Re![j]",                true,   toExpr (ArrayItem (UnwrapApplication (NamedItem(toIdentifier "x", 
+                                                                                             toSymbol "Re") |> toExpr) |> toExpr, 
+                                                                 toIdentifier "j")),                                                []); 
+        ("x::Re!::Im",               true,   toExpr (NamedItem (UnwrapApplication (NamedItem(toIdentifier "x", 
+                                                                                             toSymbol "Re") |> toExpr) |> toExpr, 
+                                                                 toSymbol "Im")),                                                []); 
+        ("x::Re!!::Im",              true,   toExpr (NamedItem (UnwrapApplication (UnwrapApplication (NamedItem(toIdentifier "x", 
+                                                                                                                toSymbol "Re") |> toExpr) |> toExpr) |> toExpr, 
+                                                                 toSymbol "Im")),                                                []); 
 
         // Note that since we do not currently have the means to support a left-recursive grammar (would require a different approach to parsing),
         // we have to prioritize in order to stick with a non-left-recursive grammar (there are algorithms that translate a left-recursive grammar into a non-left-recursive one, 
@@ -466,26 +538,26 @@ let ``Operation type tests`` () =
 [<Fact>]
 let ``Other expression tests`` () =
     [
-        ("x?y|z",               true,    toExpr (CONDITIONAL (toSymbol "x", toSymbol "y", toSymbol "z")), []); 
-        ("a[1]",                true,    toExpr (ArrayItem (toSymbol "a", toInt 1)), []);
-        ("a[0..2]",             true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toInt 0, toInt 2) |> toExpr)), []);
-        ("a[]",                 true,    toExpr (ArrayItem (toSymbol "a", InvalidExpr |> toExpr)), [Error ErrorCode.MissingExpression]);
-        ("a[0...]",             true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
-        ("a[0 ... ]",           true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
-        ("a[0... ]",            true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
-        ("a[0..2...]",          true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[0 .. 2 ... ]",      true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[0..2 ...]",         true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[...0]",             true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
-        ("a[ ...0]",            true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
-        ("a[ ... 0]",           true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
-        ("a[...2..0]",          true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
-        ("a[ ...2 .. 0]",       true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
-        ("a[ ... 2 ..0]",       true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
-        ("a[...-1...]",         true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, NEG (toInt 1) |> toExpr) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[ ... -1 ... ]",     true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, NEG (toInt 1) |> toExpr) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[...]",              true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toExpr MissingExpr, toExpr MissingExpr) |> toExpr)), []);
-        ("a[ ... ]",            true,    toExpr (ArrayItem (toSymbol "a", RangeLiteral (toExpr MissingExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("x?y|z",               true,    toExpr (CONDITIONAL (toIdentifier "x", toIdentifier "y", toIdentifier "z")), []); 
+        ("a[1]",                true,    toExpr (ArrayItem (toIdentifier "a", toInt 1)), []);
+        ("a[0..2]",             true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toInt 0, toInt 2) |> toExpr)), []);
+        ("a[]",                 true,    toExpr (ArrayItem (toIdentifier "a", InvalidExpr |> toExpr)), [Error ErrorCode.MissingExpression]);
+        ("a[0...]",             true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
+        ("a[0 ... ]",           true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
+        ("a[0... ]",            true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toInt 0, toExpr MissingExpr) |> toExpr)), []);
+        ("a[0..2...]",          true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[0 .. 2 ... ]",      true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[0..2 ...]",         true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toInt 0, toInt 2) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[...0]",             true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
+        ("a[ ...0]",            true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
+        ("a[ ... 0]",           true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toExpr MissingExpr, toInt 0) |> toExpr)), []);
+        ("a[...2..0]",          true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
+        ("a[ ...2 .. 0]",       true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
+        ("a[ ... 2 ..0]",       true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, toInt 2) |> toExpr, toInt 0) |> toExpr)), []);
+        ("a[...-1...]",         true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, NEG (toInt 1) |> toExpr) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[ ... -1 ... ]",     true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (RangeLiteral (toExpr MissingExpr, NEG (toInt 1) |> toExpr) |> toExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[...]",              true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toExpr MissingExpr, toExpr MissingExpr) |> toExpr)), []);
+        ("a[ ... ]",            true,    toExpr (ArrayItem (toIdentifier "a", RangeLiteral (toExpr MissingExpr, toExpr MissingExpr) |> toExpr)), []);
     ]
     |> List.iter testExpr
 
@@ -515,10 +587,10 @@ let ``Operator precendence tests`` () =
                                                           toInt 2) |> toExpr, 
                                                     (MUL (toInt 2,
                                                           toInt 3) |> toExpr))),                []); 
-        ("A(5+7)?2^3|B(3)/2",   true,    toExpr (CONDITIONAL (CallLikeExpression (toSymbol "A", 
+        ("A(5+7)?2^3|B(3)/2",   true,    toExpr (CONDITIONAL (CallLikeExpression (toIdentifier "A", 
                                                                                   [ADD(toInt 5, toInt 7) |> toExpr] |> toTuple) |> toExpr,
                                                               POW(toInt 2, toInt 3) |> toExpr,
-                                                              DIV(CallLikeExpression (toSymbol "B", [toInt 3] |> toTuple) |> toExpr,
+                                                              DIV(CallLikeExpression (toIdentifier "B", [toInt 3] |> toTuple) |> toExpr,
                                                                   toInt 2) |> toExpr)),         []);
     ]
     |> List.iter testExpr

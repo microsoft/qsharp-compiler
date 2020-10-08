@@ -11,7 +11,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
-
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
     /// <summary>
@@ -23,8 +22,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         private readonly string uid;
         private readonly string summary;
         private readonly List<DocItem> items = new List<DocItem>();
-        public string Name => name;
-        public bool IsNotEmpty => items.Count > 0;
+
+        public string Name => this.name;
+
+        public bool IsNotEmpty => this.items.Count > 0;
 
         /// <summary>
         /// Constructs an instance from a compiled namespace and list of source files.
@@ -46,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             this.name = ns.Name.Value;
-            uid = this.name.ToLowerInvariant();
+            this.uid = this.name.ToLowerInvariant();
 
             this.summary = "";
             foreach (var commentGroup in ns.Documentation)
@@ -55,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     if (!comment.IsDefaultOrEmpty)
                     {
-                        this.summary = String.Join(Environment.NewLine, comment);
+                        this.summary = string.Join(Environment.NewLine, comment);
                     }
                 }
             }
@@ -68,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     if (IsVisible(callable.SourceFile, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
-                        items.Add(new DocCallable(name, callable));
+                        this.items.Add(new DocCallable(this.name, callable));
                     }
                 }
                 else if (item is QsNamespaceElement.QsCustomType u)
@@ -76,16 +77,15 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     var udt = u.Item;
                     if (IsVisible(udt.SourceFile, udt.Modifiers.Access, udt.FullName.Name))
                     {
-                        items.Add(new DocUdt(name, udt));
+                        this.items.Add(new DocUdt(this.name, udt));
                     }
                 }
                 // ignore anything else
             }
 
             // Sometimes we need the items in alphabetical order by UID, so let's do that here
-            items.Sort((x, y) => x.Uid.CompareTo(y.Uid));
+            this.items.Sort((x, y) => x.Uid.CompareTo(y.Uid));
         }
-
 
         /// <summary>
         /// Merges a namespace into a TOC node.
@@ -119,7 +119,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     mappingNode.Children.TryGetValue(Utils.UidKey, out var uidNode);
                     return (uidNode as YamlScalarNode)?.Value;
                 }
-                else { return null; }
+                else
+                {
+                    return null;
+                }
             }
 
             string? TryGetName(YamlNode node)
@@ -129,17 +132,18 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     mappingNode.Children.TryGetValue(Utils.NameKey, out var nameNode);
                     return (nameNode as YamlScalarNode)?.Value;
                 }
-                else { return null; }
+                else
+                {
+                    return null;
+                }
             }
 
-
             int CompareUids(YamlNode node1, YamlNode node2) =>
-                String.Compare(
+                string.Compare(
                     TryGetUid(node1),
-                    TryGetUid(node2)
-                );
+                    TryGetUid(node2));
 
-            var namespaceNode = toc.Children?.SingleOrDefault(c => MatchByUid(c, this.uid)) as YamlMappingNode;
+            var namespaceNode = toc.Children.SingleOrDefault(c => MatchByUid(c, this.uid)) as YamlMappingNode;
             YamlSequenceNode? itemListNode = null;
             if (namespaceNode == null)
             {
@@ -163,14 +167,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 namespaceNode.Add(Utils.ItemsKey, itemListNode);
             }
 
-            var itemsByUid = items
+            var itemsByUid = this.items
                 .GroupBy(item => item.Uid)
                 .ToDictionary(
                     group => group.Key,
                     group => group
                         .Select(item => item.Name)
-                        .Single()
-                );
+                        .Single());
 
             // Update itemsByUid with any items that may already exist.
             foreach (var existingChild in itemListNode.Children)
@@ -186,8 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             foreach (var (uid, name) in itemsByUid.OrderBy(item => item.Key))
             {
                 itemListNode.Add(Utils.BuildMappingNode(
-                    Utils.NameKey, name, Utils.UidKey, uid
-                ));
+                    Utils.NameKey, name, Utils.UidKey, uid));
             }
         }
 
@@ -206,7 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     i.WriteToFile(text);
                 }
             }
-            foreach (var item in items)
+            foreach (var item in this.items)
             {
                 Utils.DoTrackingExceptions(() => WriteItem(item), errors);
             }
@@ -243,11 +245,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             rootNode ??= new YamlMappingNode();
-            rootNode.AddStringMapping(Utils.UidKey, uid);
-            rootNode.AddStringMapping(Utils.NameKey, name);
-            if (!String.IsNullOrEmpty(summary))
+            rootNode.AddStringMapping(Utils.UidKey, this.uid);
+            rootNode.AddStringMapping(Utils.NameKey, this.name);
+            if (!string.IsNullOrEmpty(this.summary))
             {
-                rootNode.AddStringMapping(Utils.SummaryKey, summary);
+                rootNode.AddStringMapping(Utils.SummaryKey, this.summary);
             }
 
             var itemTypeNodes = new Dictionary<string, SortedDictionary<string, YamlNode>>();
@@ -282,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             // Now add our new items, overwriting if they already exist
-            foreach (var item in items)
+            foreach (var item in this.items)
             {
                 var typeKey = ToSequenceKey(item.ItemType);
                 SortedDictionary<string, YamlNode> typeList;
@@ -323,9 +325,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="directoryPath">The directory to write the file to</param>
         internal void WriteToFile(string directoryPath)
         {
-            var rootNode = Utils.ReadYamlFile(directoryPath, name) as YamlMappingNode;
-            var tocFileName = Path.Combine(directoryPath, name + Utils.YamlExtension);
-            WriteToStream(File.Open(tocFileName, FileMode.Create), rootNode);
+            var rootNode = Utils.ReadYamlFile(directoryPath, this.name) as YamlMappingNode;
+            var tocFileName = Path.Combine(directoryPath, this.name + Utils.YamlExtension);
+            this.WriteToStream(File.Open(tocFileName, FileMode.Create), rootNode);
         }
     }
 }

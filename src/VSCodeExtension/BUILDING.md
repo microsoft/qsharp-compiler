@@ -2,11 +2,11 @@
 
 ## Prerequisites ##
 
-- npm and vsce
+- NPM
 - PowerShell Core (6.0 or later)
 - .NET Core SDK 3.1 or later
 
-### Obtaining npm and vsce ###
+### Obtaining NPM ###
 
 All Visual Studio Code extensions require a local install of the Node Package Manager to work.
 NPM is distributed with Node.js, which can be obtained from https://nodejs.org/en/, or using Chocolatey:
@@ -15,20 +15,22 @@ NPM is distributed with Node.js, which can be obtained from https://nodejs.org/e
 choco install nodejs
 ```
 
-Once you have NPM, we strongly suggest installing the VS Code Extension (vsce) tool:
-
-```
-npm i -g vsce
-```
-
-Here, `npm i -g` instructs NPM to *install globally* the vsce package.
-After doing so, `vsce` can be used from the command line.
-
-
 ## Steps ##
 
 Before doing any local development, you will need to run `bootstrap.ps1` to set version numbers and other metadata for the Quantum Development Kit.
 Please see [the root README](../../README.md) for more information.
+
+You can then install the dependencies needed by the Visual Studio Code extension by running this command in the `VSCodeExtension` folder:
+
+```
+npm install
+```
+
+To package the extension into a VSIX file that can be installed from Visual Studio Code, run:
+
+```
+npx vsce package
+```
 
 As of version 0.10 of the Quantum Development Kit, the Visual Studio Code extension no longer includes the Q# language server, but downloads a copy of the server at runtime.
 This process is controlled by metadata stored in `package.json`, which is in turn generated from `package.json.v.template` when running `bootstrap.ps1` in the root of the repository.
@@ -72,7 +74,7 @@ PS> Resolve-Path bin/Debug/netcoreapp3.1/win10-x64/publish/Microsoft.Quantum.QsL
 
 ## Debugging ##
 
-As an alternative to using `vsce package` to produce an installable VSIX, the VS Code extension can be run in an experimental instance of VS Code.
+As an alternative to using `npx vsce package` to produce an installable VSIX, the VS Code extension can be run in an experimental instance of VS Code.
 From the Debug tab in VS Code, ensure that "Extension" is selected in the Debug target menu and press the green ‣.
 
 If you would like to also debug the language server at the same time, this can be done using the ".NET Core Attach" debugging target along with the "Extension" target.

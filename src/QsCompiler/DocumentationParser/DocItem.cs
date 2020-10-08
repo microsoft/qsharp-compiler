@@ -1,14 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
-
 
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
@@ -29,10 +26,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// The item's kind, as a string (Utils.OperationKind, .FunctionKind, or .UdtKind)
         /// </summary>
         internal string ItemType => this.itemType;
+
         /// <summary>
         /// The unique internal ID of the item
         /// </summary>
         internal string Uid => this.uid;
+
         /// <summary>
         /// The name of the item
         /// </summary>
@@ -45,30 +44,34 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="itemName">The name of the item itself</param>
         /// <param name="kind">The item's kind: operation, function, or UDT</param>
         /// <param name="documentation">The source documentation for the item</param>
-        internal DocItem(string nsName, string itemName, string kind, ImmutableArray<string> documentation,
+        internal DocItem(
+            string nsName,
+            string itemName,
+            string kind,
+            ImmutableArray<string> documentation,
             IEnumerable<QsDeclarationAttribute> attributes)
         {
-            namespaceName = nsName;
-            name = itemName;
-            uid = (namespaceName + "." + name).ToLowerInvariant();
-            itemType = kind;
+            this.namespaceName = nsName;
+            this.name = itemName;
+            this.uid = (this.namespaceName + "." + this.name).ToLowerInvariant();
+            this.itemType = kind;
             var res = SymbolResolution.TryFindRedirect(attributes);
-            deprecated = res.IsValue;
-            replacement = res.ValueOr("");
-            comments = new DocComment(documentation, name, deprecated, replacement);
+            this.deprecated = res.IsValue;
+            this.replacement = res.ValueOr("");
+            this.comments = new DocComment(documentation, this.name, this.deprecated, this.replacement);
         }
 
         /// <summary>
         /// Returns a YAML node describing this item suitable for inclusion in a namespace description.
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
-        internal YamlMappingNode ToNamespaceItem() => Utils.BuildMappingNode(Utils.UidKey, uid, Utils.SummaryKey, comments.Summary);
+        internal YamlMappingNode ToNamespaceItem() => Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.Summary);
 
         /// <summary>
         /// Returns a YAML node describing this item suitable for inclusion in a table of contents.
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
-        internal YamlMappingNode ToTocItem() => Utils.BuildMappingNode(Utils.UidKey, uid, Utils.NameKey, name);
+        internal YamlMappingNode ToTocItem() => Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.NameKey, this.name);
 
         /// <summary>
         /// Writes a full YAML representation of this item to the given text stream.

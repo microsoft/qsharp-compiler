@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-
 namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
@@ -22,7 +21,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given the body of an operation, auto-generates the (content of the) adjoint specialization,
         /// under the assumption that operation calls may only ever occur within expression statements,
         /// and while-loops cannot occur within operations.
-        /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope GenerateAdjoint(this QsScope scope)
         {
@@ -35,9 +33,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the body of an operation, auto-generates the (content of the) controlled specialization using the default name 
-        /// for control qubits. Adds the control qubits names to the list of defined variables for the scope and each subscope. 
-        /// Throws an ArgumentNullException if the given scope is null.
+        /// Given the body of an operation, auto-generates the (content of the) controlled specialization using the default name
+        /// for control qubits. Adds the control qubits names to the list of defined variables for the scope and each subscope.
         /// </summary>
         public static QsScope GenerateControlled(this QsScope scope)
         {
@@ -52,11 +49,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// throws an InvalidOperationException if the outer block contains while-loops.
         /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
-        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception> onException = null)
+        public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception>? onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             var inline = new InlineConjugations(onException);
             var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
@@ -67,12 +62,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Pre-evaluates as much of the classical computations as possible in the given compilation.
         /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
-        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
+        public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception>? onException = null)
         {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try { evaluated = PreEvaluation.All(compilation); }
+            try
+            {
+                evaluated = PreEvaluation.All(compilation);
+            }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);
@@ -83,5 +79,3 @@ namespace Microsoft.Quantum.QsCompiler
         }
     }
 }
-
-

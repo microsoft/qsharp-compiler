@@ -17,7 +17,7 @@ type QsSymbol with
         let onNull () = 
             let isInvalidSym = this.Symbol |> function | InvalidSymbol -> true | _ -> false
             QsCompilerError.Verify(isInvalidSym, "valid symbol without a range")
-            QsCompilerDiagnostic.DefaultRange
+            Range.Zero
         this.Range.ValueOrApply onNull
 
 type QsSpecializationGenerator with 
@@ -27,7 +27,7 @@ type QsSpecializationGenerator with
                 | FunctorGenerationDirective dir -> dir |> function | InvalidGenerator -> true | _ -> false
                 | _ -> false
             QsCompilerError.Verify(isInvalidGen, "valid generator without a range")
-            QsCompilerDiagnostic.DefaultRange
+            Range.Zero
         this.Range.ValueOrApply onNull
 
 type QsExpression with 
@@ -35,7 +35,7 @@ type QsExpression with
         let onNull () = 
             let isInvalidExpr = this.Expression |> function | InvalidExpr -> true | _ -> false
             QsCompilerError.Verify(isInvalidExpr, "valid expression without a range")
-            QsCompilerDiagnostic.DefaultRange
+            Range.Zero
         this.Range.ValueOrApply onNull
 
     member this.isInvalid = 
@@ -107,5 +107,3 @@ type ResolvedType with
         | Range -> Some (Int |> ResolvedType.New)
         | ArrayType bt -> Some bt
         | _ -> None
-
-

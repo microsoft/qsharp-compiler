@@ -43,7 +43,7 @@ function Build-VSCode() {
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
-            npm install
+            npm ci
             npm run compile
     
             if  ($LastExitCode -ne 0) {
@@ -51,7 +51,7 @@ function Build-VSCode() {
             }
         } Catch {
             Write-Host "##vso[task.logissue type=error;]Failed to build VS Code extension."
-            $all_ok = $False
+            $script:all_ok = $False
         }
     } else {
         Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
@@ -92,7 +92,7 @@ function Build-VS() {
                     }
                 } Catch {
                     Write-Host "##vso[task.logissue type=error;]Failed to build VS extension."
-                    $all_ok = $False
+                    $script:all_ok = $False
                 }
             } else {
                 Write-Host "msbuild not installed. Will skip building the VisualStudio extension"

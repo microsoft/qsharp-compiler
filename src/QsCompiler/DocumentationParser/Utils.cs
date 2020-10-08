@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.RepresentationModel;
 
-
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -56,11 +55,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static readonly string YamlExtension = ".yml";
         internal static readonly string LogExtension = ".log";
 
-        internal static YamlNode BuildStringNode(string item)
+        internal static YamlNode BuildStringNode(string? item)
         {
             var node = new YamlScalarNode(item);
             // Set the style to literal (YAML |-) if the string is multi-line
-            if (item.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
+            if (item?.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
             {
                 node.Style = YamlDotNet.Core.ScalarStyle.Literal;
             }
@@ -70,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void AddString(this YamlSequenceNode root, string item) => root.Add(BuildStringNode(item));
 
         // We don't need to set the key to literal because all of our keys are simple one-line strings.
-        internal static void AddStringMapping(this YamlMappingNode root, string key, string item)
+        internal static void AddStringMapping(this YamlMappingNode root, string key, string? item)
         {
             root.Children[new YamlScalarNode(key)] = BuildStringNode(item);
         }
@@ -124,12 +123,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
         // TODO: we need to get the current namespace here somehow so that referenced UDT names
         // don't get expanded with the full namespace name
+
         /// <summary>
         /// Returns the Q# source representation of a resolved type.
         /// </summary>
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
-        internal static string ResolvedTypeToString(ResolvedType t) =>
+        internal static string? ResolvedTypeToString(ResolvedType t) =>
             SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
 
-            void CallableCore(ResolvedType inputType, ResolvedType outputType, IEnumerable<QsFunctor> functors) 
+            void CallableCore(ResolvedType inputType, ResolvedType outputType, IEnumerable<QsFunctor> functors)
             {
                 var types = new YamlSequenceNode();
                 var input = new YamlMappingNode();
@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
             else if (resolution.IsOperation)
             {
-                var op = ((QsTypeKind.Operation)resolution);
+                var op = (QsTypeKind.Operation)resolution;
                 var inputType = op.Item1.Item1;
                 var outputType = op.Item1.Item2;
                 var functors = op.Item2.Characteristics.SupportedFunctors.ValueOr(ImmutableHashSet<QsFunctor>.Empty);
@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
             else if (resolution.IsFunction)
             {
-                var fct = ((QsTypeKind.Function)resolution);
+                var fct = (QsTypeKind.Function)resolution;
                 var inputType = fct.Item1;
                 var outputType = fct.Item2;
 
@@ -362,12 +362,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="rootPath">The directory where the file should exist.</param>
         /// <param name="fileBaseName">The base name of the file, not including the ".yml" extension.</param>
-        /// <returns></returns>
-        internal static YamlNode ReadYamlFile(string rootPath, string fileBaseName)
+        internal static YamlNode? ReadYamlFile(string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlNode fileNode = null;
-            DoIgnoringExceptions(() => {
+            YamlNode? fileNode = null;
+            DoIgnoringExceptions(() =>
+            {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
                 using (var readStream = File.OpenText(fileName))
                 {
@@ -393,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
             using (var text = new StreamWriter(File.Open(fileName, FileMode.Create)))
             {
-                text.WriteLine(Utils.AutogenerationWarning);
+                text.WriteLine(AutogenerationWarning);
                 stream.Save(text, false);
             }
         }
@@ -410,14 +410,15 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlMappingNode fileMap = new YamlMappingNode();
-            DoIgnoringExceptions(() => {
+            var fileMap = new YamlMappingNode();
+            DoIgnoringExceptions(() =>
+            {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
                 using (var readStream = File.OpenText(fileName))
                 {
                     yamlReader.Load(readStream);
                 }
-                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode;
+                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode ?? fileMap;
             });
             foreach (var entry in map.Children)
             {
@@ -433,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="act">The action to run.</param>
         /// <param name="logFileName">The name of the file to log exceptions to.
         /// If omitted, the exception is not logged at all.</param>
-        internal static void DoIgnoringExceptions(Action act, string logFileName = null)
+        internal static void DoIgnoringExceptions(Action act, string? logFileName = null)
         {
             try
             {
@@ -473,9 +474,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
         }
+
+        internal static string NamespaceAsUid(this string namespaceName) =>
+            namespaceName.ToLowerInvariant();
     }
 
-    
     // See https://stackoverflow.com/a/5037815/267841.
     internal static class SortExtensions
     {
@@ -494,7 +497,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
         }
 
-        //  Sorts an IList<T> in place.
+        // Sorts an IList<T> in place.
         internal static void Sort<T>(this IList<T> list, Comparison<T> comparison)
         {
             ArrayList.Adapter((IList)list).Sort(new ComparisonComparer<T>(comparison));
@@ -505,17 +508,18 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static IEnumerable<T> OrderBy<T>(this IEnumerable<T> list, Comparison<T> comparison) =>
             list.OrderBy(t => t, new ComparisonComparer<T>(comparison));
     }
+
     internal class ComparisonComparer<T> : IComparer<T>, IComparer
     {
-        private readonly Comparison<T> _comparison;
+        private readonly Comparison<T> comparison;
 
         internal ComparisonComparer(Comparison<T> comparison)
         {
-            _comparison = comparison;
+            this.comparison = comparison;
         }
 
-        public int Compare(T x, T y) => _comparison(x, y);
+        public int Compare(T x, T y) => this.comparison(x, y);
 
-        public int Compare(object o1, object o2) => _comparison((T)o1, (T)o2);
+        public int Compare(object o1, object o2) => this.comparison((T)o1, (T)o2);
     }
 }

@@ -38,19 +38,18 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         [for file in compilation.SourceFiles do
             let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.Location <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
-            let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> DiagnosticTools.AsTuple d.Range.Start)
+            let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp ())
             
             for i = 1 to locations.Length do
                 let key = fst locations.[i-1]
                 if i < locations.Length then 
-                    let withinCurrentDeclaration (d : Diagnostic) = 
-                        Utils.IsSmallerThan(d.Range.Start, snd locations.[i] |> DiagnosticTools.AsPosition)
+                    let withinCurrentDeclaration (d : Diagnostic) = d.Range.Start.ToQSharp() < snd locations.[i]
                     yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
                     containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
                 else yield key, containedDiagnostics.ToImmutableArray()
         ].ToImmutableDictionary(fst, snd)
              
-    let VerifyDiagnostics severity name (expected : IEnumerable<_>) = 
+    let VerifyDiagnosticsOfSeverity severity name (expected : IEnumerable<_>) = 
         let exists, diag = diagnostics.TryGetValue name
         Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace.Value name.Name.Value)
         let got = 
@@ -69,17 +68,17 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
 
     member this.Verify (name, expected : IEnumerable<ErrorCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Error name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Error name expected
 
     member this.Verify (name, expected : IEnumerable<WarningCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Warning name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Warning name expected
 
     member this.Verify (name, expected : IEnumerable<InformationCode>) = 
         let expected = expected.Select(fun code -> int code) 
-        VerifyDiagnostics DiagnosticSeverity.Information name expected
+        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Information name expected
 
-    member this.Verify (name, expected : IEnumerable<DiagnosticItem>) = 
+    member this.VerifyDiagnostics (name, expected : IEnumerable<DiagnosticItem>) = 
         let errs = expected |> Seq.choose (function | Error err -> Some err | _ -> None)
         let wrns = expected |> Seq.choose (function | Warning wrn -> Some wrn | _ -> None)
         let infs = expected |> Seq.choose (function | Information inf -> Some inf | _ -> None)
@@ -90,15 +89,18 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile (srcFolder, files, ?references, ?capabilities) =
+    static member Compile (srcFolder, fileNames, ?references, ?capabilities) =
         let references = defaultArg references []
         let capabilities = defaultArg capabilities RuntimeCapabilities.Unknown
-        let compileFiles (files : IEnumerable<_>) =
-            let mgr = new CompilationUnitManager((fun ex -> failwith ex.Message), capabilities = capabilities)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
-            |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync
-            |> ignore
-            mgr.UpdateReferencesAsync(new References(ProjectManager.LoadReferencedAssemblies(references))) |> ignore
-            mgr.Build()
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles
+        let paths = fileNames |> Seq.map (fun file -> Path.Combine (srcFolder, file) |> Path.GetFullPath)
+        let mutable exceptions = []
+        use manager = new CompilationUnitManager ((fun e -> exceptions <- e :: exceptions), capabilities = capabilities)
+        paths.ToImmutableDictionary (Uri, File.ReadAllText)
+        |> CompilationUnitManager.InitializeFileManagers
+        |> manager.AddOrUpdateSourceFilesAsync
+        |> ignore
+        references |> ProjectManager.LoadReferencedAssemblies |> References |> manager.UpdateReferencesAsync |> ignore
+        let compilation = manager.Build ()
+        if not <| List.isEmpty exceptions
+        then exceptions |> List.rev |> AggregateException |> raise
+        compilation

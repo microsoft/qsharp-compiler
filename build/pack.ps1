@@ -159,19 +159,19 @@ function Pack-SelfContained() {
 function Pack-VSCode() {
     Write-Host "##[info]Packing VS Code extension..."
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-    if (Get-Command vsce -ErrorAction SilentlyContinue) {
+    if (Get-Command npx -ErrorAction SilentlyContinue) {
         Try {
-            vsce package
+            npx vsce package
     
             if ($LastExitCode -ne 0) {
                 throw;
             }
         } Catch {
             Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
-            $all_ok = $False
+            $Script:all_ok = $False
         }
     } else {
-        Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
+        Write-Host "##vso[task.logissue type=warning;]npx not installed. Will skip creation of VS Code extension package"
     }
     Pop-Location
 }
@@ -195,7 +195,7 @@ function Pack-VS() {
             }
         } Catch {
             Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-            $all_ok = $False
+            $Script:all_ok = $False
         }
     } else {    
         Write-Host "msbuild not installed. Will skip creation of VisualStudio extension package"
@@ -228,7 +228,6 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Pack-VS
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
-    return
 }
 
 if (-not $all_ok) {

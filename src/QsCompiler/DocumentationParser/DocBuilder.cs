@@ -9,7 +9,6 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
-
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
     /// <summary>
@@ -27,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="rootPath">The root directory in which documentation files should be generated</param>
         /// <param name="tree">The compiled namespaces to generate documentation for</param>
         /// <param name="sources">If specified, documentation is only generated for the specified source files.</param>
-        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<NonNullable<string>> sources = null)
+        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<NonNullable<string>>? sources = null)
         {
             if (string.IsNullOrWhiteSpace(rootPath))
             {
@@ -48,25 +47,25 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         public void BuildDocs()
         {
             var errors = new List<Exception>();
-            Directory.CreateDirectory(rootDocPath);
+            Directory.CreateDirectory(this.rootDocPath);
 
-            var rootNode = Utils.ReadYamlFile(rootDocPath, Utils.TableOfContents) as YamlSequenceNode ?? new YamlSequenceNode();
+            var rootNode = Utils.ReadYamlFile(this.rootDocPath, Utils.TableOfContents) as YamlSequenceNode ?? new YamlSequenceNode();
 
             foreach (var ns in this.namespaces)
             {
                 try
                 {
-                    ns.WriteItemsToDirectory(rootDocPath, errors);
+                    ns.WriteItemsToDirectory(this.rootDocPath, errors);
                 }
                 catch (AggregateException ex)
                 {
                     errors.AddRange(ex.InnerExceptions);
                 }
-                Utils.DoTrackingExceptions(() => ns.WriteToFile(rootDocPath), errors);
+                Utils.DoTrackingExceptions(() => ns.WriteToFile(this.rootDocPath), errors);
                 Utils.DoTrackingExceptions(() => ns.MergeNamespaceIntoToc(rootNode), errors);
             }
 
-            Utils.DoTrackingExceptions(() => Utils.WriteYamlFile(rootNode, rootDocPath, Utils.TableOfContents), errors);
+            Utils.DoTrackingExceptions(() => Utils.WriteYamlFile(rootNode, this.rootDocPath, Utils.TableOfContents), errors);
 
             if (errors.Count > 0)
             {
@@ -83,8 +82,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="tree">The compiled namespaces to generate documentation for.</param>
         /// <param name="sources">If specified, documentation is only generated for the specified source files.</param>
         /// <param name="onException">Called on caught exceptions before ignoring them.</param>
-        public static bool Run(string rootPath, IEnumerable<QsNamespace> tree, 
-            IEnumerable<NonNullable<string>> sources = null, Action<Exception> onException = null)
+        public static bool Run(
+            string rootPath,
+            IEnumerable<QsNamespace> tree,
+            IEnumerable<NonNullable<string>>? sources = null,
+            Action<Exception>? onException = null)
         {
             try
             {
@@ -95,7 +97,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             catch (Exception ex)
             {
                 var exceptions = ex is AggregateException agg ? (IEnumerable<Exception>)agg.InnerExceptions : new[] { ex };
-                foreach (var inner in exceptions) onException(inner);
+                foreach (var inner in exceptions)
+                {
+                    onException?.Invoke(inner);
+                }
                 return false;
             }
         }

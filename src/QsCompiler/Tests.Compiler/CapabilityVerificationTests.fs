@@ -28,57 +28,110 @@ let private testName name =
     QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.CapabilityVerification",
                          NonNullable<_>.New name)
 
-/// Asserts that the tester allows the given test case.
-let private allows (tester : CompilerTests) name = tester.Verify (testName name, List.empty<DiagnosticItem>)
+/// Asserts that the tester produces the expected error codes for the test case with the given name.
+let private expect (tester : CompilerTests) errorCodes name = tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
 
-/// Asserts that the tester disallows the given test case.
-let private restricts (tester : CompilerTests) name =
-    tester.Verify (testName name, [Error ErrorCode.UnsupportedResultComparison])
-
-/// The names of all test cases.
-let private all =
+/// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
+/// QPRGen0, and no errors in Unknown.
+let private simpleTests =
     [ "ResultAsBool"
       "ResultAsBoolNeq"
       "ResultAsBoolOp"
       "ResultAsBoolNeqOp"
       "ResultAsBoolOpReturnIf"
       "ResultAsBoolNeqOpReturnIf"
+      "ResultAsBoolOpReturnIfNested"
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
+      "ResultAsBoolOpElseSet"
+      "ElifSet"
+      "ElifElifSet"
+      "ElifElseSet"
+      "SetLocal"
+      "SetTuple"
       "EmptyIf"
       "EmptyIfNeq"
+      "EmptyIfOp"
+      "EmptyIfNeqOp"
       "Reset"
       "ResetNeq" ]
 
-let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unknown) all
-let [<Fact>] ``QPRGen0 restricts all Result comparison`` () = List.iter (restricts gen0) all
-
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
-let ``QPRGen1 restricts Result comparison in functions`` () =
-    restricts gen1 "ResultAsBool"
-    restricts gen1 "ResultAsBoolNeq"
-
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
-let ``QPRGen1 restricts non-if Result comparison in operations`` () =
-    restricts gen1 "ResultAsBoolOp"
-    restricts gen1 "ResultAsBoolNeqOp"
-
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
-let ``QPRGen1 restricts return from Result if`` () =
-    restricts gen1 "ResultAsBoolOpReturnIf"
-    restricts gen1 "ResultAsBoolNeqOpReturnIf"
-
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
-let ``QPRGen1 restricts mutable set from Result if`` () =
-    restricts gen1 "ResultAsBoolOpSetIf"
-    restricts gen1 "ResultAsBoolNeqOpSetIf"    
+[<Fact>]
+let ``Unknown allows all Result comparison`` () =
+    List.iter (expect unknown []) simpleTests
+    "SetReusedName" |> expect unknown [ErrorCode.LocalVariableAlreadyExists]
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
-let ``QPRGen1 allows empty Result if`` () =
-    allows gen1 "EmptyIf"
-    allows gen1 "EmptyIfNeq"
+let ``QPRGen0 restricts all Result comparison`` () =
+    List.iter (expect gen0 [ErrorCode.UnsupportedResultComparison]) simpleTests
+    "SetReusedName" |> expect gen0 [ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison]
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+
+[<Fact>]
+let ``QPRGen1 restricts Result comparison in functions`` () =
+    [ "ResultAsBool"
+      "ResultAsBoolNeq" ]
+    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+    [ "ResultTuple"
+      "ResultArray" ]
+    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+
+[<Fact>]
+let ``QPRGen1 restricts non-if Result comparison in operations`` () =
+    [ "ResultAsBoolOp"
+      "ResultAsBoolNeqOp" ]
+    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+
+[<Fact>]
+let ``QPRGen1 restricts return from Result if`` () =
+    [ "ResultAsBoolOpReturnIf"
+      "ResultAsBoolOpReturnIfNested"
+      "ResultAsBoolNeqOpReturnIf" ]
+    |> List.iter (expect gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
+
+[<Fact>]
+let ``QPRGen1 allows local mutable set from Result if`` () = "SetLocal" |> expect gen1 []
+
+[<Fact>]
+let ``QPRGen1 restricts non-local mutable set from Result if`` () =
+    [ "ResultAsBoolOpSetIf"
+      "ResultAsBoolNeqOpSetIf"
+      "SetTuple" ]
+    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+    "SetReusedName"
+    |> expect gen1 (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
+
+[<Fact>]
+let ``QPRGen1 restricts non-local mutable set from Result elif`` () =
+    [ "ElifSet"
+      "ElifElifSet" ]
+    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+
+[<Fact>]
+let ``QPRGen1 restricts non-local mutable set from Result else`` () =
+    [ "ResultAsBoolOpElseSet"
+      "ElifElseSet" ]
+    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+
+[<Fact>]
+let ``QPRGen1 restricts empty Result if function`` () =
+    [ "EmptyIf"
+      "EmptyIfNeq" ]
+    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+
+[<Fact>]
+let ``QPRGen1 allows empty Result if operation`` () =
+    [ "EmptyIfOp"
+      "EmptyIfNeqOp" ]
+    |> List.iter (expect gen1 [])
 
 [<Fact>]
 let ``QPRGen1 allows operation call from Result if`` () =
-    allows gen1 "Reset"
-    allows gen1 "ResetNeq"
+    [ "Reset"
+      "ResetNeq" ]
+    |> List.iter (expect gen1 [])

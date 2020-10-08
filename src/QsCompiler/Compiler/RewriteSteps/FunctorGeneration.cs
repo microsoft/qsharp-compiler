@@ -5,26 +5,30 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Replaces all functor generation directives with the corresponding implementation.  
+    /// Replaces all functor generation directives with the corresponding implementation.
     /// </summary>
     internal class FunctorGeneration : IRewriteStep
     {
         public string Name => "Functor Generation";
+
         public int Priority => RewriteStepPriorities.GenerationOfFunctorSupport;
-        public IDictionary<string, string> AssemblyConstants { get; }
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
+
+        public IDictionary<string, string?> AssemblyConstants { get; }
+
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
         public bool ImplementsPreconditionVerification => true;
+
         public bool ImplementsTransformation => true;
+
         public bool ImplementsPostconditionVerification => false;
 
         public FunctorGeneration()
         {
-            AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string?>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)

@@ -6,16 +6,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reactive.Linq;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.VisualStudio.LanguageServer.Protocol; 
+using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
-
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -23,96 +22,104 @@ namespace Microsoft.Quantum.QsLanguageServer
     {
         // properties required for basic functionality
 
-        private readonly JsonRpc Rpc;
-        private readonly ManualResetEvent DisconnectEvent; // used to keep the server running until it is no longer needed
-        private ManualResetEvent WaitForInit; // set to null after initialization
+        private readonly JsonRpc rpc;
+        private readonly ManualResetEvent disconnectEvent; // used to keep the server running until it is no longer needed
+        private ManualResetEvent? waitForInit; // set to null after initialization
+
         internal bool ReadyForExit { get; private set; }
-        
-        private readonly System.Timers.Timer InternalErrorTimer; // used to avoid spamming users with a lot of errors at once
-        private bool ShowInteralErrorMessage = true; // set via timer as needed
 
-        private string WorkspaceFolder = null;
-        private readonly HashSet<Uri> ProjectsInWorkspace;
-        private readonly FileWatcher FileWatcher;
-        private readonly CoalesceingQueue FileEvents;
+        private readonly System.Timers.Timer internalErrorTimer; // used to avoid spamming users with a lot of errors at once
+        private bool showInteralErrorMessage = true; // set via timer as needed
 
-        private string ClientName;
-        private Version ClientVersion;
-        private ClientCapabilities ClientCapabilities;
-        private readonly EditorState EditorState;
+        private string? workspaceFolder = null;
+        private readonly HashSet<Uri> projectsInWorkspace;
+        private readonly FileWatcher fileWatcher;
+        private readonly CoalesceingQueue fileEvents;
+
+        private string? clientName;
+        private Version? clientVersion;
+        private ClientCapabilities? clientCapabilities;
+        private readonly EditorState editorState;
 
         /// <summary>
         /// Returns true if the client name matches the given name.
         /// </summary>
         private bool ClientNameIs(string name) =>
-            name != null && name.Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase);
+            name != null && name.Equals(this.clientName, StringComparison.InvariantCultureIgnoreCase);
 
         /// <summary>
         /// Returns true if the client version is the same as the given version or later, or if the client version is
         /// unknown.
         /// </summary>
         private bool ClientVersionIsAtLeast(Version version) =>
-            version == null || this.ClientVersion == null || this.ClientVersion >= version;
+            version == null || this.clientVersion == null || this.clientVersion >= version;
 
         /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
         /// </summary>
-        private MarkupKind ChooseFormat(MarkupKind[] supportedFormats) =>
+        private MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
 
-
         // methods required for basic functionality
 
-        public QsLanguageServer(Stream sender, Stream reader)
+        public QsLanguageServer(Stream? sender, Stream? reader)
         {
-            this.WaitForInit = new ManualResetEvent(false);
-            this.Rpc = new JsonRpc(sender, reader, this)
-            { SynchronizationContext = new QsSynchronizationContext() };
-            this.Rpc.StartListening();
-            this.DisconnectEvent = new ManualResetEvent(false);
-            this.Rpc.Disconnected += (object s, JsonRpcDisconnectedEventArgs e) => { this.DisconnectEvent.Set(); }; // let's make the server exit if the stream is disconnected
+            this.waitForInit = new ManualResetEvent(false);
+            this.rpc = new JsonRpc(sender, reader, this)
+            {
+                SynchronizationContext = new QsSynchronizationContext()
+            };
+            this.rpc.StartListening();
+            this.disconnectEvent = new ManualResetEvent(false);
+            this.rpc.Disconnected += (object? s, JsonRpcDisconnectedEventArgs e) => { this.disconnectEvent.Set(); }; // let's make the server exit if the stream is disconnected
             this.ReadyForExit = false;
 
-            this.InternalErrorTimer = new System.Timers.Timer(60000);
-            this.InternalErrorTimer.Elapsed += (_, __) => { this.ShowInteralErrorMessage = true; };
-            this.InternalErrorTimer.AutoReset = false;
+            this.internalErrorTimer = new System.Timers.Timer(60000);
+            this.internalErrorTimer.Elapsed += (_, __) => { this.showInteralErrorMessage = true; };
+            this.internalErrorTimer.AutoReset = false;
 
             void ProcessFileEvents(IEnumerable<FileEvent> e) =>
                 this.OnDidChangeWatchedFiles(JToken.Parse(JsonConvert.SerializeObject(
                     new DidChangeWatchedFilesParams { Changes = e.ToArray() })));
             var fileEvents = Observable.FromEvent<FileWatcher.FileEventHandler, FileEvent>(
-                    handler => this.FileWatcher.FileEvent += handler,
-                    handler => this.FileWatcher.FileEvent -= handler)
+                    handler => this.fileWatcher.FileEvent += handler,
+                    handler => this.fileWatcher.FileEvent -= handler)
                 .Where(e => !e.Uri.LocalPath.EndsWith("tmp", StringComparison.InvariantCultureIgnoreCase) && !e.Uri.LocalPath.EndsWith('~'));
 
-            this.ProjectsInWorkspace = new HashSet<Uri>();
-            this.FileWatcher = new FileWatcher(_ => this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
-            this.FileEvents = new CoalesceingQueue();
-            this.FileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
-            this.EditorState = new EditorState(new ProjectLoader(this.LogToWindow),
-                diagnostics => this.PublishDiagnosticsAsync(diagnostics), (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
-                this.LogToWindow, this.OnInternalError);
-            this.WaitForInit.Set();
+            this.projectsInWorkspace = new HashSet<Uri>();
+            this.fileWatcher = new FileWatcher(_ => this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
+            this.fileEvents = new CoalesceingQueue();
+            this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
+            this.editorState = new EditorState(
+                new ProjectLoader(this.LogToWindow),
+                diagnostics => this.PublishDiagnosticsAsync(diagnostics),
+                (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
+                this.LogToWindow,
+                this.OnInternalError,
+                this.OnTemporaryProjectLoaded);
+            this.waitForInit.Set();
         }
 
         public void WaitForShutdown()
-        { this.DisconnectEvent.WaitOne(); }
-
-        public void Dispose()
         {
-            this.EditorState.Dispose();
-            this.Rpc.Dispose();
-            this.DisconnectEvent.Dispose();
-            this.WaitForInit.Dispose();
+            this.disconnectEvent.WaitOne();
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.editorState.Dispose();
+            this.rpc.Dispose();
+            this.disconnectEvent.Dispose();
+            this.waitForInit?.Dispose();
+        }
 
         // some utils for server -> client communication
 
         internal Task NotifyClientAsync(string method, object args) =>
-            this.Rpc.NotifyWithParameterObjectAsync(method, args);  // no need to wait for completion
+            this.rpc.NotifyWithParameterObjectAsync(method, args);  // no need to wait for completion
 
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
@@ -120,8 +127,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// does not actually do anything unless the corresponding flag is defined upon compilation
         /// </summary>
-        internal Task SendTelemetryAsync(string eventName,
-            Dictionary<string, string> properties, Dictionary<string, int> measurements) =>
+        internal Task SendTelemetryAsync(
+                string eventName,
+                Dictionary<string, string?> properties,
+                Dictionary<string, int> measurements) =>
             #if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
             {
@@ -142,14 +151,16 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.LogToWindow($"{line}{ex}{line}", MessageType.Error);
             var logLocation = "the output window";  // todo: generate a proper error log in a file somewhere
             var message = "The Q# Language Server has encountered an error. Diagnostics will be reloaded upon saving the file.";
-            if (this.ShowInteralErrorMessage)
+            if (this.showInteralErrorMessage)
             {
-                this.ShowInteralErrorMessage = false;
-                this.InternalErrorTimer.Start();
+                this.showInteralErrorMessage = false;
+                this.internalErrorTimer.Start();
                 this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
             }
         }
 
+        private void OnTemporaryProjectLoaded(Uri projectUri) =>
+            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
         // jsonrpc methods for initialization and shut down
 
@@ -158,39 +169,49 @@ namespace Microsoft.Quantum.QsLanguageServer
             var folderItems = folders.SelectMany(entry => entry.Value.Select(name => Path.Combine(entry.Key.LocalPath, name)));
             var initialProjects = folderItems.Select(item =>
             {
-                if (!item.EndsWith(".csproj") || !Uri.TryCreate(item, UriKind.Absolute, out Uri uri)) return null;
-                this.ProjectsInWorkspace.Add(uri);
-                return uri; 
+                if (!item.EndsWith(".csproj") || !Uri.TryCreate(item, UriKind.Absolute, out var uri))
+                {
+                    return null;
+                }
+                this.projectsInWorkspace.Add(uri);
+                return uri;
             })
             .Where(fileEvent => fileEvent != null).ToImmutableArray();
-            return this.EditorState.LoadProjectsAsync(initialProjects);
+            return this.editorState.LoadProjectsAsync(initialProjects);
         }
 
         [JsonRpcMethod(Methods.InitializeName)]
         public object Initialize(JToken arg)
         {
-            var doneWithInit = this.WaitForInit?.WaitOne(20000) ?? false;
-            if (!doneWithInit) return new InitializeError { Retry = true };
+            var doneWithInit = this.waitForInit?.WaitOne(20000) ?? false;
+            if (!doneWithInit)
+            {
+                return new InitializeError { Retry = true };
+            }
 
-            arg?.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
+            arg.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
-            this.ClientCapabilities = param.Capabilities;
+            this.clientCapabilities = param.Capabilities;
 
             if (param.InitializationOptions is JObject options)
             {
                 if (options.TryGetValue("name", out var name))
-                    this.ClientName = name.ToString();
+                {
+                    this.clientName = name.ToString();
+                }
                 if (options.TryGetValue("version", out var version)
-                        && !Version.TryParse(version.ToString(), out this.ClientVersion))
-                    this.ClientVersion = null;
+                        && !Version.TryParse(version.ToString(), out this.clientVersion))
+                {
+                    this.clientVersion = null;
+                }
             }
-            bool supportsCompletion = !ClientNameIs("VisualStudio") || ClientVersionIsAtLeast(new Version(16, 3));
-            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && !ClientVersionIsAtLeast(new Version(16, 4));
+            bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
+            bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
 
-            var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
-            this.WorkspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
-            this.LogToWindow($"workspace folder: {this.WorkspaceFolder ?? "(Null)"}", MessageType.Info);
-            this.FileWatcher.ListenAsync(this.WorkspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
+            var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out var uri) ? uri : null);
+            this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
+            this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
+            this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
 
             var capabilities = new ServerCapabilities
             {
@@ -202,7 +223,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.TextDocumentSync.Change = TextDocumentSyncKind.Incremental;
             capabilities.TextDocumentSync.OpenClose = true;
             capabilities.TextDocumentSync.Save = new SaveOptions { IncludeText = true };
-            capabilities.CodeActionProvider = this.ClientCapabilities?.Workspace?.ApplyEdit ?? true;
+            capabilities.CodeActionProvider = this.clientCapabilities?.Workspace?.ApplyEdit ?? true;
             capabilities.DefinitionProvider = true;
             capabilities.ReferencesProvider = true;
             capabilities.DocumentSymbolProvider = true;
@@ -219,15 +240,18 @@ namespace Microsoft.Quantum.QsLanguageServer
                     useTriggerCharWorkaround ? new[] { " ", ".", "(" } : new[] { ".", "(" };
             }
 
-            this.WaitForInit = null;
+            this.waitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
         }
 
         [JsonRpcMethod(Methods.InitializedName)]
-        public void OnInitialized(JToken _) { } // nothing to do here
+        public void OnInitialized(JToken token)
+        {
+            // nothing to do here
+        }
 
         [JsonRpcMethod(Methods.ShutdownName)]
-        public object Shutdown() // shut down and exit is fine even if the server was never initialized
+        public object? Shutdown() // shut down and exit is fine even if the server was never initialized
         {
             this.ReadyForExit = true; // there's nothing else to do here
             return null;
@@ -237,200 +261,267 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void Exit() // shut down and exit is fine even if the server was never initialized
         {
             this.Dispose();
-            this.DisconnectEvent.Set();
+            this.disconnectEvent.Set();
         }
-
 
         // jsonrpc methods called by the language server protocol
 
         [JsonRpcMethod(Methods.TextDocumentDidOpenName)]
         public Task OnTextDocumentDidOpenAsync(JToken arg)
         {
-            if (this.WaitForInit != null) return Task.CompletedTask;
+            if (this.waitForInit != null)
+            {
+                return Task.CompletedTask;
+            }
             var param = Utils.TryJTokenAs<DidOpenTextDocumentParams>(arg);
-            return this.EditorState.OpenFileAsync(param.TextDocument, this.ShowInWindow,
-                this.WorkspaceFolder != null ? this.LogToWindow : (Action<string, MessageType>)null);
+            return this.editorState.OpenFileAsync(
+                param.TextDocument,
+                this.ShowInWindow,
+                this.workspaceFolder != null ? this.LogToWindow : (Action<string, MessageType>?)null);
         }
 
         [JsonRpcMethod(Methods.TextDocumentDidCloseName)]
         public Task OnTextDocumentDidCloseAsync(JToken arg)
         {
-            if (this.WaitForInit != null) return Task.CompletedTask;
+            if (this.waitForInit != null)
+            {
+                return Task.CompletedTask;
+            }
             var param = Utils.TryJTokenAs<DidCloseTextDocumentParams>(arg);
-            return this.EditorState.CloseFileAsync(param.TextDocument, this.LogToWindow);
+            return this.editorState.CloseFileAsync(param.TextDocument, this.LogToWindow);
         }
 
         [JsonRpcMethod(Methods.TextDocumentDidSaveName)]
         public Task OnTextDocumentDidSaveAsync(JToken arg)
         {
-            if (this.WaitForInit != null) return Task.CompletedTask;
+            if (this.waitForInit != null)
+            {
+                return Task.CompletedTask;
+            }
             var param = Utils.TryJTokenAs<DidSaveTextDocumentParams>(arg);
-            return this.EditorState.SaveFileAsync(param.TextDocument, param.Text);
+            return this.editorState.SaveFileAsync(param.TextDocument, param.Text);
         }
 
         [JsonRpcMethod(Methods.TextDocumentDidChangeName)]
         public Task OnTextDocumentChangedAsync(JToken arg)
         {
-            if (this.WaitForInit != null) return Task.CompletedTask;
+            if (this.waitForInit != null)
+            {
+                return Task.CompletedTask;
+            }
             var param = Utils.TryJTokenAs<DidChangeTextDocumentParams>(arg);
-            return this.EditorState.DidChangeAsync(param);
+            return this.editorState.DidChangeAsync(param);
         }
 
         [JsonRpcMethod(Methods.TextDocumentRenameName)]
-        public object OnTextDocumentRename(JToken arg)
+        public object? OnTextDocumentRename(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<RenameParams>(arg);
-            var versionedChanges = this.ClientCapabilities?.Workspace?.WorkspaceEdit?.DocumentChanges ?? false;
+            var versionedChanges = this.clientCapabilities?.Workspace?.WorkspaceEdit?.DocumentChanges ?? false;
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.Rename(param, versionedChanges),
-                "Rename threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.Rename(param, versionedChanges),
+                    "Rename threw an exception");
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentDefinitionName)]
         public object OnTextDocumentDefinition(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             var defaultLocation = new Location
             {
                 Uri = param?.TextDocument?.Uri,
-                Range = param?.Position != null 
+                Range = param?.Position != null
                     ? new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position }
                     : null
             };
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.DefinitionLocation(param) ?? defaultLocation,
-                "GoToDefinition threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.DefinitionLocation(param) ?? defaultLocation,
+                    "GoToDefinition threw an exception");
             }
-            catch { return defaultLocation; }
+            catch
+            {
+                return defaultLocation;
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentDocumentHighlightName)]
         public object OnHighlightRequest(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.DocumentHighlights(param) ?? Array.Empty<DocumentHighlight>(),
-                "DocumentHighlight threw an exception"); 
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.DocumentHighlights(param) ?? Array.Empty<DocumentHighlight>(),
+                    "DocumentHighlight threw an exception");
             }
-            catch { return Array.Empty<DocumentHighlight>(); }
+            catch
+            {
+                return Array.Empty<DocumentHighlight>();
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentReferencesName)]
         public object OnTextDocumentReferences(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<ReferenceParams>(arg);
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.SymbolReferences(param) ?? Array.Empty<Location>(),
-                "FindReferences threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.SymbolReferences(param) ?? Array.Empty<Location>(),
+                    "FindReferences threw an exception");
             }
-            catch { return Array.Empty<Location>(); }
+            catch
+            {
+                return Array.Empty<Location>();
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentHoverName)]
-        public object OnHoverRequest(JToken arg)
+        public object? OnHoverRequest(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var supportedFormats = this.ClientCapabilities?.TextDocument?.Hover?.ContentFormat;
-            var format = ChooseFormat(supportedFormats); 
+            var supportedFormats = this.clientCapabilities?.TextDocument?.Hover?.ContentFormat;
+            var format = this.ChooseFormat(supportedFormats);
             try
             {
-                return QsCompilerError.RaiseOnFailure(() => 
-                this.EditorState.HoverInformation(param, format), 
-                "HoverInformation threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.HoverInformation(param, format),
+                    "HoverInformation threw an exception");
             }
-            catch { return null; } 
+            catch
+            {
+                return null;
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
-        public Task<object> OnSignatureHelp(JToken arg)
+        public Task<object?> OnSignatureHelp(JToken arg)
         {
-            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
-            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = ChooseFormat(supportedFormats);
-            var task = new Task<object>(() =>
+            if (this.waitForInit != null)
             {
-                // We need to give the file manager some time to actually process the change first, 
-                // otherwise we will return null. 
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
+            }
+            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
+            var format = this.ChooseFormat(supportedFormats);
+            var task = new Task<object?>(() =>
+            {
+                // We need to give the file manager some time to actually process the change first,
+                // otherwise we will return null.
                 Thread.Sleep(100);
                 try
                 {
-                    return QsCompilerError.RaiseOnFailure(() => 
-                    this.EditorState.SignatureHelp(param, format), 
-                    "SignatureHelp threw an exception");
+                    return QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.SignatureHelp(param, format),
+                        "SignatureHelp threw an exception");
                 }
-                catch { return null; } 
+                catch
+                {
+                    return null;
+                }
             });
             task.Start(TaskScheduler.Default);
-            return task; 
+            return task;
         }
 
         [JsonRpcMethod(Methods.TextDocumentDocumentSymbolName)]
         public object OnTextDocumentSymbol(JToken arg) // list all symbols found in a given text document
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<DocumentSymbolParams>(arg);
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(), 
-                "DocumentSymbols threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(),
+                    "DocumentSymbols threw an exception");
             }
-            catch { return Array.Empty<SymbolInformation>(); } 
+            catch
+            {
+                return Array.Empty<SymbolInformation>();
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public Task<object> OnTextDocumentCompletion(JToken arg)
+        public Task<object?> OnTextDocumentCompletion(JToken arg)
         {
-            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
-            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var task = new Task<object>(() =>
+            if (this.waitForInit != null)
             {
-                // Wait for the file manager to finish processing any changes 
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
+            }
+            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            var task = new Task<object?>(() =>
+            {
+                // Wait for the file manager to finish processing any changes
                 // that happened right before this completion request.
                 Thread.Sleep(50);
                 try
                 {
-                    return QsCompilerError.RaiseOnFailure(() =>
-                    EditorState.Completions(param),
-                    "Completions threw an exception");
+                    return QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.Completions(param),
+                        "Completions threw an exception");
                 }
-                catch { return null; }
+                catch
+                {
+                    return null;
+                }
             });
             task.Start(TaskScheduler.Default);
             return task;
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
-        public object OnTextDocumentCompletionResolve(JToken arg)
+        public object? OnTextDocumentCompletionResolve(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<CompletionItem>(arg);
-            var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = ChooseFormat(supportedFormats);
+            var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
+            var format = this.ChooseFormat(supportedFormats);
             try
             {
                 var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param?.Data));
-                return QsCompilerError.RaiseOnFailure(() => 
-                EditorState.ResolveCompletion(param, data, format),
-                "ResolveCompletion threw an exception");
+                return QsCompilerError.RaiseOnFailure(
+                    () => this.editorState.ResolveCompletion(param, data, format),
+                    "ResolveCompletion threw an exception");
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
@@ -442,44 +533,57 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return new Command { Title = title, CommandIdentifier = CommandIds.ApplyEdit, Arguments = new object[] { commandArgs } };
             }
 
-            if (this.WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
             var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams();
             try
             {
-                return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.CodeActions(param)
-                    ?.SelectMany(vs => vs.Select(v => BuildCommand(vs.Key, v))) 
-                    ?? Enumerable.Empty<Command>(),
-                "CodeAction threw an exception")
-                .ToArray();
+                return
+                    QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.CodeActions(param)
+                            ?.SelectMany(vs => vs.Select(v => BuildCommand(vs.Key, v)))
+                            ?? Enumerable.Empty<Command>(),
+                        "CodeAction threw an exception")
+                    .ToArray();
             }
-            catch { return Array.Empty<Command>(); }
+            catch
+            {
+                return Array.Empty<Command>();
+            }
         }
 
         [JsonRpcMethod(Methods.WorkspaceExecuteCommandName)]
-        public object OnExecuteCommand(JToken arg)
+        public object? OnExecuteCommand(JToken arg)
         {
-            var param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
-            object CastAndExecute<A>(Func<A, object> command) where A : class =>
-                QsCompilerError.RaiseOnFailure<object>(() =>
-                command(Utils.TryJTokenAs<A>(param.Arguments.Single() as JObject)), // currently all supported commands take a single argument
-                "ExecuteCommand threw an exception");
+            ExecuteCommandParams param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
+            object? CastAndExecute<T>(Func<T, object?> command) where T : class =>
+                QsCompilerError.RaiseOnFailure(
+                    () => command(Utils.TryJTokenAs<T>((JObject)param.Arguments.Single())), // currently all supported commands take a single argument
+                    "ExecuteCommand threw an exception");
             try
             {
                 return
-                    param.Command == CommandIds.ApplyEdit ? CastAndExecute<ApplyWorkspaceEditParams>(edit => 
-                        this.Rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
-                    param.Command == CommandIds.FileContentInMemory ? CastAndExecute<TextDocumentIdentifier>(this.EditorState.FileContentInMemory) :
-                    param.Command == CommandIds.FileDiagnostics ? CastAndExecute<TextDocumentIdentifier>(this.EditorState.FileDiagnostics) :
+                    param.Command == CommandIds.ApplyEdit ? CastAndExecute<ApplyWorkspaceEditParams>(edit =>
+                        this.rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
+                    param.Command == CommandIds.FileContentInMemory ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileContentInMemory) :
+                    param.Command == CommandIds.FileDiagnostics ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDiagnostics) :
                     null;
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         [JsonRpcMethod(Methods.WorkspaceDidChangeWatchedFilesName)]
         public void OnDidChangeWatchedFiles(JToken arg)
         {
-            if (this.WaitForInit != null) return;
+            if (this.waitForInit != null)
+            {
+                return;
+            }
             var param = Utils.TryJTokenAs<DidChangeWatchedFilesParams>(arg);
 
             FileEvent[] PreprocessEvent(FileEvent fileEvent)
@@ -489,18 +593,24 @@ namespace Microsoft.Quantum.QsLanguageServer
 
                 if (fileName.EndsWith(".csproj"))
                 {
-                    if (fileEvent.FileChangeType == FileChangeType.Created) this.ProjectsInWorkspace.Add(fileEvent.Uri);
-                    if (fileEvent.FileChangeType == FileChangeType.Deleted) this.ProjectsInWorkspace.Remove(fileEvent.Uri);
+                    if (fileEvent.FileChangeType == FileChangeType.Created)
+                    {
+                        this.projectsInWorkspace.Add(fileEvent.Uri);
+                    }
+                    if (fileEvent.FileChangeType == FileChangeType.Deleted)
+                    {
+                        this.projectsInWorkspace.Remove(fileEvent.Uri);
+                    }
                 }
                 if (fileName.EndsWith(".qs") && fileEvent.FileChangeType != FileChangeType.Changed)
                 {
                     bool FileIsWithinProjectDir(Uri projFile)
                     {
-                        var projDir = Uri.TryCreate(Path.GetDirectoryName(projFile.LocalPath), UriKind.Absolute, out Uri uri) ? uri : null;
+                        var projDir = Uri.TryCreate(Path.GetDirectoryName(projFile.LocalPath), UriKind.Absolute, out var uri) ? uri : null;
                         QsCompilerError.Verify(projDir != null, "could not determine project directory");
                         return fileName.StartsWith(projDir.LocalPath);
                     }
-                    var projEvents = this.ProjectsInWorkspace.Where(FileIsWithinProjectDir)
+                    var projEvents = this.projectsInWorkspace.Where(FileIsWithinProjectDir)
                         .Select(projFile => new FileEvent { Uri = projFile, FileChangeType = FileChangeType.Changed });
                     events = projEvents.Concat(events).ToArray();
                 }
@@ -517,25 +627,32 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             foreach (var fileEvent in changes.Where(IsSourceFile))
             {
-                // Unfortunately we have a rather annoying difference between VS and VS Code - 
-                // for VS, deleting a file from disk will close it in the editor whereas for VS Code it won't. 
+                // Unfortunately we have a rather annoying difference between VS and VS Code -
+                // for VS, deleting a file from disk will close it in the editor whereas for VS Code it won't.
                 // The problem is now that for VS, we do not get a close file notification in that case...
-                // We hence inject close notifications for VS if a file has been deleted on disk. 
+                // We hence inject close notifications for VS if a file has been deleted on disk.
                 // While this will hopefully cover the most common cases of edits in- and outside the editor,
                 // it is not currently possible to get the correct behavior for all cases!
-                if (fileEvent.FileChangeType == FileChangeType.Deleted && ClientNameIs("VisualStudio"))
+                if (fileEvent.FileChangeType == FileChangeType.Deleted && this.ClientNameIs("VisualStudio"))
                 {
                     this.LogToWindow($"The file '{fileEvent.Uri.LocalPath}' has been deleted on disk.", MessageType.Info);
-                    _ = this.EditorState.CloseFileAsync(new TextDocumentIdentifier { Uri = fileEvent.Uri });
+                    _ = this.editorState.CloseFileAsync(new TextDocumentIdentifier { Uri = fileEvent.Uri });
                 }
-                else _ = this.EditorState.SourceFileDidChangeOnDiskAsync(fileEvent.Uri);
+                else
+                {
+                    _ = this.editorState.SourceFileDidChangeOnDiskAsync(fileEvent.Uri);
+                }
             }
 
             foreach (var fileEvent in changes.Where(IsProjectFile))
-            { _ = this.EditorState.ProjectDidChangeOnDiskAsync(fileEvent.Uri); }
+            {
+                _ = this.editorState.ProjectDidChangeOnDiskAsync(fileEvent.Uri);
+            }
 
             foreach (var fileEvent in changes.Where(IsDll))
-            { _ = this.EditorState.AssemblyDidChangeOnDiskAsync(fileEvent.Uri); }
+            {
+                _ = this.editorState.AssemblyDidChangeOnDiskAsync(fileEvent.Uri);
+            }
         }
     }
 }

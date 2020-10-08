@@ -10,10 +10,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
-
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-
     [TestClass]
     public partial class BasicFunctionality
     {
@@ -21,14 +19,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         [TestMethod]
         public void Connection()
-        { Assert.IsNotNull(connection); }
+        {
+            Assert.IsNotNull(this.connection);
+        }
 
         [TestMethod]
         public async Task ShutdownAsync()
         {
             // the shutdown request should *not* result in the server exiting, and calling multiple times is fine
-            var response = await rpc.InvokeAsync<object>(Methods.Shutdown.Name);
-            response = await rpc.InvokeAsync<object>(Methods.Shutdown.Name);
+            var response = await this.rpc.InvokeAsync<object>(Methods.Shutdown.Name);
+            response = await this.rpc.InvokeAsync<object>(Methods.Shutdown.Name);
             Assert.IsNull(response);
             Assert.IsNotNull(this.rpc);
         }
@@ -38,12 +38,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             // any message sent before the initialization request needs to result in an error
 
-            async Task AssertNotInitializedErrorUponInvokeAsync(string method)  // argument here should not matter
+            async Task AssertNotInitializedErrorUponInvokeAsync(string method) // argument here should not matter
             {
-                var reply = await rpc.InvokeWithParameterObjectAsync<JToken>(method, new object());
+                var reply = await this.rpc.InvokeWithParameterObjectAsync<JToken>(method, new object());
                 Assert.AreEqual(ProtocolError.Codes.AwaitingInitialization, Utils.TryJTokenAs<ProtocolError>(reply).Code);
             }
-            
+
             await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentHover.Name);
             await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentSignatureHelp.Name);
             await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentDefinition.Name);
@@ -52,14 +52,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentRename.Name);
             await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentCodeAction.Name);
 
-            // the initialization request may only be sent once according to speccs 
+            // the initialization request may only be sent once according to speccs
             // -> the content of initReply is verified in the ServerCapabilities test
 
             var initParams = TestUtils.GetInitializeParams();
-            var initReply = await rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
             Assert.IsNotNull(initReply);
 
-            var init = await rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
+            var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             Assert.IsTrue(Utils.TryJTokenAs<InitializeError>(init).Retry);
         }
 
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             // NOTE: these assertions need to be adapted when the server capabilities are changed
             var initParams = TestUtils.GetInitializeParams();
             initParams.Capabilities.Workspace.ApplyEdit = true;
-            var initReply = await rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
 
             Assert.IsNotNull(initReply);
             Assert.IsNotNull(initReply.Capabilities);
@@ -81,9 +81,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider.TriggerCharacters);
             Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { ".", "(" }));
             Assert.IsNotNull(initReply.Capabilities.SignatureHelpProvider?.TriggerCharacters);
-            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider.TriggerCharacters.Any());
+            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider!.TriggerCharacters.Any());
             Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider?.Commands);
-            Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider.Commands.Contains(CommandIds.ApplyEdit));
+            Assert.IsTrue(initReply.Capabilities.ExecuteCommandProvider!.Commands.Contains(CommandIds.ApplyEdit));
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.OpenClose);
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.Save.IncludeText);
             Assert.AreEqual(TextDocumentSyncKind.Incremental, initReply.Capabilities.TextDocumentSync.Change);
@@ -102,42 +102,42 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task OpenFileAsync()
         {
-            var filename = inputGenerator.GenerateRandomFile(10, null);
-            await SetupAsync();
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            var filename = this.inputGenerator.GenerateRandomFile(10, null);
+            await this.SetupAsync();
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
         }
 
         [TestMethod]
         public async Task CloseFileAsync()
         {
-            var filename = inputGenerator.GenerateRandomFile(10, null);
-            await SetupAsync();
+            var filename = this.inputGenerator.GenerateRandomFile(10, null);
+            await this.SetupAsync();
 
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
 
             // verify that a file can be closed immediately after it was opened
-            var openTask = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
+            var openTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
         }
 
         [TestMethod]
         public async Task SaveFileAsync()
         {
             var fileSize = 10;
-            var filename = inputGenerator.GenerateRandomFile(fileSize, null);
+            var filename = this.inputGenerator.GenerateRandomFile(fileSize, null);
             var content = File.ReadAllText(Path.GetFullPath(filename));
-            await SetupAsync();
+            await this.SetupAsync();
 
             // verify that safe notification can be sent immediately after sending the open notification (even if the latter has not yet finished processing)
 
-            var openFileTask = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidSave.Name, TestUtils.GetSaveFileParams(filename, content));
+            var openFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidSave.Name, TestUtils.GetSaveFileParams(filename, content));
 
-            // check that the file content is indeed updated on save, according to the passed parameter 
+            // check that the file content is indeed updated on save, according to the passed parameter
 
-            var newContent = String.Join(Environment.NewLine, inputGenerator.GetRandomLines(10));
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidSave.Name, TestUtils.GetSaveFileParams(filename, newContent));
+            var newContent = string.Join(Environment.NewLine, this.inputGenerator.GetRandomLines(10));
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidSave.Name, TestUtils.GetSaveFileParams(filename, newContent));
             var trackedContent = await this.GetFileContentInMemoryAsync(filename);
             Assert.AreEqual(newContent, Builder.JoinLines(trackedContent));
         }
@@ -148,19 +148,21 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             async Task RunTest(bool emptyLastLine)
             {
                 var fileSize = 10;
-                var filename = inputGenerator.GenerateRandomFile(fileSize, emptyLastLine);
+                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine);
                 var content = TestUtils.GetContent(filename);
-                await SetupAsync();
+                await this.SetupAsync();
 
                 // check that edits can be pushed immediately, even if the processing of the initial open command has not yet completed
                 // and the file can be closed and no diagnostics are left even if some changes are still queued for processing
 
-                var edits = inputGenerator.MakeRandomEdits(50, ref content, fileSize, false);
+                var edits = this.inputGenerator.MakeRandomEdits(50, ref content, fileSize, false);
                 Task[] processing = new Task[edits.Length];
-                var openFileTask = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+                var openFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
                 for (var i = 0; i < edits.Length; ++i)
-                { processing[i] = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] })); }
-                var closeFileTask = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
+                {
+                    processing[i] = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] }));
+                }
+                var closeFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
                 var finalDiagnostics = await this.GetFileDiagnosticsAsync(filename);
 
                 // check that the file is no longer present in the default manager after closing (final diagnostics are null), and
@@ -181,16 +183,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TextContentTrackingAsync()
         {
-            async Task RunTest(bool emptyLastLine)
+            async Task RunTest(bool emptyLastLine, bool useQsExtension)
             {
                 var fileSize = 10;
-                var filename = inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false);
+                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false, useQsExtension);
                 var expectedContent = TestUtils.GetContent(filename);
                 var openParams = TestUtils.GetOpenFileParams(filename);
-                await SetupAsync();
-                await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+                await this.SetupAsync();
+                await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
 
-                // check that the file content is accurately reflected upon opening 
+                // check that the file content is accurately reflected upon opening
 
                 var trackedContent = await this.GetFileContentInMemoryAsync(filename);
                 var expected = Builder.JoinLines(expectedContent.ToArray());
@@ -201,8 +203,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
                 // check whether a single array of changes is processed correctly
 
-                var edits = inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, false);
-                await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, edits));
+                var edits = this.inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, false);
+                await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, edits));
                 trackedContent = await this.GetFileContentInMemoryAsync(filename);
                 Assert.AreEqual(expectedContent.Count(), trackedContent.Count());
                 Assert.AreEqual(Builder.JoinLines(expectedContent.ToArray()), Builder.JoinLines(trackedContent));
@@ -211,13 +213,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
                 for (var testRep = 0; testRep < 20; ++testRep)
                 {
-                    edits = inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, false);
+                    edits = this.inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, false);
 
                     Task[] processing = new Task[edits.Length];
                     for (var i = 0; i < edits.Length; ++i)
-                    { processing[i] = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] })); }
+                    {
+                        processing[i] = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] }));
+                    }
 
-                    for (var i = edits.Length - 1; i >= 0; --i) await processing[i];
+                    for (var i = edits.Length - 1; i >= 0; --i)
+                    {
+                        await processing[i];
+                    }
                     trackedContent = await this.GetFileContentInMemoryAsync(filename);
 
                     expected = Builder.JoinLines(expectedContent.ToArray());
@@ -226,29 +233,35 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     Assert.AreEqual(expected, got);
                 }
             }
-            await RunTest(emptyLastLine: true);
-            await RunTest(emptyLastLine: false);
+            await RunTest(emptyLastLine: true, useQsExtension: false);
+            await RunTest(emptyLastLine: false, useQsExtension: false);
+            await RunTest(emptyLastLine: true, useQsExtension: true);
         }
 
         [TestMethod]
         public async Task CodeContentTrackingAsync()
         {
             var fileSize = 10;
-            var filename = inputGenerator.GenerateRandomFile(fileSize, null, true);
+            var filename = this.inputGenerator.GenerateRandomFile(fileSize, null, true);
             var expectedContent = TestUtils.GetContent(filename);
             var openParams = TestUtils.GetOpenFileParams(filename);
-            await SetupAsync();
-            await rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            await this.SetupAsync();
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
 
             for (var testRep = 0; testRep < 20; ++testRep)
             {
-                var edits = inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, true);
+                var edits = this.inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, true);
 
                 Task[] processing = new Task[edits.Length];
                 for (var i = 0; i < edits.Length; ++i)
-                { processing[i] = rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] })); }
+                {
+                    processing[i] = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] }));
+                }
 
-                for (var i = edits.Length - 1; i >= 0; --i) await processing[i];
+                for (var i = edits.Length - 1; i >= 0; --i)
+                {
+                    await processing[i];
+                }
                 var trackedContent = await this.GetFileContentInMemoryAsync(filename);
 
                 var expected = Builder.JoinLines(expectedContent.ToArray());
