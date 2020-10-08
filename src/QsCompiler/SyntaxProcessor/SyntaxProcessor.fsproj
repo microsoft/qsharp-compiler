@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
+    <ProjectReference Include="..\..\Documentation\DocumentationParser\DocumentationParser.csproj" />
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\Transformations\Transformations.csproj" />
     <ProjectReference Include="..\Core\Core.fsproj" />

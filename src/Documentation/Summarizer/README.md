@@ -6,6 +6,6 @@ producing namespace and TOC files from the gathered documentation.
 For example:
 
 ```bash
-$ pipenv install
-$ pipenv run python obj/qsharp/docs/*.md obj/qsharp/docs
+$ pip install -r requirementx.txt
+$ python obj/qsharp/docs/*.md obj/qsharp/docs
 ```

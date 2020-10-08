@@ -39,7 +39,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
         "Microsoft.Quantum.DocumentationGenerator"
     );
     Assemblies = $VsixAssemblies + @(
-        "./src/QsCompiler/DocumentationGenerator/bin/$Env:BUILD_CONFIGURATION/netstandard2.1/Microsoft.Quantum.DocumentationGenerator.dll",
+        "./src/Documentation/DocumentationGenerator/bin/$Env:BUILD_CONFIGURATION/netstandard2.1/Microsoft.Quantum.DocumentationGenerator.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsCompiler.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/Microsoft.Quantum.QsDocumentationParser.dll",
         "./src/QsCompiler/CommandLineTool/bin/$Env:BUILD_CONFIGURATION/netcoreapp3.1/qsc.dll",

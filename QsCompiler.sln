@@ -13,7 +13,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SyntaxProcessor", "src\QsCo
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TextProcessor", "src\QsCompiler\TextProcessor\TextProcessor.fsproj", "{57F1310F-9210-47A2-AEC5-DE2CF345D754}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationParser", "src\QsCompiler\DocumentationParser\DocumentationParser.csproj", "{EB06DB1E-2B86-4279-81F9-D39B62B4AE0A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationParser", "src\Documentation\DocumentationParser\DocumentationParser.csproj", "{EB06DB1E-2B86-4279-81F9-D39B62B4AE0A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LanguageServer", "src\QsCompiler\LanguageServer\LanguageServer.csproj", "{D21C9875-2E84-423B-B2CA-84103661F7E4}"
 EndProject
@@ -47,7 +47,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B4A9484D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Library2", "src\QsCompiler\TestTargets\Libraries\Library2\Library2.csproj", "{E7E019AB-42F8-48AB-B80C-D33351F2C96A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationGenerator", "src\QsCompiler\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationGenerator", "src\Documentation\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
