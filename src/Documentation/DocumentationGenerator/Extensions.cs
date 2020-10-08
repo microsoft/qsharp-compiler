@@ -33,7 +33,6 @@ namespace Microsoft.Quantum.Documentation
     internal interface IAttributeBuilder<T>
     {
         public IAttributeBuilder<T> AddAttribute(QsDeclarationAttribute attribute);
-        public QsNullable<QsLocation> Location { get; }
 
         public T Build();
     }
@@ -41,12 +40,11 @@ namespace Microsoft.Quantum.Documentation
     internal class Callable : IAttributeBuilder<QsCallable>
     {
         private readonly QsCallable callable;
+
         internal Callable(QsCallable callable)
         {
             this.callable = callable;
         }
-
-        public QsNullable<QsLocation> Location => callable.Location;
 
         public IAttributeBuilder<QsCallable> AddAttribute(QsDeclarationAttribute attribute) =>
             new Callable(callable.AddAttribute(attribute));
@@ -57,12 +55,11 @@ namespace Microsoft.Quantum.Documentation
     internal class Udt : IAttributeBuilder<QsCustomType>
     {
         private QsCustomType type;
+
         internal Udt(QsCustomType type)
         {
             this.type = type;
         }
-
-        public QsNullable<QsLocation> Location => type.Location;
 
         public IAttributeBuilder<QsCustomType> AddAttribute(QsDeclarationAttribute attribute) =>
             new Udt(type.AddAttribute(attribute));
@@ -75,6 +72,7 @@ namespace Microsoft.Quantum.Documentation
         internal static IAttributeBuilder<QsCallable> AttributeBuilder(
             this QsCallable callable
         ) => new Callable(callable);
+
         internal static IAttributeBuilder<QsCustomType> AttributeBuilder(
             this QsCustomType type
         ) => new Udt(type);
@@ -172,154 +170,16 @@ namespace Microsoft.Quantum.Documentation
                 )
             );
 
-        internal static string ToSyntax(this ResolvedType type) =>
+        internal static string ToSyntax(this QsCustomType type) =>
             SyntaxTreeToQsharp.Default.ToCode(type);
 
-        internal static T WithSideEffect<T>(this T value, Action effect)
-        {
-            effect();
-            return value;
-        }
+        internal static string ToSyntax(this ResolvedCharacteristics characteristics) =>
+            SyntaxTreeToQsharp.CharacteristicsExpression(characteristics);
 
-        internal static string ToSyntax(this QsTypeItem item, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            item switch
-            {
-                QsTypeItem.Anonymous anon => anon.Item.ToSyntax(),
-                QsTypeItem.Named named => $"{named.Item.VariableName.Value} : {named.Item.Type.ToSyntax()}",
-                _ => "__UNKNOWN__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for type item {item}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            };
-
-        internal static string ToSyntax(this QsTuple<QsTypeItem> items, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            items switch
-            {
-                QsTuple<QsTypeItem>.QsTuple tuple => $@"({
-                    String.Join(", ", tuple.Item.Select(innerItem => innerItem.ToSyntax()))
-                })",
-                QsTuple<QsTypeItem>.QsTupleItem item => item.Item.ToSyntax(),
-                _ => "__UNKNOWN__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for type items {items}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            };
-
-        internal static string ToSyntax(
-                this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items,
-                Action<IRewriteStep.Diagnostic>? onDiagnostic = null
-        ) =>
-            items switch
-            {
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple => $@"({
-                    string.Join(", ", tuple.Item.Select(innerItem => innerItem.ToSyntax()))
-                })",
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item => item.Item.ToSyntax(),
-                _ => "__UNKNOWN__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for tuple items {items}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            };
-
-        internal static string ToSyntax(this LocalVariableDeclaration<QsLocalSymbol> symbol, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            $@"{symbol.VariableName switch
-            {
-                QsLocalSymbol.ValidName name => name.Item.Value,
-                _ => "__INVALID__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for local symbol {symbol}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            }} : {symbol.Type.ToSyntax()}";
-
-        internal static string ToSyntax(this QsCustomType type, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            $@"newtype {type.FullName.Name.Value} = {
-                string.Join(",", type.TypeItems.ToSyntax(onDiagnostic))
-            };";
-
-        internal static string ToSyntax(this ResolvedCharacteristics characteristics, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            characteristics.SupportedFunctors.ValueOr(null) switch
-            {
-                null => "",
-                { Count: 0 } => "",
-                var functors => $@" is {String.Join(" + ", 
-                    functors.Select(functor => functor.Tag switch
-                    {
-                        QsFunctor.Tags.Adjoint => "Adj",
-                        QsFunctor.Tags.Controlled => "Ctl",
-                        _ => "__UNKNOWN__".WithSideEffect(
-                            () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                            {
-                                Message = $"Failed to generate syntax for characteristic {functor}.",
-                                Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                            })
-                        ),
-                    })
-                )}"
-            };
-
-        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null)
-        {
-            var kind = callable.Kind.Tag switch
-            {
-                QsCallableKind.Tags.Function => "function",
-                QsCallableKind.Tags.Operation => "operation",
-                QsCallableKind.Tags.TypeConstructor => "function",
-                _ => "__UNKNOWN__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for type callable kind {callable.Kind}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            };
-            var modifiers = callable.Modifiers.Access.Tag switch
-            {
-                AccessModifier.Tags.DefaultAccess => "",
-                AccessModifier.Tags.Internal => "internal ",
-                _ => "__UNKNOWN__".WithSideEffect(
-                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                    {
-                        Message = $"Failed to generate syntax for access modifier {callable.Modifiers.Access}.",
-                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                    })
-                ),
-            };
-            var typeParameters = callable.Signature.TypeParameters switch
-            {
-                { Length: 0 } => "",
-                var typeParams => $@"<{
-                    string.Join(", ", typeParams.Select(
-                        param => param switch
-                        {
-                            QsLocalSymbol.ValidName name => $"'{name.Item.Value}",
-                            _ => "{invalid}".WithSideEffect(
-                                () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                                {
-                                    Message = $"Failed to generate syntax for type parameter {param}.",
-                                    Severity = CodeAnalysis.DiagnosticSeverity.Error,
-                                })
-                            ),
-                        }
-                    ))
-                }>",
-            };
-            var input = callable.ArgumentTuple.ToSyntax(onDiagnostic);
-            var output = callable.Signature.ReturnType.ToSyntax();
-            var characteristics = callable.Signature.Information.Characteristics.ToSyntax(onDiagnostic);
-            return $"{modifiers}{kind} {callable.FullName.Name.Value}{typeParameters}{input} : {output}{characteristics}";
-        }
+        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
+            SyntaxTreeToQsharp.DeclarationSignature(
+                callable, SyntaxTreeToQsharp.Default.ToCode
+            );
 
         internal static string MaybeWithSection(this string document, string name, string? contents) =>
             contents == null || contents.Trim().Length == 0
