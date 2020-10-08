@@ -11,9 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SymbolResolution
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxGenerator
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
@@ -800,7 +798,6 @@ and NamespaceManager
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists.
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     let TryResolveQualifier qualifier (nsName, source) =
         match Namespaces.TryGetValue qualifier with
         | false, _ -> Namespaces.TryGetValue nsName |> function // check if qualifier is a namespace short name
@@ -809,7 +806,7 @@ and NamespaceManager
                     | false, _ -> QsCompilerError.Raise "the corresponding namespace for a namespace short name could not be found"; None
                     | true, ns -> Some ns
                 | false, _ -> None
-            | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+            | false, _ -> None
         | true, ns -> Some ns
 
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
