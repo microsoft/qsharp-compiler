@@ -66,6 +66,15 @@
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
       <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
+    <!-- Ensure that documentation generation properties are valid. -->
+    <Error
+        Condition="!Or('$(QsharpDocGenerationMode)' == 'yaml', '$(QsharpDocGenerationMode)' == 'markdown')"
+        Text="QsharpDocGenerationMode was '$(QsharpDocGenerationMode)', but expected either 'markdown' or 'yaml'."
+    />
+    <Warning
+      Condition="'$(QsharpDocGenerationMode)' == 'yaml'"
+      Text="YAML-based documentation generation is deprecated; please consider using 'markdown' for the QsharpDocGenerationMode property."
+    />
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
