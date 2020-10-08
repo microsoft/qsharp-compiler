@@ -725,9 +725,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         var restTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, typedRestPointer);
                         var size = this.SharedState.ComputeSizeForType(ctlArgsType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetRuntimeFunction("tuple_create"), size);
-                        var dummyTupleType = ResolvedType.New(QsResolvedTypeKind.NewTupleType(
-                            (new ResolvedType[] { ResolvedType.New(QsResolvedTypeKind.MissingType) }).ToImmutableArray()));
-                        this.SharedState.ScopeMgr.AddValue(innerArgTuple, dummyTupleType);
+                        this.SharedState.ScopeMgr.AddValue(innerArgTuple);
                         var typedNewTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
                         var destControlsPointer = builder.GetElementPtr(ctlArgsType, typedNewTuple,
                             new Value[] { this.SharedState.CurrentContext.CreateConstant(0L), this.SharedState.CurrentContext.CreateConstant(1) });

@@ -57,9 +57,6 @@
     <Content Include="TestCases\QirTests\TestControlled2.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Resource Include="TestCases\QirTests\TestControlled3.ll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
     <Content Include="TestCases\QirTests\TestControlled.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -46,6 +46,7 @@ namespace Microsoft.Quantum.Testing.QIR
     {
         let k2 = K(_, 2);
         let ck2 = Controlled k2;
+        let ck1 = K(_, _);
 
         for (i in 0..100)
         {
@@ -55,6 +56,7 @@ namespace Microsoft.Quantum.Testing.QIR
                 using (moreCtrls = Qubit[3])
                 {
                     Controlled ck2(moreCtrls, (ctrls, qb));
+                    Controlled ck1(ctrls, (qb, 1));
                 }
                 if (M(qb) != Zero)
                 {
