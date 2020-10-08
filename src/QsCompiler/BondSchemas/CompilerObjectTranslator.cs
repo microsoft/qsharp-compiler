@@ -38,6 +38,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond OpProperty '{bondOpProperty}'")
             };
 
+        private static SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> ToCompilerObject(
+            this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> bondQsTuple) =>
+            bondQsTuple.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
+
+        private static SyntaxTokens.QsTuple<SyntaxTree.QsTypeItem> ToCompilerObject(
+            this QsTuple<QsTypeItem> bondQsTuple) =>
+            bondQsTuple.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
+
         private static SyntaxTree.CallableInformation ToCompilerObject(CallableInformation bondCallableInformation) =>
             new SyntaxTree.CallableInformation(
                 characteristics: bondCallableInformation.Characteristics.ToCompilerObject(),
@@ -90,8 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondQsCallable.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
                 signature: bondQsCallable.Signature.ToCompilerObject(),
-                // TODO: Implement ArgumentTuple.
-                argumentTuple: default,
+                argumentTuple: bondQsCallable.ArgumentTuple.ToCompilerObject(),
                 specializations: bondQsCallable.Specializations.Select(s => s.ToCompilerObject()).ToImmutableArray(),
                 documentation: bondQsCallable.Documentation.ToImmutableArray(),
                 comments: bondQsCallable.Comments.ToCompilerObject());
@@ -120,8 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
                 type: bondQsCustomType.Type.ToCompilerObject(),
-                // TODO: Implement TypeItems.
-                typeItems: default,
+                typeItems: bondQsCustomType.TypeItems.ToCompilerObject(),
                 documentation: bondQsCustomType.Documentation.ToImmutableArray(),
                 comments: bondQsCustomType.Comments.ToCompilerObject());
 
@@ -226,6 +232,34 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsSpecializationKind.QsControlledAdjoint => SyntaxTree.QsSpecializationKind.QsControlledAdjoint,
                 _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind '{bondQsSpecializationKind}'")
             };
+
+        private static SyntaxTree.QsTypeItem ToCompilerObject(this QsTypeItem bondQsTypeItem)
+        {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond QsTypeItem '{fieldName}' field is null when Kind is '{bondQsTypeItem.Kind}'";
+
+            if (bondQsTypeItem.Kind == QsTypeItemKind.Named)
+            {
+                var named =
+                    bondQsTypeItem.Named ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Named"));
+
+                return SyntaxTree.QsTypeItem.NewNamed(
+                    item: named.ToCompilerObjectGeneric(typeTranslator: ToNonNullable));
+            }
+            else if(bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
+            {
+                var anonymous =
+                    bondQsTypeItem.Anonymous ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Anonymous"));
+
+                return SyntaxTree.QsTypeItem.NewAnonymous(item: anonymous.ToCompilerObject());
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported Bond QsTypeItemKind '{bondQsTypeItem.Kind}'");
+            }
+        }
 
         private static SyntaxTree.QsTypeParameter ToCompilerObject(this QsTypeParameter bondQsTypeParameter) =>
             new SyntaxTree.QsTypeParameter(
