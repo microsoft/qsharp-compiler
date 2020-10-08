@@ -25,7 +25,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Core", "src\QsCompiler\Core
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transformations", "src\QsCompiler\Transformations\Transformations.csproj", "{BA5D3733-09F1-4676-9CAC-99AD9A00AECB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests.DocGenerator", "src\QsCompiler\Tests.DocGenerator\Tests.DocGenerator.csproj", "{256A6275-FC7F-42E9-9931-BC6EA6D0F31A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests.DocGenerator", "src\Documentation\Tests.DocGenerator\Tests.DocGenerator.csproj", "{256A6275-FC7F-42E9-9931-BC6EA6D0F31A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineTool", "src\QsCompiler\CommandLineTool\CommandLineTool.csproj", "{B15C4786-0D35-4E66-907F-94DA85FD5576}"
 EndProject

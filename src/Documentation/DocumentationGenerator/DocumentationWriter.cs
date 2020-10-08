@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Documentation
 
         public DocumentationWriter(string outputPath, string? packageName)
         {
-            this.outputPath = outputPath;
+            this.OutputPath = outputPath;
             this.packageName = packageName;
 
             // If the output path is not null, make sure the directory exists.
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.Documentation
 
             // Open a file to write the new doc to.
             await File.WriteAllTextAsync(
-                Path.Join(outputPath, $"{name.ToLowerInvariant()}.md"),
+                Path.Join(OutputPath, $"{name.ToLowerInvariant()}.md"),
                 document
             );
         }
@@ -129,7 +129,7 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
 
             // Open a file to write the new doc to.
             await File.WriteAllTextAsync(
-                Path.Join(outputPath, $"{type.FullName.Namespace.Value.ToLowerInvariant()}.{type.FullName.Name.Value.ToLowerInvariant()}.md"),
+                Path.Join(OutputPath, $"{type.FullName.Namespace.Value.ToLowerInvariant()}.{type.FullName.Name.Value.ToLowerInvariant()}.md"),
                 document
             );
         }
@@ -205,7 +205,7 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
 
             // Open a file to write the new doc to.
             await File.WriteAllTextAsync(
-                Path.Join(outputPath, $"{callable.FullName.Namespace.Value.ToLowerInvariant()}.{callable.FullName.Name.Value.ToLowerInvariant()}.md"),
+                Path.Join(OutputPath, $"{callable.FullName.Namespace.Value.ToLowerInvariant()}.{callable.FullName.Name.Value.ToLowerInvariant()}.md"),
                 document
             );
         }
