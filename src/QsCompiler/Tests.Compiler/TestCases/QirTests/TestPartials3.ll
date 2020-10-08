@@ -12,7 +12,7 @@ entry:
   %8 = getelementptr { %TupleHeader, %Qubit* }, { %TupleHeader, %Qubit* }* %1, i64 0, i32 1
   %9 = load %Qubit*, %Qubit** %8
   store %Qubit* %9, %Qubit** %7
-  %10 = getelementptr inbounds { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %0, i32 0, i32 1
+  %10 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %0, i64 0, i32 1
   %11 = load %Callable*, %Callable** %10
   %12 = call %Callable* @__quantum__rt__callable_copy(%Callable* %11)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %12)

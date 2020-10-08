@@ -2,10 +2,10 @@
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Callable*, double }* getelementptr ({ %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %Callable*, double }*
-  %2 = getelementptr inbounds { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i32 0, i32 1
+  %2 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i64 0, i32 1
   %3 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Intrinsic__Rz, %TupleHeader* null)
   store %Callable* %3, %Callable** %2
-  %4 = getelementptr inbounds { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i32 0, i32 2
+  %4 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i64 0, i32 2
   store double 2.500000e-01, double* %4
   %rotate = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__1, %TupleHeader* %0)
   %unrotate = call %Callable* @__quantum__rt__callable_copy(%Callable* %rotate)

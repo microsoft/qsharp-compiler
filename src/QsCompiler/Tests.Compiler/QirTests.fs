@@ -161,6 +161,10 @@ let ``QIR bigints`` () =
     qirTest false "TestBigInts"
 
 [<Fact>]
+let ``QIR controlled partial applications`` () =
+    qirExeMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"]
+
+[<Fact>]
 let ``QIR entry points`` () =
     qirExeTest false "TestEntryPoint"
 
