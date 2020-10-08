@@ -3,10 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler;
-using Microsoft.Quantum.QsCompiler.Experimental;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.Documentation

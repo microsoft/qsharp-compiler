@@ -7,13 +7,11 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
-using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.Serialization;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
@@ -42,7 +40,7 @@ namespace Microsoft.Quantum.Documentation
 
     internal class Callable : IAttributeBuilder<QsCallable>
     {
-        private QsCallable callable;
+        private readonly QsCallable callable;
         internal Callable(QsCallable callable)
         {
             this.callable = callable;

@@ -36,7 +36,9 @@
 
   <!-- Include the documentation generator package only if generating docs using Markdown output. -->
   <ItemGroup>
-    <PackageReference Condition="$(QsharpDocsGeneration) AND ('$(QsharpDocGenerationMode)' == 'markdown')" Include="Microsoft.Quantum.DocumentationGenerator" Version="0.12.20090427-beta" IsQscReference="true" IsImplicitlyDefined="true" Priority="-2" ExecutionTarget="Any" />
+    <PackageReference Condition="$(QsharpDocsGeneration) AND ('$(QsharpDocGenerationMode)' == 'markdown')" 
+                      Include="Microsoft.Quantum.DocumentationGenerator" Version="0.12.20090427-beta" IsImplicitlyDefined="true" 
+                      IsQscReference="true" ExecutionTarget="Any" Priority="-2" />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
