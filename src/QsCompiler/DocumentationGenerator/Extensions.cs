@@ -165,24 +165,11 @@ namespace Microsoft.Quantum.Documentation
                     attributeName,
                     // The following populates all of the metadata needed for a
                     // Q# literal of type (String, String).
-                    new TypedExpression(
-                        QsExpressionKind<TypedExpression, Identifier, ResolvedType>.NewValueTuple(
-                            ImmutableArray.Create(
-                                item.Key.AsLiteralExpression(),
-                                item.Value.AsLiteralExpression()
-                            )
-                        ),
-                        ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
-                        ResolvedType.New(
-                            QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTupleType(
-                                ImmutableArray.Create(
-                                    ResolvedType.New(QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.String),
-                                    ResolvedType.New(QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.String)
-                                )
-                            )
-                        ),
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Range>.Null
+                    SyntaxGenerator.TupleLiteral(
+                        ImmutableArray.Create(
+                            item.Key.AsLiteralExpression(),
+                            item.Value.AsLiteralExpression()
+                        )
                     )
                 )
             );
@@ -190,44 +177,80 @@ namespace Microsoft.Quantum.Documentation
         internal static string ToSyntax(this ResolvedType type) =>
             SyntaxTreeToQsharp.Default.ToCode(type);
 
-        internal static string ToSyntax(this QsTypeItem item) =>
+        internal static T WithSideEffect<T>(this T value, Action effect)
+        {
+            effect();
+            return value;
+        }
+
+        internal static string ToSyntax(this QsTypeItem item, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             item switch
             {
                 QsTypeItem.Anonymous anon => anon.Item.ToSyntax(),
-                QsTypeItem.Named named => $"{named.Item.VariableName.Value} : {named.Item.Type.ToSyntax()}"
+                QsTypeItem.Named named => $"{named.Item.VariableName.Value} : {named.Item.Type.ToSyntax()}",
+                _ => "__UNKNOWN__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for type item {item}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             };
-        
-        internal static string ToSyntax(this QsTuple<QsTypeItem> items) =>
+
+        internal static string ToSyntax(this QsTuple<QsTypeItem> items, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             items switch
             {
                 QsTuple<QsTypeItem>.QsTuple tuple => $@"({
                     String.Join(", ", tuple.Item.Select(innerItem => innerItem.ToSyntax()))
                 })",
-                QsTuple<QsTypeItem>.QsTupleItem item => item.Item.ToSyntax()
+                QsTuple<QsTypeItem>.QsTupleItem item => item.Item.ToSyntax(),
+                _ => "__UNKNOWN__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for type items {items}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             };
 
-        internal static string ToSyntax(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) =>
+        internal static string ToSyntax(
+                this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items,
+                Action<IRewriteStep.Diagnostic>? onDiagnostic = null
+        ) =>
             items switch
             {
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple => $@"({
-                    String.Join(", ", tuple.Item.Select(innerItem => innerItem.ToSyntax()))
+                    string.Join(", ", tuple.Item.Select(innerItem => innerItem.ToSyntax()))
                 })",
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item => item.Item.ToSyntax()
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item => item.Item.ToSyntax(),
+                _ => "__UNKNOWN__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for tuple items {items}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             };
 
-        internal static string ToSyntax(this LocalVariableDeclaration<QsLocalSymbol> symbol) =>
+        internal static string ToSyntax(this LocalVariableDeclaration<QsLocalSymbol> symbol, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             $@"{symbol.VariableName switch
             {
                 QsLocalSymbol.ValidName name => name.Item.Value,
-                _ => "{{invalid}}"
+                _ => "__INVALID__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for local symbol {symbol}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             }} : {symbol.Type.ToSyntax()}";
 
-        internal static string ToSyntax(this QsCustomType type) =>
+        internal static string ToSyntax(this QsCustomType type, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             $@"newtype {type.FullName.Name.Value} = {
-                String.Join(",", type.TypeItems.ToSyntax())
+                string.Join(",", type.TypeItems.ToSyntax(onDiagnostic))
             };";
 
-        internal static string ToSyntax(this ResolvedCharacteristics characteristics) =>
+        internal static string ToSyntax(this ResolvedCharacteristics characteristics, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             characteristics.SupportedFunctors.ValueOr(null) switch
             {
                 null => "",
@@ -236,40 +259,67 @@ namespace Microsoft.Quantum.Documentation
                     functors.Select(functor => functor.Tag switch
                     {
                         QsFunctor.Tags.Adjoint => "Adj",
-                        QsFunctor.Tags.Controlled => "Ctl"
+                        QsFunctor.Tags.Controlled => "Ctl",
+                        _ => "__UNKNOWN__".WithSideEffect(
+                            () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                            {
+                                Message = $"Failed to generate syntax for characteristic {functor}.",
+                                Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                            })
+                        ),
                     })
                 )}"
             };
 
-        internal static string ToSyntax(this QsCallable callable)
+        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null)
         {
             var kind = callable.Kind.Tag switch
             {
                 QsCallableKind.Tags.Function => "function",
                 QsCallableKind.Tags.Operation => "operation",
-                QsCallableKind.Tags.TypeConstructor => "function"
+                QsCallableKind.Tags.TypeConstructor => "function",
+                _ => "__UNKNOWN__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for type callable kind {callable.Kind}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             };
             var modifiers = callable.Modifiers.Access.Tag switch
             {
                 AccessModifier.Tags.DefaultAccess => "",
-                AccessModifier.Tags.Internal => "internal "
+                AccessModifier.Tags.Internal => "internal ",
+                _ => "__UNKNOWN__".WithSideEffect(
+                    () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                    {
+                        Message = $"Failed to generate syntax for access modifier {callable.Modifiers.Access}.",
+                        Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    })
+                ),
             };
             var typeParameters = callable.Signature.TypeParameters switch
             {
                 { Length: 0 } => "",
                 var typeParams => $@"<{
-                    String.Join(", ", typeParams.Select(
+                    string.Join(", ", typeParams.Select(
                         param => param switch
                         {
                             QsLocalSymbol.ValidName name => $"'{name.Item.Value}",
-                            _ => "{invalid}"
+                            _ => "{invalid}".WithSideEffect(
+                                () => onDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                                {
+                                    Message = $"Failed to generate syntax for type parameter {param}.",
+                                    Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                                })
+                            ),
                         }
                     ))
-                }>"
+                }>",
             };
-            var input = callable.ArgumentTuple.ToSyntax();
+            var input = callable.ArgumentTuple.ToSyntax(onDiagnostic);
             var output = callable.Signature.ReturnType.ToSyntax();
-            var characteristics = callable.Signature.Information.Characteristics.ToSyntax();
+            var characteristics = callable.Signature.Information.Characteristics.ToSyntax(onDiagnostic);
             return $"{modifiers}{kind} {callable.FullName.Name.Value}{typeParameters}{input} : {output}{characteristics}";
         }
 
@@ -281,41 +331,34 @@ namespace Microsoft.Quantum.Documentation
         internal static string WithYamlHeader(this string document, object header) =>
             $"---\n{new SerializerBuilder().Build().Serialize(header)}---\n{document}";
 
-        internal static bool IsDeprecated(this QsCallable callable, out string? replacement) =>
-            callable.Attributes.IsDeprecated(out replacement);
-
-        internal static bool IsDeprecated(this QsCustomType type, out string? replacement) =>
-            type.Attributes.IsDeprecated(out replacement);
-
-        internal static bool IsDeprecated(this IEnumerable<QsDeclarationAttribute> attributes, [NotNullWhen(true)]  out string? replacement)
+        internal static bool IsDeprecated(this QsCallable callable, out string? replacement)
         {
-            var deprecationAttribute = attributes.SingleOrDefault(attribute =>
-            {
-                if (attribute.TypeId.IsValue)
-                {
-                    var attrType = attribute.TypeId.Item;
-                    if (attrType.Namespace.Value == "Microsoft.Quantum.Core" && attrType.Name.Value == "Deprecated")
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
-
-            if (deprecationAttribute == null)
+            var redirect = SymbolResolution.TryFindRedirect(callable.Attributes);
+            if (redirect.IsNull)
             {
                 replacement = null;
                 return false;
             }
             else
             {
-                var arg = deprecationAttribute.Argument.Expression as QsExpressionKind<TypedExpression, Identifier, ResolvedType>.StringLiteral;
-                Debug.Assert(arg != null, "Argument to deprecated attribute was not a string literal.");
-                replacement = arg.Item1.Value;
+                replacement = redirect.Item;
                 return true;
             }
+        }
 
+        internal static bool IsDeprecated(this QsCustomType type, [NotNullWhen(true)] out string? replacement)
+        {
+            var redirect = SymbolResolution.TryFindRedirect(type.Attributes);
+            if (redirect.IsNull)
+            {
+                replacement = null;
+                return false;
+            }
+            else
+            {
+                replacement = redirect.Item;
+                return true;
+            }
         }
 
         internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) =>
@@ -340,13 +383,15 @@ namespace Microsoft.Quantum.Documentation
                 QsTuple<QsTypeItem>.QsTupleItem item => item.Item switch
                     {
                         QsTypeItem.Anonymous _ => new List<(string, ResolvedType)>(),
-                        QsTypeItem.Named named => 
-                        new List<(string, ResolvedType)>
-                        {(
-                            named.Item.VariableName.Value,
-                            named.Item.Type
-                        )}
-                    }
+                        QsTypeItem.Named named =>
+                            new List<(string, ResolvedType)>
+                            {(
+                                named.Item.VariableName.Value,
+                                named.Item.Type
+                            )},
+                        _ => throw new ArgumentException($"Type item {item} is neither anonymous nor named.", nameof(typeItems)),
+                    },
+                _ => throw new ArgumentException($"Type items {typeItems} aren't a tuple of type items.", nameof(typeItems)),
             };
 
         private static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
@@ -363,11 +408,12 @@ namespace Microsoft.Quantum.Documentation
                             item.Item.VariableName switch
                             {
                                 QsLocalSymbol.ValidName name => name.Item.Value,
-                                _ => "__invalid__"
+                                _ => "__invalid__",
                             },
                             item.Item.Type
                         )
-                    }
+                    },
+                _ => throw new Exception()
             };
 
         internal static string ToMarkdownLink(this ResolvedType type) => type.Resolution switch
@@ -379,23 +425,23 @@ namespace Microsoft.Quantum.Documentation
                     $@"{operation.Item1.Item1.ToMarkdownLink()} => {operation.Item1.Item2.ToMarkdownLink()} {
                         operation.Item2.Characteristics.ToSyntax()
                     }",
-                ResolvedTypeKind.TupleType tuple => "(" + String.Join(",",
+                ResolvedTypeKind.TupleType tuple => "(" + string.Join(",",
                         tuple.Item.Select(ToMarkdownLink)
                     ) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
                 _ => type.Resolution.Tag switch
-                {
-                    ResolvedTypeKind.Tags.BigInt => "BigInt",
-                    ResolvedTypeKind.Tags.Bool => "Bool",
-                    ResolvedTypeKind.Tags.Double => "Double",
-                    ResolvedTypeKind.Tags.Int => "Int",
-                    ResolvedTypeKind.Tags.Pauli => "Pauli",
-                    ResolvedTypeKind.Tags.Qubit => "Qubit",
-                    ResolvedTypeKind.Tags.Range => "Range",
-                    ResolvedTypeKind.Tags.String => "String",
-                    ResolvedTypeKind.Tags.UnitType => "Unit",
-                    _ => "__invalid__"
-                }
+                    {
+                        ResolvedTypeKind.Tags.BigInt => "BigInt",
+                        ResolvedTypeKind.Tags.Bool => "Bool",
+                        ResolvedTypeKind.Tags.Double => "Double",
+                        ResolvedTypeKind.Tags.Int => "Int",
+                        ResolvedTypeKind.Tags.Pauli => "Pauli",
+                        ResolvedTypeKind.Tags.Qubit => "Qubit",
+                        ResolvedTypeKind.Tags.Range => "Range",
+                        ResolvedTypeKind.Tags.String => "String",
+                        ResolvedTypeKind.Tags.UnitType => "Unit",
+                        _ => "__invalid__",
+                    },
             };
 
         internal static string ToMarkdownLink(this UserDefinedType type) =>
@@ -406,7 +452,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 QsNamespaceElement.QsCallable callable => callable.Item.IsInCompilationUnit(),
                 QsNamespaceElement.QsCustomType type => type.Item.IsInCompilationUnit(),
-                _ => false
+                _ => false,
             };
 
         internal static bool IsInCompilationUnit(this QsCallable callable) =>

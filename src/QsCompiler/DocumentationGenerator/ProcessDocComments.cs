@@ -43,14 +43,6 @@ namespace Microsoft.Quantum.Documentation
             this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, writer);
         }
 
-        public QsCompilation OnCompilation(QsCompilation compilation) =>
-            new QsCompilation(
-                compilation.Namespaces
-                    .Select(this.Namespaces.OnNamespace)
-                    .ToImmutableArray(),
-                compilation.EntryPoints
-            );
-
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
         {

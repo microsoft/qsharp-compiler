@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -44,11 +45,9 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Optimizations", "src\QsComp
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B4A9484D-31FC-4A27-9E26-4C8DE3E02D77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Library2", "src\QsCompiler\TestTargets\Libraries\Library2\Library2.csproj", "{E7E019AB-42F8-48AB-B80C-D33351F2C96A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Library2", "src\QsCompiler\TestTargets\Libraries\Library2\Library2.csproj", "{E7E019AB-42F8-48AB-B80C-D33351F2C96A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A4A3C7BF-19AD-4916-A4D8-6572C1A11AFC}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentationGenerator", "src\QsCompiler\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationGenerator", "src\QsCompiler\DocumentationGenerator\DocumentationGenerator.csproj", "{11311F0C-78CA-43A3-9C84-D7EA0AE9748C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -302,7 +301,6 @@ Global
 		{D2E36476-A65F-4310-9C4C-B721BCC47B00} = {6077A717-50BF-4F87-B439-CA549AF6A4AE}
 		{DDAA35BF-7BFC-431F-9F7E-182F01DAEB3F} = {D2E36476-A65F-4310-9C4C-B721BCC47B00}
 		{E7E019AB-42F8-48AB-B80C-D33351F2C96A} = {D2E36476-A65F-4310-9C4C-B721BCC47B00}
-		{11311F0C-78CA-43A3-9C84-D7EA0AE9748C} = {A4A3C7BF-19AD-4916-A4D8-6572C1A11AFC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B921C36B-4574-4025-8FE3-E5BD2D3D2B81}

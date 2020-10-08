@@ -11,27 +11,45 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.Documentation
 {
-    public class DocumentationGenerationStep : IRewriteStep
+    /// <summary>
+    ///     Rewrite step that generates API documentation from documentation
+    ///     comments in the Q# source files being compiled.
+    /// </summary>
+    public class DocumentationGeneration : IRewriteStep
     {
-        private readonly List<IRewriteStep.Diagnostic> Diagnostics;
+        private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
-        public DocumentationGenerationStep()
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="DocumentationGeneration"/> class.
+        /// </summary>
+        public DocumentationGeneration()
         {
             this.AssemblyConstants = new Dictionary<string, string>(); // will be populated by the Q# compiler
-            this.Diagnostics = new List<IRewriteStep.Diagnostic>(); // collects diagnostics that will be displayed to the user
+            this.diagnostics = new List<IRewriteStep.Diagnostic>(); // collects diagnostics that will be displayed to the user
         }
 
+        /// <inheritdoc/>
         public string Name => "DocumentationGeneration";
+
+        /// <inheritdoc/>
         public int Priority => 0; // only compared within this dll
 
+        /// <inheritdoc/>
         public IDictionary<string, string> AssemblyConstants { get; }
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.Diagnostics;
 
+        /// <inheritdoc/>
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.diagnostics;
+
+        /// <inheritdoc/>
         public bool ImplementsPreconditionVerification => true;
+
+        /// <inheritdoc/>
         public bool ImplementsTransformation => true;
+
+        /// <inheritdoc/>
         public bool ImplementsPostconditionVerification => false;
 
-
+        /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation)
         {
             var preconditionPassed = true; // nothing to check
@@ -41,33 +59,24 @@ namespace Microsoft.Quantum.Documentation
                 // If the severity is Error or Warning the diagnostic is shown to the user like any other compiler diagnostic,
                 // and if the Source property is set to the absolute path of an existing file,
                 // the user will be directed to the file when double clicking the diagnostics.
-                this.Diagnostics.Add(new IRewriteStep.Diagnostic
+                this.diagnostics.Add(new IRewriteStep.Diagnostic
                 {
                     Severity = DiagnosticSeverity.Info,
                     Message = $"Precondition for {this.Name} was {(preconditionPassed ? "satisfied" : "not satisfied")}.",
-                    Stage = IRewriteStep.Stage.PreconditionVerification
+                    Stage = IRewriteStep.Stage.PreconditionVerification,
                 });
-
-                foreach (var item in AssemblyConstants)
-                {
-                    this.Diagnostics.Add(new IRewriteStep.Diagnostic
-                    {
-                        Severity = DiagnosticSeverity.Info,
-                        Message = $"Got assembly constant \"{item.Key}\" = \"{item.Value}\".",
-                        Stage = IRewriteStep.Stage.PreconditionVerification
-                    });
-                }
             }
+
             return preconditionPassed;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = new ProcessDocComments(
-                AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
+                this.AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
                 ? path
                 : null,
-                AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
+                this.AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
                 ? packageName
                 : null
             ).OnCompilation(compilation);
