@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
@@ -15,9 +16,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public int Priority => RewriteStepPriorities.EvaluationOfClassicalComputations;
 
-        public IDictionary<string, string> AssemblyConstants { get; }
+        public IDictionary<string, string?> AssemblyConstants { get; }
 
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
         public bool ImplementsPreconditionVerification => false;
 
@@ -27,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public FullPreEvaluation()
         {
-            this.AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string?>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)

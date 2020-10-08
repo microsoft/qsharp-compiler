@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -34,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool loadTestNames)
         {
             this.Version = version ?? "";
-            this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
+            this.OutputPath = outputPath;
             this.RuntimeCapabilities = runtimeCapabilities;
             this.IsExecutable = isExecutable;
             this.ProcessorArchitecture = processorArchitecture;
@@ -44,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     public class ProjectInformation
     {
-        public delegate bool Loader(Uri projectFile, out ProjectInformation projectInfo);
+        public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
         internal readonly ProjectProperties Properties;
         public readonly ImmutableArray<string> SourceFiles;
@@ -79,9 +81,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.Properties = new ProjectProperties(
                 version, outputPath, runtimeCapabilities, isExecutable, processorArchitecture, loadTestNames);
-            this.SourceFiles = sourceFiles?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(sourceFiles));
-            this.ProjectReferences = projectReferences?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(projectReferences));
-            this.References = references?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(references));
+            this.SourceFiles = sourceFiles.ToImmutableArray();
+            this.ProjectReferences = projectReferences.ToImmutableArray();
+            this.References = references.ToImmutableArray();
         }
     }
 
@@ -161,7 +163,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Initializes the project for the given project file with the given project information.
             /// If an Action for publishing diagnostics is given and not null,
             /// that action is called whenever diagnostics for the project have changed and are ready for publishing.
-            /// Throws an ArgumentNullException if the given project file or project information is null.
             /// </summary>
             internal Project(
                 Uri projectFile,
@@ -170,8 +171,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Action<PublishDiagnosticParams>? publishDiagnostics,
                 Action<string, MessageType>? log)
             {
-                this.ProjectFile = projectFile ?? throw new ArgumentNullException(nameof(projectFile));
-                this.Properties = projectInfo?.Properties ?? throw new ArgumentNullException(nameof(projectInfo));
+                this.ProjectFile = projectFile;
+                this.Properties = projectInfo.Properties;
                 this.SetProjectInformation(projectInfo);
 
                 var version = Version.TryParse(projectInfo.Properties.Version, out Version v) ? v : null;
@@ -202,14 +203,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Sets the output path and all specified source files, references and project references
             /// to those specified by the given project information.
             /// Generates a suitable diagnostics if the output uri cannot be determined.
-            /// Throws an ArgumentNullException if the given project information is null.
             /// </summary>
             private void SetProjectInformation(ProjectInformation projectInfo)
             {
-                if (projectInfo == null)
-                {
-                    throw new ArgumentNullException(nameof(projectInfo));
-                }
                 this.Properties = projectInfo.Properties;
                 this.isLoaded = false;
 
@@ -247,17 +243,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Calls the given action RemoveFiles with the uris of all files that are no longer part of this project.
             /// Calls the given function GetExistingFileManagers to get all existing managers for the files that are newly part of this project.
             /// Does *not* update the content of already existing file managers.
-            /// Throws an ArgumentNullException if the given dictionary to determine the output path for project references is null.
             /// </summary>
             private void LoadProject(
                 IDictionary<Uri, Uri?> projectOutputPaths,
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
                 Action<ImmutableHashSet<Uri>, Task>? removeFiles)
             {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
                 if (this.isLoaded)
                 {
                     return;
@@ -286,19 +277,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Calls the given action RemoveFiles with the uris of all files that are no longer part of this project.
             /// Calls the given function GetExistingFileManagers to get all existing managers for the files that are newly part of this project.
             /// Does *not* update the content of already existing file managers.
-            /// Throws an ArgumentNullException if the given dictionary to determine the output path for project references is.
             /// </summary>
             internal Task LoadProjectAsync(
                 IDictionary<Uri, Uri?> projectOutputPaths,
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
                 Action<ImmutableHashSet<Uri>, Task>? removeFiles,
-                ProjectInformation? projectInfo = null)
-            {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                return this.processing.QueueForExecutionAsync(() =>
+                ProjectInformation? projectInfo = null) =>
+                this.processing.QueueForExecutionAsync(() =>
                 {
                     if (projectInfo != null)
                     {
@@ -306,7 +291,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     this.LoadProject(projectOutputPaths, getExistingFileManagers, removeFiles);
                 });
-            }
 
             // private routines used whenever the project itself is updated
             // -> need to be called from within appropriately queued routines only!
@@ -316,20 +300,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Returns a function that given the uri to a project files, returns the corresponding output path,
             /// if the corrsponding entry in the given dictionary indeed exist.
             /// If no such entry exists, generates a suitable error messages and adds it to the given list of diagnostics.
-            /// Throws an ArgumentNullException if the given diagnostics are null, or
-            /// if the given dictionary mapping each project files to the corresponding output path of the built project dll is.
             /// </summary>
             private static Func<Uri, Uri?> GetProjectOutputPath(IDictionary<Uri, Uri?> projectOutputPaths, List<Diagnostic> diagnostics) => (projFile) =>
             {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                if (diagnostics == null)
-                {
-                    throw new ArgumentNullException(nameof(diagnostics));
-                }
-
                 if (projectOutputPaths.TryGetValue(projFile, out var referencedProj))
                 {
                     return referencedProj;
@@ -345,20 +318,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// If skipVerification is set to true, does push the updated project references to the CompilationUnitManager,
             /// but suppresses the compilation unit wide type checking that would usually ensue.
             /// Otherwise replaces *all* project references in the CompilationUnitManager with the newly loaded ones.
-            /// Throws an ArgumentNullException if the given sequence of project references is null.
             /// </summary>
             private Task LoadProjectReferencesAsync(
                 IDictionary<Uri, Uri?> projectOutputPaths, IEnumerable<string> projectReferences, bool skipVerification = false)
             {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                if (projectReferences == null)
-                {
-                    throw new ArgumentNullException(nameof(projectReferences));
-                }
-
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = LoadProjectReferences(
                     projectReferences,
@@ -381,24 +344,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given project reference is not referenced by this project.
-            /// Throws an ArgumentNullException if the given dictionary is null.
             /// Throws an ArgumentException if the given Uri is not an absolute uri to a file.
             /// </summary>
             private void ReloadProjectReference(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
             {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                if (!CompilationUnitManager.TryGetFileId(projectReference, out var projRefId))
-                {
-                    throw new ArgumentException("expecting an absolute file uri");
-                }
                 if (!this.specifiedProjectReferences.Contains(projectReference) || !this.isLoaded)
                 {
                     return;
                 }
 
+                var projRefId = CompilationUnitManager.GetFileId(projectReference);
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = LoadProjectReferences(
                     new string[] { projectReference.LocalPath },
@@ -429,15 +384,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// If skipVerification is set to true, does push the updated references to the CompilationUnitManager,
             /// but suppresses the compilation unit wide type checking that would usually ensue.
             /// Otherwise replaces *all* references in the CompilationUnitManager with the newly loaded ones.
-            /// Throws an ArgumentNullException if the given sequence of referenced dlls is null.
             /// </summary>
             private Task LoadReferencedAssembliesAsync(IEnumerable<string> references, bool skipVerification = false)
             {
-                if (references == null)
-                {
-                    throw new ArgumentNullException(nameof(references));
-                }
-
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = LoadReferencedAssemblies(
                     references,
@@ -461,15 +410,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             private void ReloadReferencedAssembly(Uri reference)
             {
-                if (!CompilationUnitManager.TryGetFileId(reference, out var refId))
-                {
-                    throw new ArgumentException("expecting an absolute file uri");
-                }
                 if (!this.specifiedReferences.Contains(reference) || !this.isLoaded)
                 {
                     return;
                 }
 
+                var refId = CompilationUnitManager.GetFileId(reference);
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = LoadReferencedAssemblies(
                     new string[] { reference.LocalPath },
@@ -507,7 +453,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// is *not* updated in the CompilationUnitManager.
             /// Otherwise the FileContentManager of all files is replaced by a new one initialized with the content from disk.
             /// *Always* spawns a compilation unit wide type checking!
-            /// Throws an ArgumentNullException if the given sequence of source files is null.
             /// </summary>
             private Task LoadSourceFilesAsync(
                 IEnumerable<string> sourceFiles,
@@ -515,10 +460,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Action<ImmutableHashSet<Uri>, Task>? removeFiles,
                 bool skipIfAlreadyLoaded = false)
             {
-                if (sourceFiles == null)
-                {
-                    throw new ArgumentNullException(nameof(sourceFiles));
-                }
                 var diagnostics = new List<Diagnostic>();
                 var loaded = LoadSourceFiles(sourceFiles, diagnostics.Add, this.Manager.LogException);
                 this.sourceFileDiagnostics = diagnostics.ToImmutableArray();
@@ -566,19 +507,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Given a dictionary mapping each project files to the corresponding output path of the built project dll,
             /// as well as a uri to the assembly to reload, reloads all project references with that output path, and/or any reference to that dll.
             /// Updates the load diagnostics accordingly, and publishes them using the publisher of the CompilationUnitManager.
-            /// Throws an ArgumentNullException if any of the given arguments is null.
             /// </summary>
             public Task ReloadAssemblyAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri dllPath)
             {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                if (dllPath == null)
-                {
-                    throw new ArgumentNullException(nameof(dllPath));
-                }
-
                 var projectsWithThatOutputDll = projectOutputPaths.Where(pair => pair.Value == dllPath).Select(pair => pair.Key);
                 return this.processing.QueueForExecutionAsync(() =>
                 {
@@ -598,22 +529,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given project reference is not referenced by this project.
-            /// Throws an ArgumentNullException if any of the given arguments is null.
             /// </summary>
-            public Task ReloadProjectReferenceAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
-            {
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-                if (projectReference == null)
-                {
-                    throw new ArgumentNullException(nameof(projectReference));
-                }
-
-                return this.processing.QueueForExecutionAsync(() =>
+            public Task ReloadProjectReferenceAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference) =>
+                this.processing.QueueForExecutionAsync(() =>
                     this.ReloadProjectReference(projectOutputPaths, projectReference));
-            }
 
             /// <summary>
             /// Given a uri to source file to reload, reloads that source file, and updates all load diagnostics accordingly,
@@ -622,14 +541,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// updates the content of the source file in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given source file is open in the editor or not listed as a source file of this project.
-            /// Throws an ArgumentNullException if the given uri is null.
             /// </summary>
             public Task ReloadSourceFileAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null)
             {
-                if (sourceFile == null)
-                {
-                    throw new ArgumentNullException(nameof(sourceFile));
-                }
                 openInEditor ??= _ => null;
 
                 return this.processing.QueueForExecutionAsync(() =>
@@ -665,24 +579,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// If the given file is a loaded source file of this project,
             /// executes the given task for that file on the CompilationUnitManager.
-            /// Throws an ArgumentNullException if the given uri, the task to execute,
-            /// or the dictionary to determine the output path for project references is null.
             /// </summary>
             public bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask, IDictionary<Uri, Uri?> projectOutputPaths)
             {
-                if (file == null)
-                {
-                    throw new ArgumentNullException(nameof(file));
-                }
-                if (executeTask == null)
-                {
-                    throw new ArgumentNullException(nameof(executeTask));
-                }
-                if (projectOutputPaths == null)
-                {
-                    throw new ArgumentNullException(nameof(projectOutputPaths));
-                }
-
                 this.processing.QueueForExecution(
                     () =>
                     {
@@ -736,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// used to log exceptions raised during processing -> may be null!
         /// </summary>
-        private readonly Action<Exception> logException;
+        private readonly Action<Exception>? logException;
 
         /// <summary>
         /// general purpose logging routine used for major loading events -> may be null!
@@ -748,7 +647,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// that action is called whenever diagnostics for the project have changed and are ready for publishing.
         /// Any exceptions caught during processing are logged using the given exception logger.
         /// </summary>
-        public ProjectManager(Action<Exception> exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
+        public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
@@ -772,15 +671,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a function that given the uris of all files that have been added to a project,
         /// queries openInEditor to determine which of those files are currently open in the editor.
         /// Removes all such files from the default manager and returns their FileContentManagers.
-        /// Throws an ArgumentNullException if the given function openInEditor is null.
         /// </summary>
-        private Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>> MigrateToProject(Func<Uri, FileContentManager?> openInEditor)
-        {
-            if (openInEditor == null)
-            {
-                throw new ArgumentNullException(nameof(openInEditor));
-            }
-            return (filesAddedToProject, projFile) =>
+        private Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>> MigrateToProject(Func<Uri, FileContentManager?> openInEditor) =>
+            (filesAddedToProject, projFile) =>
             {
                 filesAddedToProject ??= ImmutableHashSet<Uri>.Empty;
                 var openFiles = filesAddedToProject.SelectNotNull(openInEditor).ToImmutableArray();
@@ -796,7 +689,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 return openFiles;
             };
-        }
 
         /// <summary>
         /// Returns a function that given the uris of all files that have been removed from a project,
@@ -805,16 +697,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Clears all verifications for those files and adds them to the default manager.
         /// The returned Action does nothing if the task passed as argument has been cancelled.
         /// The returned Action throws an ObjectDisposedException if the task passed as argument has been disposed.
-        /// The returned Action throws an ArgumentNullException if the task passed as argument is null.
-        /// Throws an ArgumentNullException if the given function openInEditor is null.
         /// </summary>
-        private Action<ImmutableHashSet<Uri>, Task> MigrateToDefaultManager(Func<Uri, FileContentManager?> openInEditor)
-        {
-            if (openInEditor == null)
-            {
-                throw new ArgumentNullException(nameof(openInEditor));
-            }
-            return (filesRemovedFromProject, removal) =>
+        private Action<ImmutableHashSet<Uri>, Task> MigrateToDefaultManager(Func<Uri, FileContentManager?> openInEditor) =>
+            (filesRemovedFromProject, removal) =>
             {
                 if (removal.IsCanceled)
                 {
@@ -830,7 +715,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 this.defaultManager.AddOrUpdateSourceFilesAsync(openFiles);
             };
-        }
 
         // public routines related to tracking compilation units - i.e. routines handling coordination
 
@@ -843,14 +727,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ProjectInformation.Loader projectLoader,
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
-            if (projectFiles == null || projectFiles.Contains(null!))
-            {
-                throw new ArgumentNullException(nameof(projectFiles));
-            }
-            if (projectLoader == null)
-            {
-                throw new ArgumentNullException(nameof(projectLoader));
-            }
             openInEditor ??= _ => null;
 
             return this.load.QueueForExecutionAsync(() =>
@@ -890,23 +766,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ProjectInformation.Loader projectLoader,
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
-            if (projectFile == null)
-            {
-                throw new ArgumentNullException(nameof(projectFile));
-            }
-            if (projectLoader == null)
-            {
-                throw new ArgumentNullException(nameof(projectLoader));
-            }
             openInEditor ??= _ => null;
 
             // TODO: allow to cancel this task via cancellation token?
             return this.load.QueueForExecutionAsync(() =>
             {
-                var loaded = projectLoader(projectFile, out ProjectInformation info);
                 var existing = this.projects.TryRemove(projectFile, out Project current) ? current : null;
 
-                if (!loaded)
+                if (!projectLoader(projectFile, out var info))
                 {
                     existing?.LoadProjectAsync(
                         ImmutableDictionary<Uri, Uri?>.Empty,
@@ -943,13 +810,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// To be called whenever one of the tracked projects has been added, removed or updated
         /// in order to update all other projects referencing the modified one.
         /// </summary>
-        private Task ProjectReferenceChangedOnDiskChangeAsync(Uri projFile)
-        {
-            if (projFile == null)
-            {
-                throw new ArgumentNullException(nameof(projFile));
-            }
-            return this.load.QueueForExecutionAsync(() =>
+        private Task ProjectReferenceChangedOnDiskChangeAsync(Uri projFile) =>
+            this.load.QueueForExecutionAsync(() =>
             {
                 var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var project in this.projects.Values)
@@ -957,19 +819,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     project.ReloadProjectReferenceAsync(projectOutputPaths, projFile);
                 }
             });
-        }
 
         /// <summary>
         /// To be called whenever a dll that may be referenced by one of the tracked projects is added, removed or changed on disk
         /// in order to update all projects referencing it accordingly.
         /// </summary>
-        public Task AssemblyChangedOnDiskAsync(Uri dllPath)
-        {
-            if (dllPath == null)
-            {
-                throw new ArgumentNullException(nameof(dllPath));
-            }
-            return this.load.QueueForExecutionAsync(() =>
+        public Task AssemblyChangedOnDiskAsync(Uri dllPath) =>
+            this.load.QueueForExecutionAsync(() =>
             {
                 var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var project in this.projects.Values)
@@ -977,7 +833,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     project.ReloadAssemblyAsync(projectOutputPaths, dllPath);
                 }
             });
-        }
 
         /// <summary>
         /// To be called whenever a source file that may belong to one of the tracked projects has changed on disk.
@@ -985,20 +840,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// if the modified file is a source file of that project and not open in the editor
         /// (i.e. openInEditor is null or returns null for that file) at the time of execution.
         /// </summary>
-        public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager>? openInEditor = null)
-        {
-            if (sourceFile == null)
-            {
-                throw new ArgumentNullException(nameof(sourceFile));
-            }
-            return this.load.QueueForExecutionAsync(() =>
+        public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null) =>
+            this.load.QueueForExecutionAsync(() =>
             {
                 foreach (var project in this.projects.Values)
                 {
                     project.ReloadSourceFileAsync(sourceFile, openInEditor);
                 }
             });
-        }
 
         // routines related to querying individual compilation managers (internally and externally)
 
@@ -1024,15 +873,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given file can be uniquely associated with a compilation unit,
         /// executes the given Action on the CompilationUnitManager of that project (if one exists), passing true as second argument.
         /// Executes the given Action on the DefaultManager otherwise, passing false as second argument.
-        /// Throws an ArgumentNullException if the given Action is null.
         /// </summary>
-        public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask)
-        {
-            if (executeTask == null)
-            {
-                throw new ArgumentNullException(nameof(executeTask));
-            }
-            return this.load.QueueForExecutionAsync(() =>
+        public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask) =>
+            this.load.QueueForExecutionAsync(() =>
             {
                 var didExecute = false;
                 var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
@@ -1049,7 +892,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     executeTask(this.defaultManager, false);
                 }
             });
-        }
 
         // editor commands that require blocking
 
@@ -1060,7 +902,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified position is not a valid position within the file,
         /// or if a file affected by the rename operation belongs to several compilation units.
         /// </summary>
-        public WorkspaceEdit? Rename(RenameParams param, bool versionedChanges) // versionedChanges is unused (WorkspaceEdit contains both Changes and DocumentChanges, but the version nr is null)
+        public WorkspaceEdit? Rename(RenameParams? param, bool versionedChanges) // versionedChanges is unused (WorkspaceEdit contains both Changes and DocumentChanges, but the version nr is null)
         {
             if (param?.TextDocument?.Uri == null)
             {
@@ -1110,7 +952,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Location? DefinitionLocation(TextDocumentPositionParams param) =>
+        public Location? DefinitionLocation(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
@@ -1124,7 +966,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public SignatureHelp? SignatureHelp(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+        public SignatureHelp? SignatureHelp(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
@@ -1137,7 +979,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Hover? HoverInformation(TextDocumentPositionParams param, MarkupKind format = MarkupKind.PlainText) =>
+        public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
@@ -1150,7 +992,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams param) =>
+        public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
@@ -1163,7 +1005,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public Location[]? SymbolReferences(ReferenceParams param) =>
+        public Location[]? SymbolReferences(ReferenceParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
@@ -1174,7 +1016,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams param) =>
+        public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, _) => file.DocumentSymbols(), suppressExceptionLogging: true);
 
@@ -1185,7 +1027,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams param) =>
+        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
@@ -1196,7 +1038,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// without logging anything if an exception occurs upon evaluating the query (occasional failures are to be
         /// expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public CompletionList? Completions(TextDocumentPositionParams param) =>
+        public CompletionList? Completions(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
                 (file, compilation) => file.Completions(compilation, param?.Position?.ToQSharp()),
@@ -1212,7 +1054,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// failures are to be expected as the evaluation is a read-only query running in parallel to the ongoing
         /// processing).
         /// </summary>
-        public CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
+        public CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData? data, MarkupKind format) =>
             this.Manager(data?.TextDocument?.Uri)?.FileQuery(
                 data?.TextDocument,
                 (_, compilation) => compilation.ResolveCompletion(item, data, format),
@@ -1255,7 +1097,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before accumulating the diagnostics by calling FlushAndExecute.
         /// </summary>
-        public PublishDiagnosticParams[]? GetDiagnostics(Uri file)
+        public PublishDiagnosticParams[]? GetDiagnostics(Uri? file)
         {
             this.load.QueueForExecution(
                 () =>
@@ -1306,8 +1148,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // static routines related to loading the content needed for compilation
 
         public static string MessageSource(Uri uri) =>
-            CompilationUnitManager.TryGetFileId(uri, out NonNullable<string> source) ? source.Value
-            : uri != null ? uri.AbsolutePath : throw new ArgumentNullException(nameof(uri));
+            uri.IsAbsoluteUri && uri.IsFile
+                ? CompilationUnitManager.GetFileId(uri).Value
+                : uri.AbsolutePath;
 
         /// <summary>
         /// For the given sequence of file names verifies that a file with the corresponding full path exists,
@@ -1318,7 +1161,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths.
         /// Logs the generated diagnostics using onDiagnostics if the action has been specified and is not null.
         /// Catches exceptions related to path errors and logs them using onException if the action has been specified and is not null.
-        /// Throws an ArgumentNullException if the given sequence of files is null.
         /// </summary>
         public static IEnumerable<Uri> FilterFiles(
             IEnumerable<string> files,
@@ -1330,10 +1172,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null)
         {
-            if (files == null)
-            {
-                throw new ArgumentNullException(nameof(files));
-            }
             var exceptions = new List<(string, Exception)>();
             Uri? WithFullPath(string file)
             {
@@ -1379,17 +1217,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable error whenever the file content could not be loaded.
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns the uri and file content for each file that could be loaded.
-        /// Throws an ArgumentNullException if the given sequence of source files is null.
         /// </summary>
         public static ImmutableDictionary<Uri, string> LoadSourceFiles(
             IEnumerable<string> sourceFiles,
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null)
         {
-            if (sourceFiles == null)
-            {
-                throw new ArgumentNullException(nameof(sourceFiles));
-            }
             string? GetFileContent(Uri file)
             {
                 try
@@ -1424,7 +1257,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates suitable diagostics if the specified assembly could not be found or its content could not be loaded,
         /// and calls the given onDiagnostic action on all generated diagnostics.
         /// Catches any thrown exception and calls onException on it if it is specified and not null.
-        /// Throws an ArgumentNullException if the given uri is null.
         /// </summary>
         private static References.Headers? LoadReferencedDll(
             Uri asm,
@@ -1432,10 +1264,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null)
         {
-            if (asm == null)
-            {
-                throw new ArgumentNullException(nameof(asm));
-            }
             try
             {
                 try
@@ -1484,7 +1312,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If no file exists at the returned path, generates a suitable error message.
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
-        /// Throws an ArgumentNullException if the given sequence of project references or the given GetOutputPath function is null.
         /// </summary>
         public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadProjectReferences(
             IEnumerable<string> refProjectFiles,
@@ -1492,14 +1319,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null)
         {
-            if (refProjectFiles == null)
-            {
-                throw new ArgumentNullException(nameof(refProjectFiles));
-            }
-            if (getOutputPath == null)
-            {
-                throw new ArgumentNullException(nameof(getOutputPath));
-            }
             References.Headers? LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, false, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
 
@@ -1547,7 +1366,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable error message for each binary file that could not be loaded.
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
-        /// Throws an ArgumentNullException if the given sequence of referenced binaries is null.
         /// </summary>
         public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadReferencedAssemblies(
             IEnumerable<string> references,
@@ -1555,10 +1373,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? onException = null,
             bool ignoreDllResources = false)
         {
-            if (references == null)
-            {
-                throw new ArgumentNullException(nameof(references));
-            }
             References.Headers? LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException);
 

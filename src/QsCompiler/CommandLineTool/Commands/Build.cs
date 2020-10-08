@@ -152,14 +152,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments.
         /// Logs a suitable exceptions and returns null if the parsing fails.
-        /// Throws an ArgumentNullException if the given sequence of responseFiles is null.
         /// </summary>
         private static BuildOptions? FromResponseFiles(IEnumerable<string> responseFiles)
         {
-            if (responseFiles == null)
-            {
-                throw new ArgumentNullException(nameof(responseFiles));
-            }
             var commandLine = string.Join(" ", responseFiles.Select(File.ReadAllText));
             var args = SplitCommandLineArguments(commandLine);
             var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
@@ -177,18 +172,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-            if (logger == null)
-            {
-                throw new ArgumentNullException(nameof(logger));
-            }
             if (!BuildOptions.IncorporateResponseFiles(options, out var incorporated))
             {
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
@@ -206,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
@@ -226,7 +212,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(
+                options.LoadSourcesOrSnippet(logger),
+                options.References ?? Enumerable.Empty<string>(),
+                loadOptions,
+                logger);
             if (options.PerfFolder != null)
             {
                 try

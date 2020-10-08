@@ -31,7 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public IDictionary<string, string> AssemblyConstants { get; }
 
         /// <inheritdoc/>
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; private set; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; private set; } =
+            Enumerable.Empty<IRewriteStep.Diagnostic>();
 
         /// <inheritdoc/>
         public bool ImplementsTransformation => true;

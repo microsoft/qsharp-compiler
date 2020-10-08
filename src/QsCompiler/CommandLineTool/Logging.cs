@@ -40,14 +40,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Prints the given message to the Console.
         /// Errors and Warnings are printed to the error stream.
-        /// Throws an ArgumentNullException if the given message is null.
         /// </summary>
         private static void PrintToConsole(DiagnosticSeverity severity, string message)
         {
-            if (message == null)
-            {
-                throw new ArgumentNullException(nameof(message));
-            }
             var (stream, color) =
                 severity == DiagnosticSeverity.Error ? (Console.Error, ConsoleColor.Red) :
                 severity == DiagnosticSeverity.Warning ? (Console.Error, ConsoleColor.Yellow) :

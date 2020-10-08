@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -24,19 +25,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         /// <summary>
         /// Returns the given edit for the specified file as WorkspaceEdit.
-        /// Throws an ArgumentNullException if the given file or any of the given edits is null.
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (edits == null || edits.Any(edit => edit == null))
-            {
-                throw new ArgumentNullException(nameof(edits));
-            }
-
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
             return new WorkspaceEdit
             {

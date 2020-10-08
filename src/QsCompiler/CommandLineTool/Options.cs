@@ -298,17 +298,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         internal CompilationLoader.SourceLoader LoadSourcesOrSnippet(ILogger logger) => loadFromDisk =>
         {
-            bool inputIsEmptyOrNull = this.Input == null || !this.Input.Any();
-            if (this.CodeSnippet == null && !inputIsEmptyOrNull)
+            var input = this.Input ?? Enumerable.Empty<string>();
+            if (this.CodeSnippet == null && input.Any())
             {
-                return loadFromDisk(this.Input);
+                return loadFromDisk(input);
             }
-            else if (this.CodeSnippet != null && inputIsEmptyOrNull)
+            else if (this.CodeSnippet != null && !input.Any())
             {
                 return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
             }
 
-            if (inputIsEmptyOrNull)
+            if (!input.Any())
             {
                 logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
             }
