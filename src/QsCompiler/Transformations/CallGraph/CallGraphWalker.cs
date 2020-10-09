@@ -125,7 +125,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                     var combination = new TypeResolutionCombination(this.ExprTypeParamResolutions);
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
-                    this.ExprTypeParamResolutions = new List<TypeParameterResolutions>();
+                    this.ExprTypeParamResolutions.Clear();
 
                     var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue

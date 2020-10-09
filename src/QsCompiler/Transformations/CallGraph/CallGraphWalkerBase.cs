@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 internal readonly TGraph Graph;
 
                 // The type parameter resolutions of the current expression.
-                internal IEnumerable<TypeParameterResolutions> ExprTypeParamResolutions = new List<TypeParameterResolutions>();
+                internal Stack<TypeParameterResolutions> ExprTypeParamResolutions = new Stack<TypeParameterResolutions>();
                 internal QsNullable<Position> CurrentStatementOffset;
                 internal QsNullable<Range> CurrentExpressionRange;
                 internal readonly Stack<TNode> RequestStack = new Stack<TNode>(); // Used to keep track of the nodes that still need to be walked by the walker.
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                     if (ex.TypeParameterResolutions.Any())
                     {
-                        this.SharedState.ExprTypeParamResolutions = this.SharedState.ExprTypeParamResolutions.Prepend(ex.TypeParameterResolutions);
+                        this.SharedState.ExprTypeParamResolutions.Push(ex.TypeParameterResolutions);
                     }
                     var result = base.OnTypedExpression(ex);
                     this.SharedState.CurrentExpressionRange = contextRange;

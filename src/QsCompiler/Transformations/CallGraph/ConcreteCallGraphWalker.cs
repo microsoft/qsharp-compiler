@@ -22,7 +22,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     {
         /// <summary>
         /// Populates the given graph based on the given compilation. Only the compilation's entry points and
-        /// those callables that the entry points depend on will be included in the graph.
+        /// those callables that the entry points depend on will be included in the graph. All Generated
+        /// Implementations for specializations should be resolved before calling this. This will throw an
+        /// error if a Generated Implementation is encountered.
         /// </summary>
         public static void PopulateConcreteGraph(ConcreteGraphBuilder graph, QsCompilation compilation) => ConcreteCallGraphWalker.PopulateConcreteGraph(graph, compilation);
 
@@ -30,7 +32,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             /// <summary>
             /// Populates the given graph based on the given compilation. Only the compilation's entry points and
-            /// those callables that the entry points depend on will be included in the graph.
+            /// those callables that the entry points depend on will be included in the graph. All Generated
+            /// Implementations for specializations should be resolved before calling this. This will throw an
+            /// error if a Generated Implementation is encountered.
             /// </summary>
             public static void PopulateConcreteGraph(ConcreteGraphBuilder graph, QsCompilation compilation)
             {
@@ -180,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                     var combination = new TypeResolutionCombination(this.ExprTypeParamResolutions.Append(this.CurrentNode.ParamResolutions));
                     var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
-                    this.ExprTypeParamResolutions = new List<TypeParameterResolutions>();
+                    this.ExprTypeParamResolutions.Clear();
 
                     var referenceRange = Range.Zero;
                     if (this.CurrentStatementOffset.IsValue

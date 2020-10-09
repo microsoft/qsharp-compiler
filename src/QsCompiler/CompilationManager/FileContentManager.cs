@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 // remove all cycle related diagnostics
-                diagnostics.RemoveAll(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code());
+                diagnostics.RemoveAll(m => DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution)(m));
                 // remove any Diagnostic overlapping with the updated interval
                 diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckDelimiters) || m.SelectByEnd(syntaxCheckDelimiters));
                 // these are also no longer valid

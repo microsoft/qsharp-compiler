@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     }
 
     /// <summary>
-    /// A kind of call graph whose nodes represent Q# callables.
+    /// A kind of call graph whose nodes represent Q# callables or type parameterized callables.
     /// </summary>
     public sealed class CallGraph
     {
@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         // Member Fields
 
-        private CallGraphBuilder<CallGraphNode, CallGraphEdge> graphBuilder = new CallGraphBuilder<CallGraphNode, CallGraphEdge>();
+        private readonly CallGraphBuilder<CallGraphNode, CallGraphEdge> graphBuilder = new CallGraphBuilder<CallGraphNode, CallGraphEdge>();
 
         // Properties
 
