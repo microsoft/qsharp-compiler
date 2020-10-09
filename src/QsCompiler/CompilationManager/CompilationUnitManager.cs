@@ -975,12 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.namespaceDeclarations = this.SourceFiles.ToImmutableDictionary(
                     file => file,
                     file => manager.fileContentManagers[file].NamespaceDeclarationTokens()
-                        .Select(index =>
-                        {
-                            var fragment = index.GetFragmentWithClosingComments();
-                            QsCompilerError.Verify(!(fragment is null), "No code fragment at token index.");
-                            return fragment;
-                        })
+                        .SelectNotNull(index => index.GetFragmentWithClosingComments())
                         .ToImmutableArray());
                 this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
                 this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
