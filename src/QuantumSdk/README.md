@@ -153,8 +153,6 @@ Specified whether to generate yml documentation for the compiled Q# code. The de
 - `QsharpDocsOutputPath`:
 Directory where any generated documentation will be saved.
 
-- `QsharpDocsGenerationMode`: Specifies whether to use the legacy YAML-based documentation generation engine, or the newer engine that outputs directly to Markdown. Recognized values are: `markdown`, and `yaml`.
-
 - `QsharpDocsPackageId`: Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overriden to allow for documenting parts of metapackages.
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
