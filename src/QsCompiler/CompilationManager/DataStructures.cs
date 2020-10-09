@@ -316,14 +316,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the TokenIndex of the next token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
+            /// Returns the TokenIndex of the next token in File, or null if no such token exists or the token is no
+            /// longer within the file associated with it.
             /// </summary>
             public TokenIndex? Next()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    return null;
                 }
                 var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
@@ -338,14 +338,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the TokenIndex of the previous token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
+            /// Returns the TokenIndex of the previous token in File, or null if no such token exists or the token is no
+            /// longer within the file associated with it.
             /// </summary>
             public TokenIndex? Previous()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    return null;
                 }
                 var res = new TokenIndex(this);
                 if (res.Index-- > 0)
