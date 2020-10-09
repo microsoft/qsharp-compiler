@@ -46,11 +46,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            if (compilation == null || compilation.Namespaces.Contains(null))
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
             var intrinsicCallableSet = globals
@@ -111,12 +106,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             QsQualifiedName concreteName = globalCallable.Item;
 
             var typesHashSet = ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>.Empty;
-            if (types != null && !types.IsEmpty)
+            if (!types.IsEmpty)
             {
                 typesHashSet = types.ToImmutableHashSet();
             }
 
-            string name = null;
+            string? name = null;
 
             // Check for recursive call
             if (currentResponse.OriginalName.Equals(globalCallable.Item) &&

@@ -11,6 +11,7 @@ using System.Security.Permissions;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsLanguageServer
@@ -50,14 +51,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly ConcurrentDictionary<Uri, IEnumerable<string>> globPatterns;
         private readonly ProcessingQueue processing;
 
-        public event FileEventHandler FileEvent;
+        public event FileEventHandler? FileEvent;
 
         public delegate void FileEventHandler(FileEvent e);
 
         [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
-        public FileWatcher(Action<Exception> onException = null)
+        public FileWatcher(Action<Exception> onException)
         {
-            this.onException = onException ?? throw new ArgumentNullException(nameof(onException));
+            this.onException = onException;
             this.watchers = new ConcurrentBag<System.IO.FileSystemWatcher>();
             this.watchedDirectories = new Dictionary<Uri, ImmutableHashSet<string>>();
             this.processing = new ProcessingQueue(this.onException, "error in file system watcher");
@@ -95,18 +96,17 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private static bool GlobDirectoryStructure(Dictionary<Uri, ImmutableHashSet<string>> directories, string path, IEnumerable<string> globPatterns)
         {
-            if (!Directory.Exists(path))
+            if (!Directory.Exists(path) || !Uri.TryCreate(path, UriKind.Absolute, out var root))
             {
                 return true; // successfully completed, but nothing to be done
             }
-            var root = Uri.TryCreate(path, UriKind.Absolute, out Uri uri) ? uri : null;
 
             var success = Directory.EnumerateDirectories(root.LocalPath).TryEnumerate(out var subfolders);
             success = globPatterns.TryEnumerate(
                 pattern => Directory.EnumerateFiles(root.LocalPath, pattern, SearchOption.TopDirectoryOnly), out var files)
                 && success;
 
-            directories[root] = subfolders.Concat(files.SelectMany(items => items)).Select(Path.GetFileName).ToImmutableHashSet();
+            directories[root] = subfolders.Concat(files.SelectMany(items => items)).SelectNotNull(Path.GetFileName).ToImmutableHashSet();
             foreach (var subfolder in subfolders)
             {
                 success = GlobDirectoryStructure(directories, subfolder, globPatterns) && success;
@@ -120,9 +120,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and - if subfolders is set to true - all its subfolders.
         /// Does nothing if no folder with the give path exists.
         /// </summary>
-        public Task ListenAsync(string folder, bool subfolders, Action<ImmutableDictionary<Uri, ImmutableHashSet<string>>> onInitialState, params string[] globPatterns)
+        public Task ListenAsync(string? folder, bool subfolders, Action<ImmutableDictionary<Uri, ImmutableHashSet<string>>>? onInitialState, params string[] globPatterns)
         {
-            if (!Directory.Exists(folder))
+            if (folder is null || !Directory.Exists(folder))
             {
                 return Task.CompletedTask;
             }
@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     foreach (var entry in dictionary)
                     {
-                        var current = this.watchedDirectories.TryGetValue(entry.Key, out ImmutableHashSet<string> c) ? c : ImmutableHashSet<string>.Empty;
+                        var current = this.watchedDirectories.TryGetValue(entry.Key, out var c) ? c : ImmutableHashSet<string>.Empty;
                         this.watchedDirectories[entry.Key] = current.Union(entry.Value);
                     }
                     onInitialState?.Invoke(dictionary.ToImmutableDictionary());
@@ -174,17 +174,17 @@ namespace Microsoft.Quantum.QsLanguageServer
                 FileChangeType = FileChangeType.Created
             });
 
-            var dir = new Uri(Path.GetDirectoryName(fullPath));
-            var current = this.watchedDirectories.TryGetValue(dir, out ImmutableHashSet<string> items) ? items : ImmutableHashSet<string>.Empty;
+            var dir = new Uri(Path.GetDirectoryName(fullPath) ?? "");
+            var current = this.watchedDirectories.TryGetValue(dir, out var items) ? items : ImmutableHashSet<string>.Empty;
             this.watchedDirectories[dir] = current.Add(Path.GetFileName(fullPath));
         }
 
         private void RecurCreated(string fullPath, IDictionary<Uri, ImmutableHashSet<string>> newDirectories)
         {
             var dir = new Uri(fullPath);
-            if (newDirectories.TryGetValue(dir, out ImmutableHashSet<string> items))
+            if (newDirectories.TryGetValue(dir, out var items))
             {
-                var current = this.watchedDirectories.TryGetValue(dir, out ImmutableHashSet<string> c) ? c : ImmutableHashSet<string>.Empty;
+                var current = this.watchedDirectories.TryGetValue(dir, out var c) ? c : ImmutableHashSet<string>.Empty;
                 this.watchedDirectories[dir] = current.Union(items);
                 foreach (var item in items)
                 {
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             var directories = new Dictionary<Uri, ImmutableHashSet<string>>();
             if (source is System.IO.FileSystemWatcher watcher &&
-                this.globPatterns.TryGetValue(new Uri(watcher.Path), out IEnumerable<string> globPatterns))
+                this.globPatterns.TryGetValue(new Uri(watcher.Path), out var globPatterns))
             {
                 var maxNrTries = 10; // copied directories need some time until they are on disk -> todo: better solution?
                 while (maxNrTries-- > 0 && !GlobDirectoryStructure(directories, e.FullPath, globPatterns))
@@ -224,9 +224,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                 FileChangeType = FileChangeType.Deleted
             });
 
-            var dir = new Uri(Path.GetDirectoryName(fullPath));
-            var knownDir = this.watchedDirectories.TryGetValue(dir, out ImmutableHashSet<string> items);
-            if (knownDir)
+            var dir = new Uri(Path.GetDirectoryName(fullPath) ?? "");
+            if (this.watchedDirectories.TryGetValue(dir, out var items))
             {
                 this.watchedDirectories[dir] = items.Remove(Path.GetFileName(fullPath));
             }
@@ -234,7 +233,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private void RecurDeleted(string fullPath)
         {
-            if (this.watchedDirectories.TryGetValue(new Uri(fullPath), out ImmutableHashSet<string> items))
+            if (this.watchedDirectories.TryGetValue(new Uri(fullPath), out var items))
             {
                 foreach (var item in items)
                 {
@@ -285,7 +284,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private void RecurRenamed(string fullPath, string oldFullPath)
         {
-            if (this.watchedDirectories.TryGetValue(new Uri(oldFullPath), out ImmutableHashSet<string> items))
+            if (this.watchedDirectories.TryGetValue(new Uri(oldFullPath), out var items))
             {
                 this.watchedDirectories[new Uri(fullPath)] = items;
                 foreach (var item in items)

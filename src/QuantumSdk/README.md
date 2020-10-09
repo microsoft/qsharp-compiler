@@ -32,7 +32,7 @@ Any project that uses the Quantum Sdk can easily incorporate custom compilation 
 ```
 Marking all assets as private by adding a `PrivateAssets="All"` attribute is generally a good practice if the reference is a development only dependency, which is often the case for assemblies that implement rewrite steps.
 
-A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/master/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed. 
+A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/main/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed. 
 
 [comment]: # (TODO: add a section detailing the IRewriteStep interface, and link it here)
 
@@ -47,7 +47,7 @@ Steps defined within packages or projects with higher priority are executed firs
 
 [comment]: # (TODO: describe how to limit included rewrite steps to a particular execution target)
 
-An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/master/examples). 
+An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/main/examples). 
 See the [this section](#packaging) for more detail on how to package a Q# compiler extension to distribute it as a NuGet package. 
 
 
@@ -92,7 +92,7 @@ The content of the file should be similar to the following, with `Package_Name` 
 
 </Project>
 ```
-This [example](https://github.com/microsoft/qsharp-compiler/tree/master/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension. 
+This [example](https://github.com/microsoft/qsharp-compiler/tree/main/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension. 
 
 If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
 
