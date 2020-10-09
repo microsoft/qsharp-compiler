@@ -1077,15 +1077,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given a function returning an int array of line numbers,
         /// applies FilterBy to the tokens on any of those lines and returns the TokenIndex of the tokens for which FilterBy returned true as IEnumerable.
         /// If FilterBy is null, returns an IEnumerable with the token indices for all tokens on the lines specified by GetLineNumbers.
-        /// Returns an empty List if GetLineNumbers is null.
         /// </summary>
         private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
-            if (getLineNumbers == null)
-            {
-                return new List<CodeFragment.TokenIndex>();
-            }
-            bool Filter(CodeFragment? frag) => frag is null || filterBy is null || filterBy(frag);
+            bool Filter(CodeFragment? frag) => filterBy is null || (!(frag is null) && filterBy(frag));
             this.SyncRoot.EnterReadLock();
             try
             {

@@ -112,11 +112,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, params NonNullable<string>[] namespaces)
         {
             // determine the first fragment in the containing namespace
-            var nsElements = file?.NamespaceDeclarationTokens()
+            var nsElements = file.NamespaceDeclarationTokens()
                 .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
                 ?.GetChildren(deep: false);
             var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
-            if (file is null || nsElements is null || firstInNs?.Kind is null)
+            if (nsElements is null || firstInNs?.Kind is null)
             {
                 return Enumerable.Empty<TextEdit>();
             }
