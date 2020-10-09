@@ -21,6 +21,11 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.Documentation
 {
+    /// <summary>
+    ///     A syntax tree transformation that parses documentation comments,
+    ///     saving documentation content back to the syntax tree as attributes,
+    ///     and writing formatted documentation content out to Markdown files.
+    /// </summary>
     public class ProcessDocComments
     : SyntaxTreeTransformation<ProcessDocComments.TransformationState>
     {
@@ -29,24 +34,36 @@ namespace Microsoft.Quantum.Documentation
 
         private readonly DocumentationWriter? writer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProcessDocComments"/> class.
+        /// </summary>
+        /// <param name="outputPath">
+        ///     The path to which documentation files should be written.
+        /// </param>
+        /// <param name="packageName">
+        ///     The name of the NuGet package being documented, or <c>null</c>
+        ///     if the documentation to be written by this object does not
+        ///     relate to a particular package.
+        /// </param>
         public ProcessDocComments(
             string? outputPath = null,
             string? packageName = null
         )
         : base(new TransformationState())
         {
-            writer = outputPath == null
-                     ? null
-                     : new DocumentationWriter(outputPath, packageName);
+            this.writer = outputPath == null
+                          ? null
+                          : new DocumentationWriter(outputPath, packageName);
 
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, writer);
+            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, this.writer);
         }
 
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
         {
             private DocumentationWriter? writer;
+
             internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
             : base(parent)
             { this.writer = writer; }
@@ -72,7 +89,10 @@ namespace Microsoft.Quantum.Documentation
                 // If the UDT didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.
-                if (!type.IsInCompilationUnit()) return type;
+                if (!type.IsInCompilationUnit())
+                {
+                    return type;
+                }
 
                 var isDeprecated = type.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
@@ -81,7 +101,7 @@ namespace Microsoft.Quantum.Documentation
                     replacement: replacement
                 );
 
-                writer?.WriteOutput(type, docComment)?.Wait();
+                this.writer?.WriteOutput(type, docComment)?.Wait();
 
                 return type
                     .AttributeBuilder()
@@ -101,7 +121,10 @@ namespace Microsoft.Quantum.Documentation
                 // If the callable didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.
-                if (!callable.IsInCompilationUnit()) return callable;
+                if (!callable.IsInCompilationUnit())
+                {
+                    return callable;
+                }
 
                 var isDeprecated = callable.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
@@ -110,7 +133,7 @@ namespace Microsoft.Quantum.Documentation
                     replacement: replacement
                 );
 
-                writer?.WriteOutput(callable, docComment)?.Wait();
+                this.writer?.WriteOutput(callable, docComment)?.Wait();
 
                 return callable
                     .AttributeBuilder()

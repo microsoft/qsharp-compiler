@@ -289,8 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             foreach (var item in this.items)
             {
                 var typeKey = ToSequenceKey(item.ItemType);
-                SortedDictionary<string, YamlNode> typeList;
-                if (itemTypeNodes.TryGetValue(typeKey, out typeList))
+                if (itemTypeNodes.TryGetValue(typeKey, out var typeList))
                 {
                     if (typeList.ContainsKey(item.Uid))
                     {
