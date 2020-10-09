@@ -83,6 +83,8 @@ type SymbolTuple =
 | DiscardedItem
     with
     interface ITuple
+    static member CreateDiscardedItem() = DiscardedItem
+    static member CreateInvalidItem() = InvalidItem
     member this.TryGetVariableName(variableName: NonNullable<string> byref) =
         match this with
         | VariableName value -> variableName <- value; true
@@ -590,6 +592,7 @@ and QsStatementKind =
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
 | EmptyStatement
     with
+    static member CreateEmptyStatement() = EmptyStatement
     member this.TryGetExpressionStatement(expressionStatement: TypedExpression byref) =
         match this with
         | QsExpressionStatement value -> expressionStatement <- value; true

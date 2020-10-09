@@ -376,6 +376,8 @@ type QsInitializerKind<'Initializer, 'Expr> =
 | QubitTupleAllocation of ImmutableArray<'Initializer>
 | InvalidInitializer
     with
+    static member CreateInvalidInitializer() = InvalidInitializer
+    static member CreateSingleQubitAllocation() = SingleQubitAllocation
     member this.TryGetQubitRegisterAllocation(qubitRegisterAllocation: 'Expr byref) =
         match this with
         | QubitRegisterAllocation value -> qubitRegisterAllocation <- value; true
