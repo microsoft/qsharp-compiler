@@ -972,9 +972,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.openDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
                     nsName => nsName,
                     nsName => manager.compilationUnit.GetOpenDirectives(nsName));
-                this.namespaceDeclarations = this.SourceFiles
-                    .Select(file => (file, manager.fileContentManagers[file].NamespaceDeclarationTokens().SelectNotNull(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                this.namespaceDeclarations = this.SourceFiles.ToImmutableDictionary(
+                    file => file,
+                    file => manager.fileContentManagers[file].NamespaceDeclarationTokens()
+                        .Select(index =>
+                        {
+                            var fragment = index.GetFragmentWithClosingComments();
+                            QsCompilerError.Verify(!(fragment is null), "No code fragment at token index.");
+                            return fragment;
+                        })
+                        .ToImmutableArray());
                 this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
                 this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
 
