@@ -115,14 +115,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             QsQualifiedName concreteName = globalCallable.Item;
 
-            var typesHashSet = new HashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>();
-            if (types != null && !types.IsEmpty)
-            {
-                typesHashSet = types.ToHashSet();
-            }
-
             if (tArgs.IsValue)
             {
+                var typeArgs = tArgs.Item.Where(t => !t.Resolution.IsInvalidType).ToList();
+
                 if (!globals.TryGetValue(globalCallable.Item, out var originalCallable))
                 {
                     throw new ArgumentException($"Couldn't find definition for callable: {globalCallable.Item}");
@@ -133,15 +129,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     .Select(param => (originalCallable.FullName, ((QsLocalSymbol.ValidName)param).Item))
                     .ToList();
 
-                if (tParams.Count() != tArgs.Item.Count())
+                if (tParams.Count() != typeArgs.Count())
                 {
                     throw new ArgumentException($"Type arguments list is not the same length as type parameters list for {globalCallable.Item}");
                 }
 
+                var tArgConcretionsBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+
                 for (var i = 0; i < tParams.Count(); i++)
                 {
-                    typesHashSet.Add(KeyValuePair.Create(Tuple.Create(tParams[i].FullName, tParams[i].Item), tArgs.Item[i]));
+                    if (!typeArgs[i].Resolution.IsMissingType)
+                    {
+                        tArgConcretionsBuilder[Tuple.Create(tParams[i].FullName, tParams[i].Item)] = typeArgs[i];
+                    }
                 }
+
+                var combination = new TypeResolutionCombination(tArgConcretionsBuilder.ToImmutable(), types);
+                if (!combination.IsValid)
+                {
+                    throw new ArgumentException($"Failed to combine type parameter resolutions for {globalCallable.Item}");
+                }
+                types = combination.CombinedResolutionDictionary;
+            }
+
+            var typesHashSet = new HashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>();
+            if (types != null && !types.IsEmpty)
+            {
+                typesHashSet = types.ToHashSet();
             }
 
             string name = null;
