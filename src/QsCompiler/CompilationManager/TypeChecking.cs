@@ -38,11 +38,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             tokens.SelectNotNull(tIndex =>
             {
                 var attributes = ImmutableArray.CreateBuilder<AttributeAnnotation>();
-                CodeFragment precedingFragment = tIndex.GetFragment();
                 for (var preceding = tIndex.PreviousOnScope(includeEmpty: true); preceding != null; preceding = preceding.PreviousOnScope())
                 {
-                    precedingFragment = preceding.GetFragment();
-                    if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
+                    var precedingFragment = preceding.GetFragment();
+                    if (!(precedingFragment is null)
+                        && precedingFragment.IncludeInCompilation
+                        && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
                     {
                         var offset = precedingFragment.Range.Start;
                         attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, offset, precedingFragment.Comments));
@@ -52,7 +53,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         break;
                     }
                 }
-                var docComments = file.DocumentingComments(tIndex.GetFragment().Range.Start);
+                var docComments =
+                    tIndex.GetFragment()?.Apply(fragment => file.DocumentingComments(fragment.Range.Start))
+                    ?? ImmutableArray<string>.Empty;
                 var headerEntry = HeaderEntry<T>.From(getDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid);
                 return headerEntry?.Apply(entry => (tIndex, entry));
             });
@@ -301,12 +304,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             List<Diagnostic> diagnostics)
         {
             var contentToCompile = new List<CodeFragment.TokenIndex>();
-            var callableDecl = parent.Item2.Declaration;
             var parentName = parent.Item2.PositionedSymbol;
 
             // adding all specializations
             var directChildren = parent.Item1.GetChildren(deep: false);
-            var specializationTokens = directChildren.Where(tIndex => FileHeader.IsCallableSpecialization(tIndex.GetFragment()));
+            var specializationTokens = directChildren.Where(
+                tIndex => tIndex.GetFragment()?.Apply(FileHeader.IsCallableSpecialization) ?? false);
             var specializations = file.GetHeaderItems(specializationTokens, frag => SpecializationDeclaration(parent.Item2, frag), null);
             foreach (var (tIndex, headerItem) in specializations)
             {
@@ -325,8 +328,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // verify that either no specialization occurs, or that no other fragment than specializations occur
-            var directlyContainedStatements = directChildren.Select(token => token.GetFragment())
-                .Where(fragment => fragment.Kind != null && fragment.IncludeInCompilation && !FileHeader.IsCallableSpecialization(fragment));
+            var directlyContainedStatements = directChildren.SelectNotNull(token => token.GetFragment())
+                .Where(fragment => fragment?.Kind != null && fragment.IncludeInCompilation && !FileHeader.IsCallableSpecialization(fragment));
             if (specializations.Any() && directlyContainedStatements.Any())
             {
                 foreach (var statement in directlyContainedStatements)
@@ -442,12 +445,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             IEnumerable<CodeFragment.TokenIndex> ChildrenToCompile(CodeFragment.TokenIndex token) =>
-                token.GetChildren(deep: false).Where(child => child.GetFragment().IncludeInCompilation);
+                token.GetChildren(deep: false).Where(child => child.GetFragment()?.IncludeInCompilation ?? false);
 
             IReadOnlyList<FragmentTree.TreeNode> BuildNodes(IEnumerable<CodeFragment.TokenIndex> tokens, Position? rootPos) =>
-                tokens.Select(token =>
+                tokens.SelectNotNull(token =>
                 {
                     var fragment = token.GetFragmentWithClosingComments();
+                    if (fragment is null)
+                    {
+                        return null as FragmentTree.TreeNode?;
+                    }
                     var parentPos = rootPos ?? fragment.Range.Start;
                     return new FragmentTree.TreeNode(fragment, BuildNodes(ChildrenToCompile(token), parentPos), parentPos);
                 })

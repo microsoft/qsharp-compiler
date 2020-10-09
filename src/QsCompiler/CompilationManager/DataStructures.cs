@@ -287,23 +287,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
+            /// Returns null if the token is no longer within the file associated with it.
             /// </summary>
-            internal CodeFragment GetFragment()
-            {
-                if (!this.IsWithinFile())
-                {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
-                }
-                return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
-            }
+            internal CodeFragment? GetFragment() => !this.IsWithinFile()
+                ? null
+                : this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
 
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex including any closing comments for that fragment -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
+            /// Returns null if the token is no longer within the file associated with it.
             /// </summary>
-            internal CodeFragment GetFragmentWithClosingComments()
+            internal CodeFragment? GetFragmentWithClosingComments()
             {
                 var fragment = this.GetFragment();
                 // get any comments attached to a potential empty closing fragment
@@ -312,9 +307,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 if (allChildren.Any())
                 {
                     var lastChild = allChildren.Last().GetFragment();
-                    if (lastChild.FollowedBy == '}' && !lastChild.IncludeInCompilation)
+                    if (!(lastChild is null) && lastChild.FollowedBy == '}' && !lastChild.IncludeInCompilation)
                     {
-                        fragment = fragment.SetClosingComments(lastChild.Comments.OpeningComments);
+                        fragment = fragment?.SetClosingComments(lastChild.Comments.OpeningComments);
                     }
                 }
                 return fragment;
@@ -457,8 +452,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the symbol of the extracted declaration is not an unqualified symbol,
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the keepInvalid parameter has been set to a string value.
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
-        /// Throws an ArgumentException if this verification fails as well.
-        /// Throws an ArgumentException if the extracted declaration is Null.
+        /// Throws an ArgumentException if this verification fails, the token index is not valid, or the extracted
+        /// declaration is Null.
         /// </summary>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
@@ -467,7 +462,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ImmutableArray<string> doc,
             string? keepInvalid = null)
         {
-            var fragment = tIndex.GetFragmentWithClosingComments();
+            var fragment =
+                tIndex.GetFragmentWithClosingComments()
+                ?? throw new ArgumentException("Token index is not valid.", nameof(tIndex));
             var extractedDecl = getDeclaration(fragment);
             var (sym, decl) =
                 extractedDecl.IsNull

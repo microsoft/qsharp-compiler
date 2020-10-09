@@ -14,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
@@ -1084,7 +1085,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return new List<CodeFragment.TokenIndex>();
             }
-            bool Filter(CodeFragment frag) => filterBy == null ? true : filterBy(frag);
+            bool Filter(CodeFragment? frag) => frag is null || filterBy is null || filterBy(frag);
             this.SyncRoot.EnterReadLock();
             try
             {
@@ -1112,7 +1113,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot.EnterReadLock();
             try
             {
-                return this.FilterTokenIndices(getLineNumbers, filterBy).Select(tokenIndex => tokenIndex.GetFragment()).ToList();
+                return this.FilterTokenIndices(getLineNumbers, filterBy).SelectNotNull(tokenIndex => tokenIndex.GetFragment()).ToList();
             }
             finally
             {

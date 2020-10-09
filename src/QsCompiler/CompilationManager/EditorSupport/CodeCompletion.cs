@@ -146,13 +146,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var token = GetTokenAtOrBefore(file, position);
-            if (token == null)
+            fragment = token?.GetFragment();
+            if (token is null || fragment is null)
             {
-                fragment = null;
                 return (null, null);
             }
 
-            fragment = token.GetFragment();
             var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
@@ -165,19 +164,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 scope = CompletionScope.TopLevel;
             }
-            else if (parents.Any() && (parents.First().Kind?.IsNamespaceDeclaration ?? false))
+            else if (parents.FirstOrDefault()?.Kind?.IsNamespaceDeclaration ?? false)
             {
                 scope = CompletionScope.NamespaceTopLevel;
             }
-            else if (parents.Where(parent => parent.Kind?.IsFunctionDeclaration ?? false).Any())
+            else if (parents.Any(parent => parent?.Kind?.IsFunctionDeclaration ?? false))
             {
                 scope = CompletionScope.Function;
             }
-            else if (parents.Any() && (parents.First().Kind?.IsOperationDeclaration ?? false))
+            else if (parents.FirstOrDefault()?.Kind?.IsOperationDeclaration ?? false)
             {
                 scope = CompletionScope.OperationTopLevel;
             }
-            else if (parents.Where(parent => parent.Kind?.IsOperationDeclaration ?? false).Any())
+            else if (parents.Any(parent => parent?.Kind?.IsOperationDeclaration ?? false))
             {
                 scope = CompletionScope.Operation;
             }
@@ -189,11 +188,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             else if (relativeIndentation == 0)
             {
-                previous = token.PreviousOnScope()?.GetFragment().Kind;
+                previous = token.PreviousOnScope()?.GetFragment()?.Kind;
             }
             else if (relativeIndentation == 1)
             {
-                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
+                previous = token.GetNonEmptyParent()?.GetFragment()?.Kind;
             }
 
             return (scope, previous);
