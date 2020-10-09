@@ -54,6 +54,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     symbolTranslator: ToCompilerObject,
                     typeTranslator: ToCompilerObject);
 
+        private static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
+            bondQsGeneratorDirective switch
+            {
+                QsGeneratorDirective.Distribute => SyntaxTokens.QsGeneratorDirective.Distribute,
+                QsGeneratorDirective.InvalidGenerator => SyntaxTokens.QsGeneratorDirective.InvalidGenerator,
+                QsGeneratorDirective.Invert => SyntaxTokens.QsGeneratorDirective.Invert,
+                QsGeneratorDirective.SelfInverse => SyntaxTokens.QsGeneratorDirective.SelfInverse,
+                _ => throw new ArgumentException($"Unsupported Bond QsGeneratorDirective '{bondQsGeneratorDirective}'")
+            };
+
         private static SyntaxTokens.QsInitializerKind<SyntaxTree.ResolvedInitializer, SyntaxTree.TypedExpression> ToCompilerObject(
             this QsInitializerKindComposition<ResolvedInitializer, TypedExpression> bondQsInitializerKindComposition) =>
             bondQsInitializerKindComposition.ToCompilerObjectGeneric(
@@ -143,6 +153,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.InferredCallableInformation(
                 isSelfAdjoint: bondInferredCallableInformation.IsSelfAdjoint,
                 isIntrinsic: bondInferredCallableInformation.IsIntrinsic);
+
+        private static SyntaxTree.LocalDeclarations ToCompilerObject(
+            this LocalDeclarations bondLocalDeclarations) =>
+            new SyntaxTree.LocalDeclarations(
+                variables: bondLocalDeclarations.Variables.Select(v => v.ToCompilerObject()).ToImmutableArray());
+
+        private static SyntaxTree.LocalVariableDeclaration<NonNullable<string>> ToCompilerObject(
+            this LocalVariableDeclaration<string> bondLocalVariableDeclaration) =>
+            bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: s => s.ToNonNullable());
 
         private static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
             this LocalVariableDeclaration<QsLocalSymbol> bondLocalVariableDeclaration) =>
@@ -329,8 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsScope ToCompilerObject(this QsScope bondQsScope) =>
             new SyntaxTree.QsScope(
                 statements: bondQsScope.Statements.Select(s => s.ToCompilerObject()).ToImmutableArray(),
-                // TODO: Implement KnownSymbols.
-                knownSymbols: default);
+                knownSymbols: bondQsScope.KnownSymbols.ToCompilerObject());
 
         private static SyntaxTree.QsSpecialization ToCompilerObject(this QsSpecialization bondQsSpecialization) =>
             new SyntaxTree.QsSpecialization(
@@ -345,8 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondQsSpecialization.TypeArguments.Select(t => t.ToCompilerObject()).ToImmutableArray().ToQsNullableGeneric() :
                     QsNullable<ImmutableArray<SyntaxTree.ResolvedType>>.Null,
                 signature: bondQsSpecialization.Signature.ToCompilerObject(),
-                // TODO: Implement Implementation.
-                implementation: default,
+                implementation: bondQsSpecialization.Implementation.ToCompilerObject(),
                 documentation: bondQsSpecialization.Documentation.ToImmutableArray(),
                 comments: bondQsSpecialization.Comments.ToCompilerObject());
 
@@ -545,10 +562,39 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.SpecializationImplementation ToCompilerObject(
             this SpecializationImplementation bondSpecializationImplementation)
+        {
+            string UnexpectedNullFieldMessage(string fieldName) =>
+                $"Bond SpecializationImplementation '{fieldName}' field is null when Kind is '{bondSpecializationImplementation.Kind}'";
+
+            if (bondSpecializationImplementation.Kind == SpecializationImplementationKind.Provided)
             {
-                // TODO: Implement.
-                return default;
+                var provided =
+                    bondSpecializationImplementation.Provided ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Provided"));
+
+                return SyntaxTree.SpecializationImplementation.NewProvided(
+                    item1: provided.Tuple.ToCompilerObject(),
+                    item2: provided.Implementation.ToCompilerObject());
             }
+            else if (bondSpecializationImplementation.Kind == SpecializationImplementationKind.Generated)
+            {
+                var generated =
+                    bondSpecializationImplementation.Generated ??
+                    throw new ArgumentNullException(UnexpectedNullFieldMessage("Generated"));
+
+                return SyntaxTree.SpecializationImplementation.NewGenerated(
+                    item: generated.ToCompilerObject());
+            }
+            else
+            {
+                return bondSpecializationImplementation.Kind switch
+                {
+                    SpecializationImplementationKind.External => SyntaxTree.SpecializationImplementation.CreateExternal(),
+                    SpecializationImplementationKind.Intrinsic => SyntaxTree.SpecializationImplementation.CreateIntrinsic(),
+                    _ => throw new ArgumentException($"Unsupported Bond SpecializationImplementationKind '{bondSpecializationImplementation.Kind}'")
+                };
+            }
+        }
 
         private static SyntaxTree.SymbolTuple ToCompilerObject(this SymbolTuple bondSymbolTuple)
         {
