@@ -14,7 +14,6 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
@@ -1077,10 +1076,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given a function returning an int array of line numbers,
         /// applies FilterBy to the tokens on any of those lines and returns the TokenIndex of the tokens for which FilterBy returned true as IEnumerable.
         /// If FilterBy is null, returns an IEnumerable with the token indices for all tokens on the lines specified by GetLineNumbers.
+        /// Returns an empty List if GetLineNumbers is null.
         /// </summary>
         private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
-            bool Filter(CodeFragment? frag) => filterBy is null || (!(frag is null) && filterBy(frag));
+            if (getLineNumbers == null)
+            {
+                return new List<CodeFragment.TokenIndex>();
+            }
+            bool Filter(CodeFragment frag) => filterBy == null ? true : filterBy(frag);
             this.SyncRoot.EnterReadLock();
             try
             {
@@ -1108,7 +1112,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot.EnterReadLock();
             try
             {
-                return this.FilterTokenIndices(getLineNumbers, filterBy).SelectNotNull(tokenIndex => tokenIndex.GetFragment()).ToList();
+                return this.FilterTokenIndices(getLineNumbers, filterBy).Select(tokenIndex => tokenIndex.GetFragment()).ToList();
             }
             finally
             {

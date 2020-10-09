@@ -112,18 +112,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, params NonNullable<string>[] namespaces)
         {
             // determine the first fragment in the containing namespace
-            var nsElements = file.NamespaceDeclarationTokens()
+            var nsElements = file?.NamespaceDeclarationTokens()
                 .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
                 ?.GetChildren(deep: false);
             var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
-            if (nsElements is null || firstInNs?.Kind is null)
+            if (file is null || nsElements is null || firstInNs?.Kind == null)
             {
                 return Enumerable.Empty<TextEdit>();
             }
 
             // determine what open directives already exist
             var insertOpenDirAt = firstInNs.Range.Start;
-            var openDirs = nsElements.SelectNotNull(t => t.GetFragment()?.Kind?.OpenedNamespace())
+            var openDirs = nsElements.SelectNotNull(t => t.GetFragment().Kind?.OpenedNamespace())
                 .TakeWhile(opened => opened.IsValue)
                 .Select(opened => (
                     opened.Item.Item1.Symbol.AsDeclarationName(null),
@@ -288,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item3) :
                     Enumerable.Empty<Characteristics>();
 
-                var fragmentStart = fragment?.Range.Start;
+                var fragmentStart = fragment?.Range?.Start;
                 return characteristicsInFragment
                     .Where(c => c.Range.IsValue && Range.Overlaps(fragmentStart + c.Range.Item, d.Range.ToQSharp()))
                     .Select(c => ReplaceWith(CharacteristicsAnnotation(c), d.Range));
@@ -448,11 +448,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
                 var lastFragToken = currentFragToken?.Apply(token => new CodeFragment.TokenIndex(token).Previous());
-                var lastBeforeErase = lastFragToken?.GetFragment();
-                if (fragment is null || lastFragToken is null || lastBeforeErase is null)
+                if (fragment == null || lastFragToken == null)
                 {
                     return null;
                 }
+
+                // work off of the last reachable fragment, if there is one
+                var lastBeforeErase = lastFragToken.GetFragment();
+                var eraseStart = lastBeforeErase.Range.End;
 
                 // find the last fragment in the scope
                 while (currentFragToken != null)
@@ -461,10 +464,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     currentFragToken = currentFragToken.NextOnScope(true);
                 }
                 var lastInScope = lastFragToken.GetFragment();
-                if (lastInScope is null)
-                {
-                    return null;
-                }
                 var eraseEnd = lastInScope.Range.End;
 
                 // determine the whitespace for the replacement string
@@ -473,7 +472,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var whitespace = lastLine[trimmedLastLine.Length..];
 
                 // build the replacement string
-                var eraseStart = lastBeforeErase.Range.End;
                 var replaceString = lastBeforeErase.FollowedBy == CodeFragment.MissingDelimiter ? "" : $"{lastBeforeErase.FollowedBy}";
                 replaceString += eraseStart.Line == eraseEnd.Line ? " " : $"{Environment.NewLine}{whitespace}";
 

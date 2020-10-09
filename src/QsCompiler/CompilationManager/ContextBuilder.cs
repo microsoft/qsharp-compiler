@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
@@ -185,21 +184,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var declarations = file.CallableDeclarationTokens();
-                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment()?.Range.Start < pos);
+                var precedingDecl = declarations.TakeWhile(tIndex => tIndex.GetFragment().Range.Start < pos);
                 if (!precedingDecl.Any())
                 {
                     return null;
                 }
 
                 var closestCallable = precedingDecl.Last();
-                var callablePosition = closestCallable.GetFragment()?.Range.Start;
-                var callableName = closestCallable.GetFragment()?.Kind.DeclaredCallableName(null);
-                if (callablePosition is null || callableName is null)
+                var callablePosition = closestCallable.GetFragment().Range.Start;
+                var callableName = closestCallable.GetFragment().Kind.DeclaredCallableName(null);
+                if (callableName == null)
                 {
                     return null;
                 }
 
-                var specializations = FileHeader.FilterCallableSpecializations(closestCallable.GetChildren(deep: false).SelectNotNull(tIndex => tIndex.GetFragment()));
+                var specializations = FileHeader.FilterCallableSpecializations(closestCallable.GetChildren(deep: false).Select(tIndex => tIndex.GetFragment()));
                 var precedingSpec = specializations.TakeWhile(fragment => fragment.Range.Start < pos);
                 var lastPreceding = precedingSpec.Any() ? precedingSpec.Last() : null;
 
@@ -308,17 +307,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
-            var tokenIndex = tIndex;
-            var indentation = tokenIndex.GetFragment()?.Indentation;
+            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
+            var indentation = tokenIndex.GetFragment().Indentation;
             while ((tokenIndex = tokenIndex.Previous()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
-                if (fragment?.Kind != null && fragment.Indentation < indentation)
+                if (fragment.Kind != null && fragment.Indentation < indentation)
                 {
                     break; // ignore empty fragments
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment()?.Indentation == indentation - 1 ? tokenIndex : null;
+            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation - 1 ? tokenIndex : null;
         }
 
         /// <summary>
@@ -342,11 +341,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetChildren(this CodeFragment.TokenIndex tIndex, bool deep = true)
         {
-            var tokenIndex = tIndex;
-            var indentation = tokenIndex.GetFragment()?.Indentation;
-            while ((tokenIndex = tokenIndex.Next()) != null && tokenIndex.GetFragment()?.Indentation > indentation)
+            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
+            var indentation = tokenIndex.GetFragment().Indentation;
+            while ((tokenIndex = tokenIndex.Next()) != null && tokenIndex.GetFragment().Indentation > indentation)
             {
-                if (deep || tokenIndex.GetFragment()?.Indentation == indentation + 1)
+                if (deep || tokenIndex.GetFragment().Indentation == indentation + 1)
                 {
                     yield return tokenIndex;
                 }
@@ -359,17 +358,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = tIndex;
-            var indentation = tokenIndex.GetFragment()?.Indentation;
+            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
+            var indentation = tokenIndex.GetFragment().Indentation;
             while ((tokenIndex = tokenIndex.Previous()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
-                if (fragment?.Indentation <= indentation && (fragment?.Kind != null || includeEmpty))
+                if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment()?.Indentation == indentation ? tokenIndex : null;
+            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
         }
 
         /// <summary>
@@ -378,17 +377,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = tIndex;
-            var indentation = tokenIndex.GetFragment()?.Indentation;
+            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
+            var indentation = tokenIndex.GetFragment().Indentation;
             while ((tokenIndex = tokenIndex.Next()) != null)
             {
                 var fragment = tokenIndex.GetFragment();
-                if (fragment?.Indentation <= indentation && (fragment?.Kind != null || includeEmpty))
+                if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment()?.Indentation == indentation ? tokenIndex : null;
+            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
         }
 
         // routines related to "reconstructing" the syntax tree from the saved tokens to do context checks
@@ -438,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (include, verifications) = Context.VerifySyntaxTokenContext(context);
                 foreach (var msg in verifications)
                 {
-                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment?.Range.Start));
+                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.Range.Start));
                 }
 
                 if (include)
@@ -453,7 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // if a token is newly included in or excluded from the compilation,
                 // then this may impact context information for all following tokens
-                var changedStatus = !(fragment is null) && include ^ fragment.IncludeInCompilation;
+                var changedStatus = include ^ fragment.IncludeInCompilation;
                 var next = tokenIndex.NextOnScope();
                 if (changedStatus && next != null && !changedLines.Contains(next.Line))
                 {
@@ -467,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return messages;
             }
 
-            diagnostics = tokensToVerify.SelectMany(Verify).ToList();
+            diagnostics = tokensToVerify.SelectMany(tIndex => Verify(tIndex)).ToList();
             return verifiedLines;
         }
 
