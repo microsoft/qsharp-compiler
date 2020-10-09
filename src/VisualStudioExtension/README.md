@@ -8,7 +8,7 @@ Assuming some experience with Visual Studio, beginners can write their first qua
 
 To jump right in, take a look at our [Getting Started guide](https://docs.microsoft.com/quantum/quickstarts/get-started) to learn about the structure of a Q# project and how to develop a quantum program with Q#.
 
-You can also try our [Quantum Computing Fundamentals](https://docs.microsoft.com/en-us/learn/paths/quantum-computing-fundamentals/) learning path to get familiar with the basic concepts of quantum computing, building quantum programs and identify the kind of problems that can be solved.
+You can also try our [Quantum Computing Fundamentals](https://aka.ms/learnqc) learning path to get familiar with the basic concepts of quantum computing, build quantum programs, and identify the kind of problems that can be solved.
 
 **NOTE: The simulator included with the Quantum Development Kit requires a 64-bit operating system to run.**
 
