@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
@@ -140,13 +141,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (!file.ContainsPosition(position))
             {
-                // FileContentManager.IndentationAt will fail if the position is not within the file.
                 fragment = null;
                 return (null, null);
             }
-
             var token = GetTokenAtOrBefore(file, position);
-            if (token == null)
+            if (token is null)
             {
                 fragment = null;
                 return (null, null);
@@ -155,47 +154,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             fragment = token.GetFragment();
             var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
-            var parents =
-                new[] { token }.Concat(token.GetNonEmptyParents())
+
+            var parents = new[] { token }
+                .Concat(token.GetNonEmptyParents())
                 .Skip(relativeIndentation + 1)
-                .Select(t => t.GetFragment());
-
-            CompletionScope? scope = null;
-            if (!parents.Any())
-            {
-                scope = CompletionScope.TopLevel;
-            }
-            else if (parents.Any() && (parents.First().Kind?.IsNamespaceDeclaration ?? false))
-            {
-                scope = CompletionScope.NamespaceTopLevel;
-            }
-            else if (parents.Where(parent => parent.Kind?.IsFunctionDeclaration ?? false).Any())
-            {
-                scope = CompletionScope.Function;
-            }
-            else if (parents.Any() && (parents.First().Kind?.IsOperationDeclaration ?? false))
-            {
-                scope = CompletionScope.OperationTopLevel;
-            }
-            else if (parents.Where(parent => parent.Kind?.IsOperationDeclaration ?? false).Any())
-            {
-                scope = CompletionScope.Operation;
-            }
-
-            QsFragmentKind? previous = null;
-            if (relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position))
-            {
-                previous = fragment.Kind;
-            }
-            else if (relativeIndentation == 0)
-            {
-                previous = token.PreviousOnScope()?.GetFragment().Kind;
-            }
-            else if (relativeIndentation == 1)
-            {
-                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
-            }
-
+                .Select(index => index.GetFragment())
+                .ToImmutableList();
+            var scope =
+                parents.IsEmpty ? CompletionScope.TopLevel
+                : parents.FirstOrDefault()?.Kind?.IsNamespaceDeclaration ?? false ? CompletionScope.NamespaceTopLevel
+                : parents.Any(parent => parent.Kind?.IsFunctionDeclaration ?? false) ? CompletionScope.Function
+                : parents.FirstOrDefault()?.Kind?.IsOperationDeclaration ?? false ? CompletionScope.OperationTopLevel
+                : parents.Any(parent => parent.Kind?.IsOperationDeclaration ?? false) ? CompletionScope.Operation
+                : null;
+            var previous =
+                relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position) ? fragment.Kind
+                : relativeIndentation == 0 ? token.PreviousOnScope()?.GetFragment().Kind
+                : relativeIndentation == 1 ? token.GetNonEmptyParent()?.GetFragment().Kind
+                : null;
             return (scope, previous);
         }
 
