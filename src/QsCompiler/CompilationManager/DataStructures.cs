@@ -236,13 +236,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// </summary>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
-                if (line < 0 || line >= file.NrTokenizedLines())
+                if (line < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
                 }
-                if (index < 0 || index >= file.GetTokenizedLine(line).Length)
+                if (index < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                if (line >= file.NrTokenizedLines())
+                {
+                    throw new FileContentException("Line was outside the bounds of the file.");
+                }
+                if (index >= file.GetTokenizedLine(line).Length)
+                {
+                    throw new FileContentException("Token index was outside the bounds of the line.");
                 }
 
                 this.file = file;
