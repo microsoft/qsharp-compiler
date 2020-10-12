@@ -393,7 +393,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsStatement(
                 statement: bondQsStatement.Statement.ToCompilerObject(),
                 symbolDeclarations: bondQsStatement.SymbolDeclarations.ToCompilerObject(),
-                location: bondQsStatement.Location.ToCompilerObject().ToQsNullableGeneric(),
+                location: bondQsStatement.Location != null ?
+                    bondQsStatement.Location.ToCompilerObject().ToQsNullableGeneric() :
+                    QsNullable<SyntaxTree.QsLocation>.Null,
                 comments: bondQsStatement.Comments.ToCompilerObject());
 
         private static SyntaxTree.QsStatementKind ToCompilerObject(
