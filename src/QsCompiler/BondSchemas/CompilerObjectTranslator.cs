@@ -329,7 +329,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsPositionedBlock ToCompilerObject(this QsPositionedBlock bondQsPositionedBlock) =>
             new SyntaxTree.QsPositionedBlock(
                 body: bondQsPositionedBlock.Body.ToCompilerObject(),
-                location: bondQsPositionedBlock.Location.ToCompilerObject().ToQsNullableGeneric(),
+                location: bondQsPositionedBlock.Location != null ?
+                    bondQsPositionedBlock.Location.ToCompilerObject().ToQsNullableGeneric() :
+                    QsNullable<SyntaxTree.QsLocation>.Null,
                 comments: bondQsPositionedBlock.Comments.ToCompilerObject());
 
         private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
