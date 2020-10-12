@@ -116,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 paramTranslator: ToCompilerObject,
                 characteristicsTranslator: ToCompilerObject);
 
-        private static SyntaxTree.CallableInformation ToCompilerObject(CallableInformation bondCallableInformation) =>
+        private static SyntaxTree.CallableInformation ToCompilerObject(this CallableInformation bondCallableInformation) =>
             new SyntaxTree.CallableInformation(
                 characteristics: bondCallableInformation.Characteristics.ToCompilerObject(),
                 inferredInformation: bondCallableInformation.InferredInformation.ToCompilerObject());
@@ -153,6 +153,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.InferredCallableInformation(
                 isSelfAdjoint: bondInferredCallableInformation.IsSelfAdjoint,
                 isIntrinsic: bondInferredCallableInformation.IsIntrinsic);
+
+        private static SyntaxTree.InferredExpressionInformation ToCompilerObject(
+            this InferredExpressionInformation bondInferredExpressionInformation) =>
+            new SyntaxTree.InferredExpressionInformation(
+                isMutable: bondInferredExpressionInformation.IsMutable,
+                hasLocalQuantumDependency: bondInferredExpressionInformation.HasLocalQuantumDependency);
 
         private static SyntaxTree.LocalDeclarations ToCompilerObject(
             this LocalDeclarations bondLocalDeclarations) =>
@@ -380,8 +386,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsStatement ToCompilerObject(this QsStatement bondQsStatement) =>
             new SyntaxTree.QsStatement(
                 statement: bondQsStatement.Statement.ToCompilerObject(),
-                // TODO: Implement SymbolDeclarations.
-                symbolDeclarations: default,
+                symbolDeclarations: bondQsStatement.SymbolDeclarations.ToCompilerObject(),
                 location: bondQsStatement.Location.ToCompilerObject().ToQsNullableGeneric(),
                 comments: bondQsStatement.Comments.ToCompilerObject());
 
@@ -554,8 +559,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 typeParameters: bondResolvedSignature.TypeParameters.Select(tp => tp.ToCompilerObject()).ToImmutableArray(),
                 argumentType: bondResolvedSignature.ArgumentType.ToCompilerObject(),
                 returnType: bondResolvedSignature.ReturnType.ToCompilerObject(),
-                // Implement Information
-                information: default);
+                information: bondResolvedSignature.Information.ToCompilerObject());
 
         private static SyntaxTree.ResolvedType ToCompilerObject(this ResolvedType bondResolvedType) =>
             SyntaxTree.ResolvedType.New(bondResolvedType.TypeKind.ToCompilerObject());
@@ -636,8 +640,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     Select(t => Tuple.Create(t.Callable.ToCompilerObject(), t.Name.ToNonNullable(), t.Resolution.ToCompilerObject())).
                     ToImmutableArray(),
                 resolvedType: bondTypedExpression.ResolvedType.ToCompilerObject(),
-                // TODO: Implement InferredInformation.
-                inferredInformation: default,
+                inferredInformation: bondTypedExpression.InferredInformation.ToCompilerObject(),
                 range: bondTypedExpression.Range != null ?
                     bondTypedExpression.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
@@ -1175,8 +1178,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.LocalVariableDeclaration<TCompiler>(
                 variableName: typeTranslator(bondLocalVariableDeclaration.VariableName),
                 type: bondLocalVariableDeclaration.Type.ToCompilerObject(),
-                // TODO: Implement InferredInformation.
-                inferredInformation: default,
+                inferredInformation: bondLocalVariableDeclaration.InferredInformation.ToCompilerObject(),
                 position: bondLocalVariableDeclaration.Position != null ?
                     bondLocalVariableDeclaration.Position.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Position>.Null,
@@ -1187,8 +1189,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             Func<TBond, TCompiler> typeTranslator) =>
             new SyntaxTree.QsBinding<TCompiler>(
                 kind: bondQsBinding.Kind.ToCompilerObject(),
-                // TODO: Implement Lhs.
-                lhs: default,
+                lhs: bondQsBinding.Lhs.ToCompilerObject(),
                 rhs: typeTranslator(bondQsBinding.Rhs));
 
         private static NonNullable<string> ToNonNullable(this string str) =>
