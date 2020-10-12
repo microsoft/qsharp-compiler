@@ -846,6 +846,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.NEG) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.NOT) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.BNOT) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.UnwrapApplication) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.AdjointApplication) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.ControlledApplication))
             {
