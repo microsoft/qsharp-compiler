@@ -863,6 +863,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewNOT(item: compilerExpression),
                     QsExpressionKind.BNOT => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewBNOT(item: compilerExpression),
+                    QsExpressionKind.UnwrapApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewUnwrapApplication(item: compilerExpression),
                     QsExpressionKind.AdjointApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewAdjointApplication(item: compilerExpression),
                     QsExpressionKind.ControlledApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
