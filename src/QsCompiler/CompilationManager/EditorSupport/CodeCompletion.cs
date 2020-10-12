@@ -76,6 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if any argument is null or the position is invalid.
         /// Returns an empty completion list if the given position is within a comment.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         public static CompletionList? Completions(
             this FileContentManager file, CompilationUnit compilation, Position? position)
         {
@@ -232,6 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// part of a qualified symbol, in which case only completions for symbols matching the namespace prefix will be
         /// included.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         private static IEnumerable<CompletionItem> GetFallbackCompletions(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -486,6 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the namespace path for the qualified symbol at the given position, or null if there is no qualified
         /// symbol.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         private static string? GetSymbolNamespacePath(FileContentManager file, Position position)
         {
             var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
@@ -508,21 +511,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the index in the fragment text corresponding to the given absolute position.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when the position is outside the fragment range.</exception>
+        /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
         private static int GetTextIndexFromPosition(CodeFragment fragment, Position position)
         {
             var relativeLine = position.Line - fragment.Range.Start.Line;
-            var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("");
-            var relativeCharacter =
-                relativeLine == 0 ? position.Column - fragment.Range.Start.Column : position.Column;
-            if (relativeLine < 0 ||
-                relativeLine >= lines.Count() ||
-                relativeCharacter < 0 ||
-                relativeCharacter > lines.ElementAt(relativeLine).Length)
-            {
-                throw new ArgumentException("Position is outside the fragment range", nameof(position));
-            }
-            return lines.Take(relativeLine).Sum(line => line.Length) + relativeCharacter;
+            var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("").ToImmutableList();
+            var relativeChar = relativeLine == 0
+                ? position.Column - fragment.Range.Start.Column
+                : position.Column;
+            var lineInRange = relativeLine >= 0 && relativeLine <= lines.Count;
+            var charInRange = relativeChar >= 0 && relativeChar <= lines.ElementAt(relativeLine).Length;
+            return lineInRange && charInRange
+                ? lines.Take(relativeLine).Sum(line => line.Length) + relativeChar
+                : throw new FileContentException("Position is outside the fragment range.");
         }
 
         /// <summary>
@@ -594,6 +595,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// position is after the end of the fragment text but before the delimiter, the entire text is returned with a
         /// space character appended to it.
         /// </summary>
+        /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
         private static string GetFragmentTextBeforePosition(
             FileContentManager file, CodeFragment? fragment, Position position)
         {
