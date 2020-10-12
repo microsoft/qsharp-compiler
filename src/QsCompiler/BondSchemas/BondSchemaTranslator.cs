@@ -676,6 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Expression = typedExpression.Expression.ToBondSchema(),
                 TypedArguments = typedExpression.TypeArguments.Select(t => t.ToTypedArgument()).ToList(),
                 ResolvedType = typedExpression.ResolvedType.ToBondSchema(),
+                InferredInformation = typedExpression.InferredInformation.ToBondSchema(),
                 Range = typedExpression.Range.IsNull ?
                     null :
                     typedExpression.Range.Item.ToBondSchema()
