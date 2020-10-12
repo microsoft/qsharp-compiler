@@ -986,6 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 IntLiteral = bondIntLiteral,
                 BigIntLiteral = bondBigIntLiteral,
                 DoubleLiteral = bondDoubleLiteral,
+                BoolLiteral = bondBoolLiteral,
                 StringLiteral = compilerStringLiteral?.ToQsExpressionKindStringLiteralGeneric(
                     typeTranslator: expressionTranslator),
                 ResultLiteral = compilerResultLiteral?.ToBondSchema(),
