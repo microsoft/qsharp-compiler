@@ -9,8 +9,14 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
+    /// <summary>
+    /// This class translates Bond schema objects to C# compiler objects.
+    /// </summary>
     public static class CompilerObjectTranslator
     {
+        /// <summary>
+        /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
+        /// </summary>
         public static SyntaxTree.QsCompilation CreateQsCompilation(QsCompilation bondCompilation) =>
             new SyntaxTree.QsCompilation(
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
