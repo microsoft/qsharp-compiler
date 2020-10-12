@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -247,11 +248,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 }
                 if (line >= file.NrTokenizedLines())
                 {
-                    throw new FileContentException("Line is outside the bounds of the file.");
+                    throw new FileContentException("Line exceeds the bounds of the file.");
                 }
                 if (index >= file.GetTokenizedLine(line).Length)
                 {
-                    throw new FileContentException("Token index is outside the bounds of the line.");
+                    throw new FileContentException("Token exceeds the bounds of the line.");
                 }
 
                 this.file = file;
@@ -916,6 +917,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             try
             {
                 return this.content[index];
+            }
+            finally
+            {
+                this.SyncRoot.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Gets the item at the index if the index does not exceed the bounds of the list.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
+        internal bool TryGetItem(int index, [MaybeNullWhen(false)] out T item)
+        {
+            this.SyncRoot.EnterReadLock();
+            try
+            {
+                if (index < this.content.Count)
+                {
+                    item = this.content[index];
+                    return true;
+                }
+                item = default;
+                return false;
             }
             finally
             {

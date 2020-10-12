@@ -441,7 +441,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal IEnumerable<CodeLine> GetLines() => this.content.Get();
 
-        internal CodeLine GetLine(int index) => this.content.GetItem(index);
+        /// <summary>
+        /// Gets the code line at the given index.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
+        /// <exception cref="FileContentException"><paramref name="index"/> exceeds the bounds of the file.</exception>
+        internal CodeLine GetLine(int index) =>
+            this.content.TryGetItem(index, out var line)
+                ? line
+                : throw new FileContentException("Index exceeds the bounds of the file.");
 
         internal int NrLines() => this.content.Count();
 
