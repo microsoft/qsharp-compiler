@@ -46,6 +46,28 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 // =================================
 
 namespace Microsoft.Quantum.Testing.Monomorphization {
+    internal newtype MyInternalUDT = Int;
+    newtype MyPublicUDT = String;
+    
+    // The first (Internal|Public) describes the access of the operation.
+    // The second (Internal|Public) describes the type that will be passed in.
+    internal operation InternalInternalFoo<'A>(x : 'A) : Unit { }
+    internal operation InternalPublicFoo<'A>(x : 'A) : Unit { }
+    operation PublicInternalFoo<'A>(x : 'A) : Unit { }
+    operation PublicPublicFoo<'A>(x : 'A) : Unit { }
+
+    @ EntryPoint()
+    operation TestAccessModifiers() : Unit {
+        InternalInternalFoo(MyInternalUDT(12));
+        InternalPublicFoo(MyPublicUDT("Yes"));
+        PublicInternalFoo(MyInternalUDT(3));
+        PublicPublicFoo(MyPublicUDT("No"));
+    }
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Arrays;
 
     @ EntryPoint()
