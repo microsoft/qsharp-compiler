@@ -4,11 +4,19 @@ Thank you for your interest in Microsoft's Quantum Development Kit for Visual St
 The Quantum Development Kit contains the tools you'll need to build your own quantum computing programs and experiments. 
 Assuming some experience with Visual Studio Code, beginners can write their first quantum program, and experienced researchers can quickly and efficiently develop new quantum algorithms.
 
+## Getting Started
+
 To jump right in, take a look at our [Getting Started guide](https://docs.microsoft.com/quantum/quickstarts/get-started) to learn about the structure of a Q# project and how to develop a quantum program with Q#.
+
+You can also try our [Quantum Computing Fundamentals](https://aka.ms/learnqc) learning path to get familiar with the basic concepts of quantum computing, build quantum programs, and identify the kind of problems that can be solved.
 
 **NOTE: The simulator included with the Quantum Development Kit requires a 64-bit operating system to run.**
 
 The source code for this extension can be found on [our GitHub repository](https://github.com/microsoft/qsharp-compiler). 
+
+## Support and Q&A
+
+If you have questions about the Quantum Development Kit and the Q# language, or if you encounter issues while using any of the components of the kit, you can reach out to the quantum team and the community of users in [Stack Overflow](https://stackoverflow.com/questions/tagged/q%23) and in [Quantum Computing Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/q%23) tagging your questions with **q#**.
 
 ## Feedback
 
