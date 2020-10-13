@@ -35,6 +35,17 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 // =================================
 
 namespace Microsoft.Quantum.Testing.Monomorphization {
+    open Microsoft.Quantum.Testing.Generics;
+
+    @ EntryPoint()
+    operation Test4() : Unit {
+        Test4Main();
+    }
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Arrays;
 
     @ EntryPoint()

@@ -160,6 +160,11 @@ let public MonomorphizationSignatures =
             GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int"
             GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int"
         |])
+        (_DefaultTypes, [| (*Test Case 4*)
+            MonomorphizationNs, "Test4", [||], "Unit"
+            GenericsNs, "Test4Main", [||], "Unit"
+            GenericsNs, "_GenericCallsSelf", [||], "Unit"
+        |])
     |]
     |> _MakeSignatures
 
