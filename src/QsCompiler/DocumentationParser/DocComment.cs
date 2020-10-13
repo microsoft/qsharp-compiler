@@ -19,9 +19,6 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     /// </summary>
     public class DocComment
     {
-        internal static readonly string DeprecatedWarning = "> [!WARNING]\n> Deprecated\n";
-        internal static readonly IEnumerable<Block> DeprecatedSection = Markdown.Parse(DeprecatedWarning);
-
         /// <summary>
         /// The summary description of the item.
         /// This should be one paragraph of plain text.
@@ -339,13 +336,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             if (deprecated)
             {
-                var longDeprecationText =
-                    DeprecatedWarning + "\r" +
-                    deprecationSummary +
-                    (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r" + deprecationDetails);
-                this.Summary += "\r\r" + longDeprecationText;
+                var deprecationWarning = Utils.Warning(string.Join(
+                    "\n\n",
+                    new[] { deprecationSummary, deprecationDetails }.Where(s => !string.IsNullOrWhiteSpace(s))));
                 this.ShortSummary = deprecationSummary;
-                this.Documentation += "\r\r" + longDeprecationText;
+                this.Summary = deprecationWarning + "\n\n" + this.Summary;
+                this.Documentation = deprecationWarning + "\n\n" + this.Documentation;
             }
         }
 
