@@ -256,6 +256,7 @@ type ErrorCode =
     | UnresolvedTypeParameterForRecursiveCall = 6247
     | TypeParameterResConflictWithTypeArgument = 6248
     | FullNameConflictsWithNamespace = 6249
+    | InvalidCyclicTypeParameterResolution = 6250
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -651,6 +652,7 @@ type DiagnosticItem =
             | ErrorCode.UnresolvedTypeParameterForRecursiveCall   -> "The type argument(s) for the recursive call could not be inferred. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.TypeParameterResConflictWithTypeArgument  -> "The type of the expression needs to match the defined type argument. Expecting an expression of type {0}."
             | ErrorCode.FullNameConflictsWithNamespace            -> "The name {0} conflicts with a namespace name."
+            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "The call cycle results in an ambiguous or conflicting type parameter resolution."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
