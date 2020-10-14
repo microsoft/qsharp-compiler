@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                 "```",
                 "",
                 "# See Also",
-                "- @\"microsoft.quantum.canon.paulievolutionset\"",
+                "- Microsoft.Quantum.Canon.PauliEvolutionSet",
                 "- @\"microsoft.quantum.canon.evolutionset\""
             };
             string expected = @"### YamlMime:QSharpType
