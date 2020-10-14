@@ -1874,7 +1874,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         private static void CheckForGlobalCycleChange(FileContentManager file, List<Diagnostic> diagnostics)
         {
-            var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(m => m.Code == ErrorCode.InvalidCyclicTypeParameterResolution.Code())
+            var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution))
+                - diagnostics.Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
 
             if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
             {
