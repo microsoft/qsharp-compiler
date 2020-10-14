@@ -38,7 +38,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let MakeNode name specKind (paramRes : _ list) =
-        let qualifiedName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let qualifiedName = { Namespace = NonNullable<_>.New Signatures.PopulateCallGraphNS; Name = NonNullable<_>.New name }
         let res = paramRes.ToImmutableDictionary((fun kvp -> (qualifiedName, NonNullable<_>.New (fst kvp))), (fun kvp -> ResolvedType.New (snd kvp)))
         ConcreteCallGraphNode(qualifiedName, specKind, res)
 
@@ -155,7 +155,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
         let strToNode name =
-            let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+            let nodeName = { Namespace = NonNullable<_>.New Signatures.PopulateCallGraphNS; Name = NonNullable<_>.New name }
             CallGraphNode(nodeName)
         let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
         for nameTo in nameToList do
@@ -164,12 +164,12 @@ type CallGraphTests (output:ITestOutputHelper) =
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
     let AssertInGraph (givenGraph : CallGraph) name =
-        let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let nodeName = { Namespace = NonNullable<_>.New Signatures.PopulateCallGraphNS; Name = NonNullable<_>.New name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
     let AssertNotInGraph (givenGraph : CallGraph) name =
-        let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let nodeName = { Namespace = NonNullable<_>.New Signatures.PopulateCallGraphNS; Name = NonNullable<_>.New name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
