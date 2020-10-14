@@ -786,8 +786,9 @@ and Namespace private
     /// Deletes the specialization(s) defined at the specified location and source file for the callable with the given name.
     /// Returns the number of removed specializations.
     /// </summary>
-    /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    /// <exception cref="KeyNotFoundException">A callable with the given name was not found.</exception>
+    /// <exception cref="SymbolNotFoundException">
+    /// The source file does not contain this namespace, or a callable with the given name was not found.
+    /// </exception>
     member internal this.RemoveSpecialization (source, location) cName =
         match Parts.TryGetValue source with
         | true, partial -> partial.RemoveCallableSpecialization location cName
