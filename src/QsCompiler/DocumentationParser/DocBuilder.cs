@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="rootPath">The root directory in which documentation files should be generated</param>
         /// <param name="tree">The compiled namespaces to generate documentation for</param>
         /// <param name="sources">If specified, documentation is only generated for the specified source files.</param>
-        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<NonNullable<string>> sources = null)
+        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<NonNullable<string>>? sources = null)
         {
             if (string.IsNullOrWhiteSpace(rootPath))
             {
@@ -85,8 +85,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         public static bool Run(
             string rootPath,
             IEnumerable<QsNamespace> tree,
-            IEnumerable<NonNullable<string>> sources = null,
-            Action<Exception> onException = null)
+            IEnumerable<NonNullable<string>>? sources = null,
+            Action<Exception>? onException = null)
         {
             try
             {
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var exceptions = ex is AggregateException agg ? (IEnumerable<Exception>)agg.InnerExceptions : new[] { ex };
                 foreach (var inner in exceptions)
                 {
-                    onException(inner);
+                    onException?.Invoke(inner);
                 }
                 return false;
             }
