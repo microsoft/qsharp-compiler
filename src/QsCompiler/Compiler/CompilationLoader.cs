@@ -542,6 +542,12 @@ namespace Microsoft.Quantum.QsCompiler
 
             var steps = new List<(int, Func<QsCompilation?>)>();
 
+            if (!this.config.IsExecutable)
+            {
+                var capabilityInference = new RewriteSteps.LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
+            }
+
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
@@ -570,12 +576,6 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
-            }
-
-            if (!this.config.IsExecutable)
-            {
-                var capabilityInference = new RewriteSteps.LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
