@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Documentation
             string? outputPath = null,
             string? packageName = null
         )
-        : base(new TransformationState())
+        : base(new TransformationState(), TransformationOptions.Disabled)
         {
             this.writer = outputPath == null
                           ? null
