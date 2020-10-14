@@ -10,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations
+namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
     /// Static base class to accumulate the handles to individual syntax tree rewrite steps.

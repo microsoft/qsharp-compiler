@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 // Basic Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Unrelated To Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Not Called With Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Not Called Without Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     operation Main() : Unit {
         Foo();
@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Unrelated Without Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     operation Main() : Unit {
         Foo();
@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Entry Point No Descendants
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit { }
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Calls Entry Point From Entry Point
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Entry Point Ancestor And Descendant
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph has Concretizations
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph Trims Specializations
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
@@ -211,7 +211,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph Double Reference Resolution
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     function Foo<'A>(x : 'A) : 'A {
         return x;
     }
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph Non-Call Reference Only Body
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     operation Foo() : Unit { }
 
     @EntryPoint()
@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph Non-Call Reference With Adjoint
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     operation Foo() : Unit is Adj {
         body(...) { }
         adjoint(...) { }
@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 // =================================
 
 // Concrete Graph Non-Call Reference With All
-namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     operation Foo() : Unit is Ctl+Adj {
         body(...) { }
         controlled(ctl, ...) { }

@@ -151,7 +151,7 @@
     <None Include="TestCases\CycleValidation.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\TypeParameterResolution.qs">
+    <None Include="TestCases\PopulateCallGraph.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\TypeParameter.qs">

@@ -45,9 +45,6 @@ type CallGraphTests (output:ITestOutputHelper) =
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
-    let ResolutionFromParamName (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
-        res.ToImmutableDictionary((fun (op, param, _) -> op, param), (fun (_, _, resolution) -> ResolvedType.New resolution))
-
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
@@ -115,11 +112,11 @@ type CallGraphTests (output:ITestOutputHelper) =
         let errors = expected |> Seq.choose (function | Error error -> Some error | _ -> None)
         CompileTestExpectingErrors testNumber "CycleValidation.qs" errors
 
-    let CompileTypeParameterResolutionTest testNumber =
-        CompileTest testNumber "TypeParameterResolution.qs"
+    let PopulateCallGraph testNumber =
+        CompileTest testNumber "PopulateCallGraph.qs"
 
-    let CompileTypeParameterResolutionTestWithExe testNumber =
-        let srcChunks = ReadAndChunkSourceFile "TypeParameterResolution.qs"
+    let PopulateCallGraphWithExe testNumber =
+        let srcChunks = ReadAndChunkSourceFile "PopulateCallGraph.qs"
         srcChunks.Length >= testNumber |> Assert.True
 
         let fileId = getTempFile()
@@ -189,7 +186,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Basic Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 1 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 1 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -208,7 +205,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated To Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 2 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 2 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -229,7 +226,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called With Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 3 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 3 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -245,7 +242,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Not Called Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 4 |> CallGraph
+        let graph = PopulateCallGraph 4 |> CallGraph
 
         [
             "Main", [
@@ -261,7 +258,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Unrelated Without Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTest 5 |> CallGraph
+        let graph = PopulateCallGraph 5 |> CallGraph
 
         [
             "Main", [
@@ -279,13 +276,13 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point No Descendants`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 6 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 6 |> BuildTrimmedGraph
         AssertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 7 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 7 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -301,7 +298,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 8 |> BuildTrimmedGraph
+        let graph = PopulateCallGraphWithExe 8 |> BuildTrimmedGraph
 
         [
             "Main", [
@@ -317,7 +314,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph has Concretizations`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 9 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 9 |> ConcreteCallGraph
 
         let makeNode name resType = MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
         let makeNodeNoRes name = MakeNode name QsSpecializationKind.QsBody []
@@ -338,7 +335,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Trims Specializations`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 10 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 10 |> ConcreteCallGraph
 
         let makeNode name spec = MakeNode name spec []
 
@@ -362,7 +359,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact(Skip="Double reference resolution is not yet supported")>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Double Reference Resolution`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 11 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 11 |> ConcreteCallGraph
 
         let makeNode resType = MakeNode "Foo" QsSpecializationKind.QsBody [ ("A", resType) ]
 
@@ -375,7 +372,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference Only Body`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 12 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 12 |> ConcreteCallGraph
 
         let makeNode spec = MakeNode "Foo" spec []
 
@@ -393,7 +390,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference With Adjoint`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 13 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 13 |> ConcreteCallGraph
 
         let makeNode spec = MakeNode "Foo" spec []
 
@@ -411,7 +408,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference With All`` () =
-        let graph = CompileTypeParameterResolutionTestWithExe 14 |> ConcreteCallGraph
+        let graph = PopulateCallGraphWithExe 14 |> ConcreteCallGraph
 
         let makeNode spec = MakeNode "Foo" spec []
 
