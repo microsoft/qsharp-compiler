@@ -24,12 +24,6 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Priority of the built-in transformation that replaces
-        /// all type parametrized callables with concrete instantiations and drops any unused callables.
-        /// </summary>
-        public const int TypeParameterElimination = 1000;
-
-        /// <summary>
-        /// Priority of the built-in transformation that replaces
         /// all functor generation directives with the corresponding implementation.
         /// </summary>
         public const int GenerationOfFunctorSupport = 600;
@@ -45,6 +39,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// evaluates classical computations as much as possible.
         /// </summary>
         public const int EvaluationOfClassicalComputations = 100;
+
+        /// <summary>
+        /// Priority of the built-in transformation that replaces
+        /// all type parametrized callables with concrete instantiations and drops any unused callables.
+        /// </summary>
+        public const int TypeParameterElimination = 80;
     }
 
     public interface IRewriteStep
