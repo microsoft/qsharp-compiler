@@ -676,6 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Expression = typedExpression.Expression.ToBondSchema(),
                 TypedArguments = typedExpression.TypeArguments.Select(t => t.ToTypedArgument()).ToList(),
                 ResolvedType = typedExpression.ResolvedType.ToBondSchema(),
+                InferredInformation = typedExpression.InferredInformation.ToBondSchema(),
                 Range = typedExpression.Range.IsNull ?
                     null :
                     typedExpression.Range.Item.ToBondSchema()
@@ -986,6 +987,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 IntLiteral = bondIntLiteral,
                 BigIntLiteral = bondBigIntLiteral,
                 DoubleLiteral = bondDoubleLiteral,
+                BoolLiteral = bondBoolLiteral,
                 StringLiteral = compilerStringLiteral?.ToQsExpressionKindStringLiteralGeneric(
                     typeTranslator: expressionTranslator),
                 ResultLiteral = compilerResultLiteral?.ToBondSchema(),
