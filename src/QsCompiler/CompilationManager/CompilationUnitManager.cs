@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -723,19 +724,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var fileId = uri is null || !uri.IsAbsoluteUri || !uri.IsFile
                 ? null as NonNullable<string>?
                 : GetFileId(uri);
-            if (!(fileId is null) && this.fileContentManagers.TryGetValue(fileId.Value, out var file))
+            if (fileId is null || !this.fileContentManagers.TryGetValue(fileId.Value, out var file))
             {
-                try
-                {
-                    return query(file, this.compilationUnit);
-                }
-                catch (FileContentException ex) when (!suppressExceptionLogging)
-                {
-                    this.logMessage(
-                        $"A file query was unable to access content from '{fileId.Value.Value}': {ex.Message}",
-                        MessageType.Info);
-                }
-                catch (Exception ex) when (!suppressExceptionLogging)
+                return null;
+            }
+
+            try
+            {
+                return query(file, this.compilationUnit);
+            }
+            catch (FileContentException ex) when (!suppressExceptionLogging)
+            {
+                this.logMessage(
+                    $"A file query couldn't access content from '{fileId.Value.Value}': {ex.Message}",
+                    MessageType.Info);
+            }
+            catch (SymbolNotFoundException ex) when (!suppressExceptionLogging)
+            {
+                this.logMessage($"A file query couldn't find a symbol: {ex.Message}", MessageType.Info);
+            }
+            catch (Exception ex)
+            {
+                if (!suppressExceptionLogging)
                 {
                     this.LogException(ex);
                 }
