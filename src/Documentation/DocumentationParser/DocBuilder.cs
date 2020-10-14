@@ -15,6 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     /// This class contains the functionality for writing all of the documentation
     /// YAML files for an entire compilation.
     /// </summary>
+    [Obsolete("The YAML-based documentation builder has been replaced by the Markdown-based DocumentationGenerator.")]
     public class DocBuilder
     {
         private readonly string rootDocPath;

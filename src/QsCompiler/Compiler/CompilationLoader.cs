@@ -279,7 +279,6 @@ namespace Microsoft.Quantum.QsCompiler
                 this.WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
                 this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
-                this.WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 this.WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
@@ -605,20 +604,6 @@ namespace Microsoft.Quantum.QsCompiler
                     this.DllOutputPath = this.GenerateDll(ms);
                     this.RaiseCompilationTaskEnd("OutputGeneration", "DllGeneration");
                 }
-            }
-
-            if (this.config.DocumentationOutputFolder != null)
-            {
-                this.RaiseCompilationTaskStart("OutputGeneration", "DocumentationGeneration");
-                this.compilationStatus.Documentation = Status.Succeeded;
-                var docsFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.DocumentationOutputFolder) ? "." : this.config.DocumentationOutputFolder);
-                void OnDocException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.Documentation, ex);
-                var docsGenerated = this.VerifiedCompilation != null && DocBuilder.Run(docsFolder, this.VerifiedCompilation.SyntaxTree.Values, this.VerifiedCompilation.SourceFiles, onException: OnDocException);
-                if (!docsGenerated)
-                {
-                    this.LogAndUpdate(ref this.compilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
-                }
-                this.RaiseCompilationTaskEnd("OutputGeneration", "DocumentationGeneration");
             }
 
             this.RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");

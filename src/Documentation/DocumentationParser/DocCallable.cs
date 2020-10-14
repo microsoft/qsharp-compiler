@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -57,6 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Writes a YAML representation of this callable to a text writer.
         /// </summary>
         /// <param name="text">The writer to output to</param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal override void WriteToFile(TextWriter text)
         {
             YamlNode BuildInputNode()

@@ -54,13 +54,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public string OutputFolder { get; set; }
 
             [Option(
-                "doc",
-                Required = false,
-                SetName = CODE_MODE,
-                HelpText = "Destination folder where documentation will be generated.")]
-            public string DocFolder { get; set; }
-
-            [Option(
                 "proj",
                 Required = false,
                 SetName = CODE_MODE,
@@ -205,7 +198,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
-                DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 IsExecutable = options.MakeExecutable,

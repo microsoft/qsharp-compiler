@@ -128,6 +128,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(TypedExpression ex) =>
             this.ToCode(ex.Expression);
 
+        public string ToCode(QsCustomType type)
+        {
+            var nrPreexistingLines = this.SharedState.NamespaceOutputHandle.Count;
+            this.Namespaces.OnTypeDeclaration(type);
+            return string.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
+        }
+
         public string ToCode(QsStatementKind stmKind)
         {
             var nrPreexistingLines = this.SharedState.StatementOutputHandle.Count;

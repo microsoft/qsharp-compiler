@@ -54,6 +54,30 @@ function Pack-One() {
     }
 }
 
+function Pack-Dotnet() {
+    Param($project, $option1 = "", $option2 = "", $option3 = "")
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
+    dotnet pack (Join-Path $PSScriptRoot $project) `
+        -o $Env:NUGET_OUTDIR `
+        -c $Env:BUILD_CONFIGURATION `
+        -v detailed `
+        @args `
+        /property:Version=$Env:ASSEMBLY_VERSION `
+        /property:PackageVersion=$Env:NUGET_VERSION `
+        $option1 `
+        $option2 `
+        $option3
+
+    if ($LastExitCode -ne 0) {
+        Write-Host "##vso[task.logissue type=error;]Failed to pack $project."
+        $script:all_ok = $False
+    }
+}
+
 ##
 # Q# Language Server (self-contained)
 ##
@@ -213,6 +237,7 @@ Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.cspro
 
 Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
 Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-Dotnet '../src/Documentation/DocumentationGenerator/DocumentationGenerator.csproj'
 Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
 Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'
 
@@ -229,6 +254,9 @@ if ($Env:ENABLE_VSIX -ne "false") {
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
 }
+
+Write-Host "##[info]Verifying manifest..."
+& (Join-Path $PSScriptRoot "manifest.ps1")
 
 if (-not $all_ok) {
     throw "Packing failed. Check the logs."

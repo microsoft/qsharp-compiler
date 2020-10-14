@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
-    <ProjectReference Include="..\Transformations\Transformations.csproj" />
+    <ProjectReference Include="..\..\QsCompiler\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\..\QsCompiler\Transformations\Transformations.csproj" />
   </ItemGroup>
 
   <ItemGroup>
