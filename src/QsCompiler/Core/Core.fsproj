@@ -13,6 +13,7 @@
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Utils.fs" />
     <Compile Include="ConstructorExtensions.fs" />
     <Compile Include="TransformationOptions.fs" />
     <Compile Include="TypeTransformation.fs" />    

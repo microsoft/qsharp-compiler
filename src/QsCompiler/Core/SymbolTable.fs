@@ -14,6 +14,7 @@ open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Utils
 open Newtonsoft.Json
 
 /// An exception that is thrown when a symbol could not be found in the symbol table.
@@ -102,9 +103,8 @@ type private PartialNamespace private
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.GetType tName =
-        match TypeDeclarations.TryGetValue tName with
-        | true, qsType -> qsType
-        | false, _ -> SymbolNotFoundException "A type with the given name was not found." |> raise
+        TypeDeclarations.TryGetValue tName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A type with the given name was not found." |> raise)
 
     member internal this.ContainsType = TypeDeclarations.ContainsKey
 
@@ -113,9 +113,8 @@ type private PartialNamespace private
     /// <summary>Gets the callable with the given name from the dictionary of declared callable.</summary>
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.GetCallable cName =
-        match CallableDeclarations.TryGetValue cName with
-        | true, callable -> callable
-        | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
+        CallableDeclarations.TryGetValue cName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey
 
@@ -285,15 +284,11 @@ and Namespace private
             |> Seq.exists (fun name -> Namespace.IsDeclarationAccessible (sameAssembly, accessibilityGetter name))
             |> not
 
-        let tryToList = function
-            | true, value -> [value]
-            | false, _ -> []
-
         isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Modifiers.Access) false &&
         isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Modifiers.Access) false &&
         Parts.Values.All (fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryToList) (fun c -> (snd c).Modifiers.Access) true &&
-            isAvailableWith (partial.TryGetType >> tryToList) (fun t -> t.Modifiers.Access) true)
+            isAvailableWith (partial.TryGetCallable >> tryToOption >> Option.toList) (fun c -> (snd c).Modifiers.Access) true &&
+            isAvailableWith (partial.TryGetType >> tryToOption >> Option.toList) (fun t -> t.Modifiers.Access) true)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
@@ -436,9 +431,8 @@ and Namespace private
     /// </exception>
     member internal this.TypeInSource source tName =
         match Parts.TryGetValue source with
-        | true, partial -> partial.TryGetType tName |> function
-            | true, typeDecl -> typeDecl
-            | false, _ -> SymbolNotFoundException "A type with the given name was not found in the source file." |> raise
+        | true, partial -> partial.TryGetType tName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -470,9 +464,8 @@ and Namespace private
     /// </exception>
     member internal this.CallableInSource source cName =
         match Parts.TryGetValue source with
-        | true, partial -> partial.TryGetCallable cName |> function
-            | true, callable -> callable
-            | false, _ -> SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise
+        | true, partial -> partial.TryGetCallable cName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -882,15 +875,15 @@ and NamespaceManager
     /// The qualifier's namespace or the parent namespace and source file were not found.
     /// </exception>
     let TryResolveQualifier qualifier (nsName, source) =
-        match Namespaces.TryGetValue qualifier with
-        | false, _ -> Namespaces.TryGetValue nsName |> function // check if qualifier is a namespace short name
-            | true, parentNS -> (parentNS.NamespaceShortNames source).TryGetValue qualifier |> function
-                | true, unabbreviated -> Namespaces.TryGetValue unabbreviated |> function
-                    | false, _ -> QsCompilerError.Raise "the corresponding namespace for a namespace short name could not be found"; None
-                    | true, ns -> Some ns
-                | false, _ -> None
-            | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
-        | true, ns -> Some ns
+        let parentNs () = Namespaces.TryGetValue nsName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "The namespace with the given name was not found." |> raise)
+        let nsAlias = Namespaces.TryGetValue >> tryToOption >> Option.orElseWith (fun () ->
+            QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
+            None)
+        Namespaces.TryGetValue qualifier |> tryToOption |> Option.orElseWith (fun () ->
+            (parentNs().NamespaceShortNames source).TryGetValue qualifier
+            |> tryToOption
+            |> Option.bind nsAlias)
 
     /// <summary>
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
