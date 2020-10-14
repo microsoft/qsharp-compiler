@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -1658,11 +1659,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
+                UpdateDiagnosticsWithCycleVerification(compilation, diagnostics, callableDeclarations);
                 return diagnostics;
             }
             finally
             {
                 compilation.ExitUpgradeableReadLock();
+            }
+        }
+
+        private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics, ImmutableDictionary<QsQualifiedName, CallableDeclarationHeader> callableDeclarations)
+        {
+            // Need to consider the whole compilation to detect cycles
+            var callGraph = new CallGraph(compilation.GetCallables().Values);
+            foreach (var (diag, parent) in callGraph.VerifyAllCycles())
+            {
+                // Only keep diagnostics for callables that are currently available in the editor
+                if (callableDeclarations.TryGetValue(parent, out var info))
+                {
+                    var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                }
             }
         }
 
@@ -1835,19 +1852,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, CancellationToken.None), "error on running type checking");
-                if (sameImports)
+                if (diagnostics != null)
                 {
-                    diagnostics?.Apply(file.AddAndFinalizeSemanticDiagnostics); // diagnostics have been cleared already for the edited callables (only)
-                }
-                else
-                {
-                    diagnostics?.Apply(file.ReplaceSemanticDiagnostics);
+                    CheckForGlobalCycleChange(file, diagnostics);
+                    if (sameImports)
+                    {
+                        file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
+                    }
+                    else
+                    {
+                        file.ReplaceSemanticDiagnostics(diagnostics);
+                    }
                 }
             }
             finally
             {
                 file.SyncRoot.ExitUpgradeableReadLock();
                 compilation.ExitWriteLock();
+            }
+        }
+
+        private static void CheckForGlobalCycleChange(FileContentManager file, List<Diagnostic> diagnostics)
+        {
+            var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution))
+                - diagnostics.Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
+
+            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            {
+                file.TriggerGlobalTypeChecking();
             }
         }
     }
