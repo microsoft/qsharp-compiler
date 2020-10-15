@@ -112,8 +112,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
         {
+            string TrimQuotes(string s) =>
+                s.StartsWith('"') && s.EndsWith('"')
+                ? s.Substring(1, s.Length - 2)
+                : s;
+
             var parmChars = commandLine?.ToCharArray() ?? Array.Empty<char>();
             var inQuote = false;
+
             for (int index = 0; index < parmChars.Length; index++)
             {
                 var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
@@ -131,9 +137,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     parmChars[index] = '\n';
                 }
             }
+
             return new string(parmChars)
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(arg => arg.Trim('"'));
+                .Select(arg => TrimQuotes(arg));
         }
 
         /// <summary>
@@ -148,6 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 throw new ArgumentNullException(nameof(responseFiles));
             }
             var commandLine = string.Join(" ", responseFiles.Select(File.ReadAllText));
+            System.Diagnostics.Debugger.Launch();
             var args = SplitCommandLineArguments(commandLine);
             var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
             return parsed.MapResult(
