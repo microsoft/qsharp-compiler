@@ -71,14 +71,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
-        /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
         private static IEnumerable<string> GenerateQsCode(Compilation compilation, NonNullable<string> file, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             if (Options.IsCodeSnippet(file))
             {
                 var subtree = compilation.SyntaxTree.Values.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
@@ -119,15 +114,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// logs the generated code using the given logger.
         /// Creates a file containing the generated code in the given output folder otherwise.
         /// Returns true if the generation succeeded, and false if an exception was thrown.
-        /// Throws an ArgumentNullException if the given compilation, the file uri or its absolute path are null.
         /// </summary>
         private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string? outputFolder, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-
             var code = Enumerable.Empty<string>();
             try
             {
@@ -158,27 +147,24 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Generates formatted Q# code for each source file in the compilation.
         /// Returns a suitable error code if some of the source files or references could not be found or loaded, or if the Q# generation failed.
         /// Compilation errors are not reflected in the return code, but are logged using the given logger.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         public static int Run(FormatOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-            if (logger == null)
-            {
-                throw new ArgumentNullException(nameof(logger));
-            }
-
             ImmutableDictionary<Uri, string> LoadSources(SourceFileLoader loadFromDisk) =>
                 options.LoadSourcesOrSnippet(logger)(loadFromDisk)
                     .ToImmutableDictionary(entry => entry.Key, entry => UpdateArrayLiterals(entry.Value)); // manually replace array literals
 
-            var loaded = new CompilationLoader(LoadSources, options.References, logger: logger); // no rewrite steps, no generation
+            // no rewrite steps, no generation
+            var loaded =
+                new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
             if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES)
             {
                 return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
+            }
+            else if (loaded.VerifiedCompilation is null)
+            {
+                logger.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>());
+                return ReturnCode.CODE_GENERATION_ERRORS;
             }
 
             // TODO: a lot of the formatting logic defined here and also in the routines above

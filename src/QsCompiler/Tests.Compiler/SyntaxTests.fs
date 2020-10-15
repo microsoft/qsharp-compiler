@@ -262,6 +262,10 @@ let ``Expression literal tests`` () =
         ("0b100",                 true,    toInt 4,                                                               []); 
         ("+0b100",                true,    toInt 4,                                                               []); 
         ("-0b100",                true,    toExpr (NEG (toInt 4)),                                                []);
+        ("0o1",                   true,    toInt 1,                                                               []); 
+        ("0o100",                 true,    toInt 64,                                                              []);
+        ("+0o100",                true,    toInt 64,                                                              []);
+        ("-0o100",                true,    toExpr (NEG (toInt 64)),                                               []);
         (".1e-1",                 true,    toExpr (DoubleLiteral 0.01),                                           []); 
         (".1",                    true,    toExpr (DoubleLiteral 0.1),                                            []); 
         ("1.0",                   true,    toExpr (DoubleLiteral 1.0),                                            []); 

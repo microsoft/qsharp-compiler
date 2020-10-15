@@ -114,6 +114,8 @@ let public GenericsNs = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
 let public InternalRenamingNs = "Microsoft.Quantum.Testing.InternalRenaming"
+let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
+let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -147,18 +149,10 @@ let public MonomorphizationSignatures =
             GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit"
             GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit"
 
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit"
 
-            GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int"
             GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int"
-            GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int"
         |])
     |]
     |> _MakeSignatures
