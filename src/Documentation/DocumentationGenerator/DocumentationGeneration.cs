@@ -70,14 +70,24 @@ namespace Microsoft.Quantum.Documentation
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = new ProcessDocComments(
+            var docProcessor = new ProcessDocComments(
                 this.AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
                 ? path
                 : null,
                 this.AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
                 ? packageName
                 : null
-            ).OnCompilation(compilation);
+            );
+
+            if (docProcessor.Writer != null)
+            {
+                docProcessor.Writer.OnDiagnostic += diagnostic =>
+                {
+                    this.diagnostics.Add(diagnostic);
+                };
+            }
+
+            transformed = docProcessor.OnCompilation(compilation);
             return true;
         }
 
