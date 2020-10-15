@@ -287,6 +287,8 @@ namespace Microsoft.Quantum.Documentation
                         tuple.Item.Select(ToMarkdownLink)
                     ) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
+                ResolvedTypeKind.TypeParameter typeParam =>
+                    $"'{typeParam.Item.TypeName.Value}",
                 _ => type.Resolution.Tag switch
                     {
                         ResolvedTypeKind.Tags.BigInt => "BigInt",
