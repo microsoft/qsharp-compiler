@@ -79,13 +79,10 @@ namespace Microsoft.Quantum.Documentation
                 : null
             );
 
-            if (docProcessor.Writer != null)
+            docProcessor.OnDiagnostic += diagnostic =>
             {
-                docProcessor.Writer.OnDiagnostic += diagnostic =>
-                {
-                    this.diagnostics.Add(diagnostic);
-                };
-            }
+                this.diagnostics.Add(diagnostic);
+            };
 
             transformed = docProcessor.OnCompilation(compilation);
             return true;
