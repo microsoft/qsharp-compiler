@@ -90,7 +90,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             parsed = new Dictionary<string, string>();
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
-                var pieces = keyValue?.Split(":");
+                // NB: We use `count: 2` here to ensure that assembly constants can contain colons.
+                var pieces = keyValue?.Split(":", count: 2);
                 var valid = pieces != null && pieces.Length == 2;
                 success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
             }

@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
@@ -18,6 +20,12 @@ namespace Microsoft.Quantum.Documentation
     /// </summary>
     public class DocumentationWriter
     {
+        /// <summary>
+        ///     An event that is raised on diagnostics about documentation
+        ///     writing (e.g., if an I/O problem prevents writing to disk).
+        /// </summary>
+        public event Action<IRewriteStep.Diagnostic>? OnDiagnostic;
+
         /// <summary>
         ///      Path to which output documentation files should be written.
         /// </summary>
@@ -33,6 +41,36 @@ namespace Microsoft.Quantum.Documentation
         public string? PackageName => this.packageName;
 
         private readonly string PackageLink;
+
+        private async Task TryWithExceptionsAsDiagnostics(string description, Func<Task> action, DiagnosticSeverity severity = DiagnosticSeverity.Warning)
+        {
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                {
+                    Severity = severity,
+                    Message = $"Exception raised when {description}:\n{ex.Message}",
+                    Range = null,
+                    Source = null,
+                    Stage = IRewriteStep.Stage.Transformation,
+                });
+            }
+        }
+
+        private async Task WriteAllTextAsync(string filename, string contents)
+        {
+            await this.TryWithExceptionsAsDiagnostics(
+                $"writing output to {filename}",
+                async () => await File.WriteAllTextAsync(
+                    Path.Join(this.OutputPath, $"{filename.ToLowerInvariant()}.md"),
+                    contents
+                )
+            );
+        }
 
         /// <summary>
         ///     Initializes a new instance of the
@@ -52,14 +90,28 @@ namespace Microsoft.Quantum.Documentation
             this.packageName = packageName;
 
             // If the output path is not null, make sure the directory exists.
-            if (outputPath != null && !Directory.Exists(outputPath))
+            if (outputPath != null)
             {
-                Directory.CreateDirectory(outputPath);
+                this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
+                {
+                    Severity = CodeAnalysis.DiagnosticSeverity.Info,
+                    Message = $"Writing documentation output to: {outputPath}...",
+                    Range = null,
+                    Source = null,
+                    Stage = IRewriteStep.Stage.Transformation,
+                });
+                if (!Directory.Exists(outputPath))
+                {
+                    this.TryWithExceptionsAsDiagnostics(
+                        "creating directory",
+                        async () => Directory.CreateDirectory(outputPath)
+                    ).Wait();
+                }
             }
 
-            PackageLink = PackageName == null
-                ? ""
-                : $"\nPackage: [{PackageName}](https://nuget.org/packages/{PackageName})\n";
+            this.PackageLink = this.PackageName == null
+                ? string.Empty
+                : $"\nPackage: [{this.PackageName}](https://nuget.org/packages/{this.PackageName})\n";
         }
 
         /// <summary>
@@ -90,7 +142,7 @@ namespace Microsoft.Quantum.Documentation
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
                 ["qsharp.name"] = name,
-                ["qsharp.summary"] = docComment.Summary
+                ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
 # {title}
@@ -102,9 +154,8 @@ namespace Microsoft.Quantum.Documentation
                 .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
-            await File.WriteAllTextAsync(
-                Path.Join(this.OutputPath, $"{name.ToLowerInvariant()}.md"),
-                document
+            await this.WriteAllTextAsync(
+                name, document
             );
         }
 
@@ -121,6 +172,7 @@ namespace Microsoft.Quantum.Documentation
         public async Task WriteOutput(QsCustomType type, DocComment docComment)
         {
             var namedItemDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
+
             // Make a new Markdown document for the type declaration.
             var title = $"{type.FullName.Name.Value} user defined type";
             var header = new Dictionary<string, object>
@@ -137,18 +189,18 @@ namespace Microsoft.Quantum.Documentation
                 ["qsharp.kind"] = "udt",
                 ["qsharp.namespace"] = type.FullName.Namespace.Value,
                 ["qsharp.name"] = type.FullName.Name.Value,
-                ["qsharp.summary"] = docComment.Summary
+                ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
+# {title}
+
 Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
 {this.PackageLink}
-
-# {title}
 
 {docComment.Summary}
 
 ```Q#
-{type.ToSyntax()}
+{type.WithoutDocumentationAndComments().ToSyntax()}
 ```
 
 "
@@ -174,8 +226,8 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
-            await File.WriteAllTextAsync(
-                Path.Join(this.OutputPath, $"{type.FullName.Namespace.Value.ToLowerInvariant()}.{type.FullName.Name.Value.ToLowerInvariant()}.md"),
+            await this.WriteAllTextAsync(
+                $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}.md",
                 document
             );
         }
@@ -200,7 +252,7 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
                 QsCallableKind.Tags.Function => "function",
                 QsCallableKind.Tags.Operation => "operation",
                 QsCallableKind.Tags.TypeConstructor => "type constructor",
-                _ => "<unknown>"
+                _ => "<unknown>",
             };
             var title = $@"{callable.FullName.Name.Value} {kind}";
             var header = new Dictionary<string, object>
@@ -217,13 +269,13 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
                 ["qsharp.kind"] = kind,
                 ["qsharp.namespace"] = callable.FullName.Namespace.Value,
                 ["qsharp.name"] = callable.FullName.Name.Value,
-                ["qsharp.summary"] = docComment.Summary
+                ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
+# {title}
+
 Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})
 {this.PackageLink}
-
-# {title}
 
 {docComment.Summary}
 
@@ -260,8 +312,8 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
-            await File.WriteAllTextAsync(
-                Path.Join(this.OutputPath, $"{callable.FullName.Namespace.Value.ToLowerInvariant()}.{callable.FullName.Name.Value.ToLowerInvariant()}.md"),
+            await this.WriteAllTextAsync(
+                $"{callable.FullName.Namespace.Value}.{callable.FullName.Name.Value}.md",
                 document
             );
         }
