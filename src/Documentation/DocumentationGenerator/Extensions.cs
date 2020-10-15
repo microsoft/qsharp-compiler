@@ -300,7 +300,8 @@ namespace Microsoft.Quantum.Documentation
                         ResolvedTypeKind.Tags.Range => "Range",
                         ResolvedTypeKind.Tags.String => "String",
                         ResolvedTypeKind.Tags.UnitType => "Unit",
-                        _ => "__invalid__",
+                        ResolvedTypeKind.Tags.InvalidType => "__invalid__",
+                        _ => $"__invalid<{type.Resolution.ToString()}>__",
                     },
             };
 
@@ -320,6 +321,19 @@ namespace Microsoft.Quantum.Documentation
 
         internal static bool IsInCompilationUnit(this QsCustomType type) =>
             type.SourceFile.Value.EndsWith(".qs");
+
+        internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
+            new QsCustomType(
+                fullName: type.FullName,
+                attributes: type.Attributes,
+                modifiers: type.Modifiers,
+                sourceFile: type.SourceFile,
+                location: type.Location,
+                type: type.Type,
+                typeItems: type.TypeItems,
+                documentation: ImmutableArray<string>.Empty,
+                comments: QsComments.Empty
+            );
     }
 
 }
