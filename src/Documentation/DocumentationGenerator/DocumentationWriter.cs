@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Documentation
 
             PackageLink = PackageName == null
                 ? ""
-                : $"Package: [{PackageName}](https://nuget.org/packages/{PackageName})\n";
+                : $"\nPackage: [{PackageName}](https://nuget.org/packages/{PackageName})\n";
         }
 
         /// <summary>

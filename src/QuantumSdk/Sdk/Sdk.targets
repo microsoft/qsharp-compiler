@@ -68,6 +68,11 @@
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
+      <!-- For the package ID that gets displayed in documentation, we default
+           to the actual package ID if it's set, but allow overriding with
+           QsharpDocsPackageId. -->
+      <_QscDocsPackageeId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageeId>
+      <_QscDocsPackageeId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageeId>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
       <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
@@ -77,11 +82,11 @@
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
       <_QscCommandPredefinedAssemblyProperties>ProcessorArchitecture:$(ResolvedProcessorArchitecture) QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(ExecutionTarget) != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(QsharpDocsPackageId) != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(QsharpDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(QsharpDocsGeneration)">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:$(QsharpDocsOutputPath)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageeId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageeId)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:$(QsharpDocsOutputPath)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
