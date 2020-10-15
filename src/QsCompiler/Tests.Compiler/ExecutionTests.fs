@@ -156,4 +156,13 @@ type ExecutionTests (output:ITestOutputHelper) =
                 [Complex((1, 0))]
             "
 
+    [<Fact>]
+    member this.``Adjoint generation from expressions should be reversed`` () =
+        ExecuteAndCompareOutput
+            "AdjointExpressions" "
+                first
+                second
+                Adjoint second
+                Adjoint first
+            "
 

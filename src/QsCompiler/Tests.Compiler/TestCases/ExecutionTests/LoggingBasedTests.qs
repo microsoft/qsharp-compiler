@@ -78,4 +78,15 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
         Library2.Log(0, "nothing");
     }
 
+
+    // tests for adjoint generation of calls within an expression (Issue 615)
+
+    operation evaluator (a : Unit, b : Unit) : Unit is Adj {}
+
+    operation AdjointExpressions () : Unit {
+        within {
+            evaluator(ULog("first"), ULog("second"));
+        }
+        apply {}
+    }
 }
