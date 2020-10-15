@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Documentation
         public class TransformationState
         { }
 
-        private readonly DocumentationWriter? writer;
+        internal readonly DocumentationWriter? Writer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessDocComments"/> class.
@@ -51,12 +51,12 @@ namespace Microsoft.Quantum.Documentation
         )
         : base(new TransformationState(), TransformationOptions.Disabled)
         {
-            this.writer = outputPath == null
+            this.Writer = outputPath == null
                           ? null
                           : new DocumentationWriter(outputPath, packageName);
 
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, this.writer);
+            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, this.Writer);
         }
 
         private class NamespaceTransformation
