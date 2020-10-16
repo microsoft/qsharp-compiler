@@ -73,7 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 GlobalCallable = bondGlobalCallable
             };
         }
-            
 
         private static InferredCallableInformation ToBondSchema(this SyntaxTree.InferredCallableInformation inferredCallableInformation) =>
             new InferredCallableInformation
