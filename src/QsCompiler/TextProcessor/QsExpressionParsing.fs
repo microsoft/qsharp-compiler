@@ -191,26 +191,8 @@ let internal numericLiteral =
             let nZeroPad = (4 - String.length binaryString % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
             let binaryString = binaryString.PadLeft (nZeroPad + String.length binaryString, '0')
             // now match from left
-            let hexCharList = binaryString |> Seq.chunkBySize 4 |> Seq.map (fun x ->
-                match System.String x with
-                | "0000" -> '0'
-                | "0001" -> '1'
-                | "0010" -> '2'
-                | "0011" -> '3'
-                | "0100" -> '4'
-                | "0101" -> '5'
-                | "0110" -> '6'
-                | "0111" -> '7'
-                | "1000" -> '8'
-                | "1001" -> '9'
-                | "1010" -> 'A'
-                | "1011" -> 'B'
-                | "1100" -> 'C'
-                | "1101" -> 'D'
-                | "1110" -> 'E'
-                | "1111" -> 'F'
-                | _ -> System.Char.MinValue)
-            System.String.Concat(hexCharList)
+            binaryString |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToByte(System.String x, 2).ToString "X") |> System.String.Concat
+        // seems like toString only takes keyword "X", so still need to enumerate for octal 
         let octalToBinary octalString =
             let strList = octalString |> Seq.map (fun x ->
                 match x with
