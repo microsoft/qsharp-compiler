@@ -247,7 +247,8 @@ type ErrorCode =
     | MissingEntryPoint = 6238
     | InvalidEntryPointSpecialization = 6239
     | DuplicateEntryPointArgumentName = 6240
-    | EntryPointInLibrary = 6241
+    | [<Obsolete("This diagnostic is no longer in use. The warning EntryPointInLibrary is given instead.")>]
+      EntryPointInLibrary = 6241
     | InvalidTestAttributePlacement = 6242
     | InvalidExecutionTargetForTest = 6243
     | ExpectingFullNameAsAttributeArgument = 6244
@@ -327,7 +328,8 @@ type WarningCode =
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
     | UseOfFutureReservedKeyword = 3304
-    | UseOfUnderscorePattern = 3305
+    | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] 
+      UseOfUnderscorePattern = 3305
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001 
@@ -344,6 +346,7 @@ type WarningCode =
     | IgnoredEntryPoint = 6203
     | ReservedEntryPointArgumentName = 6204
     | NonResultTypeReturnedInEntryPoint = 6205
+    | EntryPointInLibrary = 6206
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -743,6 +746,7 @@ type DiagnosticItem =
             | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
             | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
             | WarningCode.NonResultTypeReturnedInEntryPoint       -> "Only values of type Result, Result[], and tuples thereof can be returned when executing on a quantum processor."
+            | WarningCode.EntryPointInLibrary                     -> "Invalid entry point. Only executable Q# projects can have entry points. Entry point will be ignored. "
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   
