@@ -126,7 +126,6 @@ namespace Microsoft.Quantum.QsCompiler
                     }
                 }
 
-
                 rewriteSteps.AddRange(loadedSteps);
             }
 

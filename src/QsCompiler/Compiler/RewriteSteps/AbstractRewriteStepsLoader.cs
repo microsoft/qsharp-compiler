@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         protected Diagnostic LoadWarning(Uri target, WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
 
-        protected LoadedStep CreateStep(Type type, Uri target, string? outputFolder)
+        protected LoadedStep? CreateStep(Type type, Uri target, string? outputFolder)
         {
             try
             {
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.onException?.Invoke(ex);
             }
 
-            return LoadedStep.Empty;
+            return null;
         }
 
     }
