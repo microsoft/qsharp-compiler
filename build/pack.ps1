@@ -255,6 +255,11 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
 }
 
+# Copy documentation summarization tool into docs drop.
+Push-Location (Join-Path $PSScriptRoot "../src/Documentation/Summarizer")
+    Copy-Item -Path *.py, *.txt -Destination $Env:DOCS_OUTDIR
+Pop-Location
+
 Write-Host "##[info]Verifying manifest..."
 & (Join-Path $PSScriptRoot "manifest.ps1")
 
