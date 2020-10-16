@@ -86,6 +86,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
     operation AdjointExpressions () : Unit {
         within {
             evaluator(ULog("first"), ULog("second"));
+            evaluator(ULog("third"), evaluator(ULog("fourth"), ULog("fifth")));
         }
         apply {}
     }

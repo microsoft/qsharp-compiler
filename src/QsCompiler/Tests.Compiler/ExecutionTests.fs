@@ -162,6 +162,12 @@ type ExecutionTests (output:ITestOutputHelper) =
             "AdjointExpressions" "
                 first
                 second
+                third
+                fourth
+                fifth
+                Adjoint fifth
+                Adjoint fourth
+                Adjoint third
                 Adjoint second
                 Adjoint first
             "
