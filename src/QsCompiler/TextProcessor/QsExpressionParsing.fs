@@ -186,37 +186,44 @@ let internal numericLiteral =
         let isBigInt = nl.IsInteger     && format <> 0  && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
         let returnWithRange kind = preturn (kind, range)
-        let binaryStringToHex binaryString:string = 
+        let binaryStringToHex binaryString = 
             // first pad 0's so that length is multiple of 4, so we can match from left rather than right
-            let nZeroPad = (4 - string(binaryString).Length % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
-            let rec padZero(curString, numPad) =
-                match numPad with
-                | 0 -> (curString,0)
-                | _ -> padZero(curString |>sprintf("0%s"), numPad-1)
-            let (binaryString, _) = padZero(binaryString, nZeroPad)
+            let nZeroPad = (4 - String.length binaryString % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
+            let binaryString = binaryString.PadLeft (nZeroPad + String.length binaryString, '0')
             // now match from left
-            let biList = binaryString |> Seq.toList
-            let rec binaryListToHex binaryList =
-                match binaryList with
-                | [] -> []
-                | '0'::'0'::'0'::'0'::rest -> '0'::binaryListToHex rest
-                | '0'::'0'::'0'::'1'::rest -> '1'::binaryListToHex rest
-                | '0'::'0'::'1'::'0'::rest -> '2'::binaryListToHex rest
-                | '0'::'0'::'1'::'1'::rest -> '3'::binaryListToHex rest
-                | '0'::'1'::'0'::'0'::rest -> '4'::binaryListToHex rest
-                | '0'::'1'::'0'::'1'::rest -> '5'::binaryListToHex rest
-                | '0'::'1'::'1'::'0'::rest -> '6'::binaryListToHex rest
-                | '0'::'1'::'1'::'1'::rest -> '7'::binaryListToHex rest
-                | '1'::'0'::'0'::'0'::rest -> '8'::binaryListToHex rest
-                | '1'::'0'::'0'::'1'::rest -> '9'::binaryListToHex rest
-                | '1'::'0'::'1'::'0'::rest -> 'A'::binaryListToHex rest
-                | '1'::'0'::'1'::'1'::rest -> 'B'::binaryListToHex rest
-                | '1'::'1'::'0'::'0'::rest -> 'C'::binaryListToHex rest
-                | '1'::'1'::'0'::'1'::rest -> 'D'::binaryListToHex rest
-                | '1'::'1'::'1'::'0'::rest -> 'E'::binaryListToHex rest
-                | '1'::'1'::'1'::'1'::rest -> 'F'::binaryListToHex rest
-                | _ -> []
-            System.String.Concat(Array.ofList(binaryListToHex biList))
+            let hexCharList = binaryString |> Seq.chunkBySize 4 |> Seq.map (fun x ->
+                match System.String x with
+                | "0000" -> '0'
+                | "0001" -> '1'
+                | "0010" -> '2'
+                | "0011" -> '3'
+                | "0100" -> '4'
+                | "0101" -> '5'
+                | "0110" -> '6'
+                | "0111" -> '7'
+                | "1000" -> '8'
+                | "1001" -> '9'
+                | "1010" -> 'A'
+                | "1011" -> 'B'
+                | "1100" -> 'C'
+                | "1101" -> 'D'
+                | "1110" -> 'E'
+                | "1111" -> 'F'
+                | _ -> System.Char.MinValue)
+            System.String.Concat(hexCharList)
+        let octalToBinary octalString =
+            let strList = octalString |> Seq.map (fun x ->
+                match x with
+                | '0' -> "000"
+                | '1' -> "001"
+                | '2' -> "010"
+                | '3' -> "011"
+                | '4' -> "100"
+                | '5' -> "101"
+                | '6' -> "110"
+                | '7' -> "111"
+                | _ -> "")
+            System.String.Concat(strList)
 
         try if isInt then 
                 let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
@@ -227,6 +234,7 @@ let internal numericLiteral =
             elif isBigInt then 
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 elif format = 2 then BigInteger.Parse(str |> binaryStringToHex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                elif format = 8 then BigInteger.Parse(str |> octalToBinary |> binaryStringToHex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then 
                 try let doubleValue = System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture)

@@ -247,7 +247,10 @@ let ``Expression literal tests`` () =
         ("10000000000000000L",    true,    toBigInt "10000000000000000",                                          []);
         ("0b111L",                true,    toBigInt "7",                                                          []);
         ("0b1101L",               true,    toBigInt "13",                                                         []);
-        ("0b1100101011111110L",   true,    toBigInt "51966",                                                      []); 
+        ("0b1100101011111110L",   true,    toBigInt "51966",                                                      []);
+        ("0o1L",                  true,    toBigInt "1",                                                          []);
+        ("0o105L",                true,    toBigInt "69",                                                         []);
+        ("0o12345L",              true,    toBigInt "5349",                                                      []); 
         ("0xfL",                  true,    toBigInt "15",                                                         []); 
         ("0xffL",                 true,    toBigInt "255",                                                        []); 
         ("1l",                    true,    toBigInt "1",                                                          []); 
