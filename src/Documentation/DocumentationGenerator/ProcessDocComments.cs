@@ -140,6 +140,17 @@ namespace Microsoft.Quantum.Documentation
                     replacement: replacement
                 );
 
+                // Validate named item names.
+                var inputDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
+                this.ValidateNames(
+                    $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}",
+                    "named item",
+                    name => inputDeclarations.ContainsKey(name),
+                    docComment.Input.Keys,
+                    range: null, // TODO: provide more exact locations once supported by DocParser.
+                    source: type.SourceFile.Value
+                );
+
                 this.writer?.WriteOutput(type, docComment)?.Wait();
 
                 return type
