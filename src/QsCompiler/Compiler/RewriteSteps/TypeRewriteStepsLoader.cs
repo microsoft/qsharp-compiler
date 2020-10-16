@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -16,16 +17,16 @@ namespace Microsoft.Quantum.QsCompiler
         {
         }
 
-        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
+        public ImmutableArray<LoadedStep> GetLoadedSteps(IEnumerable<(Type, string?)>? rewriteStepTypes)
         {
-            if (config.RewriteStepTypes == null)
+            if (rewriteStepTypes == null)
             {
                 return ImmutableArray<LoadedStep>.Empty;
             }
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
 
-            foreach (var definedStep in config.RewriteStepTypes)
+            foreach (var definedStep in rewriteStepTypes)
             {
                 var loadedStep = this.CreateStep(definedStep.Item1, new Uri(definedStep.Item1.Assembly.Location), definedStep.Item2);
                 if (loadedStep != null)

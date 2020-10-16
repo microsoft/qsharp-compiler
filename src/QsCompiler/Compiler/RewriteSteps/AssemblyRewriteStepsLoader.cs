@@ -24,13 +24,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
         }
 
-        public override ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config)
+        public ImmutableArray<LoadedStep> GetLoadedSteps(IEnumerable<(string, string?)>? rewriteStepAssemblies)
         {
-            // this is for backwards compatibility with RewriteSteps property on the config. Can be removed in the future.
-#pragma warning disable CS0618 // Type or member is obsolete
-            var unifiedAssemblies = (config.RewriteStepAssemblies ?? Enumerable.Empty<(string, string?)>()).Union(config.RewriteSteps ?? Enumerable.Empty<(string, string?)>());
-#pragma warning restore CS0618 // Type or member is obsolete
-            if (unifiedAssemblies == null || !unifiedAssemblies.Any())
+            if (rewriteStepAssemblies == null)
             {
                 return ImmutableArray<LoadedStep>.Empty;
             }
@@ -50,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            var specifiedPluginDlls = unifiedAssemblies.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
+            var specifiedPluginDlls = rewriteStepAssemblies.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
             {

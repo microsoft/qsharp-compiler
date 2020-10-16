@@ -21,9 +21,7 @@ type TestRewriteStep (priority:int) =
 
 type ExternalRewriteStepsManagerTests () =
     
-    let GetSteps config =
-        let manager = new ExternalRewriteStepsManager();
-        manager.Load(config)
+    let GetSteps config = ExternalRewriteStepsManager.Load(config, null, null)
 
     let AssertLength (expectedLength, loadedSteps : ImmutableArray<LoadedStep>) =
         Assert.NotEmpty loadedSteps

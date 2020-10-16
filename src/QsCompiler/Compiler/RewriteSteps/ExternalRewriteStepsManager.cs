@@ -10,18 +10,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal class ExternalRewriteStepsManager
+    internal static class ExternalRewriteStepsManager
     {
-        private ImmutableArray<IRewriteStepsLoader> rewriteStepsLoaders;
-
-        public ExternalRewriteStepsManager(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
-        {
-            this.rewriteStepsLoaders = ImmutableArray.Create<IRewriteStepsLoader>(
-                new InstanceRewriteStepsLoader(onDiagnostic, onException),
-                new TypeRewriteStepsLoader(onDiagnostic, onException),
-                new AssemblyRewriteStepsLoader(onDiagnostic, onException));
-        }
-
         /// <summary>
         /// Loads all dlls listed as containing rewrite steps to include in the compilation process in the given configuration.
         /// Generates suitable diagnostics if a listed file can't be found or loaded.
@@ -31,16 +21,23 @@ namespace Microsoft.Quantum.QsCompiler
         /// and calls onException on all caught exceptions if it is specified and not null.
         /// Returns an empty array if the rewrite steps in the given configurations are set to null.
         /// </summary>
-        internal ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config)
+        internal static ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config, Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
         {
             var loadedSteps = new List<LoadedStep>();
+            var instanceRewriteStepLoader = new InstanceRewriteStepsLoader(onDiagnostic, onException);
+            loadedSteps.AddRange(instanceRewriteStepLoader.GetLoadedSteps(config.RewriteStepInstances));
 
-            foreach (var loader in this.rewriteStepsLoaders)
-            {
-                loadedSteps.AddRange(loader.GetLoadedSteps(config));
-            }
+            var typeRewriteStepLoader = new TypeRewriteStepsLoader(onDiagnostic, onException);
+            loadedSteps.AddRange(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes));
 
-            foreach (var loaded in loadedSteps.Where(loadedStep => loadedStep != LoadedStep.Empty))
+            var assemblyRewriteStepLoader = new AssemblyRewriteStepsLoader(onDiagnostic, onException);
+            // this is for backwards compatibility with RewriteSteps property on the config. Can be removed in the future.
+#pragma warning disable CS0618 // Type or member is obsolete
+            var unifiedAssemblyRewriteSteps = (config.RewriteStepAssemblies ?? Enumerable.Empty<(string, string?)>()).Union(config.RewriteSteps ?? Enumerable.Empty<(string, string?)>());
+#pragma warning restore CS0618 // Type or member is obsolete
+            loadedSteps.AddRange(assemblyRewriteStepLoader.GetLoadedSteps(unifiedAssemblyRewriteSteps));
+
+            foreach (var loaded in loadedSteps)
             {
                 var assemblyConstants = loaded.AssemblyConstants;
                 if (assemblyConstants == null)

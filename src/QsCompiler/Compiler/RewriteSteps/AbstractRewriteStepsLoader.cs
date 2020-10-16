@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal abstract class AbstractRewriteStepsLoader : IRewriteStepsLoader
+    internal abstract class AbstractRewriteStepsLoader
     {
         protected readonly Action<Diagnostic>? onDiagnostic;
         protected readonly Action<Exception>? onException;
@@ -20,8 +20,6 @@ namespace Microsoft.Quantum.QsCompiler
             this.onDiagnostic = onDiagnostic;
             this.onException = onException;
         }
-
-        public abstract ImmutableArray<LoadedStep> GetLoadedSteps(CompilationLoader.Configuration config);
 
         protected Diagnostic LoadError(Uri target, ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
 

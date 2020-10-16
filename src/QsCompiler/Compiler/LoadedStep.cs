@@ -20,7 +20,6 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class LoadedStep : IRewriteStep
     {
-        internal static LoadedStep Empty = new LoadedStep();
         internal readonly Uri Origin;
         private readonly IRewriteStep? selfAsStep;
         private readonly object selfAsObject;
