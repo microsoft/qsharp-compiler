@@ -42,6 +42,14 @@ namespace Microsoft.Quantum.Documentation
 
         private readonly string PackageLink;
 
+        private static string AsSeeAlsoLink(string target, string? currentNamespace = null)
+        {
+            var actualTarget = currentNamespace == null || target.Contains(".")
+                ? target
+                : $"{currentNamespace}.{target}";
+            return $"- [{actualTarget}](xref:{actualTarget})";
+        }
+
         private async Task TryWithExceptionsAsDiagnostics(string description, Func<Task> action, DiagnosticSeverity severity = DiagnosticSeverity.Warning)
         {
             try
@@ -66,7 +74,7 @@ namespace Microsoft.Quantum.Documentation
             await this.TryWithExceptionsAsDiagnostics(
                 $"writing output to {filename}",
                 async () => await File.WriteAllTextAsync(
-                    Path.Join(this.OutputPath, $"{filename.ToLowerInvariant()}.md"),
+                    Path.Join(this.OutputPath, filename.ToLowerInvariant()),
                     contents
                 )
             );
@@ -151,11 +159,17 @@ namespace Microsoft.Quantum.Documentation
 
 "
                 .MaybeWithSection("Description", docComment.Description)
+                .MaybeWithSection(
+                    "See Also",
+                    string.Join("\n", docComment.SeeAlso.Select(
+                        seeAlso => AsSeeAlsoLink(seeAlso)
+                    ))
+                )
                 .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
             await this.WriteAllTextAsync(
-                name, document
+                $"{name}.md", document
             );
         }
 
@@ -220,7 +234,7 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => $"- {seeAlso}"
+                    seeAlso => AsSeeAlsoLink(seeAlso, type.FullName.Namespace.Value)
                 ))
             )
             .WithYamlHeader(header);
@@ -306,7 +320,7 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => $"- [{seeAlso}](xref:{seeAlso})"
+                    seeAlso => AsSeeAlsoLink(seeAlso, callable.FullName.Namespace.Value)
                 ))
             )
             .WithYamlHeader(header);

@@ -32,6 +32,12 @@ namespace Microsoft.Quantum.Documentation
         public class TransformationState
         { }
 
+        /// <summary>
+        ///     An event that is raised on diagnostics about documentation
+        ///     writing (e.g., if an I/O problem prevents writing to disk).
+        /// </summary>
+        public event Action<IRewriteStep.Diagnostic>? OnDiagnostic;
+
         internal readonly DocumentationWriter? Writer;
 
         /// <summary>
@@ -55,6 +61,12 @@ namespace Microsoft.Quantum.Documentation
                           ? null
                           : new DocumentationWriter(outputPath, packageName);
 
+            if (this.Writer != null)
+            {
+                this.Writer.OnDiagnostic += diagnostic =>
+                    this.OnDiagnostic?.Invoke(diagnostic);
+            }
+
             // We provide our own custom namespace transformation, and expression kind transformation.
             this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, this.Writer);
         }
@@ -67,6 +79,33 @@ namespace Microsoft.Quantum.Documentation
             internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
             : base(parent)
             { this.writer = writer; }
+
+            private void ValidateNames(
+                string symbolName,
+                string nameKind,
+                Func<string, bool> isNameValid,
+                IEnumerable<string> actualNames,
+                Range? range = null,
+                string? source = null
+            )
+            {
+                foreach (var name in actualNames)
+                {
+                    if (!isNameValid(name))
+                    {
+                        (this.Transformation as ProcessDocComments)?.OnDiagnostic?.Invoke(
+                            new IRewriteStep.Diagnostic
+                            {
+                                Message = $"When documenting {symbolName}, found documentation for {nameKind} {name}, but no such {nameKind} exists.",
+                                Severity = CodeAnalysis.DiagnosticSeverity.Warning,
+                                Range = range,
+                                Source = source,
+                                Stage = IRewriteStep.Stage.Transformation,
+                            }
+                        );
+                    }
+                }
+            }
 
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
@@ -101,6 +140,17 @@ namespace Microsoft.Quantum.Documentation
                     replacement: replacement
                 );
 
+                // Validate named item names.
+                var inputDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
+                this.ValidateNames(
+                    $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}",
+                    "named item",
+                    name => inputDeclarations.ContainsKey(name),
+                    docComment.Input.Keys,
+                    range: null, // TODO: provide more exact locations once supported by DocParser.
+                    source: type.SourceFile.Value
+                );
+
                 this.writer?.WriteOutput(type, docComment)?.Wait();
 
                 return type
@@ -131,6 +181,31 @@ namespace Microsoft.Quantum.Documentation
                     callable.Documentation, callable.FullName.Name.Value,
                     deprecated: isDeprecated,
                     replacement: replacement
+                );
+                var callableName = 
+                    $"{callable.FullName.Namespace.Value}.{callable.FullName.Name.Value}";
+
+                // Validate input and type parameter names.
+                var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
+                this.ValidateNames(
+                    callableName,
+                    "input",
+                    name => inputDeclarations.ContainsKey(name),
+                    docComment.Input.Keys,
+                    range: null, // TODO: provide more exact locations once supported by DocParser.
+                    source: callable.SourceFile.Value
+                );
+                this.ValidateNames(
+                    callableName,
+                    "type parameter",
+                    name => callable.Signature.TypeParameters.Any(
+                        typeParam =>
+                            typeParam is QsLocalSymbol.ValidName validName &&
+                            validName.Item.Value == name.TrimStart('\'')
+                    ),
+                    docComment.TypeParameters.Keys,
+                    range: null, // TODO: provide more exact locations once supported by DocParser.
+                    source: callable.SourceFile.Value
                 );
 
                 this.writer?.WriteOutput(callable, docComment)?.Wait();

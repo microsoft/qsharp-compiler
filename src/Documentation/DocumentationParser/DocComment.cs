@@ -221,7 +221,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                                     {
                                         itemText = itemText.Substring(2, itemText.Length - 3);
                                     }
-                                    literal.Content = new Markdig.Helpers.StringSlice(itemText.ToLowerInvariant());
+                                    literal.Content = new Markdig.Helpers.StringSlice(itemText);
                                 }
                                 accum.Add(ToMarkdown(new Block[] { item }));
                             }

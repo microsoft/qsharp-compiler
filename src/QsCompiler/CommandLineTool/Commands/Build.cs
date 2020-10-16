@@ -155,7 +155,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 throw new ArgumentNullException(nameof(responseFiles));
             }
             var commandLine = string.Join(" ", responseFiles.Select(File.ReadAllText));
-            System.Diagnostics.Debugger.Launch();
             var args = SplitCommandLineArguments(commandLine);
             var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
             return parsed.MapResult(
