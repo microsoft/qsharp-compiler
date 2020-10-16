@@ -175,6 +175,14 @@ namespace Microsoft.Quantum.QsCompiler
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
+            [Obsolete("Please use RewriteStepAssemblies instead.")]
+            public IEnumerable<(string, string?)>? RewriteSteps;
+
+            /// <summary>
+            /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps
+            /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
+            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
+            /// </summary>
             public IEnumerable<(string, string?)>? RewriteStepAssemblies;
 
             /// <summary>
