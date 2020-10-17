@@ -57,8 +57,6 @@ type CharacteristicsKind<'S> =
 | Intersection of 'S * 'S
 | InvalidSetExpr
     with
-    static member CreateEmptySet() = EmptySet
-    static member CreateInvalidSetExpr() = InvalidSetExpr
     member this.TryGetSimpleSet(simpleSet: OpProperty byref) =
         match this with
         | SimpleSet value -> simpleSet <- value; true
@@ -98,18 +96,6 @@ type QsTypeKind<'Type,'UdtName,'TParam, 'Characteristics> =
 | MissingType // used (only!) upon determining the type of expressions (for MissingExpr)
 | InvalidType // to be used e.g. for parsing errors
     with
-    static member CreateUnitType() = UnitType
-    static member CreateInt() = Int
-    static member CreateBigInt() = BigInt
-    static member CreateDouble() = Double
-    static member CreateBool() = Bool
-    static member CreateString() = String
-    static member CreateQubit() = Qubit
-    static member CreateResult() = Result
-    static member CreatePauli() = Pauli
-    static member CreateRange() = Range
-    static member CreateMissingType() = MissingType
-    static member CreateInvalidType() = InvalidType
     member this.TryGetArrayType(arrayType: 'Type byref) =
         match this with
         | ArrayType value -> arrayType <- value; true
@@ -190,9 +176,6 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
 | MissingExpr // for partial application
 | InvalidExpr
     with
-    static member CreateUnitValue() = UnitValue
-    static member CreateMissingExpr() = MissingExpr
-    static member CreateInvalidExpr() = InvalidExpr
     member this.TryGetIdentifier(identifier: ('Symbol * QsNullable<ImmutableArray<'Type>>) byref) =
         match this with
         | Identifier(symbol, typeParameters) -> identifier <- (symbol, typeParameters); true
@@ -376,8 +359,6 @@ type QsInitializerKind<'Initializer, 'Expr> =
 | QubitTupleAllocation of ImmutableArray<'Initializer>
 | InvalidInitializer
     with
-    static member CreateInvalidInitializer() = InvalidInitializer
-    static member CreateSingleQubitAllocation() = SingleQubitAllocation
     member this.TryGetQubitRegisterAllocation(qubitRegisterAllocation: 'Expr byref) =
         match this with
         | QubitRegisterAllocation value -> qubitRegisterAllocation <- value; true
