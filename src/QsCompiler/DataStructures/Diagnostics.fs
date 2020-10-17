@@ -247,7 +247,8 @@ type ErrorCode =
     | MissingEntryPoint = 6238
     | InvalidEntryPointSpecialization = 6239
     | DuplicateEntryPointArgumentName = 6240
-    | EntryPointInLibrary = 6241
+    | [<Obsolete("This diagnostic is no longer in use. The warning EntryPointInLibrary is given instead.")>]
+      EntryPointInLibrary = 6241
     | InvalidTestAttributePlacement = 6242
     | InvalidExecutionTargetForTest = 6243
     | ExpectingFullNameAsAttributeArgument = 6244
@@ -255,6 +256,8 @@ type ErrorCode =
     | AttributeInvalidOnCallable = 6246
     | UnresolvedTypeParameterForRecursiveCall = 6247
     | TypeParameterResConflictWithTypeArgument = 6248
+    | FullNameConflictsWithNamespace = 6249
+    | InvalidCyclicTypeParameterResolution = 6250
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -325,7 +328,8 @@ type WarningCode =
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
     | UseOfFutureReservedKeyword = 3304
-    | UseOfUnderscorePattern = 3305
+    | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] 
+      UseOfUnderscorePattern = 3305
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001 
@@ -342,6 +346,7 @@ type WarningCode =
     | IgnoredEntryPoint = 6203
     | ReservedEntryPointArgumentName = 6204
     | NonResultTypeReturnedInEntryPoint = 6205
+    | EntryPointInLibrary = 6206
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -649,6 +654,8 @@ type DiagnosticItem =
             | ErrorCode.AttributeInvalidOnCallable                -> "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
             | ErrorCode.UnresolvedTypeParameterForRecursiveCall   -> "The type argument(s) for the recursive call could not be inferred. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.TypeParameterResConflictWithTypeArgument  -> "The type of the expression needs to match the defined type argument. Expecting an expression of type {0}."
+            | ErrorCode.FullNameConflictsWithNamespace            -> "The name {0} conflicts with a namespace name."
+            | ErrorCode.InvalidCyclicTypeParameterResolution      -> "The call cycle results in an ambiguous or conflicting type parameter resolution."
 
             | ErrorCode.TypeMismatchInReturn                      -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate                 -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
@@ -739,6 +746,7 @@ type DiagnosticItem =
             | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
             | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
             | WarningCode.NonResultTypeReturnedInEntryPoint       -> "Only values of type Result, Result[], and tuples thereof can be returned when executing on a quantum processor."
+            | WarningCode.EntryPointInLibrary                     -> "Invalid entry point. Only executable Q# projects can have entry points. Entry point will be ignored. "
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   
