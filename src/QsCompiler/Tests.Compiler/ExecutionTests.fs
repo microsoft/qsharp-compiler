@@ -160,15 +160,35 @@ type ExecutionTests (output:ITestOutputHelper) =
     member this.``Adjoint generation from expressions should be reversed`` () =
         ExecuteAndCompareOutput
             "AdjointExpressions" "
-                first
-                second
-                third
-                fourth
-                fifth
-                Adjoint fifth
-                Adjoint fourth
-                Adjoint third
-                Adjoint second
-                Adjoint first
+                1
+                2
+                3
+                4
+                5
+                6
+                7
+                8
+                9
+                10
+                11
+                skip lift
+                12
+                13
+                14 () ()
+                Adjoint 14 () ()
+                Adjoint 13
+                Adjoint 12
+                Adjoint skip lift
+                Adjoint 11
+                Adjoint 10
+                Adjoint 9
+                Adjoint 8
+                Adjoint 7
+                Adjoint 6
+                Adjoint 5
+                Adjoint 4
+                Adjoint 3
+                Adjoint 2
+                Adjoint 1
             "
 
