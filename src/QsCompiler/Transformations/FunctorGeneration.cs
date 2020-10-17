@@ -156,13 +156,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// Scope transformation that splits any nested operation calls into separate statements so
     /// that they can be properly reversed. This is necessary to avoid out of order execution of the
     /// automatically generated adjoint. It is safe to do because an adjointable operation must return
-    /// Unit, so any nested calls be replaced by Unit and those calls moved to separate, ordered statements.
+    /// Unit, so any nested calls can  be replaced by Unit and those calls moved to separate,
+    /// ordered statements.
     /// </summary>
     public class LiftOperationCalls
     : SyntaxTreeTransformation<LiftOperationCalls.TransformationsState>
     {
         public class TransformationsState
         {
+            /// <summary>
+            /// Accumulates statements that have been lifted from the current statement.
+            /// </summary>
             public List<QsStatement> AdditionalStatements = new List<QsStatement>();
         }
 
@@ -228,7 +232,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                         QsStatementKind.NewQsExpressionStatement(
                             new TypedExpression(
                                 base.OnOperationCall(method, arg),
-                                TypeArgsResolution.Empty,
+                                TypeArgsResolution.Empty, // TODO(swernli): How do I determine the right argument types here?
                                 ResolvedType.New(ResolvedTypeKind.UnitType),
                                 new InferredExpressionInformation(false, true),
                                 QsNullable<Range>.Null)),
