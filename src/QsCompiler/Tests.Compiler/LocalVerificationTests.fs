@@ -261,6 +261,9 @@ type LocalVerificationTests () =
         this.Expect "UsingRenamedAttribute1"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute2"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute3"       [Warning WarningCode.DeprecationWithRedirect]
+
+        this.Expect "UsingNestedDeprecatedCallable"[Warning WarningCode.DeprecationWithRedirect]
+        //this.Expect "UsingDepAttrInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
                                                    
         this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]
