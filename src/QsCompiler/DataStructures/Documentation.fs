@@ -44,7 +44,7 @@ type QsType with
             | QsTypeKind.Bool ->
                 [
                     "# Summary"
-                    "Represents a Boolean (true or false) value"
+                    "Represents a Boolean (true or false) value."
                 ]
             | QsTypeKind.String -> 
                 [
@@ -88,7 +88,7 @@ type QsType with
                 [
                     "# Summary"
                     "Represents a deterministic callable"
-                    "that takes exacly one input argument of the type specified to the left of the arrow"
+                    "that takes exactly one input argument of the type specified to the left of the arrow."
                     "and returns one output value of the type specified to the right of the arrow."
                     "The side effects and output value of a function are always fully defined by its input argument."
                 ]
@@ -110,9 +110,7 @@ type QsType with
             | QsTypeKind.UserDefinedType _ -> 
                 [
                     "# Summary"
-                    "Represents a user defined type."
-                    "User defined types consist of type name and a single item containing an object of their underlying type."
-                    "The contained item can be accessed by applying the postfix unwrap operator \"!\"."
+                    "Represents a user defined type. User defined types consist of named and anonymous items of different types."
                 ]
             | QsTypeKind.TypeParameter _ ->
                 [

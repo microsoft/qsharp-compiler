@@ -196,6 +196,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             diagnostics.SyncRoot.EnterWriteLock();
             try
             {
+                // remove all cycle related diagnostics
+                diagnostics.RemoveAll(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
                 // remove any Diagnostic overlapping with the updated interval
                 diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckDelimiters) || m.SelectByEnd(syntaxCheckDelimiters));
                 // these are also no longer valid
