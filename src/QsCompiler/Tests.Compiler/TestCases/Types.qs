@@ -168,3 +168,18 @@ namespace Microsoft.Quantum.Testing.GlobalVerification.N4 {
         return (new 'T[1])[0];
     }
 }
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict4 {
+    newtype Dummy = Unit;
+}
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict5 {
+    newtype Dummy = Unit;
+}
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict6 {
+    newtype Dummy = Unit;
+}
