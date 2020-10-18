@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
                             var combination = new TypeResolutionCombination(expr.Item);
-                            var combinedTypeArguments = combination.CombinedResolutionDictionary.Where(kvp => kvp.Key.Item1.Equals(global.Item)).ToImmutableDictionary();
+                            var combinedTypeArguments = combination.CombinedResolutionDictionary.FilterByOrigin(global.Item);
                             QsCompilerError.Verify(combination.IsValid, "failed to combine type parameter resolution");
 
                             var globalCallable = this.SharedState.Compilation.Namespaces
@@ -475,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     // Takes a single TypedExpression of type Result and puts in into a
                     // value array expression with the given expression as its only item.
-                    TypedExpression BoxResultInArray(TypedExpression expression) =>
+                    static TypedExpression BoxResultInArray(TypedExpression expression) =>
                         new TypedExpression(
                             ExpressionKind.NewValueArray(ImmutableArray.Create(expression)),
                             TypeArgsResolution.Empty,
@@ -704,7 +704,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                     else if (expression.Expression is ExpressionKind.NEQ neq)
                     {
-                        QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
+                        static QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
 
                         if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
