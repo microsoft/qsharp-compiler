@@ -101,10 +101,10 @@ type TypeCheckingTests () =
         this.Expect "OperationInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
         this.Expect "FunctionEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
         this.Expect "FunctionInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
-        this.Expect "InvalidTypeEquality" [ Error ErrorCode.InvalidUseOfReservedKeyword
-                                            Error ErrorCode.InvalidUseOfReservedKeyword ]
-        this.Expect "InvalidTypeInequality" [ Error ErrorCode.InvalidUseOfReservedKeyword
-                                              Error ErrorCode.InvalidUseOfReservedKeyword ]
+        this.Expect "InvalidTypeEquality" [ Error ErrorCode.InvalidUseOfUnderscorePattern
+                                            Error ErrorCode.InvalidUseOfUnderscorePattern ]
+        this.Expect "InvalidTypeInequality" [ Error ErrorCode.InvalidUseOfUnderscorePattern
+                                              Error ErrorCode.InvalidUseOfUnderscorePattern ]
         this.Expect "NoCommonBaseEquality" [ Error ErrorCode.ArgumentMismatchInBinaryOp
                                              Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "NoCommonBaseInequality" [ Error ErrorCode.ArgumentMismatchInBinaryOp

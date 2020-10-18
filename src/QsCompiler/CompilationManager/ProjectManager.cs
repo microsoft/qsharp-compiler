@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
                 this.projectReferenceDiagnostics = this.projectReferenceDiagnostics.RemoveAll(d =>
-                        (d.Source == MessageSource(projectReference) && d.Code != WarningCode.DuplicateProjectReference.Code())
+                        (d.Source == MessageSource(projectReference) && d.IsWarning() && d.Code != WarningCode.DuplicateProjectReference.Code())
                         || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
                     .Concat(diagnostics).ToImmutableArray();
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
@@ -433,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
                 this.referenceDiagnostics = this.referenceDiagnostics.RemoveAll(d =>
-                        (d.Source == MessageSource(reference) && d.Code != WarningCode.DuplicateBinaryFile.Code())
+                        (d.Source == MessageSource(reference) && d.IsWarning() && d.Code != WarningCode.DuplicateBinaryFile.Code())
                         || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
                     .Concat(diagnostics).ToImmutableArray();
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
@@ -559,7 +559,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     this.loadedSourceFiles = this.loadedSourceFiles.Remove(sourceFile).Concat(loaded.Keys).ToImmutableHashSet();
                     this.sourceFileDiagnostics = this.sourceFileDiagnostics
-                        .RemoveAll(d => d.Source == MessageSource(sourceFile) && d.Code != WarningCode.DuplicateSourceFile.Code())
+                        .RemoveAll(d => d.Source == MessageSource(sourceFile) && d.IsWarning() && d.Code != WarningCode.DuplicateSourceFile.Code())
                         .Concat(diagnostics).ToImmutableArray();
                     this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
 
