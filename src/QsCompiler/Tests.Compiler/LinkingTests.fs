@@ -325,7 +325,11 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Entry point return type restriction for quantum processors`` () =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
-        let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true, capabilities = RuntimeCapabilities.QPRGen0)
+        let compilationManager =
+            new CompilationUnitManager
+                (Action<_> (fun ex -> failwith ex.Message),
+                 isExecutable = true,
+                 capabilities = RuntimeCapabilities.BasicQuantumFunctionality)
         let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
         

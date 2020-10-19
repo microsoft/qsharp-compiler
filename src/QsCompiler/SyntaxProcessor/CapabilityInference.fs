@@ -53,18 +53,21 @@ type private StatementLocationTracker (parent, options) =
 
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private patternCapability inOperation = function
-    | ResultEqualityInCondition _ -> if inOperation then RuntimeCapabilities.QPRGen1 else RuntimeCapabilities.Unknown
-    | ResultEqualityNotInCondition _ -> RuntimeCapabilities.Unknown
-    | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
-    | SetInResultConditionedBlock _ -> RuntimeCapabilities.Unknown
+    | ResultEqualityInCondition _ ->
+        if inOperation
+        then RuntimeCapabilities.BasicMeasurementFeedback
+        else RuntimeCapabilities.FullComputation
+    | ResultEqualityNotInCondition _ -> RuntimeCapabilities.FullComputation
+    | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.FullComputation
+    | SetInResultConditionedBlock _ -> RuntimeCapabilities.FullComputation
 
 /// The runtime capability with the lowest level.
-let private baseCapability = RuntimeCapabilities.QPRGen0
+let private baseCapability = RuntimeCapabilities.BasicQuantumFunctionality
 
 /// Returns the level of the runtime capability.
 let private level = function
-    | RuntimeCapabilities.QPRGen0 -> Level 0
-    | RuntimeCapabilities.QPRGen1 -> Level 1
+    | RuntimeCapabilities.BasicQuantumFunctionality -> Level 0
+    | RuntimeCapabilities.BasicMeasurementFeedback -> Level 1
     | _ -> Level 2
 
 /// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
@@ -84,17 +87,17 @@ let private patternDiagnostic context pattern =
         then None
         else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
     let unsupported =
-        if context.Capabilities = RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
         then ErrorCode.ResultComparisonNotInOperationIf
         else ErrorCode.UnsupportedResultComparison
 
     match pattern with
     | ReturnInResultConditionedBlock range ->
-        if context.Capabilities = RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
         then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture.Value ] range
         else None
     | SetInResultConditionedBlock (name, range) ->
-        if context.Capabilities = RuntimeCapabilities.QPRGen1
+        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
         then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture.Value ] range
         else None
     | ResultEqualityInCondition range ->

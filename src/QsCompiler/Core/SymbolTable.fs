@@ -959,7 +959,8 @@ and NamespaceManager
             errs.AddRange signatureErrs
 
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
-            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen0 || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen1 then
+            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.BasicQuantumFunctionality
+               || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.BasicMeasurementFeedback then
                 let invalid = signature.ReturnType.ExtractAll (fun t -> t.Type |> function 
                     | Result | ArrayType _ | TupleType _ | InvalidType -> Seq.empty
                     | _ -> Seq.singleton t)

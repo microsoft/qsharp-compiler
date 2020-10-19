@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false,
-            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
+            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.FullComputation,
             bool isExecutable = false,
             NonNullable<string> processorArchitecture = default)
         {

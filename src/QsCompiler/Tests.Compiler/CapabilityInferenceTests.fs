@@ -30,7 +30,7 @@ let ``Infers QPRGen0 by source code`` () =
       // is supported, ResultTuple and ResultArray should be inferred as Unknown instead.
       "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen0)
+    |> List.iter (expect RuntimeCapabilities.BasicQuantumFunctionality)
 
 [<Fact>]
 let ``Infers QPRGen1 by source code`` () =
@@ -39,7 +39,7 @@ let ``Infers QPRGen1 by source code`` () =
       "EmptyIfNeqOp"
       "Reset"
       "ResetNeq" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers Unknown by source code`` () =
@@ -61,64 +61,64 @@ let ``Infers Unknown by source code`` () =
       "SetTuple"
       "EmptyIf"
       "EmptyIfNeq" ]
-    |> List.iter (expect RuntimeCapabilities.Unknown)
+    |> List.iter (expect RuntimeCapabilities.FullComputation)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect RuntimeCapabilities.QPRGen0 "OverrideGen1ToGen0"
+    expect RuntimeCapabilities.BasicQuantumFunctionality "OverrideGen1ToGen0"
     [ "OverrideGen0ToGen1"
       "OverrideUnknownToGen1"
       "ExplicitGen1" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
-    expect RuntimeCapabilities.Unknown "OverrideGen1ToUnknown"
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    expect RuntimeCapabilities.FullComputation "OverrideGen1ToUnknown"
 
 [<Fact>]
 let ``Infers single dependency`` () =
     [ "CallGen1A"
       "CallGen1B" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
-    expect RuntimeCapabilities.QPRGen1 "CallGen1UnknownB"
+    expect RuntimeCapabilities.BasicMeasurementFeedback "CallGen1UnknownB"
     [ "CallGen1UnknownA"
       "CallGen1UnknownC" ]
-    |> List.iter (expect RuntimeCapabilities.Unknown)
+    |> List.iter (expect RuntimeCapabilities.FullComputation)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
     [ "CallUnknownA"
       "CallUnknownB" ]
-    |> List.iter (expect RuntimeCapabilities.Unknown)
-    expect RuntimeCapabilities.QPRGen1 "CallUnknownC"
+    |> List.iter (expect RuntimeCapabilities.FullComputation)
+    expect RuntimeCapabilities.BasicMeasurementFeedback "CallUnknownC"
 
 [<Fact>]
 let ``Allows safe override`` () =
     [ "CallUnknownOverrideA"
       "CallUnknownOverrideB" ]
-    |> List.iter (expect RuntimeCapabilities.Unknown)
-    expect RuntimeCapabilities.QPRGen1 "CallUnknownOverrideC"
+    |> List.iter (expect RuntimeCapabilities.FullComputation)
+    expect RuntimeCapabilities.BasicMeasurementFeedback "CallUnknownOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
     [ "CallQPRGen1OverrideA"
       "CallQPRGen1OverrideB" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
-    expect RuntimeCapabilities.Unknown "CallQPRGen1OverrideC"
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    expect RuntimeCapabilities.FullComputation "CallQPRGen1OverrideC"
 
 [<Fact>]
 let ``Infers with direction recursion`` () =
-    expect RuntimeCapabilities.QPRGen1 "Gen1Recursion"
+    expect RuntimeCapabilities.BasicMeasurementFeedback "Gen1Recursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "Gen1Recursion3A"
       "Gen1Recursion3B"
       "Gen1Recursion3C" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
     [ "ReferenceGen1A"
       "ReferenceGen1B" ]
-    |> List.iter (expect RuntimeCapabilities.QPRGen1)
+    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
