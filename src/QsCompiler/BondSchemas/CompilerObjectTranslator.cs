@@ -503,7 +503,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
             else if (bondQsStatementKindComposition.Kind == QsStatementKind.EmptyStatement)
             {
-                return SyntaxTree.QsStatementKind.CreateEmptyStatement();
+                return SyntaxTree.QsStatementKind.EmptyStatement;
             }
             else
             {
@@ -603,8 +603,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return bondSpecializationImplementation.Kind switch
                 {
-                    SpecializationImplementationKind.External => SyntaxTree.SpecializationImplementation.CreateExternal(),
-                    SpecializationImplementationKind.Intrinsic => SyntaxTree.SpecializationImplementation.CreateIntrinsic(),
+                    SpecializationImplementationKind.External => SyntaxTree.SpecializationImplementation.External,
+                    SpecializationImplementationKind.Intrinsic => SyntaxTree.SpecializationImplementation.Intrinsic,
                     _ => throw new ArgumentException($"Unsupported Bond SpecializationImplementationKind '{bondSpecializationImplementation.Kind}'")
                 };
             }
@@ -636,8 +636,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return bondSymbolTuple.Kind switch
                 {
-                    SymbolTupleKind.DiscardedItem => SyntaxTree.SymbolTuple.CreateDiscardedItem(),
-                    SymbolTupleKind.InvalidItem => SyntaxTree.SymbolTuple.CreateInvalidItem(),
+                    SymbolTupleKind.DiscardedItem => SyntaxTree.SymbolTuple.DiscardedItem,
+                    SymbolTupleKind.InvalidItem => SyntaxTree.SymbolTuple.InvalidItem,
                     _ => throw new ArgumentException($"Unsupported Bond SymbolTupleKind '{bondSymbolTuple.Kind}'")
                 };
             }
@@ -717,8 +717,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return bondCharacteristicsKindComposition.Kind switch
                 {
-                    CharacteristicsKind.EmptySet => SyntaxTokens.CharacteristicsKind<TCompiler>.CreateEmptySet<TCompiler>(),
-                    CharacteristicsKind.InvalidSetExpr => SyntaxTokens.CharacteristicsKind<TCompiler>.CreateInvalidSetExpr<TCompiler>(),
+                    CharacteristicsKind.EmptySet => SyntaxTokens.CharacteristicsKind<TCompiler>.EmptySet,
+                    CharacteristicsKind.InvalidSetExpr => SyntaxTokens.CharacteristicsKind<TCompiler>.InvalidSetExpr,
                     _ => throw new ArgumentException($"Unsupported Bond CharacteristicsKind '{bondCharacteristicsKindComposition.Kind}'")
                 };
             }
@@ -990,12 +990,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return bondQsExpressionKindComposition.Kind switch
                 {
-                    QsExpressionKind.UnitValue => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
-                        CreateUnitValue<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
-                    QsExpressionKind.MissingExpr => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
-                        CreateMissingExpr<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
-                    QsExpressionKind.InvalidExpr => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
-                        CreateInvalidExpr<TCompilerExpression, TCompilerSymbol, TCompilerType>(),
+                    QsExpressionKind.UnitValue =>
+                        SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.UnitValue,
+                    QsExpressionKind.MissingExpr =>
+                        SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.MissingExpr,
+                    QsExpressionKind.InvalidExpr =>
+                        SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.InvalidExpr,
                     _ => throw new ArgumentException($"Unsupported Bond QsExpressionKind '{bondQsExpressionKindComposition.Kind}'")
                 };
             }
@@ -1035,10 +1035,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return bondQsInitializerKindComposition.Kind switch
                 {
-                    QsInitializerKind.InvalidInitializer => SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.
-                        CreateInvalidInitializer<TCompilerInitializer, TCompilerExpression>(),
-                    QsInitializerKind.SingleQubitAllocation => SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.
-                        CreateSingleQubitAllocation<TCompilerInitializer, TCompilerExpression>(),
+                    QsInitializerKind.InvalidInitializer =>
+                        SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.InvalidInitializer,
+                    QsInitializerKind.SingleQubitAllocation =>
+                        SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.SingleQubitAllocation,
                     _ => throw new ArgumentException($"Unsupported Bond QsInitializer kind '{bondQsInitializerKindComposition.Kind}'")
                 };
             }
@@ -1154,30 +1154,30 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 var simpleQsTypeKind = bondQsTypeKindComposition.Kind switch
                 {
-                    QsTypeKind.UnitType => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateUnitType<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Int => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateInt<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.BigInt => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateBigInt<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Double => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateDouble<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Bool => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateBool<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.String => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateString<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Qubit => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateQubit<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Result => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateResult<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Pauli => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreatePauli<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.Range => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateRange<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.MissingType => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateMissingType<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
-                    QsTypeKind.InvalidType => SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.
-                        CreateInvalidType<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>(),
+                    QsTypeKind.UnitType =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.UnitType,
+                    QsTypeKind.Int =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Int,
+                    QsTypeKind.BigInt =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.BigInt,
+                    QsTypeKind.Double =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Double,
+                    QsTypeKind.Bool =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Bool,
+                    QsTypeKind.String =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.String,
+                    QsTypeKind.Qubit =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Qubit,
+                    QsTypeKind.Result =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Result,
+                    QsTypeKind.Pauli =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Pauli,
+                    QsTypeKind.Range =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Range,
+                    QsTypeKind.MissingType =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.MissingType,
+                    QsTypeKind.InvalidType =>
+                        SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.InvalidType,
                     _ => throw new ArgumentException($"Unsupported Bond QsTypeKind {bondQsTypeKindComposition.Kind}")
                 };
 

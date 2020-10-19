@@ -145,10 +145,20 @@
     <None Include="TestCases\ClassicalControl.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\CycleDetection.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\CycleValidation.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\PopulateCallGraph.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\TypeParameter.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
+    <Compile Include="ExternalRewriteStepsManagerTests.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
     <Compile Include="CompletionParsingTests.fs" />
@@ -160,6 +170,7 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="TypeParameterTests.fs" />
     <Compile Include="RegexTests.fs" />
