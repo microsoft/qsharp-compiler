@@ -169,7 +169,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             /// </summary>
             public List<QsStatement> AdditionalStatements = new List<QsStatement>();
 
+            /// <summary>
+            /// Tracks the current expression that is being evaluated, keeping previous
+            /// expressions in the stack so that we can return to those when leaving a nested
+            /// evaluation.
+            /// </summary>
             public Stack<TypedExpression> CurrentExpression = new Stack<TypedExpression>();
+
+            /// <summary>
+            /// Allows us to remember the current statement location, and use that for the generated
+            /// statements that get added when extracting nested expressions.
+            /// </summary>
+            public QsNullable<QsLocation> StatementLocation = QsNullable<QsLocation>.Null;
         }
 
         public ExtractNestedOperationCalls()
@@ -193,7 +204,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 var statements = new List<QsStatement>();
                 foreach (var statement in scope.Statements)
                 {
+                    this.SharedState.StatementLocation = statement.Location;
                     var transformed = this.OnStatement(statement);
+                    this.SharedState.StatementLocation = QsNullable<QsLocation>.Null;
                     statements.AddRange(this.SharedState.AdditionalStatements);
                     this.SharedState.AdditionalStatements.Clear();
                     if (!(transformed.Statement is QsStatementKind.QsExpressionStatement expr &&
@@ -248,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                                 curExpression.InferredInformation,
                                 curExpression.Range)),
                         LocalDeclarations.Empty,
-                        QsNullable<QsLocation>.Null,
+                        this.SharedState.StatementLocation,
                         QsComments.Empty));
 
                 return ExpressionKind.UnitValue;
