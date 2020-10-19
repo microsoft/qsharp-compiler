@@ -4,31 +4,31 @@
 
     // Inferred capabilities can be overridden or given explicitly.
 
-    @RequiresCapability("QPRGen1", "Test case.")
+    @RequiresCapability("BasicMeasurementFeedback", "Test case.")
     operation OverrideGen0ToGen1(q : Qubit) : Unit {
         X(q);
     }
 
-    @RequiresCapability("Unknown", "Test case.")
+    @RequiresCapability("FullComputation", "Test case.")
     operation OverrideGen1ToUnknown(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @RequiresCapability("QPRGen0", "Test case.")
+    @RequiresCapability("BasicQuantumFunctionality", "Test case.")
     operation OverrideGen1ToGen0(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @RequiresCapability("QPRGen1", "Test case.")
+    @RequiresCapability("BasicMeasurementFeedback", "Test case.")
     operation OverrideUnknownToGen1(q : Qubit) : Bool {
         return M(q) == One ? true | false;
     }
 
-    @RequiresCapability("QPRGen1", "Test case.")
+    @RequiresCapability("BasicMeasurementFeedback", "Test case.")
     operation ExplicitGen1(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
@@ -90,7 +90,7 @@
         CallUnknownOverrideB(q);
     }
 
-    @RequiresCapability("Unknown", "Test case.")
+    @RequiresCapability("FullComputation", "Test case.")
     operation CallUnknownOverrideB(q : Qubit) : Unit {
         CallUnknownOverrideC(q);
     }
@@ -107,7 +107,7 @@
         return CallQPRGen1OverrideB(q);
     }
 
-    @RequiresCapability("QPRGen1", "Test case.")
+    @RequiresCapability("BasicMeasurementFeedback", "Test case.")
     operation CallQPRGen1OverrideB(q : Qubit) : Bool {
         return CallQPRGen1OverrideC(q);
     }
