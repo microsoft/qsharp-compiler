@@ -47,12 +47,12 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
-  <!-- Resolving the RuntimeCapabilites to either QPRGen0, QPRGen1, or Unknown.-->
+  <!-- Resolving the RuntimeCapabilites to either BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
   <PropertyGroup>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">QPRGen0</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Unknown</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">FullComputation</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
