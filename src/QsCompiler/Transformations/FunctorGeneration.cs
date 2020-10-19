@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// The default values used for auto-generation will be used for the additional functor arguments.
     /// Additional functor arguments will be added to the list of defined variables for each scope.
     /// </summary>
-    public class ApplyFunctorToOperationCalls
+    internal class ApplyFunctorToOperationCalls
     : SyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
     {
         public class TransformationsState
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Adds the given variable declarations to the list of defined variables for each scope.
     /// </summary>
-    public class AddVariableDeclarations<T>
+    internal class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
         private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> addedVariableDeclarations;
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Ensures that the outer block of conjugations is ignored during transformation.
     /// </summary>
-    public class IgnoreOuterBlockInConjugations<T>
+    internal class IgnoreOuterBlockInConjugations<T>
     : StatementKindTransformation<T>
     {
         public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions? options = null)
@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// Unit, so any nested calls can be replaced by Unit and those calls moved to separate,
     /// ordered statements.
     /// </summary>
-    public class ExtractNestedOperationCalls
+    internal class ExtractNestedOperationCalls
     : SyntaxTreeTransformation<ExtractNestedOperationCalls.TransformationsState>
     {
         public class TransformationsState
@@ -175,20 +175,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public ExtractNestedOperationCalls()
         : base(new TransformationsState())
         {
-            this.Statements = new ExtractNestedOperationCalls.StatementTransformation(this);
-            this.Expressions = new ExtractNestedOperationCalls.ExpressionTransformation(this);
-            this.ExpressionKinds = new ExtractNestedOperationCalls.ExpressionKindTransformation(this);
+            this.Statements = new StatementTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
         }
 
-        public class StatementTransformation
+        private class StatementTransformation
         : StatementTransformation<TransformationsState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationsState> parent)
-            : base(parent)
-            {
-            }
-
-            public StatementTransformation(TransformationsState parent)
             : base(parent)
             {
             }
@@ -213,15 +208,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             }
         }
 
-        public class ExpressionTransformation
+        private class ExpressionTransformation
         : ExpressionTransformation<TransformationsState>
         {
             public ExpressionTransformation(SyntaxTreeTransformation<TransformationsState> parent)
-            : base(parent, TransformationOptions.Default)
-            {
-            }
-
-            public ExpressionTransformation(TransformationsState parent)
             : base(parent, TransformationOptions.Default)
             {
             }
@@ -235,15 +225,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             }
         }
 
-        public class ExpressionKindTransformation
+        private class ExpressionKindTransformation
         : ExpressionKindTransformation<TransformationsState>
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationsState> parent)
-            : base(parent)
-            {
-            }
-
-            public ExpressionKindTransformation(TransformationsState parent)
             : base(parent)
             {
             }
