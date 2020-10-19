@@ -249,7 +249,7 @@ module AssemblyConstants =
     /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
     /// defined by the SDK.
     type RuntimeCapabilities =
-        // RELEASE 2021-04: Remove Unknown, QPRGen0, and QPRGen1.
+        // TODO: RELEASE 2021-04: Remove Unknown, QPRGen0, and QPRGen1.
 
         /// No runtime restrictions. Any Q# program can be executed.
         | FullComputation = 0
