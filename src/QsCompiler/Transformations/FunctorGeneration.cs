@@ -156,11 +156,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// Scope transformation that splits any nested operation calls into separate statements so
     /// that they can be properly reversed. This is necessary to avoid out of order execution of the
     /// automatically generated adjoint. It is safe to do because an adjointable operation must return
-    /// Unit, so any nested calls can  be replaced by Unit and those calls moved to separate,
+    /// Unit, so any nested calls can be replaced by Unit and those calls moved to separate,
     /// ordered statements.
     /// </summary>
-    public class LiftOperationCalls
-    : SyntaxTreeTransformation<LiftOperationCalls.TransformationsState>
+    public class ExtractNestedOperationCalls
+    : SyntaxTreeTransformation<ExtractNestedOperationCalls.TransformationsState>
     {
         public class TransformationsState
         {
@@ -168,13 +168,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             /// Accumulates statements that have been lifted from the current statement.
             /// </summary>
             public List<QsStatement> AdditionalStatements = new List<QsStatement>();
+
+            public Stack<TypedExpression> CurrentExpression = new Stack<TypedExpression>();
         }
 
-        public LiftOperationCalls()
+        public ExtractNestedOperationCalls()
         : base(new TransformationsState())
         {
-            this.Statements = new LiftOperationCalls.StatementTransformation(this);
-            this.ExpressionKinds = new LiftOperationCalls.ExpressionKindTransformation(this);
+            this.Statements = new ExtractNestedOperationCalls.StatementTransformation(this);
+            this.Expressions = new ExtractNestedOperationCalls.ExpressionTransformation(this);
+            this.ExpressionKinds = new ExtractNestedOperationCalls.ExpressionKindTransformation(this);
         }
 
         public class StatementTransformation
@@ -210,6 +213,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             }
         }
 
+        public class ExpressionTransformation
+        : ExpressionTransformation<TransformationsState>
+        {
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationsState> parent)
+            : base(parent, TransformationOptions.Default)
+            {
+            }
+
+            public ExpressionTransformation(TransformationsState parent)
+            : base(parent, TransformationOptions.Default)
+            {
+            }
+
+            public override TypedExpression OnTypedExpression(TypedExpression ex)
+            {
+                this.SharedState.CurrentExpression.Push(ex);
+                var newEx = base.OnTypedExpression(ex);
+                this.SharedState.CurrentExpression.Pop();
+                return newEx;
+            }
+        }
+
         public class ExpressionKindTransformation
         : ExpressionKindTransformation<TransformationsState>
         {
@@ -225,17 +250,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
             public override ExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
             {
-                // An operation in an adjoint scope must return Unit, so lift the operation to be an
+                // An operation in an adjoint scope must return Unit, so extract the operation to be an
                 // an additional statement and then replace it with Unit.
+                var curExpression = this.SharedState.CurrentExpression.Peek();
                 this.SharedState.AdditionalStatements.Add(
                     new QsStatement(
                         QsStatementKind.NewQsExpressionStatement(
                             new TypedExpression(
                                 base.OnOperationCall(method, arg),
-                                TypeArgsResolution.Empty, // TODO(swernli): How do I determine the right argument types here?
-                                ResolvedType.New(ResolvedTypeKind.UnitType),
-                                new InferredExpressionInformation(false, true),
-                                QsNullable<Range>.Null)),
+                                curExpression.TypeParameterResolutions.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value)).ToImmutableArray(),
+                                curExpression.ResolvedType,
+                                curExpression.InferredInformation,
+                                curExpression.Range)),
                         LocalDeclarations.Empty,
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty));
