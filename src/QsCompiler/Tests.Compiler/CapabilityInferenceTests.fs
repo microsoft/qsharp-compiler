@@ -19,7 +19,7 @@ let private callables =
 let private expect capability name =
     let actual =
         callables.[CapabilityVerificationTests.testName name].Attributes
-        |> QsNullable<_>.Choose BuiltIn.GetCapability
+        |> QsNullable<_>.Choose BuiltIn.RequiredCapability
     Assert.Equal<RuntimeCapabilities> ([ capability ], actual)
 
 [<Fact>]

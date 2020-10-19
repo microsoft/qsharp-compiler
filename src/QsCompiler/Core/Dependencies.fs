@@ -27,12 +27,13 @@ type BuiltIn = {
 }
     with
 
-    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
     static member CanonNamespace = NonNullable<string>.New "Microsoft.Quantum.Canon"
+    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
+    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
+    static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
-    static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
-    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
+    static member TargetingNamespace = NonNullable<string>.New "Microsoft.Quantum.Targeting"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
@@ -70,16 +71,19 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = GeneratedAttributes.Namespace && tId.Name.Value = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
-    /// Returns the runtime capabilities if the attribute is a valid capability attribute, or Null otherwise.
-    static member GetCapability attribute =
-        let isCapability udt =
-            { Namespace = udt.Namespace; Name = udt.Name } = BuiltIn.Capability.FullName
-
-        match attribute.TypeId, attribute.Argument.Expression with
-        | Value udt, StringLiteral (string, _) when isCapability udt ->
-            match Enum.TryParse<RuntimeCapabilities> string.Value with
+    /// Returns the required runtime capability if the attribute is a valid instance of the RequiresCapability
+    /// attribute.
+    static member RequiredCapability attribute =
+        let isCapability udt = BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
+        let parse = Enum.TryParse<RuntimeCapabilities> >> function
             | true, capability -> Value capability
             | false, _ -> Null
+        let extractString = function
+            | StringLiteral (str, _) -> Value str.Value
+            | _ -> Null
+        match attribute.TypeId, attribute.Argument.Expression with
+        | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
+            items.[0].Expression |> extractString |> QsNullable<_>.Bind parse
         | _ -> Null
 
 
@@ -110,8 +114,8 @@ type BuiltIn = {
         Kind = Attribute
     }
 
-    static member Capability = {
-        FullName = {Name = "Capability" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+    static member RequiresCapability = {
+        FullName = {Name = "RequiresCapability" |> NonNullable<string>.New; Namespace = BuiltIn.TargetingNamespace}
         Kind = Attribute
     }
 

@@ -238,7 +238,7 @@ let private globalReferences scope =
 let private referenceDiagnostic context (name, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability = declaration.Attributes |> QsNullable<_>.Choose BuiltIn.GetCapability |> maxCapability
+        let capability = declaration.Attributes |> QsNullable<_>.Choose BuiltIn.RequiredCapability |> maxCapability
         if level capability > level context.Capabilities
         then
             let error = ErrorCode.UnsupportedCapability, [ name.Name.Value; context.ProcessorArchitecture.Value ]
@@ -271,7 +271,7 @@ let private isDeclaredInSourceFile (callable : QsCallable) =
 
 /// Returns the maximum capability given by the attributes, if any.
 let private attributeCapability : _ seq -> _ =
-    QsNullable<_>.Choose BuiltIn.GetCapability >> tryMaxCapability
+    QsNullable<_>.Choose BuiltIn.RequiredCapability >> tryMaxCapability
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.
@@ -352,11 +352,10 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
 
     cachedCapability Set.empty
 
-/// Adds the given capability to the callable as an attribute.
-let private addAttribute callable capability =
-    let arg = capability.ToString () |> AttributeUtils.StringArgument
-    let attribute = AttributeUtils.BuildAttribute (BuiltIn.Capability.FullName, arg)
-    { callable with QsCallable.Attributes = callable.Attributes.Add attribute }
+/// Returns the attribute for the inferred runtime capability.
+let private toAttribute capability =
+    let args = AttributeUtils.StringArguments (capability.ToString (), "Inferred automatically by the compiler.")
+    AttributeUtils.BuildAttribute (BuiltIn.RequiresCapability.FullName, args)
 
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
 /// callable.
@@ -370,7 +369,7 @@ let InferCapabilities compilation =
             override this.OnCallableDeclaration callable =
                 let isMissingCapability = attributeCapability callable.Attributes |> Option.isNone
                 if isMissingCapability && isDeclaredInSourceFile callable
-                then callableCapability callable |> addAttribute callable
+                then callableCapability callable |> toAttribute |> callable.AddAttribute
                 else callable
     }
     transformation.OnCompilation compilation

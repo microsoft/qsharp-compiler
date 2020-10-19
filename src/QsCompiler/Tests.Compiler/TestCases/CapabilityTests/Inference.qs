@@ -1,33 +1,34 @@
 ﻿namespace Microsoft.Quantum.Testing.Capability {
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Targeting;
 
     // Inferred capabilities can be overridden or given explicitly.
 
-    @Capability("QPRGen1")
+    @RequiresCapability("QPRGen1", "Test case.")
     operation OverrideGen0ToGen1(q : Qubit) : Unit {
         X(q);
     }
 
-    @Capability("Unknown")
+    @RequiresCapability("Unknown", "Test case.")
     operation OverrideGen1ToUnknown(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @Capability("QPRGen0")
+    @RequiresCapability("QPRGen0", "Test case.")
     operation OverrideGen1ToGen0(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @Capability("QPRGen1")
+    @RequiresCapability("QPRGen1", "Test case.")
     operation OverrideUnknownToGen1(q : Qubit) : Bool {
         return M(q) == One ? true | false;
     }
 
-    @Capability("QPRGen1")
+    @RequiresCapability("QPRGen1", "Test case.")
     operation ExplicitGen1(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
@@ -89,7 +90,7 @@
         CallUnknownOverrideB(q);
     }
 
-    @Capability("Unknown")
+    @RequiresCapability("Unknown", "Test case.")
     operation CallUnknownOverrideB(q : Qubit) : Unit {
         CallUnknownOverrideC(q);
     }
@@ -106,7 +107,7 @@
         return CallQPRGen1OverrideB(q);
     }
 
-    @Capability("QPRGen1")
+    @RequiresCapability("QPRGen1", "Test case.")
     operation CallQPRGen1OverrideB(q : Qubit) : Bool {
         return CallQPRGen1OverrideC(q);
     }
@@ -161,7 +162,9 @@
 namespace Microsoft.Quantum.Core {
     @Attribute()
     newtype Attribute = Unit;
+}
 
+namespace Microsoft.Quantum.Targeting {
     @Attribute()
-    newtype Capability = String;
+    newtype RequiresCapability = (Level : String, Reason : String);
 }
