@@ -170,6 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public bool HasAdjointDependency = false;
                 public bool HasControlledDependency = false;
                 public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
+                private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
                 internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
                 {
@@ -192,17 +193,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         referenceRange = this.CurrentStatementOffset.Item + this.CurrentExpressionRange.Item;
                     }
+                    this.lastReferenceRange = referenceRange;
 
-                    void AddEdge(QsSpecializationKind kind)
-                    {
-                        var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
-                        var edge = new ConcreteCallGraphEdge(referenceRange);
-                        this.Graph.AddDependency(this.CurrentNode, called, edge);
-                        if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
-                        {
-                            this.RequestStack.Push(called);
-                        }
-                    }
+                    void AddEdge(QsSpecializationKind kind) => this.AddEdge(identifier, kind, typeRes, referenceRange);
 
                     if (this.IsInCall)
                     {
@@ -235,6 +228,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         }
                     }
                 }
+
+                internal void AddSelfInverseDependency(QsQualifiedName identifier, QsSpecializationKind targetSpec)
+                {
+                    if (this.CurrentNode is null)
+                    {
+                        throw new ArgumentException("AddDependency requires CurrentNode to be non-null.");
+                    }
+
+                    var combination = new TypeResolutionCombination(new[] { this.CurrentNode.ParamResolutions });
+                    var typeRes = combination.CombinedResolutionDictionary.FilterByOrigin(identifier);
+
+                    this.AddEdge(identifier, targetSpec, typeRes, this.lastReferenceRange);
+                }
+
+                private void AddEdge(QsQualifiedName identifier, QsSpecializationKind kind, TypeParameterResolutions typeRes, Range referenceRange)
+                {
+                    if (this.CurrentNode is null)
+                    {
+                        throw new ArgumentException("AddEdge requires CurrentNode to be non-null.");
+                    }
+
+                    var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
+                    var edge = new ConcreteCallGraphEdge(referenceRange);
+                    this.Graph.AddDependency(this.CurrentNode, called, edge);
+                    if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
+                    {
+                        this.RequestStack.Push(called);
+                    }
+                }
             }
 
             private class NamespaceWalker : NamespaceTransformation<TransformationState>
@@ -245,7 +267,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 public override QsGeneratorDirective OnGeneratedImplementation(QsGeneratorDirective directive)
                 {
-                    throw new ArgumentException("Encountered unresolved generated specialization while constructing concrete call graph.");
+                    if (directive.IsSelfInverse)
+                    {
+                        if (this.SharedState.CurrentNode is null)
+                        {
+                            throw new ArgumentException("CurrentNode is expected to be non-null when processing self-adjoint specializations.");
+                        }
+
+                        if (this.SharedState.CurrentNode.Kind.IsQsAdjoint)
+                        {
+                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsBody);
+                        }
+                        else if (this.SharedState.CurrentNode.Kind.IsQsControlledAdjoint)
+                        {
+                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsControlled);
+                        }
+                        else
+                        {
+                            throw new ArgumentException("\"self\" can only be used on adjoint and controlled adjoint specializations.");
+                        }
+
+                        return directive;
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Encountered unresolved generated specialization while constructing concrete call graph.");
+                    }
                 }
             }
 
