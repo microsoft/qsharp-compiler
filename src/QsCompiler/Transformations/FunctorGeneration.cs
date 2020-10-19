@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     internal class ExtractNestedOperationCalls
     : SyntaxTreeTransformation<ExtractNestedOperationCalls.TransformationsState>
     {
-        public class TransformationsState
+        internal class TransformationsState
         {
             /// <summary>
             /// Accumulates statements that have been lifted from the current statement.
