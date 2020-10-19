@@ -562,7 +562,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (!this.config.IsExecutable)
             {
-                var capabilityInference = new RewriteSteps.LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
+                var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
             }
 
