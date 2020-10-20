@@ -984,7 +984,7 @@ and NamespaceManager
             // check that there is no more than one entry point, and no entry point if the project is not executable
             if signatureErrs.Any() then false, errs
             elif not isExecutable then 
-                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.EntryPointInLibrary, [])) 
+                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.EntryPointInLibrary, [])) 
                 false, errs
             else GetEntryPoints() |> Seq.tryHead |> function
                 | None -> isExecutable, errs
@@ -1194,16 +1194,18 @@ and NamespaceManager
 
     /// Resolves and caches the attached attributes and underlying type of the types declared in all source files of each namespace.
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
-    member private this.CacheTypeResolution () =
+    member private this.CacheTypeResolution (nsNames : ImmutableHashSet<_>) =
         let sortedNamespaces = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.toList
         // Since attributes are declared as types, we first need to resolve all types ...
         let resolutionDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
-                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source, qsType.Modifiers) 
+                let resolved, resErrs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source, qsType.Modifiers) 
                 ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty) 
-                msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
+                if fullName.ToString() |> (not << nsNames.Contains) then resErrs
+                else [| qsType.Range |>  QsCompilerDiagnostic.New (Error ErrorCode.FullNameConflictsWithNamespace, [fullName.ToString()]) |] |> Array.append resErrs
+                |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes.
         let attributeDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
@@ -1220,7 +1222,7 @@ and NamespaceManager
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     /// IMPORTANT: does *not* return diagnostics generated for type constructors - suitable diagnostics need to be generated upon type resolution.
     /// Throws an InvalidOperationException if the types corresponding to the attributes to resolve have not been resolved.
-    member private this.CacheCallableResolutions () =
+    member private this.CacheCallableResolutions (nsNames : ImmutableHashSet<string>) =
         // TODO: this needs to be adapted if we support external specializations
         let diagnostics = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.collect (fun ns ->
             ns.CallablesDefinedInAllSources() |> Seq.sortBy (fun kv -> kv.Key) |> Seq.collect (fun kvPair ->
@@ -1260,8 +1262,12 @@ and NamespaceManager
                 ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
                 errs <- (attrErrs |> Array.map (fun m -> source, m)) :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
 
+                let errs = specErrs.Concat autoResErrs |> errs.Concat |> Array.concat
                 if kind = QsCallableKind.TypeConstructor then [||] // don't return diagnostics for type constructors - everything will be captured upon type resolution
-                else specErrs.Concat autoResErrs |> errs.Concat |> Array.concat))
+                elif parent.ToString() |> (not << nsNames.Contains) then errs
+                else signature.Range |>  QsCompilerDiagnostic.New (Error ErrorCode.FullNameConflictsWithNamespace, [parent.ToString()]) 
+                    |> (fun msg -> source, (signature.Position, msg))
+                    |> Array.singleton |> Array.append errs))
         diagnostics.ToArray()
 
 
@@ -1278,22 +1284,23 @@ and NamespaceManager
     /// in all source files, if a namespace with that name indeed exists and is part of this compilation.
     /// Independent on whether the symbols have already been resolved, proceeds to resolves
     /// all types and callables as well as their attributes defined throughout all namespaces and caches the resolution.
-    /// Returns the diagnostics generated during resolution
-    /// together with the Position of the declaration for which the diagnostics were generated.
+    /// Checks whether there are fully qualified names conflict with a namespace name.
+    /// Returns the generated diagnostics together with the Position of the declaration for which the diagnostics were generated.
     member this.ResolveAll (autoOpen : ImmutableHashSet<_>) =
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterWriteLock()
         versionNumber <- versionNumber + 1
-        try let autoOpen = if autoOpen <> null then autoOpen else ImmutableHashSet.Empty
-            let nsToAutoOpen = autoOpen.Intersect Namespaces.Keys
-            for ns in Namespaces.Values do
-                for source in ns.Sources do
-                    for opened in nsToAutoOpen do
+        try let nsNames = Namespaces.Keys |> Seq.map (fun nsName -> nsName.Value) |> ImmutableHashSet.CreateRange
+            let autoOpen = if autoOpen <> null then autoOpen else ImmutableHashSet.Empty
+            let nsToAutoOpen = autoOpen.Intersect (nsNames |> Seq.map NonNullable<string>.New)
+            for opened in nsToAutoOpen do
+                for ns in Namespaces.Values do
+                    for source in ns.Sources do
                         this.AddOpenDirective (opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
-            let typeDiagnostics = this.CacheTypeResolution()
-            let callableDiagnostics = this.CacheCallableResolutions()
+            let typeDiagnostics = this.CacheTypeResolution nsNames
+            let callableDiagnostics = this.CacheCallableResolutions nsNames
             this.ContainsResolutions <- true
             callableDiagnostics
                 .Concat(typeDiagnostics)
