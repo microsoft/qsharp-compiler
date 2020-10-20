@@ -5,56 +5,56 @@
     // Inferred capabilities can be overridden or given explicitly.
 
     @RequiresCapability("BasicMeasurementFeedback", "Test case.")
-    operation OverrideGen0ToGen1(q : Qubit) : Unit {
+    operation OverrideBqfToBmf(q : Qubit) : Unit {
         X(q);
     }
 
     @RequiresCapability("FullComputation", "Test case.")
-    operation OverrideGen1ToUnknown(q : Qubit) : Unit {
+    operation OverrideBmfToFull(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
     @RequiresCapability("BasicQuantumFunctionality", "Test case.")
-    operation OverrideGen1ToGen0(q : Qubit) : Unit {
+    operation OverrideBmfToBqf(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
     @RequiresCapability("BasicMeasurementFeedback", "Test case.")
-    operation OverrideUnknownToGen1(q : Qubit) : Bool {
+    operation OverrideFullToBmf(q : Qubit) : Bool {
         return M(q) == One ? true | false;
     }
 
     @RequiresCapability("BasicMeasurementFeedback", "Test case.")
-    operation ExplicitGen1(q : Qubit) : Unit {
+    operation ExplicitBmf(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    // QPRGen1 (1 dependency)
+    // BasicMeasurementFeedback (1 dependency)
 
-    operation CallGen1A(q : Qubit) : Unit {
-        CallGen1B(q);
+    operation CallBmfA(q : Qubit) : Unit {
+        CallBmfB(q);
     }
 
-    operation CallGen1B(q : Qubit) : Unit {
+    operation CallBmfB(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    // Call QPRGen1 and Unknown (2 dependencies, 1 layer)
+    // Call BasicMeasurementFeedback and FullComputation (2 dependencies, 1 layer)
 
-    operation CallGen1UnknownA(q : Qubit) : Unit {
-        let r = CallGen1UnknownB(q);
-        let b = CallGen1UnknownC(r);
+    operation CallBmfFullA(q : Qubit) : Unit {
+        let r = CallBmfFullB(q);
+        let b = CallBmfFullC(r);
     }
 
-    operation CallGen1UnknownB(q : Qubit) : Result {
+    operation CallBmfFullB(q : Qubit) : Result {
         let r = M(q);
         if (r == One) {
             X(q);
@@ -62,21 +62,21 @@
         return r;
     }
 
-    operation CallGen1UnknownC(r : Result) : Bool {
+    operation CallBmfFullC(r : Result) : Bool {
         return r == One ? true | false;
     }
 
-    // Unknown (2 dependencies)
+    // FullComputation (2 dependencies)
 
-    operation CallUnknownA(q : Qubit) : Bool {
-        return CallUnknownB(q);
+    operation CallFullA(q : Qubit) : Bool {
+        return CallFullB(q);
     }
 
-    operation CallUnknownB(q : Qubit) : Bool {
-        return CallUnknownC(q) == One ? true | false;
+    operation CallFullB(q : Qubit) : Bool {
+        return CallFullC(q) == One ? true | false;
     }
 
-    operation CallUnknownC(q : Qubit) : Result {
+    operation CallFullC(q : Qubit) : Result {
         let r = M(q);
         if (r == One) {
             X(q);
@@ -84,35 +84,35 @@
         return r;
     }
 
-    // Override QPRGen1 to Unknown (2 dependencies)
+    // Override BasicMeasurementFeedback to FullComputation (2 dependencies)
 
-    operation CallUnknownOverrideA(q : Qubit) : Unit {
-        CallUnknownOverrideB(q);
+    operation CallFullOverrideA(q : Qubit) : Unit {
+        CallFullOverrideB(q);
     }
 
     @RequiresCapability("FullComputation", "Test case.")
-    operation CallUnknownOverrideB(q : Qubit) : Unit {
-        CallUnknownOverrideC(q);
+    operation CallFullOverrideB(q : Qubit) : Unit {
+        CallFullOverrideC(q);
     }
 
-    operation CallUnknownOverrideC(q : Qubit) : Unit {
+    operation CallFullOverrideC(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    // Override Unknown to QPRGen1 (2 dependencies)
+    // Override FullComputation to BasicMeasurementFeedback (2 dependencies)
 
-    operation CallQPRGen1OverrideA(q : Qubit) : Bool {
-        return CallQPRGen1OverrideB(q);
+    operation CallBmfOverrideA(q : Qubit) : Bool {
+        return CallBmfOverrideB(q);
     }
 
     @RequiresCapability("BasicMeasurementFeedback", "Test case.")
-    operation CallQPRGen1OverrideB(q : Qubit) : Bool {
-        return CallQPRGen1OverrideC(q);
+    operation CallBmfOverrideB(q : Qubit) : Bool {
+        return CallBmfOverrideC(q);
     }
 
-    operation CallQPRGen1OverrideC(q : Qubit) : Bool {
+    operation CallBmfOverrideC(q : Qubit) : Bool {
         let r = M(q);
         if (r == One) {
             X(q);
@@ -120,39 +120,39 @@
         return r == One ? true | false;
     }
 
-    // QPRGen1 direct recursion
+    // BasicMeasurementFeedback direct recursion
 
-    operation Gen1Recursion(q : Qubit) : Unit {
+    operation BmfRecursion(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
-            Gen1Recursion(q);
+            BmfRecursion(q);
         }
     }
 
-    // QPRGen1 period-3 recursion
+    // BasicMeasurementFeedback period-3 recursion
     
-    operation Gen1Recursion3A(q : Qubit) : Unit {
+    operation BmfRecursion3A(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
-            Gen1Recursion3B(q);
+            BmfRecursion3B(q);
         }
     }
 
-    operation Gen1Recursion3B(q : Qubit) : Unit {
-        Gen1Recursion3C(q);
+    operation BmfRecursion3B(q : Qubit) : Unit {
+        BmfRecursion3C(q);
     }
 
-    operation Gen1Recursion3C(q : Qubit) : Unit {
-        Gen1Recursion3A(q);
+    operation BmfRecursion3C(q : Qubit) : Unit {
+        BmfRecursion3A(q);
     }
 
-    // QPRGen1 reference without call
+    // BasicMeasurementFeedback reference without call
 
-    operation ReferenceGen1A() : (Qubit => Unit) {
-        return ReferenceGen1B;
+    operation ReferenceBmfA() : (Qubit => Unit) {
+        return ReferenceBmfB;
     }
 
-    operation ReferenceGen1B(q : Qubit) : Unit {
+    operation ReferenceBmfB(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }

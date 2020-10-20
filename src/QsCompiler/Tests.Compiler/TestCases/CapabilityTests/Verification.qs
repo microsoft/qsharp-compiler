@@ -200,30 +200,30 @@ namespace Microsoft.Quantum.Testing.Capability {
 
     // Test references to operations in libraries.
 
-    operation CallLibraryGen0(q : Qubit) : Unit {
-        LibraryGen0(q);
+    operation CallLibraryBqf(q : Qubit) : Unit {
+        LibraryBqf(q);
     }
 
-    operation ReferenceLibraryGen0() : (Qubit => Unit) {
-        let f = LibraryGen0;
+    operation ReferenceLibraryBqf() : (Qubit => Unit) {
+        let f = LibraryBqf;
         return f;
     }
 
-    operation CallLibraryGen1(q : Qubit) : Unit {
-        LibraryGen1(q);
+    operation CallLibraryBmf(q : Qubit) : Unit {
+        LibraryBmf(q);
     }
 
-    operation ReferenceLibraryGen1() : (Qubit => Unit) {
-        let f = LibraryGen1;
+    operation ReferenceLibraryBmf() : (Qubit => Unit) {
+        let f = LibraryBmf;
         return f;
     }
 
-    operation CallLibraryUnknown(q : Qubit) : Unit {
-        LibraryUnknown(q);
+    operation CallLibraryFull(q : Qubit) : Unit {
+        LibraryFull(q);
     }
 
-    operation ReferenceLibraryUnknown() : (Qubit => Unit) {
-        let f = LibraryUnknown;
+    operation ReferenceLibraryFull() : (Qubit => Unit) {
+        let f = LibraryFull;
         return f;
     }
 }

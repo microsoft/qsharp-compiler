@@ -2,20 +2,20 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Testing.Capability {
-    operation LibraryGen0(q : Qubit) : Unit { }
+    operation LibraryBqf(q : Qubit) : Unit { }
 
-    operation LibraryGen1(q : Qubit) : Unit {
+    operation LibraryBmf(q : Qubit) : Unit {
         let r = One;
         if (r == One) {
-            LibraryGen0(q);
+            LibraryBqf(q);
         }
     }
 
-    operation LibraryUnknown(q : Qubit) : Unit {
+    operation LibraryFull(q : Qubit) : Unit {
         let r = One;
         let isOne = r == One;
         if (isOne) {
-            LibraryGen0(q);
+            LibraryBqf(q);
         }
     }
 }
