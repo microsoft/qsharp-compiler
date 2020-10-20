@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// The default values used for auto-generation will be used for the additional functor arguments.
     /// Additional functor arguments will be added to the list of defined variables for each scope.
     /// </summary>
-    internal class ApplyFunctorToOperationCalls
+    public class ApplyFunctorToOperationCalls
     : SyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
     {
         public class TransformationsState
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Adds the given variable declarations to the list of defined variables for each scope.
     /// </summary>
-    internal class AddVariableDeclarations<T>
+    public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
         private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> addedVariableDeclarations;
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Ensures that the outer block of conjugations is ignored during transformation.
     /// </summary>
-    internal class IgnoreOuterBlockInConjugations<T>
+    public class IgnoreOuterBlockInConjugations<T>
     : StatementKindTransformation<T>
     {
         public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions? options = null)
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             this.Statements = new StatementTransformation(this);
             this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
-            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationsState>(this, TransformationOptions.Disabled);
         }
 
         private class StatementTransformation
