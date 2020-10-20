@@ -256,11 +256,13 @@ if ($Env:ENABLE_VSIX -ne "false") {
 }
 
 # Copy documentation summarization tool into docs drop.
-Push-Location (Join-Path $PSScriptRoot "../src/Documentation/Summarizer")
-    # NB: We use -Force here, as the documentation summarization tool may
-    #     already be present.
-    Copy-Item -Force -Path *.py, *.txt -Destination $Env:DOCS_OUTDIR
-Pop-Location
+# Note that we only copy this tool when DOCS_OUTDIR is set (that is, when we're
+# collecting docs in a build artifact).
+if ("$Env:DOCS_OUTDIR".Trim() -ne "") {
+    Push-Location (Join-Path $PSScriptRoot "../src/Documentation/Summarizer")
+        Copy-Item -Path *.py, *.txt -Destination $Env:DOCS_OUTDIR
+    Pop-Location
+}
 
 Write-Host "##[info]Verifying manifest..."
 & (Join-Path $PSScriptRoot "manifest.ps1")
