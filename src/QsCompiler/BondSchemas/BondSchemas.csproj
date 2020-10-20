@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\Common\AssemblyCommon.props" />
+
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.BondSchemas</AssemblyName>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -11,6 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
 </Project>
