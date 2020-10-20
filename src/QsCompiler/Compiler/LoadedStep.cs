@@ -38,14 +38,14 @@ namespace Microsoft.Quantum.QsCompiler
 
         [return: MaybeNull]
         private T GetViaReflection<T>(string name) =>
-            (T)this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null);
+            this.InterfaceMethod($"get_{name}")?.Invoke(this.selfAsObject, null) is T result ? result : default;
 
         private void SetViaReflection<T>(string name, T arg) =>
             this.InterfaceMethod($"set_{name}")?.Invoke(this.selfAsObject, new object?[] { arg });
 
         [return: MaybeNull]
         private T InvokeViaReflection<T>(string name, params object?[] args) =>
-            (T)this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args);
+            this.InterfaceMethod(name)?.Invoke(this.selfAsObject, args) is T result ? result : default;
 
         private LoadedStep()
         {
