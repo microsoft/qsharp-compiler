@@ -158,13 +158,3 @@
         }
     }
 }
-
-namespace Microsoft.Quantum.Core {
-    @Attribute()
-    newtype Attribute = Unit;
-}
-
-namespace Microsoft.Quantum.Targeting {
-    @Attribute()
-    newtype RequiresCapability = (Level : String, Reason : String);
-}

@@ -5,11 +5,15 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.IO
 open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    CompilerTests.Compile ("TestCases", [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ])
+    CompilerTests.Compile
+        ("TestCases",
+         [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
+         references = [ (File.ReadAllLines "ReferenceTargets.txt").[1] ])
     |> fun compilation -> compilation.BuiltCompilation
     |> CapabilityInference.InferCapabilities
     |> fun compilation -> compilation.Namespaces

@@ -19,3 +19,8 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 }
+
+namespace Microsoft.Quantum.Targeting {
+    @Attribute()
+    newtype RequiresCapability = (Level : String, Reason : String);
+}
