@@ -184,7 +184,10 @@ namespace Microsoft.Quantum.Documentation
         internal static string MaybeWithSection(this string document, string name, string? contents) =>
             contents == null || contents.Trim().Length == 0
             ? document
-            : $"{document}\n\n## {name}\n\n{contents}";
+            : document.WithSection(name, contents);
+
+        internal static string WithSection(this string document, string name, string contents) =>
+            $"{document}\n\n## {name}\n\n{contents}";
 
         internal static string WithYamlHeader(this string document, object header) =>
             $"---\n{new SerializerBuilder().Build().Serialize(header)}---\n{document}";
@@ -231,7 +234,7 @@ namespace Microsoft.Quantum.Documentation
                 declaration => declaration.Item2
             );
 
-        private static List<(string, ResolvedType)> TypeDeclarations(this QsTuple<QsTypeItem> typeItems) => typeItems switch
+        internal static List<(string, ResolvedType)> TypeDeclarations(this QsTuple<QsTypeItem> typeItems) => typeItems switch
             {
                 QsTuple<QsTypeItem>.QsTuple tuple =>
                     tuple.Item.SelectMany(
@@ -252,7 +255,7 @@ namespace Microsoft.Quantum.Documentation
                 _ => throw new ArgumentException($"Type items {typeItems} aren't a tuple of type items.", nameof(typeItems)),
             };
 
-        private static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
+        internal static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
             {
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple =>
                     tuple.Item.SelectMany(
@@ -291,15 +294,15 @@ namespace Microsoft.Quantum.Documentation
                     $"'{typeParam.Item.TypeName.Value}",
                 _ => type.Resolution.Tag switch
                     {
-                        ResolvedTypeKind.Tags.BigInt => "BigInt",
-                        ResolvedTypeKind.Tags.Bool => "Bool",
-                        ResolvedTypeKind.Tags.Double => "Double",
-                        ResolvedTypeKind.Tags.Int => "Int",
-                        ResolvedTypeKind.Tags.Pauli => "Pauli",
-                        ResolvedTypeKind.Tags.Qubit => "Qubit",
-                        ResolvedTypeKind.Tags.Range => "Range",
-                        ResolvedTypeKind.Tags.String => "String",
-                        ResolvedTypeKind.Tags.UnitType => "Unit",
+                        ResolvedTypeKind.Tags.BigInt => "[BigInt](xref:microsoft.quantum.lang-ref.bigint)",
+                        ResolvedTypeKind.Tags.Bool => "[Bool](xref:microsoft.quantum.lang-ref.bool)",
+                        ResolvedTypeKind.Tags.Double => "[Double](xref:microsoft.quantum.lang-ref.double)",
+                        ResolvedTypeKind.Tags.Int => "[Int](xref:microsoft.quantum.lang-ref.int)",
+                        ResolvedTypeKind.Tags.Pauli => "[Pauli](xref:microsoft.quantum.lang-ref.pauli)",
+                        ResolvedTypeKind.Tags.Qubit => "[Qubit](xref:microsoft.quantum.lang-ref.qubit)",
+                        ResolvedTypeKind.Tags.Range => "[Range](xref:microsoft.quantum.lang-ref.range)",
+                        ResolvedTypeKind.Tags.String => "[String](xref:microsoft.quantum.lang-ref.string)",
+                        ResolvedTypeKind.Tags.UnitType => "[Unit](xref:microsoft.quantum.lang-ref.unit)",
                         ResolvedTypeKind.Tags.InvalidType => "__invalid__",
                         _ => $"__invalid<{type.Resolution.ToString()}>__",
                     },

@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             rootNode.AddStringMapping(Utils.UidKey, this.uid);
             rootNode.AddStringMapping(Utils.NameKey, this.name);
             rootNode.AddStringMapping(Utils.TypeKey, this.itemType);
-            rootNode.AddStringMapping(Utils.NamespaceKey, this.namespaceName.NamespaceAsUid());
+            rootNode.AddStringMapping(Utils.NamespaceKey, this.namespaceName.AsObsoleteUid());
             if (!string.IsNullOrEmpty(this.comments.Documentation))
             {
                 rootNode.AddStringMapping(Utils.SummaryKey, this.comments.Documentation);
