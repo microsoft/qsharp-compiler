@@ -183,9 +183,15 @@ let internal numericLiteral =
             let trimmed = nl.String.TrimStart '+'
             if format = 10 || format = 0 then trimmed else trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
         let isInt    = nl.IsInteger     && format <> 0                  && nl.SuffixLength = 0 // any format is fine here
-        let isBigInt = nl.IsInteger     && (format = 10 || format = 16) && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
+        let isBigInt = nl.IsInteger     && format <> 0  && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
         let returnWithRange kind = preturn (kind, range)
+        let baseToHex (baseint:int, str) =
+            // first pad 0's so that length is multiple of 4, so we can match from left rather than right
+            let nZeroPad = (4 - String.length str % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
+            let paddedStr = str.PadLeft (nZeroPad + String.length str, '0')
+            // now match from left
+            paddedStr |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToInt32(System.String x, baseint).ToString "X") |> System.String.Concat
         try if isInt then 
                 let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
                 if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
@@ -194,6 +200,7 @@ let internal numericLiteral =
                 else (int64)value |> IntLiteral |> returnWithRange
             elif isBigInt then 
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                elif format = 2 || format = 8 then BigInteger.Parse(baseToHex (format,str), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then 
                 try let doubleValue = System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture)

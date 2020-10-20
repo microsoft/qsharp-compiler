@@ -342,16 +342,13 @@ let internal symbolNameLike errCode =
         |> identifier
         |> getRange
     let whenValid ((name : string, range), isBeforeDot) =
-        // REL0920: 
-        // The warning for futureReservedUnderscorePattern should be replaced with an error in the future, 
-        // and the first half of isReserved should be removed.
-        let futureReservedUnderscorePattern = name.Contains "__" || (isBeforeDot && name.EndsWith "_")
-        let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name
-        let isCsKeyword = SyntaxFacts.IsKeywordKind (SyntaxFacts.GetKeywordKind name)
+        let reservedUnderscorePattern = name.Contains "__" || (isBeforeDot && name.EndsWith "_")
+        let isReserved = InternalUse.CsKeywords.Contains
+        let isCsKeyword = SyntaxFacts.IsKeywordKind << SyntaxFacts.GetKeywordKind
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
-        if isCsKeyword || isReserved then buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
+        if reservedUnderscorePattern then buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern >>% None
         elif not moreThanUnderscores then buildError (preturn range) errCode >>% None
-        elif futureReservedUnderscorePattern then buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% Some name
+        elif isReserved name || isCsKeyword name then buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
         else preturn name |>> Some
     let invalid =
         let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
