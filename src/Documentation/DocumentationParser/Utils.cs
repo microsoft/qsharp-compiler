@@ -475,8 +475,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
         }
 
-        internal static string NamespaceAsUid(this string namespaceName) =>
-            namespaceName.ToLowerInvariant();
+        internal static string AsObsoleteUid(this string qualifiedName) =>
+            qualifiedName.ToLowerInvariant();
+
+        internal static string AsUid(this string qualifiedName) =>
+            qualifiedName;
     }
 
     // See https://stackoverflow.com/a/5037815/267841.
