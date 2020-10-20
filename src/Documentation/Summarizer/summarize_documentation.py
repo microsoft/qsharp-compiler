@@ -4,7 +4,7 @@
 # Licensed under the MIT License.
 
 from collections import defaultdict
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 import glob
 
@@ -32,7 +32,9 @@ class Namespace:
     summary: str = ""
     uid: str = ""
     name: str = ""
-    items = set()
+    # NB: We need to set default_factory instead of default, since set is a
+    #     mutable type.
+    items = field(default_factory=set)
 
 def items_of_kind(items, kind):
     return [

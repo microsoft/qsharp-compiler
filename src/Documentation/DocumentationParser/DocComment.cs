@@ -212,15 +212,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         {
                             if (sub is ListItemBlock item)
                             {
-                                // Some special treatment for funky doc comments in some of the Canon
+                                // Some special treatment for funky doc comments in some of the Canon\
                                 if (item.Count == 1 && item.LastChild is LeafBlock leaf && leaf.Inline != null &&
                                     leaf.Inline.FirstChild is LiteralInline literal)
                                 {
                                     var itemText = lowerCase ? GetParagraphText(leaf).ToLowerInvariant() : GetParagraphText(leaf);
-                                    if (itemText.StartsWith("@\"") && itemText.EndsWith("\""))
-                                    {
-                                        itemText = itemText.Substring(2, itemText.Length - 3);
-                                    }
                                     literal.Content = new Markdig.Helpers.StringSlice(itemText);
                                 }
                                 accum.Add(ToMarkdown(new Block[] { item }));
@@ -274,7 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             // Initialize to safe empty values
             var deprecationSummary = string.IsNullOrWhiteSpace(replacement)
                                     ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
-                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement.ToLowerInvariant() + "\"" });
+                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, $"<xref:{replacement.AsUid()}>" });
             var deprecationDetails = "";
 
             var text = string.Join("\n", docComments);
