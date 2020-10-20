@@ -9,6 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Bond.IO.Unsafe;
+using Bond.Protocols;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
@@ -25,6 +27,12 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+        public enum SyntaxTreeSerializationProtocol
+        {
+            NewtonsoftBinary,
+            BondFastBinary
+        }
+
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -98,13 +106,18 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool LoadSyntaxTree(
             Stream stream,
             [NotNullWhen(true)] out QsCompilation? compilation,
+            SyntaxTreeSerializationProtocol serializationProtocol = SyntaxTreeSerializationProtocol.NewtonsoftBinary,
             Action<Exception>? onDeserializationException = null)
         {
-            using var reader = new BsonDataReader(stream);
-            (compilation, reader.ReadRootValueAsArray) = (null, false);
+            compilation = null;
             try
             {
-                compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
+                compilation = serializationProtocol switch
+                {
+                    SyntaxTreeSerializationProtocol.BondFastBinary => DeserializeSyntaxTreeFromBondFastBinary(stream),
+                    SyntaxTreeSerializationProtocol.NewtonsoftBinary => DeserializeSyntaxTreeFromNewtonsoftBinary(stream),
+                    _ => throw new ArgumentException($"Unsupported syntax tree serialization protocol '{serializationProtocol}'")
+                };
                 return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
             }
             catch (Exception ex)
@@ -112,6 +125,28 @@ namespace Microsoft.Quantum.QsCompiler
                 onDeserializationException?.Invoke(ex);
                 return false;
             }
+        }
+
+        private static QsCompilation? DeserializeSyntaxTreeFromBondFastBinary(
+            Stream stream)
+        {
+            using var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            memoryStream.Flush();
+            memoryStream.Position = 0;
+            var inputBuffer = new InputBuffer(memoryStream.ToArray());
+            var deserializer = BondSchemas.Factory.GetFastBinaryDeserializer();
+            var reader = new FastBinaryReader<InputBuffer>(inputBuffer);
+            var bondCompilation = deserializer.Deserialize<BondSchemas.QsCompilation>(reader);
+            return BondSchemas.CompilerObjectTranslator.CreateQsCompilation(bondCompilation);
+        }
+
+        private static QsCompilation? DeserializeSyntaxTreeFromNewtonsoftBinary(
+            Stream stream)
+        {
+            using var reader = new BsonDataReader(stream);
+            reader.ReadRootValueAsArray = false;
+            return Json.Serializer.Deserialize<QsCompilation>(reader);
         }
 
         /// <summary>
@@ -138,12 +173,23 @@ namespace Microsoft.Quantum.QsCompiler
             var metadataReader = assemblyFile.GetMetadataReader();
             compilation = null;
 
+            SyntaxTreeSerializationProtocol? serializationProtocol = null;
+            ManifestResource resource;
+            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+            {
+                serializationProtocol = SyntaxTreeSerializationProtocol.NewtonsoftBinary;
+            }
+            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondFastBinary, out resource))
+            {
+                serializationProtocol = SyntaxTreeSerializationProtocol.BondFastBinary;
+            }
+
             // The offset of resources is relative to the resources directory.
             // It is possible that there is no offset given because a valid dll allows for extenal resources.
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out var resource) ||
+                (serializationProtocol == null) ||
                 !resource.Implementation.IsNil)
             {
                 return false;
@@ -158,7 +204,11 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+            return LoadSyntaxTree(
+                new MemoryStream(resourceData),
+                out compilation,
+                serializationProtocol.Value,
+                onDeserializationException);
         }
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)

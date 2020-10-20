@@ -9,7 +9,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
     public static class Factory
     {
+        private static Deserializer<FastBinaryReader<InputBuffer>>? fastBinaryDeserializer = null;
         private static Serializer<FastBinaryWriter<OutputBuffer>>? fastBinarySerializer = null;
+
+        public static Deserializer<FastBinaryReader<InputBuffer>> GetFastBinaryDeserializer()
+        {
+            if (fastBinaryDeserializer == null)
+            {
+                fastBinaryDeserializer = new Deserializer<FastBinaryReader<InputBuffer>>(typeof(QsCompilation));
+            }
+
+            return fastBinaryDeserializer;
+        }
 
         public static Serializer<FastBinaryWriter<OutputBuffer>> GetFastBinarySerializer()
         {
