@@ -40,7 +40,12 @@ namespace Microsoft.Quantum.Documentation
         /// </summary>
         public string? PackageName => this.packageName;
 
-        private readonly string PackageLink;
+        private readonly string packageLink;
+
+        /// <summary>
+        ///     Markdown mode used to mark Q# syntax blocks.
+        /// </summary>
+        public virtual string LanguageMode => "qsharp";
 
         private static string AsSeeAlsoLink(string target, string? currentNamespace = null)
         {
@@ -117,7 +122,7 @@ namespace Microsoft.Quantum.Documentation
                 }
             }
 
-            this.PackageLink = this.PackageName == null
+            this.packageLink = this.PackageName == null
                 ? string.Empty
                 : $"\nPackage: [{this.PackageName}](https://nuget.org/packages/{this.PackageName})\n";
         }
@@ -209,22 +214,26 @@ namespace Microsoft.Quantum.Documentation
 # {title}
 
 Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
-{this.PackageLink}
+{this.packageLink}
 
 {docComment.Summary}
 
-```Q#
+```{this.LanguageMode}
 {type.WithoutDocumentationAndComments().ToSyntax()}
 ```
 
 "
             .MaybeWithSection(
                 "Named Items",
-                string.Join("\n", docComment.NamedItems.Select(
+                string.Join("\n", type.TypeItems.TypeDeclarations().Select(
                     item =>
                     {
-                        var hasName = namedItemDeclarations.TryGetValue(item.Key, out var itemType);
-                        return $"### {item.Key}{(hasName ? $" : {itemType.ToMarkdownLink()}" : "")}\n\n{item.Value}\n\n";;
+                        (var itemName, var resolvedType) = item;
+                        var documentation =
+                            docComment.NamedItems.TryGetValue(itemName, out var comment)
+                            ? comment
+                            : string.Empty;
+                        return $"### {itemName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}";
                     }
                 ))
             )
@@ -258,8 +267,6 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
         /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         public async Task WriteOutput(QsCallable callable, DocComment docComment)
         {
-            var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
-
             // Make a new Markdown document for the type declaration.
             var kind = callable.Kind.Tag switch
             {
@@ -289,30 +296,47 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
 # {title}
 
 Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})
-{this.PackageLink}
+{this.packageLink}
 
 {docComment.Summary}
 
-```Q#
-{callable.ToSyntax()}
+```{this.LanguageMode}
+{
+    callable.Kind.Tag switch
+    {
+        QsCallableKind.Tags.Function => "function ",
+        QsCallableKind.Tags.Operation => "operation ",
+        QsCallableKind.Tags.TypeConstructor => "newtype ",
+        _ => ""
+    }
+}{callable.ToSyntax()}
 ```
 "
             .MaybeWithSection("Description", docComment.Description)
             .MaybeWithSection(
                 "Input",
-                string.Join("\n", docComment.Input.Select(
-                    item =>
+                string.Join("\n", callable.ArgumentTuple.InputDeclarations().Select(
+                    (item) =>
                     {
-                        var hasInput = inputDeclarations.TryGetValue(item.Key, out var inputType);
-                        return $"### {item.Key}{(hasInput ? $" : {inputType.ToMarkdownLink()}" : "")}\n\n{item.Value}\n\n";
+                        (var inputName, var resolvedType) = item;
+                        var documentation = docComment.Input.TryGetValue(inputName, out var inputComment)
+                            ? inputComment
+                            : string.Empty;
+                        return $"### {inputName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}\n\n";
                     }
                 ))
             )
-            .MaybeWithSection("Output", docComment.Output)
+            .WithSection($"Output : {callable.Signature.ReturnType.ToMarkdownLink()}", docComment.Output)
             .MaybeWithSection(
                 "Type Parameters",
-                string.Join("\n", docComment.TypeParameters.Select(
-                    item => $"### {item.Key}\n\n{item.Value}\n\n"
+                string.Join("\n", callable.Signature.TypeParameters.Select(
+                    typeParam => $@"### {typeParam}\n\n{(
+                        typeParam is QsLocalSymbol.ValidName name
+                        ? docComment.TypeParameters.TryGetValue(name.Item.Value, out var comment)
+                            ? comment
+                            : string.Empty
+                        : string.Empty
+                    )}"
                 ))
             )
             .MaybeWithSection("Remarks", docComment.Remarks)
