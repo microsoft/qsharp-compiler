@@ -140,8 +140,8 @@ remarks: |-
   ```
 syntax: newtype GeneratorIndex = ((Int[], Double[]), Int[]);
 seeAlso:
-- microsoft.quantum.canon.paulievolutionset
-- microsoft.quantum.canon.evolutionset
+- Microsoft.Quantum.Canon.PauliEvolutionSet
+- Microsoft.Quantum.Canon.EvolutionSet
 ...
 ";
             var intArrayType = ResolvedType.New(QsType.NewArrayType(ResolvedType.New(QsType.Int)));
