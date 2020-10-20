@@ -16,6 +16,10 @@ steps:
   displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
+- pwsh: .\manifest.ps1
+  displayName: "List built packages & assemblies"
+  workingDirectory: '$(System.DefaultWorkingDirectory)/build'
+  condition: succeededOrFailed()
 
 
 ##
