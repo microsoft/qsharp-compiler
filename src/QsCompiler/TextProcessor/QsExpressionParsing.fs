@@ -186,19 +186,12 @@ let internal numericLiteral =
         let isBigInt = nl.IsInteger     && format <> 0  && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
         let returnWithRange kind = preturn (kind, range)
-        let binaryToHex binaryString = 
+        let baseToHex (baseint:int, str) =
             // first pad 0's so that length is multiple of 4, so we can match from left rather than right
-            let nZeroPad = (4 - String.length binaryString % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
-            let binaryString = binaryString.PadLeft (nZeroPad + String.length binaryString, '0')
+            let nZeroPad = (4 - String.length str % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
+            let paddedStr = str.PadLeft (nZeroPad + String.length str, '0')
             // now match from left
-            binaryString |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToByte(System.String x, 2).ToString "X") |> System.String.Concat
-        // seems like toString only takes keyword "X", so still need to enumerate for octal 
-        let octalToHex octalString =
-            // first pad 0's so that length is multiple of 4, so we can match from left rather than right
-            let nZeroPad = (4 - String.length octalString % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
-            let octalString = octalString.PadLeft (nZeroPad + String.length octalString, '0')
-            // now match from left
-            octalString |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToInt32(System.String x, 8).ToString "X") |> System.String.Concat
+            paddedStr |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToInt32(System.String x, baseint).ToString "X") |> System.String.Concat
         try if isInt then 
                 let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
                 if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
@@ -207,8 +200,7 @@ let internal numericLiteral =
                 else (int64)value |> IntLiteral |> returnWithRange
             elif isBigInt then 
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
-                elif format = 2 then BigInteger.Parse(str |> binaryToHex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
-                elif format = 8 then BigInteger.Parse(str |> octalToHex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                elif format = 2 || format = 8 then BigInteger.Parse(baseToHex (format,str), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then 
                 try let doubleValue = System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture)
