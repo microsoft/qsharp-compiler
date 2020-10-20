@@ -285,6 +285,8 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
+    // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
+
     { /// The namespace manager for global symbols.
       Globals : NamespaceManager
 
@@ -293,6 +295,10 @@ type ScopeContext =
 
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+
+      /// True if the current expression is contained within the condition of an if- or elif-statement.
+      [<Obsolete>]
+      IsInIfCondition : bool
 
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
@@ -323,7 +329,13 @@ type ScopeContext =
             { Globals = nsManager
               Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
+              IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities
               ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
+
+    /// Returns a new scope context for an expression that is contained within the condition of an if- or
+    /// elif-statement.
+    [<Obsolete>]
+    member this.WithinIfCondition = { this with IsInIfCondition = true }
