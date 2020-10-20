@@ -51,6 +51,17 @@ type GlobalVerificationTests () =
 
 
     [<Fact>]
+    member this.``Naming conflicts`` () =
+
+        this.Expect "NamingConflict1" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict2" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict3" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict4" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict5" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict6" [Error ErrorCode.FullNameConflictsWithNamespace]
+
+
+    [<Fact>]
     member this.``Uniqueness of specializations`` () = 
 
         this.Expect "ValidSetOfSpecializations1"  []
