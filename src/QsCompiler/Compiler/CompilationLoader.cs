@@ -10,13 +10,14 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Bond.IO.Unsafe;
+using Bond.Protocols;
 using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
-using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
@@ -984,12 +985,17 @@ namespace Microsoft.Quantum.QsCompiler
                 return false;
             }
 
-            using var writer = new BsonDataWriter(ms) { CloseOutput = false };
             var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
             try
             {
-                Json.Serializer.Serialize(writer, compilation);
+                var outputBuffer = new OutputBuffer();
+                var serializer = BondSchemas.Factory.GetFastBinarySerializer();
+                var fastBinaryWriter = new FastBinaryWriter<OutputBuffer>(outputBuffer);
+                var bondCompilation = BondSchemas.BondSchemaTranslator.CreateBondCompilation(compilation);
+                serializer.Serialize(bondCompilation, fastBinaryWriter);
+                outputBuffer.Position = 0;
+                ms.Write(outputBuffer.Data);
             }
             catch (Exception ex)
             {
@@ -1097,7 +1103,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceName, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceNameQsDataBondFastBinary, () => serialization, true);
                 var result = compilation.Emit(
                     outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
