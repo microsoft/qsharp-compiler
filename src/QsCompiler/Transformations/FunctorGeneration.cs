@@ -189,6 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             this.Statements = new StatementTransformation(this);
             this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
         private class StatementTransformation
