@@ -17,6 +17,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler
 
 type CallGraphTests (output:ITestOutputHelper) =
 
@@ -421,6 +422,32 @@ type CallGraphTests (output:ITestOutputHelper) =
         AssertInConcreteGraph graph FooAdj
         AssertInConcreteGraph graph FooCtl
         AssertInConcreteGraph graph FooCtlAdj
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph Call Self-Adjoint Reference`` () =
+        let compilation = PopulateCallGraphWithExe 15
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
+        Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
+        let graph = transformed |> ConcreteCallGraph
+
+        let makeNode spec = MakeNode "Foo" spec []
+
+        let Foo = makeNode QsBody
+        let FooAdj = makeNode QsAdjoint
+        let FooCtl = makeNode QsControlled
+        let FooCtlAdj = makeNode QsControlledAdjoint
+
+        AssertInConcreteGraph graph Foo
+        AssertInConcreteGraph graph FooAdj
+        AssertInConcreteGraph graph FooCtl
+        AssertInConcreteGraph graph FooCtlAdj
+
+        let dependencies = graph.GetDirectDependencies FooAdj
+        Assert.True(dependencies.Contains(Foo), "Expected adjoint specialization to take dependency on body specialization.")
+
+        let dependencies = graph.GetDirectDependencies FooCtlAdj
+        Assert.True(dependencies.Contains(FooCtl), "Expected controlled-adjoint specialization to take dependency on controlled specialization.")
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
