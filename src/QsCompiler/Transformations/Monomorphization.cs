@@ -15,9 +15,9 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
-    using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
-    using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using Concretization = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretization*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
+    using ImmutableConcretization = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private static Identifier GetConcreteIdentifier(
             Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
             Identifier.GlobalCallable globalCallable,
-            ImmutableConcretion types)
+            ImmutableConcretization types)
         {
             if (types.IsEmpty)
             {
@@ -195,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamImplementations :
             SyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
         {
-            public static QsCallable Apply(QsCallable callable, ImmutableConcretion typeParams, GetAccessModifiers getAccessModifiers)
+            public static QsCallable Apply(QsCallable callable, ImmutableConcretization typeParams, GetAccessModifiers getAccessModifiers)
             {
                 var filter = new ReplaceTypeParamImplementations(typeParams, getAccessModifiers);
                 return filter.Namespaces.OnCallableDeclaration(callable);
@@ -203,17 +203,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly ImmutableConcretion TypeParams;
+                public readonly ImmutableConcretization TypeParams;
                 public readonly GetAccessModifiers GetAccessModifiers;
 
-                public TransformationState(ImmutableConcretion typeParams, GetAccessModifiers getAccessModifiers)
+                public TransformationState(ImmutableConcretization typeParams, GetAccessModifiers getAccessModifiers)
                 {
                     this.TypeParams = typeParams;
                     this.GetAccessModifiers = getAccessModifiers;
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams, GetAccessModifiers getAccessModifiers) : base(new TransformationState(typeParams, getAccessModifiers))
+            private ReplaceTypeParamImplementations(ImmutableConcretization typeParams, GetAccessModifiers getAccessModifiers) : base(new TransformationState(typeParams, getAccessModifiers))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Types = new TypeTransformation(this);
@@ -331,7 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly Concretion CurrentParamTypes = new Concretion();
+                public readonly Concretization CurrentParamTypes = new Concretization();
                 public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
                 public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
 
@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
-                public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
+                public override ImmutableConcretization OnTypeParamResolutions(ImmutableConcretization typeParams)
                 {
                     // Merge the type params into the current dictionary
 
@@ -395,7 +395,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        ImmutableConcretion applicableParams = this.SharedState.CurrentParamTypes
+                        ImmutableConcretization applicableParams = this.SharedState.CurrentParamTypes
                             .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
