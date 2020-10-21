@@ -374,27 +374,41 @@ output:
                 "# Deprecated",
                 "Some other text"
             };
-            string dep = "NewName";
-            string warning = "> [!WARNING]\n> Deprecated\n";
-            string warningText = "name has been deprecated. Please use <xref:NewName> instead.";
 
             // Test with just the Deprecated comment section
-            var dc = new DocComment(comments);
-            Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
-            Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
-            Assert.Equal(comments[3], dc.Documentation);
+            var comment = new DocComment(comments);
+            Assert.Equal(
+                "> [!WARNING]\n" +
+                "> Some other text\n" +
+                "\n" +
+                "This is some text",
+                comment.Summary);
+            Assert.Equal("Some other text", comment.ShortSummary);
+            Assert.Equal(comment.Summary, comment.Documentation);
 
             // Test with just the deprecated attribute
-            dc = new DocComment(comments.Take(2), "name", true, dep);
-            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText, dc.Summary);
-            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
-            Assert.Equal(warningText, dc.Documentation);
+            comment = new DocComment(comments.Take(2), "name", true, "NewName");
+            Assert.Equal(
+                "> [!WARNING]\n" +
+                "> name has been deprecated. Please use <xref:NewName> instead.\n" +
+                "\n" +
+                "This is some text",
+                comment.Summary);
+            Assert.Equal("name has been deprecated. Please use <xref:NewName> instead.", comment.ShortSummary);
+            Assert.Equal(comment.Summary, comment.Documentation);
 
             // Test with both
-            dc = new DocComment(comments, "name", true, dep);
-            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText + "\r" + comments[3], dc.Summary);
-            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
-            Assert.Equal(warningText, dc.Documentation);
+            comment = new DocComment(comments, "name", true, "NewName");
+            Assert.Equal(
+                "> [!WARNING]\n" +
+                "> name has been deprecated. Please use <xref:NewName> instead.\n" +
+                ">\n" +
+                "> Some other text\n" +
+                "\n" +
+                "This is some text",
+                comment.Summary);
+            Assert.Equal("name has been deprecated. Please use <xref:NewName> instead.", comment.ShortSummary);
+            Assert.Equal(comment.Summary, comment.Documentation);
         }
     }
 }

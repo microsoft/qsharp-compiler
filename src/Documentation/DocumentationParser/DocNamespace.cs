@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     TryGetUid(node1),
                     TryGetUid(node2));
 
-            var namespaceNode = toc.Children?.SingleOrDefault(c => MatchByUid(c, this.uid)) as YamlMappingNode;
+            var namespaceNode = toc.Children.SingleOrDefault(c => MatchByUid(c, this.uid)) as YamlMappingNode;
             YamlSequenceNode? itemListNode = null;
             if (namespaceNode == null)
             {

@@ -18,48 +18,28 @@ namespace Microsoft.Quantum.QsLanguageServer
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
         public static T TryJTokenAs<T>(JToken arg) where T : class =>
-            QsCompilerError.RaiseOnFailure(
-                () => arg == null ? throw new ArgumentNullException(nameof(arg)) : arg.ToObject<T>(),
-                "could not cast given JToken");
+            QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(), "could not cast given JToken");
 
-        private static ShowMessageParams AsMessageParams(string text, MessageType severity) =>
+        private static ShowMessageParams? AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
 
         /// <summary>
         /// Shows the given text in the editor.
-        /// Throws an ArgumentNullException if either the server or the text to display is null.
         /// </summary>
         internal static void ShowInWindow(this QsLanguageServer server, string text, MessageType severity)
         {
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot show message - given server or text was null");
-            if (server == null)
-            {
-                throw new ArgumentNullException(nameof(server));
-            }
-            if (message == null)
-            {
-                throw new ArgumentNullException(nameof(message));
-            }
             _ = server.NotifyClientAsync(Methods.WindowShowMessageName, message);
         }
 
         /// <summary>
         /// Logs the given text in the editor.
-        /// Throws an ArgumentNullException if either the server or the text to display is null.
         /// </summary>
         internal static void LogToWindow(this QsLanguageServer server, string text, MessageType severity)
         {
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot log message - given server or text was null");
-            if (server == null)
-            {
-                throw new ArgumentNullException(nameof(server));
-            }
-            if (message == null)
-            {
-                throw new ArgumentNullException(nameof(message));
-            }
             _ = server.NotifyClientAsync(Methods.WindowLogMessageName, message);
         }
 
@@ -76,15 +56,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             Func<TSource, TResult> mapper,
             out ImmutableArray<TResult> mapped)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-            if (mapper == null)
-            {
-                throw new ArgumentNullException(nameof(mapper));
-            }
-
             var succeeded = true;
             var enumerator = source.GetEnumerator();
 
@@ -102,7 +73,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             bool TryMoveNext() => Try(enumerator.MoveNext, false);
-            (bool, TResult) ApplyToCurrent() => Try(() => (true, mapper(enumerator.Current)), (false, default(TResult)));
+            (bool, TResult) ApplyToCurrent() => Try(() => (true, mapper(enumerator.Current)), (false, default!));
 
             var values = ImmutableArray.CreateBuilder<TResult>();
             while (TryMoveNext())

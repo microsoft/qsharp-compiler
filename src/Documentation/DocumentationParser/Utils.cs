@@ -55,11 +55,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static readonly string YamlExtension = ".yml";
         internal static readonly string LogExtension = ".log";
 
-        internal static YamlNode BuildStringNode(string item)
+        internal static YamlNode BuildStringNode(string? item)
         {
             var node = new YamlScalarNode(item);
             // Set the style to literal (YAML |-) if the string is multi-line
-            if (item.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
+            if (item?.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
             {
                 node.Style = YamlDotNet.Core.ScalarStyle.Literal;
             }
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void AddString(this YamlSequenceNode root, string item) => root.Add(BuildStringNode(item));
 
         // We don't need to set the key to literal because all of our keys are simple one-line strings.
-        internal static void AddStringMapping(this YamlMappingNode root, string key, string item)
+        internal static void AddStringMapping(this YamlMappingNode root, string key, string? item)
         {
             root.Children[new YamlScalarNode(key)] = BuildStringNode(item);
         }
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
-        internal static string ResolvedTypeToString(ResolvedType t) =>
+        internal static string? ResolvedTypeToString(ResolvedType t) =>
             SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>
@@ -362,10 +362,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="rootPath">The directory where the file should exist.</param>
         /// <param name="fileBaseName">The base name of the file, not including the ".yml" extension.</param>
-        internal static YamlNode ReadYamlFile(string rootPath, string fileBaseName)
+        internal static YamlNode? ReadYamlFile(string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlNode fileNode = null;
+            YamlNode? fileNode = null;
             DoIgnoringExceptions(() =>
             {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
@@ -410,7 +410,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();
-            YamlMappingNode fileMap = new YamlMappingNode();
+            var fileMap = new YamlMappingNode();
             DoIgnoringExceptions(() =>
             {
                 var fileName = Path.Combine(rootPath, fileBaseName + YamlExtension);
@@ -418,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     yamlReader.Load(readStream);
                 }
-                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode;
+                fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode ?? fileMap;
             });
             foreach (var entry in map.Children)
             {
@@ -434,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="act">The action to run.</param>
         /// <param name="logFileName">The name of the file to log exceptions to.
         /// If omitted, the exception is not logged at all.</param>
-        internal static void DoIgnoringExceptions(Action act, string logFileName = null)
+        internal static void DoIgnoringExceptions(Action act, string? logFileName = null)
         {
             try
             {
@@ -480,6 +480,15 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
         internal static string AsUid(this string qualifiedName) =>
             qualifiedName;
+
+        /// <summary>
+        /// Returns the text as a Markdown warning block.
+        /// </summary>
+        internal static string Warning(string text)
+        {
+            var lines = text.Split('\r', '\n').Select(line => ("> " + line).TrimEnd());
+            return "> [!WARNING]\n" + string.Join('\n', lines);
+        }
     }
 
     // See https://stackoverflow.com/a/5037815/267841.

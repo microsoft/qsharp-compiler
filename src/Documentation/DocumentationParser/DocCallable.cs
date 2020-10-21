@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     {
         private readonly string syntax;
         private readonly string inputContent;
-        private readonly string outputType;
+        private readonly string? outputType;
         private readonly List<string> functors = new List<string>();
         private readonly QsCallable callable;
 

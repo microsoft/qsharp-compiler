@@ -23,27 +23,24 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     /// </summary>
     public class DocComment
     {
-        internal static readonly string DeprecatedWarning = "> [!WARNING]\n> Deprecated\n";
-        internal static readonly IEnumerable<Block> DeprecatedSection = Markdown.Parse(DeprecatedWarning);
-
         /// <summary>
         /// The summary description of the item.
         /// This should be one paragraph of plain text.
         /// </summary>
-        public string Summary { get; private set; } = "";
+        public string Summary { get; } = "";
 
         /// <summary>
         /// The (rest of the) full description of the item.
         /// This should not duplicate the summary, but rather follow it.
         /// </summary>
-        public string Description { get; private set; } = "";
+        public string Description { get; } = "";
 
         /// <summary>
         /// The short hover information for the item.
         /// This should be one paragraph of plain text.
         /// Currently this is the first paragraph of the summary field.
         /// </summary>
-        public string ShortSummary { get; private set; } = "";
+        public string ShortSummary { get; } = "";
 
         /// <summary>
         /// The full markdown-formatted hover information for the item.
@@ -55,26 +52,26 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// The full markdown-formatted on-line documentation for the item.
         /// Currently this consists of the summary field followed by the description field.
         /// </summary>
-        public string Documentation { get; private set; } = "";
+        public string Documentation { get; } = "";
 
         /// <summary>
         /// The inputs to the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string, string> Input { get; private set; }
+        public Dictionary<string, string> Input { get; }
             = new Dictionary<string, string>();
 
         /// <summary>
         /// The output from the item.
         /// This is only populated for functions and operations.
         /// </summary>
-        public string Output { get; private set; } = "";
+        public string Output { get; } = "";
 
         /// <summary>
         /// The type parameters for the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string, string> TypeParameters { get; private set; } =
+        public Dictionary<string, string> TypeParameters { get; } =
             new Dictionary<string, string>();
 
         /// <summary>
@@ -85,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <remarks>
         ///     Only applicable when the item being documented is a UDT.
         /// </remarks>
-        public Dictionary<string, string> NamedItems { get; private set; } =
+        public Dictionary<string, string> NamedItems { get; } =
             new Dictionary<string, string>();
 
         /// <summary>
@@ -101,26 +98,27 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <summary>
         /// A list of examples of using the item.
         /// </summary>
-        public ImmutableList<string> Examples { get; private set; } = ImmutableList<string>.Empty;
+        public ImmutableList<string> Examples { get; } = ImmutableList<string>.Empty;
 
         /// <summary>
         /// Additional commentary about the item.
         /// </summary>
-        public string Remarks { get; private set; } = "";
+        public string Remarks { get; } = "";
 
         /// <summary>
         /// A list of links to other documentation related to this item.
         /// </summary>
-        public List<string> SeeAlso { get; private set; } =
+        public List<string> SeeAlso { get; } =
             new List<string>();
 
         /// <summary>
         /// Reference material about the item.
         /// </summary>
-        public string References { get; private set; } = "";
+        public string References { get; } = "";
 
         /// <summary>
-        /// Constructs a DocComment instance from the documentation comments
+        /// Initializes a new instance of the <see cref="DocComment"/> class
+        /// from the documentation comments
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
@@ -134,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var sb = new StringBuilder();
                 foreach (var item in heading.Inline)
                 {
-                    sb.Append(item.ToString());
+                    sb.Append(item);
                 }
                 return sb.ToString();
             }
@@ -144,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var sb = new StringBuilder();
                 foreach (var item in leaf.Inline)
                 {
-                    sb.Append(item.ToString());
+                    sb.Append(item);
                 }
                 return sb.ToString();
             }
@@ -206,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 foreach (var block in blocks)
                 {
-                    if (block is ListBlock list)
+                    if (block is ListBlock)
                     {
                         foreach (var sub in block.Descendants())
                         {
@@ -269,8 +267,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             // Initialize to safe empty values
             var deprecationSummary = string.IsNullOrWhiteSpace(replacement)
-                                    ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
-                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, $"<xref:{replacement.AsUid()}>" });
+                ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new[] { name })
+                : DiagnosticItem.Message(
+                    WarningCode.DeprecationWithRedirect,
+                    new string[] { name, $"<xref:{replacement.AsUid()}>" });
             var deprecationDetails = "";
 
             var text = string.Join("\n", docComments);
@@ -354,11 +354,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             if (deprecated)
             {
-                var shortDeprecationText = DeprecatedWarning + "\r" + deprecationSummary;
-                var longDeprecationText = shortDeprecationText + (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
-                this.Summary += "\r" + longDeprecationText;
-                this.ShortSummary = shortDeprecationText;
-                this.Documentation = deprecationSummary;
+                var deprecationWarning = Utils.Warning(string.Join(
+                    "\n\n",
+                    new[] { deprecationSummary, deprecationDetails }.Where(s => !string.IsNullOrWhiteSpace(s))));
+                this.ShortSummary = deprecationSummary;
+                this.Summary = deprecationWarning + "\n\n" + this.Summary;
+                this.Documentation = deprecationWarning + "\n\n" + this.Documentation;
             }
         }
 
