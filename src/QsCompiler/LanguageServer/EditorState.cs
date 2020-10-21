@@ -128,7 +128,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
             var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability)
                 ? capability
-                : AssemblyConstants.RuntimeCapabilities.FullComputation;
+                : AssemblyConstants.RuntimeCapabilities.Unknown;
 
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));

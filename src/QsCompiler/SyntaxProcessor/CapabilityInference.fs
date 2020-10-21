@@ -7,7 +7,6 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
@@ -32,9 +31,6 @@ type private Pattern =
     /// An equality expression outside the condition of an if statement, where the operands are results.
     | ResultEqualityNotInCondition of Range QsNullable
 
-/// The level of a runtime capability. Higher levels require more capabilities.
-type private Level = Level of int
-
 /// Returns the offset of a nullable location.
 let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
@@ -53,51 +49,33 @@ type private StatementLocationTracker (parent, options) =
 
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private patternCapability inOperation = function
-    | ResultEqualityInCondition _ ->
-        if inOperation
-        then RuntimeCapabilities.BasicMeasurementFeedback
-        else RuntimeCapabilities.FullComputation
-    | ResultEqualityNotInCondition _ -> RuntimeCapabilities.FullComputation
-    | ReturnInResultConditionedBlock _ -> RuntimeCapabilities.FullComputation
-    | SetInResultConditionedBlock _ -> RuntimeCapabilities.FullComputation
+    | ResultEqualityInCondition _ -> if inOperation then BasicMeasurementFeedback else FullComputation
+    | ResultEqualityNotInCondition _ -> FullComputation
+    | ReturnInResultConditionedBlock _ -> FullComputation
+    | SetInResultConditionedBlock _ -> FullComputation
 
-/// The runtime capability with the lowest level.
-let private baseCapability = RuntimeCapabilities.BasicQuantumFunctionality
-
-/// Returns the level of the runtime capability.
-let private level = function
-    | RuntimeCapabilities.BasicQuantumFunctionality -> Level 0
-    | RuntimeCapabilities.BasicMeasurementFeedback -> Level 1
-    | _ -> Level 2
-
-/// Returns the maximum capability in the sequence of capabilities, or none if the sequence is empty.
-let private tryMaxCapability capabilities =
-    if Seq.isEmpty capabilities
-    then None
-    else capabilities |> Seq.maxBy level |> Some
-
-/// Returns the maximum capability in the sequence of capabilities, or the base capability if the sequence is empty.
-let private maxCapability = tryMaxCapability >> Option.defaultValue baseCapability
+/// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
+let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Default
 
 /// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
 /// level.
 let private patternDiagnostic context pattern =
     let error code args (range : _ QsNullable) =
-        if level context.Capabilities >= level (patternCapability context.IsInOperation pattern)
+        if patternCapability context.IsInOperation pattern |> context.Capability.Implies
         then None
         else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
     let unsupported =
-        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
+        if context.Capability = BasicMeasurementFeedback
         then ErrorCode.ResultComparisonNotInOperationIf
         else ErrorCode.UnsupportedResultComparison
 
     match pattern with
     | ReturnInResultConditionedBlock range ->
-        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
+        if context.Capability = BasicMeasurementFeedback
         then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture.Value ] range
         else None
     | SetInResultConditionedBlock (name, range) ->
-        if context.Capabilities = RuntimeCapabilities.BasicMeasurementFeedback
+        if context.Capability = BasicMeasurementFeedback
         then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture.Value ] range
         else None
     | ResultEqualityInCondition range ->
@@ -241,12 +219,12 @@ let private globalReferences scope =
 let private referenceDiagnostic context (name, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability = declaration.Attributes |> QsNullable<_>.Choose BuiltIn.RequiredCapability |> maxCapability
-        if level capability > level context.Capabilities
-        then
+        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Default
+        if context.Capability.Implies capability
+        then None
+        else
             let error = ErrorCode.UnsupportedCapability, [ name.Name.Value; context.ProcessorArchitecture.Value ]
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
-        else None
     | _ -> None
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
@@ -267,14 +245,15 @@ let private isOperation callable =
     | Operation -> true
     | _ -> false
 
+/// Returns true if the QsNullable is null.
+let private isQsNull = function
+    | Value _ -> false
+    | Null -> true
+
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
 let private isDeclaredInSourceFile (callable : QsCallable) =
     callable.SourceFile.Value.EndsWith ".qs"
-
-/// Returns the maximum capability given by the attributes, if any.
-let private attributeCapability : _ seq -> _ =
-    QsNullable<_>.Choose BuiltIn.RequiredCapability >> tryMaxCapability
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.
@@ -282,14 +261,14 @@ let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
         let offset = spec.Location |> QsNullable<_>.Map (fun location -> location.Offset)
-        scopePatterns scope |> Seq.map (addOffset offset >> patternCapability inOperation) |> maxCapability
-    | _ -> baseCapability
+        scopePatterns scope |> Seq.map (addOffset offset >> patternCapability inOperation) |> joinCapabilities
+    | _ -> RuntimeCapability.Default
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let private callableSourceCapability callable =
     callable.Specializations
     |> Seq.map (isOperation callable |> specSourceCapability)
-    |> maxCapability
+    |> joinCapabilities
 
 /// Returns the required capability of the callable based on its capability attribute if one is present. If no attribute
 /// is present and the callable is not defined in a reference, returns the capability based on its source code and
@@ -312,15 +291,15 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
             cycle
             |> Seq.choose (fun node -> callables |> tryGetValue node.CallableName)
             |> Seq.map callableSourceCapability
-            |> maxCapability
+            |> joinCapabilities
         for node in cycle do
             initialCapabilities.[node.CallableName] <-
-                maxCapability [ initialCapabilities.[node.CallableName]; cycleCapability ]
+                joinCapabilities [ initialCapabilities.[node.CallableName]; cycleCapability ]
 
     // The memoization cache.
     let cache = Dictionary<_, _> ()
 
-    // The capability of a callable's dependencies, if any.
+    // The capability of a callable's dependencies.
     let rec dependentCapability visited name =
         let visited = Set.add name visited
         let newDependencies =
@@ -332,18 +311,17 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
         newDependencies
         |> Seq.choose (fun name -> callables |> tryGetValue name)
         |> Seq.map (cachedCapability visited)
-        |> tryMaxCapability
+        |> joinCapabilities
 
     // The capability of a callable based on its initial capability and the capability of all dependencies.
     and callableCapability visited (callable : QsCallable) =
-        attributeCapability callable.Attributes |> Option.defaultWith (fun () ->
+        (BuiltIn.TryGetRequiredCapability callable.Attributes).ValueOrApply (fun () ->
             if isDeclaredInSourceFile callable
             then
-                [ initialCapabilities |> tryGetValue callable.FullName
+                [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Default
                   dependentCapability visited callable.FullName ]
-                |> List.choose id
-                |> maxCapability
-            else baseCapability)
+                |> joinCapabilities
+            else RuntimeCapability.Default)
 
     // Tries to retrieve the capability of the callable from the cache first; otherwise, computes the capability and
     // saves it in the cache.
@@ -370,7 +348,7 @@ let InferCapabilities compilation =
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability = attributeCapability callable.Attributes |> Option.isNone
+                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute
                 else callable

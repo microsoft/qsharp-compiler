@@ -71,21 +71,26 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = GeneratedAttributes.Namespace && tId.Name.Value = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
-    /// Returns the required runtime capability if the attribute is a valid instance of the RequiresCapability
-    /// attribute.
-    static member RequiredCapability attribute =
+    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
+    /// the RequiresCapability attribute.
+    static member TryGetRequiredCapability attributes =
         let isCapability udt = BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
-        let parse = Enum.TryParse<RuntimeCapabilities> >> function
-            | true, capability -> Value capability
-            | false, _ -> Null
+        let parse = function
+            | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
+            | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
+            | "FullComputation" -> Value FullComputation
+            | _ -> Null
         let extractString = function
             | StringLiteral (str, _) -> Value str.Value
             | _ -> Null
-        match attribute.TypeId, attribute.Argument.Expression with
-        | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
-            items.[0].Expression |> extractString |> QsNullable<_>.Bind parse
-        | _ -> Null
-
+        let capability attribute =
+            match attribute.TypeId, attribute.Argument.Expression with
+            | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
+                items.[0].Expression |> extractString |> QsNullable<_>.Bind parse
+            | _ -> Null
+        let capabilities = attributes |> QsNullable<_>.Choose capability
+        if Seq.isEmpty capabilities then Null
+        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
 
     // dependencies in Microsoft.Quantum.Core
 

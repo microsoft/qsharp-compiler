@@ -329,7 +329,7 @@ type LinkingTests (output:ITestOutputHelper) =
             new CompilationUnitManager
                 (Action<_> (fun ex -> failwith ex.Message),
                  isExecutable = true,
-                 capabilities = RuntimeCapabilities.BasicQuantumFunctionality)
+                 capabilities = RuntimeCapabilities.QPRGen0)
         let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
         

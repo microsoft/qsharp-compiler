@@ -21,10 +21,9 @@ let private callables =
 
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =
-    let actual =
-        callables.[CapabilityVerificationTests.testName name].Attributes
-        |> QsNullable<_>.Choose BuiltIn.RequiredCapability
-    Assert.Equal<RuntimeCapabilities> ([ capability ], actual)
+    let fullName = CapabilityVerificationTests.testName name
+    let actual = BuiltIn.TryGetRequiredCapability callables.[fullName].Attributes
+    Assert.Equal (Value capability, actual)
 
 [<Fact>]
 let ``Infers BasicQuantumFunctionality by source code`` () =
@@ -34,7 +33,7 @@ let ``Infers BasicQuantumFunctionality by source code`` () =
       // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
       "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect RuntimeCapabilities.BasicQuantumFunctionality)
+    |> List.iter (expect BasicQuantumFunctionality)
 
 [<Fact>]
 let ``Infers BasicMeasurementFeedback by source code`` () =
@@ -43,7 +42,7 @@ let ``Infers BasicMeasurementFeedback by source code`` () =
       "EmptyIfNeqOp"
       "Reset"
       "ResetNeq" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers FullComputation by source code`` () =
@@ -65,64 +64,64 @@ let ``Infers FullComputation by source code`` () =
       "SetTuple"
       "EmptyIf"
       "EmptyIfNeq" ]
-    |> List.iter (expect RuntimeCapabilities.FullComputation)
+    |> List.iter (expect FullComputation)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect RuntimeCapabilities.BasicQuantumFunctionality "OverrideBmfToBqf"
+    expect BasicQuantumFunctionality "OverrideBmfToBqf"
     [ "OverrideBqfToBmf"
       "OverrideFullToBmf"
       "ExplicitBmf" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
-    expect RuntimeCapabilities.FullComputation "OverrideBmfToFull"
+    |> List.iter (expect BasicMeasurementFeedback)
+    expect FullComputation "OverrideBmfToFull"
 
 [<Fact>]
 let ``Infers single dependency`` () =
     [ "CallBmfA"
       "CallBmfB" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
-    expect RuntimeCapabilities.BasicMeasurementFeedback "CallBmfFullB"
+    expect BasicMeasurementFeedback "CallBmfFullB"
     [ "CallBmfFullA"
       "CallBmfFullC" ]
-    |> List.iter (expect RuntimeCapabilities.FullComputation)
+    |> List.iter (expect FullComputation)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
     [ "CallFullA"
       "CallFullB" ]
-    |> List.iter (expect RuntimeCapabilities.FullComputation)
-    expect RuntimeCapabilities.BasicMeasurementFeedback "CallFullC"
+    |> List.iter (expect FullComputation)
+    expect BasicMeasurementFeedback "CallFullC"
 
 [<Fact>]
 let ``Allows safe override`` () =
     [ "CallFullOverrideA"
       "CallFullOverrideB" ]
-    |> List.iter (expect RuntimeCapabilities.FullComputation)
-    expect RuntimeCapabilities.BasicMeasurementFeedback "CallFullOverrideC"
+    |> List.iter (expect FullComputation)
+    expect BasicMeasurementFeedback "CallFullOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
     [ "CallBmfOverrideA"
       "CallBmfOverrideB" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
-    expect RuntimeCapabilities.FullComputation "CallBmfOverrideC"
+    |> List.iter (expect BasicMeasurementFeedback)
+    expect FullComputation "CallBmfOverrideC"
 
 [<Fact>]
 let ``Infers with direction recursion`` () =
-    expect RuntimeCapabilities.BasicMeasurementFeedback "BmfRecursion"
+    expect BasicMeasurementFeedback "BmfRecursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "BmfRecursion3A"
       "BmfRecursion3B"
       "BmfRecursion3C" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
     [ "ReferenceBmfA"
       "ReferenceBmfB" ]
-    |> List.iter (expect RuntimeCapabilities.BasicMeasurementFeedback)
+    |> List.iter (expect BasicMeasurementFeedback)

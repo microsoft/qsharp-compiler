@@ -782,7 +782,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ProjectInformation.Empty(
                             "Latest",
                             existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path."),
-                            AssemblyConstants.RuntimeCapabilities.FullComputation))
+                            AssemblyConstants.RuntimeCapabilities.Unknown))
                         ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null)
                     {

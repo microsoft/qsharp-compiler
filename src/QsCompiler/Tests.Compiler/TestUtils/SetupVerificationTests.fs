@@ -91,7 +91,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
 
     static member Compile (srcFolder, fileNames, ?references, ?capabilities) =
         let references = defaultArg references []
-        let capabilities = defaultArg capabilities RuntimeCapabilities.FullComputation
+        let capabilities = defaultArg capabilities RuntimeCapabilities.Unknown
         let paths = fileNames |> Seq.map (fun file -> Path.Combine (srcFolder, file) |> Path.GetFullPath)
         let mutable exceptions = []
         use manager = new CompilationUnitManager ((fun e -> exceptions <- e :: exceptions), capabilities = capabilities)

@@ -20,13 +20,13 @@ let private compile capabilities =
          capabilities = capabilities)
 
 /// The FullComputation capability tester.
-let private fullComputation = compile RuntimeCapabilities.FullComputation |> CompilerTests
+let private fullComputation = compile RuntimeCapabilities.Unknown |> CompilerTests
 
 /// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality = compile RuntimeCapabilities.BasicQuantumFunctionality |> CompilerTests
+let private basicQuantumFunctionality = compile RuntimeCapabilities.QPRGen0 |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback = compile RuntimeCapabilities.BasicMeasurementFeedback |> CompilerTests
+let private basicMeasurementFeedback = compile RuntimeCapabilities.QPRGen1 |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =
