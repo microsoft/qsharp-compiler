@@ -65,7 +65,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Returns a YAML node describing this item suitable for inclusion in a namespace description.
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
-        internal YamlMappingNode ToNamespaceItem() => Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.Summary);
+        internal YamlMappingNode ToNamespaceItem() =>
+            Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.ShortSummary);
 
         /// <summary>
         /// Returns a YAML node describing this item suitable for inclusion in a table of contents.
