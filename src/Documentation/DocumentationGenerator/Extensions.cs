@@ -174,7 +174,10 @@ namespace Microsoft.Quantum.Documentation
             SyntaxTreeToQsharp.Default.ToCode(type);
 
         internal static string ToSyntax(this ResolvedCharacteristics characteristics) =>
-            SyntaxTreeToQsharp.CharacteristicsExpression(characteristics);
+            SyntaxTreeToQsharp.CharacteristicsExpression(characteristics)
+            // CharacteristicsExpression returns null when the characteristics
+            // are an empty set; in that case, we want an empty string.
+            ?? string.Empty;
 
         internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
             SyntaxTreeToQsharp.DeclarationSignature(

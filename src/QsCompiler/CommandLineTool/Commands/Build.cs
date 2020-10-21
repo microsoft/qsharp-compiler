@@ -41,6 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         new BuildOptions { Input = new string[] { "file.qs" }, References = new string[] { "library.dll" }, OutputFolder = Path.Combine("obj", "qsharp") });
                 }
             }
+#nullable restore annotations
 
             [Option(
                 "response-files",

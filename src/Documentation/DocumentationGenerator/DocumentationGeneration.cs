@@ -22,7 +22,6 @@ namespace Microsoft.Quantum.Documentation
         /// </summary>
         public DocumentationGeneration()
         {
-            this.AssemblyConstants = new Dictionary<string, string>(); // will be populated by the Q# compiler
             this.diagnostics = new List<IRewriteStep.Diagnostic>(); // collects diagnostics that will be displayed to the user
         }
 
@@ -33,7 +32,7 @@ namespace Microsoft.Quantum.Documentation
         public int Priority => 0; // only compared within this dll
 
         /// <inheritdoc/>
-        public IDictionary<string, string> AssemblyConstants { get; }
+        public IDictionary<string, string?> AssemblyConstants { get; } = new Dictionary<string, string?>();
 
         /// <inheritdoc/>
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.diagnostics;
