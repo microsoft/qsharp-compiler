@@ -27,7 +27,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             (Action<_> (fun ex -> failwith ex.Message),
              null,
              false,
-             AssemblyConstants.RuntimeCapabilities.Unknown,
+             FullComputation,
              isExecutable = true)
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))

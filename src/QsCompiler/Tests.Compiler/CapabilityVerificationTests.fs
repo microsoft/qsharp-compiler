@@ -3,30 +3,30 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityVerificationTests
 
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.IO
 open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
-let private compile capabilities =
+let private compile capability =
     CompilerTests.Compile
         ("TestCases",
          ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"],
          references = [File.ReadAllLines("ReferenceTargets.txt").[1]],
-         capabilities = capabilities)
+         capability = capability)
 
 /// The FullComputation capability tester.
-let private fullComputation = compile RuntimeCapabilities.Unknown |> CompilerTests
+let private fullComputation = compile FullComputation |> CompilerTests
 
 /// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality = compile RuntimeCapabilities.QPRGen0 |> CompilerTests
+let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback = compile RuntimeCapabilities.QPRGen1 |> CompilerTests
+let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =

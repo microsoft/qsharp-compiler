@@ -75,18 +75,13 @@ type BuiltIn = {
     /// the RequiresCapability attribute.
     static member TryGetRequiredCapability attributes =
         let isCapability udt = BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
-        let parse = function
-            | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
-            | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
-            | "FullComputation" -> Value FullComputation
-            | _ -> Null
         let extractString = function
             | StringLiteral (str, _) -> Value str.Value
             | _ -> Null
         let capability attribute =
             match attribute.TypeId, attribute.Argument.Expression with
             | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
-                items.[0].Expression |> extractString |> QsNullable<_>.Bind parse
+                items.[0].Expression |> extractString |> QsNullable<_>.Bind RuntimeCapability.TryParse
             | _ -> Null
         let capabilities = attributes |> QsNullable<_>.Choose capability
         if Seq.isEmpty capabilities then Null

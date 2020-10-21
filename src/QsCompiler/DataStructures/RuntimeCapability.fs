@@ -1,5 +1,7 @@
 ﻿namespace Microsoft.Quantum.QsCompiler
 
+open Microsoft.Quantum.QsCompiler.DataTypes
+
 /// The runtime capabilities supported by a quantum processor.
 [<NoComparison>]
 type RuntimeCapability =
@@ -36,3 +38,14 @@ type RuntimeCapability =
     /// The default runtime capability is the identity element when combined with another capability. It is implied by
     /// every other capability.
     static member Default = BasicQuantumFunctionality
+
+    /// Returns true if both runtime capabilities are equal.
+    static member op_Equality (a : RuntimeCapability, b : RuntimeCapability) = a = b
+
+    /// Parses the string as a runtime capability.
+    static member TryParse value =
+        match value with
+        | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
+        | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
+        | "FullComputation" -> Value FullComputation
+        | _ -> Null

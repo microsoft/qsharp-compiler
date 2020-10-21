@@ -303,11 +303,7 @@ type ScopeContext =
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
 
-      /// The runtime capabilities for the compilation unit.
-      [<Obsolete "Replaced by RuntimeCapability.">]
-      Capabilities : RuntimeCapabilities
-
-      /// The runtime capability for the compilation unit.
+      /// The runtime capability of the compilation unit.
       Capability : RuntimeCapability
 
       /// The name of the processor architecture for the compilation unit.
@@ -324,15 +320,8 @@ type ScopeContext =
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
     /// not exist in the given namespace manager.
     /// </exception>
-    static member Create (nsManager : NamespaceManager)
-                         capabilities
-                         processorArchitecture
-                         (spec : SpecializationDeclarationHeader) =
-        let capability =
-            match capabilities with
-            | RuntimeCapabilities.QPRGen0 -> BasicQuantumFunctionality
-            | RuntimeCapabilities.QPRGen1 -> BasicMeasurementFeedback
-            | _ -> FullComputation
+    static member Create
+        (nsManager : NamespaceManager) capability processorArchitecture (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
             { Globals = nsManager
@@ -340,7 +329,6 @@ type ScopeContext =
               IsInOperation = declaration.Kind = Operation
               IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capabilities = capabilities
               Capability = capability
               ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."

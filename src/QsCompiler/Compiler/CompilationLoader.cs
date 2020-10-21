@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Specifies the capabilities of the runtime.
             /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public RuntimeCapabilities RuntimeCapabilities;
+            public RuntimeCapability RuntimeCapability;
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.RuntimeCapabilities == RuntimeCapabilities.QPRGen1;
+                this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
@@ -511,7 +511,7 @@ namespace Microsoft.Quantum.QsCompiler
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
-                capabilities: this.config.RuntimeCapabilities,
+                capability: this.config.RuntimeCapability,
                 isExecutable: this.config.IsExecutable,
                 processorArchitecture: NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture)
                     ? "Unspecified"
@@ -529,7 +529,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapabilities == RuntimeCapabilities.Unknown)
+                if (this.config.RuntimeCapability == RuntimeCapability.FullComputation)
                 {
                     this.logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
                 }
