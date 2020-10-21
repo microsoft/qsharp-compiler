@@ -68,8 +68,7 @@ let internal namespaceName = // internal for testing purposes
         let names = path @ [sym]
         let namespaceStr = names |> List.choose id |> String.concat "."
         if names |> List.contains None then (None, range) |> preturn
-        elif sym.Value.EndsWith "_" && not (namespaceStr.Contains "__" || namespaceStr.Contains "_.") then // REL0920: remove the second half and return None for pattern errors
-            buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% (Some namespaceStr, range)
+        elif sym.Value.EndsWith "_" then buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern >>% (None, range)
         else (Some namespaceStr, range) |> preturn
     multiSegmentSymbol ErrorCode.InvalidPathSegment >>= asNamespaceName
 

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using CommandLine;
@@ -18,6 +19,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         [Verb("build", HelpText = "Builds a compilation unit to run on the Q# quantum simulation framework.")]
         public class BuildOptions : CompilationOptions
         {
+            // TODO: Disabling nullable annotations is a workaround for
+            // https://github.com/commandlineparser/commandline/issues/136.
+#nullable disable annotations
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -58,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Name of the project (needs to be usable as file name).")]
-            public string ProjectName { get; set; }
+            public string? ProjectName { get; set; }
 
             [Option(
                 "emit-dll",
@@ -73,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
-            public string PerfFolder { get; set; }
+            public string? PerfFolder { get; set; }
 
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles.
@@ -81,7 +85,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// Returns true and a new BuildOptions object as out parameter with all the settings from response files incorporated.
             /// Returns false if the content of the specified response-files could not be processed.
             /// </summary>
-            internal static bool IncorporateResponseFiles(BuildOptions options, out BuildOptions incorporated, ILogger logger = null)
+            internal static bool IncorporateResponseFiles(
+                BuildOptions options, [NotNullWhen(true)] out BuildOptions? incorporated, ILogger? logger = null)
             {
                 incorporated = null;
                 while (options.ResponseFiles != null && options.ResponseFiles.Any())
@@ -146,23 +151,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments.
         /// Logs a suitable exceptions and returns null if the parsing fails.
-        /// Throws an ArgumentNullException if the given sequence of responseFiles is null.
         /// </summary>
-        private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
+        private static BuildOptions? FromResponseFiles(IEnumerable<string> responseFiles)
         {
-            if (responseFiles == null)
-            {
-                throw new ArgumentNullException(nameof(responseFiles));
-            }
             var commandLine = string.Join(" ", responseFiles.Select(File.ReadAllText));
             var args = SplitCommandLineArguments(commandLine);
             var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
             return parsed.MapResult(
-                (BuildOptions opts) => opts,
+                opts => opts,
                 errs =>
                 {
                     HelpText.AutoBuild(parsed);
-                    return null;
+                    return null as BuildOptions;
                 });
         }
 
@@ -171,24 +171,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-            if (logger == null)
-            {
-                throw new ArgumentNullException(nameof(logger));
-            }
-            if (!BuildOptions.IncorporateResponseFiles(options, out options))
+            if (!BuildOptions.IncorporateResponseFiles(options, out var incorporated))
             {
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
+            options = incorporated;
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
@@ -199,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssemblies = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
@@ -208,7 +200,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 IsExecutable = options.MakeExecutable,
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };
@@ -218,7 +210,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(
+                options.LoadSourcesOrSnippet(logger),
+                options.References ?? Enumerable.Empty<string>(),
+                loadOptions,
+                logger);
             if (options.PerfFolder != null)
             {
                 try

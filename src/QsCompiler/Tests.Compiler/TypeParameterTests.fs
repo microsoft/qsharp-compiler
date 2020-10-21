@@ -543,7 +543,7 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+            (BarA, [Int; [Int; FooA |> TypeParameter] |> MakeTupleType] |> MakeTupleType)
             (FooA, [Int; FooA |> TypeParameter] |> MakeTupleType)
         ]
 
@@ -561,7 +561,7 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, FooA |> TypeParameter |> MakeArrayType)
+            (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
             (FooA, FooA |> TypeParameter |> MakeArrayType)
         ]
 

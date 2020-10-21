@@ -28,8 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
             public readonly QsFunctor FunctorToApply;
 
-            public TransformationsState(QsFunctor functor) =>
-                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+            public TransformationsState(QsFunctor functor) => this.FunctorToApply = functor;
         }
 
         public ApplyFunctorToOperationCalls(QsFunctor functor)
@@ -116,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
         : base(parent) =>
-            this.addedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
+            this.addedVariableDeclarations = addedVars;
 
         /// <inheritdoc/>
         public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
@@ -129,12 +128,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class IgnoreOuterBlockInConjugations<T>
     : StatementKindTransformation<T>
     {
-        public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions options = null)
+        public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent, TransformationOptions? options = null)
         : base(parent, options ?? TransformationOptions.Default)
         {
         }
 
-        public IgnoreOuterBlockInConjugations(T sharedInternalState, TransformationOptions options = null)
+        public IgnoreOuterBlockInConjugations(T sharedInternalState, TransformationOptions? options = null)
         : base(sharedInternalState, options ?? TransformationOptions.Default)
         {
         }
@@ -184,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector.SharedState.SatisfiesCondition)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         topStatements.Add(statement);
                     }

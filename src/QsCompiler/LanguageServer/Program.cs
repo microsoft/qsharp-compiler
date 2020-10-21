@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Required = false,
                 Default = null,
                 HelpText = "Path to log messages to.")]
-            public string LogFile { get; set; }
+            public string? LogFile { get; set; }
 
             [Option(
                 'p',
@@ -43,7 +43,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Required = true,
                 SetName = CONNECTION_VIA_PIPE,
                 HelpText = "Named pipe to write to.")]
-            public string WriterPipeName { get; set; }
+            public string? WriterPipeName { get; set; }
 
             [Option(
                 'r',
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Required = true,
                 SetName = CONNECTION_VIA_PIPE,
                 HelpText = "Named pipe to read from.")]
-            public string ReaderPipeName { get; set; }
+            public string? ReaderPipeName { get; set; }
         }
 
         public enum ReturnCode
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             UNEXPECTED_ERROR = 100
         }
 
-        private static int LogAndExit(ReturnCode code, string logFile = null, string message = null)
+        private static int LogAndExit(ReturnCode code, string? logFile = null, string? message = null)
         {
             var text = message ?? (
                 code == ReturnCode.SUCCESS ? "Exiting normally." :
@@ -77,9 +77,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             return (int)code;
         }
 
-        public static string Version =
+        public static string? Version =
             typeof(Server).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? typeof(Server).Assembly.GetName().Version.ToString();
+            ?? typeof(Server).Assembly.GetName().Version?.ToString();
 
         public static int Main(string[] args)
         {
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 : LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile);
         }
 
-        private static void Log(object msg, string logFile = null)
+        private static void Log(object msg, string? logFile = null)
         {
             if (logFile != null)
             {
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
         }
 
-        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string logFile = null)
+        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
         {
             Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe:\"{writerName}\"", logFile);
             var writerPipe = new NamedPipeClientStream(writerName);
@@ -185,13 +185,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             return new QsLanguageServer(writerPipe, readerPipe);
         }
 
-        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string logFile = null)
+        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null)
         {
             Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
-            Stream stream = null;
+            Stream? stream = null;
             try
             {
-                stream = new TcpClient(hostname, port)?.GetStream();
+                stream = new TcpClient(hostname, port).GetStream();
             }
             catch (Exception ex)
             {
