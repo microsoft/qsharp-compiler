@@ -102,8 +102,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Constructs a call graph with concretizations of callables that is trimmed to only
         /// include callables that entry points are dependent on. All Generated Implementations
-        /// for specializations should be resolved before calling this. This will throw an
-        /// error if a Generated Implementation is encountered.
+        /// for specializations should be resolved before calling this, except Self-Inverse,
+        /// which is handled by creating a dependency to the appropriate specialization of the same callable.
+        /// This will throw an error if a Generated Implementation other than a Self-Inverse is encountered.
         /// </summary>
         public ConcreteCallGraph(QsCompilation compilation) => BuildCallGraph.PopulateConcreteGraph(this.graphBuilder, compilation);
 
