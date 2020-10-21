@@ -33,8 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             /// <summary>
             /// Populates the given graph based on the given compilation. Only the compilation's entry points and
             /// those callables that the entry points depend on will be included in the graph. All Generated
-            /// Implementations for specializations should be resolved before calling this. This will throw an
-            /// error if a Generated Implementation is encountered.
+            /// Implementations for specializations should be resolved before calling this, except Self-Inverse,
+            /// which is handled by creating a dependency to the appropriate specialization of the same callable.
+            /// This will throw an error if a Generated Implementation other than a Self-Inverse is encountered.
             /// </summary>
             public static void PopulateConcreteGraph(ConcreteGraphBuilder graph, QsCompilation compilation)
             {
@@ -229,6 +230,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     }
                 }
 
+                /// <summary>
+                /// Handles adding the dependencies for specializations marked as self-inverse.
+                /// </summary>
                 internal void AddSelfInverseDependency(QsQualifiedName identifier, QsSpecializationKind targetSpec)
                 {
                     if (this.CurrentNode is null)
