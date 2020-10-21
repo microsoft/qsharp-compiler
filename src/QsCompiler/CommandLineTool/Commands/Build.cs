@@ -41,7 +41,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         new BuildOptions { Input = new string[] { "file.qs" }, References = new string[] { "library.dll" }, OutputFolder = Path.Combine("obj", "qsharp") });
                 }
             }
-#nullable restore annotations
 
             [Option(
                 "response-files",
@@ -57,6 +56,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
+
+#nullable restore annotations
 
             [Option(
                 "proj",
