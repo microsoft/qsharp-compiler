@@ -213,7 +213,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretization typeParams, GetAccessModifiers getAccessModifiers) : base(new TransformationState(typeParams, getAccessModifiers))
+            private ReplaceTypeParamImplementations(ImmutableConcretization typeParams, GetAccessModifiers getAccessModifiers)
+                : base(new TransformationState(typeParams, getAccessModifiers))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Types = new TypeTransformation(this);
