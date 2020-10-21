@@ -265,3 +265,23 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
         let f = Foo;
     }
 }
+
+// =================================
+
+// Concrete Graph Call Self-Adjoint Reference
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+    operation Foo() : Unit is Ctl+Adj {
+        body(...) { }
+        controlled distribute;
+        adjoint self;
+        controlled adjoint self;
+    }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        Adjoint Foo();
+        using (q = Qubit()) {
+            Controlled Adjoint Foo([q], ());
+        }
+    }
+}
