@@ -210,12 +210,8 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
                 match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with 
                 | Found decl -> decl.Attributes
                 | _ -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise
-            let deprecated =
-                if not (Seq.exists BuiltIn.MarksDeprecation parentAttrs) then Some (attributes |> SymbolResolution.TryFindRedirect |> SymbolResolution.GenerateDeprecationWarning (fullName, qsSym.RangeOrDefault))
-                else None
-            match deprecated with
-            | Some dep -> for msg in dep do msg |> addDiagnostic
-            | _ -> ()
+            if not (Seq.exists BuiltIn.MarksDeprecation parentAttrs) then attributes |> SymbolResolution.TryFindRedirect |> SymbolResolution.GenerateDeprecationWarning (fullName, qsSym.RangeOrDefault) |> Array.iter addDiagnostic
+            else ()
             let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
