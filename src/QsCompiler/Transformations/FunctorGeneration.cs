@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
             if (functor.IsControlled)
             {
-                this.Statements = new AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
+                this.Statements = new BasicTransformations.AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
             }
             this.StatementKinds = new IgnoreOuterBlockInConjugations<TransformationsState>(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -112,6 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Adds the given variable declarations to the list of defined variables for each scope.
     /// </summary>
+    [Obsolete("AddVariableDeclarations should not be used directly and will be made internal in a future release.")]
     public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
