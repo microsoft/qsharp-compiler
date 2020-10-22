@@ -57,6 +57,13 @@ type LinkingTests (output:ITestOutputHelper) =
         let declaration = if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null) then 0 else 1
         references.SharedState.Locations.Count + declaration
 
+    let getCallablesWithSuffix compilation ns (suffix : string) =
+        compilation.Namespaces
+        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> GlobalCallableResolutions
+        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith suffix)
+        |> Seq.map (fun x -> x.Value)
+
     do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
@@ -172,7 +179,35 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.Equal (0, afterCountOriginal)
         Assert.Equal (beforeCount, afterCount)
 
+    member private this.RunMonomorphizationAccessModifierTest testNumber =
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[testNumber]
+        let compilation = this.CompileMonomorphization source
 
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesInternal"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables originally internal should remain internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesPublic"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables originally internal should remain internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesInternal"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables with internal arguments should be internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesPublic"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | DefaultAccess -> true | _ -> false),
+            "Callables originally public should remain public if all arguments are public.")
+
+    
     [<Fact>]
     [<Trait("Category","Monomorphization")>]
     member this.``Monomorphization Basic Implementation`` () =
@@ -191,8 +226,56 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Args`` () =
+        this.RunMonomorphizationAccessModifierTest 4
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 5
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Array Args`` () =
+        this.RunMonomorphizationAccessModifierTest 6
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Array Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 7
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Tuple Args`` () =
+        this.RunMonomorphizationAccessModifierTest 8
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Tuple Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 9
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Op Args`` () =
+        this.RunMonomorphizationAccessModifierTest 10
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Op Returns`` () =
+           this.RunMonomorphizationAccessModifierTest 11
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
     member this.``Monomorphization Type Parameter Resolutions`` () =
-        let source = LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs" |> Seq.last
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[12]
         let compilation = this.CompileMonomorphization source
 
         let callables = compilation.Namespaces |> GlobalCallableResolutions
