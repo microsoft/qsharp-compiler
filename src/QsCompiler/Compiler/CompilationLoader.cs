@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Specifies the capabilities of the runtime.
             /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public RuntimeCapability RuntimeCapability;
+            public RuntimeCapability? RuntimeCapability;
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
+                this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
@@ -529,7 +529,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapability == RuntimeCapability.FullComputation)
+                if (this.config.RuntimeCapability == null || this.config.RuntimeCapability == RuntimeCapability.FullComputation)
                 {
                     this.logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
                 }
