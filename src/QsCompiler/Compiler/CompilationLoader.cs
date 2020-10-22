@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Specifies the capabilities of the runtime.
             /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public RuntimeCapabilities RuntimeCapabilities;
+            public RuntimeCapability? RuntimeCapability;
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.RuntimeCapabilities == RuntimeCapabilities.QPRGen1;
+                this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
@@ -282,6 +282,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status Serialization = Status.NotRun;
             internal Status BinaryFormat = Status.NotRun;
             internal Status DllGeneration = Status.NotRun;
+            internal Status CapabilityInference = Status.NotRun;
             internal Status[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
@@ -304,6 +305,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 this.WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
+                this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
                 this.LoadedRewriteSteps.All(status => this.WasSuccessful(true, status));
         }
 
@@ -508,7 +510,7 @@ namespace Microsoft.Quantum.QsCompiler
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
-                capabilities: this.config.RuntimeCapabilities,
+                capability: this.config.RuntimeCapability,
                 isExecutable: this.config.IsExecutable,
                 processorArchitecture: NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture)
                     ? "Unspecified"
@@ -526,7 +528,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapabilities == RuntimeCapabilities.Unknown)
+                if (this.config.RuntimeCapability == null || this.config.RuntimeCapability == RuntimeCapability.FullComputation)
                 {
                     this.logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
                 }
@@ -585,6 +587,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
+            }
+
+            if (!this.config.IsExecutable)
+            {
+                var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)

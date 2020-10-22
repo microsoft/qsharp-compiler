@@ -292,7 +292,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ReaderWriterLockSlim syncRoot;
         private readonly HashSet<ReaderWriterLockSlim> dependentLocks;
 
-        internal readonly RuntimeCapabilities RuntimeCapabilities;
+        internal readonly RuntimeCapability RuntimeCapability;
         internal readonly bool IsExecutable;
         internal readonly NonNullable<string> ProcessorArchitecture;
 
@@ -307,7 +307,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// </summary>
         internal CompilationUnit(
-            RuntimeCapabilities capabilities,
+            RuntimeCapability capability,
             bool isExecutable,
             NonNullable<string> processorArchitecture,
             References? externals = null,
@@ -319,7 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.dependentLocks = new HashSet<ReaderWriterLockSlim>(dependentLocks);
 
-            this.RuntimeCapabilities = capabilities;
+            this.RuntimeCapability = capability;
             this.IsExecutable = isExecutable;
             this.ProcessorArchitecture = processorArchitecture;
 
@@ -338,7 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Externals.Declarations.Values.SelectMany(h =>
                 h.Specializations.Select(t => Tuple.Create(t.Item1, t.Item2))),
             this.Externals.Declarations.Values.SelectMany(h => h.Types),
-            this.RuntimeCapabilities,
+            this.RuntimeCapability,
             this.IsExecutable);
 
         /// <summary>
