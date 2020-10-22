@@ -240,8 +240,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
-                RuntimeCapabilities = options.RuntimeCapabilites,
-                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
+                RuntimeCapability = options.RuntimeCapability,
+                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,

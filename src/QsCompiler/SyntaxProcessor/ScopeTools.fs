@@ -285,19 +285,29 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
-    { /// The symbol tracker for the parent callable.
+    // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
+
+    { /// The namespace manager for global symbols.
+      Globals : NamespaceManager
+
+      /// The symbol tracker for the parent callable.
       Symbols : SymbolTracker
+
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+
       /// True if the current expression is contained within the condition of an if- or elif-statement.
+      [<Obsolete>]
       IsInIfCondition : bool
+
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
-      /// The runtime capabilities for the compilation unit.
-      Capabilities : RuntimeCapabilities
+
+      /// The runtime capability of the compilation unit.
+      Capability : RuntimeCapability
+
       /// The name of the processor architecture for the compilation unit.
       ProcessorArchitecture : NonNullable<string> }
-    with
 
     /// <summary>
     /// Creates a scope context for the specialization.
@@ -310,20 +320,20 @@ type ScopeContext =
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
     /// not exist in the given namespace manager.
     /// </exception>
-    static member Create (nsManager : NamespaceManager)
-                         capabilities
-                         processorArchitecture
-                         (spec : SpecializationDeclarationHeader) =
+    static member Create
+        (nsManager : NamespaceManager) capability processorArchitecture (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
-            { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
+            { Globals = nsManager
+              Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
               IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capabilities = capabilities
+              Capability = capability
               ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
 
     /// Returns a new scope context for an expression that is contained within the condition of an if- or
     /// elif-statement.
+    [<Obsolete>]
     member this.WithinIfCondition = { this with IsInIfCondition = true }
