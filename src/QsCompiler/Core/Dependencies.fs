@@ -3,9 +3,13 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -23,12 +27,13 @@ type BuiltIn = {
 }
     with
 
-    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
     static member CanonNamespace = NonNullable<string>.New "Microsoft.Quantum.Canon"
+    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
+    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
+    static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
-    static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
-    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
+    static member TargetingNamespace = NonNullable<string>.New "Microsoft.Quantum.Targeting"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
@@ -66,6 +71,21 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = GeneratedAttributes.Namespace && tId.Name.Value = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
+    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
+    /// the RequiresCapability attribute.
+    static member TryGetRequiredCapability attributes =
+        let isCapability udt = BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
+        let extractString = function
+            | StringLiteral (str, _) -> Value str.Value
+            | _ -> Null
+        let capability attribute =
+            match attribute.TypeId, attribute.Argument.Expression with
+            | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
+                items.[0].Expression |> extractString |> QsNullable<_>.Bind RuntimeCapability.TryParse
+            | _ -> Null
+        let capabilities = attributes |> QsNullable<_>.Choose capability
+        if Seq.isEmpty capabilities then Null
+        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
 
     // dependencies in Microsoft.Quantum.Core
 
@@ -91,6 +111,11 @@ type BuiltIn = {
 
     static member Deprecated = {
         FullName = {Name = "Deprecated" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
+    static member RequiresCapability = {
+        FullName = {Name = "RequiresCapability" |> NonNullable<string>.New; Namespace = BuiltIn.TargetingNamespace}
         Kind = Attribute
     }
 

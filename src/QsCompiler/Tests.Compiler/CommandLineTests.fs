@@ -185,8 +185,12 @@ let ``options from response files`` () =
 let ``execute rewrite steps only if validation passes`` () = 
     let source1 = ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine 
     let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine 
-    let config = new CompilationLoader.Configuration(GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapabilities = AssemblyConstants.RuntimeCapabilities.QPRGen0)
-    
+    let config =
+        CompilationLoader.Configuration
+            (GenerateFunctorSupport = true,
+             BuildOutputFolder = null,
+             RuntimeCapability = BasicQuantumFunctionality)
+
     let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source1; source2])
     let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)

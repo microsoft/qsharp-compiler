@@ -23,11 +23,12 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
     let compilationManagerExe =
-        new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message),
-                                   null,
-                                   false,
-                                   AssemblyConstants.RuntimeCapabilities.Unknown,
-                                   true) // The isExecutable is true
+        new CompilationUnitManager
+            (Action<_> (fun ex -> failwith ex.Message),
+             null,
+             false,
+             FullComputation,
+             isExecutable = true)
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
