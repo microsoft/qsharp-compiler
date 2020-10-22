@@ -78,4 +78,21 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
         Library2.Log(0, "nothing");
     }
 
+
+    // tests for adjoint generation of calls within an expression (Issue 615)
+
+    operation evaluator (a : Unit, b : Unit) : Unit is Adj {}
+    operation evaluator2 (a : Unit[], b : (Unit, Unit)) : Unit is Adj {}
+    function skipLift (a : Unit) : String { return "skip lift"; }
+
+    operation AdjointExpressions () : Unit {
+        within {
+            evaluator(ULog("1"), ULog("2"));
+            evaluator(ULog("3"), evaluator(ULog("4"), ULog("5")));
+            evaluator2([ULog("6"), ULog("7"), ULog("8")], (ULog("9"), ULog("10")));
+            ULog(skipLift(ULog("11")));
+            ULog($"14 {ULog("12")} {ULog("13")}");
+        }
+        apply {}
+    }
 }

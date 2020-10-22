@@ -78,13 +78,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false,
-            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
+            RuntimeCapability? capability = null,
             bool isExecutable = false,
             NonNullable<string> processorArchitecture = default,
             Action<string, MessageType>? messageLogger = null)
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.compilationUnit = new CompilationUnit(capabilities, isExecutable, processorArchitecture);
+            this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
             this.fileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.changedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
@@ -519,7 +519,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var sourceFiles = this.fileContentManagers.Values.OrderBy(m => m.FileName);
             this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(
-                this.compilationUnit.RuntimeCapabilities,
+                this.compilationUnit.RuntimeCapability,
                 this.compilationUnit.IsExecutable,
                 this.compilationUnit.ProcessorArchitecture,
                 this.compilationUnit.Externals,

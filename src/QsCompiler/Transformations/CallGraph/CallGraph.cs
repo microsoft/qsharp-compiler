@@ -169,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
         /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
         /// </summary>
-        internal ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
+        public ImmutableArray<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
             var indexToNode = this.Nodes.ToImmutableArray();
             var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);

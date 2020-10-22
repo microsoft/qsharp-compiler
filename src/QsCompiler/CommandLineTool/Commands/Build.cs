@@ -193,8 +193,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
-                RuntimeCapabilities = options.RuntimeCapabilites,
-                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
+                RuntimeCapability = options.RuntimeCapability,
+                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 IsExecutable = options.MakeExecutable,
-                RewriteSteps = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };
