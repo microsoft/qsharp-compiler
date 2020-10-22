@@ -89,12 +89,12 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile (srcFolder, fileNames, ?references, ?capabilities) =
+    static member Compile (srcFolder, fileNames, ?references, ?capability) =
         let references = defaultArg references []
-        let capabilities = defaultArg capabilities RuntimeCapabilities.Unknown
+        let capability = defaultArg capability FullComputation
         let paths = fileNames |> Seq.map (fun file -> Path.Combine (srcFolder, file) |> Path.GetFullPath)
         let mutable exceptions = []
-        use manager = new CompilationUnitManager ((fun e -> exceptions <- e :: exceptions), capabilities = capabilities)
+        use manager = new CompilationUnitManager ((fun e -> exceptions <- e :: exceptions), capability = capability)
         paths.ToImmutableDictionary (Uri, File.ReadAllText)
         |> CompilationUnitManager.InitializeFileManagers
         |> manager.AddOrUpdateSourceFilesAsync

@@ -31,7 +31,8 @@ type NamespaceManager
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
      typesInRefs : IEnumerable<TypeDeclarationHeader>, 
-     runtimeCapabilites, isExecutable) =
+     runtimeCapability,
+     isExecutable) =
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -248,7 +249,7 @@ type NamespaceManager
             errs.AddRange signatureErrs
 
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
-            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen0 || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen1 then
+            if runtimeCapability <> FullComputation then
                 let invalid = signature.ReturnType.ExtractAll (fun t -> t.Type |> function 
                     | Result | ArrayType _ | TupleType _ | InvalidType -> Seq.empty
                     | _ -> Seq.singleton t)

@@ -362,4 +362,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             return base.OnTypedExpression(ex);
         }
     }
+
+    /// <summary>
+    /// Adds the given variable declarations to the list of defined variables for each scope.
+    /// </summary>
+    internal class AddVariableDeclarations<T>
+    : StatementTransformation<T>
+    {
+        private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> addedVariableDeclarations;
+
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
+        : base(parent) =>
+            this.addedVariableDeclarations = addedVars;
+
+        /// <inheritdoc/>
+        public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
+            base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.addedVariableDeclarations)));
+    }
+
 }
