@@ -55,7 +55,7 @@ let private patternCapability inOperation = function
     | SetInResultConditionedBlock _ -> FullComputation
 
 /// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
-let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Default
+let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
 /// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
 /// level.
@@ -219,7 +219,7 @@ let private globalReferences scope =
 let private referenceDiagnostic context (name, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Default
+        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
         if context.Capability.Implies capability
         then None
         else
@@ -262,7 +262,7 @@ let private specSourceCapability inOperation spec =
     | Provided (_, scope) ->
         let offset = spec.Location |> QsNullable<_>.Map (fun location -> location.Offset)
         scopePatterns scope |> Seq.map (addOffset offset >> patternCapability inOperation) |> joinCapabilities
-    | _ -> RuntimeCapability.Default
+    | _ -> RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let private callableSourceCapability callable =
@@ -318,10 +318,10 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
         (BuiltIn.TryGetRequiredCapability callable.Attributes).ValueOrApply (fun () ->
             if isDeclaredInSourceFile callable
             then
-                [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Default
+                [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Base
                   dependentCapability visited callable.FullName ]
                 |> joinCapabilities
-            else RuntimeCapability.Default)
+            else RuntimeCapability.Base)
 
     // Tries to retrieve the capability of the callable from the cache first; otherwise, computes the capability and
     // saves it in the cache.

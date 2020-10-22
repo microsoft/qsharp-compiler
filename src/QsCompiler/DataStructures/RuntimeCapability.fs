@@ -35,9 +35,9 @@ type RuntimeCapability =
         | _, FullComputation ->
             FullComputation
 
-    /// The default runtime capability is the identity element when combined with another capability. It is implied by
+    /// The base runtime capability is the identity element when combined with another capability. It is implied by
     /// every other capability.
-    static member Default = BasicQuantumFunctionality
+    static member Base = BasicQuantumFunctionality
 
     /// Returns true if both runtime capabilities are equal.
     static member op_Equality (a : RuntimeCapability, b : RuntimeCapability) = a = b
