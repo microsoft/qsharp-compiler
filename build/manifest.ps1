@@ -41,8 +41,7 @@ $artifacts = @{
         "Microsoft.Quantum.Compiler.CommandLine",
         "Microsoft.Quantum.DocumentationGenerator"
         "Microsoft.Quantum.ProjectTemplates",
-        "Microsoft.Quantum.Sdk",
-        "qsc"
+        "Microsoft.Quantum.Sdk"
     ) | ForEach-Object { Join-Path $Env:NUGET_OUTDIR "$_.$Env:NUGET_VERSION.nupkg" };
 
     Assemblies = $VsixAssemblies + @(
