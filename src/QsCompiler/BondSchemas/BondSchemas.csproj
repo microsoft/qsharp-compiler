@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
