@@ -14,6 +14,7 @@
     </Compile>
     <Compile Include="VerificationTools.fs" />
     <Compile Include="ScopeTools.fs" />
+    <Compile Include="CapabilityInference.fs" />
     <Compile Include="ContextVerification.fs" />
     <Compile Include="ExpressionVerification.fs" />
     <Compile Include="StatementVerification.fs" />
@@ -23,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
+    <ProjectReference Include="..\..\Documentation\DocumentationParser\DocumentationParser.csproj" />
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\Transformations\Transformations.csproj" />
     <ProjectReference Include="..\Core\Core.fsproj" />
