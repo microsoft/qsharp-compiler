@@ -264,9 +264,6 @@ if ("$Env:DOCS_OUTDIR".Trim() -ne "") {
     Pop-Location
 }
 
-Write-Host "##[info]Verifying manifest..."
-& (Join-Path $PSScriptRoot "manifest.ps1")
-
 if (-not $all_ok) {
     throw "Packing failed. Check the logs."
     exit 1
