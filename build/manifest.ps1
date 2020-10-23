@@ -38,10 +38,10 @@ else {
 $artifacts = @{
     Packages = @(
         "Microsoft.Quantum.Compiler",
-        "Microsoft.Quantum.Compiler.CommandLine",
         "Microsoft.Quantum.DocumentationGenerator"
         "Microsoft.Quantum.ProjectTemplates",
-        "Microsoft.Quantum.Sdk"
+        "Microsoft.Quantum.Sdk",
+        "qsc"
     ) | ForEach-Object { Join-Path $Env:NUGET_OUTDIR "$_.$Env:NUGET_VERSION.nupkg" };
 
     Assemblies = $VsixAssemblies + @(
