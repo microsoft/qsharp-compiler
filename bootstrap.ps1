@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [string]
     $AssemblyVersion = $Env:ASSEMBLY_VERSION,
@@ -68,6 +69,7 @@ If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
 If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
 
+Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;
 Pop-Location

@@ -475,8 +475,20 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
         }
 
-        internal static string NamespaceAsUid(this string namespaceName) =>
-            namespaceName.ToLowerInvariant();
+        internal static string AsObsoleteUid(this string qualifiedName) =>
+            qualifiedName.ToLowerInvariant();
+
+        internal static string AsUid(this string qualifiedName) =>
+            qualifiedName;
+
+        /// <summary>
+        /// Returns the text as a Markdown warning block.
+        /// </summary>
+        internal static string Warning(string text)
+        {
+            var lines = text.Split('\r', '\n').Select(line => ("> " + line).TrimEnd());
+            return "> [!WARNING]\n" + string.Join('\n', lines);
+        }
     }
 
     // See https://stackoverflow.com/a/5037815/267841.

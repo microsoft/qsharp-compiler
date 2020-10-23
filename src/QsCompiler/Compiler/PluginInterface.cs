@@ -12,7 +12,8 @@ using VS = Microsoft.VisualStudio.LanguageServer.Protocol;
 namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
-    /// Lists the priorities for built-in rewrite steps.
+    /// Lists the priorities for built-in rewrite steps. Steps with a larger priority number have higher priority and
+    /// will be executed first.
     /// </summary>
     public static class RewriteStepPriorities
     {
@@ -45,6 +46,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// all type parametrized callables with concrete instantiations and drops any unused callables.
         /// </summary>
         public const int TypeParameterElimination = 80;
+
+        /// <summary>
+        /// Priority of the built-in transformation that infers the minimum runtime capabilities required by each
+        /// callable.
+        /// </summary>
+        public const int CapabilityInference = 60;
     }
 
     public interface IRewriteStep
@@ -116,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// The priority of the transformation relative to other transformations within the same dll or package.
-        /// Steps with higher priority will be executed first.
+        /// Steps with a larger priority number have higher priority and will be executed first.
         /// </summary>
         public int Priority { get; }
 
