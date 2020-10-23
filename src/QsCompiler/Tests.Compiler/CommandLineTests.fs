@@ -185,8 +185,12 @@ let ``options from response files`` () =
 let ``execute rewrite steps only if validation passes`` () = 
     let source1 = ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine 
     let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine 
-    let config = new CompilationLoader.Configuration(GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapabilities = AssemblyConstants.RuntimeCapabilities.QPRGen0)
-    
+    let config =
+        CompilationLoader.Configuration
+            (GenerateFunctorSupport = true,
+             BuildOutputFolder = null,
+             RuntimeCapability = BasicQuantumFunctionality)
+
     let loadSources (loader : Func<_ seq,_>) = loader.Invoke([source1; source2])
     let loaded = new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config));
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
@@ -203,41 +207,6 @@ let ``execute rewrite steps only if validation passes`` () =
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.FunctorSupport)
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization)
 
-
-[<Fact>]
-let ``generate docs`` () =
-    let docsFolder = ("TestCases", "docs.Out") |> Path.Combine
-    if (Directory.Exists docsFolder) then
-        for file in Directory.GetFiles docsFolder do
-            File.Delete file
-
-    let toc = Path.Combine (docsFolder, "toc.yml") 
-    let nsDoc = Path.Combine (docsFolder, "Microsoft.Quantum.Testing.General.yml")
-    let opDoc = Path.Combine (docsFolder, "microsoft.quantum.testing.general.unitary.yml")
-    let existsAndNotEmpty fileName = fileName |> File.Exists && not (File.ReadAllText fileName |> String.IsNullOrWhiteSpace)
-    let args = 
-        [|
-            "build"
-            "--input" 
-            ("TestCases","General.qs") |> Path.Combine
-            "--doc"
-            docsFolder
-        |]
-
-    let result = Program.Main args
-    Assert.Equal(ReturnCode.SUCCESS, result) 
-    Assert.True (existsAndNotEmpty toc)
-    Assert.True (existsAndNotEmpty nsDoc)
-    Assert.True (existsAndNotEmpty opDoc)
-
-    // Verify that we can compile repeatedly without errors despite docs already existing.
-    let result2 = Program.Main args
-    Assert.Equal(ReturnCode.SUCCESS, result2) 
-    Assert.True (existsAndNotEmpty toc)
-    Assert.True (existsAndNotEmpty nsDoc)
-    Assert.True (existsAndNotEmpty opDoc)
-
-    
 [<Fact>]
 let ``find path relative`` () =
     let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.qs")

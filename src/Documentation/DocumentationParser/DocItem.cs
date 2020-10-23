@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -65,7 +66,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Returns a YAML node describing this item suitable for inclusion in a namespace description.
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
-        internal YamlMappingNode ToNamespaceItem() => Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.Summary);
+        internal YamlMappingNode ToNamespaceItem() =>
+            Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.ShortSummary);
 
         /// <summary>
         /// Returns a YAML node describing this item suitable for inclusion in a table of contents.
@@ -77,6 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Writes a full YAML representation of this item to the given text stream.
         /// </summary>
         /// <param name="text">The text stream to output to</param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal abstract void WriteToFile(TextWriter text);
     }
 }
