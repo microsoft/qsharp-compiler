@@ -10,38 +10,57 @@
         as strings with the absolute path (AbsolutePath) or FileInfo structures.
 #>
 param(
-    [ValidateSet('FileInfo','AbsolutePath')]
+    [ValidateSet('FileInfo', 'AbsolutePath')]
     [string] $OutputFormat = 'FileInfo'
 );
 
 & "$PSScriptRoot/set-env.ps1"
 
+
+if ($Env:ENABLE_VSIX -ne "false") {
+    # The language server is only built if either the VS2019 or VS Code extension
+    # is enabled.
+    $VsixAssemblies = @(
+        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsLanguageServer.dll"
+    );	
+
+    # The VS2019 extension itself is only built if msbuild is present.	
+    if (Get-Command msbuild -ErrorAction SilentlyContinue) {	
+        $VsixAssemblies += @(	
+            "./src/VisualStudioExtension/QsharpVSIX/bin/$Env:BUILD_CONFIGURATION/Microsoft.Quantum.VisualStudio.Extension.dll"	
+        );	
+    }	
+}
+else {	
+    $VsixAssemblies = @();	
+}	
+
 $artifacts = @{
     Packages = @(
-        "Microsoft.Quantum.Compiler"
-        "Microsoft.Quantum.ProjectTemplates"
-        "Microsoft.Quantum.Sdk"
+        "Microsoft.Quantum.Compiler",
+        "Microsoft.Quantum.Compiler.CommandLine",
+        "Microsoft.Quantum.DocumentationGenerator"
+        "Microsoft.Quantum.ProjectTemplates",
+        "Microsoft.Quantum.Sdk",
         "qsc"
     ) | ForEach-Object { Join-Path $Env:NUGET_OUTDIR "$_.$Env:NUGET_VERSION.nupkg" };
 
-    Assemblies = @(
-        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll",
-
+    Assemblies = $VsixAssemblies + @(
         ".\src\Documentation\DocumentationGenerator\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.DocumentationGenerator.dll",
 
-        ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsCompiler.dll",
-        ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsDocumentationParser.dll ",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompilationManager.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompiler.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCore.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDataStructures.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDocumentationParser.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsOptimizations.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsSyntaxProcessor.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTextProcessor.dll",
+        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll"
+
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsc.dll",
 
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsCompilationManager.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsCore.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsDataStructures.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsLanguageServer.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsSyntaxProcessor.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsTextProcessor.dll",
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsTransformations.dll",
-
-        ".\src\VisualStudioExtension\QsharpVSIX\bin\$Env:BUILD_CONFIGURATION\Microsoft.Quantum.VisualStudio.Extension.dll"
+        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll"
     ) | ForEach-Object { Join-Path $PSScriptRoot (Join-Path ".." $_) };
 } 
 
