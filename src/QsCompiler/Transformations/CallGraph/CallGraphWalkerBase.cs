@@ -54,6 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 public override QsStatement OnStatement(QsStatement stm)
                 {
+                    this.SharedState.ExprTypeParamResolutions.Clear();
                     this.SharedState.CurrentStatementOffset = stm.Location.IsValue
                         ? QsNullable<Position>.NewValue(stm.Location.Item.Offset)
                         : QsNullable<Position>.Null;
