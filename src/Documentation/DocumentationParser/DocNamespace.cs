@@ -198,6 +198,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// specified directory.
         /// </summary>
         /// <param name="directoryPath">The directory to write the files to</param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal void WriteItemsToDirectory(string directoryPath, List<Exception> errors)
         {
             void WriteItem(DocItem i)
@@ -221,6 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="rootNode">
         /// The mapping node representing the preexisting contents of this namespace's YAML file.
         /// </param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal void WriteToStream(Stream stream, YamlMappingNode? rootNode = null)
         {
             string ToSequenceKey(string itemTypeName)
@@ -287,8 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             foreach (var item in this.items)
             {
                 var typeKey = ToSequenceKey(item.ItemType);
-                SortedDictionary<string, YamlNode> typeList;
-                if (itemTypeNodes.TryGetValue(typeKey, out typeList))
+                if (itemTypeNodes.TryGetValue(typeKey, out var typeList))
                 {
                     if (typeList.ContainsKey(item.Uid))
                     {
@@ -323,6 +324,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Writes the YAML file for this namespace.
         /// </summary>
         /// <param name="directoryPath">The directory to write the file to</param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal void WriteToFile(string directoryPath)
         {
             var rootNode = Utils.ReadYamlFile(directoryPath, this.name) as YamlMappingNode;

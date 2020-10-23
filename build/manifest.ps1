@@ -27,6 +27,8 @@ $artifacts = @{
     Assemblies = @(
         ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll",
 
+        ".\src\Documentation\DocumentationGenerator\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.DocumentationGenerator.dll",
+
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsCompiler.dll",
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsDocumentationParser.dll ",
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsc.dll",
