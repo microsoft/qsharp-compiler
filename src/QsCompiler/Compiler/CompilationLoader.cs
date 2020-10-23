@@ -994,8 +994,9 @@ namespace Microsoft.Quantum.QsCompiler
                 var fastBinaryWriter = new FastBinaryWriter<OutputBuffer>(outputBuffer);
                 var bondCompilation = BondSchemas.BondSchemaTranslator.CreateBondCompilation(compilation);
                 serializer.Serialize(bondCompilation, fastBinaryWriter);
-                outputBuffer.Position = 0;
                 ms.Write(outputBuffer.Data);
+                ms.Flush();
+                ms.Position = 0;
             }
             catch (Exception ex)
             {

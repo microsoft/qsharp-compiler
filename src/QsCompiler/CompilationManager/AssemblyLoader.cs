@@ -130,6 +130,11 @@ namespace Microsoft.Quantum.QsCompiler
         private static QsCompilation? DeserializeSyntaxTreeFromBondFastBinary(
             Stream stream)
         {
+            if (stream.Length == 0)
+            {
+                return null;
+            }
+
             using var memoryStream = new MemoryStream();
             stream.CopyTo(memoryStream);
             memoryStream.Flush();
