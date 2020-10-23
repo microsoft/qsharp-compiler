@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\..\QsCompiler\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 

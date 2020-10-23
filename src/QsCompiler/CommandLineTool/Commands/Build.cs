@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -57,12 +57,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
 
-            [Option(
-                "doc",
-                Required = false,
-                SetName = CODE_MODE,
-                HelpText = "Destination folder where documentation will be generated.")]
-            public string DocFolder { get; set; }
 #nullable restore annotations
 
             [Option(
@@ -125,8 +119,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
         {
+            string TrimQuotes(string s) =>
+                s.StartsWith('"') && s.EndsWith('"')
+                ? s.Substring(1, s.Length - 2)
+                : s;
+
             var parmChars = commandLine?.ToCharArray() ?? Array.Empty<char>();
             var inQuote = false;
+
             for (int index = 0; index < parmChars.Length; index++)
             {
                 var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
@@ -144,9 +144,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     parmChars[index] = '\n';
                 }
             }
+
             return new string(parmChars)
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(arg => arg.Trim('"'));
+                .Select(arg => TrimQuotes(arg));
         }
 
         /// <summary>
@@ -198,7 +199,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
-                DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 IsExecutable = options.MakeExecutable,

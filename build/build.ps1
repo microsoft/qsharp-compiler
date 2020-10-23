@@ -121,6 +121,11 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
 }
 
+# NB: In other repos, we check the manifest here. That can cause problems
+#     in our case, however, as some assemblies are only produced during
+#     packing and publishing. Thus, as an exception, we verify the manifest
+#     only in pack.ps1.
+
 if (-not $all_ok) {
     throw "Building failed. Check the logs."
     exit 1
