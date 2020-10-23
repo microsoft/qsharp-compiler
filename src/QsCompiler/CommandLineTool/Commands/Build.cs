@@ -176,8 +176,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (PerformanceTracking.FailureOccurred)
             {
-                logger.Log(ErrorCode.PerformanceTrackingFailed, new string[] { PerformanceTracking.FailureException.Message });
-                logger.Log(PerformanceTracking.FailureException);
+                var ex = PerformanceTracking.FailureException ?? new InvalidOperationException($"Performance tracking failed to publish.");
+                logger.Log(ErrorCode.PerformanceTrackingFailed, new string[] { ex.Message });
+                logger.Log(ex);
                 return;
             }
 

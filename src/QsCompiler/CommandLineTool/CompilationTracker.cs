@@ -267,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task event.
         /// </summary>
-        public static void OnCompilationTaskEvent(CompilationTaskEventType type, string parentTaskName, string taskName)
+        public static void OnCompilationTaskEvent(CompilationTaskEventType type, string? parentTaskName, string taskName)
         {
             lock (GlobalLock)
             {

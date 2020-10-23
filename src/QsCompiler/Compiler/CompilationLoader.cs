@@ -457,8 +457,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             PerformanceTracking.TaskStart(PerformanceTracking.Task.SourcesLoading);
             var sourceFiles = loadSources(this.LoadSourceFiles);
-            this.RaiseCompilationTaskEnd("OverallCompilation", "SourcesLoading");
-            this.RaiseCompilationTaskStart("OverallCompilation", "ReferenceLoading");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.SourcesLoading);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceLoading);
             var references = loadReferences(
                 refs => this.LoadAssemblies(
                     refs,
@@ -522,50 +522,50 @@ namespace Microsoft.Quantum.QsCompiler
             // executing the specified rewrite steps
 
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
-            var steps = new List<(int, Func<QsCompilation?>)>();
-
+            var steps = new List<(int, string, Func<QsCompilation?>)>();
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
             }
 
             if (this.config.GenerateFunctorSupport)
             {
                 var rewriteStep = new LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
             if (!this.config.SkipSyntaxTreeTrimming)
             {
                 var rewriteStep = new LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.AttemptFullPreEvaluation)
             {
                 var rewriteStep = new LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
                 var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
             if (!this.config.IsExecutable)
             {
                 var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
+                steps.Add((capabilityInference.Priority, capabilityInference.Name, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
             {
-                var priority = this.externalRewriteSteps[j].Priority;
+                var rewriteStep = this.externalRewriteSteps[j];
+                var priority = rewriteStep.Priority;
                 Func<QsCompilation?> Execute(int index) => () =>
                     this.ExecuteAsAtomicTransformation(this.externalRewriteSteps[index], ref this.compilationStatus.LoadedRewriteSteps[index]);
-                steps.Add((priority, Execute(j)));
+                steps.Add((priority, rewriteStep.Name, Execute(j)));
             }
 
             SortRewriteSteps(steps, t => t.Item1);
