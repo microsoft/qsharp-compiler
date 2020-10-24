@@ -6,11 +6,15 @@
 from collections import defaultdict
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
+from typing import Set
 import glob
 
 import click
 import frontmatter
-import ruamel.yaml as yaml
+try:
+    import ruamel.yaml as yaml
+except ImportError:
+    import ruamel_yaml as yaml
 
 namespace_comment = "### YamlMime:QSharpNamespace"
 warning_comment = """
@@ -34,7 +38,7 @@ class Namespace:
     name: str = ""
     # NB: We need to set default_factory instead of default, since set is a
     #     mutable type.
-    items = field(default_factory=set)
+    items: Set = field(default_factory=set)
 
 def items_of_kind(items, kind):
     return [
