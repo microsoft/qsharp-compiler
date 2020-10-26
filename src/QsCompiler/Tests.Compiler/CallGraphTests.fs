@@ -7,6 +7,7 @@ open System
 open System.Collections.Immutable
 open System.IO
 open System.Linq
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
@@ -17,7 +18,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler
 
 type CallGraphTests (output:ITestOutputHelper) =
 
@@ -449,6 +449,18 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         let dependencies = graph.GetDirectDependencies FooCtlAdj
         Assert.True(dependencies.Contains(FooCtl), "Expected controlled-adjoint specialization to take dependency on controlled specialization.")
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph Clears Type Param Resolutions After Statements`` () =
+        let compilation = PopulateCallGraphWithExe 16
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
+        Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
+        let graph = transformed |> ConcreteCallGraph
+
+        for node in graph.Nodes do
+            let unresolvedTypeParameters = node.ParamResolutions |> Seq.choose (fun res -> match res.Value.Resolution with | TypeParameter _ -> Some(res.Key) | _ -> None )
+            Assert.Empty unresolvedTypeParameters
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
