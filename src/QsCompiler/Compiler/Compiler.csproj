@@ -5,6 +5,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <PackageId>Microsoft.Quantum.Compiler</PackageId>
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
+    <RootNamespace>Microsoft.Quantum.QsCompiler</RootNamespace>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>nullable</WarningsAsErrors>
@@ -14,7 +15,7 @@
     <ProjectReference Include="..\BondSchemas\BondSchemas.csproj" />
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj" />
     <ProjectReference Include="..\Optimizations\Optimizations.fsproj" />
-    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
+    <ProjectReference Include="..\..\Documentation\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 
   <ItemGroup>

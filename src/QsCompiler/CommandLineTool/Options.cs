@@ -72,6 +72,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
+        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites switch
+        {
+            AssemblyConstants.RuntimeCapabilities.QPRGen0 => RuntimeCapability.BasicQuantumFunctionality,
+            AssemblyConstants.RuntimeCapabilities.QPRGen1 => RuntimeCapability.BasicMeasurementFeedback,
+            _ => RuntimeCapability.FullComputation
+        };
+
         [Option(
             "build-exe",
             Required = false,
@@ -90,7 +97,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             parsed = new Dictionary<string, string>();
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
-                var pieces = keyValue?.Split(":");
+                // NB: We use `count: 2` here to ensure that assembly constants can contain colons.
+                var pieces = keyValue?.Split(":", count: 2);
                 success =
                     success && !(pieces is null) && pieces.Length == 2 &&
                     parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));

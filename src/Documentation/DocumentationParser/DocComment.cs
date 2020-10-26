@@ -1,8 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
+using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,27 +23,24 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     /// </summary>
     public class DocComment
     {
-        internal static readonly string DeprecatedWarning = "> [!WARNING]\n> Deprecated\n";
-        internal static readonly IEnumerable<Block> DeprecatedSection = Markdown.Parse(DeprecatedWarning);
-
         /// <summary>
         /// The summary description of the item.
         /// This should be one paragraph of plain text.
         /// </summary>
-        public string Summary { get; private set; }
+        public string Summary { get; } = "";
 
         /// <summary>
         /// The (rest of the) full description of the item.
         /// This should not duplicate the summary, but rather follow it.
         /// </summary>
-        public string Description { get; private set; }
+        public string Description { get; } = "";
 
         /// <summary>
         /// The short hover information for the item.
         /// This should be one paragraph of plain text.
         /// Currently this is the first paragraph of the summary field.
         /// </summary>
-        public string ShortSummary { get; private set; }
+        public string ShortSummary { get; } = "";
 
         /// <summary>
         /// The full markdown-formatted hover information for the item.
@@ -51,62 +52,87 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// The full markdown-formatted on-line documentation for the item.
         /// Currently this consists of the summary field followed by the description field.
         /// </summary>
-        public string Documentation { get; private set; }
+        public string Documentation { get; } = "";
 
         /// <summary>
         /// The inputs to the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string, string> Input { get; private set; }
+        public Dictionary<string, string> Input { get; }
+            = new Dictionary<string, string>();
 
         /// <summary>
         /// The output from the item.
         /// This is only populated for functions and operations.
         /// </summary>
-        public string Output { get; private set; }
+        public string Output { get; } = "";
 
         /// <summary>
         /// The type parameters for the item, as a list of symbol/description pairs.
         /// This is only populated for functions and operations.
         /// </summary>
-        public Dictionary<string, string> TypeParameters { get; private set; }
+        public Dictionary<string, string> TypeParameters { get; } =
+            new Dictionary<string, string>();
 
         /// <summary>
-        /// An example of using the item.
+        /// Descriptions of each named item for the item being documented,
+        /// as a dictionary from identifiers for each named item to the
+        /// corresponding description.
         /// </summary>
-        public string Example { get; private set; }
+        /// <remarks>
+        ///     Only applicable when the item being documented is a UDT.
+        /// </remarks>
+        public Dictionary<string, string> NamedItems { get; } =
+            new Dictionary<string, string>();
+
+        /// <summary>
+        /// All examples of using the named item, concatenated as a single Markdown
+        /// document.
+        /// </summary>
+        [Obsolete("Please use Examples instead.")]
+        public string Example => string.Join(
+            "\n\n",
+            this.Examples
+        );
+
+        /// <summary>
+        /// A list of examples of using the item.
+        /// </summary>
+        public ImmutableList<string> Examples { get; } = ImmutableList<string>.Empty;
 
         /// <summary>
         /// Additional commentary about the item.
         /// </summary>
-        public string Remarks { get; private set; }
+        public string Remarks { get; } = "";
 
         /// <summary>
         /// A list of links to other documentation related to this item.
         /// </summary>
-        public List<string> SeeAlso { get; private set; }
+        public List<string> SeeAlso { get; } =
+            new List<string>();
 
         /// <summary>
         /// Reference material about the item.
         /// </summary>
-        public string References { get; private set; }
+        public string References { get; } = "";
 
         /// <summary>
-        /// Constructs a DocComment instance from the documentation comments
+        /// Initializes a new instance of the <see cref="DocComment"/> class
+        /// from the documentation comments
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
         /// <param name="name">The name of the element</param>
         /// <param name="deprecated">Flag indicating whether or not the element had a Deprecated attribute</param>
         /// <param name="replacement">The name of the replacement element for deprecated elements, if given</param>
-        public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string replacement)
+        public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string? replacement)
         {
             static string GetHeadingText(HeadingBlock heading)
             {
                 var sb = new StringBuilder();
                 foreach (var item in heading.Inline)
                 {
-                    sb.Append(item.ToString());
+                    sb.Append(item);
                 }
                 return sb.ToString();
             }
@@ -116,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var sb = new StringBuilder();
                 foreach (var item in leaf.Inline)
                 {
-                    sb.Append(item.ToString());
+                    sb.Append(item);
                 }
                 return sb.ToString();
             }
@@ -178,22 +204,18 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 foreach (var block in blocks)
                 {
-                    if (block is ListBlock list)
+                    if (block is ListBlock)
                     {
                         foreach (var sub in block.Descendants())
                         {
                             if (sub is ListItemBlock item)
                             {
-                                // Some special treatment for funky doc comments in some of the Canon
+                                // Some special treatment for funky doc comments in some of the Canon\
                                 if (item.Count == 1 && item.LastChild is LeafBlock leaf && leaf.Inline != null &&
                                     leaf.Inline.FirstChild is LiteralInline literal)
                                 {
                                     var itemText = lowerCase ? GetParagraphText(leaf).ToLowerInvariant() : GetParagraphText(leaf);
-                                    if (itemText.StartsWith("@\"") && itemText.EndsWith("\""))
-                                    {
-                                        itemText = itemText.Substring(2, itemText.Length - 3);
-                                    }
-                                    literal.Content = new Markdig.Helpers.StringSlice(itemText.ToLowerInvariant());
+                                    literal.Content = new Markdig.Helpers.StringSlice(itemText);
                                 }
                                 accum.Add(ToMarkdown(new Block[] { item }));
                             }
@@ -244,21 +266,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             // Initialize to safe empty values
-            this.Summary = "";
-            this.Description = "";
-            this.ShortSummary = "";
-            this.Documentation = "";
-            this.Input = new Dictionary<string, string>();
-            this.Output = "";
-            this.TypeParameters = new Dictionary<string, string>();
-            this.Example = "";
-            this.Remarks = "";
-            this.SeeAlso = new List<string>();
-            this.References = "";
-
             var deprecationSummary = string.IsNullOrWhiteSpace(replacement)
-                                    ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
-                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement.ToLowerInvariant() + "\"" });
+                ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new[] { name })
+                : DiagnosticItem.Message(
+                    WarningCode.DeprecationWithRedirect,
+                    new string[] { name, $"<xref:{replacement.AsUid()}>" });
             var deprecationDetails = "";
 
             var text = string.Join("\n", docComments);
@@ -309,21 +321,24 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         case "Type Parameters":
                             ParseMapSection(section, this.TypeParameters);
                             break;
+                        case "Named Items":
+                            ParseMapSection(section, this.NamedItems);
+                            break;
                         case "Example":
-                            this.Example = ToMarkdown(section);
+                            this.Examples = this.Examples.Add(ToMarkdown(section));
                             break;
                         case "Remarks":
                             (var remarks, var examples) = PartitionNestedSection(section, 2, "Example");
-                            if (examples.Count > 0 && this.Example == "")
+                            if (examples.Count > 0 && this.Examples.IsEmpty)
                             {
-                                this.Example = ToMarkdown(examples);
+                                this.Examples = this.Examples.Add(ToMarkdown(examples));
                             }
                             this.Remarks = ToMarkdown(remarks);
                             break;
                         case "See Also":
                             // seeAlso is a list of UIDs, which are all lower case,
                             // so pass true to lowercase all strings found in this section
-                            ParseListSection(section, this.SeeAlso, true);
+                            ParseListSection(section, this.SeeAlso, false);
                             break;
                         case "References":
                             this.References = ToMarkdown(section);
@@ -339,11 +354,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             if (deprecated)
             {
-                var shortDeprecationText = DeprecatedWarning + "\r" + deprecationSummary;
-                var longDeprecationText = shortDeprecationText + (string.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
-                this.Summary += "\r" + longDeprecationText;
-                this.ShortSummary = shortDeprecationText;
-                this.Documentation = deprecationSummary;
+                var deprecationWarning = Utils.Warning(string.Join(
+                    "\n\n",
+                    new[] { deprecationSummary, deprecationDetails }.Where(s => !string.IsNullOrWhiteSpace(s))));
+                this.ShortSummary = deprecationSummary;
+                this.Summary = deprecationWarning + "\n\n" + this.Summary;
+                this.Documentation = deprecationWarning + "\n\n" + this.Documentation;
             }
         }
 

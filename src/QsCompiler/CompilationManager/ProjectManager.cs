@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public readonly string Version;
         public readonly string OutputPath;
-        public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
+        public readonly RuntimeCapability RuntimeCapability;
         public readonly bool IsExecutable;
         public readonly NonNullable<string> ProcessorArchitecture;
         public readonly bool ExposeReferencesViaTestNames;
@@ -30,14 +30,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public ProjectProperties(
             string version,
             string outputPath,
-            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            RuntimeCapability runtimeCapability,
             bool isExecutable,
             NonNullable<string> processorArchitecture,
             bool loadTestNames)
         {
             this.Version = version ?? "";
             this.OutputPath = outputPath;
-            this.RuntimeCapabilities = runtimeCapabilities;
+            this.RuntimeCapability = runtimeCapability;
             this.IsExecutable = isExecutable;
             this.ProcessorArchitecture = processorArchitecture;
             this.ExposeReferencesViaTestNames = loadTestNames;
@@ -56,11 +56,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static ProjectInformation Empty(
                 string version,
                 string outputPath,
-                AssemblyConstants.RuntimeCapabilities runtimeCapabilities) =>
+                RuntimeCapability capability) =>
             new ProjectInformation(
                 version,
                 outputPath,
-                runtimeCapabilities,
+                capability,
                 false,
                 NonNullable<string>.New("Unspecified"),
                 false,
@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public ProjectInformation(
             string version,
             string outputPath,
-            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            RuntimeCapability runtimeCapability,
             bool isExecutable,
             NonNullable<string> processorArchitecture,
             bool loadTestNames,
@@ -80,7 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> references)
         {
             this.Properties = new ProjectProperties(
-                version, outputPath, runtimeCapabilities, isExecutable, processorArchitecture, loadTestNames);
+                version, outputPath, runtimeCapability, isExecutable, processorArchitecture, loadTestNames);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();
             this.References = references.ToImmutableArray();
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     onException,
                     ignore ? null : publishDiagnostics,
                     syntaxCheckOnly: ignore,
-                    this.Properties.RuntimeCapabilities,
+                    this.Properties.RuntimeCapability,
                     this.Properties.IsExecutable,
                     this.Properties.ProcessorArchitecture);
                 this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
@@ -782,7 +782,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ProjectInformation.Empty(
                             "Latest",
                             existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path."),
-                            AssemblyConstants.RuntimeCapabilities.Unknown))
+                            RuntimeCapability.FullComputation))
                         ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null)
                     {
