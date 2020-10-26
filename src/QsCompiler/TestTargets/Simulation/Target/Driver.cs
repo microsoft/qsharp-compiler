@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Testing.Simulation
 
             using (var qsim = new QuantumSimulator())
             {
-                Task task = entryPoint.Invoke(null, new[] { qsim }) as Task<QVoid>;
+                var task = entryPoint.Invoke(null, new[] { qsim }) as Task<QVoid>;
                 task?.Wait();
             }
         }

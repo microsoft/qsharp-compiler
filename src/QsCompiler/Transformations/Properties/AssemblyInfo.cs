@@ -3,5 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-// Allow the test assembly to use our internal methods
+[assembly: InternalsVisibleTo("Microsoft.Quantum.QsCompilationManager" + SigningConstants.PublicKey)]
+[assembly: InternalsVisibleTo("Microsoft.Quantum.QsCompiler" + SigningConstants.PublicKey)]
+[assembly: InternalsVisibleTo("Microsoft.Quantum.QsLanguageServer" + SigningConstants.PublicKey)]
 [assembly: InternalsVisibleTo("Tests.Microsoft.Quantum.QsCompiler" + SigningConstants.PublicKey)]
