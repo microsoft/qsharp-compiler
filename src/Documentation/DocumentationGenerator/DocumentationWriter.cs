@@ -330,13 +330,14 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             .MaybeWithSection(
                 "Type Parameters",
                 string.Join("\n", callable.Signature.TypeParameters.Select(
-                    typeParam => $@"### {typeParam}\n\n{(
+                    typeParam =>
                         typeParam is QsLocalSymbol.ValidName name
-                        ? docComment.TypeParameters.TryGetValue(name.Item.Value, out var comment)
+                        ? $@"### '{name.Item.Value}{"\n\n"}{(
+                            docComment.TypeParameters.TryGetValue($"'{name.Item.Value}", out var comment)
                             ? comment
                             : string.Empty
+                          )}"
                         : string.Empty
-                    )}"
                 ))
             )
             .MaybeWithSection("Remarks", docComment.Remarks)
