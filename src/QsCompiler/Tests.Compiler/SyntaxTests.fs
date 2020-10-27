@@ -418,10 +418,9 @@ let ``Call tests`` () =
             []
         "(f(1)(2))[3]",
             true,
-            ((CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
-             |> CallLikeExpression
-             |> toExpr
-             |> List.singleton
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
              |> toTuple,
              toInt 3)
             |> ArrayItem
@@ -429,10 +428,9 @@ let ``Call tests`` () =
             []
         "(f(1)(2))[3](4)",
             true,
-            ((CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
-             |> CallLikeExpression
-             |> toExpr
-             |> List.singleton
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
              |> toTuple,
              toInt 3)
             |> ArrayItem
