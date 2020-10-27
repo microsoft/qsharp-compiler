@@ -385,7 +385,7 @@ let private argumentTuple =
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser. 
 let internal callLikeExpr =
     // identifier needs to come *after* arrayItemExpr
-    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple |> attempt
+    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple
     |>> List.Cons
     |>> List.reduce (applyBinary CallLikeExpression ())
 
