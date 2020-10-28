@@ -17,7 +17,7 @@ type GlobalVerificationTests () =
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.GlobalVerification" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
-        this.Verify (QsQualifiedName.New (ns, name), diag)
+        this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 
     [<Fact>]
@@ -48,6 +48,17 @@ type GlobalVerificationTests () =
         this.Expect "LocalNamespaceShortNames22" []
         this.Expect "LocalNamespaceShortNames23" []
         this.Expect "LocalNamespaceShortNames24" []
+
+
+    [<Fact>]
+    member this.``Naming conflicts`` () =
+
+        this.Expect "NamingConflict1" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict2" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict3" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict4" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict5" [Error ErrorCode.FullNameConflictsWithNamespace]
+        this.Expect "NamingConflict6" [Error ErrorCode.FullNameConflictsWithNamespace]
 
 
     [<Fact>]

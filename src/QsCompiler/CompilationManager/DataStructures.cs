@@ -11,8 +11,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 {
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments.
         /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </summary>
-        public readonly string EndOfLineComment;
+        public readonly string? EndOfLineComment;
 
         internal readonly int Indentation; // Note: This denotes the initial indentation at the beginning of the line
         internal readonly ImmutableArray<int> ExcessBracketPositions;
@@ -116,58 +116,53 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class CodeFragment
     {
         /// <summary>
-        /// returns a copy of the CodeFragment Range
+        /// The code fragment's range.
         /// </summary>
-        internal LSP.Range GetRange() => this.fragmentRange.Copy();
+        internal Range Range { get; }
 
-        private readonly LSP.Range fragmentRange;
-        internal readonly Tuple<QsPositionInfo, QsPositionInfo> HeaderRange;
+        internal readonly Range HeaderRange;
         internal readonly int Indentation;
         internal readonly string Text;
         internal readonly char FollowedBy;
         internal readonly QsComments Comments;
-        public readonly QsFragmentKind Kind;
+        public readonly QsFragmentKind? Kind;
 
         internal bool IncludeInCompilation { get; private set; } // used to exclude certain code fragments from the compilation if they are e.g. misplaced
 
         internal const char MissingDelimiter = '@'; // arbitrarily chosen
         internal static readonly ImmutableArray<char> DelimitingChars = ImmutableArray.Create('}', '{', ';');
 
-        private static Tuple<QsPositionInfo, QsPositionInfo> GetHeaderRange(string text, QsFragmentKind kind) =>
-            kind == null ? QsCompilerDiagnostic.DefaultRange : kind.IsControlledAdjointDeclaration
+        private static Range GetHeaderRange(string text, QsFragmentKind? kind) =>
+            kind == null ? Range.Zero : kind.IsControlledAdjointDeclaration
                 ? Parsing.HeaderDelimiters(2).Invoke(text ?? "")
                 : Parsing.HeaderDelimiters(1).Invoke(text ?? "");
 
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, LSP.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, Range range, string text, char next, QsComments? comments, QsFragmentKind? kind, bool include)
         {
-            if (!Utils.IsValidRange(r))
-            {
-                throw new ArgumentException("invalid range for code fragment");
-            }
             if (!DelimitingChars.Contains(next) && next != MissingDelimiter)
             {
                 throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
             }
             this.Indentation = indent < 0 ? throw new ArgumentException("indentation needs to be positive") : indent;
-            this.Text = text?.TrimEnd() ?? throw new ArgumentNullException(nameof(text));
+            this.Text = text.TrimEnd();
             this.FollowedBy = next;
             this.Comments = comments ?? QsComments.Empty;
             this.Kind = kind; // nothing here should be modifiable
-            this.fragmentRange = r.Copy();
+            this.Range = range;
             this.HeaderRange = GetHeaderRange(this.Text, this.Kind);
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, LSP.Range r, string text, char next, QsFragmentKind kind = null)
-            : this(indent, r, text, next, null, kind, true)
+        internal CodeFragment(int indent, Range range, string text, char next, QsFragmentKind? kind = null)
+            : this(indent, range, text, next, null, kind, true)
         {
         }
 
         internal CodeFragment Copy() =>
-            new CodeFragment(this.Indentation, this.GetRange(), this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         public bool Equals(CodeFragment other)
         {
@@ -176,7 +171,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 return false;
             }
             return
-                this.GetRange().Equals(other.GetRange()) &&
+                this.Range == other.Range &&
                 this.Indentation == other.Indentation &&
                 this.Text == other.Text &&
                 this.FollowedBy == other.FollowedBy &&
@@ -184,41 +179,40 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 (this.Kind == null ? other.Kind == null : this.Kind.Equals(other.Kind));
         }
 
-        internal CodeFragment WithUpdatedLineNumber(int lineNrChange) =>
-            this?.SetRange(this.GetRange().WithUpdatedLineNumber(lineNrChange));
+        internal CodeFragment WithLineNumOffset(int offset) => this.SetRange(this.Range.WithLineNumOffset(offset));
 
-        internal CodeFragment SetRange(LSP.Range range) =>
+        internal CodeFragment SetRange(Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetIndentation(int indent) =>
-            new CodeFragment(indent, this.fragmentRange, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(indent, this.Range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetCode(string code) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, code, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, code, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetFollowedBy(char delim) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, delim, this.Comments, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, delim, this.Comments, this.Kind, this.IncludeInCompilation);
 
         internal CodeFragment SetKind(QsFragmentKind kind) =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, this.Comments, kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, this.Comments, kind, this.IncludeInCompilation);
 
         internal CodeFragment ClearComments() =>
-            new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, null, this.Kind, this.IncludeInCompilation);
+            new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, null, this.Kind, this.IncludeInCompilation);
 
-        internal CodeFragment SetOpeningComments(IEnumerable<string> commentsBefore)
+        internal CodeFragment SetOpeningComments(IEnumerable<string?> commentsBefore)
         {
             var relevantComments = commentsBefore.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
             var comments = new QsComments(relevantComments.Select(c => c ?? string.Empty).ToImmutableArray(), this.Comments.ClosingComments);
-            return new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
+            return new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
         }
 
-        internal CodeFragment SetClosingComments(IEnumerable<string> commentsAfter)
+        internal CodeFragment SetClosingComments(IEnumerable<string?> commentsAfter)
         {
             var relevantComments = commentsAfter.SkipWhile(c => c == null).Reverse();
             relevantComments = relevantComments.SkipWhile(c => c == null).Reverse();
             var comments = new QsComments(this.Comments.OpeningComments, relevantComments.Select(c => c ?? string.Empty).ToImmutableArray());
-            return new CodeFragment(this.Indentation, this.fragmentRange, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
+            return new CodeFragment(this.Indentation, this.Range, this.Text, this.FollowedBy, comments, this.Kind, this.IncludeInCompilation);
         }
 
         /// <summary>
@@ -236,14 +230,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the content)
             /// and initializes an instance of TokenIndex.
-            /// Throws an ArgumentNullException if file is null.
             /// Throws an ArgumentOutOfRangeException if line or index are negative,
             /// or line is larger than or equal to the number of Tokens lists in file,
             /// or index is larger than or equal to the number of Tokens on the given line.
             /// </summary>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
-                this.file = file ?? throw new ArgumentNullException(nameof(file));
                 if (line < 0 || line >= file.NrTokenizedLines())
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
@@ -253,6 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
 
+                this.file = file;
                 this.Line = line;
                 this.Index = index;
             }
@@ -302,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                return this.file.GetTokenizedLine(this.Line)[this.Index].WithUpdatedLineNumber(this.Line);
+                return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
             }
 
             /// <summary>
@@ -329,20 +322,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the next token in File or null if no such token exists.
-            /// Throws an ArgumentNullException if the TokenIndex to increment is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex operator ++(TokenIndex tIndex)
+            public TokenIndex? Next()
             {
-                if (tIndex == null)
-                {
-                    throw new ArgumentNullException(nameof(tIndex));
-                }
-                if (!tIndex.IsWithinFile())
+                if (!this.IsWithinFile())
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(tIndex); // the overload for ++ must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
                 {
                     return res;
@@ -356,20 +344,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the previous token in File or null if no such token exists.
-            /// Throws an ArgumentNullException if the TokenIndex to decrement is null.
             /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
-            public static TokenIndex operator --(TokenIndex tIndex)
+            public TokenIndex? Previous()
             {
-                if (tIndex == null)
-                {
-                    throw new ArgumentNullException(nameof(tIndex));
-                }
-                if (!tIndex.IsWithinFile())
+                if (!this.IsWithinFile())
                 {
                     throw new InvalidOperationException("token index is no longer valid within its associated file");
                 }
-                var res = new TokenIndex(tIndex); // the overload for -- must *not* mutate the argument - this is handled/done by the compiler
+                var res = new TokenIndex(this);
                 if (res.Index-- > 0)
                 {
                     return res;
@@ -390,49 +373,43 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal struct TreeNode
         {
-            private readonly Position relPosition;
-            private readonly Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
 
             /// <summary>
-            /// Returns the position of the root node that all child node positions are relative to.
+            /// The position of the root node that all child node positions are relative to.
             /// </summary>
-            public Position GetRootPosition() => this.rootPosition.Copy();
+            public Position RootPosition { get; }
 
-            public Position GetPositionRelativeToRoot() => this.relPosition.Copy();
+            /// <summary>
+            /// The position of this node relative to the root node.
+            /// </summary>
+            public Position RelativePosition { get; }
 
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
             /// RelativeToRoot is set to the position of the fragment start relative to the given parent start position.
-            /// Throws an ArgumentException if the given parent start position is invalid, or larger than the fragment start position.
-            /// Throws an ArgumentNullException if any of the given arguments is null.
+            /// Throws an ArgumentException if the given parent start position is larger than the fragment start position.
             /// </summary>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
-                this.Fragment = fragment ?? throw new ArgumentNullException(nameof(fragment));
-                this.Children = children ?? throw new ArgumentNullException(nameof(children));
-
-                var fragStart = fragment.GetRange().Start;
-                if (!Utils.IsValidPosition(parentStart))
-                {
-                    throw new ArgumentException(nameof(parentStart));
-                }
-                if (fragStart.IsSmallerThan(parentStart))
+                if (fragment.Range.Start < parentStart)
                 {
                     throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
                 }
-                this.rootPosition = parentStart;
-                this.relPosition = fragStart.Subtract(parentStart);
+                this.Fragment = fragment;
+                this.Children = children;
+                this.RootPosition = parentStart;
+                this.RelativePosition = fragment.Range.Start - parentStart;
             }
         }
 
         public readonly NonNullable<string> Source;
         public readonly NonNullable<string> Namespace;
         public readonly NonNullable<string> Callable;
-        public readonly IReadOnlyList<TreeNode> Specializations;
+        public readonly IReadOnlyList<TreeNode>? Specializations;
 
-        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode> specs)
+        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode>? specs)
         {
             this.Source = source;
             this.Namespace = ns;
@@ -446,12 +423,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal struct HeaderEntry<T>
     {
-        private readonly Position position;
-
-        internal Position GetPosition() => this.position.Copy();
+        internal Position Position { get; }
 
         internal readonly NonNullable<string> SymbolName;
-        internal readonly Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>> PositionedSymbol;
+        internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
 
         internal readonly T Declaration;
         internal readonly ImmutableArray<AttributeAnnotation> Attributes;
@@ -461,24 +436,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
             Position offset,
-            (NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>) sym,
+            (NonNullable<string>, Range) sym,
             T decl,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
             QsComments comments)
         {
-            if (tIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-            if (!Utils.IsValidPosition(offset))
-            {
-                throw new ArgumentException(nameof(offset));
-            }
-
-            this.position = offset.Copy();
+            this.Position = offset;
             this.SymbolName = sym.Item1;
-            this.PositionedSymbol = new Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>(sym.Item1, sym.Item2);
+            this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
             this.Attributes = attributes;
             this.Documentation = doc;
@@ -493,27 +459,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
         /// Throws an ArgumentException if this verification fails as well.
         /// Throws an ArgumentException if the extracted declaration is Null.
-        /// Throws an ArgumentNullException if the given token index is null.
         /// </summary>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
             CodeFragment.TokenIndex tIndex,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
-            string keepInvalid = null)
+            string? keepInvalid = null)
         {
-            if (getDeclaration == null)
-            {
-                throw new ArgumentNullException(nameof(getDeclaration));
-            }
-            if (tIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
             var fragment = tIndex.GetFragmentWithClosingComments();
-            var fragmentStart = fragment.GetRange().Start;
-
             var extractedDecl = getDeclaration(fragment);
             var (sym, decl) =
                 extractedDecl.IsNull
@@ -526,14 +480,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 throw new ArgumentException("extracted declaration does not have a suitable name");
             }
 
-            var symRange =
-                sym.Range.IsNull
-                ? new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero)
-                : sym.Range.Item;
-
+            var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 
@@ -552,7 +502,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public FileHeader(ReaderWriterLockSlim syncRoot)
         {
-            this.SyncRoot = syncRoot ?? throw new ArgumentNullException(nameof(syncRoot));
+            this.SyncRoot = syncRoot;
             this.namespaceDeclarations = new ManagedSortedSet(syncRoot);
             this.openDirectives = new ManagedSortedSet(syncRoot);
             this.typeDeclarations = new ManagedSortedSet(syncRoot);
@@ -644,19 +594,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             IsCallableDeclaration(fragment) ||
             IsCallableSpecialization(fragment);
 
-        public static IEnumerable<CodeFragment> FilterNamespaceDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterNamespaceDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsNamespaceDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterOpenDirectives(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterOpenDirectives(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsOpenDirective);
 
-        public static IEnumerable<CodeFragment> FilterTypeDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterTypeDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsTypeDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterCallableDeclarations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterCallableDeclarations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsCallableDeclaration);
 
-        public static IEnumerable<CodeFragment> FilterCallableSpecializations(IEnumerable<CodeFragment> fragments) =>
+        public static IEnumerable<CodeFragment>? FilterCallableSpecializations(IEnumerable<CodeFragment> fragments) =>
             fragments?.Where(IsCallableSpecialization);
     }
 
@@ -967,10 +917,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Replace(int start, int count, IReadOnlyList<T> replacements)
         {
-            if (replacements == null)
-            {
-                throw new ArgumentNullException(nameof(replacements));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -995,10 +941,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void ReplaceAll(IEnumerable<T> replacement)
         {
-            if (replacement == null)
-            {
-                throw new ArgumentNullException(nameof(replacement));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -1012,10 +954,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void ReplaceAll(ManagedList<T> replacement)
         {
-            if (replacement == null)
-            {
-                throw new ArgumentNullException(nameof(replacement));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -1029,10 +967,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Transform(int index, Func<T, T> transformation)
         {
-            if (transformation == null)
-            {
-                throw new ArgumentNullException(nameof(transformation));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {
@@ -1046,10 +980,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         public void Transform(Func<T, T> transformation)
         {
-            if (transformation == null)
-            {
-                throw new ArgumentNullException(nameof(transformation));
-            }
             this.SyncRoot.EnterWriteLock();
             try
             {

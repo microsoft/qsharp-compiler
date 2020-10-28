@@ -81,9 +81,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider.TriggerCharacters);
             Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { ".", "(" }));
             Assert.IsNotNull(initReply.Capabilities.SignatureHelpProvider?.TriggerCharacters);
-            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider.TriggerCharacters.Any());
+            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider!.TriggerCharacters.Any());
             Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider?.Commands);
-            Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider.Commands.Contains(CommandIds.ApplyEdit));
+            Assert.IsTrue(initReply.Capabilities.ExecuteCommandProvider!.Commands.Contains(CommandIds.ApplyEdit));
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.OpenClose);
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.Save.IncludeText);
             Assert.AreEqual(TextDocumentSyncKind.Incremental, initReply.Capabilities.TextDocumentSync.Change);
@@ -183,10 +183,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TextContentTrackingAsync()
         {
-            async Task RunTest(bool emptyLastLine)
+            async Task RunTest(bool emptyLastLine, bool useQsExtension)
             {
                 var fileSize = 10;
-                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false);
+                var filename = this.inputGenerator.GenerateRandomFile(fileSize, emptyLastLine, false, useQsExtension);
                 var expectedContent = TestUtils.GetContent(filename);
                 var openParams = TestUtils.GetOpenFileParams(filename);
                 await this.SetupAsync();
@@ -233,8 +233,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     Assert.AreEqual(expected, got);
                 }
             }
-            await RunTest(emptyLastLine: true);
-            await RunTest(emptyLastLine: false);
+            await RunTest(emptyLastLine: true, useQsExtension: false);
+            await RunTest(emptyLastLine: false, useQsExtension: false);
+            await RunTest(emptyLastLine: true, useQsExtension: true);
         }
 
         [TestMethod]

@@ -39,6 +39,9 @@ type TypeParameterTests () =
     let MakeTupleType types =
         types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
+    let MakeArrayType ``type`` =
+        ResolvedType.New ``type`` |> ArrayType
+
     let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
@@ -263,7 +266,7 @@ type TypeParameterTests () =
         AssertCombinedResolution expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () =
 
         let given = [|
@@ -446,7 +449,7 @@ type TypeParameterTests () =
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Inner Cycle Constrains Type Parameter`` () =
 
         let given = [|
@@ -469,7 +472,7 @@ type TypeParameterTests () =
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Nested Type Paramter Resolution`` () =
         let given = [|
             ResolutionFromParam [
@@ -487,7 +490,7 @@ type TypeParameterTests () =
         AssertCombinedResolution expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Nested Constricted Resolution`` () =
         let given = [|
             ResolutionFromParam [
@@ -501,25 +504,71 @@ type TypeParameterTests () =
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Nested Self Resolution`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Nested Self Resolution`` () =
         let given = [|
             ResolutionFromParam [
-                (FooA, [FooA |> TypeParameter; BarA |> TypeParameter] |> MakeTupleType)
-            ]
-            ResolutionFromParam [
-                (BarA, Int)
+                (FooA, [FooA |> TypeParameter; Int] |> MakeTupleType)
             ]
         |]
         let expected = ResolutionFromParam [
             (FooA, [FooA |> TypeParameter; Int] |> MakeTupleType)
-            (BarA, Int)
         ]
 
-        AssertCombinedResolution expected given
+        AssertCombinedResolutionFailure expected given
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
+    [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Array Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, FooA |> TypeParameter |> MakeArrayType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, FooA |> TypeParameter |> MakeArrayType)
+        ]
+
+        AssertCombinedResolutionFailure expected given
+
+    [<Fact>]
+    [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Indirect Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BarA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (BarA, [Int; [Int; FooA |> TypeParameter] |> MakeTupleType] |> MakeTupleType)
+            (FooA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+        ]
+
+        AssertCombinedResolutionFailure expected given
+
+    [<Fact>]
+    [<Trait("Category","Type Resolution")>]
+    member this.``Constricting Array Indirect Nested Self Resolution`` () =
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BarA, FooA |> TypeParameter |> MakeArrayType)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
+            (FooA, FooA |> TypeParameter |> MakeArrayType)
+        ]
+
+        AssertCombinedResolutionFailure expected given
+
+    [<Fact>]
+    [<Trait("Category","Type Resolution")>]
     member this.``Single Dictonary Resolution`` () =
         let given = [|
             ResolutionFromParam [

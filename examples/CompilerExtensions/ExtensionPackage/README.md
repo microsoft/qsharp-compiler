@@ -1,6 +1,6 @@
 ﻿# Creating a NuGet package containing a Q# compiler extension
 
-This project contains a template for packaging a Q# compiler extension. For more information about Q# compiler extensions see [here](https://github.com/microsoft/qsharp-compiler/tree/master/src/QuantumSdk#extending-the-q-compiler). For more information on NuGet packages, see [here](https://docs.microsoft.com/en-us/nuget/what-is-nuget).
+This project contains a template for packaging a Q# compiler extension. For more information about Q# compiler extensions see [here](https://github.com/microsoft/qsharp-compiler/tree/main/src/QuantumSdk#extending-the-q-compiler). For more information on NuGet packages, see [here](https://docs.microsoft.com/en-us/nuget/what-is-nuget).
 
 Prerequisites: [NuGet tools](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools)
 
@@ -14,4 +14,4 @@ In order to use the created package as a Q# compiler extension when building a Q
 ```
     <PackageReference Include="CustomExtension.Package" Version="1.0.0" IsQscReference="true" />
 ```
-The extension will only be included in the build process if`IsQscReference` is set to `true`. For more information, see this [readme](https://github.com/microsoft/qsharp-compiler/blob/master/src/QuantumSdk/README.md). 
+The extension will only be included in the build process if`IsQscReference` is set to `true`. For more information, see this [readme](https://github.com/microsoft/qsharp-compiler/blob/main/src/QuantumSdk/README.md). 

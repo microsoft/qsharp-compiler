@@ -4,12 +4,12 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using AttributeId = QsNullable<UserDefinedType>;
     using CallablePredicate = Func<QsCallable, bool>;
-    using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
 
     /// <summary>
     /// Contains tools for building and adding attributes to an existing Q# compilation.
@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
             name != null
-            ? AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null))
+            ? AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsNullable<Range>.Null))
             : AttributeId.Null;
 
         // public static methods
@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The attribute argument is set to an invalid expression if the given argument is null.
         /// </summary>
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, null, QsComments.Empty);
+            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, Position.Zero, QsComments.Empty);
 
         /// <summary>
         /// Builds a string literal with the given content that can be used as argument to a Q# attribute.
@@ -51,48 +51,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// <summary>
         /// Adds the given attribute to all callables in the given compilation that satisfy the given predicate
         /// - if the predicate is specified and not null.
-        /// Throws an ArgumentNullException if the given attribute or compilation is null.
         /// </summary>
-        public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
+        public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate? predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given compilation that satisfy the given predicate
         /// - if the predicate is specified and not null.
-        /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
-        public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
+        public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate?)[] attributes) =>
             new AddAttributes(attributes).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given compilation.
-        /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params QsDeclarationAttribute[] attributes) =>
-            new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).OnCompilation(compilation);
+            new AddAttributes(attributes.Select(att => (att, (CallablePredicate?)null))).OnCompilation(compilation);
 
         /// <summary>
         /// Adds the given attribute to all callables in the given namespace that satisfy the given predicate
         /// - if the predicate is specified and not null.
-        /// Throws an ArgumentNullException if the given attribute or namespace is null.
         /// </summary>
-        public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
+        public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate? predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given namespace that satisfy the given predicate
         /// - if the predicate is specified and not null.
-        /// Throws an ArgumentNullException if one of the given attributes or the namespace is null.
         /// </summary>
-        public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
+        public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate?)[] attributes) =>
             new AddAttributes(attributes).Namespaces.OnNamespace(ns);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given namespace.
-        /// Throws an ArgumentNullException if one of the given attributes or the namespace is null.
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
-            new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Namespaces.OnNamespace(ns);
+            new AddAttributes(attributes.Select(att => (att, (CallablePredicate?)null))).Namespaces.OnNamespace(ns);
 
         // private transformation class(es)
 
@@ -104,20 +98,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             internal class TransformationState
             {
-                internal readonly ImmutableArray<(QsDeclarationAttribute, Func<QsCallable, bool>)> AttributeSelection;
+                internal readonly ImmutableArray<(QsDeclarationAttribute, CallablePredicate)> AttributeSelection;
 
-                /// <exception cref="ArgumentNullException">Thrown when the given selection is null.</exception>
-                internal TransformationState(IEnumerable<(QsDeclarationAttribute, Func<QsCallable, bool>)> selections) =>
-                    this.AttributeSelection = selections?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(selections));
+                internal TransformationState(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> selections) =>
+                    this.AttributeSelection = selections.ToImmutableArray();
             }
 
-            internal AddAttributes(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> attributes)
-            : base(new TransformationState(attributes?.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true)))))
+            internal AddAttributes(IEnumerable<(QsDeclarationAttribute, CallablePredicate?)> attributes)
+            : base(new TransformationState(attributes.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true)))))
             {
-                if (attributes == null || attributes.Any(entry => entry.Item1 == null))
-                {
-                    throw new ArgumentNullException(nameof(attributes));
-                }
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new Core.StatementTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
                 this.StatementKinds = new Core.StatementKindTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);

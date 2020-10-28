@@ -8,7 +8,8 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
+using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -78,31 +79,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable Diagnostic from the given CompilerDiagnostic returned by the Q# compiler.
         /// The message range contained in the given CompilerDiagnostic is first converted to a Position object,
         /// and then added to the given positionOffset if the latter is not null.
-        /// Throws an ArgumentNullException if the Range of the given CompilerDiagnostic is null.
         /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
-        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position positionOffset = null)
-        {
-            if (msg.Range == null)
-            {
-                throw new ArgumentNullException(nameof(msg.Range));
-            }
-            return new Diagnostic
+        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null) =>
+            new Diagnostic
             {
                 Severity = Severity(msg),
                 Code = Code(msg),
                 Source = filename,
                 Message = msg.Message,
-                Range = DiagnosticTools.GetAbsoluteRange(positionOffset, msg.Range)
+                Range = ((positionOffset ?? Position.Zero) + msg.Range).ToLsp()
             };
-        }
 
         internal const string QsCodePrefix = "QS";
 
         public static bool TryGetCode(string str, out int code)
         {
             code = -1;
-            str = str?.Trim();
+            str = str?.Trim() ?? "";
             return !string.IsNullOrWhiteSpace(str) &&
                 str.StartsWith(QsCodePrefix, StringComparison.InvariantCultureIgnoreCase) &&
                 int.TryParse(str.Substring(2), out code);
@@ -128,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // warnings 70**
 
-        public static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string? source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
@@ -148,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = WarningCode.ExcessSemicolon.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(WarningCode.ExcessSemicolon, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
     }
@@ -163,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // errors 70**
 
-        public static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string? source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
@@ -183,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(code),
                 Source = filename,
                 Message = DiagnosticItem.Message(code, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
@@ -195,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MisplacedOpeningBracket.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MisplacedOpeningBracket, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
@@ -209,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.ExcessBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.ExcessBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
@@ -221,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MissingBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
@@ -233,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = ErrorCode.MissingStringDelimiterError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingStringDelimiterError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new LSP.Range { Start = pos, End = pos }
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
     }

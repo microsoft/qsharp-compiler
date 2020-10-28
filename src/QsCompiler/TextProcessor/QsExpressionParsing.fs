@@ -26,8 +26,11 @@ let internal unknownExpr = (InvalidExpr, Null) |> QsExpression.New
 /// For an expression of the given kind that is built from a left and right hand expression with the given ranges,
 /// builds the corresponding expression with its range set to the combined range. 
 /// If either one of given ranges is Null, builds an invalid expression with its range set to Null. 
-let private buildCombinedExpr kind (lRange, rRange) = 
-    QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidExpr |> QsExpression.New // *needs* to be an invalid expression if the combined range is Null!
+let private buildCombinedExpr kind (lRange, rRange) =
+    // *needs* to be an invalid expression if the combined range is Null!
+    match QsNullable.Map2 Range.Span lRange rRange with
+    | Value range -> { Expression = kind; Range = Value range }
+    | Null -> { Expression = InvalidExpr; Range = Null }
 
 /// operator precedence parser for Q# expressions
 let private qsExpression = new OperatorPrecedenceParser<QsExpression,_,_>()
@@ -44,10 +47,11 @@ let internal applyTerinary operator (first : QsExpression) (second : QsExpressio
 
 let private deprecatedOp warning (parsedOp : string) =
     let precedingRange (pos : Position) =
-        let opLength = int64 (parsedOp.Length)
-        let minusOldOpLength value = if value < opLength then 0L else value - opLength // value here should never be 0 or less (just a precaution)
-        let precedingPos = new Position(pos.StreamName, pos.Index |> minusOldOpLength, pos.Line, pos.Column |> minusOldOpLength)
-        (precedingPos, pos)
+        let minusOldOpLength value =
+            // value here should never be 0 or less (just a precaution)
+            if value < parsedOp.Length then 0 else value - parsedOp.Length
+        let precedingPos = Position.Create pos.Line (minusOldOpLength pos.Column)
+        Range.Create precedingPos pos
     buildWarning (getPosition |>> precedingRange) warning
 
 qsExpression.AddOperator (TernaryOperator(qsCopyAndUpdateOp.op, emptySpace, qsCopyAndUpdateOp.cont, emptySpace                        , qsCopyAndUpdateOp.prec, qsCopyAndUpdateOp.Associativity,     applyTerinary CopyAndUpdate))
@@ -88,8 +92,7 @@ for op in qsExpression.Operators do qsArgument.AddOperator op
 /// Parses a postfix modifer (unwrap operator) as term and returns its range, 
 /// i.e. fails without consuming input if there is no postfix modifier to parse. 
 let private postFixModifier = 
-    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) 
-    |>> snd |>> QsPositionInfo.Range 
+    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers, 
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -99,16 +102,16 @@ let private postFixModifier =
 let private withModifiers modifiableExpr = 
     let rec applyUnwraps unwraps (core : QsExpression) = unwraps |> function 
         | [] -> core
-        | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, range) |> applyUnwraps tail
+        | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
     let rec applyFunctors functors (core : QsExpression) = functors |> function
         | [] -> core 
-        | (range, kind) :: tail -> buildCombinedExpr (kind core) (QsPositionInfo.Range range, core.Range) |> applyFunctors tail
+        | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
     let functorApplication = 
         let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
         let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
     attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
-    |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (functors |> List.rev)
+    |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (List.rev functors)
 
 
 // utils for building expressions
@@ -138,7 +141,7 @@ let internal expectedExpr continuation =
 let private asExpression core = 
     term core |>> QsExpression.New
 
-let private buildExpression ex (range : Position * Position) = 
+let private buildExpression ex (range : Range) =
     (ex, range) |> QsExpression.New
 
 
@@ -180,9 +183,15 @@ let internal numericLiteral =
             let trimmed = nl.String.TrimStart '+'
             if format = 10 || format = 0 then trimmed else trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
         let isInt    = nl.IsInteger     && format <> 0                  && nl.SuffixLength = 0 // any format is fine here
-        let isBigInt = nl.IsInteger     && (format = 10 || format = 16) && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
+        let isBigInt = nl.IsInteger     && format <> 0  && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
         let returnWithRange kind = preturn (kind, range)
+        let baseToHex (baseint:int, str) =
+            // first pad 0's so that length is multiple of 4, so we can match from left rather than right
+            let nZeroPad = (4 - String.length str % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
+            let paddedStr = str.PadLeft (nZeroPad + String.length str, '0')
+            // now match from left
+            paddedStr |> Seq.chunkBySize 4 |> Seq.map (fun x -> System.Convert.ToInt32(System.String x, baseint).ToString "X") |> System.String.Concat
         try if isInt then 
                 let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
                 if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
@@ -191,6 +200,7 @@ let internal numericLiteral =
                 else (int64)value |> IntLiteral |> returnWithRange
             elif isBigInt then 
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                elif format = 2 || format = 8 then BigInteger.Parse(baseToHex (format,str), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then 
                 try let doubleValue = System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture)
@@ -272,7 +282,7 @@ let private tupledItem item =
     |> withModifiers
 
 /// Given an array of QsExpressions and a tuple with start and end position, builds a Q# ValueTuple as QsExpression.
-let internal buildTupleExpr (items, range : Position * Position) = 
+let internal buildTupleExpr (items, range : Range) =
     (ValueTuple items, range) |> QsExpression.New
 
 /// Parses a Q# value tuple as QsExpression using the given item parser to process tuple items.
@@ -300,7 +310,7 @@ let private newArray =
 
 /// used to temporarily store item accessors for both array item and named item access expressions
 type private ItemAccessor = 
-| ArrayItemAccessor of QsExpression * (Position * Position)
+| ArrayItemAccessor of QsExpression * Range
 | NamedItemAccessor of QsSymbol
 
 /// Parses a Q# ArrayItem as QsExpression.
@@ -311,7 +321,7 @@ type private ItemAccessor =
 let private itemAccessExpr = 
     let rec applyPostfixModifiers ex = function 
         | [] -> ex
-        | (range : QsRangeInfo) :: tail -> 
+        | (range : Range) :: tail -> 
             let ex = (UnwrapApplication (ex), range) |> QsExpression.New
             applyPostfixModifiers ex tail 
     let rec applyAccessors (ex : QsExpression, item) = 
@@ -321,16 +331,16 @@ let private itemAccessExpr =
         match item with
         | [] -> ex
         | (ArrayItemAccessor (idx, range), postfixMod) :: tail -> 
-            let arrItemEx = buildCombinedExpr (ArrayItem (ex, idx)) (ex.Range, range |> QsPositionInfo.Range)
+            let arrItemEx = buildCombinedExpr (ArrayItem (ex, idx)) (ex.Range, Value range)
             recur (arrItemEx, postfixMod) tail
         | (NamedItemAccessor sym, postfixMod) :: tail -> 
             let namedItemEx = buildCombinedExpr (NamedItem (ex, sym)) (ex.Range, sym.Range)
             recur (namedItemEx, postfixMod) tail
     let accessor = 
-        let missingEx pos = (MissingExpr, (pos, pos)) |> QsExpression.New
+        let missingEx pos = (MissingExpr, Range.Create pos pos) |> QsExpression.New
         let openRange = pstring qsOpenRangeOp.op |> term
-        let fullyOpenRange = openRange |>> snd .>>? followedBy eof |>> fun (p1, p2) -> 
-            let lhs, rhs = missingEx p1, missingEx p2
+        let fullyOpenRange = openRange |>> snd .>>? followedBy eof |>> fun range ->
+            let lhs, rhs = missingEx range.Start, missingEx range.End
             buildCombinedExpr (RangeLiteral (lhs, rhs)) (lhs.Range, rhs.Range)
         let closedOrHalfOpenRange = 
             let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
@@ -339,17 +349,17 @@ let private itemAccessExpr =
             |>> fun ((pre, core : QsExpression), post) -> 
                 let applyPost ex = post |> function 
                     | None -> ex
-                    | Some (_, (rstart, rend)) -> buildCombinedExpr (RangeLiteral (ex, missingEx rend)) (ex.Range, QsPositionInfo.Range (rstart, rend))
+                    | Some (_, range) -> buildCombinedExpr (RangeLiteral (ex, missingEx range.End)) (ex.Range, Value range)
                 match pre with
                 // we potentially need to re-construct the expression following the open range operator
                 // to get the correct behavior (in terms of associativity and precedence)
-                | Some (_, (lstart, lend)) -> 
+                | Some (_, range) ->
                     let combineWith right left = buildCombinedExpr (RangeLiteral (left, right)) (left.Range, right.Range)
                     match core.Expression with
                     // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence, 
                     // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it. 
-                    | RangeLiteral (lex, rex) -> buildCombinedExpr (RangeLiteral (missingEx lend, lex)) (QsPositionInfo.Range (lstart, lend), lex.Range) |> combineWith rex 
-                    | _ -> missingEx lend |> combineWith core |> applyPost
+                    | RangeLiteral (lex, rex) -> buildCombinedExpr (RangeLiteral (missingEx range.End, lex)) (Value range, lex.Range) |> combineWith rex
+                    | _ -> missingEx range.End |> combineWith core |> applyPost
                 | None -> core |> applyPost
         let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
         let namedItemAccess = term (pstring qsNamedItemCombinator.op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol |>> NamedItemAccessor
@@ -399,4 +409,3 @@ let private termParser tupleExpr =
 
 qsExpression.TermParser <- termParser (valueTuple expr)
 qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
-

@@ -65,9 +65,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return lines;
         }
 
-        internal string GenerateRandomFile(int nrLines, bool? emptyLastLine, bool withLanguageKeywords = true)
+        internal string GenerateRandomFile(int nrLines, bool? emptyLastLine, bool withLanguageKeywords = true, bool withQsExtension = false)
         {
-            var filename = Path.Combine(TestInputDirectory, Path.GetRandomFileName());
+            var filename = Path.Combine(TestInputDirectory, Path.GetRandomFileName()) + (withQsExtension ? ".qs" : "z"); // guarantee .qs extension exists or not
             var content = this.GetRandomLines(nrLines, withLanguageKeywords);
             using (StreamWriter sw = new StreamWriter(filename))
             {
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Start = new Position(startLine, startChar),
                 End = new Position(endLine, endChar)
             };
-            Assert.IsTrue(Builder.IsValidRange(range));
+            Assert.IsTrue(TestUtils.IsValidRange(range));
             return range;
         }
 

@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         {
             public bool Success { get; internal set; }
 
-            internal readonly Action<Exception> OnException;
+            internal readonly Action<Exception>? OnException;
 
             internal Func<QsScope, QsScope> ResolveNames =
                 new UniqueVariableNames().Statements.OnScope;
@@ -33,14 +33,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             public void Reset() =>
                 this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
 
-            public TransformationState(Action<Exception> onException = null)
+            public TransformationState(Action<Exception>? onException = null)
             {
                 this.Success = true;
                 this.OnException = onException;
             }
         }
 
-        public InlineConjugations(Action<Exception> onException = null)
+        public InlineConjugations(Action<Exception>? onException = null)
         : base(new TransformationState(onException))
         {
             this.Namespaces = new NamespaceTransformation(this);

@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open System
 open System.Collections.Immutable
@@ -17,7 +18,57 @@ open Xunit
 
 let private rawString = getStringContent (manyChars anyChar) |>> fst
 
-// Component parsers
+
+[<Fact>]
+let ``Reserved patterns`` () = 
+    [
+        ("_mySymbol" , true , Some "_mySymbol" , [])
+        ("mySymbol_" , true , Some "mySymbol_" , [])
+        ("my_symbol" , true , Some "my_symbol" , [])
+        ("my__symbol", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__mySymbol", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("mySymbol__", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__my__sym" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("my__sym__" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__mysym__" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (symbolNameLike ErrorCode.InvalidIdentifierName))
+    [
+        ("a.b"    , true , ([Some "a"   ], Some "b"   ), [])
+        ("_a.b"   , true , ([Some "_a"  ], Some "b"   ), [])
+        ("a_.b"   , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a._b"   , true , ([Some "a"   ], Some "_b"  ), [])
+        ("a.b_"   , true , ([Some "a"   ], Some "b_"  ), [])
+        ("_a.b_"  , true , ([Some "_a"  ], Some "b_"  ), [])
+        ("a_._b"  , true , ([None       ], Some "_b"  ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b"  , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__a.b" , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__.b"  , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.__b"  , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__b" , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__"  , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b__", true , ([None       ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern; Error ErrorCode.InvalidUseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> fst))
+    [
+        ("a.b"    , true , Some "a.b"    , [])
+        ("_a.b"   , true , Some "_a.b"   , [])
+        ("a_.b"   , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a._b"   , true , Some "a._b"   , [])
+        ("a.b_"   , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("_a.b_"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a_._b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__a.b" , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__.b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.__b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__b" , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b__", true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern; Error ErrorCode.InvalidUseOfUnderscorePattern])
+    ]
+    |> List.iter (testOne (namespaceName |>> fst)) 
+
+
 [<Fact>]
 let ``String parser tests`` () =
     [
@@ -141,7 +192,6 @@ let ``Symbol name tests`` () =
         ("_a",                  true,    "_a",             []);
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
-        ("__a",                 true,    "__a",            []);
         ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
         ("λ",                   true,    "λ",              []); // Greek small letter Lambda
         ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
@@ -194,7 +244,13 @@ let ``Expression literal tests`` () =
         ("1L",                    true,    toBigInt "1",                                                          []); 
         ("+1L",                   true,    toBigInt "1",                                                          []); 
         ("-1L",                   true,    toExpr (NEG (toBigInt "1")),                                           []); 
-        ("10000000000000000L",    true,    toBigInt "10000000000000000",                                          []); 
+        ("10000000000000000L",    true,    toBigInt "10000000000000000",                                          []);
+        ("0b111L",                true,    toBigInt "7",                                                          []);
+        ("0b1101L",               true,    toBigInt "13",                                                         []);
+        ("0b1100101011111110L",   true,    toBigInt "51966",                                                      []);
+        ("0o1L",                  true,    toBigInt "1",                                                          []);
+        ("0o105L",                true,    toBigInt "69",                                                         []);
+        ("0o12345L",              true,    toBigInt "5349",                                                       []); 
         ("0xfL",                  true,    toBigInt "15",                                                         []); 
         ("0xffL",                 true,    toBigInt "255",                                                        []); 
         ("1l",                    true,    toBigInt "1",                                                          []); 
@@ -205,10 +261,18 @@ let ``Expression literal tests`` () =
         ("+0xfl",                 true,    toBigInt "15",                                                         []); 
         ("0xffl",                 true,    toBigInt "255",                                                        []); 
         ("+0xffl",                true,    toBigInt "255",                                                        []); 
+        ("0o1",                   true,    toInt 1,                                                               []); 
+        ("+0o1",                  true,    toInt 1,                                                               []); 
+        ("-0o1",                  true,    toExpr (NEG (toInt 1)),                                                []); 
         ("0b1",                   true,    toInt 1,                                                               []); 
         ("0b100",                 true,    toInt 4,                                                               []); 
         ("+0b100",                true,    toInt 4,                                                               []); 
         ("-0b100",                true,    toExpr (NEG (toInt 4)),                                                []);
+        ("0o1",                   true,    toInt 1,                                                               []); 
+        ("0o100",                 true,    toInt 64,                                                              []);
+        ("+0o100",                true,    toInt 64,                                                              []);
+        ("-0o100",                true,    toExpr (NEG (toInt 64)),                                               []);
+        (".1e-1",                 true,    toExpr (DoubleLiteral 0.01),                                           []); 
         (".1",                    true,    toExpr (DoubleLiteral 0.1),                                            []); 
         ("1.0",                   true,    toExpr (DoubleLiteral 1.0),                                            []); 
         ("1.",                    true,    toExpr (DoubleLiteral 1.0),                                            []); 

@@ -47,7 +47,7 @@ let private unknownGenerator =
     (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
 
 /// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
-let private buildSymbolTuple (items, range : Position * Position) = 
+let private buildSymbolTuple (items, range : Range) =
     (SymbolTuple items, range) |> QsSymbol.New
 
 /// Given a continuation (parser), attempts to parse an unqualified QsSymbol 
@@ -59,15 +59,30 @@ let private buildSymbolTuple (items, range : Position * Position) =
 let private expectedIdentifierDeclaration continuation = 
     expected localIdentifier ErrorCode.InvalidIdentifierDeclaration ErrorCode.MissingIdentifierDeclaration invalidSymbol continuation 
 
+/// Uses multiSegmentSymbol to parse the name of a namespace, 
+/// concatenates all path segments and the symbol with a dot, and returns a the concatenated string as Some.
+/// Returns None if the path contains segments that are None (i.e. invalid).
+/// Generates a suitable diagnostic if the namespace name ends in an underscore. 
+let internal namespaceName = // internal for testing purposes
+    let asNamespaceName ((path, sym : string option), range : Range) =
+        let names = path @ [sym]
+        let namespaceStr = names |> List.choose id |> String.concat "."
+        if names |> List.contains None then (None, range) |> preturn
+        elif sym.Value.EndsWith "_" then buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern >>% (None, range)
+        else (Some namespaceStr, range) |> preturn
+    multiSegmentSymbol ErrorCode.InvalidPathSegment >>= asNamespaceName
+
 /// Given a continuation (parser), attempts to parse a qualified QsSymbol 
 /// using multiSegmentSymbol to generate suitable errors for invalid symbol and/or path names, 
 /// and returns the parsed symbol, or a QsSymbol representing an invalid symbol (parsing failure) if the parsing fails.
 /// On failure, either raises an MissingQualifiedSymbol if the given continuation succeeds at the current position, 
 /// or raises an InvalidQualifiedSymbol and advances until the given continuation succeeds otherwise. 
 /// Does not apply the given continuation. 
-let private expectedNamespaceName continuation = 
-    let path = multiSegmentSymbol ErrorCode.InvalidPathSegment |>> asSymbol
-    expected path ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
+let private expectedNamespaceName continuation =
+    let namespaceName = namespaceName |>> function 
+        | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
+        | Some name, range -> (name |> NonNullable<string>.New |> Symbol, range) |> QsSymbol.New
+    expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
 /// Parses the condition e.g. for if, elif and until clauses.
 /// Uses optTupleBrackets to raise the corresponding missing bracket errors if the condition is not within tuple brackets.
@@ -97,11 +112,14 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
 /// Raises a MissingInitializerExpression error or an InvalidInitializerError for missing or invalid initializers.
 /// Uses optTupleBrackets to raise the corresponding missing bracket errors if the entire assignment is not within tuple brackets.
 let private allocationScope = 
-    let combineRangeAndBuild (r1, (kind, r2)) = 
-        QsPositionInfo.WithCombinedRange (r1 |> QsPositionInfo.Range, r2) kind InvalidInitializer |> QsInitializer.New // *needs* to be invalid if the combined range is Null!
-    let qRegisterAlloc = 
-        qsQubit.parse .>>. (arrayBrackets (expectedExpr eof) 
-        |>> fun (ex, r) -> QubitRegisterAllocation ex, QsPositionInfo.Range r)
+    let combineRangeAndBuild (r1, (kind, r2)) =
+        // *needs* to be invalid if the combined range is Null!
+        match r2 with
+        | Value r2 -> { Initializer = kind; Range = Range.Span r1 r2 |> Value }
+        | Null -> { Initializer = InvalidInitializer; Range = Null }
+    let qRegisterAlloc =
+        qsQubit.parse .>>. (arrayBrackets (expectedExpr eof)
+                            |>> fun (ex, r) -> QubitRegisterAllocation ex, Value r)
         |>> combineRangeAndBuild
     let qAlloc = 
         qsQubit.parse .>>. unitValue
@@ -109,7 +127,7 @@ let private allocationScope =
         |>> combineRangeAndBuild
 
     let validInitializer = attempt qAlloc <|> attempt qRegisterAlloc
-    let buildInitializerTuple (items, range : Position * Position) = (QubitTupleAllocation items, range) |> QsInitializer.New
+    let buildInitializerTuple (items, range : Range) = (QubitTupleAllocation items, range) |> QsInitializer.New
     let initializerTuple = buildTupleItem validInitializer buildInitializerTuple ErrorCode.InvalidInitializerExpression ErrorCode.MissingInitializerExpression invalidInitializer isTupleContinuation
     optTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) |>> fst
 
@@ -140,7 +158,7 @@ let private signature =
             noTypeParams >>% ImmutableArray.Empty <|> (angleBrackets typeParams |>> fst)
         let invalidList = 
             let buildErr = QsCompilerDiagnostic.NewError ErrorCode.InvalidTypeParameterList
-            getPosition .>> angleBrackets (advanceTo eof) .>>. getPosition |>> buildErr >>= pushDiagnostic >>% ImmutableArray.Empty 
+            getRange (angleBrackets (advanceTo eof)) |>> snd |>> buildErr >>= pushDiagnostic >>% ImmutableArray.Empty
         attempt validList <|> invalidList
 
     let argumentTuple = // not unified with the argument tuple for user defined types, since the error handling needs to be different
@@ -175,7 +193,7 @@ let private functorGenDirective = // parsing all possible directives for all fun
         buildError generatorName ErrorCode.UnknownFunctorGenerator >>% unknownGenerator
     let userDefinedImplementation = functorGenArgs |>> fun arg -> (UserDefinedImplementation arg, arg.Range) |> QsSpecializationGenerator.New  
 
-    let buildGenerator kind (range: Position * Position) = (kind, range) |> QsSpecializationGenerator.New
+    let buildGenerator kind (range: Range) = (kind, range) |> QsSpecializationGenerator.New
     choice[
         attempt intrinsicFunctorGenDirective.parse  |>> buildGenerator Intrinsic
         attempt autoFunctorGenDirective.parse       |>> buildGenerator AutoGenerated
@@ -357,9 +375,9 @@ let private setStatement =
             | Value range -> range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidIdentifierExprInUpdate, []) |> preturn >>= pushDiagnostic
             | Null -> fail "expression without range info"
         let errorOnArrayItem = 
-            let getRange (pos, arrs : _ list) = pos, arrs.Last() |> snd |> snd
+            let toRange (start, arrs : (_ * Range) list) = Range.Create start ((List.last arrs |> snd).End)
             let arrItem = getPosition .>> localIdentifier .>>. many1 (arrayBrackets (expectedExpr eof)) .>> followedBy continuation
-            buildError (arrItem |>> getRange) ErrorCode.UpdateOfArrayItemExpr >>% unknownExpr
+            buildError (arrItem |>> toRange) ErrorCode.UpdateOfArrayItemExpr >>% unknownExpr
         let nonTupleExpr = notFollowedBy continuation >>. expr >>= exprError >>% unknownExpr
         choice [attempt validItem; attempt errorOnArrayItem; attempt nonTupleExpr]
 
@@ -491,7 +509,7 @@ let private expressionStatement =
     let invalid = ExpressionStatement unknownExpr
     let valid = 
         let errOnNonCallLike (pos, ex : QsExpression) =
-            let errRange = match ex.Range with | Value range -> range | Null -> (QsPositionInfo.New pos, QsPositionInfo.New pos)
+            let errRange = match ex.Range with | Value range -> range | Null -> Range.Create pos pos
             errRange |> QsCompilerDiagnostic.Error (ErrorCode.NonCallExprAsStatement, []) |> preturn >>= pushDiagnostic
         let anyExpr = getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
         attempt callLikeExpr |>> ExpressionStatement <|> anyExpr

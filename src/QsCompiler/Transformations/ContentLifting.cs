@@ -4,12 +4,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
+using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
@@ -25,9 +27,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         internal class CallableDetails
         {
             internal readonly QsCallable Callable;
-            internal readonly QsSpecialization Adjoint;
-            internal readonly QsSpecialization Controlled;
-            internal readonly QsSpecialization ControlledAdjoint;
+            internal readonly QsSpecialization? Adjoint;
+            internal readonly QsSpecialization? Controlled;
+            internal readonly QsSpecialization? ControlledAdjoint;
             internal readonly QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
 
             internal CallableDetails(QsCallable callable)
@@ -45,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
                             callable.FullName,
                             ((QsLocalSymbol.ValidName)param).Item,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))))
+                            QsNullable<Range>.Null))))
                     .ToImmutableArray())
                 : QsNullable<ImmutableArray<ResolvedType>>.Null;
             }
@@ -60,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
 
-            internal CallableDetails CurrentCallable = null;
+            internal CallableDetails? CurrentCallable = null;
 
             protected internal bool InBody = false;
             protected internal bool InAdjoint = false;
@@ -68,17 +70,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             protected internal bool InControlledAdjoint = false;
             protected internal bool InWithinBlock = false;
 
-            protected internal List<QsCallable> GeneratedOperations = null;
+            protected internal List<QsCallable>? GeneratedOperations = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
-                QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
+                CallableDetails callable,
+                QsQualifiedName callableName,
+                ResolvedType paramsType,
+                SpecializationImplementation bodyImplementation)
             {
                 QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
                     new QsSpecialization(
                         kind,
                         callableName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
-                        this.CurrentCallable.Callable.SourceFile,
+                        callable.Callable.SourceFile,
                         QsNullable<QsLocation>.Null,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         signature,
@@ -86,9 +91,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
-                var adj = this.CurrentCallable.Adjoint;
-                var ctl = this.CurrentCallable.Controlled;
-                var ctlAdj = this.CurrentCallable.ControlledAdjoint;
+                var adj = callable.Adjoint;
+                var ctl = callable.Controlled;
+                var ctlAdj = callable.ControlledAdjoint;
 
                 bool addAdjoint = false;
                 bool addControlled = false;
@@ -112,8 +117,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     }
                     if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
                     {
-                        addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && ctl.Implementation.IsGenerated);
-                        addControlled = addControlled || (ctlAdjGen.Item.IsDistribute && adj.Implementation.IsGenerated);
+                        addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && (ctl?.Implementation.IsGenerated ?? true));
+                        addControlled = addControlled || (ctlAdjGen.Item.IsDistribute && (adj?.Implementation.IsGenerated ?? true));
                         isSelfAdjoint = isSelfAdjoint || ctlAdjGen.Item.IsSelfInverse;
                     }
                 }
@@ -134,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     props.Add(OpProperty.Controllable);
                 }
                 var newSig = new ResolvedSignature(
-                    this.CurrentCallable.Callable.Signature.TypeParameters,
+                    callable.Callable.Signature.TypeParameters,
                     paramsType,
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false)));
@@ -176,9 +181,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
-            private (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
+            private (QsCallable, ResolvedType) GenerateOperation(CallableDetails callable, QsScope contents)
             {
-                var newName = UniqueVariableNames.PrependGuid(this.CurrentCallable.Callable.FullName);
+                var newName = UniqueVariableNames.PrependGuid(callable.Callable.FullName);
 
                 var knownVariables = contents.KnownSymbols.Variables;
 
@@ -203,14 +208,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         .ToImmutableArray()));
                 }
 
-                var (signature, specializations) = this.MakeSpecializations(newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
+                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
 
                 var generatedCallable = new QsCallable(
                     QsCallableKind.Operation,
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
                     new Modifiers(AccessModifier.Internal),
-                    this.CurrentCallable.Callable.SourceFile,
+                    callable.Callable.SourceFile,
                     QsNullable<QsLocation>.Null,
                     signature,
                     parameters,
@@ -219,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsComments.Empty);
 
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
-                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, knownVariables, this.CurrentCallable.Callable.FullName, newName);
+                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, knownVariables, callable.Callable.FullName, newName);
 
                 return (generatedCallable, signature.ArgumentType);
             }
@@ -234,16 +239,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             ///
             /// The given body should be validated with the SharedState.IsValidScope before using this function.
             /// </summary>
-            public bool LiftBody(QsScope body, out QsCallable callable, out QsStatement callStatement)
+            public bool LiftBody(
+                QsScope body,
+                [NotNullWhen(true)] out QsCallable? callable,
+                [NotNullWhen(true)] out QsStatement? callStatement)
             {
-                if (!this.IsValidScope)
+                if (!this.IsValidScope || this.CurrentCallable is null)
                 {
                     callable = null;
                     callStatement = null;
                     return false;
                 }
 
-                var (generatedOp, originalArgumentType) = this.GenerateOperation(body);
+                var (generatedOp, originalArgumentType) = this.GenerateOperation(this.CurrentCallable, body);
                 var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                     Tuple.Create(
                         originalArgumentType,
@@ -263,10 +271,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .ToImmutableArray(),
                     generatedOpType,
                     new InferredExpressionInformation(false, false),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
 
                 var knownSymbols = body.KnownSymbols.Variables;
-                TypedExpression arguments = null;
+                TypedExpression? arguments = null;
                 if (knownSymbols.Any())
                 {
                     var argumentArray = knownSymbols
@@ -277,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             TypeArgsResolution.Empty,
                             var.Type,
                             var.InferredInformation,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))
+                            QsNullable<Range>.Null))
                         .ToImmutableArray();
 
                     arguments = new TypedExpression(
@@ -285,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
                         new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                 }
                 else
                 {
@@ -294,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.UnitType),
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                        QsNullable<Range>.Null);
                 }
 
                 var call = new TypedExpression(
@@ -306,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .ToImmutableArray(),
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    QsNullable<Range>.Null);
 
                 // set output parameters
                 callable = generatedOp;

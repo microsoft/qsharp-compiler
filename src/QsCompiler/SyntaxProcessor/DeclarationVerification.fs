@@ -216,9 +216,6 @@ let public ValidDeclarations (this : ImmutableArray<LocalVariableDeclaration<QsL
 /// applies the given function to its position offset and builds a new declaration with the position offset set to the returned value. 
 /// Returns the built declarations as LocalDeclarations object. 
 [<Extension>]
-let public WithAbsolutePosition (this : LocalDeclarations) (updatePosition : Func<QsNullable<int*int>, int*int>) = 
+let public WithAbsolutePosition (this : LocalDeclarations) (updatePosition : Func<QsNullable<Position>, Position>) =
     LocalDeclarations.New(
         this.Variables.Select(Func<_,_>(fun (d : LocalVariableDeclaration<_>) -> {d with Position = updatePosition.Invoke d.Position |> Value})).ToImmutableArray())
-
-
-

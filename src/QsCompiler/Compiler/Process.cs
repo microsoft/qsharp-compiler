@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns true if the process completed within the specified time without throwing an exception, and false otherwise.
         /// Any thrown exception is returned as out parameter.
         /// </summary>
-        public static bool Run(Process process, StringBuilder output, StringBuilder error, out Exception ex, int timeout)
+        public static bool Run(Process process, StringBuilder output, StringBuilder error, out Exception? ex, int timeout)
         {
             using (var outputWaitHandle = new AutoResetEvent(false))
             using (var errorWaitHandle = new AutoResetEvent(false))
@@ -86,8 +86,8 @@ namespace Microsoft.Quantum.QsCompiler
             out StringBuilder outstream,
             out StringBuilder errstream,
             out int exitCode,
-            out Exception ex,
-            IDictionary<string, string> envVariables = null,
+            out Exception? ex,
+            IDictionary<string, string>? envVariables = null,
             int timeout = 10000)
         {
             var process = new Process();

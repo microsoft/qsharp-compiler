@@ -43,7 +43,7 @@ function Build-VSCode() {
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
-            npm install
+            npm ci
             npm run compile
     
             if  ($LastExitCode -ne 0) {
@@ -120,6 +120,11 @@ if ($Env:ENABLE_VSIX -ne "false") {
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
 }
+
+# NB: In other repos, we check the manifest here. That can cause problems
+#     in our case, however, as some assemblies are only produced during
+#     packing and publishing. Thus, as an exception, we verify the manifest
+#     only in pack.ps1.
 
 if (-not $all_ok) {
     throw "Building failed. Check the logs."
