@@ -21,6 +21,8 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    using QsTypeKind = QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>;
+
     internal static class SuggestedEdits
     {
         /// <summary>
@@ -76,26 +78,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
-        private static IEnumerable<NonNullable<string>> TypesDifferingByCapitalization
-                (CompilationUnit compilation, string typeName) =>
+        /// <summary>
+        /// Returns all types that match an alternative capitalization of this type.
+        /// </summary>
+        private static IEnumerable<string> TypesWithDifferentCapitalization(CompilationUnit compilation, string type) =>
             compilation.GetTypes().Keys
-                .Select(tn => tn.Name.Value)
-                .Where(tn => !tn.Equals(typeName, StringComparison.Ordinal) && tn.Equals(typeName, StringComparison.OrdinalIgnoreCase))
-                .Select(tn => NonNullable<string>.New(tn));
+                .Select(t => t.Name.Value)
+                .Where(t => t != type && t.Equals(type, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
         /// Returns all types that match an alternative capitalization of this type.
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForIdAtPosition(
+        private static IEnumerable<string> CapitalizationSuggestionsForIdAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
-            var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
-            var typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
-
-            if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
-            return TypesDifferingByCapitalization(compilation, typeName);
+            var variables = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedVariables;
+            var type = variables?.SingleOrDefault()?.Symbol.AsDeclarationName(null);
+            return type is null ? Enumerable.Empty<string>() : TypesWithDifferentCapitalization(compilation, type);
         }
 
         /// <summary>
@@ -103,16 +104,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForTypeAtPosition(
+        private static IEnumerable<string> CapitalizationSuggestionsForTypeAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
-            var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
-            var typeName = types != null && types.Any() &&
-                types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
-                ? udt.Item.Symbol.AsDeclarationName(null) : null;
-
-            if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
-            return TypesDifferingByCapitalization(compilation, typeName);
+            var types = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedTypes;
+            var type = types?.SingleOrDefault()?.Type is QsTypeKind.UserDefinedType udt
+                ? udt.Item.Symbol.AsDeclarationName(null)
+                : null;
+            return type is null ? Enumerable.Empty<string>() : TypesWithDifferentCapitalization(compilation, type);
         }
 
         /// <summary>
@@ -236,53 +235,45 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a sequence of namespace suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
         /// given the file for which those diagnostics were generated and the corresponding compilation.
         /// The given line number is used to determine the containing namespace.
-        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> NamespaceSuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, int lineNr, IReadOnlyCollection<Diagnostic>? diagnostics)
+        private static IEnumerable<(string, WorkspaceEdit)> NamespaceSuggestionsForUnknownIdentifiers(
+            this FileContentManager file,
+            CompilationUnit compilation,
+            int lineNr,
+            IReadOnlyCollection<Diagnostic> diagnostics)
         {
-            if (file == null || diagnostics == null)
-            {
-                return Enumerable.Empty<(string, WorkspaceEdit)>();
-            }
             var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
-            if (!unknownCallables.Any() && !unknownTypes.Any())
-            {
-                return Enumerable.Empty<(string, WorkspaceEdit)>();
-            }
-
-            var suggestionsForIds = unknownCallables.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos.ToQSharp(), compilation, out var _));
-            var suggestionsForTypes = unknownTypes.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos.ToQSharp(), compilation, out var _));
-            return file.OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
+            var suggestionsForIds = unknownCallables.SelectMany(diagnostic =>
+                file.NamespaceSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation, out _));
+            var suggestionsForTypes = unknownTypes.SelectMany(diagnostic =>
+                file.NamespaceSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation, out _));
+            return file
+                .OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
                 .Select(edit => (edit.NewText.Trim().Trim(';'), file.GetWorkspaceEdit(edit)));
         }
 
         /// <summary>
         /// Returns a sequence of replacement type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
         /// given the file for which those diagnostics were generated and the corresponding compilation.
-        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic>? diagnostics)
+        private static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers(
+            this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
         {
-            if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
-            var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
-            if (!unknownCallables.Any() && !unknownTypes.Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
-
-            (string, WorkspaceEdit) SuggestedIdEdit(NonNullable<string> suggestedId, Lsp.Range range)
+            (string, WorkspaceEdit) SuggestedIdEdit(string suggestedId, Lsp.Range range)
             {
-                var edit = new TextEdit { Range = range, NewText = $"{suggestedId.Value}" };
-                return ($"Replace with \"{suggestedId.Value}\".", file.GetWorkspaceEdit(edit));
+                var edit = new TextEdit { Range = range, NewText = suggestedId };
+                return ($"Replace with \"{suggestedId}\".", file.GetWorkspaceEdit(edit));
             }
 
-            var suggestionsForIds = unknownCallables
-                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start.ToQSharp(), compilation).Select(id => SuggestedIdEdit(id, d.Range)));
-            var suggestionsForTypes = unknownTypes
-                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start.ToQSharp(), compilation).Select(id => SuggestedIdEdit(id, d.Range)));
+            var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
+            var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var suggestionsForIds = unknownCallables.SelectMany(diagnostic => file
+                .CapitalizationSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
+                .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
+            var suggestionsForTypes = unknownTypes.SelectMany(diagnostic => file
+                .CapitalizationSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
+                .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
 
@@ -297,8 +288,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             CompilationUnit compilation,
             int lineNr,
             IReadOnlyCollection<Diagnostic>? diagnostics) =>
-            NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics)
-                .Concat(CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
+            diagnostics is null
+                ? Enumerable.Empty<(string, WorkspaceEdit)>()
+                : NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics)
+                    .Concat(CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
 
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
