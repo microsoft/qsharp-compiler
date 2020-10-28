@@ -76,17 +76,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
-        private static IEnumerable<NonNullable<string>> TypesThatDifferByCapitilization
-            (CompilationUnit compilation, string typeName)
-        {
-            return compilation.GetTypes().Keys
+        private static IEnumerable<NonNullable<string>> TypesDifferingByCapitalization
+                (CompilationUnit compilation, string typeName) =>
+            compilation.GetTypes().Keys
                 .Select(tn => tn.Name.Value)
                 .Where(tn => !tn.Equals(typeName, StringComparison.Ordinal) && tn.Equals(typeName, StringComparison.OrdinalIgnoreCase))
                 .Select(tn => NonNullable<string>.New(tn));
-        }
 
         /// <summary>
-        /// Returns all Types that match an alternative capitilization of this type.
+        /// Returns all types that match an alternative capitalization of this type.
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
@@ -263,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of replacement Type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
+        /// Returns a sequence of replacement type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
         /// given the file for which those diagnostics were generated and the corresponding compilation.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
