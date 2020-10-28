@@ -437,6 +437,33 @@ let ``Call tests`` () =
             |> toExpr
             |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
             []
+        "f(1)(2)::X",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(f(1)(2))::X",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr,
+            []
+        "(f(1)(2))::X(4)",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr
+            |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
+            []
         "(x(_,1))(2)",
             true,
             (toTuple [ CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
