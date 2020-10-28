@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> NamespaceSuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, CompilationUnit compilation, int lineNr, IReadOnlyCollection<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -266,7 +266,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
@@ -293,16 +293,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic>? diagnostics)
-        {
-            var suggestions = NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics);
-            if (!suggestions.Any())
-            {
-                suggestions = CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics);
-            }
-
-            return suggestions;
-        }
+            this FileContentManager file,
+            CompilationUnit compilation,
+            int lineNr,
+            IReadOnlyCollection<Diagnostic>? diagnostics) =>
+            NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics)
+                .Concat(CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
 
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
