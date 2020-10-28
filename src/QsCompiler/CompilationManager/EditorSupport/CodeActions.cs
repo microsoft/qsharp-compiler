@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
 
             if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
-            return TypesThatDifferByCapitilization(compilation, typeName);
+            return TypesDifferingByCapitalization(compilation, typeName);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
 
             if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
-            return TypesThatDifferByCapitilization(compilation, typeName);
+            return TypesDifferingByCapitalization(compilation, typeName);
         }
 
         /// <summary>
