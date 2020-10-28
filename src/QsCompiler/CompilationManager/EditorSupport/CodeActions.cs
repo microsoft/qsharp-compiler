@@ -89,10 +89,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForIdAtPosition(
-            this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
+            this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
-            typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
+            var typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
 
             if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
             return TypesDifferingByCapitalization(compilation, typeName);
@@ -104,10 +104,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForTypeAtPosition(
-            this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
+            this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
-            typeName = types != null && types.Any() &&
+            var typeName = types != null && types.Any() &&
                 types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
 
@@ -280,9 +280,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var suggestionsForIds = unknownCallables
-                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start.ToQSharp(), compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start.ToQSharp(), compilation).Select(id => SuggestedIdEdit(id, d.Range)));
             var suggestionsForTypes = unknownTypes
-                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start.ToQSharp(), compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start.ToQSharp(), compilation).Select(id => SuggestedIdEdit(id, d.Range)));
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
 
