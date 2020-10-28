@@ -24,6 +24,7 @@ function Publish-One {
     dotnet publish (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
+        --no-build `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
@@ -64,6 +65,7 @@ function Pack-Dotnet() {
         -o $Env:NUGET_OUTDIR `
         -c $Env:BUILD_CONFIGURATION `
         -v detailed `
+        --no-build `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:PackageVersion=$Env:NUGET_VERSION `
