@@ -87,11 +87,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns all Types that match an alternative capitilization of this type.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForIdAtPosition
-            (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
+        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForIdAtPosition(
+            this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
             typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
@@ -102,11 +102,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns all Types in which a type with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForTypeAtPosition
-            (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
+        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForTypeAtPosition(
+            this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
             var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
             typeName = types != null && types.Any() &&
@@ -267,35 +267,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// given the file for which those diagnostics were generated and the corresponding compilation.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers
-            (this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
+        internal static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers(
+            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic>? diagnostics)
         {
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
             if (!unknownCallables.Any() && !unknownTypes.Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
 
-            (string, WorkspaceEdit) SuggestedIdEdit(NonNullable<string> suggestedId, LSP.Range range)
+            (string, WorkspaceEdit) SuggestedIdEdit(NonNullable<string> suggestedId, Lsp.Range range)
             {
-                var edit = new TextEdit { Range = range.Copy(), NewText = $"{suggestedId.Value}" };
+                var edit = new TextEdit { Range = range, NewText = $"{suggestedId.Value}" };
                 return ($"Replace with \"{suggestedId.Value}\".", file.GetWorkspaceEdit(edit));
             }
 
             var suggestionsForIds = unknownCallables
-                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start, compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start.ToQSharp(), compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
             var suggestionsForTypes = unknownTypes
-                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start, compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start.ToQSharp(), compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed, 
-        /// given the file for which those diagnostics were generated and the corresponding compilation. 
-        /// The given line number is used to determine the containing namespace. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed,
+        /// given the file for which those diagnostics were generated and the corresponding compilation.
+        /// The given line number is used to determine the containing namespace.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers
-            (this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic> diagnostics)
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers(
+            this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic>? diagnostics)
         {
             var suggestions = NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics);
             if (!suggestions.Any())
