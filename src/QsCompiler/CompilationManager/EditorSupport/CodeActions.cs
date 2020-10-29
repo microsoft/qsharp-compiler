@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         ///
         /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition(
+        private static IEnumerable<NonNullable<string>> IdNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? idName)
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         ///
         /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition(
+        private static IEnumerable<NonNullable<string>> TypeNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
             var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns names that match an alternative casing of the identifier at the given position in the file, or the
         /// empty enumerable if there is no valid identifier at the given position.
         /// </summary>
-        private static IEnumerable<string> CaseSuggestionsForIdAtPosition(
+        private static IEnumerable<string> IdCaseSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             IEnumerable<string> AlternateNames(string name) =>
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns names that match an alternative casing of the type name at the given position in the file, or the
         /// empty enumerable if there is no valid type name at the given position.
         /// </summary>
-        private static IEnumerable<string> CaseSuggestionsForTypeAtPosition(
+        private static IEnumerable<string> TypeCaseSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             IEnumerable<string> AlternateNames(string name) =>
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
         /// Returns an empty enumerable if suitable edits could not be determined.
         /// </summary>
-        private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, params NonNullable<string>[] namespaces)
+        private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<NonNullable<string>> namespaces)
         {
             // determine the first fragment in the containing namespace
             var nsElements = file?.NamespaceDeclarationTokens()
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForAmbiguousIdentifiers(
-            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
         {
             if (file == null || diagnostics == null)
             {
@@ -219,44 +219,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var suggestedIdQualifications = ambiguousCallables
                 .Select(d => d.Range.Start.ToQSharp())
-                .SelectMany(pos =>
-                    file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
-                        .SelectNotNull(ns => SuggestedNameQualification(ns, id, pos)));
+                .SelectMany(pos => file
+                    .IdNamespaceSuggestions(pos, compilation, out var id)
+                    .SelectNotNull(ns => SuggestedNameQualification(ns, id, pos)));
             var suggestedTypeQualifications = ambiguousTypes
                 .Select(d => d.Range.Start.ToQSharp())
-                .SelectMany(pos =>
-                    file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var id)
-                        .SelectNotNull(ns => SuggestedNameQualification(ns, id, pos)));
+                .SelectMany(pos => file
+                    .TypeNamespaceSuggestions(pos, compilation, out var id)
+                    .SelectNotNull(ns => SuggestedNameQualification(ns, id, pos)));
             return suggestedIdQualifications.Concat(suggestedTypeQualifications);
         }
 
         /// <summary>
-        /// Returns a sequence of namespace suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
-        /// given the file for which those diagnostics were generated and the corresponding compilation.
-        /// The given line number is used to determine the containing namespace.
+        /// Returns workspace edits for opening namespaces of unknown identifiers.
         /// </summary>
-        private static IEnumerable<(string, WorkspaceEdit)> NamespaceSuggestionsForUnknownIdentifiers(
+        private static IEnumerable<(string, WorkspaceEdit)> UnknownIdNamespaceSuggestions(
             this FileContentManager file,
             CompilationUnit compilation,
             int lineNr,
             IReadOnlyCollection<Diagnostic> diagnostics)
         {
-            var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
-            var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
-            var suggestionsForIds = unknownCallables.SelectMany(diagnostic =>
-                file.NamespaceSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation, out _));
-            var suggestionsForTypes = unknownTypes.SelectMany(diagnostic =>
-                file.NamespaceSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation, out _));
+            var idSuggestions = diagnostics
+                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier))
+                .SelectMany(d => file.IdNamespaceSuggestions(d.Range.Start.ToQSharp(), compilation, out _));
+            var typeSuggestions = diagnostics
+                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType))
+                .SelectMany(d => file.TypeNamespaceSuggestions(d.Range.Start.ToQSharp(), compilation, out _));
             return file
-                .OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
+                .OpenDirectiveSuggestions(lineNr, idSuggestions.Concat(typeSuggestions))
                 .Select(edit => (edit.NewText.Trim().Trim(';'), file.GetWorkspaceEdit(edit)));
         }
 
         /// <summary>
-        /// Returns a sequence of replacement type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
-        /// given the file for which those diagnostics were generated and the corresponding compilation.
+        /// Returns workspace edits for correcting the casing or capitalization of unknown identifiers.
         /// </summary>
-        private static IEnumerable<(string, WorkspaceEdit)> CaseSuggestionsForUnknownIdentifiers(
+        private static IEnumerable<(string, WorkspaceEdit)> UnknownIdCaseSuggestions(
             this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
         {
             (string, WorkspaceEdit) SuggestedIdEdit(string suggestedId, Lsp.Range range)
@@ -265,14 +262,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ($"Replace with \"{suggestedId}\".", file.GetWorkspaceEdit(edit));
             }
 
-            var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
-            var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
-            var suggestionsForIds = unknownCallables.SelectMany(diagnostic => file
-                .CaseSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
-                .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
-            var suggestionsForTypes = unknownTypes.SelectMany(diagnostic => file
-                .CaseSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
-                .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
+            var suggestionsForIds = diagnostics
+                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier))
+                .SelectMany(diagnostic => file
+                    .IdCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
+                    .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
+            var suggestionsForTypes = diagnostics
+                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType))
+                .SelectMany(diagnostic => file
+                    .TypeCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
+                    .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
 
@@ -282,15 +281,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The given line number is used to determine the containing namespace.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers(
+        internal static IEnumerable<(string, WorkspaceEdit)> UnknownIdSuggestions(
             this FileContentManager file,
             CompilationUnit compilation,
             int lineNr,
-            IReadOnlyCollection<Diagnostic>? diagnostics) =>
-            diagnostics is null
-                ? Enumerable.Empty<(string, WorkspaceEdit)>()
-                : NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics)
-                    .Concat(CaseSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
+            IReadOnlyCollection<Diagnostic> diagnostics) =>
+            UnknownIdNamespaceSuggestions(file, compilation, lineNr, diagnostics)
+                .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
@@ -298,12 +295,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax(
-            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
-            if (file == null || diagnostics == null)
-            {
-                return Enumerable.Empty<(string, WorkspaceEdit)>();
-            }
             var deprecatedUnitTypes = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType));
             var deprecatedNOToperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator));
             var deprecatedANDoperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator));
@@ -378,12 +371,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUpdateAndReassignStatements(
-            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
-            if (file == null || diagnostics == null)
-            {
-                return Enumerable.Empty<(string, WorkspaceEdit)>();
-            }
             var updateOfArrayItemExprs = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UpdateOfArrayItemExpr));
 
             (string, WorkspaceEdit?) SuggestedCopyAndUpdateExpr(CodeFragment fragment)
@@ -495,7 +484,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var fragments = file.FragmentsOverlappingWithRange(range);
             var edits = fragments.SelectMany(IndexRangeEdits);
-            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.FullName.Namespace);
+            var suggestedOpenDir =
+                file.OpenDirectiveSuggestions(range.Start.Line, new[] { BuiltIn.IndexRange.FullName.Namespace });
             return edits.Any()
                 ? new[] { ("Use IndexRange to iterate over indices.", file.GetWorkspaceEdit(suggestedOpenDir.Concat(edits).ToArray())) }
                 : Enumerable.Empty<(string, WorkspaceEdit)>();
@@ -507,7 +497,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnreachableCode(
-            this FileContentManager file, IEnumerable<Diagnostic>? diagnostics)
+            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
             if (file == null || diagnostics == null)
             {
