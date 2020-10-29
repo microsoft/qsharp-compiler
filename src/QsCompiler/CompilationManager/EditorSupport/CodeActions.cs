@@ -79,12 +79,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all types that match an alternative capitalization of this type.
+        /// Returns type names that have an alternative casing of the given type name.
         /// </summary>
-        private static IEnumerable<string> TypesWithDifferentCapitalization(CompilationUnit compilation, string type) =>
-            compilation.GlobalSymbols.AccessibleTypes()
-                .Select(t => t.QualifiedName.Name.Value)
-                .Where(t => t != type && t.Equals(type, StringComparison.OrdinalIgnoreCase));
+        private static IEnumerable<string> AlternateCaseTypeNames(CompilationUnit compilation, string name) =>
+            from type in compilation.GlobalSymbols.AccessibleTypes()
+            let otherName = type.QualifiedName.Name.Value
+            where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
+            select otherName;
+
+        /// <summary>
+        /// Returns callable names that have an alternative casing of the given callable name.
+        /// </summary>
+        private static IEnumerable<string> AlternateCaseCallableNames(CompilationUnit compilation, string name) =>
+            from callable in compilation.GlobalSymbols.AccessibleCallables()
+            let otherName = callable.QualifiedName.Name.Value
+            where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
+            select otherName;
 
         /// <summary>
         /// Returns all types that match an alternative capitalization of this type.
@@ -96,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             var variables = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedVariables;
             var type = variables?.SingleOrDefault()?.Symbol.AsDeclarationName(null);
-            return type is null ? Enumerable.Empty<string>() : TypesWithDifferentCapitalization(compilation, type);
+            return type is null ? Enumerable.Empty<string>() : AlternateCaseCallableNames(compilation, type);
         }
 
         /// <summary>
@@ -111,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var type = types?.SingleOrDefault()?.Type is QsTypeKind.UserDefinedType udt
                 ? udt.Item.Symbol.AsDeclarationName(null)
                 : null;
-            return type is null ? Enumerable.Empty<string>() : TypesWithDifferentCapitalization(compilation, type);
+            return type is null ? Enumerable.Empty<string>() : AlternateCaseTypeNames(compilation, type);
         }
 
         /// <summary>
