@@ -262,16 +262,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ($"Replace with \"{suggestedId}\".", file.GetWorkspaceEdit(edit));
             }
 
-            var suggestionsForIds = diagnostics
-                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier))
-                .SelectMany(diagnostic => file
-                    .IdCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
-                    .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
-            var suggestionsForTypes = diagnostics
-                .Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType))
-                .SelectMany(diagnostic => file
-                    .TypeCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
-                    .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
+            var suggestionsForIds =
+                from diagnostic in diagnostics
+                where DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier)(diagnostic)
+                from id in file.IdCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
+                select SuggestedIdEdit(id, diagnostic.Range);
+            var suggestionsForTypes =
+                from diagnostic in diagnostics
+                where DiagnosticTools.ErrorType(ErrorCode.UnknownType)(diagnostic)
+                from type in file.TypeCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
+                select SuggestedIdEdit(type, diagnostic.Range);
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
 
