@@ -79,24 +79,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns type names that have an alternative casing of the given type name.
-        /// </summary>
-        private static IEnumerable<string> AlternateCaseTypeNames(CompilationUnit compilation, string name) =>
-            from type in compilation.GlobalSymbols.AccessibleTypes()
-            let otherName = type.QualifiedName.Name.Value
-            where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
-            select otherName;
-
-        /// <summary>
-        /// Returns callable names that have an alternative casing of the given callable name.
-        /// </summary>
-        private static IEnumerable<string> AlternateCaseCallableNames(CompilationUnit compilation, string name) =>
-            from callable in compilation.GlobalSymbols.AccessibleCallables()
-            let otherName = callable.QualifiedName.Name.Value
-            where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
-            select otherName;
-
-        /// <summary>
         /// Returns all types that match an alternative capitalization of this type.
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
@@ -104,9 +86,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<string> CapitalizationSuggestionsForIdAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
-            var variables = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedVariables;
-            var type = variables?.SingleOrDefault()?.Symbol.AsDeclarationName(null);
-            return type is null ? Enumerable.Empty<string>() : AlternateCaseCallableNames(compilation, type);
+            IEnumerable<string> AlternateNames(string name) =>
+                from callable in compilation.GlobalSymbols.AccessibleCallables()
+                let otherName = callable.QualifiedName.Name.Value
+                where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
+                select otherName;
+
+            var symbolKind = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedVariables?.SingleOrDefault()?.Symbol;
+            return symbolKind.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }
 
         /// <summary>
@@ -117,11 +104,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<string> CapitalizationSuggestionsForTypeAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
-            var types = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedTypes;
-            var type = types?.SingleOrDefault()?.Type is QsTypeKind.UserDefinedType udt
-                ? udt.Item.Symbol.AsDeclarationName(null)
-                : null;
-            return type is null ? Enumerable.Empty<string>() : AlternateCaseTypeNames(compilation, type);
+            IEnumerable<string> AlternateNames(string name) =>
+                from type in compilation.GlobalSymbols.AccessibleTypes()
+                let otherName = type.QualifiedName.Name.Value
+                where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
+                select otherName;
+
+            var typeKind = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedTypes?.SingleOrDefault()?.Type;
+            var udt = typeKind as QsTypeKind.UserDefinedType;
+            return udt?.Item.Symbol.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }
 
         /// <summary>
