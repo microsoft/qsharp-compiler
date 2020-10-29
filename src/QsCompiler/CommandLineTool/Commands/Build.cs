@@ -234,6 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             if (options.PerfFolder != null)
             {
+                CompilationTracker.ClearData();
                 PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
