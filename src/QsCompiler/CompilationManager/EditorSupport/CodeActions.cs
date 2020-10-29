@@ -79,11 +79,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all types that match an alternative capitalization of this type.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
-        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// Returns names that match an alternative casing of the identifier at the given position in the file, or the
+        /// empty enumerable if there is no valid identifier at the given position.
         /// </summary>
-        private static IEnumerable<string> CapitalizationSuggestionsForIdAtPosition(
+        private static IEnumerable<string> CaseSuggestionsForIdAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             IEnumerable<string> AlternateNames(string name) =>
@@ -97,11 +96,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all Types in which a type with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location.
-        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// Returns names that match an alternative casing of the type name at the given position in the file, or the
+        /// empty enumerable if there is no valid type name at the given position.
         /// </summary>
-        private static IEnumerable<string> CapitalizationSuggestionsForTypeAtPosition(
+        private static IEnumerable<string> CaseSuggestionsForTypeAtPosition(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
             IEnumerable<string> AlternateNames(string name) =>
@@ -258,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a sequence of replacement type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed,
         /// given the file for which those diagnostics were generated and the corresponding compilation.
         /// </summary>
-        private static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers(
+        private static IEnumerable<(string, WorkspaceEdit)> CaseSuggestionsForUnknownIdentifiers(
             this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
         {
             (string, WorkspaceEdit) SuggestedIdEdit(string suggestedId, Lsp.Range range)
@@ -270,10 +268,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
             var suggestionsForIds = unknownCallables.SelectMany(diagnostic => file
-                .CapitalizationSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
+                .CaseSuggestionsForIdAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
                 .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
             var suggestionsForTypes = unknownTypes.SelectMany(diagnostic => file
-                .CapitalizationSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
+                .CaseSuggestionsForTypeAtPosition(diagnostic.Range.Start.ToQSharp(), compilation)
                 .Select(id => SuggestedIdEdit(id, diagnostic.Range)));
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
@@ -292,7 +290,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             diagnostics is null
                 ? Enumerable.Empty<(string, WorkspaceEdit)>()
                 : NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics)
-                    .Concat(CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
+                    .Concat(CaseSuggestionsForUnknownIdentifiers(file, compilation, diagnostics));
 
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
