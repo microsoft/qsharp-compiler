@@ -82,8 +82,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns all types that match an alternative capitalization of this type.
         /// </summary>
         private static IEnumerable<string> TypesWithDifferentCapitalization(CompilationUnit compilation, string type) =>
-            compilation.GetTypes().Keys
-                .Select(t => t.Name.Value)
+            compilation.GlobalSymbols.AccessibleTypes()
+                .Select(t => t.QualifiedName.Name.Value)
                 .Where(t => t != type && t.Equals(type, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
