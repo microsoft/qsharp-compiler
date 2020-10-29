@@ -1183,6 +1183,15 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         DeprecatedAttributeInDeprecatedCallable();
     }
 
+    @ Deprecated("")
+    function DeprecatedTypeInDeprecatedCallable() : Unit {
+        let _ = DeprecatedType();
+    }
+
+    function UsingDepTypeInDepCall() : Unit {
+        DeprecatedTypeInDeprecatedCallable();
+    }
+
     @ RenamedAttribute()
     function UsingRenamedAttribute1 () : Unit {}
 
