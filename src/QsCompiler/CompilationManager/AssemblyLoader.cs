@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 serializationProtocol = SyntaxTreeSerializationProtocol.NewtonsoftBinary;
             }
-            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondFastBinary, out resource))
+            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
             {
                 serializationProtocol = SyntaxTreeSerializationProtocol.BondFastBinary;
             }
