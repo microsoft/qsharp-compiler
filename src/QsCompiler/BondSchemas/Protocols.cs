@@ -34,19 +34,19 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// Serializes a Q# compilation object to its Bond fast binary representation.
         /// </summary>
         /// <param name="qsCompilation">Q# compilation object to serialize.</param>
-        /// <param name="memoryStream">Memory stream to write the serialization to.</param>
+        /// <param name="stream">Stream to write the serialization to.</param>
         public static void SerializeQsCompilationToFastBinary(
             SyntaxTree.QsCompilation qsCompilation,
-            MemoryStream memoryStream)
+            Stream stream)
         {
             var outputBuffer = new OutputBuffer();
             var serializer = GetFastBinarySerializer();
             var fastBinaryWriter = new FastBinaryWriter<OutputBuffer>(outputBuffer);
             var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
             serializer.Serialize(bondCompilation, fastBinaryWriter);
-            memoryStream.Write(outputBuffer.Data);
-            memoryStream.Flush();
-            memoryStream.Position = 0;
+            stream.Write(outputBuffer.Data);
+            stream.Flush();
+            stream.Position = 0;
         }
 
         private static Deserializer<FastBinaryReader<InputBuffer>> GetFastBinaryDeserializer()

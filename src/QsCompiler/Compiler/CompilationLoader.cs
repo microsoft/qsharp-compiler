@@ -615,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var ms = new MemoryStream())
             {
                 this.RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
-                var serialized = this.config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                var serialized = this.config.SerializeSyntaxTree && this.WriteSyntaxTreeSerialization(ms);
                 this.RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
@@ -962,12 +962,18 @@ namespace Microsoft.Quantum.QsCompiler
         /// Does *not* close the given memory stream, and
         /// returns true if the serialization has been successfully generated.
         /// </summary>
-        private bool SerializeSyntaxTree(MemoryStream ms)
+        private bool WriteSyntaxTreeSerialization(MemoryStream ms)
         {
             void LogError() => this.LogAndUpdate(
                 ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
 
-            this.compilationStatus.Serialization = 0;
+            void LogExceptionAndError(Exception ex)
+            {
+                this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
+                LogError();
+            }
+
+            this.compilationStatus.Serialization = Status.Succeeded;
             if (this.CompilationOutput == null)
             {
                 LogError();
@@ -976,17 +982,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
-            try
-            {
-                BondSchemas.Protocols.SerializeQsCompilationToFastBinary(compilation, ms);
-            }
-            catch (Exception ex)
-            {
-                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
-                LogError();
-                return false;
-            }
-            return true;
+            return SerializeSyntaxTree(compilation, ms, LogExceptionAndError);
         }
 
         /// <summary>
@@ -1123,6 +1119,27 @@ namespace Microsoft.Quantum.QsCompiler
             stream.CopyTo(memoryStream);
             return AssemblyLoader.LoadSyntaxTree(memoryStream.ToArray(), out syntaxTree);
         }
+
+        private static bool SerializeSyntaxTree(QsCompilation syntaxTree, Stream stream, Action<Exception>? onException = null)
+        {
+            try
+            {
+                BondSchemas.Protocols.SerializeQsCompilationToFastBinary(syntaxTree, stream);
+            }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a binary representation of the Q# compilation to supplied stream.
+        /// </summary>
+        public static bool WriteBinary(QsCompilation syntaxTree, Stream stream) =>
+            SerializeSyntaxTree(syntaxTree, stream);
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder.
