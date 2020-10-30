@@ -348,7 +348,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than
                 // all types etc.
                 var fragment = file.TryGetFragmentAt(diagnostic.Range.Start.ToQSharp(), out _);
-                var characteristics = fragment?.Kind switch
+                if (fragment is null)
+                {
+                    return Enumerable.Empty<(string, WorkspaceEdit)>();
+                }
+                var characteristics = fragment.Kind switch
                 {
                     QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
                     QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
