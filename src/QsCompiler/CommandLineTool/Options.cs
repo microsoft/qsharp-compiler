@@ -72,12 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
-        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites switch
-        {
-            AssemblyConstants.RuntimeCapabilities.QPRGen0 => RuntimeCapability.BasicQuantumFunctionality,
-            AssemblyConstants.RuntimeCapabilities.QPRGen1 => RuntimeCapability.BasicMeasurementFeedback,
-            _ => RuntimeCapability.FullComputation
-        };
+        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites.ToCapability();
 
         [Option(
             "build-exe",
