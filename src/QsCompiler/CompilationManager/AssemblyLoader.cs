@@ -124,11 +124,10 @@ namespace Microsoft.Quantum.QsCompiler
             [NotNullWhen(true)] out QsCompilation? compilation,
             Action<Exception>? onDeserializationException = null)
         {
-            compilation = null;
+            using var reader = new BsonDataReader(stream);
+            (compilation, reader.ReadRootValueAsArray) = (null, false);
             try
             {
-                using var reader = new BsonDataReader(stream);
-                reader.ReadRootValueAsArray = false;
                 compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
             }
             catch (Exception ex)
