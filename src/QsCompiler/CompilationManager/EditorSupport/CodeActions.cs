@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (string, WorkspaceEdit) ReplaceWith(string text, Lsp.Range range)
             {
                 static bool NeedsWs(char ch) => char.IsLetterOrDigit(ch) || ch == '_';
-                if (range?.Start != null && range.End != null)
+                if (range.Start != null && range.End != null)
                 {
                     var beforeEdit = file.GetLine(range.Start.Line).Text.Substring(0, range.Start.Character);
                     var afterEdit = file.GetLine(range.End.Line).Text.Substring(range.End.Character);
@@ -332,33 +332,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // update deprecated operation characteristics syntax
 
+            static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
+                SyntaxGenerator.ExtractItems(argTuple)
+                    .SelectMany(item => item.Item2.ExtractCharacteristics())
+                    .Distinct();
+
             static string CharacteristicsAnnotation(Characteristics c)
             {
                 var charEx = SyntaxTreeToQsharp.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
                 return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
             }
 
-            var suggestionsForOpCharacteristics = deprecatedOpCharacteristics.SelectMany(d =>
+            var suggestionsForOpCharacteristics = deprecatedOpCharacteristics.SelectMany(diagnostic =>
             {
-                // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc.
-                // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below.
-                var fragment = file.TryGetFragmentAt(d.Range.Start.ToQSharp(), out var _);
-
-                static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
-                    SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
-                var characteristicsInFragment =
-                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item3.Argument) :
-                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item3.Argument) :
-                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item3) :
-                    Enumerable.Empty<Characteristics>();
-
-                var fragmentStart = fragment?.Range?.Start;
-                return characteristicsInFragment
-                    .Where(c => c.Range.IsValue && Range.Overlaps(fragmentStart + c.Range.Item, d.Range.ToQSharp()))
-                    .Select(c => ReplaceWith(CharacteristicsAnnotation(c), d.Range));
+                // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than
+                // all types etc.
+                var fragment = file.TryGetFragmentAt(diagnostic.Range.Start.ToQSharp(), out _);
+                var characteristics = fragment?.Kind switch
+                {
+                    QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
+                    QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
+                    QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item3),
+                    _ => Enumerable.Empty<Characteristics>()
+                };
+                return
+                    from characteristic in characteristics
+                    where characteristic.Range.IsValue &&
+                          Range.Overlaps(fragment.Range.Start + characteristic.Range.Item, diagnostic.Range.ToQSharp())
+                    select ReplaceWith(CharacteristicsAnnotation(characteristic), diagnostic.Range);
             });
 
-            return suggestionsForOpCharacteristics.ToArray()
+            return suggestionsForOpCharacteristics
                 .Concat(suggestionsForUnitType)
                 .Concat(suggestionsForNOT)
                 .Concat(suggestionsForAND)
