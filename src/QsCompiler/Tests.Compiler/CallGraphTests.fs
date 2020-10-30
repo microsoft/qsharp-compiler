@@ -7,6 +7,7 @@ open System
 open System.Collections.Immutable
 open System.IO
 open System.Linq
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
@@ -22,11 +23,12 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
     let compilationManagerExe =
-        new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message),
-                                   null,
-                                   false,
-                                   AssemblyConstants.RuntimeCapabilities.Unknown,
-                                   true) // The isExecutable is true
+        new CompilationUnitManager
+            (Action<_> (fun ex -> failwith ex.Message),
+             null,
+             false,
+             FullComputation,
+             isExecutable = true)
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
@@ -421,6 +423,44 @@ type CallGraphTests (output:ITestOutputHelper) =
         AssertInConcreteGraph graph FooAdj
         AssertInConcreteGraph graph FooCtl
         AssertInConcreteGraph graph FooCtlAdj
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph Call Self-Adjoint Reference`` () =
+        let compilation = PopulateCallGraphWithExe 15
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
+        Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
+        let graph = transformed |> ConcreteCallGraph
+
+        let makeNode spec = MakeNode "Foo" spec []
+
+        let Foo = makeNode QsBody
+        let FooAdj = makeNode QsAdjoint
+        let FooCtl = makeNode QsControlled
+        let FooCtlAdj = makeNode QsControlledAdjoint
+
+        AssertInConcreteGraph graph Foo
+        AssertInConcreteGraph graph FooAdj
+        AssertInConcreteGraph graph FooCtl
+        AssertInConcreteGraph graph FooCtlAdj
+
+        let dependencies = graph.GetDirectDependencies FooAdj
+        Assert.True(dependencies.Contains(Foo), "Expected adjoint specialization to take dependency on body specialization.")
+
+        let dependencies = graph.GetDirectDependencies FooCtlAdj
+        Assert.True(dependencies.Contains(FooCtl), "Expected controlled-adjoint specialization to take dependency on controlled specialization.")
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Concrete Graph Clears Type Param Resolutions After Statements`` () =
+        let compilation = PopulateCallGraphWithExe 16
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
+        Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
+        let graph = transformed |> ConcreteCallGraph
+
+        for node in graph.Nodes do
+            let unresolvedTypeParameters = node.ParamResolutions |> Seq.choose (fun res -> match res.Value.Resolution with | TypeParameter _ -> Some(res.Key) | _ -> None )
+            Assert.Empty unresolvedTypeParameters
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]

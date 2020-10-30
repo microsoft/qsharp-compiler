@@ -265,3 +265,45 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
         let f = Foo;
     }
 }
+
+// =================================
+
+// Concrete Graph Call Self-Adjoint Reference
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+    operation Foo() : Unit is Ctl+Adj {
+        body(...) { }
+        controlled distribute;
+        adjoint self;
+        controlled adjoint self;
+    }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        Adjoint Foo();
+        using (q = Qubit()) {
+            Controlled Adjoint Foo([q], ());
+        }
+    }
+}
+
+// =================================
+
+// Concrete Graph Clears Type Param Resolutions After Statements
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+    @EntryPoint()
+    operation Main () : Unit {
+        using (qs = Qubit[1]) {
+            Controlled Bar(qs, (Baz, 0));
+        }
+    }
+
+    operation Foo(x : Int) : Unit is Adj + Ctl { }
+
+    operation Bar<'T> (op : ('T => Unit is Adj + Ctl), arg : 'T) : Unit is Adj + Ctl {   
+        op(arg);
+    }
+    
+    operation Baz(x : Int) : Unit is Adj + Ctl {
+        Bar(Foo, x);
+    }
+}

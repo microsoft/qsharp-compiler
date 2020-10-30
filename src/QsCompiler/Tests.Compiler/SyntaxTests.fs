@@ -385,37 +385,149 @@ let ``Complex literal tests`` () =
 [<Fact>]
 let ``Call tests`` () =
     [
-        ("x()",                 true,    toExpr (CallLikeExpression (toIdentifier "x", UnitValue |> toExpr)),       []);
-        ("x(1,2)",              true,    toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                     toTuple [ toInt 1; 
-                                                                               toInt 2])),      []);
-        ("Adjoint x()",         true,    toExpr (CallLikeExpression (AdjointApplication (toIdentifier "x") |> toExpr, 
-                                                                     UnitValue |> toExpr)),                     []);
-        ("Controlled x()",      true,    toExpr (CallLikeExpression (ControlledApplication (toIdentifier "x") |> toExpr, 
-                                                                     UnitValue |> toExpr)),                     []);
-
-        ("(x(_,1))(2)",         true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toInt 1])
-                                                                    )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,1))(1,2)",       true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toInt 1])
-                                                                    )], toTuple [ toInt 1;
-                                                                                 toInt 2 ])),                   []);
-        ("(x(1,(2, _)))(2)",    true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ toInt 1;
-                                                                                                           toTuple [ toInt 2;
-                                                                                                                     MissingExpr |> toExpr];
-                                                                                                         ])
-                                                                    )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,(2, _)))(1,2)",  true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toTuple [ toInt 2;
-                                                                                                                     MissingExpr |> toExpr];
-                                                                                                         ])
-                                                                    )], toTuple [ toInt 1;
-                                                                                 toInt 2 ])),                   []);
+        "x()", true, CallLikeExpression (toIdentifier "x", toExpr UnitValue) |> toExpr, []
+        "x(1,2)", true, CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toInt 2 ]) |> toExpr, []
+        "Adjoint x()",
+            true,
+            CallLikeExpression (toIdentifier "x" |> AdjointApplication |> toExpr, toExpr UnitValue) |> toExpr,
+            []
+        "Controlled x()",
+            true,
+            CallLikeExpression (toIdentifier "x" |> ControlledApplication |> toExpr, toExpr UnitValue) |> toExpr,
+            []
+        "f(1)(2)",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "f(1)(2)(3)",
+            true,
+            ((CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+             |> CallLikeExpression
+             |> toExpr,
+             toTuple [ toInt 3 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "f(1)(2)[3]",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(f(1)(2))[3]",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toInt 3)
+            |> ArrayItem
+            |> toExpr,
+            []
+        "(f(1)(2))[3](4)",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toInt 3)
+            |> ArrayItem
+            |> toExpr
+            |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
+            []
+        "f(1)(2)::X",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(f(1)(2))::X",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr,
+            []
+        "(f(1)(2))::X(4)",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr
+            |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
+            []
+        "(x(_,1))(2)",
+            true,
+            (toTuple [ CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,1)(2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(_,1))(1,2)",
+            true,
+            (toTuple [ CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,1)(1,2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(1,(2, _)))(2)",
+            true,
+            ([ CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> toExpr ]
+             |> toTuple,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(1,(2, _))(2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> toExpr,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(_,(2, _)))(1,2)",
+            true,
+            ([ (toIdentifier "x", toTuple [ toExpr MissingExpr; toTuple [ toInt 2; toExpr MissingExpr ] ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,(2, _))(1,2)",
+            true,
+            ((toIdentifier "x", toTuple [ toExpr MissingExpr; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> CallLikeExpression
+             |> toExpr,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
     ]
     |> List.iter testExpr
 

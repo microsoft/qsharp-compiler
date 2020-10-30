@@ -12,8 +12,8 @@ using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -126,9 +126,9 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability)
-                ? capability
-                : AssemblyConstants.RuntimeCapabilities.Unknown;
+            var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
+                ? result.ToCapability()
+                : RuntimeCapability.FullComputation;
 
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
@@ -148,7 +148,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             info = new ProjectInformation(
                 version,
                 outputPath,
-                runtimeCapabilities,
+                runtimeCapability,
                 isExecutable,
                 NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture),
                 loadTestNames,
