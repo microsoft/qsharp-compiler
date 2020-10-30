@@ -9,8 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using Bond.IO.Unsafe;
-using Bond.Protocols;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
@@ -27,12 +25,6 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
-        public enum SyntaxTreeSerializationProtocol
-        {
-            NewtonsoftBinary,
-            BondFastBinary
-        }
-
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -99,60 +91,57 @@ namespace Microsoft.Quantum.QsCompiler
         // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
 
         /// <summary>
-        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding Q# compilation.
-        /// Returns true if the compilation could be deserialized without throwing an exception, and false otherwise.
+        /// Given a Bond v1 binary representation of compiled Q# code, returns the corresponding Q# compilation.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and it is not empty. False otherwise.
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// </summary>
         public static bool LoadSyntaxTree(
-            Stream stream,
+            byte[] byteArray,
             [NotNullWhen(true)] out QsCompilation? compilation,
-            SyntaxTreeSerializationProtocol serializationProtocol = SyntaxTreeSerializationProtocol.NewtonsoftBinary,
             Action<Exception>? onDeserializationException = null)
         {
             compilation = null;
             try
             {
-                compilation = serializationProtocol switch
-                {
-                    SyntaxTreeSerializationProtocol.BondFastBinary => DeserializeSyntaxTreeFromBondFastBinary(stream),
-                    SyntaxTreeSerializationProtocol.NewtonsoftBinary => DeserializeSyntaxTreeFromNewtonsoftBinary(stream),
-                    _ => throw new ArgumentException($"Unsupported syntax tree serialization protocol '{serializationProtocol}'")
-                };
-                return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromFastBinary(byteArray);
             }
             catch (Exception ex)
             {
                 onDeserializationException?.Invoke(ex);
                 return false;
             }
+
+            return compilation != null && IsValidCompilation(compilation);
         }
 
-        private static QsCompilation? DeserializeSyntaxTreeFromBondFastBinary(
-            Stream stream)
+        /// <summary>
+        /// Given a stream containing the Newtonsoft binary representation of compiled Q# code, returns the corresponding Q# compilation.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and it is not empty. False otherwise.
+        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
+        /// </summary>
+        public static bool LoadSyntaxTree(
+            Stream stream,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
         {
-            if (stream.Length == 0)
+            compilation = null;
+            try
             {
-                return null;
+                using var reader = new BsonDataReader(stream);
+                reader.ReadRootValueAsArray = false;
+                compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
+            }
+            catch (Exception ex)
+            {
+                onDeserializationException?.Invoke(ex);
+                return false;
             }
 
-            using var memoryStream = new MemoryStream();
-            stream.CopyTo(memoryStream);
-            memoryStream.Flush();
-            memoryStream.Position = 0;
-            var inputBuffer = new InputBuffer(memoryStream.ToArray());
-            var deserializer = BondSchemas.Factory.GetFastBinaryDeserializer();
-            var reader = new FastBinaryReader<InputBuffer>(inputBuffer);
-            var bondCompilation = deserializer.Deserialize<BondSchemas.QsCompilation>(reader);
-            return BondSchemas.CompilerObjectTranslator.CreateQsCompilation(bondCompilation);
+            return compilation != null && IsValidCompilation(compilation);
         }
 
-        private static QsCompilation? DeserializeSyntaxTreeFromNewtonsoftBinary(
-            Stream stream)
-        {
-            using var reader = new BsonDataReader(stream);
-            reader.ReadRootValueAsArray = false;
-            return Json.Serializer.Deserialize<QsCompilation>(reader);
-        }
+        private static bool IsValidCompilation(QsCompilation compilation) =>
+            !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
 
         /// <summary>
         /// Creates a dictionary of all manifest resources in the given reader.
@@ -175,26 +164,27 @@ namespace Microsoft.Quantum.QsCompiler
             [NotNullWhen(true)] out QsCompilation? compilation,
             Action<Exception>? onDeserializationException = null)
         {
-            var metadataReader = assemblyFile.GetMetadataReader();
             compilation = null;
-
-            SyntaxTreeSerializationProtocol? serializationProtocol = null;
+            var metadataReader = assemblyFile.GetMetadataReader();
+            bool isBondV1ResourcePresent = false;
+            bool isNewtonSoftResourcePresent = false;
             ManifestResource resource;
-            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
             {
-                serializationProtocol = SyntaxTreeSerializationProtocol.NewtonsoftBinary;
+                isBondV1ResourcePresent = true;
             }
-            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
+            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
             {
-                serializationProtocol = SyntaxTreeSerializationProtocol.BondFastBinary;
+                isNewtonSoftResourcePresent = true;
             }
 
             // The offset of resources is relative to the resources directory.
             // It is possible that there is no offset given because a valid dll allows for extenal resources.
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
+            var isResourcePresent = isBondV1ResourcePresent || isNewtonSoftResourcePresent;
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                (serializationProtocol == null) ||
+                !isResourcePresent ||
                 !resource.Implementation.IsNil)
             {
                 return false;
@@ -209,11 +199,18 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            return LoadSyntaxTree(
-                new MemoryStream(resourceData),
-                out compilation,
-                serializationProtocol.Value,
-                onDeserializationException);
+
+            // Use the correct method depending on the resource.
+            if (isBondV1ResourcePresent)
+            {
+                return LoadSyntaxTree(resourceData, out compilation, onDeserializationException);
+            }
+            else if (isNewtonSoftResourcePresent)
+            {
+                return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+            }
+
+            return false;
         }
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)

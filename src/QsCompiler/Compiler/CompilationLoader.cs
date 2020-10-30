@@ -982,14 +982,7 @@ namespace Microsoft.Quantum.QsCompiler
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
             try
             {
-                var outputBuffer = new OutputBuffer();
-                var serializer = BondSchemas.Factory.GetFastBinarySerializer();
-                var fastBinaryWriter = new FastBinaryWriter<OutputBuffer>(outputBuffer);
-                var bondCompilation = BondSchemas.BondSchemaTranslator.CreateBondCompilation(compilation);
-                serializer.Serialize(bondCompilation, fastBinaryWriter);
-                ms.Write(outputBuffer.Data);
-                ms.Flush();
-                ms.Position = 0;
+                BondSchemas.Protocols.SerializeQsCompilationToFastBinary(compilation, ms);
             }
             catch (Exception ex)
             {
