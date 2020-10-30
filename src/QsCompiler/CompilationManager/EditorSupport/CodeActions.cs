@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// given the file for which those diagnostics were generated and the corresponding compilation.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForAmbiguousIdentifiers(
+        internal static IEnumerable<(string, WorkspaceEdit)> AmbiguousIdSuggestions(
             this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
         {
             if (file == null || diagnostics == null)
@@ -262,17 +262,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ($"Replace with \"{suggestedId}\".", file.GetWorkspaceEdit(edit));
             }
 
-            var suggestionsForIds =
+            var idSuggestions =
                 from diagnostic in diagnostics
                 where DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier)(diagnostic)
                 from id in file.IdCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
                 select SuggestedIdEdit(id, diagnostic.Range);
-            var suggestionsForTypes =
+            var typeSuggestions =
                 from diagnostic in diagnostics
                 where DiagnosticTools.ErrorType(ErrorCode.UnknownType)(diagnostic)
                 from type in file.TypeCaseSuggestions(diagnostic.Range.Start.ToQSharp(), compilation)
                 select SuggestedIdEdit(type, diagnostic.Range);
-            return suggestionsForIds.Concat(suggestionsForTypes);
+            return idSuggestions.Concat(typeSuggestions);
         }
 
         /// <summary>
@@ -281,7 +281,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The given line number is used to determine the containing namespace.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIds(
+        internal static IEnumerable<(string, WorkspaceEdit)> UnknownIdSuggestions(
             this FileContentManager file,
             CompilationUnit compilation,
             int lineNr,
@@ -294,15 +294,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and given the file for which those diagnostics were generated.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax(
-            this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+        internal static IEnumerable<(string, WorkspaceEdit)> DeprecatedSyntaxSuggestions(
+            this FileContentManager file, IReadOnlyCollection<Diagnostic> diagnostics)
         {
-            var deprecatedUnitTypes = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType));
-            var deprecatedNOToperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator));
-            var deprecatedANDoperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator));
-            var deprecatedORoperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator));
-            var deprecatedOpCharacteristics = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedOpCharacteristics));
-
             (string, WorkspaceEdit) ReplaceWith(string text, Lsp.Range range)
             {
                 static bool NeedsWs(char ch) => char.IsLetterOrDigit(ch) || ch == '_';
@@ -324,11 +318,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // update deprecated keywords and operators
-
-            var suggestionsForUnitType = deprecatedUnitTypes.Select(d => ReplaceWith(Keywords.qsUnit.id, d.Range));
-            var suggestionsForNOT = deprecatedNOToperators.Select(d => ReplaceWith(Keywords.qsNOTop.op, d.Range));
-            var suggestionsForAND = deprecatedANDoperators.Select(d => ReplaceWith(Keywords.qsANDop.op, d.Range));
-            var suggestionsForOR = deprecatedORoperators.Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
+            var unitSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType))
+                .Select(d => ReplaceWith(Keywords.qsUnit.id, d.Range));
+            var notSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator))
+                .Select(d => ReplaceWith(Keywords.qsNOTop.op, d.Range));
+            var andSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator))
+                .Select(d => ReplaceWith(Keywords.qsANDop.op, d.Range));
+            var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
+                .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
             // update deprecated operation characteristics syntax
 
@@ -343,34 +340,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
             }
 
-            var suggestionsForOpCharacteristics = deprecatedOpCharacteristics.SelectMany(diagnostic =>
-            {
-                // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than
-                // all types etc.
-                var fragment = file.TryGetFragmentAt(diagnostic.Range.Start.ToQSharp(), out _);
-                if (fragment is null)
+            var characteristicsSuggestions = diagnostics
+                .Where(DiagnosticTools.WarningType(WarningCode.DeprecatedOpCharacteristics))
+                .SelectMany(diagnostic =>
                 {
-                    return Enumerable.Empty<(string, WorkspaceEdit)>();
-                }
-                var characteristics = fragment.Kind switch
-                {
-                    QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
-                    QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
-                    QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item3),
-                    _ => Enumerable.Empty<Characteristics>()
-                };
-                return
-                    from characteristic in characteristics
-                    where characteristic.Range.IsValue &&
-                          Range.Overlaps(fragment.Range.Start + characteristic.Range.Item, diagnostic.Range.ToQSharp())
-                    select ReplaceWith(CharacteristicsAnnotation(characteristic), diagnostic.Range);
-            });
+                    // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather
+                    // than all types etc.
+                    var fragment = file.TryGetFragmentAt(diagnostic.Range.Start.ToQSharp(), out _);
+                    if (fragment is null)
+                    {
+                        return Enumerable.Empty<(string, WorkspaceEdit)>();
+                    }
+                    var characteristics = fragment.Kind switch
+                    {
+                        QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
+                        QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
+                        QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item3),
+                        _ => Enumerable.Empty<Characteristics>()
+                    };
+                    return
+                        from characteristic in characteristics
+                        let range = fragment.Range.Start + characteristic.Range.Item
+                        where characteristic.Range.IsValue && Range.Overlaps(range, diagnostic.Range.ToQSharp())
+                        select ReplaceWith(CharacteristicsAnnotation(characteristic), diagnostic.Range);
+                });
 
-            return suggestionsForOpCharacteristics
-                .Concat(suggestionsForUnitType)
-                .Concat(suggestionsForNOT)
-                .Concat(suggestionsForAND)
-                .Concat(suggestionsForOR);
+            return characteristicsSuggestions
+                .Concat(unitSuggestions)
+                .Concat(notSuggestions)
+                .Concat(andSuggestions)
+                .Concat(orSuggestions);
         }
 
         /// <summary>
@@ -378,7 +377,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and given the file for which those diagnostics were generated.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUpdateAndReassignStatements(
+        internal static IEnumerable<(string, WorkspaceEdit)> UpdateReassignStatementSuggestions(
             this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
             var updateOfArrayItemExprs = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UpdateOfArrayItemExpr));
@@ -447,7 +446,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// provided the corresponding library is referenced.
         /// Returns an empty enumerable if this is not the case or any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForIndexRange(
+        internal static IEnumerable<(string, WorkspaceEdit)> IndexRangeSuggestions(
             this FileContentManager file, CompilationUnit compilation, Range range)
         {
             if (file == null || compilation == null || range?.Start == null)
@@ -504,7 +503,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and given the file for which those diagnostics were generated.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnreachableCode(
+        internal static IEnumerable<(string, WorkspaceEdit)> UnreachableCodeSuggestions(
             this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
             if (file == null || diagnostics == null)
@@ -561,7 +560,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or the overlapping fragment contains a declaration that is already documented,
         /// or if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDocComments(this FileContentManager file, Range range)
+        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(
+            this FileContentManager file, Range range)
         {
             var overlapping = file?.FragmentsOverlappingWithRange(range);
             var fragment = overlapping?.FirstOrDefault();

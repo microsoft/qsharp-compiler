@@ -140,13 +140,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
             var diagnostics = context?.Diagnostics ?? Array.Empty<Diagnostic>();
-            return file.SuggestionsForUnknownIds(compilation, range.Start.Line, diagnostics)
-                .Concat(file.SuggestionsForAmbiguousIdentifiers(compilation, diagnostics))
-                .Concat(file.SuggestionsForDeprecatedSyntax(diagnostics))
-                .Concat(file.SuggestionsForUpdateAndReassignStatements(diagnostics))
-                .Concat(file.SuggestionsForIndexRange(compilation, range))
-                .Concat(file.SuggestionsForUnreachableCode(diagnostics))
-                .Concat(file.SuggestionsForDocComments(range))
+            return file.UnknownIdSuggestions(compilation, range.Start.Line, diagnostics)
+                .Concat(file.AmbiguousIdSuggestions(compilation, diagnostics))
+                .Concat(file.DeprecatedSyntaxSuggestions(diagnostics))
+                .Concat(file.UpdateReassignStatementSuggestions(diagnostics))
+                .Concat(file.IndexRangeSuggestions(compilation, range))
+                .Concat(file.UnreachableCodeSuggestions(diagnostics))
+                .Concat(file.DocCommentSuggestions(range))
                 .ToLookup(s => s.Item1, s => s.Item2);
         }
 
