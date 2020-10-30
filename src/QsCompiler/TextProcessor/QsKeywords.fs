@@ -284,7 +284,7 @@ let qsSetIntersection = QsOperator.New("*"           ,   20, true)
 // The call combinator binds stronger than all operators.
 // All modifiers bind stronger than the call combinator.
 // The array item combinator binds stronger than all modifiers.
-let qsCallCombinator        = QsOperator.New("(", ")"               , 900 , false) // Op()() is invalid and requires parentheses
+let qsCallCombinator        = QsOperator.New("(", ")"               , 900 , true) // Op()() is fine
 let qsAdjointModifier       = QsOperator.New(qsAdjointFunctor.id    , 950 , false)
 let qsControlledModifier    = QsOperator.New(qsControlledFunctor.id , 951 , false)
 let qsUnwrapModifier        = QsOperator.New("!"                    , 1000, true)
