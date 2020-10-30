@@ -281,7 +281,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The given line number is used to determine the containing namespace.
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> UnknownIdSuggestions(
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIds(
             this FileContentManager file,
             CompilationUnit compilation,
             int lineNr,
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or the overlapping fragment contains a declaration that is already documented,
         /// or if any of the given arguments is null.
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDocComments(this FileContentManager file, Range range)
         {
             var overlapping = file?.FragmentsOverlappingWithRange(range);
             var fragment = overlapping?.FirstOrDefault();
