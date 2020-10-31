@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler
             compilation = null;
             try
             {
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromFastBinary(byteArray);
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
             }
             catch (Exception ex)
             {

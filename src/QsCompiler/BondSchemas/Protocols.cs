@@ -13,60 +13,60 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// </summary>
     public static class Protocols
     {
-        private static Deserializer<FastBinaryReader<InputBuffer>>? fastBinaryDeserializer = null;
-        private static Serializer<FastBinaryWriter<OutputBuffer>>? fastBinarySerializer = null;
+        private static Deserializer<SimpleBinaryReader<InputBuffer>>? simpleBinaryDeserializer = null;
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>>? simpleBinarySerializer = null;
 
         /// <summary>
-        /// Deserializes a Q# compilation object from its Bond fast binary representation.
+        /// Deserializes a Q# compilation object from its Bond simple binary representation.
         /// </summary>
-        /// <param name="byteArray">Bond fast binary representation of a Q# compilation object.</param>
-        public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromFastBinary(
+        /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
+        public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray)
         {
             var inputBuffer = new InputBuffer(byteArray);
-            var deserializer = GetFastBinaryDeserializer();
-            var reader = new FastBinaryReader<InputBuffer>(inputBuffer);
+            var deserializer = GetSimpleBinaryDeserializer();
+            var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
             var bondCompilation = deserializer.Deserialize<QsCompilation>(reader);
             return CompilerObjectTranslator.CreateQsCompilation(bondCompilation);
         }
 
         /// <summary>
-        /// Serializes a Q# compilation object to its Bond fast binary representation.
+        /// Serializes a Q# compilation object to its Bond simple binary representation.
         /// </summary>
         /// <param name="qsCompilation">Q# compilation object to serialize.</param>
         /// <param name="stream">Stream to write the serialization to.</param>
-        public static void SerializeQsCompilationToFastBinary(
+        public static void SerializeQsCompilationToSimpleBinary(
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
         {
             var outputBuffer = new OutputBuffer();
-            var serializer = GetFastBinarySerializer();
-            var fastBinaryWriter = new FastBinaryWriter<OutputBuffer>(outputBuffer);
+            var serializer = GetSimpleBinarySerializer();
+            var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
             var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
-            serializer.Serialize(bondCompilation, fastBinaryWriter);
+            serializer.Serialize(bondCompilation, writer);
             stream.Write(outputBuffer.Data);
             stream.Flush();
             stream.Position = 0;
         }
 
-        private static Deserializer<FastBinaryReader<InputBuffer>> GetFastBinaryDeserializer()
+        private static Deserializer<SimpleBinaryReader<InputBuffer>> GetSimpleBinaryDeserializer()
         {
-            if (fastBinaryDeserializer == null)
+            if (simpleBinaryDeserializer == null)
             {
-                fastBinaryDeserializer = new Deserializer<FastBinaryReader<InputBuffer>>(typeof(QsCompilation));
+                simpleBinaryDeserializer = new Deserializer<SimpleBinaryReader<InputBuffer>>(typeof(QsCompilation));
             }
 
-            return fastBinaryDeserializer;
+            return simpleBinaryDeserializer;
         }
 
-        private static Serializer<FastBinaryWriter<OutputBuffer>> GetFastBinarySerializer()
+        private static Serializer<SimpleBinaryWriter<OutputBuffer>> GetSimpleBinarySerializer()
         {
-            if (fastBinarySerializer == null)
+            if (simpleBinarySerializer == null)
             {
-                fastBinarySerializer = new Serializer<FastBinaryWriter<OutputBuffer>>(typeof(QsCompilation));
+                simpleBinarySerializer = new Serializer<SimpleBinaryWriter<OutputBuffer>>(typeof(QsCompilation));
             }
 
-            return fastBinarySerializer;
+            return simpleBinarySerializer;
         }
     }
 }

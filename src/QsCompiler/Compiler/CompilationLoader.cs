@@ -1124,7 +1124,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             try
             {
-                BondSchemas.Protocols.SerializeQsCompilationToFastBinary(syntaxTree, stream);
+                BondSchemas.Protocols.SerializeQsCompilationToSimpleBinary(syntaxTree, stream);
             }
             catch (Exception ex)
             {
