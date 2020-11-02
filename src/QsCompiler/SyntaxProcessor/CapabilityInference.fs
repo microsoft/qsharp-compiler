@@ -223,7 +223,9 @@ let private referenceDiagnostic context (name, range : _ QsNullable) =
         if context.Capability.Implies capability
         then None
         else
-            let error = ErrorCode.UnsupportedCapability, [ name.Name.Value; context.ProcessorArchitecture.Value ]
+            let error =
+                ErrorCode.UnsupportedCapability,
+                [ name.Name.Value; string capability; context.ProcessorArchitecture.Value ]
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
     | _ -> None
 
