@@ -969,7 +969,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             void LogExceptionAndError(Exception ex)
             {
-                this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
+                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
+
                 LogError();
             }
 
