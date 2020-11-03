@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// <summary>
     /// This class translates compiler objects to Bond schema objects.
     /// </summary>
-    public static class BondSchemaTranslator
+    internal static class BondSchemaTranslator
     {
         /// <summary>
         /// Creates a Bond schema QsCompilation object from a QsCompilation compiler object.
@@ -73,7 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 GlobalCallable = bondGlobalCallable
             };
         }
-            
 
         private static InferredCallableInformation ToBondSchema(this SyntaxTree.InferredCallableInformation inferredCallableInformation) =>
             new InferredCallableInformation
