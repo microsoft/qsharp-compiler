@@ -119,6 +119,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns true if the compilation could be deserialized without throwing an exception, and it is not empty. False otherwise.
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// </summary>
+        [Obsolete("Only loads binary representations generated with versions of the compiler up to 0.13.20102604.")]
         public static bool LoadSyntaxTree(
             Stream stream,
             [NotNullWhen(true)] out QsCompilation? compilation,
