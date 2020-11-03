@@ -179,10 +179,36 @@ namespace Microsoft.Quantum.Documentation
             // are an empty set; in that case, we want an empty string.
             ?? string.Empty;
 
-        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null) =>
-            SyntaxTreeToQsharp.DeclarationSignature(
+        internal static string ToSyntax(this QsFunctor functor) =>
+            functor.Tag switch
+            {
+                QsFunctor.Tags.Adjoint => "Adj",
+                QsFunctor.Tags.Controlled => "Ctl",
+                _ => "__invalid__"
+            };
+
+        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null)
+        {
+            var signature = SyntaxTreeToQsharp.DeclarationSignature(
                 callable, SyntaxTreeToQsharp.Default.ToCode
             );
+
+            // The signature provided by SyntaxTreeToQsharp doesn't include
+            // the characteristics (e.g.: `is Adj + Ctl`) for the callable, so
+            // we add that here.
+            var characteristics = callable.Signature.Information.Characteristics.SupportedFunctors switch
+            {
+                var nullable when nullable.IsNull => "",
+                { Item: var item } => item switch
+                {
+                    { Count: 0 } => "",
+                    // Be sure to add the leading space before is!
+                    _ => $" is {string.Join("+", item.Select(functor => functor.ToSyntax()))}"
+                }
+            };
+
+            return $"{signature}{characteristics}";
+        }
 
         internal static string MaybeWithSection(this string document, string name, string? contents) =>
             contents == null || contents.Trim().Length == 0
