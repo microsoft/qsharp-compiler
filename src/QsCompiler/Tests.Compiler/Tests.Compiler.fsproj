@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="TestUtils\TestUtils.fs" />
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
@@ -161,6 +160,9 @@
     <None Include="TestCases\TypeParameter.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\CompilationLoader.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="ExternalRewriteStepsManagerTests.fs" />
     <Compile Include="TextTests.fs" />
@@ -184,6 +186,7 @@
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
     <Compile Include="AccessModifierTests.fs" />
+    <Compile Include="CompilationLoaderTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
