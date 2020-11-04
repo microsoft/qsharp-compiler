@@ -198,7 +198,7 @@ namespace Microsoft.Quantum.Documentation
             // we add that here.
             var characteristics = callable.Signature.Information.Characteristics.SupportedFunctors switch
             {
-                var nullable when nullable.IsNull => "",
+                { IsNull: true } => "",
                 { Item: var item } => item switch
                 {
                     { Count: 0 } => "",
