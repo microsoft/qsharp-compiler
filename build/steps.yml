@@ -17,7 +17,6 @@ steps:
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
-
 ##
 # VisualStudio Extension can't be built from the build script as msbuild is not available).
 ##
@@ -32,5 +31,9 @@ steps:
     configuration: $(Build.Configuration)
 
 
+- pwsh: ./manifest.ps1
+  displayName: "List built packages & assemblies"
+  workingDirectory: '$(System.DefaultWorkingDirectory)/build'
+  condition: succeededOrFailed()
 
 - template: wrap-up.yml

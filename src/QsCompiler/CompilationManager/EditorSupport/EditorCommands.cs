@@ -135,24 +135,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static ILookup<string, WorkspaceEdit>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
         {
-            if (range?.Start == null || range.End == null || file == null || !file.ContainsRange(range))
+            if (range?.Start is null || range.End is null || !file.ContainsRange(range))
             {
                 return null;
             }
-            var suggestionsForUnknownIds = file.SuggestionsForUnknownIdentifiers(compilation, range.Start.Line, context?.Diagnostics);
-            var suggestionsForAmbiguousIds = file.SuggestionsForAmbiguousIdentifiers(compilation, context?.Diagnostics);
-            var suggestionsForDeprecatedSyntax = file.SuggestionsForDeprecatedSyntax(context?.Diagnostics);
-            var suggestionsForUpdateAndReassign = file.SuggestionsForUpdateAndReassignStatements(context?.Diagnostics);
-            var suggestionsForIndexRange = file.SuggestionsForIndexRange(compilation, range);
-            var suggestionsForUnreachableCode = file.SuggestionsForUnreachableCode(context?.Diagnostics);
-            var suggestionsForDocComments = file.DocCommentSuggestions(range);
-            return suggestionsForUnknownIds
-                .Concat(suggestionsForAmbiguousIds)
-                .Concat(suggestionsForDeprecatedSyntax)
-                .Concat(suggestionsForUpdateAndReassign)
-                .Concat(suggestionsForIndexRange)
-                .Concat(suggestionsForUnreachableCode)
-                .Concat(suggestionsForDocComments)
+            var diagnostics = context?.Diagnostics ?? Array.Empty<Diagnostic>();
+            return file.UnknownIdSuggestions(compilation, range.Start.Line, diagnostics)
+                .Concat(file.AmbiguousIdSuggestions(compilation, diagnostics))
+                .Concat(file.DeprecatedSyntaxSuggestions(diagnostics))
+                .Concat(file.UpdateReassignStatementSuggestions(diagnostics))
+                .Concat(file.IndexRangeSuggestions(compilation, range))
+                .Concat(file.UnreachableCodeSuggestions(diagnostics))
+                .Concat(file.DocCommentSuggestions(range))
                 .ToLookup(s => s.Item1, s => s.Item2);
         }
 

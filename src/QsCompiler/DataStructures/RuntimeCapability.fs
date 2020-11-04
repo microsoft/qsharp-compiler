@@ -1,6 +1,9 @@
 ﻿namespace Microsoft.Quantum.QsCompiler
 
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
+open System
+open System.Runtime.CompilerServices
 
 /// The runtime capabilities supported by a quantum processor.
 [<NoComparison>]
@@ -49,3 +52,15 @@ type RuntimeCapability =
         | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
         | "FullComputation" -> Value FullComputation
         | _ -> Null
+
+// TODO: RELEASE 2021-04: Remove RuntimeCapabilitiesExtensions.
+[<Extension>]
+[<Obsolete "Use Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
+module RuntimeCapabilitiesExtensions =
+    [<Extension>]
+    [<Obsolete "Use Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
+    let ToCapability capabilities =
+        match capabilities with
+        | RuntimeCapabilities.QPRGen0 -> BasicQuantumFunctionality
+        | RuntimeCapabilities.QPRGen1 -> BasicMeasurementFeedback
+        | _ -> FullComputation
