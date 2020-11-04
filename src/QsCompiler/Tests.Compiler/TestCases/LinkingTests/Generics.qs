@@ -106,7 +106,12 @@ namespace Microsoft.Quantum.Testing.Generics {
         GenericCallsSelf<'A>();
     }
 
+    operation GenericCallsSelf2<'A>(x : 'A) : Unit {
+        GenericCallsSelf2(x);
+    }
+
     operation Test4Main () : Unit {
         GenericCallsSelf<Double>();
+        GenericCallsSelf2(0.0);
     }
 }
