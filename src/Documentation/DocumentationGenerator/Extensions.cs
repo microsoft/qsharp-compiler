@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.Documentation
                 {
                     { Count: 0 } => "",
                     // Be sure to add the leading space before is!
-                    _ => $" is {string.Join("+", item.Select(functor => functor.ToSyntax()))}"
+                    _ => $" is {string.Join(" + ", item.Select(functor => functor.ToSyntax()))}"
                 }
             };
 
