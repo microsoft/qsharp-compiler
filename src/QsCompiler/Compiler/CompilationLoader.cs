@@ -509,7 +509,7 @@ namespace Microsoft.Quantum.QsCompiler
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
-                exceptionLogger: this.OnCompilerException,
+                this.OnCompilerException,
                 capability: this.config.RuntimeCapability,
                 isExecutable: this.config.IsExecutable,
                 processorArchitecture: NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture)
