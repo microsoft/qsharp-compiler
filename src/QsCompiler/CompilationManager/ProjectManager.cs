@@ -191,8 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     syntaxCheckOnly: ignore,
                     this.Properties.RuntimeCapability,
                     this.Properties.IsExecutable,
-                    this.Properties.ProcessorArchitecture,
-                    log);
+                    this.Properties.ProcessorArchitecture);
                 this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
@@ -652,8 +651,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(
-                exceptionLogger, publishDiagnostics, syntaxCheckOnly: true, messageLogger: log);
+            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;

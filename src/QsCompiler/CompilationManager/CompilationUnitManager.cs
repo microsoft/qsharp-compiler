@@ -39,11 +39,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly CompilationUnit compilationUnit;
 
         /// <summary>
-        /// Logs messages that occur during processing.
-        /// </summary>
-        private readonly Action<string, MessageType> logMessage;
-
-        /// <summary>
         /// used to log exceptions raised during processing
         /// </summary>
         public readonly Action<Exception> LogException;
@@ -80,15 +75,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool syntaxCheckOnly = false,
             RuntimeCapability? capability = null,
             bool isExecutable = false,
-            NonNullable<string> processorArchitecture = default,
-            Action<string, MessageType>? messageLogger = null)
+            NonNullable<string> processorArchitecture = default)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
             this.fileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.changedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
-            this.logMessage = messageLogger ?? ((message, type) => { });
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
             this.waitForTypeCheck = new CancellationTokenSource();
@@ -732,16 +725,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 return query(file, this.compilationUnit);
-            }
-            catch (FileContentException ex) when (!suppressExceptionLogging)
-            {
-                this.logMessage(
-                    $"A file query couldn't access content from '{fileId.Value.Value}': {ex.Message}",
-                    MessageType.Info);
-            }
-            catch (SymbolNotFoundException ex) when (!suppressExceptionLogging)
-            {
-                this.logMessage($"A file query couldn't find a symbol: {ex.Message}", MessageType.Info);
             }
             catch (Exception ex)
             {
