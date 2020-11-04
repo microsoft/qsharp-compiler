@@ -47,9 +47,9 @@ namespace Microsoft.Quantum.Documentation
         }
 
         public IAttributeBuilder<QsCallable> AddAttribute(QsDeclarationAttribute attribute) =>
-            new Callable(callable.AddAttribute(attribute));
+            new Callable(this.callable.AddAttribute(attribute));
 
-        public QsCallable Build() => callable;
+        public QsCallable Build() => this.callable;
     }
 
     internal class Udt : IAttributeBuilder<QsCustomType>
@@ -62,20 +62,20 @@ namespace Microsoft.Quantum.Documentation
         }
 
         public IAttributeBuilder<QsCustomType> AddAttribute(QsDeclarationAttribute attribute) =>
-            new Udt(type.AddAttribute(attribute));
+            new Udt(this.type.AddAttribute(attribute));
 
-        public QsCustomType Build() => type;
+        public QsCustomType Build() => this.type;
     }
 
     internal static class Extensions
     {
         internal static IAttributeBuilder<QsCallable> AttributeBuilder(
-            this QsCallable callable
-        ) => new Callable(callable);
+            this QsCallable callable) =>
+                new Callable(callable);
 
         internal static IAttributeBuilder<QsCustomType> AttributeBuilder(
-            this QsCustomType type
-        ) => new Udt(type);
+            this QsCustomType type) =>
+                new Udt(type);
 
         /// <summary>
         ///      Given an attribute builder, returns a new copy of that builder
@@ -88,29 +88,30 @@ namespace Microsoft.Quantum.Documentation
         /// <param name="input">The input to the Q# UDT's type constructor function for the given attribute.</param>
         /// <returns>A new attribute builder with the new attribute added.</returns>
         internal static IAttributeBuilder<T> WithAttribute<T>(
-            this IAttributeBuilder<T> builder, string @namespace, string name,
-            TypedExpression input
-        ) =>
-            builder.AddAttribute(
-                AttributeUtils.BuildAttribute(
-                    new QsQualifiedName(
-                        NonNullable<string>.New(@namespace),
-                        NonNullable<string>.New(name)
-                    ),
-                    input
-                )
-            );
+            this IAttributeBuilder<T> builder,
+            string @namespace,
+            string name,
+            TypedExpression input) =>
+                builder.AddAttribute(
+                    AttributeUtils.BuildAttribute(
+                        new QsQualifiedName(
+                            NonNullable<string>.New(@namespace),
+                            NonNullable<string>.New(name)),
+                        input));
 
         private static IAttributeBuilder<T> WithDocumentationAttribute<T>(
-            this IAttributeBuilder<T> builder, string attributeName,
-            TypedExpression input
-        ) => builder.WithAttribute("Microsoft.Quantum.Documentation", attributeName, input);
+            this IAttributeBuilder<T> builder,
+            string attributeName,
+            TypedExpression input) =>
+                builder.WithAttribute(
+                    "Microsoft.Quantum.Documentation",
+                    attributeName,
+                    input);
 
         private static TypedExpression AsLiteralExpression(this string literal) =>
             SyntaxGenerator.StringLiteral(
                 NonNullable<string>.New(literal),
-                ImmutableArray<TypedExpression>.Empty
-            );
+                ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
         ///      Given an attribute builder, either returns it unmodified,
@@ -123,13 +124,11 @@ namespace Microsoft.Quantum.Documentation
         /// <param name="value">The value of the new attribute to be added, or <c>null</c> if no attribute is to be added.</param>
         /// <returns>A new attribute builder with the new attribute added, or <paramref name="builder"/> if <paramref name="value"/> is <c>null</c>.</returns>
         internal static IAttributeBuilder<T> MaybeWithSimpleDocumentationAttribute<T>(
-            this IAttributeBuilder<T> builder, string attributeName, string? value
-        ) =>
-            value == null || value.Trim().Length == 0
-            ? builder
-            : builder.WithDocumentationAttribute(
-                attributeName, value.AsLiteralExpression()
-            );
+            this IAttributeBuilder<T> builder, string attributeName, string? value) =>
+                value == null || value.Trim().Length == 0
+                ? builder
+                : builder.WithDocumentationAttribute(
+                    attributeName, value.AsLiteralExpression());
 
         /// <summary>
         ///      Given an attribute builder, returns a new attribute builder with
@@ -141,34 +140,30 @@ namespace Microsoft.Quantum.Documentation
         /// <param name="items">The values of the new attributes to be added.</param>
         /// <returns>A new attribute builder with the one new attribute added for each element of <paramref name="items"/>.</returns>
         internal static IAttributeBuilder<T> WithListOfDocumentationAttributes<T>(
-            this IAttributeBuilder<T> builder, string attributeName, IEnumerable<string> items
-        ) =>
-            items
-            .Aggregate(
-                builder,
-                (acc, item) => acc.WithDocumentationAttribute(
-                    attributeName, item.AsLiteralExpression()
-                )
-            );
+            this IAttributeBuilder<T> builder,
+            string attributeName,
+            IEnumerable<string> items) =>
+                items
+                .Aggregate(
+                    builder,
+                    (acc, item) => acc.WithDocumentationAttribute(
+                        attributeName, item.AsLiteralExpression()));
 
         internal static IAttributeBuilder<T> WithDocumentationAttributesFromDictionary<T>(
-            this IAttributeBuilder<T> builder, string attributeName, IDictionary<string, string> items
-        ) =>
-            items
-            .Aggregate(
-                builder,
-                (acc, item) => acc.WithDocumentationAttribute(
-                    attributeName,
-                    // The following populates all of the metadata needed for a
-                    // Q# literal of type (String, String).
-                    SyntaxGenerator.TupleLiteral(
-                        ImmutableArray.Create(
-                            item.Key.AsLiteralExpression(),
-                            item.Value.AsLiteralExpression()
-                        )
-                    )
-                )
-            );
+            this IAttributeBuilder<T> builder,
+            string attributeName,
+            IDictionary<string, string> items) =>
+                items
+                .Aggregate(
+                    builder,
+                    (acc, item) => acc.WithDocumentationAttribute(
+                        attributeName,
+                        // The following populates all of the metadata needed for a
+                        // Q# literal of type (String, String).
+                        SyntaxGenerator.TupleLiteral(
+                            ImmutableArray.Create(
+                                item.Key.AsLiteralExpression(),
+                                item.Value.AsLiteralExpression()))));
 
         internal static string ToSyntax(this QsCustomType type) =>
             SyntaxTreeToQsharp.Default.ToCode(type);
@@ -187,11 +182,10 @@ namespace Microsoft.Quantum.Documentation
                 _ => "__invalid__"
             };
 
-        internal static string ToSyntax(this QsCallable callable, Action<IRewriteStep.Diagnostic>? onDiagnostic = null)
+        internal static string ToSyntax(this QsCallable callable)
         {
             var signature = SyntaxTreeToQsharp.DeclarationSignature(
-                callable, SyntaxTreeToQsharp.Default.ToCode
-            );
+                callable, SyntaxTreeToQsharp.Default.ToCode);
 
             // The signature provided by SyntaxTreeToQsharp doesn't include
             // the characteristics (e.g.: `is Adj + Ctl`) for the callable, so
@@ -199,12 +193,9 @@ namespace Microsoft.Quantum.Documentation
             var characteristics = callable.Signature.Information.Characteristics.SupportedFunctors switch
             {
                 { IsNull: true } => "",
-                { Item: var item } => item switch
-                {
-                    { Count: 0 } => "",
-                    // Be sure to add the leading space before is!
-                    _ => $" is {string.Join(" + ", item.Select(functor => functor.ToSyntax()))}"
-                }
+                { Item: { Count: 0 } } => "",
+                // Be sure to add the leading space before is!
+                { Item: var functors } => $" is {string.Join(" + ", functors.Select(functor => functor.ToSyntax()))}"
             };
 
             return $"{signature}{characteristics}";
@@ -254,31 +245,27 @@ namespace Microsoft.Quantum.Documentation
         internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) =>
             items.InputDeclarations().ToDictionary(
                 declaration => declaration.Item1,
-                declaration => declaration.Item2
-            );
+                declaration => declaration.Item2);
 
         internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<QsTypeItem> typeItems) =>
             typeItems.TypeDeclarations().ToDictionary(
                 declaration => declaration.Item1,
-                declaration => declaration.Item2
-            );
+                declaration => declaration.Item2);
 
         internal static List<(string, ResolvedType)> TypeDeclarations(this QsTuple<QsTypeItem> typeItems) => typeItems switch
             {
                 QsTuple<QsTypeItem>.QsTuple tuple =>
                     tuple.Item.SelectMany(
-                        item => item.TypeDeclarations()
-                    )
+                        item => item.TypeDeclarations())
                     .ToList(),
                 QsTuple<QsTypeItem>.QsTupleItem item => item.Item switch
                     {
                         QsTypeItem.Anonymous _ => new List<(string, ResolvedType)>(),
-                        QsTypeItem.Named named =>
+                        QsTypeItem.Named { Item: var named } =>
                             new List<(string, ResolvedType)>
-                            {(
-                                named.Item.VariableName.Value,
-                                named.Item.Type
-                            )},
+                            {
+                                (named.VariableName.Value, named.Type)
+                            },
                         _ => throw new ArgumentException($"Type item {item} is neither anonymous nor named.", nameof(typeItems)),
                     },
                 _ => throw new ArgumentException($"Type items {typeItems} aren't a tuple of type items.", nameof(typeItems)),
@@ -288,8 +275,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple =>
                     tuple.Item.SelectMany(
-                        item => item.InputDeclarations()
-                    )
+                        item => item.InputDeclarations())
                     .ToList(),
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item =>
                     new List<(string, ResolvedType)>
@@ -300,8 +286,7 @@ namespace Microsoft.Quantum.Documentation
                                 QsLocalSymbol.ValidName name => name.Item.Value,
                                 _ => "__invalid__",
                             },
-                            item.Item.Type
-                        )
+                            item.Item.Type)
                     },
                 _ => throw new Exception()
             };
@@ -313,11 +298,9 @@ namespace Microsoft.Quantum.Documentation
                     $"{function.Item1.ToMarkdownLink()} -> {function.Item2.ToMarkdownLink()}",
                 ResolvedTypeKind.Operation operation =>
                     $@"{operation.Item1.Item1.ToMarkdownLink()} => {operation.Item1.Item2.ToMarkdownLink()} {
-                        operation.Item2.Characteristics.ToSyntax()
-                    }",
-                ResolvedTypeKind.TupleType tuple => "(" + string.Join(",",
-                        tuple.Item.Select(ToMarkdownLink)
-                    ) + ")",
+                        operation.Item2.Characteristics.ToSyntax()}",
+                ResolvedTypeKind.TupleType tuple => "(" + string.Join(
+                    ",", tuple.Item.Select(ToMarkdownLink)) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
                 ResolvedTypeKind.TypeParameter typeParam =>
                     $"'{typeParam.Item.TypeName.Value}",
@@ -364,8 +347,6 @@ namespace Microsoft.Quantum.Documentation
                 type: type.Type,
                 typeItems: type.TypeItems,
                 documentation: ImmutableArray<string>.Empty,
-                comments: QsComments.Empty
-            );
+                comments: QsComments.Empty);
     }
-
 }
