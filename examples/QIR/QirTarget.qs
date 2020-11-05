@@ -38,6 +38,12 @@ namespace Microsoft.Quantum.Instructions {
         body intrinsic;
     }
 
+    @Intrinsic("crz")
+    operation PhysRzCtrl (controls : Qubit[], theta : Double, qb : Qubit) : Unit 
+    {
+        body intrinsic;
+    }
+
     @Intrinsic("cnot")
     operation PhysCNOT (control : Qubit, target : Qubit) : Unit 
     {
@@ -123,6 +129,26 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     @Inline()
+    operation MResetZ(qb : Qubit) : Result
+    {
+        let res = Mz(qb);
+        if (res == One)
+        {
+            X(qb);
+        }
+        return res;
+    }
+
+    @Inline()
+    operation Reset(qb : Qubit) : Unit
+    {
+        if (Mz(qb) == One)
+        {
+            X(qb);
+        }
+    }
+
+    @Inline()
     operation Rx(theta : Double, qb : Qubit) : Unit
     is Adj {
         body  (...)
@@ -137,7 +163,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     @Inline()
     operation Rz(theta : Double, qb : Qubit) : Unit
-    is Adj {
+    is Adj + Ctl {
         body  (...)
         {
             PhysRz(theta, qb);  
@@ -146,6 +172,14 @@ namespace Microsoft.Quantum.Intrinsic {
         {
             PhysRz(-theta, qb);  
 		}
+        controlled (ctls, ...)
+        {
+            PhysRzCtrl(ctls, theta, qb);
+        }
+        controlled adjoint (ctls, ...)
+        {
+            PhysRzCtrl(ctls, -theta, qb);
+        }
 	}
 
     @Inline()
@@ -162,5 +196,11 @@ namespace Microsoft.Quantum.Intrinsic {
     function IntAsDouble(i : Int) : Double
     {
         return IntAsDoubleImpl(i);
+    }
+
+    @Inline()
+    function PI() : Double
+    {
+        return 3.141592653580;
     }
 }

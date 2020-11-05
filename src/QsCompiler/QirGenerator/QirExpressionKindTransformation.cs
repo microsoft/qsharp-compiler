@@ -705,9 +705,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     var ctlArgsType = this.SharedState.CurrentContext.CreateStructType(false,
                         this.SharedState.QirTupleHeader, this.SharedState.QirArray, this.SharedState.QirTuplePointer);
                     var ctlArgsPointer = builder.BitCast(func.Parameters[1], ctlArgsType.CreatePointerType());
-                    var controlsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(),
-                        ctlArgsPointer, 1u);
-                    var restPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(), ctlArgsPointer, 2u);
+                    var controlsPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, ctlArgsPointer, 1, builder);
+                    var restPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, ctlArgsPointer, 2, builder);
                     var typedRestPointer = builder.BitCast(restPointer, parArgsType.CreatePointerType());
                     var restTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, typedRestPointer);
                     var size = this.SharedState.ComputeSizeForType(ctlArgsType, builder);
@@ -716,12 +715,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         (new ResolvedType[] { ResolvedType.New(QsResolvedTypeKind.MissingType) }).ToImmutableArray()));
                     this.SharedState.ScopeMgr.AddValue(innerArgTuple, dummyTupleType);
                     var typedNewTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
-                    var destControlsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(),
-                        typedNewTuple, 1u);
+                    var destControlsPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, typedNewTuple, 1, builder);
                     var controls = builder.Load(this.SharedState.QirArray, controlsPointer);
                     builder.Store(controls, destControlsPointer);
-                    var destArgsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(),
-                        typedNewTuple, 2u);
+                    var destArgsPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, typedNewTuple, 2, builder);
                     builder.Store(restTuple, destArgsPointer);
                 }
                 else
@@ -729,7 +726,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     innerArgTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, parArgsPointer);
                 }
 
-                var innerCallablePtr = builder.GetStructElementPointer(captureType, capturePointer, 1u);
+                var innerCallablePtr = this.SharedState.GetTupleElementPointer(captureType, capturePointer, 1, builder);
                 var innerCallable = builder.Load(this.SharedState.QirCallable, innerCallablePtr);
                 // Depending on the specialization, we may have to get a different specialization of the callable
                 var specToCall = GetSpecializedInnerCallable(innerCallable, kind, builder);
@@ -779,14 +776,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 capTypeList);
             var cap = this.SharedState.CreateTupleForType(capType);
             var capture = this.SharedState.CurrentBuilder.BitCast(cap, capType.CreatePointerType());
-            var callablePointer = this.SharedState.CurrentBuilder.GetStructElementPointer(capType, capture, (uint)1);
+            var callablePointer = this.SharedState.GetTupleElementPointer(capType, capture, 1);
             var innerCallable = this.EvaluateSubexpression(method);
             this.SharedState.CurrentBuilder.Store(innerCallable, callablePointer);
             this.SharedState.ScopeMgr.RemovePendingValue(innerCallable);
             //AddRef(method.ResolvedType, innerCallable);
             for (int n = 0; n < caps.Count; n++)
             {
-                var item = this.SharedState.CurrentBuilder.GetStructElementPointer(capType, capture, (uint)n + 2);
+                var item = this.SharedState.GetTupleElementPointer(capType, capture, n + 2);
                 this.SharedState.CurrentBuilder.Store(caps[n].Item1, item);
                 this.SharedState.AddRef(caps[n].Item1);
             }
@@ -2030,8 +2027,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             for (int i = 0; i < vs.Length; i++)
             {
                 var itemValue = this.EvaluateSubexpression(vs[i]);
-                var itemPointer = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, 
-                    (uint)i + 1);
+                var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                 this.SharedState.CurrentBuilder.Store(itemValue, itemPointer);
             }
 
