@@ -27,5 +27,5 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: ""
           MERGE_METHOD_LABEL_REQUIRED: true
-          MERGE_METHOD_LABELS: automerge=merge, autosquash=squash
-          MERGE_REMOVE_LABELS: automerge, autosquash
+          MERGE_METHOD_LABELS: automerge=merge,autosquash=squash
+          MERGE_REMOVE_LABELS: automerge,autosquash
