@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
@@ -44,18 +43,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             string? bondLocalVariable = null;
             QsQualifiedName? bondGlobalCallable = null;
-            NonNullable<string> compilerLocalVariable = default;
-            SyntaxTree.QsQualifiedName? compilerGlobalCallable = null;
             IdentifierKind kind;
-            if (identifier.TryGetLocalVariable(ref compilerLocalVariable))
+            if (identifier is SyntaxTree.Identifier.LocalVariable compilerLocalVariable)
             {
                 kind = IdentifierKind.LocalVariable;
-                bondLocalVariable = compilerLocalVariable.Value;
+                bondLocalVariable = compilerLocalVariable.Item.Value;
             }
-            else if (identifier.TryGetGlobalCallable(ref compilerGlobalCallable))
+            else if (identifier is SyntaxTree.Identifier.GlobalCallable compilerGlobalCallable)
             {
                 kind = IdentifierKind.GlobalCallable;
-                bondGlobalCallable = compilerGlobalCallable.ToBondSchema();
+                bondGlobalCallable = compilerGlobalCallable.Item.ToBondSchema();
             }
             else if (identifier.IsInvalidIdentifier)
             {
@@ -241,12 +238,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static QsLocalSymbol ToBondSchema(this SyntaxTree.QsLocalSymbol qsLocalSymbol)
         {
             string? bondValidName = null;
-            NonNullable<string> compilerValidName = default;
             QsLocalSymbolKind kind;
-            if (qsLocalSymbol.TryGetValidName(ref compilerValidName))
+            if (qsLocalSymbol is SyntaxTree.QsLocalSymbol.ValidName compilerValidName)
             {
                 kind = QsLocalSymbolKind.ValidName;
-                bondValidName = compilerValidName.Value;
+                bondValidName = compilerValidName.Item.Value;
             }
             else if (qsLocalSymbol.IsInvalidName)
             {
@@ -285,16 +281,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static QsNamespaceElement ToBondSchema(this SyntaxTree.QsNamespaceElement qsNamespaceElement)
         {
+            QsCallable? bondQsCallable = null;
+            QsCustomType? bondQsCustomType = null;
             QsNamespaceElementKind kind;
-            SyntaxTree.QsCallable? qsCallable = null;
-            SyntaxTree.QsCustomType? qsCustomType = null;
-            if (qsNamespaceElement.TryGetCallable(ref qsCallable))
+            if (qsNamespaceElement is SyntaxTree.QsNamespaceElement.QsCallable compilerQsCallable)
             {
                 kind = QsNamespaceElementKind.QsCallable;
+                bondQsCallable = compilerQsCallable.Item.ToBondSchema();
             }
-            else if (qsNamespaceElement.TryGetCustomType(ref qsCustomType))
+            else if (qsNamespaceElement is SyntaxTree.QsNamespaceElement.QsCustomType compilerQsCustomType)
             {
                 kind = QsNamespaceElementKind.QsCustomType;
+                bondQsCustomType = compilerQsCustomType.Item.ToBondSchema();
             }
             else
             {
@@ -304,8 +302,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             var bondQsNamespaceElement = new QsNamespaceElement
             {
                 Kind = kind,
-                Callable = qsCallable?.ToBondSchema(),
-                CustomType = qsCustomType?.ToBondSchema()
+                Callable = bondQsCallable,
+                CustomType = bondQsCustomType
             };
 
             return bondQsNamespaceElement;
@@ -412,59 +410,70 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static QsStatementKindComposition ToBondSchema(this SyntaxTree.QsStatementKind qsStatementKind)
         {
-            SyntaxTree.TypedExpression? compilerTypedExpression = null;
-            SyntaxTree.QsBinding<SyntaxTree.TypedExpression>? compilerVariableDeclaration = null;
-            SyntaxTree.QsValueUpdate? compilerValueUpdate = null;
-            SyntaxTree.QsConditionalStatement? compilerConditionalStatement = null;
-            SyntaxTree.QsForStatement? compilerForStatement = null;
-            SyntaxTree.QsWhileStatement? compilerWhileStatement = null;
-            SyntaxTree.QsRepeatStatement? compilerRepeatStatement = null;
-            SyntaxTree.QsConjugation? compilerConjugation = null;
-            SyntaxTree.QsQubitScope? compilerQubitScope = null;
+            TypedExpression? bondTypedExpression = null;
+            QsBinding<TypedExpression>? bondVariableDeclaration = null;
+            QsValueUpdate? bondValueUpdate = null;
+            QsConditionalStatement? bondConditionalStatement = null;
+            QsForStatement? bondForStatement = null;
+            QsWhileStatement? bondWhileStatement = null;
+            QsRepeatStatement? bondRepeatStatement = null;
+            QsConjugation? bondConjugation = null;
+            QsQubitScope? bondQubitScope = null;
             QsStatementKind kind;
-            if (qsStatementKind.TryGetExpressionStatement(ref compilerTypedExpression))
+            if (qsStatementKind is SyntaxTree.QsStatementKind.QsExpressionStatement compilerExpressionStatement)
             {
                 kind = QsStatementKind.QsExpressionStatement;
+                bondTypedExpression = compilerExpressionStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetReturnStatement(ref compilerTypedExpression))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsReturnStatement compilerReturnStatement)
             {
                 kind = QsStatementKind.QsReturnStatement;
+                bondTypedExpression = compilerReturnStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetFailStatement(ref compilerTypedExpression))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsFailStatement compilerFailStatement)
             {
                 kind = QsStatementKind.QsFailStatement;
+                bondTypedExpression = compilerFailStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetVariableDeclaration(ref compilerVariableDeclaration))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsVariableDeclaration compilerVariableDeclaration)
             {
                 kind = QsStatementKind.QsVariableDeclaration;
+                bondVariableDeclaration = compilerVariableDeclaration.Item.ToBondSchemaGeneric(typeTranslator: ToBondSchema);
             }
-            else if (qsStatementKind.TryGetValueUpdate(ref compilerValueUpdate))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsValueUpdate compilerValueUpdate)
             {
                 kind = QsStatementKind.QsValueUpdate;
+                bondValueUpdate = compilerValueUpdate.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetConditionalStatement(ref compilerConditionalStatement))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsConditionalStatement compilerConditionalStatement)
             {
                 kind = QsStatementKind.QsConditionalStatement;
+                bondConditionalStatement = compilerConditionalStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetForStatement(ref compilerForStatement))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsForStatement compilerForStatement)
             {
                 kind = QsStatementKind.QsForStatement;
+                bondForStatement = compilerForStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetWhileStatement(ref compilerWhileStatement))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsWhileStatement compilerWhileStatement)
             {
                 kind = QsStatementKind.QsWhileStatement;
+                bondWhileStatement = compilerWhileStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetRepeatStatement(ref compilerRepeatStatement))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsRepeatStatement compilerRepeatStatement)
             {
                 kind = QsStatementKind.QsRepeatStatement;
+                bondRepeatStatement = compilerRepeatStatement.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetConjugation(ref compilerConjugation))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsConjugation compilerConjugation)
             {
                 kind = QsStatementKind.QsConjugation;
+                bondConjugation = compilerConjugation.Item.ToBondSchema();
             }
-            else if (qsStatementKind.TryGetQubitScope(ref compilerQubitScope))
+            else if (qsStatementKind is SyntaxTree.QsStatementKind.QsQubitScope compilerQubitScope)
             {
                 kind = QsStatementKind.QsQubitScope;
+                bondQubitScope = compilerQubitScope.Item.ToBondSchema();
             }
             else if (qsStatementKind.IsEmptyStatement)
             {
@@ -478,15 +487,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return new QsStatementKindComposition
             {
                 Kind = kind,
-                TypedExpression = compilerTypedExpression?.ToBondSchema(),
-                VariableDeclaration = compilerVariableDeclaration?.ToBondSchemaGeneric(typeTranslator: ToBondSchema),
-                ValueUpdate = compilerValueUpdate?.ToBondSchema(),
-                ConditionalStatement = compilerConditionalStatement?.ToBondSchema(),
-                ForStatement = compilerForStatement?.ToBondSchema(),
-                WhileStatement = compilerWhileStatement?.ToBondSchema(),
-                RepeatStatement = compilerRepeatStatement?.ToBondSchema(),
-                Conjugation = compilerConjugation?.ToBondSchema(),
-                QubitScope = compilerQubitScope?.ToBondSchema()
+                TypedExpression = bondTypedExpression,
+                VariableDeclaration = bondVariableDeclaration,
+                ValueUpdate = bondValueUpdate,
+                ConditionalStatement = bondConditionalStatement,
+                ForStatement = bondForStatement,
+                WhileStatement = bondWhileStatement,
+                RepeatStatement = bondRepeatStatement,
+                Conjugation = bondConjugation,
+                QubitScope = bondQubitScope
             };
         }
 
@@ -516,16 +525,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static QsTypeItem ToBondSchema(this SyntaxTree.QsTypeItem qsTypeItem)
         {
-            SyntaxTree.ResolvedType? compilerAnonymous = null;
-            SyntaxTree.LocalVariableDeclaration<NonNullable<string>>? compilerNamed = null;
+            ResolvedType? bondAnonymous = null;
+            LocalVariableDeclaration<string>? bondNamed = null;
             QsTypeItemKind kind;
-            if (qsTypeItem.TryGetAnonymous(ref compilerAnonymous))
+            if (qsTypeItem is SyntaxTree.QsTypeItem.Anonymous compilerAnonymous)
             {
                 kind = QsTypeItemKind.Anonymous;
+                bondAnonymous = compilerAnonymous.Item.ToBondSchema();
             }
-            else if (qsTypeItem.TryGetNamed(ref compilerNamed))
+            else if (qsTypeItem is SyntaxTree.QsTypeItem.Named compilerNamed)
             {
                 kind = QsTypeItemKind.Named;
+                bondNamed = compilerNamed.Item.ToBondSchemaGeneric(typeTranslator: ToBondSchema);
             }
             else
             {
@@ -535,8 +546,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return new QsTypeItem
             {
                 Kind = kind,
-                Anonymous = compilerAnonymous?.ToBondSchema(),
-                Named = compilerNamed?.ToBondSchemaGeneric(typeTranslator: ToBondSchema)
+                Anonymous = bondAnonymous,
+                Named = bondNamed
             };
         }
 
@@ -603,16 +614,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SpecializationImplementation ToBondSchema(this SyntaxTree.SpecializationImplementation specializationImplementation)
         {
-            SyntaxTokens.QsGeneratorDirective? compilerGenerated = null;
-            Tuple<SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>>, SyntaxTree.QsScope>? compilerProvided = null;
+            QsGeneratorDirective? bondGenerated = null;
+            SpecializationImplementationKindProvided? bondProvided = null;
             SpecializationImplementationKind kind;
-            if (specializationImplementation.TryGetGenerated(ref compilerGenerated))
+            if (specializationImplementation is SyntaxTree.SpecializationImplementation.Generated compilerGenerated)
             {
                 kind = SpecializationImplementationKind.Generated;
+                bondGenerated = compilerGenerated.Item.ToBondSchema();
             }
-            else if (specializationImplementation.TryGetProvided(ref compilerProvided))
+            else if (specializationImplementation is SyntaxTree.SpecializationImplementation.Provided compilerProvided)
             {
                 kind = SpecializationImplementationKind.Provided;
+                bondProvided = ToSpecializationImplementationKindProvided(compilerProvided.Item1, compilerProvided.Item2);
             }
             else
             {
@@ -627,8 +640,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return new SpecializationImplementation
             {
                 Kind = kind,
-                Provided = compilerProvided?.ToSpecializationImplementationKindProvided(),
-                Generated = compilerGenerated?.ToBondSchema()
+                Provided = bondProvided,
+                Generated = bondGenerated
             };
         }
 
@@ -638,18 +651,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             string? bondVariableName = null;
             List<SymbolTuple>? bondVariableNameTuple = null;
-            NonNullable<string> compilerVariableName = default;
-            ImmutableArray<SyntaxTree.SymbolTuple> compilerVariableNameTuple = default;
             SymbolTupleKind kind;
-            if (symbolTuple.TryGetVariableName(ref compilerVariableName))
+            if (symbolTuple is SyntaxTree.SymbolTuple.VariableName compilerVariableName)
             {
                 kind = SymbolTupleKind.VariableName;
-                bondVariableName = compilerVariableName.Value;
+                bondVariableName = compilerVariableName.Item.Value;
             }
-            else if (symbolTuple.TryGetVariableNameTuple(ref compilerVariableNameTuple))
+            else if (symbolTuple is SyntaxTree.SymbolTuple.VariableNameTuple compilerVariableNameTuple)
             {
                 kind = SymbolTupleKind.VariableNameTuple;
-                bondVariableNameTuple = compilerVariableNameTuple.Select(v => v.ToBondSchema()).ToList();
+                bondVariableNameTuple = compilerVariableNameTuple.Item.Select(v => v.ToBondSchema()).ToList();
             }
             else
             {
@@ -697,20 +708,29 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             where TBond : class
             where TCompiler : class
         {
-            SyntaxTokens.OpProperty? compilerSimpleSet = null;
-            Tuple<TCompiler, TCompiler>? compilerSetOperation = null;
+            OpProperty? bondSimpleSet = null;
+            CharacteristicsKindSetOperation<TBond>? bondSetOperation = null;
             CharacteristicsKind kind;
-            if (characteristicsKind.TryGetSimpleSet(ref compilerSimpleSet))
+            if (characteristicsKind is SyntaxTokens.CharacteristicsKind<TCompiler>.SimpleSet compilerSimpleSet)
             {
                 kind = CharacteristicsKind.SimpleSet;
+                bondSimpleSet = compilerSimpleSet.Item.ToBondSchema();
             }
-            else if (characteristicsKind.TryGetIntersection(ref compilerSetOperation))
+            else if (characteristicsKind is SyntaxTokens.CharacteristicsKind<TCompiler>.Intersection compilerIntersection)
             {
                 kind = CharacteristicsKind.Intersection;
+                bondSetOperation = ToCharacteristicsKindSetOperationGeneric(
+                    set1: compilerIntersection.Item1,
+                    set2: compilerIntersection.Item2,
+                    typeTranslator: typeTranslator);
             }
-            else if (characteristicsKind.TryGetUnion(ref compilerSetOperation))
+            else if (characteristicsKind is SyntaxTokens.CharacteristicsKind<TCompiler>.Union compilerUnion)
             {
                 kind = CharacteristicsKind.Union;
+                bondSetOperation = ToCharacteristicsKindSetOperationGeneric(
+                    set1: compilerUnion.Item1,
+                    set2: compilerUnion.Item2,
+                    typeTranslator: typeTranslator);
             }
             else
             {
@@ -725,8 +745,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return new CharacteristicsKindComposition<TBond>
             {
                 Kind = kind,
-                SimpleSet = compilerSimpleSet?.ToBondSchema(),
-                SetOperation = compilerSetOperation?.ToCharacteristicsKindSetOperationGeneric(typeTranslator: typeTranslator)
+                SimpleSet = bondSimpleSet,
+                SetOperation = bondSetOperation
             };
         }
 
@@ -776,195 +796,315 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             ArraySegment<byte> bondBigIntLiteral = null;
             double? bondDoubleLiteral = null;
             bool? bondBoolLiteral = null;
+            QsExpressionKindStringLiteral<TBondExpression>? bondStringLiteral = null;
+            QsResult? bondResultLiteral = null;
+            QsPauli? bondPauliLiteral = null;
+            QsExpressionKindNamedItem<TBondExpression, TBondSymbol>? bondNamedItem = null;
+            QsExpressionKindNewArray<TBondExpression, TBondType>? bondNewArray = null;
+            TBondExpression? bondExpression = null;
+            QsExpressionKindExpressionDouble<TBondExpression>? bondExpressionDouble = null;
+            QsExpressionKindExpressionTriple<TBondExpression>? bondExpressionTriple = null;
             List<TBondExpression>? bondExpressionArray = null;
-            Tuple<TCompilerSymbol, QsNullable<ImmutableArray<TCompilerType>>>? compilerIdentifier = null;
-            Int64 compilerIntLiteral = default;
-            BigInteger compilerBigIntLiteral = default;
-            double compilerDoubleLiteral = default;
-            bool compilerBoolLiteral = default;
-            Tuple<NonNullable<string>, ImmutableArray<TCompilerExpression>>? compilerStringLiteral = null;
-            SyntaxTokens.QsResult? compilerResultLiteral = null;
-            SyntaxTokens.QsPauli? compilerPauliLiteral = null;
-            Tuple<TCompilerType, TCompilerExpression>? compilerNewArray = null;
-            Tuple<TCompilerExpression, TCompilerSymbol>? compilerNamedItem = null;
-            TCompilerExpression? compilerExpression = null;
-            Tuple<TCompilerExpression, TCompilerExpression>? compilerExpressionDouble = null;
-            Tuple<TCompilerExpression, TCompilerExpression, TCompilerExpression>? compilerExpressionTriple = null;
-            ImmutableArray<TCompilerExpression> compilerExpressionArray = default;
+            QsExpressionKindIdentifier<TBondSymbol, TBondType>? bondIdentifier = null;
             QsExpressionKind kind;
-            if (qsExpressionKind.TryGetIdentifier(ref compilerIdentifier))
+            if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.Identifier compilerIdentifier)
             {
                 kind = QsExpressionKind.Identifier;
+                bondIdentifier = ToQsExpressionKindIdentifierGeneric(
+                    symbol: compilerIdentifier.Item1,
+                    types: compilerIdentifier.Item2,
+                    symbolTranslator: symbolTranslator,
+                    typeTranslator: typeTranslator);
             }
-            else if (qsExpressionKind.TryGetValueTuple(ref compilerExpressionArray))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ValueTuple compilerValueTuple)
             {
                 kind = QsExpressionKind.ValueTuple;
-                bondExpressionArray = compilerExpressionArray.Select(v => expressionTranslator(v)).ToList();
+                bondExpressionArray = compilerValueTuple.Item.Select(v => expressionTranslator(v)).ToList();
             }
-            else if (qsExpressionKind.TryGetIntLiteral(ref compilerIntLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.IntLiteral compilerIntLiteral)
             {
                 kind = QsExpressionKind.IntLiteral;
-                bondIntLiteral = compilerIntLiteral;
+                bondIntLiteral = compilerIntLiteral.Item;
             }
-            else if (qsExpressionKind.TryGetBigIntLiteral(ref compilerBigIntLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BigIntLiteral compilerBigIntLiteral)
             {
                 kind = QsExpressionKind.BigIntLiteral;
-                bondBigIntLiteral = compilerBigIntLiteral.ToByteArray();
+                bondBigIntLiteral = compilerBigIntLiteral.Item.ToByteArray();
             }
-            else if (qsExpressionKind.TryGetDoubleLiteral(ref compilerDoubleLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.DoubleLiteral compilerDoubleLiteral)
             {
                 kind = QsExpressionKind.DoubleLiteral;
-                bondDoubleLiteral = compilerDoubleLiteral;
+                bondDoubleLiteral = compilerDoubleLiteral.Item;
             }
-            else if (qsExpressionKind.TryGetBoolLiteral(ref compilerBoolLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BoolLiteral compilerBoolLiteral)
             {
                 kind = QsExpressionKind.BoolLiteral;
-                bondBoolLiteral = compilerBoolLiteral;
+                bondBoolLiteral = compilerBoolLiteral.Item;
             }
-            else if (qsExpressionKind.TryGetStringLiteral(ref compilerStringLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.StringLiteral compilerStringLiteral)
             {
                 kind = QsExpressionKind.StringLiteral;
+                bondStringLiteral = ToQsExpressionKindStringLiteralGeneric(
+                    stringLiteral: compilerStringLiteral.Item1,
+                    expressions: compilerStringLiteral.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetResultLiteral(ref compilerResultLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ResultLiteral compilerResultLiteral)
             {
                 kind = QsExpressionKind.ResultLiteral;
+                bondResultLiteral = compilerResultLiteral.Item.ToBondSchema();
             }
-            else if (qsExpressionKind.TryGetPauliLiteral(ref compilerPauliLiteral))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.PauliLiteral compilerPauliLiteral)
             {
                 kind = QsExpressionKind.PauliLiteral;
+                bondPauliLiteral = compilerPauliLiteral.Item.ToBondSchema();
             }
-            else if (qsExpressionKind.TryGetRangeLiteral(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.RangeLiteral compilerRangeLiteral)
             {
                 kind = QsExpressionKind.RangeLiteral;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerRangeLiteral.Item1,
+                    expression2: compilerRangeLiteral.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetNewArray(ref compilerNewArray))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.NewArray compilerNewArray)
             {
                 kind = QsExpressionKind.NewArray;
+                bondNewArray = ToQsExpressionKindNewArrayGeneric(
+                    type: compilerNewArray.Item1,
+                    expression: compilerNewArray.Item2,
+                    expressionTranslator: expressionTranslator,
+                    typeTranslator: typeTranslator);
             }
-            else if (qsExpressionKind.TryGetValueArray(ref compilerExpressionArray))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ValueArray compilerValueArray)
             {
                 kind = QsExpressionKind.ValueArray;
-                bondExpressionArray = compilerExpressionArray.Select(e => expressionTranslator(e)).ToList();
+                bondExpressionArray = compilerValueArray.Item.Select(e => expressionTranslator(e)).ToList();
             }
-            else if (qsExpressionKind.TryGetArrayItem(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ArrayItem compilerArrayItem)
             {
                 kind = QsExpressionKind.ArrayItem;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerArrayItem.Item1,
+                    expression2: compilerArrayItem.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetNamedItem(ref compilerNamedItem))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.NamedItem compilerNamedItem)
             {
                 kind = QsExpressionKind.NamedItem;
+                bondNamedItem = ToQsExpressionKindNamedItemGeneric(
+                    expression: compilerNamedItem.Item1,
+                    symbol: compilerNamedItem.Item2,
+                    expressionTranslator: expressionTranslator,
+                    symbolTranslator: symbolTranslator);
             }
-            else if (qsExpressionKind.TryGetNEG(ref compilerExpression!))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.NEG compilerNEG)
             {
                 kind = QsExpressionKind.NEG;
+                bondExpression = expressionTranslator(compilerNEG.Item);
             }
-            else if (qsExpressionKind.TryGetNOT(ref compilerExpression))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.NOT compilerNOT)
             {
                 kind = QsExpressionKind.NOT;
+                bondExpression = expressionTranslator(compilerNOT.Item);
             }
-            else if (qsExpressionKind.TryGetBNOT(ref compilerExpression))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BNOT compilerBNOT)
             {
                 kind = QsExpressionKind.BNOT;
+                bondExpression = expressionTranslator(compilerBNOT.Item);
             }
-            else if (qsExpressionKind.TryGetADD(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ADD compilerADD)
             {
                 kind = QsExpressionKind.ADD;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerADD.Item1,
+                    expression2: compilerADD.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetSUB(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.SUB compilerSUB)
             {
                 kind = QsExpressionKind.SUB;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerSUB.Item1,
+                    expression2: compilerSUB.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetMUL(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.MUL compilerMUL)
             {
                 kind = QsExpressionKind.MUL;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerMUL.Item1,
+                    expression2: compilerMUL.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetDIV(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.DIV compilerDIV)
             {
                 kind = QsExpressionKind.DIV;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerDIV.Item1,
+                    expression2: compilerDIV.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetMOD(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.MOD compilerMOD)
             {
                 kind = QsExpressionKind.MOD;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerMOD.Item1,
+                    expression2: compilerMOD.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetPOW(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.POW compilerPOW)
             {
                 kind = QsExpressionKind.POW;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerPOW.Item1,
+                    expression2: compilerPOW.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetEQ(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.EQ compilerEQ)
             {
                 kind = QsExpressionKind.EQ;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerEQ.Item1,
+                    expression2: compilerEQ.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetNEQ(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.NEQ compilerNEQ)
             {
                 kind = QsExpressionKind.NEQ;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerNEQ.Item1,
+                    expression2: compilerNEQ.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetLT(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.LT compilerLT)
             {
                 kind = QsExpressionKind.LT;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerLT.Item1,
+                    expression2: compilerLT.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetLTE(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.LTE compilerLTE)
             {
                 kind = QsExpressionKind.LTE;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerLTE.Item1,
+                    expression2: compilerLTE.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetGT(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.GT compilerGT)
             {
                 kind = QsExpressionKind.GT;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerGT.Item1,
+                    expression2: compilerGT.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetGTE(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.GTE compilerGTE)
             {
                 kind = QsExpressionKind.GTE;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerGTE.Item1,
+                    expression2: compilerGTE.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetAND(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.AND compilerAND)
             {
                 kind = QsExpressionKind.AND;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerAND.Item1,
+                    expression2: compilerAND.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetOR(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.OR compilerOR)
             {
                 kind = QsExpressionKind.OR;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerOR.Item1,
+                    expression2: compilerOR.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetBOR(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BOR compilerBOR)
             {
                 kind = QsExpressionKind.BOR;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerBOR.Item1,
+                    expression2: compilerBOR.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetBAND(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BAND compilerBAND)
             {
                 kind = QsExpressionKind.BAND;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerBAND.Item1,
+                    expression2: compilerBAND.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetBXOR(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.BXOR compilerBXOR)
             {
                 kind = QsExpressionKind.BXOR;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerBXOR.Item1,
+                    expression2: compilerBXOR.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetLSHIFT(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.LSHIFT compilerLSHIFT)
             {
                 kind = QsExpressionKind.LSHIFT;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerLSHIFT.Item1,
+                    expression2: compilerLSHIFT.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetRSHIFT(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.RSHIFT compilerRSHIFT)
             {
                 kind = QsExpressionKind.RSHIFT;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerRSHIFT.Item1,
+                    expression2: compilerRSHIFT.Item2,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetCONDITIONAL(ref compilerExpressionTriple))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.CONDITIONAL compilerConditional)
             {
                 kind = QsExpressionKind.CONDITIONAL;
+                bondExpressionTriple = ToQsExpressionKindExpressionTripleGeneric(
+                    expression1: compilerConditional.Item1,
+                    expression2: compilerConditional.Item2,
+                    expression3: compilerConditional.Item3,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetCopyAndUpdate(ref compilerExpressionTriple))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.CopyAndUpdate compilerCopyAndUpdate)
             {
                 kind = QsExpressionKind.CopyAndUpdate;
+                bondExpressionTriple = ToQsExpressionKindExpressionTripleGeneric(
+                    expression1: compilerCopyAndUpdate.Item1,
+                    expression2: compilerCopyAndUpdate.Item2,
+                    expression3: compilerCopyAndUpdate.Item3,
+                    typeTranslator: expressionTranslator);
             }
-            else if (qsExpressionKind.TryGetUnwrapApplication(ref compilerExpression))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.UnwrapApplication compilerUnwrapApplication)
             {
                 kind = QsExpressionKind.UnwrapApplication;
+                bondExpression = expressionTranslator(compilerUnwrapApplication.Item);
             }
-            else if (qsExpressionKind.TryGetAdjointApplication(ref compilerExpression))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.AdjointApplication compilerAdjointApplication)
             {
                 kind = QsExpressionKind.AdjointApplication;
+                bondExpression = expressionTranslator(compilerAdjointApplication.Item);
             }
-            else if (qsExpressionKind.TryGetControlledApplication(ref compilerExpression))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ControlledApplication compilerControlledApplication)
             {
                 kind = QsExpressionKind.ControlledApplication;
+                bondExpression = expressionTranslator(compilerControlledApplication.Item);
             }
-            else if (qsExpressionKind.TryGetCallLikeExpression(ref compilerExpressionDouble))
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.CallLikeExpression compilerCallLikeExpression)
             {
                 kind = QsExpressionKind.CallLikeExpression;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    expression1: compilerCallLikeExpression.Item1,
+                    expression2: compilerCallLikeExpression.Item2,
+                    typeTranslator: expressionTranslator);
             }
             else
             {
@@ -980,30 +1120,19 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return new QsExpressionKindComposition<TBondExpression, TBondSymbol, TBondType>
             {
                 Kind = kind,
-                Identifier = compilerIdentifier?.ToQsExpressionKindIdentifierGeneric(
-                    symbolTranslator: symbolTranslator,
-                    typeTranslator: typeTranslator),
+                Identifier = bondIdentifier,
                 IntLiteral = bondIntLiteral,
                 BigIntLiteral = bondBigIntLiteral,
                 DoubleLiteral = bondDoubleLiteral,
                 BoolLiteral = bondBoolLiteral,
-                StringLiteral = compilerStringLiteral?.ToQsExpressionKindStringLiteralGeneric(
-                    typeTranslator: expressionTranslator),
-                ResultLiteral = compilerResultLiteral?.ToBondSchema(),
-                PauliLiteral = compilerPauliLiteral?.ToBondSchema(),
-                NewArray = compilerNewArray?.ToQsExpressionKindNewArrayGeneric(
-                    expressionTranslator: expressionTranslator,
-                    typeTranslator: typeTranslator),
-                NamedItem = compilerNamedItem?.ToQsExpressionKindNamedItemGeneric(
-                    expressionTranslator: expressionTranslator,
-                    symbolTranslator: symbolTranslator),
-                Expression = compilerExpression != null ?
-                    expressionTranslator(compilerExpression!) :
-                    null!,
-                ExpressionDouble = compilerExpressionDouble?.ToQsExpressionKindExpressionDoubleGeneric(
-                    typeTranslator: expressionTranslator),
-                ExpressionTriple = compilerExpressionTriple?.ToQsExpressionKindExpressionTripleGeneric(
-                    typeTranslator: expressionTranslator),
+                StringLiteral = bondStringLiteral,
+                ResultLiteral = bondResultLiteral,
+                PauliLiteral = bondPauliLiteral,
+                NewArray = bondNewArray,
+                NamedItem = bondNamedItem,
+                Expression = bondExpression!,
+                ExpressionDouble = bondExpressionDouble,
+                ExpressionTriple = bondExpressionTriple,
                 ExpressionArray = bondExpressionArray
             };
         }
@@ -1023,18 +1152,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             TBondExpression? bondQubitRegisterAllocation = null;
             List<TBondInitializer>? bondQubitTupleAllocation = null;
-            TCompilerExpression? compilerQubitRegisterAllocation = null;
-            ImmutableArray<TCompilerInitializer> compilerQubitTupleAllocation = default;
             QsInitializerKind kind;
-            if (qsInitializerKind.TryGetQubitRegisterAllocation(ref compilerQubitRegisterAllocation!))
+            if (qsInitializerKind is SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.QubitRegisterAllocation compilerQubitRegisterAllocation)
             {
                 kind = QsInitializerKind.QubitRegisterAllocation;
-                bondQubitRegisterAllocation = expressionTranslator(compilerQubitRegisterAllocation);
+                bondQubitRegisterAllocation = expressionTranslator(compilerQubitRegisterAllocation.Item);
             }
-            else if (qsInitializerKind.TryGetQubitTupleAllocation(ref compilerQubitTupleAllocation))
+            else if (qsInitializerKind is SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.QubitTupleAllocation compilerQubitTupleAllocation)
             {
                 kind = QsInitializerKind.QubitTupleAllocation;
-                bondQubitTupleAllocation = compilerQubitTupleAllocation.Select(q => initializerTranslator(q)).ToList();
+                bondQubitTupleAllocation = compilerQubitTupleAllocation.Item.Select(q => initializerTranslator(q)).ToList();
             }
             else
             {
@@ -1062,18 +1189,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             TBond? bondItem = null;
             List<QsTuple<TBond>>? bondItems = null;
-            TCompiler? compilerItem = null;
-            ImmutableArray<SyntaxTokens.QsTuple<TCompiler>> compilerItems = default;
             QsTupleKind kind;
-            if (qsTuple.TryGetQsTupleItem(ref compilerItem!))
+            if (qsTuple is SyntaxTokens.QsTuple<TCompiler>.QsTupleItem compilerTupleItem)
             {
                 kind = QsTupleKind.QsTupleItem;
-                bondItem = typeTranslator(compilerItem);
+                bondItem = typeTranslator(compilerTupleItem.Item);
             }
-            else if (qsTuple.TryGetQsTuple(ref compilerItems))
+            else if (qsTuple is SyntaxTokens.QsTuple<TCompiler>.QsTuple compilerTuple)
             {
                 kind = QsTupleKind.QsTuple;
-                bondItems = compilerItems.Select(i => i.ToBondSchemaGeneric(typeTranslator)).ToList();
+                bondItems = compilerTuple.Item.Select(i => i.ToBondSchemaGeneric(typeTranslator)).ToList();
             }
             else
             {
@@ -1112,43 +1237,48 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             where TCompilerCharacteristics : class
         {
             TBondType? bondArrayType = null;
+            QsTypeKindFunction<TBondType>? bondFunction = null;
+            QsTypeKindOperation<TBondType, TBondCharacteristics>? bondOperation = null;
             List<TBondType>? bondTupleType = null;
             TBondParam? bondTypeParameter = null;
             TBondUdt? bondUserDefinedType = null;
-            TCompilerType? compilerArrayType = null;
-            Tuple<TCompilerType, TCompilerType>? compilerFunction = null;
-            Tuple<Tuple<TCompilerType, TCompilerType>, TCompilerCharacteristics>? compilerOperation = null;
-            ImmutableArray<TCompilerType> compilerTupleType = default;
-            TCompilerParam? compilerTyperParameter = null;
-            TCompilerUdt? compilerUdtType = null;
             QsTypeKind kind;
-            if (qsTypeKind.TryGetArrayType(ref compilerArrayType!))
+            if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.ArrayType compilerArrayType)
             {
                 kind = QsTypeKind.ArrayType;
-                bondArrayType = dataTranslator(compilerArrayType);
+                bondArrayType = dataTranslator(compilerArrayType.Item);
             }
-            else if (qsTypeKind.TryGetFunction(ref compilerFunction))
+            else if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Function compilerFunction)
             {
                 kind = QsTypeKind.Function;
+                bondFunction = ToQsTypeKindFunctionGeneric(
+                    type1: compilerFunction.Item1,
+                    type2: compilerFunction.Item2,
+                    typeTranslator: dataTranslator);
             }
-            else if (qsTypeKind.TryGetOperation(ref compilerOperation))
+            else if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.Operation compilerOperation)
             {
                 kind = QsTypeKind.Operation;
+                bondOperation = ToQsTypeKindOperationGeneric(
+                    dataTuple: compilerOperation.Item1,
+                    charateristics: compilerOperation.Item2,
+                    dataTranslator: dataTranslator,
+                    characteristicsTranslator: characteristicsTranslator);
             }
-            else if (qsTypeKind.TryGetTupleType(ref compilerTupleType))
+            else if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.TupleType compilerTupleType)
             {
                 kind = QsTypeKind.TupleType;
-                bondTupleType = compilerTupleType.Select(t => dataTranslator(t)).ToList();
+                bondTupleType = compilerTupleType.Item.Select(t => dataTranslator(t)).ToList();
             }
-            else if (qsTypeKind.TryGetTypeParameter(ref compilerTyperParameter!))
+            else if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.TypeParameter compilerTypeParameter)
             {
                 kind = QsTypeKind.TypeParameter;
-                bondTypeParameter = paramTranslator(compilerTyperParameter);
+                bondTypeParameter = paramTranslator(compilerTypeParameter.Item);
             }
-            else if (qsTypeKind.TryGetUserDefinedType(ref compilerUdtType!))
+            else if (qsTypeKind is SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.UserDefinedType compilerUdt)
             {
                 kind = QsTypeKind.UserDefinedType;
-                bondUserDefinedType = udtTranslator(compilerUdtType);
+                bondUserDefinedType = udtTranslator(compilerUdt.Item);
             }
             else
             {
@@ -1174,10 +1304,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 Kind = kind,
                 ArrayType = bondArrayType!,
-                Function = compilerFunction?.ToQsTypeKindFunctionGeneric(typeTranslator: dataTranslator),
-                Operation = compilerOperation?.ToQsTypeKindOperationGeneric(
-                    dataTranslator: dataTranslator,
-                    characteristicsTranslator: characteristicsTranslator),
+                Function = bondFunction,
+                Operation = bondOperation,
                 TupleType = bondTupleType,
                 TypeParameter = bondTypeParameter!,
                 UserDefinedType = bondUserDefinedType!
@@ -1185,12 +1313,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         private static CharacteristicsKindSetOperation<TBond> ToCharacteristicsKindSetOperationGeneric<TBond, TCompiler>(
-            this Tuple<TCompiler, TCompiler> compilerSetOperation,
+            TCompiler set1,
+            TCompiler set2,
             Func<TCompiler, TBond> typeTranslator) =>
             new CharacteristicsKindSetOperation<TBond>
             {
-                Set1 = typeTranslator(compilerSetOperation.Item1),
-                Set2 = typeTranslator(compilerSetOperation.Item2)
+                Set1 = typeTranslator(set1),
+                Set2 = typeTranslator(set2)
             };
 
         private static QsConditionalBlock ToQsConditionalBlock(this Tuple<SyntaxTree.TypedExpression, SyntaxTree.QsPositionedBlock> qsConditionalBlock) =>
@@ -1201,22 +1330,25 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
 
         private static QsExpressionKindExpressionDouble<TBond> ToQsExpressionKindExpressionDoubleGeneric<TBond, TCompiler>(
-            this Tuple<TCompiler, TCompiler> expressionDouble,
+            TCompiler expression1,
+            TCompiler expression2,
             Func<TCompiler, TBond> typeTranslator) =>
             new QsExpressionKindExpressionDouble<TBond>
             {
-                Expression1 = typeTranslator(expressionDouble.Item1),
-                Expression2 = typeTranslator(expressionDouble.Item2)
+                Expression1 = typeTranslator(expression1),
+                Expression2 = typeTranslator(expression2)
             };
 
         private static QsExpressionKindExpressionTriple<TBond> ToQsExpressionKindExpressionTripleGeneric<TBond, TCompiler>(
-            this Tuple<TCompiler, TCompiler, TCompiler> compilerExpressionTriple,
+            TCompiler expression1,
+            TCompiler expression2,
+            TCompiler expression3,
             Func<TCompiler, TBond> typeTranslator) =>
             new QsExpressionKindExpressionTriple<TBond>
             {
-                Expression1 = typeTranslator(compilerExpressionTriple.Item1),
-                Expression2 = typeTranslator(compilerExpressionTriple.Item2),
-                Expression3 = typeTranslator(compilerExpressionTriple.Item3)
+                Expression1 = typeTranslator(expression1),
+                Expression2 = typeTranslator(expression2),
+                Expression3 = typeTranslator(expression3)
             };
 
         private static QsExpressionKindIdentifier<TBondSymbol, TBondType> ToQsExpressionKindIdentifierGeneric<
@@ -1224,15 +1356,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             TBondType,
             TCompilerSymbol,
             TCompilerType>(
-                this Tuple<TCompilerSymbol, QsNullable<ImmutableArray<TCompilerType>>> compilerIdentifier,
+                TCompilerSymbol symbol,
+                QsNullable<ImmutableArray<TCompilerType>> types,
                 Func<TCompilerSymbol, TBondSymbol> symbolTranslator,
                 Func<TCompilerType, TBondType> typeTranslator) =>
             new QsExpressionKindIdentifier<TBondSymbol, TBondType>
             {
-                Symbol = symbolTranslator(compilerIdentifier.Item1),
-                Types = compilerIdentifier.Item2.IsNull ?
-                        null :
-                        compilerIdentifier.Item2.Item.Select(t => typeTranslator(t)).ToList()
+                Symbol = symbolTranslator(symbol),
+                Types = types.IsNull ? null : types.Item.Select(t => typeTranslator(t)).ToList()
             };
 
         private static QsExpressionKindNamedItem<TBondExpression, TBondSymbol> ToQsExpressionKindNamedItemGeneric<
@@ -1240,13 +1371,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             TBondSymbol,
             TCompilerExpression,
             TCompilerSymbol>(
-                this Tuple<TCompilerExpression, TCompilerSymbol> compilerNamedItem,
+                TCompilerExpression expression,
+                TCompilerSymbol symbol,
                 Func<TCompilerExpression, TBondExpression> expressionTranslator,
                 Func<TCompilerSymbol, TBondSymbol> symbolTranslator) =>
             new QsExpressionKindNamedItem<TBondExpression, TBondSymbol>
             {
-                Expression = expressionTranslator(compilerNamedItem.Item1),
-                Symbol = symbolTranslator(compilerNamedItem.Item2)
+                Expression = expressionTranslator(expression),
+                Symbol = symbolTranslator(symbol)
             };
 
         private static QsExpressionKindNewArray<TBondExpression, TBondType> ToQsExpressionKindNewArrayGeneric<
@@ -1254,22 +1386,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             TBondType,
             TCompilerExpression,
             TCompilerType>(
-                this Tuple<TCompilerType, TCompilerExpression> compilerNewArray,
+                TCompilerType type,
+                TCompilerExpression expression,
                 Func<TCompilerExpression, TBondExpression> expressionTranslator,
                 Func<TCompilerType, TBondType> typeTranslator) =>
             new QsExpressionKindNewArray<TBondExpression, TBondType>
             {
-                Type = typeTranslator(compilerNewArray.Item1),
-                Expression = expressionTranslator(compilerNewArray.Item2)
+                Type = typeTranslator(type),
+                Expression = expressionTranslator(expression)
             };
 
         private static QsExpressionKindStringLiteral<TBond> ToQsExpressionKindStringLiteralGeneric<TBond, TCompiler>(
-            this Tuple<NonNullable<string>, ImmutableArray<TCompiler>> compilerStringLiteral,
+            NonNullable<string> stringLiteral,
+            ImmutableArray<TCompiler> expressions,
             Func<TCompiler, TBond> typeTranslator) =>
             new QsExpressionKindStringLiteral<TBond>
             {
-                StringLiteral = compilerStringLiteral.Item1.ToBondSchema(),
-                Expressions = compilerStringLiteral.Item2.Select(e => typeTranslator(e)).ToList()
+                StringLiteral = stringLiteral.ToBondSchema(),
+                Expressions = expressions.Select(e => typeTranslator(e)).ToList()
             };
 
         private static QsLoopItem ToQsLoopItem(this Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType> loopItem) =>
@@ -1301,12 +1435,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         private static QsTypeKindFunction<TBond> ToQsTypeKindFunctionGeneric<TBond, TCompiler>(
-            this Tuple<TCompiler, TCompiler> compilerFunction,
+            TCompiler type1,
+            TCompiler type2,
             Func<TCompiler, TBond> typeTranslator) =>
             new QsTypeKindFunction<TBond>
             {
-                Type1 = typeTranslator(compilerFunction.Item1),
-                Type2 = typeTranslator(compilerFunction.Item2)
+                Type1 = typeTranslator(type1),
+                Type2 = typeTranslator(type2)
             };
 
         private static QsTypeKindOperation<TBondType, TBondCharacteristics> ToQsTypeKindOperationGeneric<
@@ -1314,22 +1449,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             TBondCharacteristics,
             TCompilerData,
             TCompilerCharacteristics>(
-                this Tuple<Tuple<TCompilerData, TCompilerData>, TCompilerCharacteristics> compilerOperation,
+                Tuple<TCompilerData, TCompilerData> dataTuple,
+                TCompilerCharacteristics charateristics,
                 Func<TCompilerData, TBondType> dataTranslator,
                 Func<TCompilerCharacteristics, TBondCharacteristics> characteristicsTranslator) =>
             new QsTypeKindOperation<TBondType, TBondCharacteristics>
             {
-                Type1 = dataTranslator(compilerOperation.Item1.Item1),
-                Type2 = dataTranslator(compilerOperation.Item1.Item2),
-                Characteristics = characteristicsTranslator(compilerOperation.Item2)
+                Type1 = dataTranslator(dataTuple.Item1),
+                Type2 = dataTranslator(dataTuple.Item2),
+                Characteristics = characteristicsTranslator(charateristics)
             };
 
         private static SpecializationImplementationKindProvided ToSpecializationImplementationKindProvided(
-            this Tuple<SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>>, SyntaxTree.QsScope> provided) =>
+            SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> tuple,
+            SyntaxTree.QsScope implementation) =>
             new SpecializationImplementationKindProvided
             {
-                Tuple = provided.Item1.ToBondSchema(),
-                Implementation = provided.Item2.ToBondSchema()
+                Tuple = tuple.ToBondSchema(),
+                Implementation = implementation.ToBondSchema()
             };
 
         private static TypedArgument ToTypedArgument(
