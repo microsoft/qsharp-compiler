@@ -770,7 +770,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
             openInEditor ??= _ => null;
-            
+
             return this.load.QueueForExecutionAsync(() =>
             {
                 if (!projectLoader(projectFile, out var info))
@@ -787,8 +787,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.temporaryProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath),
                     this.MigrateToProject(openInEditor),
                     this.MigrateToDefaultManager(openInEditor),
-                    info)
-                .ContinueWith(_ => this.ProjectReferenceChangedOnDiskChangeAsync(projectFile), TaskScheduler.Default);
+                    info);
             });
         }
 
