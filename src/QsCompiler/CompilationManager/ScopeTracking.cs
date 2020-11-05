@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -107,25 +108,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Computes the location of the string delimiters within a given text.
         /// </summary>
-        private static IEnumerable<int> ComputeStringDelimiters(string text, bool isContinuation)
+        private static IEnumerable<int> ComputeStringDelimiters(string text, bool isContinuation, ref bool inFormattedString)
         {
-            var nrDelimiters = 0;
+            var builder = ImmutableArray.CreateBuilder<int>();
+            var isInString = false;
+
             if (isContinuation)
             {
-                ++nrDelimiters;
-                yield return -1;
+                isInString = !isInString;
+                builder.Add(-1);
             }
+
             var stringLength = text.Length;
             while (text != string.Empty)
             {
-                var commentIndex = (nrDelimiters & 1) == 0 ? text.IndexOf("//") : -1; // only if we are currently not inside a string do we need to check for a potential comment start
+                // Check for a comment start if we are outside a string
+                var commentIndex = isInString ? -1 : text.IndexOf("//");
                 if (commentIndex < 0)
                 {
                     commentIndex = text.Length;
                 }
 
                 var index = text.IndexOf('"');
-                if ((nrDelimiters & 1) != 0)
+                if (isInString)
                 {
                     // if we are currently within a string, we need to ignore string delimiters of the form \"
                     while (index > 0 && text[index - 1] == '\\')
@@ -135,25 +140,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                 }
 
-                if (commentIndex < index)
+                if (index < 0 || commentIndex < index)
                 {
-                    break; // fine also if index = -1
+                    break;
                 }
-                if (index < 0)
-                {
-                    text = string.Empty;
-                }
-                else
-                {
-                    ++nrDelimiters;
-                    yield return index + stringLength - text.Length;
-                    text = text.Substring(index + 1);
-                }
+
+                isInString = !isInString;
+                builder.Add(index + stringLength - text.Length);
+                text = text.Substring(index + 1);
             }
-            if ((nrDelimiters & 1) != 0)
+
+            if (isInString)
             {
-                yield return stringLength;
+                builder.Add(stringLength);
             }
+
+            return builder.ToImmutable();
         }
 
         // utils related to filtering irrelevant text for scope and error processing, and parsing
@@ -485,10 +487,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
             var continueString = ContinueString(previousLine);
+            var inFormattedString = false;
             foreach (string text in texts)
             {
                 // computing suitable string delimiters
-                var delimiters = ComputeStringDelimiters(text, continueString);
+                var delimiters = ComputeStringDelimiters(text, continueString, ref inFormattedString);
                 var commentStart = IndexIncludingStrings(RemoveStrings(text, delimiters).IndexOf("//"), delimiters.ToArray());
 
                 // initializes the code line with a default indentation of zero, that will be set to a suitable value during the computation of the excess brackets
