@@ -169,10 +169,13 @@ namespace Microsoft.Quantum.Documentation
             SyntaxTreeToQsharp.Default.ToCode(type);
 
         internal static string ToSyntax(this ResolvedCharacteristics characteristics) =>
-            SyntaxTreeToQsharp.CharacteristicsExpression(characteristics)
-            // CharacteristicsExpression returns null when the characteristics
-            // are an empty set; in that case, we want an empty string.
-            ?? string.Empty;
+            characteristics.SupportedFunctors switch
+            {
+                { IsNull: true } => "",
+                { Item: { Count: 0 } } => "",
+                // Be sure to add the leading space before is!
+                { Item: var functors } => $" is {string.Join(" + ", functors.Select(functor => functor.ToSyntax()))}"
+            };
 
         internal static string ToSyntax(this QsFunctor functor) =>
             functor.Tag switch
@@ -189,16 +192,8 @@ namespace Microsoft.Quantum.Documentation
 
             // The signature provided by SyntaxTreeToQsharp doesn't include
             // the characteristics (e.g.: `is Adj + Ctl`) for the callable, so
-            // we add that here.
-            var characteristics = callable.Signature.Information.Characteristics.SupportedFunctors switch
-            {
-                { IsNull: true } => "",
-                { Item: { Count: 0 } } => "",
-                // Be sure to add the leading space before is!
-                { Item: var functors } => $" is {string.Join(" + ", functors.Select(functor => functor.ToSyntax()))}"
-            };
-
-            return $"{signature}{characteristics}";
+            // we add that here.            };
+            return $"{signature}{callable.Signature.Information.Characteristics.ToSyntax()}";
         }
 
         internal static string MaybeWithSection(this string document, string name, string? contents) =>
