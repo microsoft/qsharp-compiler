@@ -12,11 +12,12 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Utils
 
 /// Represents the partial declaration of a namespace in a single file.
 ///
 /// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
-type internal PartialNamespace private
+type private PartialNamespace private
     (name : NonNullable<string>,
      source : NonNullable<string>,
      documentation : IEnumerable<ImmutableArray<string>>,
@@ -93,16 +94,24 @@ type internal PartialNamespace private
         let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
         shortNames.ToImmutableDictionary((fun kv -> NonNullable<string>.New kv.Value), (fun kv -> kv.Key))
 
-    /// Gets the type with the given name from the dictionary of declared types.
-    /// Fails with the standard key does not exist error if no such declaration exists.
-    member internal this.GetType tName = TypeDeclarations.[tName]
+    /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
+    /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
+    member internal this.GetType tName =
+        TypeDeclarations.TryGetValue tName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A type with the given name was not found." |> raise)
+
     member internal this.ContainsType = TypeDeclarations.ContainsKey
+
     member internal this.TryGetType = TypeDeclarations.TryGetValue
 
-    /// Gets the callable with the given name from the dictionary of declared callable.
-    /// Fails with the standard key does not exist error if no such declaration exists.
-    member internal this.GetCallable cName = CallableDeclarations.[cName]
+    /// <summary>Gets the callable with the given name from the dictionary of declared callable.</summary>
+    /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
+    member internal this.GetCallable cName =
+        CallableDeclarations.TryGetValue cName |> tryToOption |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A callable with the given name was not found." |> raise)
+
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey
+
     member internal this.TryGetCallable = CallableDeclarations.TryGetValue
 
     /// Given a callable name, returns all specializations for it defined within this part of the namespace.
@@ -189,27 +198,41 @@ type internal PartialNamespace private
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
 
+    /// <summary>
     /// Deletes the *explicitly* defined specialization at the specified location for the callable with the given name.
     /// Does not delete specializations that have been inserted by the compiler, i.e. specializations whose location matches the callable declaration location.
-    /// Returns the number of removed specializations.
-    /// Throws the standard key does not exist exception if no specialization for the callable with that name exists.
+    /// </summary>
+    /// <returns>The number of removed specializations.</returns>
+    /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.RemoveCallableSpecialization (location : QsLocation) cName =
         match CallableDeclarations.TryGetValue cName with
         | true, (_, decl) when decl.Position = location.Offset && decl.Range = location.Range -> 0
-        | _ -> CallableSpecializations.[cName].RemoveAll (fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
+        | _ ->
+            match CallableSpecializations.TryGetValue cName with
+            | true, specs -> specs.RemoveAll (fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
+            | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
+    /// <summary>
     /// Sets the resolution for the type with the given name to the given type, and replaces the resolved attributes with the given values.
-    /// Throws the standard key does not exist exception if no type with that name exists.
+    /// </summary>
+    /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.SetTypeResolution (tName, resolvedType, resAttributes) =
-        let qsType = TypeDeclarations.[tName]
-        TypeDeclarations.[tName] <- {qsType with Resolved = resolvedType; ResolvedAttributes = resAttributes}
+        match TypeDeclarations.TryGetValue tName with
+        | true, qsType ->
+            TypeDeclarations.[tName] <- { qsType with Resolved = resolvedType; ResolvedAttributes = resAttributes }
+        | false, _ -> SymbolNotFoundException "A type with the given name was not found." |> raise
 
+    /// <summary>
     /// Sets the resolution for the signature of the callable with the given name to the given signature,
     /// and replaces the resolved attributes with the given values.
-    /// Throws the standard key does not exist exception if no callable with that name exists.
+    /// </summary>
+    /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.SetCallableResolution (cName, resolvedSignature, resAttributes) =
-        let (kind, signature) = CallableDeclarations.[cName]
-        CallableDeclarations.[cName] <- (kind, {signature with Resolved = resolvedSignature; ResolvedAttributes = resAttributes})
+        match CallableDeclarations.TryGetValue cName with
+        | true, (kind, signature) ->
+            let signature' = { signature with Resolved = resolvedSignature; ResolvedAttributes = resAttributes }
+            CallableDeclarations.[cName] <- (kind, signature')
+        | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
     /// Applies the given functions computing the resolution of attributes and the generation directive
     /// to all defined specializations of the callable with the given name,
