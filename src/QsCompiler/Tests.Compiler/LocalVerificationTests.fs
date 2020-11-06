@@ -15,18 +15,20 @@ open Xunit
 type LocalVerificationTests () =
     inherit CompilerTests(
         CompilerTests.Compile ("TestCases", [
-            "General.qs"; "LocalVerification.qs"; "Types.qs"; 
+            "General.qs"; "LocalVerification.qs"; "Types.qs";
             Path.Combine ("LinkingTests", "Core.qs");
+            Path.Combine ("StringParsingTests", "StringParsing.qs");
+            Path.Combine ("StringParsingTests", "StringInterpolation.qs");
         ]))
 
-    member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
+    member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 
     [<Fact>]
-    member this.``Type argument inference`` () = 
+    member this.``Type argument inference`` () =
         this.Expect "TypeArgumentsInference1"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference2"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference3"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
@@ -72,7 +74,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Variable declarations`` () = 
+    member this.``Variable declarations`` () =
         this.Expect "VariableDeclaration1"  []
         this.Expect "VariableDeclaration2"  []
         this.Expect "VariableDeclaration3"  []
@@ -97,7 +99,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Copy-and-update arrays`` () = 
+    member this.``Copy-and-update arrays`` () =
         this.Expect "CopyAndUpdateArray1"  []
         this.Expect "CopyAndUpdateArray2"  []
         this.Expect "CopyAndUpdateArray3"  []
@@ -117,7 +119,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Update-and-reassign arrays`` () = 
+    member this.``Update-and-reassign arrays`` () =
         this.Expect "UpdateAndReassign1"  []
         this.Expect "UpdateAndReassign2"  []
         this.Expect "UpdateAndReassign3"  []
@@ -131,7 +133,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Apply-and-reassign`` () = 
+    member this.``Apply-and-reassign`` () =
         this.Expect "ApplyAndReassign1"   []
         this.Expect "ApplyAndReassign2"   []
         this.Expect "ApplyAndReassign3"   []
@@ -196,7 +198,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Open-ended ranges`` () = 
+    member this.``Open-ended ranges`` () =
         this.Expect "ValidArraySlice1" []
         this.Expect "ValidArraySlice2" []
         this.Expect "ValidArraySlice3" []
@@ -250,12 +252,12 @@ type LocalVerificationTests () =
         this.Expect "RenamedTypeConstructor"       [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedCallable"      [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingRenamedCallable"         [Warning WarningCode.DeprecationWithRedirect]
-                                                   
+
         this.Expect "DeprecatedItemType1"          [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "DeprecatedItemType2"          [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "RenamedItemType1"             [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "RenamedItemType2"             [Warning WarningCode.DeprecationWithRedirect]
-                                                   
+
         this.Expect "UsingDeprecatedAttribute1"    [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedAttribute2"    [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedAttribute3"    [Warning WarningCode.DeprecationWithoutRedirect]
@@ -269,13 +271,13 @@ type LocalVerificationTests () =
         this.Expect "UsingNestedDeprecatedCallable" [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingDepAttrInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDepTypeInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
-                                                   
+
         this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType3"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType4"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType5"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
-                                                   
+
         this.Expect "UsingRenamedType1"            [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedType2"            [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedType3"            [Warning WarningCode.DeprecationWithRedirect]
@@ -284,7 +286,7 @@ type LocalVerificationTests () =
 
 
     [<Fact>]
-    member this.``Unit test attributes`` () = 
+    member this.``Unit test attributes`` () =
         this.Expect "ValidTestAttribute1"    []
         this.Expect "ValidTestAttribute2"    []
         this.Expect "ValidTestAttribute3"    []
@@ -305,7 +307,7 @@ type LocalVerificationTests () =
         this.Expect "ValidTestAttribute18"   []
         this.Expect "ValidTestAttribute19"   [Warning WarningCode.DuplicateAttribute]
         this.Expect "ValidTestAttribute20"   []
-                                             
+
         this.Expect "InvalidTestAttribute1"  [Error ErrorCode.InvalidTestAttributePlacement]
         this.Expect "InvalidTestAttribute2"  [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidTestAttribute3"  [Error ErrorCode.MisplacedDeclarationAttribute]
@@ -330,3 +332,60 @@ type LocalVerificationTests () =
         this.Expect "InvalidTestAttribute22" [Error ErrorCode.InvalidExecutionTargetForTest]
 
 
+    [<Fact>]
+    member this.``String Parsing`` () =
+        this.Expect "StringParsingTest1"    []
+        this.Expect "StringParsingTest2"    []
+        this.Expect "StringParsingTest3"    []
+        this.Expect "StringParsingTest4"    []
+        this.Expect "StringParsingTest5"    []
+        this.Expect "StringParsingTest6"    []
+        this.Expect "StringParsingTest7"    []
+
+        this.Expect "MultiLineStringTest1"    []
+        this.Expect "MultiLineStringTest2"    []
+        this.Expect "MultiLineStringTest3"    []
+        this.Expect "MultiLineStringTest4"    []
+        this.Expect "MultiLineStringTest5"    []
+        this.Expect "MultiLineStringTest6"    []
+        this.Expect "MultiLineStringTest7"    []
+        this.Expect "MultiLineStringTest8"    []
+        this.Expect "MultiLineStringTest9"    [Error ErrorCode.ExcessContinuation]
+
+        this.Expect "StringInterpolationTest1"    []
+        this.Expect "StringInterpolationTest2"    []
+
+        this.Expect "StringInterpolationSimpleStringTest1"    []
+        this.Expect "StringInterpolationSimpleStringTest2"    []
+        this.Expect "StringInterpolationSimpleStringTest3"    []
+        this.Expect "StringInterpolationSimpleStringTest4"    []
+
+        this.Expect "StringInterpolationQuoteTest1"    []
+        this.Expect "StringInterpolationQuoteTest2"    []
+        this.Expect "StringInterpolationQuoteTest3"    []
+        this.Expect "StringInterpolationQuoteTest4"    []
+
+        this.Expect "StringInterpolationSemicolonTest1"    []
+        this.Expect "StringInterpolationSemicolonTest2"    []
+        this.Expect "StringInterpolationSemicolonTest3"    []
+        this.Expect "StringInterpolationSemicolonTest4"    []
+
+        this.Expect "StringInterpolationDollarSignTest1"    []
+        this.Expect "StringInterpolationDollarSignTest2"    []
+        this.Expect "StringInterpolationDollarSignTest3"    []
+        this.Expect "StringInterpolationDollarSignTest4"    []
+        this.Expect "StringInterpolationDollarSignTest5"    []
+        this.Expect "StringInterpolationDollarSignTest6"    []
+
+        this.Expect "StringNestedInterpolationTest1"    []
+        this.Expect "StringNestedInterpolationTest2"    []
+        this.Expect "StringNestedInterpolationTest3"    []
+
+        this.Expect "StringInterpolationWithCommentTest1"    []
+        this.Expect "StringInterpolationWithCommentTest2"    []
+        this.Expect "StringInterpolationWithCommentTest3"    []
+        this.Expect "StringInterpolationWithCommentTest4"    []
+        this.Expect "StringInterpolationWithCommentTest5"    []
+        this.Expect "StringInterpolationWithCommentTest6"    []
+        this.Expect "StringInterpolationWithCommentTest7"    []
+        this.Expect "StringInterpolationWithCommentTest8"    []
