@@ -183,6 +183,7 @@
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
     <Compile Include="AccessModifierTests.fs" />
+    <Compile Include="CompilationTrackerTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

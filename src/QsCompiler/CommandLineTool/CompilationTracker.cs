@@ -155,17 +155,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        // Public members.
+
+        /// <summary>
+        /// Represents the file name where the compilation performance data will be stored.
+        /// </summary>
+        public const string CompilationPerfDataFileName = "CompilationPerfData.json";
+
         /// <summary>
         /// Defines a handler for a type of compilation task event.
         /// </summary>
         private delegate void CompilationTaskEventTypeHandler(string? parentTaskName, string taskName);
 
         // Private members.
-
-        /// <summary>
-        /// Represents the file name where the compilation performance data will be stored.
-        /// </summary>
-        private const string CompilationPerfDataFileName = "CompilationPerfData.json";
 
         /// <summary>
         /// Provides thread-safe access to the members and methods of this class.
@@ -198,11 +200,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             var compilationTasksForest = new List<CompilationTaskNode>();
             var toFindChildrenNodes = new Queue<CompilationTaskNode>();
-
             lock (GlobalLock)
             {
                 // First add the roots (top-level tasks) of all trees to the forest.
-
                 foreach (var entry in CompilationTasks)
                 {
                     if (entry.Value.ParentName == null)
@@ -214,7 +214,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
 
                 // Iterate through the tasks until all of them have been added to the hierarchy.
-
                 while (toFindChildrenNodes.Count > 0)
                 {
                     var parentNode = toFindChildrenNodes.Dequeue();
@@ -262,6 +261,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             task.Stop();
+        }
+
+        // Public methods.
+
+        /// <summary>
+        /// Clears tracked data.
+        /// </summary>
+        public static void ClearData()
+        {
+            lock (GlobalLock)
+            {
+                CompilationTasks.Clear();
+            }
         }
 
         /// <summary>
