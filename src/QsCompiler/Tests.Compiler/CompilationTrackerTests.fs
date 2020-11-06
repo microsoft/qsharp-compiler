@@ -18,7 +18,7 @@ open Xunit.Abstractions
 type MeasureNestedTasksTestCases() as this =
     inherit TheoryData<int[]>()
     do this.Add([||])
-       this.Add([|1000;|])
+       this.Add([|1000|])
        this.Add([|150; 225|])
        this.Add([|1000; 250; 825; 1555|])
        this.Add([|250; 300; 400; 200; 150; 750; 425; 103; 900|])
@@ -27,13 +27,13 @@ type MeasureDoubleNestedTasksTestCases() as this =
     inherit TheoryData<int[], int[]>()
     do this.Add([||], [||])
        this.Add([|0|], [|500|])
-       this.Add([|500|], [|0;|])
+       this.Add([|500|], [|0|])
        this.Add([|500|], [|500|])
        this.Add([|150; 325|], [|500; 250; 765|])
        this.Add([|500; 250; 765|], [|150; 325|])
-       this.Add([|500;|], [|1035; 555; 775; 225; 2500; 15; 95|])
+       this.Add([|500|], [|1035; 555; 775; 225; 2500; 15; 95|])
        this.Add([|350; 155; 670; 2250; 25; 1110|], [|100|])
-       this.Add([|0;|], [|35; 625; 1275; 335; 1500; 155; 5|])
+       this.Add([|0|], [|35; 625; 1275; 335; 1500; 155; 5|])
        this.Add([|5; 5; 10; 5; 5|], [|35; 10; 5; 30; 15; 5|])
 
 type CompilationTrackerTests (output:ITestOutputHelper) =
@@ -136,9 +136,9 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
 
     [<Theory; ClassData(typeof<MeasureNestedTasksTestCases>)>]
     member this.``Measure Nested Tasks``(nestedTasksDurationInMs: int[]) =
-        CompilationTracker.ClearData();
-        let parentTaskName = "ParentTask";
-        let nestedTaskPrefix = "NestedTask";
+        CompilationTracker.ClearData()
+        let parentTaskName = "ParentTask"
+        let nestedTaskPrefix = "NestedTask"
 
         // Measure time spent in a tasks.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, parentTaskName)
@@ -172,10 +172,10 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
     [<InlineData(1000, 1000)>]
     member this.``Measure Nested Tasks With Padding`` (initialPaddingInMs: int) (endingPaddingInMs: int) =
         CompilationTracker.ClearData()
-        let parentTaskName = "ParentTask";
+        let parentTaskName = "ParentTask"
         let nestedTaskCount = 5
         let nestedTaskDurationInMs = 500
-        let nestedTaskPrefix = "NestedTask";
+        let nestedTaskPrefix = "NestedTask"
 
         // Measure time spent in a tasks.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, parentTaskName)
