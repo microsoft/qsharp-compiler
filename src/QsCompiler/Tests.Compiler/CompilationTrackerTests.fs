@@ -36,16 +36,16 @@ type MeasureDoubleNestedTasksTestCases() as this =
        this.Add([|0|], [|35; 625; 1275; 335; 1500; 155; 5|])
        this.Add([|5; 5; 10; 5; 5|], [|35; 10; 5; 30; 15; 5|])
 
-type CompilationTrackerTests (output:ITestOutputHelper) =
+type CompilationTrackerTests (output : ITestOutputHelper) =
 
-    let getResultsFolder (folderName: string) =
+    let getResultsFolder (folderName : string) =
         Path.Combine("Results", folderName)
 
-    let getResultsFile (folderName: string) =
+    let getResultsFile (folderName : string) =
         let resultsFolder = getResultsFolder folderName
         Path.Combine(resultsFolder, CompilationTracker.CompilationPerfDataFileName)
 
-    let getResultsDictionary (folderName: string) =
+    let getResultsDictionary (folderName : string) =
         folderName |> getResultsFolder |> CompilationTracker.PublishResults
         getResultsFile folderName |> File.ReadAllText |> JsonSerializer.Deserialize<IDictionary<string, int>>
 
@@ -60,7 +60,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
     [<InlineData(3333)>]
     [<InlineData(5050)>]
     [<InlineData(10000)>]
-    member this.``Measure Task`` (durationInMs: int) =
+    member this.``Measure Task`` (durationInMs : int) =
         CompilationTracker.ClearData()
         let taskName = "TestTask"
 
@@ -86,7 +86,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
     [<InlineData(5, 700)>]
     [<InlineData(1, 1050)>]
     [<InlineData(5, 1050)>]
-    member this.``Measure Task Intervals`` (intervalCount: int) (intervalDurationInMs: int) =
+    member this.``Measure Task Intervals`` (intervalCount : int) (intervalDurationInMs : int) =
         CompilationTracker.ClearData()
         let taskName = "TestTask"
 
@@ -114,7 +114,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
     [<InlineData(355, 10, 555)>]
     [<InlineData(835, 110, 55)>]
     [<InlineData(155, 2905, 225)>]
-    member this.``Measure Task Intervals With Pause`` (firstIntervalDurationInMs: int) (pauseDurationInMs: int) (secondIntervalDurationInMs: int) =
+    member this.``Measure Task Intervals With Pause`` (firstIntervalDurationInMs : int) (pauseDurationInMs : int) (secondIntervalDurationInMs : int) =
         CompilationTracker.ClearData()
         let taskName = "TestTask"
 
@@ -135,7 +135,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
         Assert.InRange(measuredDurationInMs, expectedDurationInMs, Int32.MaxValue)
 
     [<Theory; ClassData(typeof<MeasureNestedTasksTestCases>)>]
-    member this.``Measure Nested Tasks``(nestedTasksDurationInMs: int[]) =
+    member this.``Measure Nested Tasks``(nestedTasksDurationInMs : int[]) =
         CompilationTracker.ClearData()
         let parentTaskName = "ParentTask"
         let nestedTaskPrefix = "NestedTask"
@@ -170,7 +170,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
     [<InlineData(0, 250)>]
     [<InlineData(250, 250)>]
     [<InlineData(1000, 1000)>]
-    member this.``Measure Nested Tasks With Padding`` (initialPaddingInMs: int) (endingPaddingInMs: int) =
+    member this.``Measure Nested Tasks With Padding`` (initialPaddingInMs : int) (endingPaddingInMs : int) =
         CompilationTracker.ClearData()
         let parentTaskName = "ParentTask"
         let nestedTaskCount = 5
@@ -206,7 +206,7 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
             Assert.InRange(measuredTaskDurationInMs, nestedTaskDurationInMs, Int32.MaxValue)
 
     [<Theory; ClassData(typeof<MeasureDoubleNestedTasksTestCases>)>]
-    member this.``Measure Double Nested Tasks`` (firstNestedTasksDurationInMs: int[]) (secondNestedTasksDurationInMs: int[]) =
+    member this.``Measure Double Nested Tasks`` (firstNestedTasksDurationInMs : int[]) (secondNestedTasksDurationInMs : int[]) =
         CompilationTracker.ClearData()
         let parentTaskName = "ParentTask"
         let firstNestedTaskName = "FirstNestedTask"
