@@ -14,14 +14,11 @@ using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
-using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Newtonsoft.Json.Bson;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
@@ -618,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var ms = new MemoryStream())
             {
                 this.RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
-                var serialized = this.config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                var serialized = this.config.SerializeSyntaxTree && this.WriteSyntaxTreeSerialization(ms);
                 this.RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
@@ -965,32 +962,28 @@ namespace Microsoft.Quantum.QsCompiler
         /// Does *not* close the given memory stream, and
         /// returns true if the serialization has been successfully generated.
         /// </summary>
-        private bool SerializeSyntaxTree(MemoryStream ms)
+        private bool WriteSyntaxTreeSerialization(MemoryStream ms)
         {
             void LogError() => this.LogAndUpdate(
                 ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
 
-            this.compilationStatus.Serialization = 0;
+            void LogExceptionAndError(Exception ex)
+            {
+                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
+
+                LogError();
+            }
+
+            this.compilationStatus.Serialization = Status.Succeeded;
             if (this.CompilationOutput == null)
             {
                 LogError();
                 return false;
             }
 
-            using var writer = new BsonDataWriter(ms) { CloseOutput = false };
             var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
-            try
-            {
-                Json.Serializer.Serialize(writer, compilation);
-            }
-            catch (Exception ex)
-            {
-                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
-                LogError();
-                return false;
-            }
-            return true;
+            return SerializeSyntaxTree(compilation, ms, LogExceptionAndError);
         }
 
         /// <summary>
@@ -1090,7 +1083,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceName, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceNameQsDataBondV1, () => serialization, true);
                 var result = compilation.Emit(
                     outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
@@ -1116,13 +1109,38 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
         /// </summary>
         public static bool ReadBinary(string file, [NotNullWhen(true)] out QsCompilation? syntaxTree) =>
-            ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))), out syntaxTree);
+            AssemblyLoader.LoadSyntaxTree(File.ReadAllBytes(Path.GetFullPath(file)), out syntaxTree);
 
         /// <summary>
         /// Given a stream with the content of a Q# binary file, returns the corresponding compilation as out parameter.
         /// </summary>
-        public static bool ReadBinary(Stream stream, [NotNullWhen(true)] out QsCompilation? syntaxTree) =>
-            AssemblyLoader.LoadSyntaxTree(stream, out syntaxTree);
+        public static bool ReadBinary(Stream stream, [NotNullWhen(true)] out QsCompilation? syntaxTree)
+        {
+            var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            return AssemblyLoader.LoadSyntaxTree(memoryStream.ToArray(), out syntaxTree);
+        }
+
+        private static bool SerializeSyntaxTree(QsCompilation syntaxTree, Stream stream, Action<Exception>? onException = null)
+        {
+            try
+            {
+                BondSchemas.Protocols.SerializeQsCompilationToSimpleBinary(syntaxTree, stream);
+            }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a binary representation of the Q# compilation to supplied stream.
+        /// </summary>
+        public static bool WriteBinary(QsCompilation syntaxTree, Stream stream) =>
+            SerializeSyntaxTree(syntaxTree, stream);
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder.
