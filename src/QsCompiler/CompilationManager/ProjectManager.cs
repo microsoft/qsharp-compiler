@@ -628,7 +628,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ConcurrentDictionary<Uri, Project> temporaryProjects;
         private readonly CompilationUnitManager defaultManager;
 
-        private ImmutableDictionary<Uri, Project> AllProjects => this.userProjects.Concat(this.temporaryProjects).ToImmutableDictionary();
+        /// <summary>
+        /// Returns a concatenation of the <see cref="userProjects"> and <see cref="temporaryProjects"> collections.
+        /// </summary>
+        /// <remarks>
+        /// Calls <see cref="ConcurrentDictionary{TKey, TValue}.ToArray"/> to maintain thread safety, rather
+        /// than simply calling <c>Concat</c> on the <see cref="ConcurrentDictionary{TKey, TValue}"/> itself.
+        /// </remarks>
+        private ImmutableDictionary<Uri, Project> AllProjects =>
+            this.userProjects.ToArray().Concat(this.temporaryProjects.ToArray()).ToImmutableDictionary();
 
         /// <summary>
         /// called whenever diagnostics within a file have changed and are ready for publishing -> may be null!
@@ -731,6 +739,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ProjectInformation.Loader projectLoader,
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
+            return this.LoadProjectsAsync(this.userProjects, projectFiles, projectLoader, openInEditor);
+        }
+
+        /// <summary>
+        /// To be used whenever a temporary project file is added.
+        /// Note that by calling this routine, all processing will be blocked until loading has finished...
+        /// </summary>
+        public Task LoadTemporaryProjectAsync(
+            Uri projectFile,
+            ProjectInformation.Loader projectLoader,
+            Func<Uri, FileContentManager?>? openInEditor = null)
+        {
+            return this.LoadProjectsAsync(this.temporaryProjects, new List<Uri> { projectFile }, projectLoader, openInEditor);
+        }
+
+        /// <summary>
+        /// Used for initial project loading or temporary project loading.
+        /// Note that by calling this routine, all processing will be blocked until loading has finished...
+        /// </summary>
+        private Task LoadProjectsAsync(
+            ConcurrentDictionary<Uri, Project> projects,
+            IEnumerable<Uri> projectFiles,
+            ProjectInformation.Loader projectLoader,
+            Func<Uri, FileContentManager?>? openInEditor)
+        {
             openInEditor ??= _ => null;
 
             return this.load.QueueForExecutionAsync(() =>
@@ -743,13 +776,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         continue;
                     }
                     var project = new Project(file, info, this.logException, this.publishDiagnostics, this.log);
-                    this.userProjects.AddOrUpdate(file, project, (k, v) => project);
+                    projects.AddOrUpdate(file, project, (k, v) => project);
                 }
 
-                var outputPaths = this.userProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+                var outputPaths = projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var file in projectFiles)
                 {
-                    if (!this.userProjects.TryGetValue(file, out var project))
+                    if (!projects.TryGetValue(file, out var project))
                     {
                         continue;
                     }
@@ -758,36 +791,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         project.LoadProjectAsync(outputPaths, this.MigrateToProject(openInEditor), null);
                     }
                 }
-            });
-        }
-
-        /// <summary>
-        /// To be used whenever a temporary project file is added.
-        /// </summary>
-        public Task LoadTemporaryProjectAsync(
-            Uri projectFile,
-            ProjectInformation.Loader projectLoader,
-            Func<Uri, FileContentManager?>? openInEditor = null)
-        {
-            openInEditor ??= _ => null;
-
-            return this.load.QueueForExecutionAsync(() =>
-            {
-                if (!projectLoader(projectFile, out var info))
-                {
-                    return;
-                }
-
-                var project = new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
-                this.temporaryProjects.AddOrUpdate(projectFile, project, (_, __) => project);
-
-                // If any of the files that are currently open in the editor is part of the project,
-                // then we need to make sure to remove them from the default manager before adding them to the project.
-                project.LoadProjectAsync(
-                    this.temporaryProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath),
-                    this.MigrateToProject(openInEditor),
-                    this.MigrateToDefaultManager(openInEditor),
-                    info);
             });
         }
 
