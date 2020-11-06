@@ -307,17 +307,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Previous()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Kind != null && fragment.Indentation < indentation)
                 {
                     break; // ignore empty fragments
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation - 1 ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation - 1 ? current : null;
         }
 
         /// <summary>
@@ -341,13 +341,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetChildren(this CodeFragment.TokenIndex tIndex, bool deep = true)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Next()) != null && tokenIndex.GetFragment().Indentation > indentation)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null && current.GetFragment().Indentation > indentation)
             {
-                if (deep || tokenIndex.GetFragment().Indentation == indentation + 1)
+                if (deep || current.GetFragment().Indentation == indentation + 1)
                 {
-                    yield return tokenIndex;
+                    yield return current;
                 }
             }
         }
@@ -358,17 +358,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Previous()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         /// <summary>
@@ -377,17 +377,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Next()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         // routines related to "reconstructing" the syntax tree from the saved tokens to do context checks

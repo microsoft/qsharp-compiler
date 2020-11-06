@@ -560,12 +560,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or the overlapping fragment contains a declaration that is already documented,
         /// or if any of the given arguments is null.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(
             this FileContentManager file, Range range)
         {
-            var overlapping = file?.FragmentsOverlappingWithRange(range);
-            var fragment = overlapping?.FirstOrDefault();
-            if (file is null || fragment?.Kind == null || overlapping.Count() != 1)
+            var overlapping = file.FragmentsOverlappingWithRange(range);
+            var fragment = overlapping.FirstOrDefault();
+            if (fragment?.Kind == null || overlapping.Count() != 1)
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
             }
@@ -596,8 +597,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 preceding = lineNr-- > 0 ? file.GetTokenizedLine(lineNr) : (IEnumerable<CodeFragment>?)null;
             }
 
-            var docPrefix = "/// ";
-            var endLine = $"{Environment.NewLine}{file.GetLine(declStart.Line).Text.Substring(0, declStart.Column)}";
+            const string docPrefix = "/// ";
+            var lineText = file.GetLine(declStart.Line).Text;
+            var indent = declStart.Column <= lineText.Length
+                ? lineText.Substring(0, declStart.Column)
+                : throw new FileContentException("Fragment start position exceeds the bounds of the line.");
+            var endLine = Environment.NewLine + indent;
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
