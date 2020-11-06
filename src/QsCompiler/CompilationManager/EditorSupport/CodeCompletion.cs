@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
@@ -75,6 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if any argument is null or the position is invalid.
         /// Returns an empty completion list if the given position is within a comment.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         public static CompletionList? Completions(
             this FileContentManager file, CompilationUnit compilation, Position? position)
         {
@@ -140,13 +142,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (!file.ContainsPosition(position))
             {
-                // FileContentManager.IndentationAt will fail if the position is not within the file.
                 fragment = null;
                 return (null, null);
             }
-
             var token = GetTokenAtOrBefore(file, position);
-            if (token == null)
+            if (token is null)
             {
                 fragment = null;
                 return (null, null);
@@ -155,47 +155,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             fragment = token.GetFragment();
             var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
-            var parents =
-                new[] { token }.Concat(token.GetNonEmptyParents())
+
+            var parents = new[] { token }
+                .Concat(token.GetNonEmptyParents())
                 .Skip(relativeIndentation + 1)
-                .Select(t => t.GetFragment());
-
-            CompletionScope? scope = null;
-            if (!parents.Any())
-            {
-                scope = CompletionScope.TopLevel;
-            }
-            else if (parents.Any() && (parents.First().Kind?.IsNamespaceDeclaration ?? false))
-            {
-                scope = CompletionScope.NamespaceTopLevel;
-            }
-            else if (parents.Where(parent => parent.Kind?.IsFunctionDeclaration ?? false).Any())
-            {
-                scope = CompletionScope.Function;
-            }
-            else if (parents.Any() && (parents.First().Kind?.IsOperationDeclaration ?? false))
-            {
-                scope = CompletionScope.OperationTopLevel;
-            }
-            else if (parents.Where(parent => parent.Kind?.IsOperationDeclaration ?? false).Any())
-            {
-                scope = CompletionScope.Operation;
-            }
-
-            QsFragmentKind? previous = null;
-            if (relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position))
-            {
-                previous = fragment.Kind;
-            }
-            else if (relativeIndentation == 0)
-            {
-                previous = token.PreviousOnScope()?.GetFragment().Kind;
-            }
-            else if (relativeIndentation == 1)
-            {
-                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
-            }
-
+                .Select(index => index.GetFragment())
+                .ToImmutableList();
+            var scope =
+                parents.IsEmpty ? CompletionScope.TopLevel
+                : parents.FirstOrDefault()?.Kind?.IsNamespaceDeclaration ?? false ? CompletionScope.NamespaceTopLevel
+                : parents.Any(parent => parent.Kind?.IsFunctionDeclaration ?? false) ? CompletionScope.Function
+                : parents.FirstOrDefault()?.Kind?.IsOperationDeclaration ?? false ? CompletionScope.OperationTopLevel
+                : parents.Any(parent => parent.Kind?.IsOperationDeclaration ?? false) ? CompletionScope.Operation
+                : null;
+            var previous =
+                relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position) ? fragment.Kind
+                : relativeIndentation == 0 ? token.PreviousOnScope()?.GetFragment().Kind
+                : relativeIndentation == 1 ? token.GetNonEmptyParent()?.GetFragment().Kind
+                : null;
             return (scope, previous);
         }
 
@@ -256,6 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// part of a qualified symbol, in which case only completions for symbols matching the namespace prefix will be
         /// included.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         private static IEnumerable<CompletionItem> GetFallbackCompletions(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -510,6 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the namespace path for the qualified symbol at the given position, or null if there is no qualified
         /// symbol.
         /// </summary>
+        /// <exception cref="FileContentException">The file content changed while processing.</exception>
         private static string? GetSymbolNamespacePath(FileContentManager file, Position position)
         {
             var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
@@ -532,21 +511,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the index in the fragment text corresponding to the given absolute position.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when the position is outside the fragment range.</exception>
+        /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
         private static int GetTextIndexFromPosition(CodeFragment fragment, Position position)
         {
             var relativeLine = position.Line - fragment.Range.Start.Line;
-            var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("");
-            var relativeCharacter =
-                relativeLine == 0 ? position.Column - fragment.Range.Start.Column : position.Column;
-            if (relativeLine < 0 ||
-                relativeLine >= lines.Count() ||
-                relativeCharacter < 0 ||
-                relativeCharacter > lines.ElementAt(relativeLine).Length)
-            {
-                throw new ArgumentException("Position is outside the fragment range", nameof(position));
-            }
-            return lines.Take(relativeLine).Sum(line => line.Length) + relativeCharacter;
+            var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("").ToImmutableList();
+            var relativeChar = relativeLine == 0
+                ? position.Column - fragment.Range.Start.Column
+                : position.Column;
+            var lineInRange = relativeLine >= 0 && relativeLine <= lines.Count;
+            var charInRange = relativeChar >= 0 && relativeChar <= lines.ElementAt(relativeLine).Length;
+            return lineInRange && charInRange
+                ? lines.Take(relativeLine).Sum(line => line.Length) + relativeChar
+                : throw new FileContentException("Position is outside the fragment range.");
         }
 
         /// <summary>
@@ -618,6 +595,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// position is after the end of the fragment text but before the delimiter, the entire text is returned with a
         /// space character appended to it.
         /// </summary>
+        /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
         private static string GetFragmentTextBeforePosition(
             FileContentManager file, CodeFragment? fragment, Position position)
         {
