@@ -279,15 +279,12 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
         
         // Start measuring a task but attempt to publish when it is still in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
-        let expectedExceptionThrown =
-            try
-                MethodBase.GetCurrentMethod().Name |> getResultsDictionary |> ignore
-                false
-            with
-                | :? InvalidOperationException -> true
-                | _ -> false
-
-        Assert.True(expectedExceptionThrown)
+        Assert.Throws<InvalidOperationException>(fun () -> 
+            MethodBase.GetCurrentMethod().Name 
+            |> getResultsDictionary 
+            |> ignore) 
+        |> ignore
+        
 
     [<Fact>]
     member this.``Start When Already In Progess`` () =
@@ -296,15 +293,9 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
 
         // Start measuring a task when it is already in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
-        let expectedExceptionThrown =
-            try
-                CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
-                false
-            with
-                | :? InvalidOperationException -> true
-                | _ -> false
-
-        Assert.True(expectedExceptionThrown)
+        Assert.Throws<InvalidOperationException>(fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName))
+        |> ignore
 
     [<Fact>]
     member this.``Stop When Never Started`` () =
@@ -312,15 +303,9 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
         let taskName = "TestTask"
 
         // Stop measuring a task when it was never started.
-        let expectedExceptionThrown =
-            try
-                CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
-                false
-            with
-                | :? InvalidOperationException -> true
-                | _ -> false
-
-        Assert.True(expectedExceptionThrown)
+        Assert.Throws<InvalidOperationException>(fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        |> ignore
 
     [<Fact>]
     member this.``Stop When Not In Progress`` () =
@@ -330,12 +315,6 @@ type CompilationTrackerTests (output:ITestOutputHelper) =
         // Stop measuring a task when it was not in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
-        let expectedExceptionThrown =
-            try
-                CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
-                false
-            with
-                | :? InvalidOperationException -> true
-                | _ -> false
-
-        Assert.True(expectedExceptionThrown)
+        Assert.Throws<InvalidOperationException>(fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        |> ignore
