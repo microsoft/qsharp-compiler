@@ -2076,8 +2076,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             for (int i = 0; i < vs.Length; i++)
             {
                 var itemValue = this.EvaluateSubexpression(vs[i]);
-                var itemPointer = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, 
-                    (uint)i + 1);
+                var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                 this.SharedState.CurrentBuilder.Store(itemValue, itemPointer);
             }
 
