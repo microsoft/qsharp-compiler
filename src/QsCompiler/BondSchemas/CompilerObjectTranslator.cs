@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// <summary>
     /// This class translates Bond schema objects to C# compiler objects.
     /// </summary>
-    public static class CompilerObjectTranslator
+    internal static class CompilerObjectTranslator
     {
         /// <summary>
         /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
