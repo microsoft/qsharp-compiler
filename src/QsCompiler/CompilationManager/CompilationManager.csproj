@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BondSchemas\BondSchemas.csproj" />
     <ProjectReference Include="..\Core\Core.fsproj" />
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\SyntaxProcessor\SyntaxProcessor.fsproj" />
