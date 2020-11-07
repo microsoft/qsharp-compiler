@@ -8,10 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-
-#nullable enable
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
