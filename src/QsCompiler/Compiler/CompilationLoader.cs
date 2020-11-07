@@ -477,7 +477,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.RaiseCompilationTaskStart(null, "OverallCompilation");
 
             // loading the content to compiler
-
+            BondSchemas.Protocols.Initialize();
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
