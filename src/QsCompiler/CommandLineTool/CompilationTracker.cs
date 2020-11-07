@@ -301,9 +301,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         /// <summary>
         /// Publishes the results to text files in the specified folder.
-        /// Throws an IOException if the specified output folder is a file path.
-        /// Throws a NotSupportedException if the path to the output folder is malformed.
         /// </summary>
+        /// <exception cref="NotSupportedException">Thrown if the path to the output folder is malformed.</exception>
+        /// <exception cref="IOException">Thrown if the specified output folder is a file path.</exception>
         public static void PublishResults(string outputFolder)
         {
             var compilationProcessesForest = BuildCompilationTasksHierarchy();

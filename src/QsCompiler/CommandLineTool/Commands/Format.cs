@@ -70,8 +70,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Generates formatted Q# code based on the part of the syntax tree that corresponds to each file in the given compilation.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
+        /// <exception cref="ArgumentException">Thrown if this is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static IEnumerable<string> GenerateQsCode(Compilation compilation, string file, ILogger logger)
         {
             if (Options.IsCodeSnippet(file))

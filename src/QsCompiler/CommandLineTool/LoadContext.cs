@@ -151,8 +151,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// Loads an assembly at the given location into a new context.
         /// Adds the specified fallback locations, if any,
         /// to the list of paths where the context will try to look for assemblies that could otherwise not be loaded.
-        /// Throws a FileNotFoundException if no file with the given path exists.
         /// </summary>
+        /// <exception cref="FileNotFoundException">Thrown if no file with the given path exists.</exception>
         public static Assembly LoadAssembly(string path, string[]? fallbackPaths = null)
         {
             if (!File.Exists(path))

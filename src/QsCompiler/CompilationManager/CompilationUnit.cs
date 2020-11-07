@@ -165,8 +165,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Combines the current references with the given references, and verifies that there are no conflicts.
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// Throws an ArgumentException if the given set shares references with the current one.
         /// </summary>
+        /// <exception cref="ArgumentException">Thrown if the given set shares references with the current one.</exception>
         internal References CombineWith(References other, Action<ErrorCode, string[]>? onError = null)
         {
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any())
@@ -406,8 +406,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters a read-lock, provided none of the dependent locks is set, or a compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterReadLock()
         {
             #if DEBUG
@@ -427,8 +427,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters an upgradeable read-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterUpgradeableReadLock()
         {
             #if DEBUG
@@ -447,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters a write-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterWriteLock()
         {
             #if DEBUG
@@ -784,8 +784,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the built Q# compilation reflecting the current internal state.
         /// Note that functor generation directives are *not* evaluated in the the returned compilation,
         /// and the returned compilation may contain invalid parts.
-        /// Throws an InvalidOperationException if a callable definition is listed in GlobalSymbols for which no compilation exists.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if a callable definition is listed in GlobalSymbols for which no compilation exists.</exception>
         public QsCompilation Build()
         {
             this.syncRoot.EnterReadLock();
@@ -848,8 +848,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a look-up that contains the names of all namespaces and the corresponding short hand, if any,
         /// imported within a certain source file for the given namespace.
-        /// Throws an ArgumentException if no namespace with the given name exists.
         /// </summary>
+        /// <exception cref="ArgumentException">Thrown if no namespace with the given name exists.</exception>
         public ILookup<string, (string, string?)> GetOpenDirectives(string nsName)
         {
             this.syncRoot.EnterReadLock();

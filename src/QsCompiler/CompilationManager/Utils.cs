@@ -102,8 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given a string, replaces the range [starChar, endChar) with the given string to insert.
         /// Returns null if the given text is null.
-        /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the given start and end points do not denote a valid range within the string.</exception>
         [return: NotNullIfNotNull("lineText")]
         internal static string? GetChangedText(string? lineText, int startChar, int endChar, string insert)
         {
