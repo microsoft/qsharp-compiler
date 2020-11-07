@@ -41,7 +41,7 @@ $artifacts = @{
     Assemblies = $VsixAssemblies + @(
         ".\src\Documentation\DocumentationGenerator\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.DocumentationGenerator.dll",
         ".\src\Documentation\DocumentationParser\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDocumentationParser.dll",
-
+        ".\src\QsCompiler\BondSchemas\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.BondSchemas.dll",
         ".\src\QsCompiler\CompilationManager\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompilationManager.dll",
         ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompiler.dll",
         ".\src\QsCompiler\Core\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCore.dll",

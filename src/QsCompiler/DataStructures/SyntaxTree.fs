@@ -762,7 +762,6 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
-
     with
     member this.GetFullName () =
         match this with
