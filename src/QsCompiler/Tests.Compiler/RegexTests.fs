@@ -80,7 +80,6 @@ let ``Strip unique variable name resolution`` () =
             "some name" // the matching will fail (only) if there is a linebreak
             "'TName"
         ] 
-        |> List.map NonNullable<string>.New 
 
     origNames
     |> List.map (fun var -> var, UniqueVariableNames.StripUniqueName var)

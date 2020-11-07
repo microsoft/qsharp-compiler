@@ -15,8 +15,7 @@ type TypeCheckingTests () =
     inherit CompilerTests(CompilerTests.Compile ("TestCases", ["General.qs"; "TypeChecking.qs"; "Types.qs"]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-        let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.TypeChecking"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 

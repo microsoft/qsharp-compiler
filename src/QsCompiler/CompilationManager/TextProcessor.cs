@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var fragment = new CodeFragment(
                         snippet.Indentation,
                         fragmentRange,
-                        output.Text.Value,
+                        output.Text,
                         outputIndex == outputs.Length - 1 ? snippet.FollowedBy : CodeFragment.MissingDelimiter,
                         output.Kind);
                     processedFragments.Add(fragment);
@@ -401,8 +401,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var reprocess = QsCompilerError.RaiseOnFailure(() => file.FragmentsToProcess(changedLines).ToList(), "processing the edited lines failed");
-                var diagnostics = reprocess.CheckForEmptyFragments(file.FileName.Value)
-                    .Concat(ParseCode(ref reprocess, file.FileName.Value)).ToList();
+                var diagnostics = reprocess.CheckForEmptyFragments(file.FileName)
+                    .Concat(ParseCode(ref reprocess, file.FileName)).ToList();
 
                 QsCompilerError.RaiseOnFailure(() => file.TokensUpdate(reprocess), "the computed token update failed");
                 QsCompilerError.RaiseOnFailure(() => file.AddSyntaxDiagnostics(diagnostics), "updating the SyntaxDiagnostics failed");

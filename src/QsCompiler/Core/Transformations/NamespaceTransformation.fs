@@ -46,13 +46,13 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
-    abstract member OnSourceFile : NonNullable<string> -> NonNullable<string>
+    abstract member OnSourceFile : string -> string
     default this.OnSourceFile f = f
 
     abstract member OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att 
 
-    abstract member OnItemName : NonNullable<string> -> NonNullable<string>
+    abstract member OnItemName : string -> string
     default this.OnItemName name = name
 
     abstract member OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>

@@ -10,9 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -24,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly string OutputPath;
         public readonly RuntimeCapability RuntimeCapability;
         public readonly bool IsExecutable;
-        public readonly NonNullable<string> ProcessorArchitecture;
+        public readonly string ProcessorArchitecture;
         public readonly bool ExposeReferencesViaTestNames;
 
         public ProjectProperties(
@@ -32,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
-            NonNullable<string> processorArchitecture,
+            string processorArchitecture,
             bool loadTestNames)
         {
             this.Version = version ?? "";
@@ -62,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 outputPath,
                 capability,
                 false,
-                NonNullable<string>.New("Unspecified"),
+                "Unspecified",
                 false,
                 Enumerable.Empty<string>(),
                 Enumerable.Empty<string>(),
@@ -73,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
-            NonNullable<string> processorArchitecture,
+            string processorArchitecture,
             bool loadTestNames,
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,
@@ -364,7 +362,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 QsCompilerError.Verify(
                     !loaded.Declarations.Any() ||
-                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == projRefId.Value),
+                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key == projRefId),
                     $"loaded references upon loading {projectReference.LocalPath}: {string.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.loadedProjectReferences = this.loadedProjectReferences.Remove(projRefId).CombineWith(loaded);
                 var importedDeclarations = this.loadedReferences.CombineWith(
@@ -425,7 +423,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 QsCompilerError.Verify(
                     !loaded.Declarations.Any() ||
-                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == refId.Value),
+                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key == refId),
                     $"loaded references upon loading {reference.LocalPath}: {string.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.loadedReferences = this.loadedReferences.Remove(refId).CombineWith(loaded);
                 var importedDeclarations = this.loadedReferences.CombineWith(
@@ -1149,7 +1147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public static string MessageSource(Uri uri) =>
             uri.IsAbsoluteUri && uri.IsFile
-                ? CompilationUnitManager.GetFileId(uri).Value
+                ? CompilationUnitManager.GetFileId(uri)
                 : uri.AbsolutePath;
 
         /// <summary>
@@ -1299,10 +1297,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the file id used for the file with the given uri.
         /// Raises a QsCompilerError if the id could not be determined.
         /// </summary>
-        private static NonNullable<string> GetFileId(Uri uri) =>
-            NonNullable<string>.New(QsCompilerError.RaiseOnFailure<string>(
-                () => CompilationUnitManager.TryGetFileId(uri, out var id) ? id.Value : throw new InvalidOperationException(),
-                "could not determine id for valid uri"));
+        private static string GetFileId(Uri uri) =>
+            QsCompilerError.RaiseOnFailure(
+                () => CompilationUnitManager.GetFileId(uri),
+                "could not determine id for valid uri");
 
         /// <summary>
         /// Uses FilterFiles to filter the given project files, and generates the corresponding errors and warnings.
@@ -1313,7 +1311,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
         /// </summary>
-        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadProjectReferences(
+        public static ImmutableDictionary<string, References.Headers> LoadProjectReferences(
             IEnumerable<string> refProjectFiles,
             Func<Uri, Uri?> getOutputPath,
             Action<Diagnostic>? onDiagnostic = null,
@@ -1367,7 +1365,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// </summary>
-        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadReferencedAssemblies(
+        public static ImmutableDictionary<string, References.Headers> LoadReferencedAssemblies(
             IEnumerable<string> references,
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null,

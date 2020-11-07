@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.FileContentInMemory,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: $"{Environment.NewLine}{string.Concat(inMemory)}");
             }
         }
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.BuiltTokenization,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: serialization.ToArray());
             }
         }
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 void PrintTree(string serialization) => logger.Log(
                     InformationCode.BuiltSyntaxTree,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: new string[] { "", serialization });
 
                 if (!stripWrapping)
@@ -192,9 +192,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 else
                 {
                     var imports = evaluatedTree.ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                    SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
+                    SyntaxTreeToQsharp.Apply(out var generated, evaluatedTree, (file, imports));
                     var code = new string[] { "" }.Concat(generated.Single().Values.Select(nsCode => $"{nsCode}{Environment.NewLine}"));
-                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file.Value, messageParam: code.ToArray());
+                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file, messageParam: code.ToArray());
                 }
             }
         }

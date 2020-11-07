@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             throw new System.NotImplementedException();
         }
 
-        private bool CheckForRequired(QsCompilation compilation, NonNullable<string> namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
+        private bool CheckForRequired(QsCompilation compilation, string namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
         {
             var builtInNs = compilation.Namespaces
                 .FirstOrDefault(ns => ns.Name.Equals(namespaceName));

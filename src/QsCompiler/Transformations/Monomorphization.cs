@@ -15,9 +15,9 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
-    using Concretization = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretization*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
-    using ImmutableConcretization = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using Concretization = Dictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
+    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretization*/ ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>, Identifier>;
+    using ImmutableConcretization = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -135,10 +135,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly ILookup<NonNullable<string>, QsCallable> NamespaceCallables;
+                public readonly ILookup<string, QsCallable> NamespaceCallables;
                 public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
 
-                public TransformationState(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                public TransformationState(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
                 {
                     this.NamespaceCallables = namespaceCallables;
                     this.IntrinsicCallableSet = intrinsicCallableSet;
@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            private ResolveGenerics(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
                 : base(new TransformationState(namespaceCallables, intrinsicCallableSet))
             {
                 this.Namespaces = new NamespaceTransformation(this);

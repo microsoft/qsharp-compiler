@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 outputPath,
                 runtimeCapability,
                 isExecutable,
-                NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture),
+                string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
                 loadTestNames,
                 sourceFiles,
                 projectReferences,

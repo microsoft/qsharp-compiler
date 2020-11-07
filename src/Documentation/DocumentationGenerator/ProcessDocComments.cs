@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Documentation
 
                 var isDeprecated = type.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
-                    type.Documentation, type.FullName.Name.Value,
+                    type.Documentation, type.FullName.Name,
                     deprecated: isDeprecated,
                     replacement: replacement
                 );
@@ -143,12 +143,12 @@ namespace Microsoft.Quantum.Documentation
                 // Validate named item names.
                 var inputDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
                 this.ValidateNames(
-                    $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}",
+                    $"{type.FullName.Namespace}.{type.FullName.Name}",
                     "named item",
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: type.SourceFile.Value
+                    source: type.SourceFile
                 );
 
                 this.writer?.WriteOutput(type, docComment)?.Wait();
@@ -178,12 +178,12 @@ namespace Microsoft.Quantum.Documentation
 
                 var isDeprecated = callable.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
-                    callable.Documentation, callable.FullName.Name.Value,
+                    callable.Documentation, callable.FullName.Name,
                     deprecated: isDeprecated,
                     replacement: replacement
                 );
-                var callableName = 
-                    $"{callable.FullName.Namespace.Value}.{callable.FullName.Name.Value}";
+                var callableName =
+                    $"{callable.FullName.Namespace}.{callable.FullName.Name}";
 
                 // Validate input and type parameter names.
                 var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.Documentation
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.SourceFile.Value
+                    source: callable.SourceFile
                 );
                 this.ValidateNames(
                     callableName,
@@ -201,11 +201,11 @@ namespace Microsoft.Quantum.Documentation
                     name => callable.Signature.TypeParameters.Any(
                         typeParam =>
                             typeParam is QsLocalSymbol.ValidName validName &&
-                            validName.Item.Value == name.TrimStart('\'')
+                            validName.Item == name.TrimStart('\'')
                     ),
                     docComment.TypeParameters.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.SourceFile.Value
+                    source: callable.SourceFile
                 );
 
                 this.writer?.WriteOutput(callable, docComment)?.Wait();

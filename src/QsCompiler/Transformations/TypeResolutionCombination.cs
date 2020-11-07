@@ -5,20 +5,17 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-
-#nullable enable
 
 namespace Microsoft.Quantum.QsCompiler
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     // Type Parameters are frequently referenced by the callable of the type parameter followed by the name of the specific type parameter.
-    using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
-    using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterName = Tuple<QsQualifiedName, string>;
+    using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, string>, ResolvedType>;
 
     /// <summary>
     /// Combines a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,

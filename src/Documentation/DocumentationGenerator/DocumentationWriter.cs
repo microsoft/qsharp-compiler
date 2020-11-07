@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.Documentation
         /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         public async Task WriteOutput(QsNamespace ns, DocComment docComment)
         {
-            var name = ns.Name.Value;
+            var name = ns.Name;
             var uid = name;
             var title = $"{name} namespace";
             var header = new Dictionary<string, object>
@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.Documentation
             var namedItemDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
 
             // Make a new Markdown document for the type declaration.
-            var title = $"{type.FullName.Name.Value} user defined type";
+            var title = $"{type.FullName.Name} user defined type";
             var header = new Dictionary<string, object>
             {
                 // DocFX metadata
@@ -206,14 +206,14 @@ namespace Microsoft.Quantum.Documentation
 
                 // Q# metadata
                 ["qsharp.kind"] = "udt",
-                ["qsharp.namespace"] = type.FullName.Namespace.Value,
-                ["qsharp.name"] = type.FullName.Name.Value,
+                ["qsharp.namespace"] = type.FullName.Namespace,
+                ["qsharp.name"] = type.FullName.Name,
                 ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
 # {title}
 
-Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
+Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
 {this.packageLink}
 
 {docComment.Summary}
@@ -243,14 +243,14 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => AsSeeAlsoLink(seeAlso, type.FullName.Namespace.Value)
+                    seeAlso => AsSeeAlsoLink(seeAlso, type.FullName.Namespace)
                 ))
             )
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
             await this.WriteAllTextAsync(
-                $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}.md",
+                $"{type.FullName.Namespace}.{type.FullName.Name}.md",
                 document
             );
         }
@@ -275,7 +275,7 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
                 QsCallableKind.Tags.TypeConstructor => "type constructor",
                 _ => "<unknown>",
             };
-            var title = $@"{callable.FullName.Name.Value} {kind}";
+            var title = $@"{callable.FullName.Name} {kind}";
             var header = new Dictionary<string, object>
             {
                 // DocFX metadata
@@ -288,14 +288,14 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
 
                 // Q# metadata
                 ["qsharp.kind"] = kind,
-                ["qsharp.namespace"] = callable.FullName.Namespace.Value,
-                ["qsharp.name"] = callable.FullName.Name.Value,
+                ["qsharp.namespace"] = callable.FullName.Namespace,
+                ["qsharp.name"] = callable.FullName.Name,
                 ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
 # {title}
 
-Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})
+Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
 {this.packageLink}
 
 {docComment.Summary}
@@ -332,8 +332,8 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                 string.Join("\n", callable.Signature.TypeParameters.Select(
                     typeParam =>
                         typeParam is QsLocalSymbol.ValidName name
-                        ? $@"### '{name.Item.Value}{"\n\n"}{(
-                            docComment.TypeParameters.TryGetValue($"'{name.Item.Value}", out var comment)
+                        ? $@"### '{name.Item}{"\n\n"}{(
+                            docComment.TypeParameters.TryGetValue($"'{name.Item}", out var comment)
                             ? comment
                             : string.Empty
                           )}"
@@ -345,18 +345,16 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => AsSeeAlsoLink(seeAlso, callable.FullName.Namespace.Value)
+                    seeAlso => AsSeeAlsoLink(seeAlso, callable.FullName.Namespace)
                 ))
             )
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
             await this.WriteAllTextAsync(
-                $"{callable.FullName.Namespace.Value}.{callable.FullName.Name.Value}.md",
+                $"{callable.FullName.Namespace}.{callable.FullName.Name}.md",
                 document
             );
         }
-
     }
-
 }

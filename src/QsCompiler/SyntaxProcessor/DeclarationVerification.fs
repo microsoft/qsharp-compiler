@@ -24,7 +24,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Returns null otherwise.
 [<Extension>]
 let public AsDeclarationName sym onInvalid = sym |> function
-    | Symbol name -> name.Value
+    | Symbol name -> name
     | InvalidSymbol -> onInvalid
     | _ -> null
 

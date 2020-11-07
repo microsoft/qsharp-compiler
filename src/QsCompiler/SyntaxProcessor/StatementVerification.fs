@@ -191,7 +191,7 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters 
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
-let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
+let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : string, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
     let t, tpErr = 
         if rhsType.isTypeParametrized symbols.Parent || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then 
             InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]

@@ -31,8 +31,8 @@ type QsPauli =
 // Q# symbols
 
 type QsSymbolKind<'Symbol> = 
-| Symbol of NonNullable<string> // let's make the distinction for things that *have* to be an unqualified symbol
-| QualifiedSymbol of NonNullable<string> * NonNullable<string>
+| Symbol of string // let's make the distinction for things that *have* to be an unqualified symbol
+| QualifiedSymbol of string * string
 | SymbolTuple of ImmutableArray<'Symbol> // for bindings
 | OmittedSymbols // used for the arguments of the original method omitted upon functor gen declaration
 | MissingSymbol // used to allow destructs of the form let (_,a) = ...
@@ -99,7 +99,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
 | BigIntLiteral         of BigInteger
 | DoubleLiteral         of double
 | BoolLiteral           of bool
-| StringLiteral         of NonNullable<string> * ImmutableArray<'Expr> // used for both string and interpolated strings 
+| StringLiteral         of string * ImmutableArray<'Expr> // used for both string and interpolated strings
 | ResultLiteral         of QsResult
 | PauliLiteral          of QsPauli
 | RangeLiteral          of 'Expr * 'Expr
@@ -313,5 +313,5 @@ type QsFragment = {
     Kind : QsFragmentKind
     Range : Range
     Diagnostics : ImmutableArray<QsCompilerDiagnostic>
-    Text : NonNullable<string>
+    Text : string
 }

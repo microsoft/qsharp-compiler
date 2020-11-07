@@ -24,11 +24,10 @@ open Microsoft.Quantum.QsCompiler.Utils
 /// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
 type Namespace private
     (name,
-     parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
-     CallablesInReferences : ILookup<NonNullable<string>, CallableDeclarationHeader>,
-     SpecializationsInReferences : ILookup<NonNullable<string>,
-                                           SpecializationDeclarationHeader * SpecializationImplementation>,
-     TypesInReferences : ILookup<NonNullable<string>, TypeDeclarationHeader>) =
+     parts : IEnumerable<KeyValuePair<string, PartialNamespace>>,
+     CallablesInReferences : ILookup<string, CallableDeclarationHeader>,
+     SpecializationsInReferences : ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
+     TypesInReferences : ILookup<string, TypeDeclarationHeader>) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
@@ -148,18 +147,18 @@ type Namespace private
     member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications : _ seq) =
         let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function
             | Value id ->
-                id.Namespace.Value = BuiltIn.Attribute.FullName.Namespace.Value &&
-                id.Name.Value = BuiltIn.Attribute.FullName.Name.Value
+                id.Namespace = BuiltIn.Attribute.FullName.Namespace &&
+                id.Name = BuiltIn.Attribute.FullName.Name
             | Null -> false
 
         let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise
 
         let compareAttributeName (att : AttributeAnnotation) =
             match att.Id.Symbol with
-            | Symbol sym when sym.Value = BuiltIn.Attribute.FullName.Name.Value && possibleQualifications.Contains "" ->
+            | Symbol sym when sym = BuiltIn.Attribute.FullName.Name && possibleQualifications.Contains "" ->
                 true
-            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.FullName.Name.Value &&
-                                             possibleQualifications.Contains ns.Value ->
+            | QualifiedSymbol (ns, sym) when sym = BuiltIn.Attribute.FullName.Name &&
+                                             possibleQualifications.Contains ns ->
                 true
             | _ -> false
 
@@ -276,7 +275,7 @@ type Namespace private
     member this.TryFindType (tName, ?checkDeprecation : (string -> bool)) =
         let checkDeprecation =
             defaultArg checkDeprecation
-                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
+                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader : TypeDeclarationHeader) =
             if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
@@ -314,7 +313,7 @@ type Namespace private
     member this.TryFindCallable (cName, ?checkDeprecation : (string -> bool)) =
         let checkDeprecation =
             defaultArg checkDeprecation
-                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
+                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable : CallableDeclarationHeader) =
             if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
@@ -446,9 +445,9 @@ type Namespace private
             match this.TryFindType tName with
             | Found _
             | Ambiguous _ ->
-                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
+                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName]) |]
             | _ ->
-                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |]
+                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName]) |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -468,9 +467,9 @@ type Namespace private
             match this.TryFindType cName with
             | Found _
             | Ambiguous _ ->
-                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
+                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName]) |]
             | _ ->
-                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
+                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName]) |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -488,7 +487,7 @@ type Namespace private
     /// for the given callable is up to the calling routine.
     /// </remarks>
     member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, attributes, documentation) =
-        let getRelevantDeclInfo (declSource : NonNullable<string>) =
+        let getRelevantDeclInfo declSource =
             let unitOrInvalid fct = function
                 | Item item -> match fct item with
                                | UnitType
@@ -526,7 +525,7 @@ type Namespace private
                     | QsControlled -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlled, []) |]
                     | QsControlledAdjoint -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlledAdjoint, []) |]
                 else AddAndClearCache(); [||]
-            | _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, [cName.Value]) |]
+            | _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, [cName]) |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -535,10 +534,10 @@ type Namespace private
     /// Return the diagnostics generated upon adding the specialization.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member internal this.InsertSpecialization (kind, typeArgs) (parentName : NonNullable<string>, source) (declLocation : QsLocation, msgRange : QsNullable<Range>) =
+    member internal this.InsertSpecialization (kind, typeArgs) (parentName, source) (declLocation : QsLocation, msgRange : QsNullable<Range>) =
         let location = {Offset = declLocation.Offset; Range = msgRange.ValueOr declLocation.Range}
         let generator = {TypeArguments = typeArgs; Generator = AutoGenerated; Range = msgRange}
-        let doc = ImmutableArray.Create(sprintf "automatically generated %A specialization for %s.%s" kind this.Name.Value parentName.Value)
+        let doc = ImmutableArray.Create(sprintf "automatically generated %A specialization for %s.%s" kind this.Name parentName)
         this.TryAddCallableSpecialization kind (source, location) ((parentName, declLocation.Range), generator, ImmutableArray.Empty, doc)
 
     /// <summary>
