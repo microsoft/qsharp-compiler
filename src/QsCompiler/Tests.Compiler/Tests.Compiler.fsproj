@@ -201,9 +201,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
-    <!-- <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
+    <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference> -->
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
