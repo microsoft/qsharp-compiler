@@ -31,6 +31,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     /// </summary>
     public static class Monomorphize
     {
+        /// <summary>
+        /// Performs Monomorphization on the given compilation.
+        /// </summary>
         public static QsCompilation Apply(QsCompilation compilation)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
