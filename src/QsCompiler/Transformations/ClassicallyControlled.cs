@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -454,24 +454,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         }
                     }
 
-                    BuiltIn controlOpInfo;
-                    (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
-                    if (adj && ctl)
+                    var controlOpInfo = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable)) switch
                     {
-                        controlOpInfo = BuiltIn.ApplyConditionallyCA;
-                    }
-                    else if (adj)
-                    {
-                        controlOpInfo = BuiltIn.ApplyConditionallyA;
-                    }
-                    else if (ctl)
-                    {
-                        controlOpInfo = BuiltIn.ApplyConditionallyC;
-                    }
-                    else
-                    {
-                        controlOpInfo = BuiltIn.ApplyConditionally;
-                    }
+                        (true, true) => BuiltIn.ApplyConditionallyCA,
+                        (true, false) => BuiltIn.ApplyConditionallyA,
+                        (false, true) => BuiltIn.ApplyConditionallyC,
+                        (false, false) => BuiltIn.ApplyConditionally
+                    };
 
                     // Takes a single TypedExpression of type Result and puts in into a
                     // value array expression with the given expression as its only item.
