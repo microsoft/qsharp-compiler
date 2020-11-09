@@ -624,8 +624,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         private readonly ProcessingQueue load;
-        private readonly ConcurrentDictionary<Uri, Project> projects;
+        private readonly ConcurrentDictionary<Uri, Project> userProjects;
+        private readonly ConcurrentDictionary<Uri, Project> temporaryProjects;
         private readonly CompilationUnitManager defaultManager;
+
+        /// <summary>
+        /// Returns a concatenation of the <see cref="userProjects"> and <see cref="temporaryProjects"> collections.
+        /// </summary>
+        /// <remarks>
+        /// Calls <see cref="ConcurrentDictionary{TKey, TValue}.ToArray"/> to maintain thread safety, rather
+        /// than simply calling <c>Concat</c> on the <see cref="ConcurrentDictionary{TKey, TValue}"/> itself.
+        /// </remarks>
+        private ImmutableDictionary<Uri, Project> AllProjects =>
+            this.userProjects.ToArray().Concat(this.temporaryProjects.ToArray()).ToImmutableDictionary();
 
         /// <summary>
         /// called whenever diagnostics within a file have changed and are ready for publishing -> may be null!
@@ -650,7 +661,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
-            this.projects = new ConcurrentDictionary<Uri, Project>();
+            this.userProjects = new ConcurrentDictionary<Uri, Project>();
+            this.temporaryProjects = new ConcurrentDictionary<Uri, Project>();
             this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
@@ -661,7 +673,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public void Dispose() =>
             this.load.QueueForExecution(() =>
             {
-                foreach (var project in this.projects.Values)
+                foreach (var project in this.AllProjects.Values)
                 {
                     project.Dispose();
                 }
@@ -727,6 +739,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ProjectInformation.Loader projectLoader,
             Func<Uri, FileContentManager?>? openInEditor = null)
         {
+            return this.LoadProjectsAsync(this.userProjects, projectFiles, projectLoader, openInEditor);
+        }
+
+        /// <summary>
+        /// To be used whenever a temporary project file is added.
+        /// Note that by calling this routine, all processing will be blocked until loading has finished...
+        /// </summary>
+        public Task LoadTemporaryProjectAsync(
+            Uri projectFile,
+            ProjectInformation.Loader projectLoader,
+            Func<Uri, FileContentManager?>? openInEditor = null)
+        {
+            return this.LoadProjectsAsync(this.temporaryProjects, new List<Uri> { projectFile }, projectLoader, openInEditor);
+        }
+
+        /// <summary>
+        /// Used for initial project loading or temporary project loading.
+        /// Note that by calling this routine, all processing will be blocked until loading has finished...
+        /// </summary>
+        private Task LoadProjectsAsync(
+            ConcurrentDictionary<Uri, Project> projects,
+            IEnumerable<Uri> projectFiles,
+            ProjectInformation.Loader projectLoader,
+            Func<Uri, FileContentManager?>? openInEditor)
+        {
             openInEditor ??= _ => null;
 
             return this.load.QueueForExecutionAsync(() =>
@@ -739,13 +776,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         continue;
                     }
                     var project = new Project(file, info, this.logException, this.publishDiagnostics, this.log);
-                    this.projects.AddOrUpdate(file, project, (k, v) => project);
+                    projects.AddOrUpdate(file, project, (k, v) => project);
                 }
 
-                var outputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+                var outputPaths = projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var file in projectFiles)
                 {
-                    if (!this.projects.TryGetValue(file, out var project))
+                    if (!projects.TryGetValue(file, out var project))
                     {
                         continue;
                     }
@@ -771,7 +808,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // TODO: allow to cancel this task via cancellation token?
             return this.load.QueueForExecutionAsync(() =>
             {
-                var existing = this.projects.TryRemove(projectFile, out Project current) ? current : null;
+                var existing = this.userProjects.TryRemove(projectFile, out Project current) ? current : null;
 
                 if (!projectLoader(projectFile, out var info))
                 {
@@ -792,13 +829,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var updated = existing ?? new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
-                this.projects.AddOrUpdate(projectFile, updated, (_, __) => updated);
+                this.userProjects.AddOrUpdate(projectFile, updated, (_, __) => updated);
 
                 // If any of the files that are currently open in the editor is part of the project,
                 // then we need to make sure to remove them from the default manager before adding them to the project.
                 // Conversely, if a file that is open in the editor is removed from the project, we need to add it to the DefaultManager.
                 updated.LoadProjectAsync(
-                    this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath),
+                    this.userProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath),
                     this.MigrateToProject(openInEditor),
                     this.MigrateToDefaultManager(openInEditor),
                     info)
@@ -813,8 +850,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private Task ProjectReferenceChangedOnDiskChangeAsync(Uri projFile) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
-                foreach (var project in this.projects.Values)
+                var projectOutputPaths = this.userProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+                foreach (var project in this.userProjects.Values)
                 {
                     project.ReloadProjectReferenceAsync(projectOutputPaths, projFile);
                 }
@@ -827,8 +864,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task AssemblyChangedOnDiskAsync(Uri dllPath) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
-                foreach (var project in this.projects.Values)
+                var projectOutputPaths = this.userProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+                foreach (var project in this.userProjects.Values)
                 {
                     project.ReloadAssemblyAsync(projectOutputPaths, dllPath);
                 }
@@ -843,7 +880,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                foreach (var project in this.projects.Values)
+                foreach (var project in this.AllProjects.Values)
                 {
                     project.ReloadSourceFileAsync(sourceFile, openInEditor);
                 }
@@ -854,8 +891,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the compilation unit manager for the project
         /// if the given file can be uniquely associated with a compilation unit.
+        /// First looks for user projects, then temporary projects.
         /// Returns the DefaultManager otherwise.
-        /// NOTE: returns null if no CompilationUnitManager exists for the project, or if the given file is null.
+        /// NOTE: returns null if the given file is null.
         /// </summary>
         private CompilationUnitManager? Manager(Uri? file)
         {
@@ -863,30 +901,63 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            var includedIn = this.projects.Values.Where(project => project.ContainsSourceFile(file));
-            return includedIn.Count() == 1
-                ? includedIn.Single().Manager
-                : this.defaultManager;
+
+            var includedIn = this.userProjects.Values.Where(project => project.ContainsSourceFile(file));
+            if (includedIn.Count() == 1)
+            {
+                return includedIn.Single().Manager;
+            }
+
+            var includedInTemporary = this.temporaryProjects.Values.Where(project => project.ContainsSourceFile(file));
+            if (includedInTemporary.Count() == 1)
+            {
+                return includedInTemporary.Single().Manager;
+            }
+
+            return this.defaultManager;
         }
 
         /// <summary>
-        /// If the given file can be uniquely associated with a compilation unit,
+        /// If the given file can be uniquely associated with a compilation unit from one of the given projects,
+        /// executes the given Action on the CompilationUnitManager of that project, passing true as second argument.
+        /// </summary>
+        /// <returns>
+        /// Whether the Action was executed on any of the projects.
+        /// </returns>
+        private static bool ManagerTaskForEach(
+            IEnumerable<KeyValuePair<Uri, Project>> projects,
+            Uri file,
+            Action<CompilationUnitManager, bool> executeTask)
+        {
+            var didExecute = false;
+            var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
+            var projectOutputPaths = projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+            Parallel.ForEach(projects.Select(p => p.Value), options, project =>
+            {
+                if (project.ManagerTask(file, m => executeTask(m, true), projectOutputPaths))
+                {
+                    didExecute = true;
+                }
+            });
+            return didExecute;
+        }
+
+        /// <summary>
+        /// If the given file can be uniquely associated with a compilation unit from a user project,
         /// executes the given Action on the CompilationUnitManager of that project (if one exists), passing true as second argument.
-        /// Executes the given Action on the DefaultManager otherwise, passing false as second argument.
+        /// If not, repeats the above, but looking for a compilation unit from a temporary project.
+        /// Otherwise, executes the given Action on the DefaultManager, passing false as second argument.
         /// </summary>
         public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                var didExecute = false;
-                var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
-                Parallel.ForEach(this.projects.Values, options, project =>
+                var didExecute = ManagerTaskForEach(this.userProjects, file, executeTask);
+
+                if (!didExecute)
                 {
-                    if (project.ManagerTask(file, m => executeTask(m, true), projectOutputPaths))
-                    {
-                        didExecute = true;
-                    }
-                });
+                    didExecute = ManagerTaskForEach(this.temporaryProjects, file, executeTask);
+                }
+
                 if (!didExecute)
                 {
                     executeTask(this.defaultManager, false);
@@ -912,13 +983,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 () =>
                 {
                     var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
-                    var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
+                    var projectOutputPaths = this.AllProjects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                     var results = new ConcurrentBag<WorkspaceEdit>();
 
-                    Parallel.ForEach(this.projects.Values, options, project => // the default manager does not support rename operations
-                        {
-                            project.ManagerTask(param.TextDocument.Uri, m => m.Rename(param)?.Apply(results.Add), projectOutputPaths);
-                        });
+                    Parallel.ForEach(this.AllProjects.Values, options, project => // the default manager does not support rename operations
+                    {
+                        project.ManagerTask(param.TextDocument.Uri, m => m.Rename(param)?.Apply(results.Add), projectOutputPaths);
+                    });
                     return results;
                 },
                 out var edits);
@@ -1077,7 +1148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.load.QueueForExecution(
                 () =>
                 {
-                    if (!this.projects.TryGetValue(projectId, out Project project))
+                    if (!this.AllProjects.TryGetValue(projectId, out Project project))
                     {
                         return null;
                     }
@@ -1106,7 +1177,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return this.defaultManager.GetDiagnostics();
                     }
-                    if (this.projects.TryGetValue(file, out Project project))
+                    if (this.AllProjects.TryGetValue(file, out Project project))
                     {
                         return project.Manager?.GetDiagnostics();
                     }
