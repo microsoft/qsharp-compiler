@@ -7,8 +7,6 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsCompilationManager</AssemblyName>
     <RootNamespace>Microsoft.Quantum.QsCompiler.CompilationBuilder</RootNamespace>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
