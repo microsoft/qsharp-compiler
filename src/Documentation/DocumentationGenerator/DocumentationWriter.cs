@@ -100,7 +100,9 @@ namespace Microsoft.Quantum.Documentation
         public DocumentationWriter(string outputPath, string? packageName)
         {
             this.OutputPath = outputPath;
-            this.packageName = packageName;
+            this.packageName =
+                string.IsNullOrWhiteSpace(packageName)
+                ? null : packageName;
 
             // If the output path is not null, make sure the directory exists.
             if (outputPath != null)
