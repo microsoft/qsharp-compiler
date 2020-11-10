@@ -142,6 +142,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }";
     }
     
+    // ToDo: These tests break the file when uncommented, they need proper error handling before uncommenting
     //operation StringNestedInterpolationTest1 () : Unit {
     //    let x = 0;
     //    let str = $"Outer { $"Middle { $"Inner {x}" }" }";

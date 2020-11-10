@@ -377,10 +377,6 @@ type LocalVerificationTests () =
         this.Expect "StringInterpolationDollarSignTest5"    []
         this.Expect "StringInterpolationDollarSignTest6"    []
 
-        //this.Expect "StringNestedInterpolationTest1"    []
-        //this.Expect "StringNestedInterpolationTest2"    []
-        //this.Expect "StringNestedInterpolationTest3"    []
-
         this.Expect "StringInterpolationWithCommentTest1"    []
         this.Expect "StringInterpolationWithCommentTest2"    []
         this.Expect "StringInterpolationWithCommentTest3"    []
@@ -389,3 +385,11 @@ type LocalVerificationTests () =
         this.Expect "StringInterpolationWithCommentTest6"    []
         this.Expect "StringInterpolationWithCommentTest7"    []
         this.Expect "StringInterpolationWithCommentTest8"    []
+
+
+    [<Fact(Skip="These Tests Need Proper Error Handling")>]
+    member this.``Nested Interpolation Strings`` () =
+        this.Expect "StringNestedInterpolationTest1"    []
+        this.Expect "StringNestedInterpolationTest2"    []
+        this.Expect "StringNestedInterpolationTest3"    []
+

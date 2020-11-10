@@ -328,13 +328,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             //
             //}
 
-            // ToDo look into comment position more here, it seems strange that it doesn't matter
             // line indentation and comment position is irrelevant here
             var truncatedLine = new CodeLine(
                 truncatedText,
                 CodeLine.StringContext.NoOpenString,
                 truncatedDelims,
-                -1,
+                -1, // ToDo look into comment position more here, it seems strange that it doesn't matter
                 0,
                 truncatedExcessClosings);
             var foundIndex = truncatedLine.FindInCode(findIndex, ignoreExcessBrackets);
