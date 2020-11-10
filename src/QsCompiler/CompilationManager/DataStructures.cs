@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -492,21 +492,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             public int Index { get; private set; }
 
             /// <summary>
-            /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the content)
-            /// and initializes an instance of TokenIndex.
-            /// Throws an ArgumentOutOfRangeException if line or index are negative,
-            /// or line is larger than or equal to the number of Tokens lists in file,
-            /// or index is larger than or equal to the number of Tokens on the given line.
+            /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the
+            /// content) and initializes an instance of TokenIndex.
             /// </summary>
+            /// <exception cref="ArgumentOutOfRangeException">The line or index are negative.</exception>
+            /// <exception cref="FileContentException">
+            /// The line is outside the bounds of the file, or the index is outside the bounds of the line.
+            /// </exception>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
-                if (line < 0 || line >= file.NrTokenizedLines())
+                if (line < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
                 }
-                if (index < 0 || index >= file.GetTokenizedLine(line).Length)
+                if (index < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                if (line >= file.NrTokenizedLines())
+                {
+                    throw new FileContentException("Line exceeds the bounds of the file.");
+                }
+                if (index >= file.GetTokenizedLine(line).Length)
+                {
+                    throw new FileContentException("Token exceeds the bounds of the line.");
                 }
 
                 this.file = file;
@@ -524,26 +533,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Marks the token returned by GetToken for the associated file as excluded from the compilation.
-            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal void MarkAsExcluded()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = false;
             }
 
             /// <summary>
             /// Marks the token returned by GetToken for the associated file as included in the compilation.
-            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal void MarkAsIncluded()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = true;
             }
@@ -551,13 +564,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal CodeFragment GetFragment()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
             }
@@ -565,8 +580,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex including any closing comments for that fragment -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal CodeFragment GetFragmentWithClosingComments()
             {
                 var fragment = this.GetFragment();
@@ -586,13 +603,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the next token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             public TokenIndex? Next()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
@@ -608,13 +627,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the previous token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             public TokenIndex? Previous()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 var res = new TokenIndex(this);
                 if (res.Index-- > 0)
@@ -659,7 +680,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             {
                 if (fragment.Range.Start < parentStart)
                 {
-                    throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
+                    throw new ArgumentException("parentStart needs to be smaller than or equal to the fragment start.", nameof(parentStart));
                 }
                 this.Fragment = fragment;
                 this.Children = children;
@@ -1159,6 +1180,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             try
             {
                 return this.content[index];
+            }
+            finally
+            {
+                this.SyncRoot.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Gets the item at the index if the index does not exceed the bounds of the list.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
+        internal bool TryGetItem(int index, [MaybeNullWhen(false)] out T item)
+        {
+            this.SyncRoot.EnterReadLock();
+            try
+            {
+                if (index < this.content.Count)
+                {
+                    item = this.content[index];
+                    return true;
+                }
+                item = default;
+                return false;
             }
             finally
             {
