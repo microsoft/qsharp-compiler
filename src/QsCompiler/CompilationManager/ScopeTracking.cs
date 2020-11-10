@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Computes the updated code line based on the given previous line predecessing it,
+        /// Computes the updated code line based on the given previous line preceding it,
         /// and compares its indentation with the current line at continueAt in the given file.
         /// Returns the difference of the new indentation and the current one.
         /// Throws an ArgumentOutOfRangeException if the given index to continue at is less than zero or more than the number of lines in the given file.
@@ -103,59 +103,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var delimiters = line.StringDelimiters;
             return delimiters.Count() != 0 && delimiters.Last() == line.Text.Length;
-        }
-
-        /// <summary>
-        /// Computes the location of the string delimiters within a given text.
-        /// </summary>
-        private static IEnumerable<int> ComputeStringDelimiters(string text, bool isContinuation, ref bool inFormattedString)
-        {
-            var builder = ImmutableArray.CreateBuilder<int>();
-            var isInString = false;
-
-            if (isContinuation)
-            {
-                isInString = !isInString;
-                builder.Add(-1);
-            }
-
-            var stringLength = text.Length;
-            while (text != string.Empty)
-            {
-                // Check for a comment start if we are outside a string
-                var commentIndex = isInString ? -1 : text.IndexOf("//");
-                if (commentIndex < 0)
-                {
-                    commentIndex = text.Length;
-                }
-
-                var index = text.IndexOf('"');
-                if (isInString)
-                {
-                    // if we are currently within a string, we need to ignore string delimiters of the form \"
-                    while (index > 0 && text[index - 1] == '\\')
-                    {
-                        var next = text.Substring(index + 1).IndexOf('"');
-                        index = next < 0 ? next : index + 1 + next;
-                    }
-                }
-
-                if (index < 0 || commentIndex < index)
-                {
-                    break;
-                }
-
-                isInString = !isInString;
-                builder.Add(index + stringLength - text.Length);
-                text = text.Substring(index + 1);
-            }
-
-            if (isInString)
-            {
-                builder.Add(stringLength);
-            }
-
-            return builder.ToImmutable();
         }
 
         // utils related to filtering irrelevant text for scope and error processing, and parsing
@@ -375,14 +322,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Where(pos => start <= pos && pos < start + count)
                 .Select(pos => pos - start);
 
-            var shiftedCommentIndex = line.WithoutEnding.Length - start;
-            var truncatedLine = new CodeLine(truncatedText, truncatedDelims, shiftedCommentIndex < count ? shiftedCommentIndex : count, 0, truncatedExcessClosings); // line indentation is irrelevant here
-            var foundIndex = FindInCode(truncatedLine, findIndex, ignoreExcessBrackets);
+            //var shiftedCommentIndex = FindCommentStart(line);
+            //if (start <= shiftedCommentIndex && shiftedCommentIndex < start + count)
+            //{
+            //
+            //}
+
+            // ToDo look into comment position more here, it seems strange that it doesn't matter
+            // line indentation and comment position is irrelevant here
+            var truncatedLine = new CodeLine(
+                truncatedText,
+                CodeLine.StringContext.NoOpenString,
+                truncatedDelims,
+                -1,
+                0,
+                truncatedExcessClosings);
+            var foundIndex = truncatedLine.FindInCode(findIndex, ignoreExcessBrackets);
             return foundIndex < 0 ? foundIndex : start + foundIndex;
         }
 
+        private static int FindCommentStart(CodeLine line)
+        {
+            if (line.EndOfLineComment is null)
+            {
+                return -1;
+            }
+
+            return line.WithoutEnding.Length;
+        }
+
         /// <summary>
-        /// Givent a position, verifies that the position is within the given file, and
+        /// Given a position, verifies that the position is within the given file, and
         /// returns the effective indentation (i.e. the indentation when ignoring excess brackets throughout the file)
         /// at that position (i.e. not including the char at the given position).
         /// </summary>
@@ -486,17 +456,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
-            var continueString = ContinueString(previousLine);
-            var inFormattedString = false;
+            var previousLineStringContext = previousLine?.EndingStringContext ?? CodeLine.StringContext.NoOpenString;
             foreach (string text in texts)
             {
-                // computing suitable string delimiters
-                var delimiters = ComputeStringDelimiters(text, continueString, ref inFormattedString);
-                var commentStart = IndexIncludingStrings(RemoveStrings(text, delimiters).IndexOf("//"), delimiters.ToArray());
-
-                // initializes the code line with a default indentation of zero, that will be set to a suitable value during the computation of the excess brackets
-                var line = new CodeLine(text, delimiters, commentStart < 0 ? text.Length : commentStart);
-                continueString = ContinueString(line);
+                var line = new CodeLine(text, previousLineStringContext);
+                previousLineStringContext = line.EndingStringContext;
                 yield return line;
             }
         }

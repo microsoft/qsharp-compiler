@@ -377,9 +377,9 @@ type LocalVerificationTests () =
         this.Expect "StringInterpolationDollarSignTest5"    []
         this.Expect "StringInterpolationDollarSignTest6"    []
 
-        this.Expect "StringNestedInterpolationTest1"    []
-        this.Expect "StringNestedInterpolationTest2"    []
-        this.Expect "StringNestedInterpolationTest3"    []
+        //this.Expect "StringNestedInterpolationTest1"    []
+        //this.Expect "StringNestedInterpolationTest2"    []
+        //this.Expect "StringNestedInterpolationTest3"    []
 
         this.Expect "StringInterpolationWithCommentTest1"    []
         this.Expect "StringInterpolationWithCommentTest2"    []
