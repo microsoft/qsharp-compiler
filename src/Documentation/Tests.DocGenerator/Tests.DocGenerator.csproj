@@ -6,8 +6,6 @@
     <IsPackable>false</IsPackable>
     <RootNamespace>Microsoft.Quantum.QsCompiler.Documentation.Testing</RootNamespace>
     <AssemblyName>Tests.Microsoft.Quantum.QsDocumentationParser</AssemblyName>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,5 +30,4 @@
     <ProjectReference Include="..\..\QsCompiler\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
-
 </Project>

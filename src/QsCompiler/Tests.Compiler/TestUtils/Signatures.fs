@@ -158,6 +158,7 @@ let public MonomorphizationSignatures =
             MonomorphizationNs, "Test4", [||], "Unit"
             GenericsNs, "Test4Main", [||], "Unit"
             GenericsNs, "_GenericCallsSelf", [||], "Unit"
+            GenericsNs, "_GenericCallsSelf2", [|"Double"|], "Unit"
         |])
     |]
     |> _MakeSignatures

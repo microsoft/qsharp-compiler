@@ -268,7 +268,7 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Monomorphization")>]
     member this.``Monomorphization Access Modifier Resolution Op Returns`` () =
-           this.RunMonomorphizationAccessModifierTest 11
+        this.RunMonomorphizationAccessModifierTest 11
 
 
     [<Fact>]

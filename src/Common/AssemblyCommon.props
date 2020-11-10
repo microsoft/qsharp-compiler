@@ -7,7 +7,12 @@
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
   </PropertyGroup>
 
-  <!-- 
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
     When DefineConstants receives a list with the semicolon escaped (%3B),
     like: SIGNED%3BTELEMETRY
     the F# tasks doesn't break them up using the semicolon, instead it defines one constant
