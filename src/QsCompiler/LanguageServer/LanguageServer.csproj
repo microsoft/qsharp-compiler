@@ -4,8 +4,6 @@
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Workaround for https://github.com/dotnet/cli/issues/9514, see https://stackoverflow.com/a/51644988/267841. -->

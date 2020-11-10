@@ -4,9 +4,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.DocumentationGenerator</AssemblyName>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
-  </PropertyGroup>  
+  </PropertyGroup>
 
   <PropertyGroup>
     <Authors>Microsoft</Authors>
@@ -39,5 +37,4 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
-
 </Project>
