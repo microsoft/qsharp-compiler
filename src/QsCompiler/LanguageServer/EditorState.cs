@@ -263,9 +263,9 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return;
                 }
 
-                if (createdTemporaryProject && !associatedWithProject)
-                {
-                    logError?.Invoke($"Failed to load temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
+                if (createdTemporaryProject && !associatedWithProject)	
+                {	
+                    logError?.Invoke($"Failed to load temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);	
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
