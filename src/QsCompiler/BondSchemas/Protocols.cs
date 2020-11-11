@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Diagnostics;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer()
         {
-            Debug.Assert(Monitor.IsEntered(BondSharedDataStructuresLock));
+            VerifyLockAcquired(BondSharedDataStructuresLock);
             if (simpleBinaryDeserializerInitialization == null)
             {
                 simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SimpleBinarySerializer GetSimpleBinarySerializer()
         {
-            Debug.Assert(Monitor.IsEntered(BondSharedDataStructuresLock));
+            VerifyLockAcquired(BondSharedDataStructuresLock);
             if (simpleBinarySerializerInitialization == null)
             {
                 simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
@@ -106,12 +106,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
+            VerifyLockAcquired(BondSharedDataStructuresLock);
             return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation)));
         }
 
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()
         {
+            VerifyLockAcquired(BondSharedDataStructuresLock);
             return Task.Run(() => new SimpleBinarySerializer(typeof(QsCompilation)));
+        }
+
+        private static void VerifyLockAcquired(object lockObject)
+        {
+#if DEBUG
+            if (!Monitor.IsEntered(lockObject))
+            {
+                throw new InvalidOperationException("Lock is expected to be acquired");
+            }
+#endif
         }
     }
 }
