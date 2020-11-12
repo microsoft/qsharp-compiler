@@ -326,21 +326,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         public static CodeLine Empty(StringContext beginningStringContext = StringContext.NoOpenString) =>
             new CodeLine(beginningStringContext);
 
-        //internal CodeLine SetText(string newText)
-        //{
-        //    return new CodeLine(newText, this.StringDelimiters, this.WithoutEnding.Length, this.Indentation, this.ExcessBracketPositions);
-        //}
-        //
-        //internal CodeLine SetStringDelimiters(IEnumerable<int> newStringDelimiters)
-        //{
-        //    return new CodeLine(this.Text, newStringDelimiters, this.WithoutEnding.Length, this.Indentation, this.ExcessBracketPositions);
-        //}
-        //
-        //internal CodeLine SetCommentIndex(int newCommentIndex)
-        //{
-        //    return new CodeLine(this.Text, this.StringDelimiters, newCommentIndex, this.Indentation, this.ExcessBracketPositions);
-        //}
-
         internal CodeLine SetIndentation(int newIndentation)
         {
             return new CodeLine(
