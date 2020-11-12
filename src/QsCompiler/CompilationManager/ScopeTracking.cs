@@ -316,38 +316,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
             var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
-            var truncatedText = line.Text.Substring(start, count); // will throw if start and count are out of range
+            if (start < line.WithoutEnding.Length && start + count > line.WithoutEnding.Length)
+            {
+                count = line.WithoutEnding.Length - start;
+            }
+            var truncatedText = line.WithoutEnding.Substring(start, count); // will throw if start and count are out of range
             var truncatedExcessClosings =
                 line.ExcessBracketPositions
                 .Where(pos => start <= pos && pos < start + count)
                 .Select(pos => pos - start);
-
-            //var shiftedCommentIndex = FindCommentStart(line);
-            //if (start <= shiftedCommentIndex && shiftedCommentIndex < start + count)
-            //{
-            //
-            //}
 
             // line indentation and comment position is irrelevant here
             var truncatedLine = new CodeLine(
                 truncatedText,
                 CodeLine.StringContext.NoOpenString,
                 truncatedDelims,
-                -1, // ToDo look into comment position more here, it seems strange that it doesn't matter
+                -1, // The comment should have been removed by this point
                 0,
                 truncatedExcessClosings);
             var foundIndex = truncatedLine.FindInCode(findIndex, ignoreExcessBrackets);
             return foundIndex < 0 ? foundIndex : start + foundIndex;
-        }
-
-        private static int FindCommentStart(CodeLine line)
-        {
-            if (line.EndOfLineComment is null)
-            {
-                return -1;
-            }
-
-            return line.WithoutEnding.Length;
         }
 
         /// <summary>
