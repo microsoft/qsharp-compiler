@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
-        private static IEnumerable<string> GenerateQsCode(Compilation compilation, NonNullable<string> file, ILogger logger)
+        private static IEnumerable<string> GenerateQsCode(Compilation compilation, string file, ILogger logger)
         {
             if (Options.IsCodeSnippet(file))
             {
@@ -83,10 +83,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 var imports = compilation.SyntaxTree.Values
                     .ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, compilation.SyntaxTree.Values, (file, imports));
+                var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<string, string>> generated, compilation.SyntaxTree.Values, (file, imports));
                 if (!success)
                 {
-                    logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file.Value);
+                    logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file);
                 }
 
                 return generated.Single().Select(entry =>
@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Creates a file containing the generated code in the given output folder otherwise.
         /// Returns true if the generation succeeded, and false if an exception was thrown.
         /// </summary>
-        private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string? outputFolder, ILogger logger)
+        private static bool GenerateFormattedQsFile(Compilation compilation, string fileName, string? outputFolder, ILogger logger)
         {
             var code = Enumerable.Empty<string>();
             try
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
             catch (Exception ex)
             {
-                logger?.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>(), fileName.Value);
+                logger?.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>(), fileName);
                 logger?.Log(ex);
                 return false;
             }

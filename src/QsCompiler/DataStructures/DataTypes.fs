@@ -61,12 +61,6 @@ module QsNullable =
         | Value a, Value b -> f a b |> Value
         | _ -> Null
 
-[<Struct>]
-type NonNullable<'T> = private Item of 'T with
-    static member New value = if value = null then ArgumentNullException() |> raise else Item value
-    member this.Value = this |> function | Item str -> str
-
-
 /// A position in a text document.
 type Position = private Position of int * int with
 

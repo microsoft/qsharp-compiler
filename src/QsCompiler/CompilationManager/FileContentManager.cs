@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public class FileContentManager : IDisposable
     {
         internal readonly Uri Uri;
-        public readonly NonNullable<string> FileName;
+        public readonly string FileName;
         private readonly ManagedList<CodeLine> content;
         private readonly ManagedList<ImmutableArray<CodeFragment>> tokens;
         private readonly FileHeader header;
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // constructors, "destructors" & property access:
 
-        internal FileContentManager(Uri uri, NonNullable<string> fileName)
+        internal FileContentManager(Uri uri, string fileName)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
@@ -1157,34 +1157,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Range)> GetNamespaceDeclarations()
+        public IEnumerable<(string, Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.Range))
-                .Where(tuple => tuple.Item1 != null)
-                .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
+                .Where(tuple => tuple.Item1 != null);
         }
 
         /// <summary>
         /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Range)> GetTypeDeclarations()
+        public IEnumerable<(string, Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.Range))
-                .Where(tuple => tuple.Item1 != null)
-                .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
+                .Where(tuple => tuple.Item1 != null);
         }
 
         /// <summary>
         /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        public IEnumerable<(NonNullable<string>, Range)> GetCallableDeclarations()
+        public IEnumerable<(string, Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.Range))
-                .Where(tuple => tuple.Item1 != null)
-                .Select(tuple => (NonNullable<string>.New(tuple.Item1), tuple.Item2));
+                .Where(tuple => tuple.Item1 != null);
         }
     }
 }

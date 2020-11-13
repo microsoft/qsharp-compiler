@@ -18,13 +18,13 @@ open Microsoft.Quantum.QsCompiler.Utils
 ///
 /// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
 type private PartialNamespace private
-    (name : NonNullable<string>,
-     source : NonNullable<string>,
+    (name : string,
+     source : string,
      documentation : IEnumerable<ImmutableArray<string>>,
-     openNS : IEnumerable<KeyValuePair<NonNullable<string>, string>>,
-     typeDecl : IEnumerable<KeyValuePair<NonNullable<string>, Resolution<QsTuple<QsSymbol * QsType>, ResolvedType * QsTuple<QsTypeItem>>>>,
-     callableDecl : IEnumerable<KeyValuePair<NonNullable<string>, QsCallableKind * Resolution<CallableSignature, ResolvedSignature*QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>>>,
-     specializations : IEnumerable<KeyValuePair<NonNullable<string>, List<QsSpecializationKind * Resolution<QsSpecializationGenerator, ResolvedGenerator>>>>) =
+     openNS : IEnumerable<KeyValuePair<string, string>>,
+     typeDecl : IEnumerable<KeyValuePair<string, Resolution<QsTuple<QsSymbol * QsType>, ResolvedType * QsTuple<QsTypeItem>>>>,
+     callableDecl : IEnumerable<KeyValuePair<string, QsCallableKind * Resolution<CallableSignature, ResolvedSignature*QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>>>,
+     specializations : IEnumerable<KeyValuePair<string, List<QsSpecializationKind * Resolution<QsSpecializationGenerator, ResolvedGenerator>>>>) =
 
     let keySelector (item : KeyValuePair<'k,'v>) = item.Key
     let valueSelector (item : KeyValuePair<'k,'v>) = item.Value
@@ -92,7 +92,7 @@ type private PartialNamespace private
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
         let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
-        shortNames.ToImmutableDictionary((fun kv -> NonNullable<string>.New kv.Value), (fun kv -> kv.Key))
+        shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
 
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
@@ -143,7 +143,7 @@ type private PartialNamespace private
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution
             let anonItemName () =
                 anonItemId <- anonItemId + 1
-                sprintf "__Item%i__" anonItemId |> NonNullable<string>.New
+                sprintf "__Item%i__" anonItemId
             match itemName.Symbol with
             | MissingSymbol -> QsTupleItem (Symbol (anonItemName()) |> withoutRange, itemType)
             | _ -> QsTupleItem (itemName.Symbol |> withoutRange, itemType) // no range info in auto-generated constructor
@@ -164,11 +164,11 @@ type private PartialNamespace private
         // We would furthermore have to adapt the entry point verification logic below, since type constructors are not valid entry points.
         let deprecationWithoutRedirect = {
             Id = {Symbol = Symbol BuiltIn.Deprecated.FullName.Name; Range = Null}
-            Argument = {Expression = StringLiteral (NonNullable<string>.New "", ImmutableArray.Empty); Range = Null}
+            Argument = {Expression = StringLiteral ("", ImmutableArray.Empty); Range = Null}
             Position = location.Offset
             Comments = QsComments.Empty}
         let constructorAttr = // we will attach any attribute that likely indicates a deprecation to the type constructor as well
-            let validDeprecatedQualification qual = String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value
+            let validDeprecatedQualification qual = String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace
             if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then ImmutableArray.Create deprecationWithoutRedirect
             else ImmutableArray.Empty
 

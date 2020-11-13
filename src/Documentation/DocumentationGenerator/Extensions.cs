@@ -94,10 +94,7 @@ namespace Microsoft.Quantum.Documentation
             TypedExpression input) =>
                 builder.AddAttribute(
                     AttributeUtils.BuildAttribute(
-                        new QsQualifiedName(
-                            NonNullable<string>.New(@namespace),
-                            NonNullable<string>.New(name)),
-                        input));
+                        new QsQualifiedName(@namespace, name), input));
 
         private static IAttributeBuilder<T> WithDocumentationAttribute<T>(
             this IAttributeBuilder<T> builder,
@@ -109,9 +106,7 @@ namespace Microsoft.Quantum.Documentation
                     input);
 
         private static TypedExpression AsLiteralExpression(this string literal) =>
-            SyntaxGenerator.StringLiteral(
-                NonNullable<string>.New(literal),
-                ImmutableArray<TypedExpression>.Empty);
+            SyntaxGenerator.StringLiteral(literal, ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
         ///      Given an attribute builder, either returns it unmodified,
@@ -259,7 +254,7 @@ namespace Microsoft.Quantum.Documentation
                         QsTypeItem.Named { Item: var named } =>
                             new List<(string, ResolvedType)>
                             {
-                                (named.VariableName.Value, named.Type)
+                                (named.VariableName, named.Type)
                             },
                         _ => throw new ArgumentException($"Type item {item} is neither anonymous nor named.", nameof(typeItems)),
                     },
@@ -278,7 +273,7 @@ namespace Microsoft.Quantum.Documentation
                         (
                             item.Item.VariableName switch
                             {
-                                QsLocalSymbol.ValidName name => name.Item.Value,
+                                QsLocalSymbol.ValidName name => name.Item,
                                 _ => "__invalid__",
                             },
                             item.Item.Type)
@@ -298,7 +293,7 @@ namespace Microsoft.Quantum.Documentation
                     ",", tuple.Item.Select(ToMarkdownLink)) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
                 ResolvedTypeKind.TypeParameter typeParam =>
-                    $"'{typeParam.Item.TypeName.Value}",
+                    $"'{typeParam.Item.TypeName}",
                 _ => type.Resolution.Tag switch
                     {
                         ResolvedTypeKind.Tags.BigInt => "[BigInt](xref:microsoft.quantum.lang-ref.bigint)",
@@ -316,7 +311,7 @@ namespace Microsoft.Quantum.Documentation
             };
 
         internal static string ToMarkdownLink(this UserDefinedType type) =>
-            $"[{type.Name.Value}](xref:{type.Namespace.Value}.{type.Name.Value})";
+            $"[{type.Name}](xref:{type.Namespace}.{type.Name})";
 
         internal static bool IsInCompilationUnit(this QsNamespaceElement element) =>
             element switch
@@ -327,10 +322,10 @@ namespace Microsoft.Quantum.Documentation
             };
 
         internal static bool IsInCompilationUnit(this QsCallable callable) =>
-            callable.SourceFile.Value.EndsWith(".qs");
+            callable.SourceFile.EndsWith(".qs");
 
         internal static bool IsInCompilationUnit(this QsCustomType type) =>
-            type.SourceFile.Value.EndsWith(".qs");
+            type.SourceFile.EndsWith(".qs");
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(

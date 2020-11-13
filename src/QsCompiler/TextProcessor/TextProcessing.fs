@@ -43,7 +43,7 @@ let private BuildUnknown text =
             Text = text
         } 
     let range = GetDelimiters (getRange remainingText |>> snd) text
-    let unknownStatement = unknownFragment (NonNullable<string>.New text) range
+    let unknownStatement = unknownFragment text range
     unknownStatement, (unknownStatement.Range.End, "")
 
 

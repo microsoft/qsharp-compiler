@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
+    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
     /// Scope transformation that replaces each operation call within a given scope
@@ -49,14 +49,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         // static methods for convenience
 
-        private static readonly NonNullable<string> ControlQubitsName =
-            NonNullable<string>.New(InternalUse.ControlQubitsName);
+        private static readonly string ControlQubitsName = InternalUse.ControlQubitsName;
 
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
 
-        private static readonly LocalVariableDeclaration<NonNullable<string>> ControlQubitsDeclaration =
-            new LocalVariableDeclaration<NonNullable<string>>(
+        private static readonly LocalVariableDeclaration<string> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<string>(
                 ControlQubitsName,
                 ControlQubits.ResolvedType,
                 ControlQubits.InferredInformation,
@@ -116,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 

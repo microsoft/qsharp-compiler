@@ -364,7 +364,7 @@ let internal symbolNameLike errCode =
 /// Returned the parsed (unqualified) Symbol as QsSymbol otherwise. 
 let internal symbolLike errCode = 
     term (symbolNameLike errCode) |>> function 
-        | Some sym, range -> (Symbol (NonNullable<string>.New sym), range) |> QsSymbol.New
+        | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
         | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
         
 /// Given the path, the symbol and the range parsed by multiSegmentSymbol, 
@@ -375,9 +375,9 @@ let internal asQualifiedSymbol ((path, sym), range : Range) =
     let names = [for segment in path do yield segment ] @ [sym]
     if names |> List.contains None then (InvalidSymbol, Null) |> QsSymbol.New
     else names |> List.choose id |> function 
-        | [sym] -> (Symbol (NonNullable<string>.New sym), range) |> QsSymbol.New
+        | [sym] -> (Symbol sym, range) |> QsSymbol.New
         | parts -> 
-            let (ns, sym) = (String.concat "." parts.[0..parts.Length-2]) |> NonNullable<string>.New, parts.[parts.Length-1] |> NonNullable<string>.New
+            let (ns, sym) = (String.concat "." parts.[0..parts.Length-2]), parts.[parts.Length-1]
             (QualifiedSymbol (ns, sym), range) |> QsSymbol.New
 
 /// Handles permissive parsing of a qualified symbol:
@@ -408,7 +408,7 @@ let internal typeParameterNameLike =
 /// Returned the parsed TypeParameter as QsType otherwise. 
 let internal typeParameterLike = 
     term typeParameterNameLike |>> function 
-        | Some sym, range -> ((NonNullable<string>.New sym |> Symbol, range) |> QsSymbol.New |> TypeParameter, range) |> QsType.New
+        | Some sym, range -> ((Symbol sym, range) |> QsSymbol.New |> TypeParameter, range) |> QsType.New
         | None, _ -> (InvalidType, Null) |> QsType.New 
 
 
@@ -447,7 +447,7 @@ let internal buildFragment header body (invalid : QsFragmentKind) fragmentKind c
             { Kind = kind
               Range = range
               Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
-              Text = NonNullable<_>.New text }
+              Text = text }
 
     let buildDiagnostic (errPos, (text, range : Range)) =
         let errPos = if range.End < errPos then range.End else errPos

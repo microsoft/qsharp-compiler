@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler
             ? SyntaxGenerator.WithControlQubits(
                 arg,
                 QsNullable<Position>.Null,
-                QsLocalSymbol.NewValidName(NonNullable<string>.New(InternalUse.ControlQubitsName)),
+                QsLocalSymbol.NewValidName(InternalUse.ControlQubitsName),
                 QsNullable<Range>.Null)
             : null;
 
