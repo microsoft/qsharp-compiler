@@ -347,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         : base(parent, TransformationOptions.NoRebuild) =>
             this.OnExpression = onExpression;
 
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState)
         : base(internalState, TransformationOptions.NoRebuild) =>
             this.OnExpression = onExpression;
 

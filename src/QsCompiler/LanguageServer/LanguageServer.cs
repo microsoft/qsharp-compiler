@@ -84,13 +84,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             void ProcessFileEvents(IEnumerable<FileEvent> e) =>
                 this.OnDidChangeWatchedFiles(JToken.Parse(JsonConvert.SerializeObject(
                     new DidChangeWatchedFilesParams { Changes = e.ToArray() })));
+            this.fileWatcher = new FileWatcher(_ =>
+                this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
             var fileEvents = Observable.FromEvent<FileWatcher.FileEventHandler, FileEvent>(
                     handler => this.fileWatcher.FileEvent += handler,
                     handler => this.fileWatcher.FileEvent -= handler)
                 .Where(e => !e.Uri.LocalPath.EndsWith("tmp", StringComparison.InvariantCultureIgnoreCase) && !e.Uri.LocalPath.EndsWith('~'));
 
             this.projectsInWorkspace = new HashSet<Uri>();
-            this.fileWatcher = new FileWatcher(_ => this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
             this.fileEvents = new CoalesceingQueue();
             this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
             this.editorState = new EditorState(

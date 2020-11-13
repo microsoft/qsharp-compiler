@@ -307,7 +307,7 @@ type LinkingTests (output:ITestOutputHelper) =
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
             | _ -> ()
 
-        let walker = new TypedExpressionWalker<unit>(new Action<_>(onExpr));
+        let walker = TypedExpressionWalker(Action<_> onExpr, ())
         walker.Transformation.OnCompilation compilation |> ignore
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
