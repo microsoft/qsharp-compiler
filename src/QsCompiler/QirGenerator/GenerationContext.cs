@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // It would be nice if TupleHeader were opaque, but it can't be because it appears directly
             // (that is, not as a pointer) in tuple structures, but would have unknown length if it were opaque.
             this.QirTupleHeader = this.CurrentContext.CreateStructType("TupleHeader", false, 
-                this.CurrentContext.Int32Type, this.CurrentContext.Int32Type);
+                this.CurrentContext.Int32Type);
             this.QirTuplePointer = this.QirTupleHeader.CreatePointerType();
             var qirArrayStruct = this.CurrentContext.CreateStructType("Array");
             this.QirArray = qirArrayStruct.CreatePointerType();
