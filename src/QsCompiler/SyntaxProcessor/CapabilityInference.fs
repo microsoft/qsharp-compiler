@@ -216,20 +216,32 @@ let private globalReferences scope =
 
 /// Returns a diagnostic for a reference to a global callable with the given name based on its capability attribute and
 /// the context's supported runtime capabilities.
-let private referenceDiagnostic context (name, range : _ QsNullable) =
+let private referenceDiagnostics context (name, range : _ QsNullable) =
+    // TODO: Diagnostic source file and range are different from the parent specialization that this function is called
+    // from.
+    let reasons =
+        lazy
+        context.Globals.ImportedSpecializations name
+        |> Seq.collect (fun (header, impl) ->
+            match impl with
+            | Provided (_, scope) -> scopePatterns scope |> Seq.map (locationOffset header.Location |> addOffset)
+            | _ -> Seq.empty)
+        |> Seq.distinct
+        |> Seq.choose (patternDiagnostic context)
+
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
         let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
         if context.Capability.Implies capability
-        then None
+        then Seq.empty
         else
             let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
-            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
-    | _ -> None
+            reasons.Value |> Seq.append (range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Seq.singleton)
+    | _ -> Seq.empty
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
 let ScopeDiagnostics context scope =
-    [ globalReferences scope |> Seq.choose (referenceDiagnostic context)
+    [ globalReferences scope |> Seq.collect (referenceDiagnostics context)
       scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
     |> Seq.concat
 
