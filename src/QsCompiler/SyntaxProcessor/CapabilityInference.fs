@@ -214,7 +214,7 @@ let private globalReferences scope =
     transformation.Statements.OnScope scope |> ignore
     references
 
-/// Returns a diagnostic for a reference to a global callable with the given name based on its capability attribute and
+/// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
 /// the context's supported runtime capabilities.
 let private referenceDiagnostics context (name, range : _ QsNullable) =
     // TODO: Diagnostic source file and range are different from the parent specialization that this function is called
