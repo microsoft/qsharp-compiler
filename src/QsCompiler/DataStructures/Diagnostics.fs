@@ -740,7 +740,13 @@ type DiagnosticItem =
             | WarningCode.ConditionalEvaluationOfOperationCall    -> "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect                 -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect              -> "{0} has been deprecated."
-            | WarningCode.UnsupportedCallableReason               -> "{0} could not be used by {1}, because: {2}"
+            | WarningCode.UnsupportedCallableReason               ->
+                let reason =
+                    match args |> Seq.item 2 with
+                    | "Error ResultComparisonNotInOperationIf" ->
+                        DiagnosticItem.Message (ErrorCode.ResultComparisonNotInOperationIf, [ "Unspecified" ])
+                    | name -> name
+                "{0} could not be used by {1}, because: " + reason
 
             | WarningCode.TypeParameterNotResolvedByArgument      -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument         -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
