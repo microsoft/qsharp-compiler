@@ -9,7 +9,7 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 
 
 [<Struct>]
-type QsNullable<'T> = // to avoid having to include the F# core in the C# part of the compiler...
+type QsNulable<'T> = // to avoid having to include the F# core in the C# part of the compiler...
 | Null
 | Value of 'T
 
