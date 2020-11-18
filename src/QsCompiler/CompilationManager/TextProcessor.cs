@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Compares the saved fragment ending of the given fragment against the expected continuation and
         /// adds the corresponding error to the returned diagnostics if they don't match.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the code fragment kind of <paramref name="fragment"/> is unspecified (i.e. null).</exception>
+        /// <exception cref="ArgumentException">The code fragment kind of <paramref name="fragment"/> is unspecified (i.e. null).</exception>
         private static IEnumerable<Diagnostic> CheckFragmentDelimiters(this CodeFragment fragment, string filename)
         {
             if (fragment.Kind == null)
@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the Position after the last character in the file (including comments).
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="file"/> does not have any content.</exception>
+        /// <exception cref="ArgumentException"><paramref name="file"/> does not have any content.</exception>
         public static Position End(this FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the Position right after where the last relevant (i.e. non-comment) code in the file ends,
         /// or the position (0,0) if no such line exists.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="file"/> does not contain any lines.</exception>
+        /// <exception cref="ArgumentException"><paramref name="file"/> does not contain any lines.</exception>
         private static Position LastInFile(FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -228,8 +228,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// Updates the given position to point to the first character in the fragment that contains code.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="current"/> is not within file.</exception>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="current"/> is not smaller than the position after the last piece of code in the file (given by <see cref="TextProcessor.LastInFile"/>).</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not within file.</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in the file (given by <see cref="TextProcessor.LastInFile"/>).</exception>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             if (!file.ContainsPosition(current))
@@ -283,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// If there is no such fragment, returns the position (0,0).
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="current"/> is not within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {
             if (!file.ContainsPosition(current))
@@ -358,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given the start line of a change, and how many lines have been updated from there,
         /// computes the position where the syntax check will start and end.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not a valid range within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not a valid range within <paramref name="file"/>.</exception>
         internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (start < 0 || start >= file.NrLines())

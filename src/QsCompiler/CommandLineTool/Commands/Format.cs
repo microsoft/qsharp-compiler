@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if this is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static IEnumerable<string> GenerateQsCode(Compilation compilation, string file, ILogger logger)
         {
             if (Options.IsCodeSnippet(file))

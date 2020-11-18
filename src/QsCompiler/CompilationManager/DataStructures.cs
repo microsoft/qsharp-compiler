@@ -412,7 +412,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// Builds the TreeNode consisting of the given fragment and children.
             /// RelativeToRoot is set to the position of the fragment start relative to the given parent start position.
             /// </summary>
-            /// <exception cref="ArgumentException">Thrown if <paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
+            /// <exception cref="ArgumentException"><paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
                 if (fragment.Range.Start < parentStart)
@@ -480,8 +480,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the keepInvalid parameter has been set to a string value.
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the symbol of the extracted declaration is not an unqualified symbol and does not instead correspond to an invalid symbol.</exception>
-        /// <exception cref="ArgumentException">Thrown if the extracted declaration is Null.</exception>
+        /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified symbol and does not instead correspond to an invalid symbol.</exception>
+        /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
             CodeFragment.TokenIndex tIndex,
@@ -536,7 +536,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// updates all elements that are larger than or equal to start + count with the given lineNrChange.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
         /// </exception>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
@@ -700,7 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange.
         /// Returns the number of removed elements.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             if (start < 0)

@@ -33,8 +33,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        /// <exception cref="FileNotFoundException">Thrown if <paramref name="asm"/> does not exist.</exception>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="asm"/> is not an absolute file URI.</exception>
+        /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
+        /// <exception cref="ArgumentException"><paramref name="asm"/> is not an absolute file URI.</exception>
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
         {
             var id = CompilationUnitManager.GetFileId(asm);
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Catches any exception throw upon loading the compilation, and invokes onException with it if such an action has been specified.
         /// Sets the out parameter to null if an exception occurred during loading.
         /// </summary>
-        /// <exception cref="FileNotFoundException">Thrown if <paramref name="asm"/> does not exist.</exception>
+        /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
         public static bool LoadReferencedAssembly(
             string asmPath,
             [NotNullWhen(true)] out QsCompilation? compilation,

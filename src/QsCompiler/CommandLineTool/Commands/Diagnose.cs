@@ -142,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if this is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static void PrintSyntaxTree(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             evaluatedTree ??= compilation.SyntaxTree.Values;
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if this is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static void PrintGeneratedQs(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             evaluatedTree ??= compilation.SyntaxTree.Values;
@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Strips the namespace and callable declaration that is consistent with the wrapping defined by WrapSnippet.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if this is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         public static IEnumerable<QsStatement> StripSnippetWrapping(IEnumerable<QsNamespace> syntaxTree)
         {
             var incorrectWrapperException = new ArgumentException("syntax tree does not reflect the expected wrapper");

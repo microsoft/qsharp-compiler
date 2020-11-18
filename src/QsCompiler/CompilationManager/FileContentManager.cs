@@ -217,7 +217,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both lists of diagnostics,
         /// and removes all diagnostics that overlap with the given range for the syntax check update in the updated diagnostics only.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given start and end position do not denote a valid range.</exception>
+        /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private static void DelayInvalidateOrUpdate(
             ManagedList<Diagnostic> diagnostics,
             ManagedList<Diagnostic> updated,
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
         /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateScopeDiagnostics(int start, int count, int lineNrChange)
@@ -294,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given start and end position do not denote a valid range.</exception>
+        /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             InvalidateOrUpdateBySyntaxCheckDelimeters(this.syntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
@@ -303,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all context diagnostics that start on a line marked as obsolete,
         /// and replaces them with the given sequence of context diagnostics.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="obsolete"/> contains a value that is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="obsolete"/> contains a value that is negative.</exception>
         internal void UpdateContextDiagnostics(HashSet<int> obsolete, IEnumerable<Diagnostic> updates)
         {
             if (obsolete.Any() && obsolete.Min() < 0)
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
         /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateContextDiagnostics(int start, int count, int lineNrChange)
@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given start and end position do not denote a valid range.</exception>
+        /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.headerDiagnostics, this.updatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
@@ -407,7 +407,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given start and end position do not denote a valid range.</exception>
+        /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.semanticDiagnostics, this.updatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
@@ -462,9 +462,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Verify content update.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, where <paramref name="count"/> needs to be at least one.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, where <paramref name="count"/> needs to be at least one.</exception>
         /// <exception cref="ArgumentException">
-        /// Thrown if the <paramref name="replacements"/> do not at least contain one element, or the indentation change is non-zero, or if a replacement does not have a suitable line ending.
+        /// The <paramref name="replacements"/> do not at least contain one element, or the indentation change is non-zero, or if a replacement does not have a suitable line ending.
         /// </exception>
         private void VerifyContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
         {
@@ -592,7 +592,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// verifies that all fragments are ordered according to their range, and
         /// verifies that none of the fragments overlap with existing tokens.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the verification fails.</exception>
+        /// <exception cref="ArgumentException">The verification fails.</exception>
         private void VerifyTokenUpdate(IReadOnlyList<CodeFragment> fragments)
         {
             if (fragments.Any(fragment => !this.ContainsRange(fragment.Range)))
@@ -622,8 +622,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Then constructs and returns an Action as out parameter
         /// that adds lineNr as well as all lines containing connections to mark to EditedTokens.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="linrNr"/> is not a valid index for the current Tokens.</exception>
-        /// <exception cref="ArgumentException">Thrown if any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="linrNr"/> is not a valid index for the current Tokens.</exception>
+        /// <exception cref="ArgumentException">Any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
         private void TransformAndMarkEdited(
             int lineNr,
             Func<ImmutableArray<CodeFragment>, ImmutableArray<CodeFragment>> updatedTokens,
@@ -687,7 +687,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Tokens starting at range.End or ending at range.Start are *not* considered to be overlapping.
         /// Futs a write-lock on the Tokens during the entire routine.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the line number of the <paramref name="range"/> end is larger than the number of currently saved tokens.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The line number of the <paramref name="range"/> end is larger than the number of currently saved tokens.</exception>
         private void RemoveTokensInRange(Range range)
         {
             this.tokens.SyncRoot.EnterWriteLock();
@@ -1004,7 +1004,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
         /// Sets the out parameter to true if diagnostics are to be published.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the range of <paramref name="change"/> is invalid.</exception>
+        /// <exception cref="ArgumentException">The range of <paramref name="change"/> is invalid.</exception>
         internal void PushChange(TextDocumentContentChangeEvent change, out bool publishDiagnostics)
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content,

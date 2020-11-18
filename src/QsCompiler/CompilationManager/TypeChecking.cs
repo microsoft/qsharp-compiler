@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Documenting comments may be separated by an empty lines.
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
             if (!file.ContainsPosition(pos))
@@ -171,7 +171,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given a collection of positioned items, returns the closest proceeding item for the given position.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if no item precedes <paramref name="pos"/>.</exception>
+        /// <exception cref="ArgumentException">No item precedes <paramref name="pos"/>.</exception>
         private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
         {
             var preceding = items.TakeWhile(tuple => tuple.Item1 < pos);
@@ -213,10 +213,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: This routine assumes that all empty or invalid fragments have been excluded from compilation prior to calling this routine.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if the lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").
+        /// The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if <paramref name="file"/> is not at least read-locked, since the returned token indices will only be valid until the next write
+        /// <paramref name="file"/> is not at least read-locked, since the returned token indices will only be valid until the next write
         /// operation that affects the tokens in the file.
         /// </exception>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?)> UpdateGlobalSymbols(
@@ -407,7 +407,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Updates the symbol information in the given compilation unit with all (validly placed) open directives in the given file,
         /// and adds the generated diagnostics for the given file *only* to the given list of diagnostics.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if the lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").</exception>
+        /// <exception cref="InvalidOperationException">The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").</exception>
         internal static void ImportGlobalSymbols(this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
             // While in principle the file does not need to be externally locked for this routine to evaluate correctly,
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Assumes that all given token indices are associated with the given file.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if <paramref name="file"/> is not at least read-locked, since token indices are only ever valid until the next write operation to the file they are associated with.
+        /// <paramref name="file"/> is not at least read-locked, since token indices are only ever valid until the next write operation to the file they are associated with.
         /// </exception>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> GetDeclarationTrees(
             this FileContentManager file,
@@ -573,7 +573,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildUsingStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -616,7 +616,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildBorrowStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -660,7 +660,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="context"/> does not currently contain an open scope, or if the repeat header is not followed by a until-success clause.
+        /// <paramref name="context"/> does not currently contain an open scope, or if the repeat header is not followed by a until-success clause.
         /// </exception>
         private static bool TryBuildRepeatStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
@@ -728,7 +728,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildForStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -771,7 +771,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildWhileStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -814,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildIfStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -883,7 +883,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildConjugationStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -940,7 +940,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildLetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -979,7 +979,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildMutableStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1018,7 +1018,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildSetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1057,7 +1057,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildFailStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1096,7 +1096,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildReturnStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1135,7 +1135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildExpressionStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1168,7 +1168,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if this is not the case, or if <paramref name="context"/> does not currently contain an open scope, or if any of the fragments in <paramref name="nodes"/> is null.
+        /// This is not the case, or if <paramref name="context"/> does not currently contain an open scope, or if any of the fragments in <paramref name="nodes"/> is null.
         /// </exception>
         private static ImmutableArray<QsStatement> BuildStatements(
             IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext context, List<Diagnostic> diagnostics)
@@ -1376,7 +1376,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or if the callable the specialization
+        /// <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or if the callable the specialization
         /// belongs to does not support that specialization according to the given <see cref="NamespaceManager"/>.
         /// </exception>
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
@@ -1710,7 +1710,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or rather to be consistent with the position information saved for statements.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
             this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
@@ -1790,7 +1790,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or rather to be consistent with the position information saved for statements.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
@@ -1806,7 +1806,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
@@ -1819,7 +1819,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given position lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Thrown if any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if relativePosition is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if relativePosition is not a valid position.
         /// </exception>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;

@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.Testing.Simulation
         /// executes the operation Main defined in Microsoft.Quantum.Testing.Simulation.
         /// </summary>
         /// <exception cref="EntryPointNotFoundException">
-        /// Thrown if a command line argument was given, but the corresponding operation was not found.
+        /// A command line argument was given, but the corresponding operation was not found.
         /// </exception>
         static void Main(string[] args)
         {
