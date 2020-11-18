@@ -785,7 +785,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note that functor generation directives are *not* evaluated in the the returned compilation,
         /// and the returned compilation may contain invalid parts.
         /// </summary>
-        /// <exception cref="InvalidOperationException">A callable definition is listed in <see cref="CompilationUnit.GlobalSymbols"/> for which no compilation exists.</exception>
+        /// <exception cref="InvalidOperationException">A callable definition is listed in <see cref="GlobalSymbols"/> for which no compilation exists.</exception>
         public QsCompilation Build()
         {
             this.syncRoot.EnterReadLock();

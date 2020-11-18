@@ -635,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to SortedSet<int>
+    /// threadsafe wrapper to <see cref="SortedSet{T}"/> whose generic type argument is <see cref="int"/>.
     /// </summary>
     public class ManagedSortedSet // *don't* dispose of the sync root!
     {
@@ -736,7 +736,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to HashSet<T>
+    /// threadsafe wrapper to <see cref="HashSet{T}"/>
     /// </summary>
     public class ManagedHashSet<T> // *don't* dispose of the sync root!
     {
@@ -795,7 +795,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to List<T>
+    /// threadsafe wrapper to <see cref="List{T}"/>
     /// </summary>
     public class ManagedList<T> // *don't* dispose of the sync root!
     {

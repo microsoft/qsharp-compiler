@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Updates the given position to point to the first character in the fragment that contains code.
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in <paramref name="file"/> (given by <see cref="TextProcessor.LastInFile"/>).</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in <paramref name="file"/> (given by <see cref="LastInFile"/>).</exception>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             if (!file.ContainsPosition(current))

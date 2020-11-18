@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Catches any exception throw upon loading the compilation, and invokes onException with it if such an action has been specified.
         /// Sets the out parameter to null if an exception occurred during loading.
         /// </summary>
-        /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
+        /// <exception cref="FileNotFoundException"><paramref name="asmPath"/> does not exist.</exception>
         public static bool LoadReferencedAssembly(
             string asmPath,
             [NotNullWhen(true)] out QsCompilation? compilation,

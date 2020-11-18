@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI.
         /// </summary>
-        /// <exception cref="ArgumentException">The URI is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
         public static string GetFileId(Uri uri)
         {
             if (!uri.IsAbsoluteUri || !uri.IsFile)
@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Initializes a FileContentManager for each entry in the given dictionary of source files and their content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon content processing.
         /// </summary>
-        /// <exception cref="ArgumentException">Any of the given URIs is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files"/> is not an absolute file URI.</exception>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,

@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
-    /// Static class to accumulate all type parameter independent subclasses used by LiftContent<T>.
+    /// Static class to accumulate all type parameter independent subclasses used by <see cref="LiftContent{T}"/>.
     /// </summary>
     public static class LiftContent
     {

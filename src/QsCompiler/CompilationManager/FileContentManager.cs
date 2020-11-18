@@ -622,7 +622,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Then constructs and returns an Action as out parameter
         /// that adds lineNr as well as all lines containing connections to mark to EditedTokens.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="linrNr"/> is not a valid index for the current Tokens.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineNr"/> is not a valid index for the current Tokens.</exception>
         /// <exception cref="ArgumentException">Any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
         private void TransformAndMarkEdited(
             int lineNr,
