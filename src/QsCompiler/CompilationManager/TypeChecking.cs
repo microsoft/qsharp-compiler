@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
@@ -1288,16 +1289,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(
-                returnDiagnostics
-                    .Concat(capabilityDiagnostics)
-                    .Select(msg => Diagnostics.Generate(sourceFile, msg, rootPosition)));
-            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            diagnostics.AddRange(returnDiagnostics.Select(diagnostic =>
+                Diagnostics.Generate(sourceFile, diagnostic, rootPosition)));
+            diagnostics.AddRange(capabilityDiagnostics.Select(diagnostic =>
+                OptionModule.IsSome(diagnostic.File)
+                    ? Diagnostics.Generate(sourceFile /* TODO: diagnostic.File.Value */, diagnostic.Diagnostic)
+                    : Diagnostics.Generate(sourceFile, diagnostic.Diagnostic, rootPosition)));
+            if (!context.ReturnType.Resolution.IsUnitType && !context.ReturnType.Resolution.IsInvalidType && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
                 diagnostics.Add(Diagnostics.Generate(sourceFile, missingReturn, specPos));
             }
+
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
 

@@ -31,6 +31,10 @@ type private Pattern =
     /// An equality expression outside the condition of an if statement, where the operands are results.
     | ResultEqualityNotInCondition of Range QsNullable
 
+type FileDiagnostic =
+    { Diagnostic : QsCompilerDiagnostic
+      File : string option }
+
 /// Returns the offset of a nullable location.
 let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
@@ -63,7 +67,11 @@ let private patternDiagnostic context pattern =
     let error code args (range : _ QsNullable) =
         if patternCapability context.IsInOperation pattern |> context.Capability.Implies
         then None
-        else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
+        else
+            Some {
+                Diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error (code, args)
+                File = None
+            }
     let unsupported =
         if context.Capability = BasicMeasurementFeedback
         then ErrorCode.ResultComparisonNotInOperationIf
@@ -224,15 +232,17 @@ let private referenceDiagnostics context (name, range : _ QsNullable) =
         context.Globals.ImportedSpecializations name
         |> Seq.collect (fun (header, impl) ->
             match impl with
-            | Provided (_, scope) -> scopePatterns scope |> Seq.map (locationOffset header.Location |> addOffset)
+            | Provided (_, scope) ->
+                scopePatterns scope
+                |> Seq.map (locationOffset header.Location |> addOffset)
+                |> Seq.choose (patternDiagnostic context)
+                |> Seq.map (fun diagnostic -> { diagnostic with File = Some header.SourceFile })
             | _ -> Seq.empty)
-        |> Seq.distinct
-        |> Seq.choose (patternDiagnostic context)
         |> Seq.map (fun diagnostic ->
             let warning =
                 WarningCode.UnsupportedCallableReason,
-                [ name.Name; context.Symbols.Parent.Name; string diagnostic.Diagnostic ]
-            QsCompilerDiagnostic.Warning warning diagnostic.Range)
+                [ name.Name; context.Symbols.Parent.Name; string diagnostic.Diagnostic.Diagnostic ]
+            { diagnostic with Diagnostic = QsCompilerDiagnostic.Warning warning diagnostic.Diagnostic.Range })
 
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
@@ -241,7 +251,10 @@ let private referenceDiagnostics context (name, range : _ QsNullable) =
         then Seq.empty
         else
             let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
-            reasons.Value |> Seq.append (range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Seq.singleton)
+            let diagnostic =
+                { Diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error
+                  File = None }
+            Seq.append (Seq.singleton diagnostic) reasons.Value
     | _ -> Seq.empty
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
