@@ -100,10 +100,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
         /// <summary>
-        /// Given a string, replaces the range [starChar, endChar) with the given string to insert.
+        /// Given a string, replaces the range [<paramref name="starChar"/>, <paramref name="endChar"/>) with <paramref name="insert"/>.
         /// Returns null if the given text is null.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the given start and end points do not denote a valid range within the string.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="startChar"/> and <paramref name="endChar"/> do not denote a valid range within <paramref name="lineText"/>.</exception>
         [return: NotNullIfNotNull("lineText")]
         internal static string? GetChangedText(string? lineText, int startChar, int endChar, string insert)
         {

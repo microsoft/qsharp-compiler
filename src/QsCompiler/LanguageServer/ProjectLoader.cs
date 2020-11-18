@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Logs a suitable error is no target framework can be determined.
         /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given project file is null or does not exist.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="projectFile"/> is null or does not exist.</exception>
         internal IDictionary<string, string> DesignTimeBuildProperties(
             string projectFile,
             out Dictionary<string, string?> metadata,
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// applies the given query to it, and unloads it. Returns the result of the query.
         /// NOTE: unloads the GlobalProjectCollection to force a cache clearing.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given project file is null or does not exist.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="projectFile"/> is null or does not exist.</exception>
         private static T LoadAndApply<T>(string projectFile, IDictionary<string, string> properties, Func<Project, T> query)
         {
             if (!File.Exists(projectFile))

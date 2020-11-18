@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Verifies that all tokens are ordered according to their range.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if not all tokens are ordered according to their range.</exception>
+        /// <exception cref="ArgumentException">Thrown if not all <paramref name="tokens"/> are ordered according to their range.</exception>
         internal static void VerifyTokenOrdering(IEnumerable<CodeFragment> tokens)
         {
             Position? previousEnding = null;
@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
         /// whereas the range of the given fragment is assumed to be the absolute range.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the given range is not a valid range within the file.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="range"/> is not a valid range within <paramref name="file"/>.</exception>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
             if (!file.ContainsRange(range))

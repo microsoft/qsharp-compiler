@@ -246,7 +246,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if start or count are negative, or if lineNrChange is smaller than -count or if start + count + lineNrChange is larger than the current number of lines.
+        /// Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
+        /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateScopeDiagnostics(int start, int count, int lineNrChange)
         {
@@ -302,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// removes all context diagnostics that start on a line marked as obsolete,
         /// and replaces them with the given sequence of context diagnostics.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the provided sequence of context diagnostics contains a value that is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="obsolete"/> contains a value that is negative.</exception>
         internal void UpdateContextDiagnostics(HashSet<int> obsolete, IEnumerable<Diagnostic> updates)
         {
             if (obsolete.Any() && obsolete.Min() < 0)
@@ -329,7 +330,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if start or count are negative, or if lineNrChange is smaller than -count or if start + count + lineNrChange is larger than the current number of lines.
+        /// Thrown if <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
+        /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateContextDiagnostics(int start, int count, int lineNrChange)
         {
@@ -460,9 +462,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Verify content update.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if start and count are not valid for the current file content, where count needs to be at least one.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, where <paramref name="count"/> needs to be at least one.</exception>
         /// <exception cref="ArgumentException">
-        /// Thrown if the replacements do not at least contain one element, or the indentation change is non-zero, or if a replacement does not have a suitable line ending.
+        /// Thrown if the <paramref name="replacements"/> do not at least contain one element, or the indentation change is non-zero, or if a replacement does not have a suitable line ending.
         /// </exception>
         private void VerifyContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
         {
@@ -620,8 +622,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Then constructs and returns an Action as out parameter
         /// that adds lineNr as well as all lines containing connections to mark to EditedTokens.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if linrNr is not a valid index for the current Tokens.</exception>
-        /// <exception cref="ArgumentException">Thrown if any of the values returned by UpdatedTokens or ModifiedTokens is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="linrNr"/> is not a valid index for the current Tokens.</exception>
+        /// <exception cref="ArgumentException">Thrown if any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
         private void TransformAndMarkEdited(
             int lineNr,
             Func<ImmutableArray<CodeFragment>, ImmutableArray<CodeFragment>> updatedTokens,
@@ -685,7 +687,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Tokens starting at range.End or ending at range.Start are *not* considered to be overlapping.
         /// Futs a write-lock on the Tokens during the entire routine.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the line number of the range end is larger than the number of currently saved tokens.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the line number of the <paramref name="range"/> end is larger than the number of currently saved tokens.</exception>
         private void RemoveTokensInRange(Range range)
         {
             this.tokens.SyncRoot.EnterWriteLock();
@@ -1002,7 +1004,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
         /// Sets the out parameter to true if diagnostics are to be published.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the range of the change is invalid.</exception>
+        /// <exception cref="ArgumentException">Thrown if the range of <paramref name="change"/> is invalid.</exception>
         internal void PushChange(TextDocumentContentChangeEvent change, out bool publishDiagnostics)
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content,

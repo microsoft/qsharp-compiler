@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the given set shares references with the current one.</exception>
+        /// <exception cref="ArgumentException">Thrown if the given set (<paramref name="other"/>) shares references with the current one.</exception>
         internal References CombineWith(References other, Action<ErrorCode, string[]>? onError = null)
         {
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any())
@@ -785,7 +785,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note that functor generation directives are *not* evaluated in the the returned compilation,
         /// and the returned compilation may contain invalid parts.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if a callable definition is listed in GlobalSymbols for which no compilation exists.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if a callable definition is listed in <see cref="CompilationUnit.GlobalSymbols"/> for which no compilation exists.</exception>
         public QsCompilation Build()
         {
             this.syncRoot.EnterReadLock();
@@ -849,7 +849,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a look-up that contains the names of all namespaces and the corresponding short hand, if any,
         /// imported within a certain source file for the given namespace.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if no namespace with the given name exists.</exception>
+        /// <exception cref="ArgumentException">Thrown if no namespace exists with name <paramref name="nsName"/>.</exception>
         public ILookup<string, (string, string?)> GetOpenDirectives(string nsName)
         {
             this.syncRoot.EnterReadLock();
