@@ -228,6 +228,11 @@ let private referenceDiagnostics context (name, range : _ QsNullable) =
             | _ -> Seq.empty)
         |> Seq.distinct
         |> Seq.choose (patternDiagnostic context)
+        |> Seq.map (fun diagnostic ->
+            let warning =
+                WarningCode.UnsupportedCallableReason,
+                [ name.Name; context.Symbols.Parent.Name; string diagnostic.Diagnostic ]
+            QsCompilerDiagnostic.Warning warning diagnostic.Range)
 
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
