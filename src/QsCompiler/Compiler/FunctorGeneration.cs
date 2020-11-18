@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Given a sequence of specializations, returns the implementation of the given kind, or null if no such specialization exists.
         /// </summary>
-        /// <exception cref="ArgumentException">More than one specialization <paramref name="kind"/> exists.</exception>
+        /// <exception cref="ArgumentException">More than one specialization exists for <paramref name="kind"/>.</exception>
         private static QsSpecialization? GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
         {
             specs = specs.Where(spec => spec.Kind == kind);
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         /// <exception cref="ArgumentException">More than one body, adjoint or controlled specialization (depending on the generator directive) exists.</exception>
         /// <exception cref="ArgumentException">
-        /// <paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided, or if the implementation for the adjoint
+        /// <paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided, or the implementation for the adjoint
         /// or controlled specialization (depending on the generator directive) is not provided.
         /// </exception>
         private static QsCallable BuildControlledAdjoint(this QsCallable callable)

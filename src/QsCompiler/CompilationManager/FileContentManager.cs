@@ -246,8 +246,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
-        /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/>
+        /// is smaller than -<paramref name="count"/> or <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateScopeDiagnostics(int start, int count, int lineNrChange)
         {
@@ -330,8 +330,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/>
-        /// is smaller than -<paramref name="count"/> or if <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/>
+        /// is smaller than -<paramref name="count"/> or <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
         private void InvalidateOrUpdateContextDiagnostics(int start, int count, int lineNrChange)
         {
@@ -464,7 +464,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, where <paramref name="count"/> needs to be at least one.</exception>
         /// <exception cref="ArgumentException">
-        /// The <paramref name="replacements"/> do not at least contain one element, or the indentation change is non-zero, or if a replacement does not have a suitable line ending.
+        /// <paramref name="replacements"/> does not contain at least one element, or the indentation change is non-zero, or a replacement does not have a suitable line ending.
         /// </exception>
         private void VerifyContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
         {
@@ -592,7 +592,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// verifies that all fragments are ordered according to their range, and
         /// verifies that none of the fragments overlap with existing tokens.
         /// </summary>
-        /// <exception cref="ArgumentException">The verification fails.</exception>
+        /// <exception cref="ArgumentException">The verification failed.</exception>
         private void VerifyTokenUpdate(IReadOnlyList<CodeFragment> fragments)
         {
             if (fragments.Any(fragment => !this.ContainsRange(fragment.Range)))

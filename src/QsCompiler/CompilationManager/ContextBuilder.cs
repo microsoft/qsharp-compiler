@@ -256,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Assuming both the current tokens and the tokens to update are sorted according to their range,
         /// merges the current and updated tokens such that the merged collection is sorted as well.
         /// </summary>
-        /// <exception cref="QsCompilerException">The token verification for the merged collection fails.</exception>
+        /// <exception cref="QsCompilerException">The token verification for the merged collection failed.</exception>
         internal static List<CodeFragment> MergeTokens(IEnumerable<CodeFragment> current, IEnumerable<CodeFragment> updated)
         {
             var merged = new List<CodeFragment>(0);

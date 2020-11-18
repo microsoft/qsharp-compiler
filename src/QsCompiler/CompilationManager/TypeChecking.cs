@@ -660,7 +660,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// <paramref name="context"/> does not currently contain an open scope, or if the repeat header is not followed by a until-success clause.
+        /// <paramref name="context"/> does not currently contain an open scope, or the repeat header is not followed by a until-success clause.
         /// </exception>
         private static bool TryBuildRepeatStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
@@ -1168,7 +1168,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// This is not the case, or if <paramref name="context"/> does not currently contain an open scope, or if any of the fragments in <paramref name="nodes"/> is null.
+        /// This is not the case, or <paramref name="context"/> does not currently contain an open scope, or any of the fragments in <paramref name="nodes"/> is null.
         /// </exception>
         private static ImmutableArray<QsStatement> BuildStatements(
             IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext context, List<Diagnostic> diagnostics)
@@ -1376,7 +1376,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or if the callable the specialization
+        /// <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or the callable the specialization
         /// belongs to does not support that specialization according to the given <see cref="NamespaceManager"/>.
         /// </exception>
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
@@ -1710,7 +1710,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or rather to be consistent with the position information saved for statements.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
             this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
@@ -1790,7 +1790,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or rather to be consistent with the position information saved for statements.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
@@ -1806,7 +1806,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if <paramref name="relativePosition"/> is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
         internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
@@ -1819,7 +1819,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given position lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or if relativePosition is not a valid position.
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or relativePosition is not a valid position.
         /// </exception>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;

@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the start and end line of the given change.
         /// </summary>
         /// <exception cref="ArgumentException">The range is invalid.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">The range is not contained in the file.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The range is not contained in <paramref name="file"/>.</exception>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
             if (!file.ContainsRange(change.Range.ToQSharp()))

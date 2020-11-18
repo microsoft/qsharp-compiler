@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Checks that all delimiters are within -1 and the string length, and that they are sorted in ascending order.
         /// </summary>
-        /// <exception cref="ArgumentException">The checks fail.</exception>
+        /// <exception cref="ArgumentException">The checks failed.</exception>
         internal static void VerifyStringDelimiters(string text, IEnumerable<int> delimiters)
         {
             var last = -2;
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Checks that all positions are a valid index in the line text, and that they are sorted in ascending order.
         /// Checks that none of the positions lays within a string.
         /// </summary>
-        /// <exception cref="ArgumentException">The checks fail.</exception>
+        /// <exception cref="ArgumentException">The checks failed.</exception>
         internal static void VerifyExcessBracketPositions(CodeLine line, IEnumerable<int> positions)
         {
             var last = -1;

@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Adds the specified fallback locations, if any,
         /// to the list of paths where the context will try to look for assemblies that could otherwise not be loaded.
         /// </summary>
-        /// <exception cref="FileNotFoundException">No file with the given <paramref name="path"/> exists.</exception>
+        /// <exception cref="FileNotFoundException">File at <paramref name="path"/> does not exist.</exception>
         public static Assembly LoadAssembly(string path, string[]? fallbackPaths = null)
         {
             if (!File.Exists(path))

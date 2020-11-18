@@ -700,7 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange.
         /// Returns the number of removed elements.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             if (start < 0)

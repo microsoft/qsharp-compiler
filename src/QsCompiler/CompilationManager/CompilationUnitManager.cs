@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Initializes a FileContentManager for each entry in the given dictionary of source files and their content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon content processing.
         /// </summary>
-        /// <exception cref="ArgumentException">Any of the given uris is not an absolute file uri.</exception>
+        /// <exception cref="ArgumentException">Any of the given URIs is not an absolute file URI.</exception>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Does nothing if a file with the given Uri is not listed as source file.
         /// Spawns a compilation unit wide type checking unless suppressVerification is set to true, even if no files have been removed.
         /// </summary>
-        /// <exception cref="ArgumentException">Any URI in <paramref name="files"/> is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException">A URI in <paramref name="files"/> is not an absolute file URI.</exception>
         public Task TryRemoveSourceFilesAsync(IEnumerable<Uri> files, bool suppressVerification = false, bool publishEmptyDiagnostics = true)
         {
             if (files.Any(uri => !uri.IsAbsoluteUri || !uri.IsFile))

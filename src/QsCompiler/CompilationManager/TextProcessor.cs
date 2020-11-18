@@ -228,8 +228,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// Updates the given position to point to the first character in the fragment that contains code.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not within file.</exception>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in the file (given by <see cref="TextProcessor.LastInFile"/>).</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in <paramref name="file"/> (given by <see cref="TextProcessor.LastInFile"/>).</exception>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             if (!file.ContainsPosition(current))
