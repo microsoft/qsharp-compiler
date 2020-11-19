@@ -742,11 +742,11 @@ type DiagnosticItem =
             | WarningCode.DeprecationWithoutRedirect              -> "{0} has been deprecated."
             | WarningCode.UnsupportedCallableReason               ->
                 let reason =
-                    match args |> Seq.item 2 with
+                    match args |> Seq.item 1 with
                     | "Error ResultComparisonNotInOperationIf" ->
                         DiagnosticItem.Message (ErrorCode.ResultComparisonNotInOperationIf, [ "Unspecified" ])
                     | name -> name
-                "{0} could not be used by {1}, because: " + reason
+                "{0} could not be used, because: " + reason
 
             | WarningCode.TypeParameterNotResolvedByArgument      -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument         -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."

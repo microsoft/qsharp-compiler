@@ -31,10 +31,6 @@ type private Pattern =
     /// An equality expression outside the condition of an if statement, where the operands are results.
     | ResultEqualityNotInCondition of Range QsNullable
 
-type FileDiagnostic =
-    { Diagnostic : QsCompilerDiagnostic
-      File : string option }
-
 /// Returns the offset of a nullable location.
 let private locationOffset = QsNullable<_>.Map (fun (location : QsLocation) -> location.Offset)
 
@@ -67,11 +63,7 @@ let private patternDiagnostic context pattern =
     let error code args (range : _ QsNullable) =
         if patternCapability context.IsInOperation pattern |> context.Capability.Implies
         then None
-        else
-            Some {
-                Diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error (code, args)
-                File = None
-            }
+        else range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error (code, args) |> Some
     let unsupported =
         if context.Capability = BasicMeasurementFeedback
         then ErrorCode.ResultComparisonNotInOperationIf
@@ -224,25 +216,21 @@ let private globalReferences scope =
 
 /// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
 /// the context's supported runtime capabilities.
-let private referenceDiagnostics context (name, range : _ QsNullable) =
-    // TODO: Diagnostic source file and range are different from the parent specialization that this function is called
-    // from.
-    let reasons =
-        lazy
-        context.Globals.ImportedSpecializations name
-        |> Seq.collect (fun (header, impl) ->
-            match impl with
-            | Provided (_, scope) ->
-                scopePatterns scope
-                |> Seq.map (locationOffset header.Location |> addOffset)
-                |> Seq.choose (patternDiagnostic context)
-                |> Seq.map (fun diagnostic -> { diagnostic with File = Some header.SourceFile })
-            | _ -> Seq.empty)
-        |> Seq.map (fun diagnostic ->
-            let warning =
-                WarningCode.UnsupportedCallableReason,
-                [ name.Name; context.Symbols.Parent.Name; string diagnostic.Diagnostic.Diagnostic ]
-            { diagnostic with Diagnostic = QsCompilerDiagnostic.Warning warning diagnostic.Diagnostic.Range })
+let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNullable) =
+    let reason (header : SpecializationDeclarationHeader) (diagnostic : QsCompilerDiagnostic) =
+        let warning =
+            WarningCode.UnsupportedCallableReason,
+            [ name.Name + " in " + header.SourceFile + " at " + string diagnostic.Range; string diagnostic.Diagnostic ]
+        range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning warning
+
+    let reasons (header : SpecializationDeclarationHeader, impl) =
+        match impl with
+        | Provided (_, scope) ->
+            scopePatterns scope
+            |> Seq.map (locationOffset header.Location |> addOffset)
+            |> Seq.choose (patternDiagnostic context)
+            |> Seq.map (reason header)
+        | _ -> Seq.empty
 
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
@@ -250,11 +238,10 @@ let private referenceDiagnostics context (name, range : _ QsNullable) =
         if context.Capability.Implies capability
         then Seq.empty
         else
+            let reasons = context.Globals.ImportedSpecializations name |> Seq.collect reasons
             let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
-            let diagnostic =
-                { Diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error
-                  File = None }
-            Seq.append (Seq.singleton diagnostic) reasons.Value
+            let diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error
+            reasons |> Seq.append (Seq.singleton diagnostic)
     | _ -> Seq.empty
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
