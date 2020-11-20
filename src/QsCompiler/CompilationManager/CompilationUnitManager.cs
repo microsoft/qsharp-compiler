@@ -817,6 +817,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         });
 
+        // TODO: api docs
+        public Compilation? BuildSync() => new Compilation(this);
+
         /// <summary>
         /// Class used to accumulate all information about the state of a compilation unit in immutable form.
         /// </summary>

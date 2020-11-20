@@ -20,6 +20,7 @@ using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
+using static Microsoft.Quantum.QsCompiler.CompilationBuilder.CompilationUnitManager;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
@@ -216,12 +217,11 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies;
 
             /// <summary>
-            /// The degree of parallelism to be used in compile steps that
-            /// support parallel execution. If equal to <c>null</c>, the
-            /// default parallelism will be used for each step. If equal to
-            /// <c>1</c>, parallelization will be disabled.
+            ///     If <c>true</c> forces compilation loading steps which
+            ///     support parallelization to use serial and synchronous
+            ///     execution instead.
             /// </summary>
-            public int? DegreeOfParallelism;
+            public bool? ForceSerial;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
@@ -515,7 +515,7 @@ namespace Microsoft.Quantum.QsCompiler
                 sourceFiles,
                 null,
                 this.OnCompilerException,  // do *not* live track (i.e. use publishing) here!
-                degreeOfParallelism: options?.DegreeOfParallelism);
+                degreeOfParallelism: options?.ForceSerial == true ? 1 : (int?)null);
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
@@ -526,7 +526,9 @@ namespace Microsoft.Quantum.QsCompiler
                     : processorArchitecture);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
-            this.VerifiedCompilation = compilationManager.Build();
+            this.VerifiedCompilation = options?.ForceSerial == true
+                ? compilationManager.BuildSync()
+                : compilationManager.Build();
             this.CompilationOutput = this.VerifiedCompilation?.BuiltCompilation;
             compilationManager.Dispose();
 
