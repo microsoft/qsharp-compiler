@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {} n when n > 0 => n,
                     {} n when n <= 0 =>
                         throw new ArgumentException($"Degree of parallelism was {degreeOfParallelism}, but expected a positive number.",
-                            nameof(degreeOfParallelism))
+                            nameof(degreeOfParallelism)),
                     null => Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount
                 })
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
