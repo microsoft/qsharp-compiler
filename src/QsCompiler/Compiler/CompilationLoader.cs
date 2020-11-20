@@ -1083,7 +1083,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceNameQsDataBondV1, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.SyntaxTreeResourceName, () => serialization, true);
                 var result = compilation.Emit(
                     outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
