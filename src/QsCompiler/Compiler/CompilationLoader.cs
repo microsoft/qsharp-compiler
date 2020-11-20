@@ -216,6 +216,14 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies;
 
             /// <summary>
+            /// The degree of parallelism to be used in compile steps that
+            /// support parallel execution. If equal to <c>null</c>, the
+            /// default parallelism will be used for each step. If equal to
+            /// <c>1</c>, parallelization will be disabled.
+            /// </summary>
+            public int? DegreeOfParallelism;
+
+            /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
             /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
@@ -503,7 +511,11 @@ namespace Microsoft.Quantum.QsCompiler
 
             this.RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.compilationStatus.Validation = Status.Succeeded;
-            var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
+            var files = CompilationUnitManager.InitializeFileManagers(
+                sourceFiles,
+                null,
+                this.OnCompilerException,  // do *not* live track (i.e. use publishing) here!
+                degreeOfParallelism: options?.DegreeOfParallelism);
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,

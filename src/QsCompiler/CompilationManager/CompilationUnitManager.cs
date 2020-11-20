@@ -240,17 +240,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If an Action for publishing is given, publishes the diagnostics generated upon content processing.
         /// Throws an ArgumentException if any of the given uris is not an absolute file uri.
         /// </summary>
+        /// <param name="degreeOfParallelism">
+        ///     The degree of parallelism to use in initializing file managers.
+        ///     If <c>null</c>, the maximum of one ane one less than
+        ///     <see cref="System.Environment.ProcessorCount" /> will be used.
+        /// </param>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            Action<Exception>? onException = null)
+            Action<Exception>? onException = null,
+            int? degreeOfParallelism = null)
         {
             if (files.Any(item => !item.Key.IsAbsoluteUri || !item.Key.IsFile))
             {
                 throw new ArgumentException("invalid TextDocumentIdentifier");
             }
             return files.AsParallel()
-                .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
+                .WithDegreeOfParallelism(degreeOfParallelism switch
+                {
+                    {} n when n > 0 => n,
+                    {} n when n <= 0 =>
+                        throw new ArgumentException($"Degree of parallelism was {degreeOfParallelism}, but expected a positive number.",
+                            nameof(degreeOfParallelism))
+                    null => Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount
+                })
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
                 .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException))
                 .ToImmutableHashSet();
