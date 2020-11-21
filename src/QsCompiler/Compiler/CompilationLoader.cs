@@ -519,9 +519,7 @@ namespace Microsoft.Quantum.QsCompiler
                     : processorArchitecture);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
-            this.VerifiedCompilation = options?.ForceSerial == true
-                ? compilationManager.BuildSync()
-                : compilationManager.Build();
+            this.VerifiedCompilation = compilationManager.Build();
             this.CompilationOutput = this.VerifiedCompilation?.BuiltCompilation;
             compilationManager.Dispose();
 

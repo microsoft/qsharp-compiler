@@ -812,31 +812,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a Compilation object containing all information about the current state of the compilation.
-        /// Note: this method waits for all currently running or queued tasks to finish
-        /// before constructing the Compilation object by calling FlushAndExecute.
-        /// </summary>
-        public Compilation? Build() => this.FlushAndExecute(() =>
-        {
-            try
-            {
-                return new Compilation(this);
-            }
-            catch (Exception ex)
-            {
-                this.LogException(ex);
-                return null;
-            }
-        });
-
-        /// <summary>
-        ///     Returns a Compilation object containing all information about the current state of the compilation,
-        ///     without waiting for any other tasks to finish.
         /// </summary>
         /// <remark>
-        ///     Unlike <see cref="Build" />, this method does not wait for queued tasks to finish
-        ///     before constructing the <see cref="Compilation" /> object.
+        /// This method waits for all currently running or queued tasks to finish
+        /// before constructing the Compilation object by calling FlushAndExecute.
+        ///
+        /// When running on WebAssembly, this method runs immediately.
         /// </remark>
-        public Compilation? BuildSync() => new Compilation(this);
+        public Compilation? Build() =>
+            Utils.IsWebAssembly
+            // Don't wait on platforms that don't support waiting.
+            ? new Compilation(this)
+            : this.FlushAndExecute(() =>
+              {
+                  try
+                  {
+                      return new Compilation(this);
+                  }
+                  catch (Exception ex)
+                  {
+                      this.LogException(ex);
+                      return null;
+                  }
+              });
 
         /// <summary>
         /// Class used to accumulate all information about the state of a compilation unit in immutable form.
