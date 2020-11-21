@@ -507,7 +507,7 @@ namespace Microsoft.Quantum.QsCompiler
             var files = CompilationUnitManager.InitializeFileManagers(
                 sourceFiles,
                 null,
-                this.OnCompilerException);  // do *not* live track (i.e. use publishing) here!
+                this.OnCompilerException,  // do *not* live track (i.e. use publishing) here!
                 degreeOfParallelism: CompilationBuilder.Utils.IsWebAssembly == true ? 1 : (int?)null);
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
