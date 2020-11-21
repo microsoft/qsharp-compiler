@@ -480,7 +480,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the keepInvalid parameter has been set to a string value.
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
         /// </summary>
-        /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified symbol and does not instead correspond to an invalid symbol.</exception>
+        /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified or invalid symbol.</exception>
         /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
@@ -536,7 +536,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// updates all elements that are larger than or equal to start + count with the given lineNrChange.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// <paramref name="start"/> or <paramref name="count"/> are negative, or if <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
         /// </exception>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {

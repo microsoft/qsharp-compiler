@@ -1168,7 +1168,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// This is not the case, or <paramref name="context"/> does not currently contain an open scope, or any of the fragments in <paramref name="nodes"/> is null.
+        /// Any statement is missing a header or a required continuation, or <paramref name="context"/> does not currently contain an open scope,
+        /// or any of the fragments in <paramref name="nodes"/> is null.
         /// </exception>
         private static ImmutableArray<QsStatement> BuildStatements(
             IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext context, List<Diagnostic> diagnostics)

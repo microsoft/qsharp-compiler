@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="replacements"/> does not at least contain one <see cref="CodeLine"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// The range defined by <paramref name="start"/> and <paramref name="count"/> is not within <paramref name="file"/>, where <paramref name="count"/> needs to be at least one.
+        /// The range defined by <paramref name="start"/> and <paramref name="count"/> is not within <paramref name="file"/>, or <paramref name="count"/> is less than 1.
         /// </exception>
         private static IEnumerable<CodeLine>? ComputeUpdates(FileContentManager file, int start, int count, CodeLine[] replacements)
         {

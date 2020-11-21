@@ -462,7 +462,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Verify content update.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, where <paramref name="count"/> needs to be at least one.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> are not valid for the current file content, or <paramref name="count"/> is less than 1.</exception>
         /// <exception cref="ArgumentException">
         /// <paramref name="replacements"/> does not contain at least one element, or the indentation change is non-zero, or a replacement does not have a suitable line ending.
         /// </exception>
