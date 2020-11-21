@@ -200,5 +200,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public static string DiagnosticString(this Range r) =>
             $"({r?.Start?.Line},{r?.Start?.Column}) - ({r?.End?.Line},{r?.End?.Column})";
+
+        /// <summary>
+        ///     Returns <c>true</c> if currently run from within a WebAssembly
+        ///     host.
+        /// </summary>
+        public static bool IsWebAssembly =>
+            System.Runtime.InteropServices.RuntimeInformation.OSDescription == "web";
     }
 }

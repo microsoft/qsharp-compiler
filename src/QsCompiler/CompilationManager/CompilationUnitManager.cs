@@ -131,20 +131,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public void Dispose()
         {
-            // we need to flush on disposing, since otherwise we may end up with some queued or running tasks
-            // - or (global type checking) tasks spawned by those - trying to access disposed stuff
-            this.FlushAndExecute<object>(() =>
+            object? DoDispose()
             {
                 this.waitForTypeCheck?.Dispose();
                 this.compilationUnit.Dispose();
+
                 foreach (var file in this.fileContentManagers.Values)
                 {
                     // do *not* dispose of the FileContentManagers!
                     this.UnsubscribeFromFileManagerEvents(file);
                     this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                 }
+
                 return null;
-            });
+            };
+
+            // we need to flush on disposing, since otherwise we may end up with some queued or running tasks
+            // - or (global type checking) tasks spawned by those - trying to access disposed stuff
+            if (!Utils.IsWebAssembly)
+            {
+                this.FlushAndExecute<object>(DoDispose);
+            }
+            else
+            {
+                DoDispose();
+            }
         }
 
         // routines related to tracking the source files
@@ -817,7 +828,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         });
 
-        // TODO: api docs
+        /// <summary>
+        ///     Returns a Compilation object containing all information about the current state of the compilation,
+        ///     without waiting for any other tasks to finish.
+        /// </summary>
+        /// <remark>
+        ///     Unlike <see cref="Build" />, this method does not wait for queued tasks to finish
+        ///     before constructing the <see cref="Compilation" /> object.
+        /// </remark>
         public Compilation? BuildSync() => new Compilation(this);
 
         /// <summary>

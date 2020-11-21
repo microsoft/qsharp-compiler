@@ -217,13 +217,6 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies;
 
             /// <summary>
-            ///     If <c>true</c> forces compilation loading steps which
-            ///     support parallelization to use serial and synchronous
-            ///     execution instead.
-            /// </summary>
-            public bool? ForceSerial;
-
-            /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
             /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
@@ -514,8 +507,8 @@ namespace Microsoft.Quantum.QsCompiler
             var files = CompilationUnitManager.InitializeFileManagers(
                 sourceFiles,
                 null,
-                this.OnCompilerException,  // do *not* live track (i.e. use publishing) here!
-                degreeOfParallelism: options?.ForceSerial == true ? 1 : (int?)null);
+                this.OnCompilerException);  // do *not* live track (i.e. use publishing) here!
+                degreeOfParallelism: CompilationBuilder.Utils.IsWebAssembly == true ? 1 : (int?)null);
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
