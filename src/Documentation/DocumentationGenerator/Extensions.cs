@@ -196,6 +196,16 @@ namespace Microsoft.Quantum.Documentation
             ? document
             : document.WithSection(name, contents);
 
+        internal static string WithSectionForEach(this string document, string name, IEnumerable<string> sections)
+        {
+            var accumulatedDocument = document;
+            foreach (var section in sections)
+            {
+                accumulatedDocument = document.WithSection(name, section);
+            }
+            return accumulatedDocument;
+        }
+
         internal static string WithSection(this string document, string name, string contents) =>
             $"{document}\n\n## {name}\n\n{contents}";
 
