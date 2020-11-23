@@ -57,6 +57,13 @@ function Pack-SelfContained() {
         [string] $PackageData = $null
     );
 
+    Write-Host "##[info]Building $project ($action)..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
+
     # Make sure the LanguageServer is built on its own:
     dotnet build (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
@@ -75,11 +82,6 @@ function Pack-SelfContained() {
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
-            if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-            }  else {
-                $args = @();
-            }
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:SEMVER_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
