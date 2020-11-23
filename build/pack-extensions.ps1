@@ -82,6 +82,11 @@ function Pack-SelfContained() {
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
+            if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+            }  else {
+                $args = @();
+            }
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:SEMVER_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
