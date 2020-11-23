@@ -82,7 +82,7 @@ type ClassicalControlTests () =
             (false, "", "")
 
     let MakeApplicationRegex (opName : QsQualifiedName) =
-        let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace.Value <| Regex.Escape opName.Name.Value
+        let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?"  // Does not support nested type args
         let args = @"\(?\s*([\w\s,\.]*)?\s*\)?"
 
@@ -117,7 +117,7 @@ type ClassicalControlTests () =
     let AssertSpecializationHasCalls specialization calls =
         Assert.True(CheckIfSpecializationHasCalls specialization calls, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
 
-    let ExpandBuiltInQualifiedSymbol (i, (builtin : BuiltIn)) = (i, builtin.FullName.Namespace.Value, builtin.FullName.Name.Value)
+    let ExpandBuiltInQualifiedSymbol (i, (builtin : BuiltIn)) = (i, builtin.FullName.Namespace, builtin.FullName.Name)
 
     let IdentifyGeneratedByCalls generatedCallables calls =
         let mutable callables = generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
@@ -146,16 +146,16 @@ type ClassicalControlTests () =
 
     let GetCallablesWithSuffix compilation ns (suffix : string) =
         compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> Seq.filter (fun x -> x.Name = ns)
         |> GlobalCallableResolutions
-        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith suffix)
+        |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
         |> Seq.map (fun x -> x.Value)
 
     let GetCallableWithName compilation ns name =
         compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> Seq.filter (fun x -> x.Name = ns)
         |> GlobalCallableResolutions
-        |> Seq.find (fun x -> x.Key.Name.Value = name)
+        |> Seq.find (fun x -> x.Key.Name = name)
         |> (fun x -> x.Value)
 
     let ApplyIfElseTest compilation =
@@ -165,7 +165,7 @@ type ClassicalControlTests () =
 
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         targs, args
@@ -268,8 +268,8 @@ type ClassicalControlTests () =
     member this.``Apply If Zero Else One`` () =
         let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
@@ -281,8 +281,8 @@ type ClassicalControlTests () =
     member this.``Apply If One Else Zero`` () =
         let (targs, args) = CompileClassicalControlTest 9 |> ApplyIfElseTest
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         // The operation arguments should be swapped from the previous test
         IsApplyIfElseArgsMatch args "r" SubOp1 Bar
@@ -295,16 +295,16 @@ type ClassicalControlTests () =
     member this.``If Elif`` () =
         let result  = CompileClassicalControlTest 10
 
-        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        let elifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
-        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp3"}
+        let ifOp = {Namespace = "SubOps"; Name = "SubOp1"}
+        let elifOp = {Namespace = "SubOps"; Name = "SubOp2"}
+        let elseOp = {Namespace = "SubOps"; Name = "SubOp3"}
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
                         |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
 
         let lines = original |> GetLinesFromSpecialization
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
@@ -313,7 +313,7 @@ type ClassicalControlTests () =
 
         let lines = generated |> GetLinesFromSpecialization
         Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
         IsApplyIfElseArgsMatch args "r" elseOp elifOp // elif and else are swapped because second condition is against One
@@ -324,15 +324,15 @@ type ClassicalControlTests () =
     member this.``And Condition`` () =
         let result  = CompileClassicalControlTest 11
 
-        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
+        let ifOp = {Namespace = "SubOps"; Name = "SubOp1"}
+        let elseOp = {Namespace = "SubOps"; Name = "SubOp2"}
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
                         |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
 
         let lines = original |> GetLinesFromSpecialization
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
@@ -341,7 +341,7 @@ type ClassicalControlTests () =
 
         let lines = generated |> GetLinesFromSpecialization
         Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
         IsApplyIfElseArgsMatch args "r" elseOp ifOp // elif and else are swapped because second condition is against One
@@ -352,15 +352,15 @@ type ClassicalControlTests () =
     member this.``Or Condition`` () =
         let result  = CompileClassicalControlTest 12
 
-        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
+        let ifOp = {Namespace = "SubOps"; Name = "SubOp1"}
+        let elseOp = {Namespace = "SubOps"; Name = "SubOp2"}
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
                         |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
 
         let lines = original |> GetLinesFromSpecialization
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
@@ -369,7 +369,7 @@ type ClassicalControlTests () =
 
         let lines = generated |> GetLinesFromSpecialization
         Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
         IsApplyIfElseArgsMatch args "r" elseOp ifOp // elif and else are swapped because second condition is against One
@@ -396,18 +396,18 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 16
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
         let original  = callables
-                        |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+                        |> Seq.find (fun x -> x.Key.Name = "Foo")
                         |> fun x -> x.Value
         let generated = callables
-                        |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Foo")
+                        |> Seq.find (fun x -> x.Key.Name.EndsWith "_Foo")
                         |> fun x -> x.Value
 
         let GetTypeParams call =
             call.Signature.TypeParameters
-            |> Seq.choose (function | ValidName str -> Some str.Value | InvalidName -> None)
+            |> Seq.choose (function | ValidName str -> Some str | InvalidName -> None)
 
         let AssertTypeArgsMatch typeArgs1 typeArgs2 =
             let errorMsg = "The type parameters for the original and generated operations do not match"
@@ -423,7 +423,7 @@ type ClassicalControlTests () =
 
         // Assert that the original operation calls the generated operation with the appropriate type arguments
         let lines = GetBodyFromCallable original |> GetLinesFromSpecialization
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace.Value BuiltIn.ApplyIfZero.FullName.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody)
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
@@ -437,17 +437,17 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 17
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         let selfOp = callables
-                     |> Seq.find (fun x -> x.Key.Name.Value = "Self")
+                     |> Seq.find (fun x -> x.Key.Name = "Self")
                      |> fun x -> x.Value
         let invertOp = callables
-                       |> Seq.find (fun x -> x.Key.Name.Value = "Invert")
+                       |> Seq.find (fun x -> x.Key.Name = "Invert")
                        |> fun x -> x.Value
         let providedOp = callables
-                       |> Seq.find (fun x -> x.Key.Name.Value = "Provided")
+                       |> Seq.find (fun x -> x.Key.Name = "Provided")
                        |> fun x -> x.Value
 
         [(1, BuiltIn.ApplyIfZero)]
@@ -463,13 +463,13 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasCalls (GetBodyFromCallable providedOp)
 
         let _selfOp = callables
-                      |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Self")
+                      |> Seq.find (fun x -> x.Key.Name.EndsWith "_Self")
                       |> fun x -> x.Value
         let _invertOp = callables
-                        |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Invert")
+                        |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert")
                         |> fun x -> x.Value
         let _providedOps = callables
-                           |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Provided")
+                           |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided")
                            |> Seq.map (fun x -> x.Value)
 
         Assert.True(2 = Seq.length _providedOps) // Should already be asserted by the signature check
@@ -499,14 +499,14 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 18
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         let distributeOp = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "Distribute")
+                           |> Seq.find (fun x -> x.Key.Name = "Distribute")
                            |> fun x -> x.Value
         let providedOp = callables
-                         |> Seq.find (fun x -> x.Key.Name.Value = "Provided")
+                         |> Seq.find (fun x -> x.Key.Name = "Provided")
                          |> fun x -> x.Value
 
         [(1, BuiltIn.ApplyIfZeroC)]
@@ -518,10 +518,10 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasCalls (GetBodyFromCallable providedOp)
 
         let _distributeOp = callables
-                            |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Distribute")
+                            |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute")
                             |> fun x -> x.Value
         let _providedOps = callables
-                           |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Provided")
+                           |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided")
                            |> Seq.map (fun x -> x.Value)
 
         Assert.True(2 = Seq.length _providedOps) // Should already be asserted by the signature check
@@ -550,14 +550,14 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 19
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         (*-----------------------------------------*)
 
         let bodyCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "ProvidedBody")
+                           |> Seq.find (fun x -> x.Key.Name = "ProvidedBody")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
@@ -569,7 +569,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedBody")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedBody")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -598,7 +598,7 @@ type ClassicalControlTests () =
 
         let controlledCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "ProvidedControlled")
+                           |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroA)]
@@ -614,7 +614,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedControlled")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedControlled")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
@@ -649,7 +649,7 @@ type ClassicalControlTests () =
 
         let adjointCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "ProvidedAdjoint")
+                           |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
@@ -665,7 +665,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedAdjoint")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedAdjoint")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
@@ -700,7 +700,7 @@ type ClassicalControlTests () =
 
         let allCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "ProvidedAll")
+                           |> Seq.find (fun x -> x.Key.Name = "ProvidedAll")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
@@ -720,7 +720,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedAll")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedAll")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(4 = Seq.length generated) // Should already be asserted by the signature check
@@ -762,14 +762,14 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 20
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         (*-----------------------------------------*)
 
         let bodyCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "DistributeBody")
+                           |> Seq.find (fun x -> x.Key.Name = "DistributeBody")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
@@ -777,7 +777,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeBody")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_DistributeBody")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
@@ -800,7 +800,7 @@ type ClassicalControlTests () =
 
         let controlledCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "DistributeControlled")
+                           |> Seq.find (fun x -> x.Key.Name = "DistributeControlled")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
@@ -812,7 +812,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeControlled")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_DistributeControlled")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -841,7 +841,7 @@ type ClassicalControlTests () =
 
         let adjointCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "DistributeAdjoint")
+                           |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
@@ -853,7 +853,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeAdjoint")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_DistributeAdjoint")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -882,7 +882,7 @@ type ClassicalControlTests () =
 
         let allCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "DistributeAll")
+                           |> Seq.find (fun x -> x.Key.Name = "DistributeAll")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
@@ -898,7 +898,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeAll")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_DistributeAll")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
@@ -935,14 +935,14 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 21
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         (*-----------------------------------------*)
 
         let bodyCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "InvertBody")
+                           |> Seq.find (fun x -> x.Key.Name = "InvertBody")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
@@ -950,7 +950,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertBody")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertBody")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
@@ -973,7 +973,7 @@ type ClassicalControlTests () =
 
         let controlledCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "InvertControlled")
+                           |> Seq.find (fun x -> x.Key.Name = "InvertControlled")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroA)]
@@ -985,7 +985,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertControlled")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertControlled")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -1014,7 +1014,7 @@ type ClassicalControlTests () =
 
         let adjointCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "InvertAdjoint")
+                           |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
@@ -1026,7 +1026,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertAdjoint")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertAdjoint")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -1055,7 +1055,7 @@ type ClassicalControlTests () =
 
         let allCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "InvertAll")
+                           |> Seq.find (fun x -> x.Key.Name = "InvertAll")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
@@ -1071,7 +1071,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertAll")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertAll")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
@@ -1108,14 +1108,14 @@ type ClassicalControlTests () =
         let result = CompileClassicalControlTest 22
 
         let callables = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNs)
                         |> GlobalCallableResolutions
 
         (*-----------------------------------------*)
 
         let bodyCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "SelfBody")
+                           |> Seq.find (fun x -> x.Key.Name = "SelfBody")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
@@ -1123,7 +1123,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_SelfBody")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_SelfBody")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
@@ -1146,7 +1146,7 @@ type ClassicalControlTests () =
 
         let controlledCheck () =
             let original = callables
-                           |> Seq.find (fun x -> x.Key.Name.Value = "SelfControlled")
+                           |> Seq.find (fun x -> x.Key.Name = "SelfControlled")
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
@@ -1158,7 +1158,7 @@ type ClassicalControlTests () =
             |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
-                            |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_SelfControlled")
+                            |> Seq.filter (fun x -> x.Key.Name.EndsWith "_SelfControlled")
                             |> Seq.map (fun x -> x.Value)
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -1217,7 +1217,7 @@ type ClassicalControlTests () =
         AssertCallSupportsFunctors [QsFunctor.Adjoint] outerOp
 
         let lines = GetLinesFromSpecialization original
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.FullName.Namespace.Value BuiltIn.ApplyIfZeroA.FullName.Name.Value lines.[2]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.FullName.Namespace BuiltIn.ApplyIfZeroA.FullName.Name lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
 
         let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
@@ -1231,10 +1231,10 @@ type ClassicalControlTests () =
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let lines = GetLinesFromSpecialization original
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace.Value BuiltIn.ApplyIfZero.FullName.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
 
-        let (success, typeArgs, _) = IsApplyIfArgMatch args "r" {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let (success, typeArgs, _) = IsApplyIfArgMatch args "r" {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         Assert.True((typeArgs = "Int, Double"), "Bar did not have the correct type arguments")
@@ -1273,11 +1273,11 @@ type ClassicalControlTests () =
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace BuiltIn.ApplyConditionally.FullName.Name lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1294,11 +1294,11 @@ type ClassicalControlTests () =
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace BuiltIn.ApplyConditionally.FullName.Name lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let NoOp = {Namespace = NonNullable<_>.New "Microsoft.Quantum.Canon"; Name = NonNullable<_>.New "NoOp"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let NoOp = {Namespace = "Microsoft.Quantum.Canon"; Name = "NoOp"}
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1315,11 +1315,11 @@ type ClassicalControlTests () =
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace BuiltIn.ApplyConditionally.FullName.Name lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1331,8 +1331,8 @@ type ClassicalControlTests () =
     member this.``Inequality with Apply If One Else Zero`` () =
         let (targs, args) = CompileClassicalControlTest 32 |> ApplyIfElseTest
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         IsApplyIfElseArgsMatch args "r" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
@@ -1344,8 +1344,8 @@ type ClassicalControlTests () =
     member this.``Inequality with Apply If Zero Else One`` () =
         let (targs, args) = CompileClassicalControlTest 33 |> ApplyIfElseTest
 
-        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
-        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let Bar = {Namespace = Signatures.ClassicalControlNs; Name = "Bar"}
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
 
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))

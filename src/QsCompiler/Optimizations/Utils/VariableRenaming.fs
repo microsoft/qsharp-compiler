@@ -78,7 +78,7 @@ and private VariableRenamingNamespaces (parent : VariableRenaming) =
 
     /// Processes the initial argument tuple from the function declaration
     let rec processArgTuple = function
-        | QsTupleItem {VariableName = ValidName name} -> parent.GenerateUniqueName name.Value |> ignore
+        | QsTupleItem {VariableName = ValidName name} -> parent.GenerateUniqueName name |> ignore
         | QsTupleItem {VariableName = InvalidName} -> ()
         | QsTuple items -> Seq.iter processArgTuple items
 
@@ -107,7 +107,7 @@ and private VariableRenamingStatementKinds (parent : VariableRenaming) =
 
     override this.OnSymbolTuple syms =
         match syms with
-        | VariableName item -> VariableName (NonNullable<_>.New (parent.GenerateUniqueName item.Value))
+        | VariableName item -> VariableName (parent.GenerateUniqueName item)
         | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem | DiscardedItem -> syms
 
@@ -131,9 +131,8 @@ and private VariableRenamingExpressionKinds (parent : VariableRenaming) =
         maybe {
             let! name =
                 match sym with
-                | LocalVariable name -> Some name.Value
+                | LocalVariable name -> Some name
                 | _ -> None
             let! newName = tryGet name parent.RenamingStack
-            return Identifier (LocalVariable (NonNullable<_>.New newName), tArgs)
+            return Identifier (LocalVariable newName, tArgs)
         } |? Identifier (sym, tArgs)
-

@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static List<(TItem, HeaderEntry<THeader>)> AddItems<TItem, THeader>(
             IEnumerable<(TItem, HeaderEntry<THeader>)> itemsToAdd,
-            Func<Position, Tuple<NonNullable<string>, Range>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> add,
+            Func<Position, Tuple<string, Range>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> add,
             string fileName,
             List<Diagnostic> diagnostics)
         {
@@ -245,7 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var typesToCompile = AddItems(
                     file.GetTypeDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddType(file.FileName, new QsLocation(pos, name.Item2), name, decl.Item2, att, decl.Item1, doc),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
 
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?))>();
@@ -259,7 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var callablesToCompile = AddItems(
                     file.GetCallableDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddCallableDeclaration(file.FileName, new QsLocation(pos, name.Item2), name, Tuple.Create(decl.Item1, decl.Item3), att, decl.Item2, doc),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
 
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
@@ -321,7 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 foreach (var msg in messages)
                 {
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, position));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName, msg, position));
                 }
             }
 
@@ -334,7 +334,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var msgRange = Parsing.HeaderDelimiters(1).Invoke(statement.Text);
                     var msg = QsCompilerDiagnostic.Error(ErrorCode.NotWithinSpecialization, Enumerable.Empty<string>(), msgRange);
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.Range.Start));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName, msg, statement.Range.Start));
                 }
             }
 
@@ -372,19 +372,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
-            void AddDiagnostics(NonNullable<string> source, IEnumerable<QsCompilerDiagnostic> msgs) =>
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg)));
+            void AddDiagnostics(string source, IEnumerable<QsCompilerDiagnostic> msgs) =>
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source, msg)));
 
             if (fileName != null)
             {
-                var key = NonNullable<string>.New(fileName);
-                if (declDiagnostics.Contains(key))
+                if (declDiagnostics.Contains(fileName))
                 {
-                    AddDiagnostics(key, declDiagnostics[key]);
+                    AddDiagnostics(fileName, declDiagnostics[fileName]);
                 }
-                if (cycleDiagnostics.Contains(key))
+                if (cycleDiagnostics.Contains(fileName))
                 {
-                    AddDiagnostics(key, cycleDiagnostics[key]);
+                    AddDiagnostics(fileName, cycleDiagnostics[fileName]);
                 }
             }
             else
@@ -418,7 +417,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
                     (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
             }
             finally
@@ -501,7 +500,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var messages = diagnostics.ToLookup(d => d.Source);
                 foreach (var file in files)
                 {
-                    file.ReplaceHeaderDiagnostics(messages[file.FileName.Value]);
+                    file.ReplaceHeaderDiagnostics(messages[file.FileName]);
                 }
 
                 // return the declaration content of all files and callables
@@ -553,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var statementPos = node.Fragment.Range.Start;
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, messages) = build(location, context);
-            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
+            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile, msg, statementPos)));
             return statement;
         }
 
@@ -908,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
                     diagnostics.AddRange(built.Item2.Select(diagnostic => Diagnostics.Generate(
-                        context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition)));
+                        context.Symbols.SourceFile, diagnostic, nodes.Current.RootPosition)));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
@@ -1256,7 +1255,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root,
-            NonNullable<string> sourceFile,
+            string sourceFile,
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             ScopeContext context,
@@ -1278,7 +1277,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var msgs = context.Symbols.TryAddVariableDeclartion(decl).Item2;
                 var position = specPos + decl.Position.Item;
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, position)));
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile, msg, position)));
             }
 
             var implementation = BuildScope(root.Children, context, diagnostics);
@@ -1292,12 +1291,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             diagnostics.AddRange(
                 returnDiagnostics
                     .Concat(capabilityDiagnostics)
-                    .Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
+                    .Select(msg => Diagnostics.Generate(sourceFile, msg, rootPosition)));
             if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
-                diagnostics.Add(Diagnostics.Generate(sourceFile.Value, missingReturn, specPos));
+                diagnostics.Add(Diagnostics.Generate(sourceFile, missingReturn, specPos));
             }
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
@@ -1429,7 +1428,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
-                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
+                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile, msg, specPos));
                     }
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
@@ -1622,7 +1621,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                         QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, offset));
+                            .Select(msg => Diagnostics.Generate(info.SourceFile, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
@@ -1679,7 +1678,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (callableDeclarations.TryGetValue(parent, out var info))
                 {
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                    diagnostics.Add(Diagnostics.Generate(info.SourceFile, diag, offset));
                 }
             }
         }
@@ -1836,7 +1835,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (oldHeader, oldImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var contentTokens = file.UpdateGlobalSymbols(compilation, diagnostics);
                 file.ImportGlobalSymbols(compilation, diagnostics);
-                ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName.Value);
+                ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName);
                 var (newHeader, newImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var (sameHeader, sameImports) = (oldHeader == newHeader, oldImports == newImports);
                 file.ReplaceHeaderDiagnostics(diagnostics);
@@ -1878,7 +1877,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution))
                 - diagnostics.Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
 
-            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName))
             {
                 file.TriggerGlobalTypeChecking();
             }

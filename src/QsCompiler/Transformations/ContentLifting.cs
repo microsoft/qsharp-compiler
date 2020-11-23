@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
+    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
     /// Static class to accumulate all type parameter independent subclasses used by LiftContent<T>.
@@ -59,8 +59,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // if we absorb the corresponding logic into LiftBody.
             public bool IsValidScope = true;
             internal bool ContainsParamRef = false;
-            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
-                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams =
+                ImmutableArray<LocalVariableDeclaration<string>>.Empty;
 
             internal CallableDetails? CurrentCallable = null;
 
@@ -335,7 +335,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
         {
-            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedOp(parameters, oldName, newName);
 
@@ -345,11 +345,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public class TransformationState
             {
                 public bool IsRecursiveIdentifier = false;
-                public readonly ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> Parameters;
+                public readonly ImmutableArray<LocalVariableDeclaration<string>> Parameters;
                 public readonly QsQualifiedName OldName;
                 public readonly QsQualifiedName NewName;
 
-                public TransformationState(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
                     this.Parameters = parameters;
                     this.OldName = oldName;
@@ -357,7 +357,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
             }
 
-            private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -371,7 +371,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                 }
 
-                public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+                public override ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
                     return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.OnType(kvp.Value));

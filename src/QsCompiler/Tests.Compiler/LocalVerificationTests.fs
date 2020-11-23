@@ -20,8 +20,7 @@ type LocalVerificationTests () =
         ]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-        let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.LocalVerification"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 

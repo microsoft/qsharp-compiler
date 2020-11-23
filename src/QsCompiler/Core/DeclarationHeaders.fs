@@ -101,7 +101,7 @@ type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     Type            : ResolvedType
@@ -143,7 +143,7 @@ type CallableDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     ArgumentTuple   : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
@@ -195,7 +195,7 @@ type SpecializationDeclarationHeader = {
     Information     : CallableInformation
     Parent          : QsQualifiedName    
     Attributes      : ImmutableArray<QsDeclarationAttribute>
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     HeaderRange     : DeclarationHeader.Range
     Documentation   : ImmutableArray<string>

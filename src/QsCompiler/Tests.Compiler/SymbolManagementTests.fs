@@ -19,11 +19,11 @@ let private randomRange () =
     Range.Create (min a b) (max a b)
 
 let toQualName (ns : string, name : string) =
-    {Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name}
+    {Namespace = ns; Name = name}
 
 let toTypeParam (origin : string * string) (name : string) = 
     let ns, originName = origin
-    TypeParameter {Origin = toQualName (ns, originName); TypeName = NonNullable<_>.New name; Range = randomRange () |> Value}
+    TypeParameter {Origin = toQualName (ns, originName); TypeName = name; Range = randomRange () |> Value}
 
 let toUdt (qualName : string * string) =
     let fullName = qualName |> toQualName

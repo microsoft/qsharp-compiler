@@ -58,7 +58,7 @@ let internal defineVar check (constants : IDictionary<_,_>) (name, value) =
 let rec private onTuple op constants (names, values) : unit =
     match names, values with
     | VariableName name, _ ->
-        op constants (name.Value, values)
+        op constants (name, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
         if namesTuple.Length <> valuesTuple.Length then
             ArgumentException "names and values have different lengths" |> raise
@@ -184,7 +184,7 @@ and internal defaultValue (bt: TypeKind): ExprKind option =
     | BigInt -> BigIntLiteral BigInteger.Zero |> Some
     | Double -> DoubleLiteral 0.0 |> Some
     | Bool -> BoolLiteral false |> Some
-    | String -> StringLiteral (NonNullable<_>.New "", ImmutableArray.Empty) |> Some
+    | String -> StringLiteral ("", ImmutableArray.Empty) |> Some
     | Pauli -> PauliLiteral PauliI |> Some
     | Result -> ResultLiteral Zero |> Some
     | Range -> RangeLiteral (wrapExpr Int (IntLiteral 1L), wrapExpr Int (IntLiteral 0L)) |> Some

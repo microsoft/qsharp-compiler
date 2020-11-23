@@ -36,7 +36,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
         /// </summary>
-        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles;
+        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles =
+            new ConcurrentDictionary<Uri, FileContentManager>();
 
         private FileContentManager? GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
 
@@ -86,7 +87,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish);
-            this.openFiles = new ConcurrentDictionary<Uri, FileContentManager>();
             this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 outputPath,
                 runtimeCapability,
                 isExecutable,
-                NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture),
+                string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
                 loadTestNames,
                 sourceFiles,
                 projectReferences,

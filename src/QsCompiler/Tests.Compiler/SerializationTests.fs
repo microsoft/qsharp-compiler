@@ -54,7 +54,7 @@ module SerializationTests =
     }
 
     let varDecl name t (s, e) = {
-        VariableName = name |> NonNullable<string>.New |> ValidName
+        VariableName = ValidName name
         Type = t |> ResolvedType.New
         InferredInformation = InferredExpressionInformation.New (false, false)
         Position = Null
@@ -65,7 +65,7 @@ module SerializationTests =
     let intIntTypeItems = 
         let intItem = Int |> ResolvedType.New |> Anonymous |> QsTupleItem 
         [intItem; intItem].ToImmutableArray() |> QsTuple
-    let qualifiedName ns name = {Namespace = ns |> NonNullable<string>.New; Name = name |> NonNullable<string>.New}
+    let qualifiedName ns name = {Namespace = ns; Name = name}
     let udt name = 
         let range = Range.Create (Position.Create 4 9) (Position.Create 4 9) |> Value
         let fullName = qualifiedName "Microsoft.Quantum" name 
@@ -81,14 +81,14 @@ module SerializationTests =
             Assert.True(built)
             Assert.Equal(decl, header)
 
-        let qualifiedName ns name = {Namespace = ns |> NonNullable<string>.New; Name = name |> NonNullable<string>.New}
+        let qualifiedName ns name = {Namespace = ns; Name = name}
         {
             Kind            = QsSpecializationKind.QsBody
             TypeArguments   = Null
             Information     = CallableInformation.NoInformation
             Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 4 43 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -101,7 +101,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.FromProperties [Adjointable; Controllable], InferredCallableInformation.NoInformation)
             Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 5 39 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation   = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
@@ -114,7 +114,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
             Parent          = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -127,7 +127,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
             Parent          = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 6 4 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -148,7 +148,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -162,7 +162,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [ varDecl "p" udtPair (25,26) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -176,7 +176,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [].ToImmutableArray() |> QsTuple
@@ -190,7 +190,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -211,7 +211,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
@@ -224,7 +224,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%" |> NonNullable<string>.New
+            SourceFile      = "%%%"
             Position        = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
@@ -261,7 +261,7 @@ module SerializationTests =
         let AssertEqual (expected : string list) (got : _ list) = 
             Assert.Equal(expected.Length, got.Length)
             expected |> List.iteri (fun i ex ->
-                Assert.Equal (ex.Replace("%%%", HttpUtility.JavaScriptStringEncode dllId.Value), got.[i]))
+                Assert.Equal (ex.Replace("%%%", HttpUtility.JavaScriptStringEncode dllId), got.[i]))
         AssertEqual [CALLABLE_1; CALLABLE_2; CALLABLE_3] callables
         AssertEqual [SPECIALIZATION_1; SPECIALIZATION_3] specs
         AssertEqual [TYPE_1] types

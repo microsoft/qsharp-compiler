@@ -72,16 +72,16 @@ let private patternDiagnostic context pattern =
     match pattern with
     | ReturnInResultConditionedBlock range ->
         if context.Capability = BasicMeasurementFeedback
-        then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture.Value ] range
+        then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture ] range
         else None
     | SetInResultConditionedBlock (name, range) ->
         if context.Capability = BasicMeasurementFeedback
-        then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture.Value ] range
+        then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture ] range
         else None
     | ResultEqualityInCondition range ->
-        error unsupported [ context.ProcessorArchitecture.Value ] range
+        error unsupported [ context.ProcessorArchitecture ] range
     | ResultEqualityNotInCondition range ->
-        error unsupported [ context.ProcessorArchitecture.Value ] range
+        error unsupported [ context.ProcessorArchitecture ] range
 
 /// Adds a position offset to the range in the pattern.
 let private addOffset offset =
@@ -156,7 +156,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
             ReturnInResultConditionedBlock range)
     let setPatterns (block : QsPositionedBlock) =
         nonLocalUpdates block.Body
-        |> Seq.map (fun (name, range) -> SetInResultConditionedBlock (name.Value, Value range))
+        |> Seq.map (fun (name, range) -> SetInResultConditionedBlock (name, Value range))
     let foldPatterns (dependsOnResult, diagnostics) (condition : TypedExpression, block : QsPositionedBlock) =
         if dependsOnResult || condition.Exists isResultEquality
         then true, Seq.concat [ diagnostics; returnPatterns block; setPatterns block ]
@@ -223,9 +223,7 @@ let private referenceDiagnostic context (name, range : _ QsNullable) =
         if context.Capability.Implies capability
         then None
         else
-            let error =
-                ErrorCode.UnsupportedCapability,
-                [ name.Name.Value; string capability; context.ProcessorArchitecture.Value ]
+            let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
     | _ -> None
 
@@ -254,8 +252,7 @@ let private isQsNull = function
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
-let private isDeclaredInSourceFile (callable : QsCallable) =
-    callable.SourceFile.Value.EndsWith ".qs"
+let private isDeclaredInSourceFile (callable : QsCallable) = callable.SourceFile.EndsWith ".qs"
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.

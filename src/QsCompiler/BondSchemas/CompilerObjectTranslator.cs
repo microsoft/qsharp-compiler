@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondIdentifier.LocalVariable ??
                     throw new ArgumentNullException(UnexpectedNullFieldMessage("LocalVariable"));
 
-                return SyntaxTree.Identifier.NewLocalVariable(item: localVariable.ToNonNullable());
+                return SyntaxTree.Identifier.NewLocalVariable(item: localVariable);
             }
             else if (bondIdentifier.Kind == IdentifierKind.GlobalCallable)
             {
@@ -171,9 +171,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.LocalDeclarations(
                 variables: bondLocalDeclarations.Variables.Select(v => v.ToCompilerObject()).ToImmutableArray());
 
-        private static SyntaxTree.LocalVariableDeclaration<NonNullable<string>> ToCompilerObject(
+        private static SyntaxTree.LocalVariableDeclaration<string> ToCompilerObject(
             this LocalVariableDeclaration<string> bondLocalVariableDeclaration) =>
-            bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: s => s.ToNonNullable());
+            bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: s => s);
 
         private static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
             this LocalVariableDeclaration<QsLocalSymbol> bondLocalVariableDeclaration) =>
@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCallable.FullName.ToCompilerObject(),
                 attributes: bondQsCallable.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCallable.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCallable.SourceFile.ToNonNullable(),
+                sourceFile: bondQsCallable.SourceFile,
                 location: bondQsCallable.Location != null ?
                     bondQsCallable.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -242,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCustomType.SourceFile.ToNonNullable(),
+                sourceFile: bondQsCustomType.SourceFile,
                 location: bondQsCustomType.Location != null ?
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -274,7 +274,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondQsLocalSymbol.Name ??
                     throw new ArgumentNullException($"Bond QsLocalSymbol 'Name' field is null when Kind is '{bondQsLocalSymbol.Kind}'");
 
-                return SyntaxTree.QsLocalSymbol.NewValidName(item: validName.ToNonNullable());
+                return SyntaxTree.QsLocalSymbol.NewValidName(item: validName);
             }
             else
             {
@@ -293,10 +293,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
             new SyntaxTree.QsNamespace(
-                name: bondQsNamespace.Name.ToNonNullable(),
+                name: bondQsNamespace.Name,
                 elements: bondQsNamespace.Elements.Select(e => e.ToCompilerObject()).ToImmutableArray(),
                 documentation: bondQsNamespace.Documentation.ToLookup(
-                    p => p.FileName.ToNonNullable(),
+                    p => p.FileName,
                     p => p.DocumentationItems.ToImmutableArray()));
 
         private static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
@@ -336,8 +336,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
             new SyntaxTree.QsQualifiedName(
-                @namespace: bondQsQualifiedName.Namespace.ToNonNullable(),
-                name: bondQsQualifiedName.Name.ToNonNullable());
+                @namespace: bondQsQualifiedName.Namespace,
+                name: bondQsQualifiedName.Name);
 
         private static SyntaxTree.QsQubitScope ToCompilerObject(this QsQubitScope bondQsQubitScope) =>
             new SyntaxTree.QsQubitScope(
@@ -369,7 +369,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind: bondQsSpecialization.Kind.ToCompilerObject(),
                 parent: bondQsSpecialization.Parent.ToCompilerObject(),
                 attributes: bondQsSpecialization.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
-                sourceFile: bondQsSpecialization.SourceFile.ToNonNullable(),
+                sourceFile: bondQsSpecialization.SourceFile,
                 location: bondQsSpecialization.Location != null ?
                     bondQsSpecialization.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -523,7 +523,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     throw new ArgumentNullException(UnexpectedNullFieldMessage("Named"));
 
                 return SyntaxTree.QsTypeItem.NewNamed(
-                    item: named.ToCompilerObjectGeneric(typeTranslator: ToNonNullable));
+                    item: named.ToCompilerObjectGeneric(typeTranslator: item => item));
             }
             else if(bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
             {
@@ -542,7 +542,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SyntaxTree.QsTypeParameter ToCompilerObject(this QsTypeParameter bondQsTypeParameter) =>
             new SyntaxTree.QsTypeParameter(
                 origin: bondQsTypeParameter.Origin.ToCompilerObject(),
-                typeName: bondQsTypeParameter.TypeName.ToNonNullable(),
+                typeName: bondQsTypeParameter.TypeName,
                 range: bondQsTypeParameter.Range != null ?
                     bondQsTypeParameter.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
@@ -621,7 +621,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondSymbolTuple.VariableName ??
                     throw new ArgumentNullException(UnexpectedNullFieldMessage("VariableName"));
 
-                return SyntaxTree.SymbolTuple.NewVariableName(item: variableName.ToNonNullable());
+                return SyntaxTree.SymbolTuple.NewVariableName(item: variableName);
             }
             else if (bondSymbolTuple.Kind == SymbolTupleKind.VariableNameTuple)
             {
@@ -647,7 +647,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.TypedExpression(
                 expression: bondTypedExpression.Expression.ToCompilerObject(),
                 typeArguments: bondTypedExpression.TypedArguments.
-                    Select(t => Tuple.Create(t.Callable.ToCompilerObject(), t.Name.ToNonNullable(), t.Resolution.ToCompilerObject())).
+                    Select(t => Tuple.Create(t.Callable.ToCompilerObject(), t.Name, t.Resolution.ToCompilerObject())).
                     ToImmutableArray(),
                 resolvedType: bondTypedExpression.ResolvedType.ToCompilerObject(),
                 inferredInformation: bondTypedExpression.InferredInformation.ToCompilerObject(),
@@ -657,8 +657,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTree.UserDefinedType ToCompilerObject(this UserDefinedType bondUserDefinedType) =>
             new SyntaxTree.UserDefinedType(
-                @namespace: bondUserDefinedType.Namespace.ToNonNullable(),
-                name: bondUserDefinedType.Name.ToNonNullable(),
+                @namespace: bondUserDefinedType.Namespace,
+                name: bondUserDefinedType.Name,
                 range: bondUserDefinedType.Range != null ?
                     bondUserDefinedType.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
@@ -800,7 +800,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
                 return SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                     NewStringLiteral(
-                    item1: stringLiteral.StringLiteral.ToNonNullable(),
+                    item1: stringLiteral.StringLiteral,
                     item2: stringLiteral.Expressions.Select(e => expressionTranslator(e)).ToImmutableArray());
             }
             else if (bondQsExpressionKindComposition.Kind == QsExpressionKind.ResultLiteral)
@@ -1204,9 +1204,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind: bondQsBinding.Kind.ToCompilerObject(),
                 lhs: bondQsBinding.Lhs.ToCompilerObject(),
                 rhs: typeTranslator(bondQsBinding.Rhs));
-
-        private static NonNullable<string> ToNonNullable(this string str) =>
-            NonNullable<string>.New(str);
 
         private static QsNullable<T> ToQsNullableGeneric<T>(this T obj) =>
                 QsNullable<T>.NewValue(obj);

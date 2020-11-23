@@ -15,18 +15,6 @@ open Newtonsoft.Json
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 
-
-type NonNullableConverter<'T when 'T: equality and 'T: null>()  =
-    inherit JsonConverter<NonNullable<'T>>()
-    
-    override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : NonNullable<'T>, hasExistingValue : bool, serializer : JsonSerializer) =
-        let value = reader.Value :?> 'T
-        NonNullable<'T>.New(value)
-        
-    override this.WriteJson(writer : JsonWriter, value : NonNullable<'T>, serializer : JsonSerializer) =
-        serializer.Serialize(writer, value.Value)
-
-
 type PositionConverter() =
     inherit JsonConverter<Position>()
 
@@ -135,7 +123,7 @@ type TypedExpressionConverter() =
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : TypedExpression, hasExistingValue : bool, serializer : JsonSerializer) = 
         let (ex, paramRes, t, info, range) = 
             serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-                                   * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType>
+                                   * IEnumerable<QsQualifiedName * string * ResolvedType>
                                    * ResolvedType
                                    * InferredExpressionInformation
                                    * QsNullable<Range>>
@@ -150,7 +138,7 @@ type QsNamespaceConverter() =
     inherit JsonConverter<QsNamespace>()
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNamespace, hasExistingValue : bool, serializer : JsonSerializer) = 
-        let (nsName, elements) = serializer.Deserialize<NonNullable<string> * IEnumerable<QsNamespaceElement>>(reader) 
+        let (nsName, elements) = serializer.Deserialize<string * IEnumerable<QsNamespaceElement>>(reader)
         {Name = nsName; Elements = elements.ToImmutableArray(); Documentation = [].ToLookup(fst, snd)}
 
     override this.WriteJson(writer : JsonWriter, value : QsNamespace, serializer : JsonSerializer) =
@@ -172,7 +160,6 @@ module Json =
     
     let Converters ignoreSerializationException = 
         [|
-            new NonNullableConverter<string>()                                  :> JsonConverter
             new PositionConverter()                                             :> JsonConverter
             new RangeConverter()                                                :> JsonConverter
             new QsNullableLocationConverter(ignoreSerializationException)       :> JsonConverter

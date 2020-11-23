@@ -426,12 +426,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
         }
 
-        public readonly NonNullable<string> Source;
-        public readonly NonNullable<string> Namespace;
-        public readonly NonNullable<string> Callable;
+        public readonly string Source;
+        public readonly string Namespace;
+        public readonly string Callable;
         public readonly IReadOnlyList<TreeNode>? Specializations;
 
-        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode>? specs)
+        public FragmentTree(string source, string ns, string callable, IEnumerable<TreeNode>? specs)
         {
             this.Source = source;
             this.Namespace = ns;
@@ -447,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal Position Position { get; }
 
-        internal readonly NonNullable<string> SymbolName;
-        internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
+        internal readonly string SymbolName;
+        internal readonly Tuple<string, Range> PositionedSymbol;
 
         internal readonly T Declaration;
         internal readonly ImmutableArray<AttributeAnnotation> Attributes;
@@ -458,7 +458,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
             Position offset,
-            (NonNullable<string>, Range) sym,
+            (string, Range) sym,
             T decl,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         {
             this.Position = offset;
             this.SymbolName = sym.Item1;
-            this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
+            this.PositionedSymbol = new Tuple<string, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
             this.Attributes = attributes;
             this.Documentation = doc;
@@ -505,7 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (symName, symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 

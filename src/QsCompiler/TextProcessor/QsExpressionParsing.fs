@@ -230,7 +230,7 @@ let internal numericLiteral =
 /// Handles both interpolates and non-interpolated strings.
 let internal stringLiteral =
     let strExpr = getStringContent (expectedExpr eof) |>> fun (str, items) -> 
-        StringLiteral (str |> NonNullable<string>.New, items.ToImmutableArray()) 
+        StringLiteral (str, items.ToImmutableArray())
     attempt strExpr |> asExpression
 
 /// Parses an identifier (qualified or unqualified symbol) as QsExpression.

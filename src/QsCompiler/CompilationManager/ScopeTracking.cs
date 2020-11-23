@@ -606,11 +606,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var lastLine = file.GetLine(file.NrLines() - 1);
             if (lastLine.FinalIndentation() > 0)
             {
-                yield return Errors.MissingClosingBracketError(file.FileName.Value, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingClosingBracketError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
             }
             if (ContinueString(lastLine))
             {
-                yield return Errors.MissingStringDelimiterError(file.FileName.Value, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingStringDelimiterError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
             }
         }
 
@@ -624,7 +624,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 foreach (var pos in line.ExcessBracketPositions)
                 {
-                    yield return Errors.ExcessBracketError(file.FileName.Value, Position.Create(start, pos));
+                    yield return Errors.ExcessBracketError(file.FileName, Position.Create(start, pos));
                 }
                 ++start;
             }

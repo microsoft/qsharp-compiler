@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="ns">The name of the defining namespace</param>
         /// <param name="udt">The compiled UDT</param>
         internal DocUdt(string ns, QsCustomType udt)
-            : base(ns, udt.FullName.Name.Value, Utils.UdtKind, udt.Documentation, udt.Attributes)
+            : base(ns, udt.FullName.Name, Utils.UdtKind, udt.Documentation, udt.Attributes)
         {
             this.syntax = Utils.CustomTypeToSyntax(udt);
             this.customType = udt;

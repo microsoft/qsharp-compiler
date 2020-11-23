@@ -280,13 +280,13 @@ let ``Expression literal tests`` () =
         ("-1.0",                  true,    toExpr (NEG (toExpr (DoubleLiteral 1.0))),                             []); 
         ("-1.0e2",                true,    toExpr (NEG (toExpr (DoubleLiteral 100.0))),                           []);
         ("-1.0e-2",               true,    toExpr (NEG (toExpr (DoubleLiteral 0.01))),                            []);
-        ("\"\"",                  true,    toExpr (StringLiteral (NonNullable<string>.New "", noExprs)),          []);
-        ("\"hello\"",             true,    toExpr (StringLiteral (NonNullable<string>.New "hello", noExprs)),     []);
-        ("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
-        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
-        ("\"hello\\n\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\n", noExprs)),   []);
-        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral (NonNullable<string>.New "hello\r\n", noExprs)), []);
-        ("\"hello\\t\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\t", noExprs)),   []);
+        ("\"\"",                  true,    toExpr (StringLiteral ("", noExprs)),                                  []);
+        ("\"hello\"",             true,    toExpr (StringLiteral ("hello", noExprs)),                             []);
+        ("\"hello\\\\\"",         true,    toExpr (StringLiteral ("hello\\", noExprs)),                           []);
+        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral ("\"hello\"", noExprs)),                         []);
+        ("\"hello\\n\"",          true,    toExpr (StringLiteral ("hello\n", noExprs)),                           []);
+        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral ("hello\r\n", noExprs)),                         []);
+        ("\"hello\\t\"",          true,    toExpr (StringLiteral ("hello\t", noExprs)),                           []);
         ("One",                   true,    toExpr (ResultLiteral One),                                            []);
         ("Zero",                  true,    toExpr (ResultLiteral Zero),                                           []);
         ("PauliI",                true,    toExpr (PauliLiteral PauliI),                                          []);
@@ -352,8 +352,7 @@ let ``Simple comparison expression tests`` () =
 let ``Identifier tests`` () =
     [
         ("x",                   true,    toIdentifier "x",                                                          []); 
-        ("a.b.c",               true,    toExpr (Identifier ({Symbol=QualifiedSymbol("a.b" |> NonNullable<string>.New,
-                                                                                     "c" |> NonNullable<string>.New);
+        ("a.b.c",               true,    toExpr (Identifier ({Symbol=QualifiedSymbol("a.b", "c");
                                                               Range=Null}, Null)),                              []); 
     ]
     |> List.iter testExpr
