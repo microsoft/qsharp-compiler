@@ -48,7 +48,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                     MessageType = severity,
                     Actions = actionItems
                 };
-            QsCompilerError.Verify(server != null && message != null, "cannot show message - given server or text was null");
             var action = await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
             return action;
         }
