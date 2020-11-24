@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <BondCodegen Remove="CompilerDataStructures.bond" />
+    <BondCodegen Remove="*.bond" />
   </ItemGroup>
 
   <ItemGroup>
