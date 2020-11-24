@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Log("Listening...", options.LogFile);
             try
             {
-                server.CheckDotNetSDKVersion();
+                server.CheckDotNetSdkVersion();
                 server.WaitForShutdown();
             }
             catch (Exception ex)
