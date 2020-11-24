@@ -48,8 +48,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     MessageType = severity,
                     Actions = actionItems
                 };
-            var action = await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
-            return action;
+            return await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
         }
 
         /// <summary>
