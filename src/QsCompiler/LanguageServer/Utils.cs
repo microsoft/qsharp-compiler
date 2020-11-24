@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Quantum.QsCompiler;
@@ -121,6 +123,39 @@ namespace Microsoft.Quantum.QsLanguageServer
                         $"MSBuild warning in {args.File}({args.LineNumber},{args.ColumnNumber}): {args.Message}",
                         MessageType.Warning);
             }
+        }
+    }
+
+    internal static class DotNetSDKHelper
+    {
+        private static readonly Regex DotNet31Regex = new Regex(@"^3\.1\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
+        private static readonly Regex DotNet50Regex = new Regex(@"^5\.0\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
+
+        public class DotNetSDKVersions
+        {
+            public bool HasDotNet50 { get; set; }
+            public bool HasDotNet31 { get; set; }
+        }
+
+        public static DotNetSDKVersions? GetSDKVersions()
+        {
+            var listSdkProcess = Process.Start(
+                new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = "--list-sdks",
+                    RedirectStandardOutput = true,
+                });
+            if (listSdkProcess.WaitForExit(3000))
+            {
+                var sdks = listSdkProcess.StandardOutput.ReadToEnd();
+                return new DotNetSDKVersions()
+                {
+                    HasDotNet31 = DotNet31Regex.IsMatch(sdks),
+                    HasDotNet50 = DotNet50Regex.IsMatch(sdks),
+                };
+            }
+            return null;
         }
     }
 }
