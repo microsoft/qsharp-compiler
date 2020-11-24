@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var sdkVersions = DotNetSdkHelper.GetSdkVersions();
             if (sdkVersions == null)
             {
-                this.LogToWindow($"Unable to detect .NET SDK versions", MessageType.Error);
+                this.LogToWindow("Unable to detect .NET SDK versions", MessageType.Error);
             }
             else
             {
