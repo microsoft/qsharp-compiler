@@ -126,6 +126,25 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
 
+        internal void CheckDotNetSDKVersion()
+        {
+            var sdkVersions = DotNetSDKHelper.GetSDKVersions();
+            if (sdkVersions == null)
+            {
+                this.LogToWindow($"Unable to detect .NET SDK versions", MessageType.Error);
+            }
+            else
+            {
+                if (!sdkVersions.HasDotNet31)
+                {
+                    this.LogToWindow($".NET SDK 3.1 not found. QDK requires .NET SDK 3.1 to work properly.", MessageType.Error);
+                    this.ShowInWindow(
+                        $"QDK requires .NET SDK 3.1 to work properly. Please install .NET SDK 3.1 from https://dotnet.microsoft.com/download/dotnet-core/3.1",
+                        MessageType.Error);
+                }
+            }
+        }
+
         /// <summary>
         /// does not actually do anything unless the corresponding flag is defined upon compilation
         /// </summary>
