@@ -145,16 +145,8 @@ namespace Microsoft.Quantum.QsLanguageServer
     internal static class DotNetSdkHelper
     {
         private static readonly Regex DotNet31Regex = new Regex(@"^3\.1\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
-        private static readonly Regex DotNet50Regex = new Regex(@"^5\.0\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
 
-        public class DotNetSDKVersions
-        {
-            public bool HasDotNet50 { get; set; }
-
-            public bool HasDotNet31 { get; set; }
-        }
-
-        public static DotNetSDKVersions? GetSdkVersions()
+        public static bool? IsDotNet31Installed()
         {
             var listSdkProcess = Process.Start(
                 new ProcessStartInfo()
@@ -170,11 +162,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return null;
                 }
                 var sdks = listSdkProcess.StandardOutput.ReadToEnd();
-                return new DotNetSDKVersions()
-                {
-                    HasDotNet31 = DotNet31Regex.IsMatch(sdks),
-                    HasDotNet50 = DotNet50Regex.IsMatch(sdks),
-                };
+                return DotNet31Regex.IsMatch(sdks);
             }
             return null;
         }

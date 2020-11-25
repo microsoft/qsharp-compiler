@@ -132,21 +132,21 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal async void CheckDotNetSdkVersion()
         {
-            var sdkVersions = DotNetSdkHelper.GetSdkVersions();
-            if (sdkVersions == null)
+            var isDotNet31Installed = DotNetSdkHelper.IsDotNet31Installed();
+            if (isDotNet31Installed == null)
             {
                 this.LogToWindow("Unable to detect .NET SDK versions", MessageType.Error);
             }
             else
             {
-                if (!sdkVersions.HasDotNet31)
+                if (isDotNet31Installed != true)
                 {
                     const string dotnet31Url = "https://dotnet.microsoft.com/download/dotnet-core/3.1";
-                    this.LogToWindow($".NET SDK 3.1 not found. Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly ({dotnet31Url}).", MessageType.Error);
+                    this.LogToWindow($".NET Core SDK 3.1 not found. Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly ({dotnet31Url}).", MessageType.Error);
                     var downloadAction = new MessageActionItem { Title = "Download" };
                     var cancelAction = new MessageActionItem { Title = "No, thanks" };
                     var selectedAction = await this.ShowDialogInWindowAsync(
-                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET SDK 3.1.",
+                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET Core SDK 3.1.",
                         MessageType.Error,
                         new[] { downloadAction, cancelAction });
                     if (selectedAction != null
