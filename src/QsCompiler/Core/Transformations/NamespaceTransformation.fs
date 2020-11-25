@@ -46,8 +46,8 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
-    abstract member OnSourceFile : string -> string
-    default this.OnSourceFile f = f
+    abstract member OnSource : Source -> Source
+    default this.OnSource source = source
 
     abstract member OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att 
@@ -145,7 +145,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds. 
     /// It is hence not intended and should never be needed for public use. 
     member private this.OnSpecializationKind (spec : QsSpecialization) = 
-        let source = this.OnSourceFile spec.SourceFile
+        let source = this.OnSource spec.Source
         let loc = this.OnLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
@@ -181,7 +181,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     /// This method is defined for the sole purpose of eliminating code duplication for each of the callable kinds. 
     /// It is hence not intended and should never be needed for public use. 
     member private this.OnCallableKind (c : QsCallable) = 
-        let source = this.OnSourceFile c.SourceFile
+        let source = this.OnSource c.Source
         let loc = this.OnLocation c.Location
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
@@ -209,7 +209,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
 
     abstract member OnTypeDeclaration : QsCustomType -> QsCustomType
     default this.OnTypeDeclaration t =
-        let source = this.OnSourceFile t.SourceFile 
+        let source = this.OnSource t.Source
         let loc = this.OnLocation t.Location
         let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let underlyingType = this.Statements.Expressions.Types.OnType t.Type

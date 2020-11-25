@@ -323,6 +323,7 @@ type NamespaceManager
         let getAttribute ((nsName, symName), symRange) = 
             match tryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
             | Some (udt, declSource, _), errs -> // declSource may be the name of an assembly!
+                let declSource = Source.assemblyOrCode declSource
                 let fullName = sprintf "%s.%s" udt.Namespace udt.Name
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with
@@ -682,7 +683,7 @@ type NamespaceManager
                         Information = gen.Information
                         Parent = parent
                         Attributes = resolution.ResolvedAttributes
-                        SourceFile = source
+                        Source = { CodePath = source; AssemblyPath = None }
                         Position = DeclarationHeader.Offset.Defined resolution.Position
                         HeaderRange = DeclarationHeader.Range.Defined resolution.Range
                         Documentation = resolution.Documentation
@@ -717,7 +718,7 @@ type NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
                         Modifiers = declaration.Modifiers
-                        SourceFile = source
+                        Source = { CodePath = source; AssemblyPath = None }
                         Position = DeclarationHeader.Offset.Defined declaration.Position
                         SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                         Signature = signature
@@ -764,7 +765,7 @@ type NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
                         Modifiers = qsType.Modifiers
-                        SourceFile = source
+                        Source = { CodePath = source; AssemblyPath = None }
                         Position = DeclarationHeader.Offset.Defined qsType.Position
                         SymbolRange = DeclarationHeader.Range.Defined qsType.Range
                         Type = underlyingType
@@ -886,7 +887,7 @@ type NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                SourceFile = source
+                Source = { CodePath = source; AssemblyPath = None }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Signature = resolvedSignature
@@ -904,8 +905,7 @@ type NamespaceManager
 
         let findInSources (ns : Namespace) = function
             | Some source ->
-                // OK to use CallableInSource because this is only evaluated if the callable is not in a
-                // reference.
+                // OK to use CallableInSource because this is only evaluated if the callable is not in a reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
                 if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
                 then Found (buildHeader {callableName with Namespace = ns.Name} (source, kind, declaration))
@@ -923,7 +923,7 @@ type NamespaceManager
             | None -> NotFound
             | Some ns ->
                 seq { yield findInReferences ns
-                      yield findInSources ns declSource }
+                      yield declSource |> Option.map (fun s -> s.CodePath) |> findInSources ns }
                 |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 
@@ -977,7 +977,7 @@ type NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                SourceFile = source
+                Source = { CodePath = source; AssemblyPath = None }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Type = underlyingType
@@ -1013,7 +1013,7 @@ type NamespaceManager
             | None -> NotFound
             | Some ns ->
                 seq { yield findInReferences ns
-                      yield findInSources ns declSource }
+                      yield declSource |> Option.map (fun s -> s.CodePath) |> findInSources ns }
                 |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 

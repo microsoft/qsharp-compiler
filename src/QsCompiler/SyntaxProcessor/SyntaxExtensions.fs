@@ -353,14 +353,15 @@ let public PrintArgumentTuple item =
 [<Extension>]
 let public PrintSignature (header : CallableDeclarationHeader) =
     let callable =
-        QsCallable.New header.Kind (header.SourceFile, Null) (header.QualifiedName,
-                                                              header.Attributes,
-                                                              header.Modifiers,
-                                                              header.ArgumentTuple,
-                                                              header.Signature,
-                                                              ImmutableArray.Empty,
-                                                              ImmutableArray.Empty,
-                                                              QsComments.Empty)
+        QsCallable.New header.Kind (header.Source, Null)
+            (header.QualifiedName,
+             header.Attributes,
+             header.Modifiers,
+             header.ArgumentTuple,
+             header.Signature,
+             ImmutableArray.Empty,
+             ImmutableArray.Empty,
+             QsComments.Empty)
     let signature = SyntaxTreeToQsharp.DeclarationSignature (callable, new Func<_,_>(TypeName))
     let annotation = CharacteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation
@@ -470,7 +471,7 @@ let public LocalVariable (locals : LocalDeclarations) (qsSym : QsSymbol) =
 [<Extension>]
 let public VariableDeclaration (symbolTable : NamespaceManager) (locals : LocalDeclarations) (currentNS, source) (qsSym : QsSymbol) =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
-    | Some decl, Some _ -> decl.Location |> QsNullable<_>.Map (fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+    | Some decl, Some _ -> decl.Location |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCode decl.Source, loc.Offset, loc.Range)
     | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map (fun (_, pos, range) -> source, pos, range)
 
 [<Extension>]
@@ -478,7 +479,7 @@ let public TypeDeclaration (symbolTable : NamespaceManager) (currentNS, source) 
     match qsType.Type with
     | QsTypeKind.UserDefinedType udt ->
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
-        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCode decl.Source, loc.Offset, loc.Range)
         | _ -> Null
     | _ -> Null
 
@@ -487,9 +488,9 @@ let public SymbolDeclaration (symbolTable : NamespaceManager) (locals : LocalDec
     match qsSym.Symbol with
     | QsSymbolKind.Symbol _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be first
-        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCode decl.Source, loc.Offset, loc.Range)
         | None, _ ->
         match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
-        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+        | Some decl, _ -> decl.Location |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCode decl.Source, loc.Offset, loc.Range)
         | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map (fun (_, pos, range) -> source, pos, range)
     | _ -> Null

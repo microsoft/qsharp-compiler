@@ -181,7 +181,7 @@ type QsSpecialization with
         Kind = kind
         Parent = parent
         Attributes = attributes
-        SourceFile = source
+        Source = source
         Location = location
         TypeArguments = typeArgs
         Signature = signature
@@ -200,7 +200,7 @@ type QsCallable with
         FullName = name
         Attributes = attributes
         Modifiers = modifiers
-        SourceFile = source
+        Source = source
         Location = location
         Signature = signature
         Specializations = specializations.ToImmutableArray()
@@ -217,7 +217,7 @@ type QsCustomType with
         FullName = name
         Attributes = attributes
         Modifiers = modifiers
-        SourceFile = source
+        Source = source
         Location = location
         Type = underlyingType
         TypeItems = items

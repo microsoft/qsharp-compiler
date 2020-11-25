@@ -220,7 +220,7 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
     let reason (header : SpecializationDeclarationHeader) (diagnostic : QsCompilerDiagnostic) =
         let warning =
             WarningCode.UnsupportedCallableReason,
-            [ name.Name; header.SourceFile; string diagnostic.Range.Start; string diagnostic.Diagnostic ]
+            [ name.Name; header.Source.CodePath; string diagnostic.Range.Start; string diagnostic.Diagnostic ]
         range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning warning
 
     let reasons (header : SpecializationDeclarationHeader, impl) =
@@ -269,7 +269,7 @@ let private isQsNull = function
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
-let private isDeclaredInSourceFile (callable : QsCallable) = callable.SourceFile.EndsWith ".qs"
+let private isDeclaredInSourceFile (callable : QsCallable) = Option.isNone callable.Source.AssemblyPath
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.

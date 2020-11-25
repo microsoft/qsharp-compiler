@@ -171,7 +171,7 @@ type Namespace private
         | false, _ ->
             let referenceType =
                 TypesInReferences.[attName]
-                |> Seq.filter (fun qsType -> qsType.SourceFile = source)
+                |> Seq.filter (fun qsType -> qsType.Source.AssemblyPath |> Option.contains source)
                 |> Seq.tryExactlyOne
             match referenceType with
             | Some qsType ->
@@ -279,7 +279,7 @@ type Namespace private
 
         let resolveReferenceType (typeHeader : TypeDeclarationHeader) =
             if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
-            then Found (typeHeader.SourceFile,
+            then Found (typeHeader.Source,
                         SymbolResolution.TryFindRedirect typeHeader.Attributes,
                         typeHeader.Modifiers.Access)
             else Inaccessible
@@ -288,7 +288,7 @@ type Namespace private
             match partial.TryGetType tName with
             | true, qsType ->
                 if Namespace.IsDeclarationAccessible (true, qsType.Modifiers.Access)
-                then Found (partial.Source,
+                then Found ({ CodePath = partial.Source; AssemblyPath = None },
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
                             qsType.Modifiers.Access)
                 else Inaccessible
@@ -317,14 +317,14 @@ type Namespace private
 
         let resolveReferenceCallable (callable : CallableDeclarationHeader) =
             if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
-            then Found (callable.SourceFile, SymbolResolution.TryFindRedirect callable.Attributes)
+            then Found (callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
             else Inaccessible
 
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
                 if Namespace.IsDeclarationAccessible (true, callable.Modifiers.Access)
-                then Found (partial.Source,
+                then Found ({ CodePath = partial.Source; AssemblyPath = None },
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
                 else Inaccessible
             | false, _ -> NotFound
@@ -495,16 +495,17 @@ type Namespace private
                                | _ -> false
                 | _ -> false
 
-            // Check if the declaration's source file is local first, then look in references.
-            match Parts.TryGetValue declSource with
-            | true, partial ->
-                let _, cDecl = partial.GetCallable cName
-                let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
-                unitReturn, cDecl.Defined.TypeParameters.Length
-            | false, _ ->
-                let cDecl = CallablesInReferences.[cName] |> Seq.filter (fun c -> c.SourceFile = source) |> Seq.exactlyOne
+            if Option.isSome declSource.AssemblyPath then
+                let cDecl =
+                    CallablesInReferences.[cName]
+                    |> Seq.filter (fun c -> c.Source.AssemblyPath |> Option.contains source)
+                    |> Seq.exactlyOne
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length
+            else
+                let _, cDecl = Parts.[declSource.CodePath].GetCallable cName
+                let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
+                unitReturn, cDecl.Defined.TypeParameters.Length
 
         match Parts.TryGetValue source with
         | true, partial ->

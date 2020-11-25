@@ -163,11 +163,12 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
             let parent = 
                 (header.QualifiedName.Namespace, header.QualifiedName.Name, header.Location |> QsNullable<_>.Map (fun loc -> loc.Range)) 
                 |> UserDefinedType.New |> UserDefinedType |> ResolvedType.New
-            for entry in getTypes ((getLocation header).Offset, header.SourceFile) parent None do queue.Enqueue entry
+            for entry in getTypes ((getLocation header).Offset, Source.assemblyOrCode header.Source) parent None do
+                queue.Enqueue entry
             let rec search () =
-                if queue.Count <> 0 then 
-                    let ctypes = getTypes ((getLocation header).Offset, header.SourceFile) (queue.Dequeue()) (Some typeIndex)
-                    for entry in ctypes do queue.Enqueue entry 
+                if queue.Count <> 0 then
+                    let ctypes = getTypes ((getLocation header).Offset, Source.assemblyOrCode header.Source) (queue.Dequeue()) (Some typeIndex)
+                    for entry in ctypes do queue.Enqueue entry
                     search ()
             search())
     walk_udts()
@@ -190,6 +191,8 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
         for (udtIndex, _) in remaining do
             let udt = definitions.[udtIndex]
             let loc = getLocation udt
-            ((loc.Offset, udt.SourceFile), loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, [])) |> diagnostics.Add        
+            ((loc.Offset, Source.assemblyOrCode udt.Source),
+             loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, []))
+            |> diagnostics.Add        
     diagnostics.ToLookup (fst >> snd, fun ((position, _), diagnostic) ->
         { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range })

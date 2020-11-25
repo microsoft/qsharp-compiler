@@ -5,7 +5,9 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
@@ -201,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCallable.FullName.ToCompilerObject(),
                 attributes: bondQsCallable.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCallable.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCallable.SourceFile,
+                source: new Source(bondQsCallable.SourceFile, FSharpOption<string>.None),
                 location: bondQsCallable.Location != null ?
                     bondQsCallable.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -242,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCustomType.SourceFile,
+                source: new Source(bondQsCustomType.SourceFile, FSharpOption<string>.None),
                 location: bondQsCustomType.Location != null ?
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -369,7 +371,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind: bondQsSpecialization.Kind.ToCompilerObject(),
                 parent: bondQsSpecialization.Parent.ToCompilerObject(),
                 attributes: bondQsSpecialization.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
-                sourceFile: bondQsSpecialization.SourceFile,
+                source: new Source(bondQsSpecialization.SourceFile, FSharpOption<string>.None),
                 location: bondQsSpecialization.Location != null ?
                     bondQsSpecialization.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,

@@ -220,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                         c.FullName,
                         c.Attributes,
                         new Modifiers(GetAccessModifiers.GetLeastAccess(relaventAccessModifiers)),
-                        c.SourceFile,
+                        c.Source,
                         c.Location,
                         c.Signature,
                         c.ArgumentTuple,

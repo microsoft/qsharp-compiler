@@ -101,7 +101,7 @@ type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : string
+    Source          : Source
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     Type            : ResolvedType
@@ -111,14 +111,14 @@ type TypeDeclarationHeader = {
     with 
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
-    member this.FromSource source = {this with SourceFile = source}
+    member this.FromSource source = {this with Source = source}
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
     static member New (customType : QsCustomType) = {
         QualifiedName   = customType.FullName
         Attributes      = customType.Attributes
         Modifiers       = customType.Modifiers
-        SourceFile      = customType.SourceFile
+        Source          = customType.Source
         Position        = customType.Location |> DeclarationHeader.CreateOffset
         SymbolRange     = customType.Location |> DeclarationHeader.CreateRange
         Type            = customType.Type
@@ -143,7 +143,7 @@ type CallableDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : string
+    Source          : Source
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     ArgumentTuple   : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
@@ -153,7 +153,7 @@ type CallableDeclarationHeader = {
     with 
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
-    member this.FromSource source = {this with SourceFile = source}
+    member this.FromSource source = {this with Source = source}
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
     static member New (callable : QsCallable) = {
@@ -161,7 +161,7 @@ type CallableDeclarationHeader = {
         QualifiedName   = callable.FullName
         Attributes      = callable.Attributes
         Modifiers       = callable.Modifiers
-        SourceFile      = callable.SourceFile
+        Source          = callable.Source
         Position        = callable.Location |> DeclarationHeader.CreateOffset
         SymbolRange     = callable.Location |> DeclarationHeader.CreateRange
         ArgumentTuple   = callable.ArgumentTuple
@@ -195,7 +195,7 @@ type SpecializationDeclarationHeader = {
     Information     : CallableInformation
     Parent          : QsQualifiedName    
     Attributes      : ImmutableArray<QsDeclarationAttribute>
-    SourceFile      : string
+    Source          : Source
     Position        : DeclarationHeader.Offset
     HeaderRange     : DeclarationHeader.Range
     Documentation   : ImmutableArray<string>
@@ -203,7 +203,7 @@ type SpecializationDeclarationHeader = {
     with 
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.HeaderRange)
-    member this.FromSource source = {this with SourceFile = source}
+    member this.FromSource source = {this with Source = source}
 
     static member New (specialization : QsSpecialization) = {
         Kind            = specialization.Kind
@@ -211,7 +211,7 @@ type SpecializationDeclarationHeader = {
         Information     = specialization.Signature.Information
         Parent          = specialization.Parent 
         Attributes      = specialization.Attributes
-        SourceFile      = specialization.SourceFile
+        Source          = specialization.Source
         Position        = specialization.Location |> DeclarationHeader.CreateOffset
         HeaderRange     = specialization.Location |> DeclarationHeader.CreateRange
         Documentation   = specialization.Documentation
