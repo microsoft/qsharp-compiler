@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     var downloadAction = new MessageActionItem { Title = "Download" };
                     var cancelAction = new MessageActionItem { Title = "No, thanks" };
                     var selectedAction = await this.ShowDialogInWindowAsync(
-                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET Core SDK 3.1.",
+                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET Core SDK 3.1 and restart Visual Studio.",
                         MessageType.Error,
                         new[] { downloadAction, cancelAction });
                     if (selectedAction != null
