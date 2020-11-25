@@ -647,17 +647,13 @@ type NamespaceManager
     /// <summary>
     /// Returns the headers of all imported specializations for callable with the given name.
     /// </summary>
-    /// <exception cref="SymbolNotFoundException">
-    /// The parent callable or its specializations were not found in references.
-    /// </exception>
+    /// <exception cref="SymbolNotFoundException">The namespace of <paramref name="parent"/> was not found.</exception>
     member this.ImportedSpecializations (parent : QsQualifiedName) =
         // TODO: this may need to be adapted if we support external specializations
         syncRoot.EnterReadLock()
-        try let imported = Namespaces.TryGetValue parent.Namespace |> function
-                | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
-                | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
-            if imported.Length <> 0 then imported
-            else SymbolNotFoundException "No specializations for a callable with the given name have been imported." |> raise
+        try match Namespaces.TryGetValue parent.Namespace with
+            | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
+            | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
     /// <summary>
