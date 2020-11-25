@@ -13,6 +13,9 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="global.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj">
       <Private>true</Private>
     </ProjectReference>
@@ -36,5 +39,10 @@
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="global.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
