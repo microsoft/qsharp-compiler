@@ -1398,7 +1398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     spec.Kind,
                     spec.Parent,
                     spec.Attributes,
-                    spec.SourceFile,
+                    spec.Source,
                     QsNullable<QsLocation>.Null,
                     spec.TypeArguments,
                     SyntaxGenerator.WithoutRangeInfo(signature),
@@ -1428,7 +1428,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
-                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile, msg, specPos));
+                        diagnostics.Add(Diagnostics.Generate(spec.Source.AssemblyOrCode, msg, specPos));
                     }
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
@@ -1439,7 +1439,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compilation.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
-                        root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
+                        root, spec.Source.AssemblyOrCode, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
@@ -1614,14 +1614,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.Source.AssemblyOrCode, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
                         var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                         QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile, msg, offset));
+                            .Select(msg => Diagnostics.Generate(info.Source.AssemblyOrCode, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
@@ -1631,7 +1631,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         parent,
                         info.Attributes,
                         info.Modifiers,
-                        info.SourceFile,
+                        info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
                         info.ArgumentTuple,
@@ -1645,7 +1645,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl.Key,
                     decl.Value.Attributes,
                     decl.Value.Modifiers,
-                    decl.Value.SourceFile,
+                    decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,
                     decl.Value.TypeItems,
@@ -1678,7 +1678,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (callableDeclarations.TryGetValue(parent, out var info))
                 {
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile, diag, offset));
+                    diagnostics.Add(Diagnostics.Generate(info.Source.AssemblyOrCode, diag, offset));
                 }
             }
         }

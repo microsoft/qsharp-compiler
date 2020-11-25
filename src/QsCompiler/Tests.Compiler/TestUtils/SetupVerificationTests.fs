@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
@@ -36,7 +35,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
             if attributes.Length = 0 then (c.Location.ValueOrApply (fun _ -> failwith "missing position information")).Offset
             else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
-            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
+            let containedCallables = callables.Where(fun kv -> Source.assemblyOrCode kv.Value.Source = file && kv.Value.Location <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
             let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp ())
             

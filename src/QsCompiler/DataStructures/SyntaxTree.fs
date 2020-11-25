@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 open System
 open System.Collections.Immutable
 open System.Linq
+open System.Runtime.InteropServices
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -645,6 +646,13 @@ module Source =
 type Source with
     member source.AssemblyOrCode = Source.assemblyOrCode source
 
+    member source.With
+        ([<Optional; DefaultParameterValue null>] ?codePath,
+         [<Optional; DefaultParameterValue null>] ?assemblyPath) =
+        { source with
+              CodePath = codePath |> Option.defaultValue source.CodePath
+              AssemblyPath = assemblyPath |> Option.orElse source.AssemblyPath }
+
 /// For each callable various specialization exist describing how it acts
 /// depending on the type of the argument it is called with (type specializations),
 /// and/or which functors are applied to the call.
@@ -679,6 +687,9 @@ type QsSpecialization = {
     member this.WithImplementation impl = {this with Implementation = impl}
     member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
     member this.WithSource source = {this with Source = source}
+
+    [<Obsolete "Use Source.AssemblyOrCode.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
 
 
 /// describes a Q# function, operation, or type constructor

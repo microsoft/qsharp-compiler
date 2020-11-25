@@ -88,7 +88,7 @@ module SerializationTests =
             Information     = CallableInformation.NoInformation
             Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 4 43 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -101,7 +101,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.FromProperties [Adjointable; Controllable], InferredCallableInformation.NoInformation)
             Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 5 39 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation   = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
@@ -114,7 +114,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
             Parent          = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -127,7 +127,7 @@ module SerializationTests =
             Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
             Parent          = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 6 4 |> DeclarationHeader.Offset.Defined
             HeaderRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
@@ -148,7 +148,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -162,7 +162,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [ varDecl "p" udtPair (25,26) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -176,7 +176,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [].ToImmutableArray() |> QsTuple
@@ -190,7 +190,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
@@ -211,7 +211,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
@@ -224,7 +224,7 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             Modifiers       = {Access = DefaultAccess}
-            SourceFile      = "%%%"
+            Source          = {CodePath = "%%%"; AssemblyPath = None}
             Position        = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange     = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New

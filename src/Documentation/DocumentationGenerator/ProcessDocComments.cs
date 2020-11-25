@@ -3,21 +3,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Documentation;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Newtonsoft.Json.Linq;
-
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
-
-#nullable enable
 
 namespace Microsoft.Quantum.Documentation
 {
@@ -30,7 +21,8 @@ namespace Microsoft.Quantum.Documentation
     : SyntaxTreeTransformation<ProcessDocComments.TransformationState>
     {
         public class TransformationState
-        { }
+        {
+        }
 
         /// <summary>
         ///     An event that is raised on diagnostics about documentation
@@ -53,8 +45,7 @@ namespace Microsoft.Quantum.Documentation
         /// </param>
         public ProcessDocComments(
             string? outputPath = null,
-            string? packageName = null
-        )
+            string? packageName = null)
         : base(new TransformationState(), TransformationOptions.Disabled)
         {
             this.Writer = outputPath == null
@@ -78,7 +69,9 @@ namespace Microsoft.Quantum.Documentation
 
             internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
             : base(parent)
-            { this.writer = writer; }
+            {
+                this.writer = writer;
+            }
 
             private void ValidateNames(
                 string symbolName,
@@ -86,8 +79,7 @@ namespace Microsoft.Quantum.Documentation
                 Func<string, bool> isNameValid,
                 IEnumerable<string> actualNames,
                 Range? range = null,
-                string? source = null
-            )
+                string? source = null)
             {
                 foreach (var name in actualNames)
                 {
@@ -101,8 +93,7 @@ namespace Microsoft.Quantum.Documentation
                                 Range = range,
                                 Source = source,
                                 Stage = IRewriteStep.Stage.Transformation,
-                            }
-                        );
+                            });
                     }
                 }
             }
@@ -114,9 +105,8 @@ namespace Microsoft.Quantum.Documentation
                 {
                     // Concatenate everything into one documentation comment.
                     var comment = new DocComment(
-                        ns.Documentation.SelectMany(group => group).SelectMany(comments => comments)
-                    );
-                    writer?.WriteOutput(ns, comment)?.Wait();
+                        ns.Documentation.SelectMany(group => group).SelectMany(comments => comments));
+                    this.writer?.WriteOutput(ns, comment)?.Wait();
                 }
 
                 return ns;
@@ -135,10 +125,10 @@ namespace Microsoft.Quantum.Documentation
 
                 var isDeprecated = type.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
-                    type.Documentation, type.FullName.Name,
+                    type.Documentation,
+                    type.FullName.Name,
                     deprecated: isDeprecated,
-                    replacement: replacement
-                );
+                    replacement: replacement);
 
                 // Validate named item names.
                 var inputDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
@@ -148,8 +138,7 @@ namespace Microsoft.Quantum.Documentation
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: type.SourceFile
-                );
+                    source: type.Source.AssemblyOrCode);
 
                 this.writer?.WriteOutput(type, docComment)?.Wait();
 
@@ -178,10 +167,10 @@ namespace Microsoft.Quantum.Documentation
 
                 var isDeprecated = callable.IsDeprecated(out var replacement);
                 var docComment = new DocComment(
-                    callable.Documentation, callable.FullName.Name,
+                    callable.Documentation,
+                    callable.FullName.Name,
                     deprecated: isDeprecated,
-                    replacement: replacement
-                );
+                    replacement: replacement);
                 var callableName =
                     $"{callable.FullName.Namespace}.{callable.FullName.Name}";
 
@@ -193,20 +182,17 @@ namespace Microsoft.Quantum.Documentation
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.SourceFile
-                );
+                    source: callable.Source.AssemblyOrCode);
                 this.ValidateNames(
                     callableName,
                     "type parameter",
                     name => callable.Signature.TypeParameters.Any(
                         typeParam =>
                             typeParam is QsLocalSymbol.ValidName validName &&
-                            validName.Item == name.TrimStart('\'')
-                    ),
+                            validName.Item == name.TrimStart('\'')),
                     docComment.TypeParameters.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.SourceFile
-                );
+                    source: callable.Source.AssemblyOrCode);
 
                 this.writer?.WriteOutput(callable, docComment)?.Wait();
 

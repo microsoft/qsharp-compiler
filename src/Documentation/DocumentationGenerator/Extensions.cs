@@ -4,28 +4,20 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.Serialization;
-using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
-using ResolvedTypeKind = Microsoft.Quantum.QsCompiler.SyntaxTokens.QsTypeKind<
-    Microsoft.Quantum.QsCompiler.SyntaxTree.ResolvedType,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.UserDefinedType,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.QsTypeParameter,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.CallableInformation
->;
-
-#nullable enable
 
 namespace Microsoft.Quantum.Documentation
 {
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     // The next several types allow for adding attributes to
     // callables and UDTs with a single API, so that the extension
     // methods in this file can be written once for both kinds of
@@ -322,17 +314,17 @@ namespace Microsoft.Quantum.Documentation
             };
 
         internal static bool IsInCompilationUnit(this QsCallable callable) =>
-            callable.SourceFile.EndsWith(".qs");
+            OptionModule.IsNone(callable.Source.AssemblyPath);
 
         internal static bool IsInCompilationUnit(this QsCustomType type) =>
-            type.SourceFile.EndsWith(".qs");
+            OptionModule.IsNone(type.Source.AssemblyPath);
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(
                 fullName: type.FullName,
                 attributes: type.Attributes,
                 modifiers: type.Modifiers,
-                sourceFile: type.SourceFile,
+                source: type.Source,
                 location: type.Location,
                 type: type.Type,
                 typeItems: type.TypeItems,

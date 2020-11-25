@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
@@ -65,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsVisible(callable.SourceFile, callable.Modifiers.Access, callable.FullName.Name) &&
+                    if (IsVisible(callable.Source.AssemblyOrCode, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         this.items.Add(new DocCallable(this.name, callable));
@@ -74,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsVisible(udt.SourceFile, udt.Modifiers.Access, udt.FullName.Name))
+                    if (IsVisible(udt.Source.AssemblyOrCode, udt.Modifiers.Access, udt.FullName.Name))
                     {
                         this.items.Add(new DocUdt(this.name, udt));
                     }

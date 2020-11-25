@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -157,7 +158,7 @@ seeAlso:
                 MakeFullName("GeneratorIndex"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                "GeneratorRepresentation.qs",
+                new Source("GeneratorRepresentation.qs", FSharpOption<string>.None),
                 ZeroLocation,
                 baseType,
                 typeItems,
@@ -349,7 +350,7 @@ output:
                 MakeFullName("AdiabaticStateEnergyUnitary"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                "Techniques.qs",
+                new Source("Techniques.qs", FSharpOption<string>.None),
                 ZeroLocation,
                 signature,
                 argTuple,
