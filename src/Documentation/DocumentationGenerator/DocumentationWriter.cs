@@ -149,10 +149,13 @@ namespace Microsoft.Quantum.Documentation
                 // DocFX metadata
                 ["uid"] = name,
                 ["title"] = title,
+                ["author"] = "msquantumdocs",
+                ["description"] = docComment.Description,
 
                 // docs.ms metadata
-                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.date"] = DateTime.Today.ToString("M/d/yyyy"),
                 ["ms.topic"] = "article",
+                ["ms.author"] = "msquantumdocs",
 
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
