@@ -126,7 +126,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch (Exception ex)
             {
                 Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
-                return LogAndExit(ReturnCode.MSBUILD_UNINITIALIZED, options.LogFile, ex.ToString());
             }
 
             QsLanguageServer server;

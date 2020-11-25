@@ -155,7 +155,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                         Process.Start(new ProcessStartInfo
                         {
                             FileName = dotnet31Url,
-                            UseShellExecute = true
+                            UseShellExecute = true,
+                            CreateNoWindow = true,
                         });
                     }
                 }
