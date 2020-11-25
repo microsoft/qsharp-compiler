@@ -28,7 +28,6 @@ namespace Microsoft.Quantum.QsCompiler
             // We therefore need to generate unique variable names before reordering the statements.
             scope = new UniqueVariableNames().Statements.OnScope(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
-            scope = new ExtractNestedOperationCalls().Statements.OnScope(scope);
             scope = new ReverseOrderOfOperationCalls().Statements.OnScope(scope);
             return StripPositionInfo.Apply(scope);
         }
