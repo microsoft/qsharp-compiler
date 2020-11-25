@@ -4,6 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Quantum.QsCompiler;
@@ -31,6 +34,21 @@ namespace Microsoft.Quantum.QsLanguageServer
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot show message - given server or text was null");
             _ = server.NotifyClientAsync(Methods.WindowShowMessageName, message);
+        }
+
+        /// <summary>
+        /// Shows a dialog window with options (actions) to the user, and returns the selected option (action).
+        /// </summary>
+        internal static async Task<MessageActionItem> ShowDialogInWindowAsync(this QsLanguageServer server, string text, MessageType severity, MessageActionItem[] actionItems)
+        {
+            var message =
+                new ShowMessageRequestParams()
+                {
+                    Message = text,
+                    MessageType = severity,
+                    Actions = actionItems
+                };
+            return await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
         }
 
         /// <summary>
@@ -121,6 +139,32 @@ namespace Microsoft.Quantum.QsLanguageServer
                         $"MSBuild warning in {args.File}({args.LineNumber},{args.ColumnNumber}): {args.Message}",
                         MessageType.Warning);
             }
+        }
+    }
+
+    internal static class DotNetSdkHelper
+    {
+        private static readonly Regex DotNet31Regex = new Regex(@"^3\.1\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
+
+        public static bool? IsDotNet31Installed()
+        {
+            var listSdkProcess = Process.Start(
+                new ProcessStartInfo()
+                {
+                    FileName = "dotnet",
+                    Arguments = "--list-sdks",
+                    RedirectStandardOutput = true,
+                });
+            if (listSdkProcess.WaitForExit(3000))
+            {
+                if (listSdkProcess.ExitCode != 0)
+                {
+                    return null;
+                }
+                var sdks = listSdkProcess.StandardOutput.ReadToEnd();
+                return DotNet31Regex.IsMatch(sdks);
+            }
+            return null;
         }
     }
 }
