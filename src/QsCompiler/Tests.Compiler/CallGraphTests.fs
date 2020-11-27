@@ -334,7 +334,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         AssertNotInConcreteGraph graph FooEmpty
         AssertNotInConcreteGraph graph BarEmpty
 
-    [<Fact>]
+    [<Fact(Skip="Workaround for Issue #757 means specialization pruning is disabled.")>]
     [<Trait("Category","Populate Call Graph")>]
     member this.``Concrete Graph Trims Specializations`` () =
         let graph = PopulateCallGraphWithExe 10 |> ConcreteCallGraph

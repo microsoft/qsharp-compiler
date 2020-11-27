@@ -198,27 +198,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                     void AddEdge(QsSpecializationKind kind) => this.AddEdge(identifier, kind, typeRes, referenceRange);
 
-                    if (this.IsInCall)
-                    {
-                        if (this.HasAdjointDependency && this.HasControlledDependency)
-                        {
-                            AddEdge(QsSpecializationKind.QsControlledAdjoint);
-                        }
-                        else if (this.HasAdjointDependency)
-                        {
-                            AddEdge(QsSpecializationKind.QsAdjoint);
-                        }
-                        else if (this.HasControlledDependency)
-                        {
-                            AddEdge(QsSpecializationKind.QsControlled);
-                        }
-                        else
-                        {
-                            AddEdge(QsSpecializationKind.QsBody);
-                        }
-                    }
-                    else
-                    {
+                    // Work around for Issue #757: Because the below code means specializations that are not explicitly 
+                    // called don't get an edge, any dependencies specific to those specializations don't get included
+                    // in the graph and may end up getting pruned out. This can cause compilation failures,
+                    // because specializations are not pruned but the dependecies are, leaving behind usage
+                    // of types that don't exist.
+                    // if (this.IsInCall)
+                    // {
+                    //     if (this.HasAdjointDependency && this.HasControlledDependency)
+                    //     {
+                    //         AddEdge(QsSpecializationKind.QsControlledAdjoint);
+                    //     }
+                    //     else if (this.HasAdjointDependency)
+                    //     {
+                    //         AddEdge(QsSpecializationKind.QsAdjoint);
+                    //     }
+                    //     else if (this.HasControlledDependency)
+                    //     {
+                    //         AddEdge(QsSpecializationKind.QsControlled);
+                    //     }
+                    //     else
+                    //     {
+                    //         AddEdge(QsSpecializationKind.QsBody);
+                    //     }
+                    // }
+                    // else
+                    // {
+
                         // The callable is being used in a non-call context, such as being
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
@@ -227,7 +233,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         {
                             AddEdge(kind);
                         }
-                    }
+
+                    // }
                 }
 
                 /// <summary>
