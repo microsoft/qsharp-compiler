@@ -2,16 +2,6 @@ from  pprint import pprint
 import llvmlite.binding as llvm
 import re
 
-reCall1  = re.compile(r'\s*(\S+) = +call (\S+) @([^(]+)\(([^)]*)\)')
-reCall2  = re.compile(r'\s*call void @([^(]+)\(([^)]*)\)')
-reRet1   = re.compile(r'\s*ret (\S+) (\S+)')
-reStore1 = re.compile(r'\s*store (\S+) (\S+), (\S+) (\S+)')
-reBr1    = re.compile(r'\s*br label (\S+)')
-reBr2    = re.compile(r'\s*br i1 (\S+), label (\S+), label (\S)+')
-reCmp1   = re.compile(r'\s*(\S+) = icmp (\S+) (\S+) (\S+), (\S+)')
-reSel1   = re.compile(r'\s*(\S+) = select i1 (\S+), i1 (\S+), i1 (\S+)')
-reLoad1  = re.compile(r'\s*(\S+) = load (\S+), (\S+) (\S+)')
-
 with open("QRNG.ll","r") as file:
     text = file.read()
 #print(text)
@@ -32,88 +22,120 @@ engine.finalize_object()
 engine.run_static_constructors()
 assembly = target_machine.emit_assembly(mod)
 
-def parseIns(ins):
-    line = str(ins).replace("%","v_")
+def getBlkId(blkIds,blkNam):
+    blkNam = blkNam.replace("v_","")
+    if blkNam not in blkIds: 
+        blkIds[blkNam] = len(blkIds)
+    return blkIds[blkNam]
+
+def eqlPart(str1,str2):
+    return (str2 == str1[:len(str2)])
+
+def cleanArg(arg):
+    return  arg.replace(')','').replace('(','')
+
+def parseIns(blkIds,ins):
+    tkns = str(ins).replace("%","v_").replace(",","").replace("@","").replace("_.","_").split()
+    #print(f"                        ............... {tkns} [{ins.opcode}]")
     if ins.opcode == 'call':
-        m1 = reCall1.match(line)
-        m2 = reCall2.match(line)
-        if m1 is not None:
-            if m1.group(3) == '__quantum__qis__measure':
-                print(f'        int {m1.group(1)} = 1;')
-        elif m2 is not None:
-            print(f'            ### CALL_2 1={m2.group(1)} 2={m2.group(2)}')
+        if tkns[1] == '=':
+            if eqlPart(tkns[4],'__quantum__qis__measure'):
+                print(f'      int {tkns[0]} = 1;')
+            elif eqlPart(tkns[4],'Qrng'):
+                print(f'      int {tkns[0]} = {tkns[4]};')
+            elif eqlPart(tkns[4],'__quantum__rt__array_create_1d'):
+                print(f'      int {tkns[0]}[{cleanArg(tkns[7])}];')
+            elif eqlPart(tkns[4],'__quantum__rt__result_equal') and tkns[5] == 'v_oneBit':
+                print(f'      int {tkns[0]} = {cleanArg(tkns[7])};')
+            elif eqlPart(tkns[4],'__quantum__rt__array_get_element_ptr_1d'):
+                print(f'      int* {tkns[0]} = {cleanArg(tkns[5])};')
+            elif eqlPart(tkns[4],'__quantum__rt__array_copy'):
+                print(f'      int* {tkns[0]} = {cleanArg(tkns[5])};')
+            elif eqlPart(tkns[4],'__quantum__rt__qubit_allocate'):
+                print(f'      int* {tkns[0]} = 0;')
+            else:
+                pass
         else:
-            print(f'            ### call {line}')
+            pass #print(f'        int {tkns[0]} = 0;')
     elif ins.opcode == 'ret':
-        m1 = reRet1.match(line)
-        if m1 is not None:
-            print(f'        return {m1.group(2)};')
-        else:
-            print(f'            ### ret {line}')
+        print(f'      return {tkns[2]};')
 
     elif ins.opcode == "alloca":
-        print(f'        int v_{ins.name};')
+        if tkns[3][-1:] == "*": op = "int*"
+        else:                   op = "int"
+        print(f'      {op} v_{ins.name}; //alloca')
 
     elif ins.opcode == "store":
-        m1 = reStore1.match(line)
-        if m1 is not None:
-            print(f'        {m1.group(4)} = {m1.group(2)};')
-        else:
-            print(f'            ### store {line}')
+        print(f'      {tkns[4]} = {tkns[2]}; //store')
 
     elif ins.opcode == "load":
-        m1 = reLoad1.match(line)
-        if m1 is not None:
-            print(f'        int {m1.group(1)} = {m1.group(4)};')
-        else:
-            print(f'            ### load  {line}')
+        print(f'      int {tkns[0]} = {tkns[5]}; //load')
+
+    elif ins.opcode == "bitcast":
+        if tkns[3][-1:] == "*": op = "int*"
+        else:                   op = "int"
+        print(f'      {op} {tkns[0]} = {tkns[4]}; //bitcast')
 
     elif ins.opcode == "br":
-        m1 = reBr1.match(line)
-        m2 = reBr2.match(line)
-        if m1 is not None:
-            print(f'        blkNam = "{m1.group(1)}";')
-        elif m2 is not None:
-            print(f'        blkName = {m2.group(1)} ? "{m2.group(2)}" : "{m2.group(3)}";')
+        if tkns[1] == 'label':
+            print(f'      blkPrv = blkCur; blkCur = {getBlkId(blkIds,tkns[2])};')
         else:
-            print(f'            ### br {line}')
+            print(f'      blkPrv = blkCur; blkCur = {tkns[2]} ? {getBlkId(blkIds,tkns[4])} : {getBlkId(blkIds,tkns[6])};')
+
     elif ins.opcode == "icmp":
-        m1 = reCmp1.match(line)
-        if m1 is not None:
-            if m1.group(2) == 'sge': cmp = '>='
-            elif m1.group(2) == 'sle' : cmp = '<='
-            else: cmp = '???'
-            print(f'        int {m1.group(1)} = {m1.group(4)} {cmp} {m1.group(5)};')
-        else:
-            print(f'            ### icmp {line}')
+        if tkns[3] == 'sge': cmp = '>='
+        elif tkns[3] == 'sle' : cmp = '<='
+        else: cmp = '???'
+        print(f'      int {tkns[0]} = {tkns[5]} {cmp} {tkns[6]} ? 1 : 0; //icmp')
 
     elif ins.opcode == "select":
-        m1 = reSel1.match(line)
-        if m1 is not None:
-            print(f'        int {m1.group(1)} = {m1.group(2)} ? {m1.group(3)} : {m1.group(4)}')
-        else:
-            print(f'            ### select {line}')
+        tst = tkns[4].replace("true","1").replace("false","0")
+        print(f'      int {tkns[0]} = {tst} ? {tkns[6]} : {tkns[8]}; //select')
 
+    elif ins.opcode == 'phi':
+        print(f'      int {tkns[0]} = blkPrv == {getBlkId(blkIds,tkns[6])} ? {tkns[5]} : {tkns[9]}; //phi')
+
+    elif ins.opcode == 'add':
+        print(f'      int {tkns[0]} = {tkns[4]} + {tkns[5]}; ')
+
+    elif ins.opcode == 'shl':
+        print(f'      int {tkns[0]} = {tkns[4]} << {tkns[5]};')
     else:
-        print(f'            ### INSTR n={ins.name} o={ins.opcode} r={line}')
+        pass #print(f'            ### INSTR n={ins.name} o={ins.opcode} r={tkns}')
 
-def parseBlock(blk):
-    print(f'  case "v_{blk.name}"":')
+def parseBlock(blkIds,blk):
+    print(f'  case {getBlkId(blkIds,blk.name)}:')
     for ins in blk.instructions:
-        parseIns(ins)
-    print('    break;')
+        parseIns(blkIds,ins)
+    print('      break;')
 
 def parseFunc(func):
-    print(f'void {func.name}() {{')
-    print('  char* blkNam = "v_entry";')
-    print('  while (1) switch blkNam {')
+    blkIds = {}
+
+    if "Array" in str(func.type):   rtnTyp = "int*"
+    else:                           rtnTyp = "int"
+    print(f'{rtnTyp} {func.name}() {{')
+    blkIds = {}
+    print('  int blkPrv = 0;')
+    print('  int blkCur = 0;')
+    print('  while (1) switch (blkCur) {')
     for blk in func.blocks:
-        parseBlock(blk)
+        parseBlock(blkIds,blk)
     print('  }')
     print('}')
 
+print('int PauliX   = 0;')
+print('int PauliZ   = 1;')
+print('int ResultOne= 1;')
+print('int* EXE_RESULT;')
+print('')
 for func in mod.functions:
     if func.name.startswith('Qrng'):
         parseFunc(func)
+        for att in func.attributes:
+            if att == b'"EntryPoint"':
+                print('')
+                print('int main() {')
+                print(f'    EXE_RESULT = {func.name}();')
+                print('}')
                 
-print('DONE')
