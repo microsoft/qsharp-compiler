@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -202,9 +202,11 @@ type ResolvedCharacteristics = private {
         | Intersection (s1, s2)                                     -> {_Characteristics = Intersection(s1, s2)} |> ResolvedCharacteristics.Simplify
         | InvalidSetExpr                                            -> {_Characteristics = InvalidSetExpr}
 
+    /// <summary>
     /// Given the resolved characteristics of a set of specializations,
     /// determines and returns the minimal characteristics of any one of the specializations.
-    /// Throws an ArgumentException if the given list is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given list is empty.</exception>
     static member internal Common (characteristics : ResolvedCharacteristics list) =
         let rec common current = function
             | [] -> current
@@ -227,9 +229,13 @@ type ResolvedCharacteristics = private {
         | [] -> EmptySet |> ResolvedCharacteristics.New
         | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
 
+    /// <summary>
     /// Determines which properties are supported by a callable with the given characteristics and returns them.
-    /// Throws an InvalidOperationException if the properties cannot be determined
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The properties cannot be determined
     /// either because the characteristics expression contains unresolved parameters or is invalid.
+    /// </exception>
     member this.GetProperties() =
         ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this |> function
         | Some props -> props.ToImmutableHashSet()
@@ -274,10 +280,12 @@ type CallableInformation = {
     static member NoInformation = {Characteristics = ResolvedCharacteristics.Empty; InferredInformation = InferredCallableInformation.NoInformation}
     static member Invalid = {Characteristics = InvalidSetExpr |> ResolvedCharacteristics.New; InferredInformation = InferredCallableInformation.NoInformation}
 
+    /// <summary>
     /// Given a sequence of CallableInformation items,
     /// determines the common characteristics as well as the information that was inferred for all given items.
     /// Any positive property (either from characteristics, or from inferred information) in the returned CallableInformation holds true for any one of the given items.
-    /// Throws an ArgumentException if the given sequence is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given sequence is empty.</exception>
     static member Common (infos : CallableInformation seq) =
         let commonCharacteristics = infos |> Seq.map (fun info -> info.Characteristics) |> Seq.toList |> ResolvedCharacteristics.Common
         let inferredForAll = infos |> Seq.map (fun info -> info.InferredInformation) |> InferredCallableInformation.Common
@@ -302,9 +310,11 @@ type ResolvedType = private {
     /// By construction never contains any arity-0 or arity-1 tuple types.
     member this.Resolution = this._TypeKind
 
+    /// <summary>
     /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
     /// Replaces an arity-1 tuple by its item type.
-    /// Throws an ArgumentException if the given type kind is an empty tuple.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
     static member New kind = ResolvedType.New (false, kind)
     static member internal New (keepRangeInfo, kind : QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>) =
         match kind with
@@ -400,9 +410,11 @@ type ResolvedInitializer = private {
     /// the fully resolved Q# type of the initializer.
     member this.Type = this._ResolvedType
 
+    /// <summary>
     /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
     /// Replaces an arity-1 tuple by its item type.
-    /// Throws an ArgumentException if the given type kind is an empty tuple.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
     static member New (kind : QsInitializerKind<ResolvedInitializer, TypedExpression>) =
         let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
         let buildTupleType is = TupleType ((is |> Seq.map (fun x -> x._ResolvedType)).ToImmutableArray()) |> ResolvedType.New

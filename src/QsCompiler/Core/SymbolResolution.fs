@@ -60,8 +60,10 @@ type SpecializationBundleProperties = internal {
     static member public BundleId (typeArgs : QsNullable<ImmutableArray<ResolvedType>>) =
         typeArgs |> QsNullable<_>.Map (fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
 
+    /// <summary>
     /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
-    /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
     static member internal BundleId (spec : Resolution<_,_>) =
         match spec.Resolved with
         | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
@@ -294,9 +296,11 @@ module SymbolResolution =
         let returnTypeErr = range |> QsCompilerDiagnostic.Warning (WarningCode.ReturnTypeNotResolvedByArgument, [])
         if unresolvableReturnType then returnTypeErr :: excessTypeParamWarn |> List.toArray else excessTypeParamWarn |> List.toArray
 
+    /// <summary>
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
     /// using the given routine to resolve the declared item types.
-    /// Throws an ArgumentException if the given argument is a QsTupleItem opposed to a QsTuple.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given argument is a QsTupleItem opposed to a QsTuple.</exception>
     let private ResolveArgumentTuple (resolveSymbol, resolveType) arg =
         let resolveArg (qsSym : QsSymbol, symType) =
             let range = qsSym.Range.ValueOr Range.Zero
@@ -319,11 +323,13 @@ module SymbolResolution =
         let info = {IsMutable = false; HasLocalQuantumDependency = false}
         {VariableName = name; Type = t; InferredInformation = info; Position = Null; Range = range}
 
+    /// <summary>
     /// Give a list with the characteristics of all specializations as well as a routine for type resolution,
     /// fully resolves the given callable signature as well as its argument tuple.
     /// The position offset information for variables declared in the argument tuple will be set to Null.
     /// Returns the resolved signature and argument tuple, as well as an array with the diagnostics created during resolution.
-    /// Throws an ArgumentException if the given list of specialization characteristics is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given list of specialization characteristics is empty.</exception>
     let internal ResolveCallableSignature (resolveType, specBundleInfos : CallableInformation list) (signature : CallableSignature) =
         let orDefault (range : QsNullable<_>) = range.ValueOr Range.Zero
         let typeParams, tpErrs =
@@ -355,10 +361,12 @@ module SymbolResolution =
         let resolvedSig = { TypeParameters = resolvedParams; ArgumentType = argType; ReturnType = returnType; Information = callableInfo }
         (resolvedSig, argTuple), [inErr; outErr; resErrs; tpErrs] |> Array.concat
 
+    /// <summary>
     /// Give a routine for type resolution, fully resolves the given user defined type as well as its items.
     /// The position offset information for the declared named items will be set to Null.
     /// Returns the underlying type as well as the item tuple, along with an array with the diagnostics created during resolution.
-    /// Throws an ArgumentException if the given type tuple is an empty QsTuple.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type tuple is an empty QsTuple.</exception>
     let internal ResolveTypeDeclaration resolveType (udtTuple : QsTuple<QsSymbol * QsType>) =
         let itemDeclarations = new List<LocalVariableDeclaration<string>>()
         let resolveItem (sym, range) t = sym |> function
@@ -380,6 +388,7 @@ module SymbolResolution =
             | Named x -> x.Type.WithoutRangeInfo)
         (underlyingType, argTuple), errs
 
+    /// <summary>
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
     /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or unqualified) can be found.
@@ -389,7 +398,8 @@ module SymbolResolution =
     /// Returns the resolved type as well as an array with diagnostics.
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is inconsistent with the defined callables. 
     /// May throw an ArgumentException if no namespace with the given name exists, or the given source file is not listed as source of that namespace. 
-    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType. 
+    /// </summary>
+    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
     let rec internal ResolveType (processUDT, processTypeParameter) (qsType : QsType) = 
         let resolve = ResolveType (processUDT, processTypeParameter)
         let asResolvedType t = ResolvedType.New (true, t)
@@ -427,13 +437,15 @@ module SymbolResolution =
         | InvalidType -> QsTypeKind.InvalidType |> asResolvedType, [||]
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise
 
+    /// <summary>
     /// Resolves the given attribute using the given function getAttribute to resolve the type id and expected argument type.
     /// Generates suitable diagnostics if a suitable attribute cannot be determined,
     /// or if the attribute argument contains expressions that are not supported,
     /// or if the resolved argument type does not match the expected argument type.
     /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier
     /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
-    /// Throws an ArgumentException if a tuple-valued attribute argument does not contain at least one item.
+    /// </summary>
+    /// <exception cref="ArgumentException">A tuple-valued attribute argument does not contain at least one item.</exception>
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
@@ -693,13 +705,15 @@ module SymbolResolution =
         if errs |> Array.exists isError then InvalidSetExpr |> ResolvedCharacteristics.New, metadata, errs
         else resolved, metadata, errs
 
+    /// <summary>
     /// Given the signature and source file of a callable as well as all specializations defined for it, constructs
     /// a dictionary that contains the bundle properties for each set of type- and set-arguments for which the callable has been specialized.
     /// The keys of the dictionary are given by the BundleIds obtained for the type- and set-arguments in question.
     /// Calls generateSpecialization for each specialization that is not listed in the given collection of specializations but can be inferred,
     /// either based on the declared characteristics of the parent callable or based on other existing specializations.
     /// Returns the constructed dictionary as well as an array of diagnostics.
-    /// Throws an InvalidOperationException if no (partial) resolution is defined for any one of the given specializations.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for any one of the given specializations.</exception>
     let internal GetBundleProperties generateSpecialization (parentSignature : Resolution<CallableSignature,_>, source) (definedSpecs : IEnumerable<_>) =
         let declCharacteristics = parentSignature.Defined.Characteristics // if we allow to specialize for certain set parameters, then these need to be resolved in parent
         let declLocation = {Offset = parentSignature.Position; Range = parentSignature.Range}
@@ -725,11 +739,15 @@ module SymbolResolution =
         for group in definedSpecs do props.Add(group.Key, bundleProps(group, (group.First() |> snd |> snd).Defined.TypeArguments))
         props.ToImmutableDictionary(), errs
 
+    /// <summary>
     /// Given a dictionary that maps the BundleId for each set of type- and set-arguments for which the callable has been specialized
     /// to the corresponding bundle properties determines the resolution for the given specialization of the given kind.
     /// Returns the resolved generator as well as an array of diagnostics generated during resolution.
-    /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// No (partial) resolution is defined for the given specialization.
     /// Fails with the standard KeyNotFoundException if the given specialization is not part of a specialization bundle in the given properties dictionary.
+    /// </exception>
     let internal ResolveGenerator (properties : ImmutableDictionary<_,_>) (kind, spec : Resolution<QsSpecializationGenerator, ResolvedGenerator>) =
         let bundle : SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
         let impl, err = kind |> function

@@ -41,11 +41,13 @@ type private TrackedScope = private {
         requiredSupport [] functors
 
 
+/// <summary>
 /// The SymbolTracker class does *not* make a copy of the given NamespaceManager, 
 /// but instead will throw an InvalidOperationException upon accessing its content if that content has been modified 
 /// (i.e. if the version number of the NamespaceManager has changed). 
 /// The constructor throws an ArgumentException if the given NamespaceManager does not contain all resolutions, 
 /// or if a callable with the given parent name does not exist in the given NamespaceManager.
+/// </summary>
 type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedName) =  
 // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
 
@@ -142,13 +144,15 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
         pushedScopes <- pushedScopes.Tail
 
 
+    /// <summary>
     /// Verifies that no global type or callable with the same name as the one in the given variable declaration already exists, 
     /// and that no local variable with that name is visible on the current scope. 
     /// If the verification fails, does nothing and adds a suitable diagnostic to the returned array of diagnostics, 
     /// and otherwise pushes the given variable declaration as local variable into the current scope.
     /// Returns true and an empty array of diagnostics if the declaration has been successfully added, 
     /// and returns false as well as an array with diagnostics otherwise. 
-    /// Throws an InvalidOperationException if no scope is currently open.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<string>) =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
         if (globalTypeWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName]) |]
@@ -156,6 +160,7 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
         elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, [decl.VariableName]) |]
         else pushedScopes.Head.LocalVariables.Add(decl.VariableName, decl); true, [||]
 
+    /// <summary>
     /// If the variable name in the given variable declaration is valid, 
     /// verifies that no global type or callable with that name already exists, 
     /// and that no local variable with that name is visible on the current scope. 
@@ -164,7 +169,8 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// If the variable name is not valid, does nothing and does not generate any diagnostics. 
     /// Returns true and an empty array of diagnostics if the declaration has been successfully added, 
     /// and returns false as well as an array with diagnostics otherwise. 
-    /// Throws an InvalidOperationException if no scope is currently open.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<QsLocalSymbol>) =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
         match decl.VariableName with 
@@ -174,9 +180,11 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
             LocalVariableDeclaration<_>.New mut ((decl.Position, decl.Range), name, decl.Type, qDep) 
             |> this.TryAddVariableDeclartion
 
+    /// <summary>
     /// Updates the quantum dependency of the local variable with the given name.
-    /// Throws an ArgumentException if no local variable with the given name is visible on the current scope.
-    /// Throws an InvalidOperationException if no scope is currently open, or the variable is immutable.
+    /// </summary>
+    /// <exception cref="ArgumentException">No local variable with the given name is visible on the current scope.</exception>
+    /// <exception cref="InvalidOperationException">No scope is currently open, or the variable is immutable.</exception>
     member internal this.UpdateQuantumDependency varName localQdep =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
         match localVariableWithName varName with 

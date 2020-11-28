@@ -181,6 +181,7 @@ type NamespaceManager
             | None -> error ErrorCode.UnknownNamespace [qualifier]
             | Some ns -> findQualified ns qualifier
 
+    /// <summary>
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
     /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
     ///
@@ -199,7 +200,8 @@ type NamespaceManager
     /// consistent with the defined callables.
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
-    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
+    /// </summary>
+    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
     let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT = tryResolveTypeName (parent.Namespace, source) >> function
             | Some (udt, _, access), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, access))
@@ -429,6 +431,7 @@ type NamespaceManager
         let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
+    /// <summary>
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
     /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
     ///
@@ -444,10 +447,12 @@ type NamespaceManager
     /// consistent with the defined callables.
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
-    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
+    /// </summary>
+    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : string) (qsType : QsType) =
         resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
+    /// <summary>
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the
     /// specified source file using ResolveType.
     ///
@@ -459,12 +464,14 @@ type NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. Throws an
     /// ArgumentException if the given type tuple is an empty QsTuple.
+    /// </summary>
     member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source, modifiers) typeTuple =
         // Currently, type parameters for UDTs are not supported.
         let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access)
         let resolveType qsType = resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkAccessibility
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
+    /// <summary>
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
     /// the source file it is declared in, fully resolves all Q# types in the signature using ResolveType.
     ///
@@ -482,6 +489,7 @@ type NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
     /// an ArgumentException if the given list of characteristics is empty.
+    /// </summary>
     member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source, access) (signature, specBundleCharacteristics) =
         let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
         let resolveType tpNames qsType =
@@ -528,12 +536,14 @@ type NamespaceManager
                 msgs |> Array.map (fun msg -> source, msg)))
         resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
 
+    /// <summary>
     /// Resolves and caches all attached attributes and specialization generation directives for all callables
     /// declared in all source files of each namespace, inserting inferred specializations if necessary and removing invalid specializations.
     /// Then resolves and caches the signature of the callables themselves.
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     /// IMPORTANT: does *not* return diagnostics generated for type constructors - suitable diagnostics need to be generated upon type resolution.
-    /// Throws an InvalidOperationException if the types corresponding to the attributes to resolve have not been resolved.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The types corresponding to the attributes to resolve have not been resolved.</exception>
     member private this.CacheCallableResolutions (nsNames : ImmutableHashSet<string>) =
         // TODO: this needs to be adapted if we support external specializations
         let diagnostics = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name) |> Seq.collect (fun ns ->
@@ -700,9 +710,11 @@ type NamespaceManager
             |> fun callables -> callables.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
+    /// <summary>
     /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
     ///
-    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedCallables () = 
         let notResolvedException = InvalidOperationException "callables are not resolved"
         syncRoot.EnterReadLock()
@@ -727,10 +739,12 @@ type NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
+    /// <summary>
     /// Returns the declaration headers for all callables (either defined in source files or imported from referenced
     /// assemblies) that are accessible from source files in the compilation unit.
     ///
-    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.AccessibleCallables () =
         Seq.append
             (Seq.map (fun callable -> callable, true) (this.DefinedCallables()))
@@ -748,9 +762,11 @@ type NamespaceManager
             |> fun types -> types.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
+    /// <summary>
     /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
     ///
-    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedTypes () = 
         let notResolvedException = InvalidOperationException "types are not resolved"
         syncRoot.EnterReadLock()
@@ -774,10 +790,12 @@ type NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
+    /// <summary>
     /// Returns the declaration headers for all types (either defined in source files or imported from referenced
     /// assemblies) that are accessible from source files in the compilation unit.
     ///
-    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.AccessibleTypes () =
         Seq.append
             (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
@@ -1113,11 +1131,13 @@ type NamespaceManager
         | Identifier (GlobalCallable c, _)  -> hash (10, c.Namespace, c.Name)
         | kind                              -> JsonConvert.SerializeObject kind |> hash
 
+    /// <summary>
     /// Generates a hash containing full type information about all entries in the given source file.
     /// All entries in the source file have to be fully resolved beforehand.
     /// That hash does not contain any information about the imported namespaces, positional information, or about any documentation.
     /// Returns the generated hash as well as a separate hash providing information about the imported namespaces.
-    /// Throws an InvalidOperationException if the given source file contains unresolved entries.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The given source file contains unresolved entries.</exception>
     member this.HeaderHash source =
         let invalidOperationEx = InvalidOperationException "everything needs to be resolved before constructing the HeaderString"
         if not this.ContainsResolutions then invalidOperationEx |> raise

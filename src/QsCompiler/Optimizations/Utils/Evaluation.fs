@@ -141,10 +141,12 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
             do! this.EvaluateStatement stmt
     }
 
+    /// <summary>
     /// Evaluates the given Q# function on the given argument.
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
     /// Returns None if we were unable to evaluate the function.
-    /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
+    /// </summary>
+    /// <exception cref="ArgumentException">The input is not a function, or if the function is invalid.</exception>
     member internal this.EvaluateFunction (name : QsQualifiedName) (arg : TypedExpression) (stmtsLeft : int) =
         let callable = callables.[name]
         if callable.Kind = Operation then
