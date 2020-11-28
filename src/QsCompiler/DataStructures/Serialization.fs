@@ -77,9 +77,7 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedType>()
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
-    /// <summary>
     /// Returns an invalid type if the deserialization fails and ignoreSerializationException was set to true upon initialization
-    /// </summary>
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : ResolvedType, hasExistingValue : bool, serializer : JsonSerializer) = 
         try let resolvedType = (true, serializer.Deserialize<QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>>(reader)) |> ResolvedType.New
             match resolvedType.Resolution with 
@@ -98,9 +96,7 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedCharacteristics>()
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
-    /// <summary>
     /// Returns an invalid expression if the deserialization fails and ignoreSerializationException was set to true upon initialization
-    /// </summary>
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : ResolvedCharacteristics, hasExistingValue : bool, serializer : JsonSerializer) = 
         try serializer.Deserialize<CharacteristicsKind<ResolvedCharacteristics>>(reader) |> ResolvedCharacteristics.New
         with | :? JsonSerializationException as ex -> 

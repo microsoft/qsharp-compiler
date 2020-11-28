@@ -42,12 +42,13 @@ type private TrackedScope = private {
 
 
 /// <summary>
-/// The SymbolTracker class does *not* make a copy of the given NamespaceManager, 
-/// but instead will throw an InvalidOperationException upon accessing its content if that content has been modified 
-/// (i.e. if the version number of the NamespaceManager has changed). 
-/// The constructor throws an ArgumentException if the given NamespaceManager does not contain all resolutions, 
-/// or if a callable with the given parent name does not exist in the given NamespaceManager.
+/// The <see cref="SymbolTracker"/> class does *not* make a copy of the given <see cref="NamespaceManager"/>, 
+/// but instead will throw an <see cref="InvalidOperationException"/> upon accessing its content if that content has been modified 
+/// (i.e. if the version number of the <see cref="NamespaceManager"/> has changed). 
 /// </summary>
+/// <exception cref="ArgumentException">
+/// <paramref name="globals"/> does not contain all resolutions, or <paramref name="globals"/> does not contain a callable with name <paramref name="parent"/>.
+/// </exception>
 type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedName) =  
 // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
 

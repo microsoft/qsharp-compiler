@@ -201,7 +201,7 @@ type NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// </summary>
-    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
+    /// <exception cref="NotSupportedException">The <see cref="QsType"/> to resolve contains a <see cref="MissingType"/>.</exception>
     let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT = tryResolveTypeName (parent.Namespace, source) >> function
             | Some (udt, _, access), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, access))
@@ -448,7 +448,7 @@ type NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// </summary>
-    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
+    /// <exception cref="NotSupportedException">The <see cref="QsType"/> to resolve contains a <see cref="MissingType"/>.</exception>
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : string) (qsType : QsType) =
         resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
@@ -462,9 +462,9 @@ type NamespaceManager
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined types.
     ///
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. Throws an
-    /// ArgumentException if the given type tuple is an empty QsTuple.
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types.
     /// </summary>
+    /// <exception cref="ArgumentException">The given type tuple is an empty <see cref="QsTuple"/>.</exception>
     member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source, modifiers) typeTuple =
         // Currently, type parameters for UDTs are not supported.
         let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access)
@@ -487,9 +487,9 @@ type NamespaceManager
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined callables.
     ///
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
-    /// an ArgumentException if the given list of characteristics is empty.
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables.
     /// </summary>
+    /// <exception cref="ArgumentException">The given list of characteristics is empty.</exception>
     member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source, access) (signature, specBundleCharacteristics) =
         let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
         let resolveType tpNames qsType =
@@ -712,7 +712,6 @@ type NamespaceManager
 
     /// <summary>
     /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
-    ///
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedCallables () = 
@@ -742,7 +741,6 @@ type NamespaceManager
     /// <summary>
     /// Returns the declaration headers for all callables (either defined in source files or imported from referenced
     /// assemblies) that are accessible from source files in the compilation unit.
-    ///
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.AccessibleCallables () =
@@ -764,7 +762,6 @@ type NamespaceManager
 
     /// <summary>
     /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
-    ///
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedTypes () = 
@@ -793,7 +790,6 @@ type NamespaceManager
     /// <summary>
     /// Returns the declaration headers for all types (either defined in source files or imported from referenced
     /// assemblies) that are accessible from source files in the compilation unit.
-    ///
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.AccessibleTypes () =

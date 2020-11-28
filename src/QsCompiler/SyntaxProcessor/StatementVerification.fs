@@ -273,7 +273,7 @@ let NewConditionalBlock comments location context (qsExpr : QsExpression) =
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.
 /// </summary>
-/// <exception cref="ArgumentException">The given if-block contains no location information.</exception>
+/// <exception cref="ArgumentException"><paramref name="ifBlock"/> contains no location information.</exception>
 let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock) elifBlocks elseBlock =
     let location =
         match (snd ifBlock).Location with
@@ -301,7 +301,7 @@ let NewRepeatStatement (symbols : SymbolTracker) (repeatBlock : QsPositionedBloc
 /// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U. 
 /// Returns an array with diagnostics and the corresponding statement offset for all invalid variable reassignments in the apply-block. 
 /// </summary>
-/// <exception cref="ArgumentException">The given block specifying the outer transformation contains no location information.</exception>
+/// <exception cref="ArgumentException"><paramref name="outer"/> contains no location information.</exception>
 let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = outer.Location |> function
         | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise

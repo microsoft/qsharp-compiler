@@ -146,7 +146,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
     /// Returns None if we were unable to evaluate the function.
     /// </summary>
-    /// <exception cref="ArgumentException">The input is not a function, or if the function is invalid.</exception>
+    /// <exception cref="ArgumentException">The input is not a function, or the function is invalid.</exception>
     member internal this.EvaluateFunction (name : QsQualifiedName) (arg : TypedExpression) (stmtsLeft : int) =
         let callable = callables.[name]
         if callable.Kind = Operation then

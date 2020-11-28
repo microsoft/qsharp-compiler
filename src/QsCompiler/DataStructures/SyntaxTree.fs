@@ -206,7 +206,7 @@ type ResolvedCharacteristics = private {
     /// Given the resolved characteristics of a set of specializations,
     /// determines and returns the minimal characteristics of any one of the specializations.
     /// </summary>
-    /// <exception cref="ArgumentException">The given list is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="characteristics"/> is empty.</exception>
     static member internal Common (characteristics : ResolvedCharacteristics list) =
         let rec common current = function
             | [] -> current
@@ -233,8 +233,7 @@ type ResolvedCharacteristics = private {
     /// Determines which properties are supported by a callable with the given characteristics and returns them.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// The properties cannot be determined
-    /// either because the characteristics expression contains unresolved parameters or is invalid.
+    /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
     /// </exception>
     member this.GetProperties() =
         ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this |> function
@@ -285,7 +284,7 @@ type CallableInformation = {
     /// determines the common characteristics as well as the information that was inferred for all given items.
     /// Any positive property (either from characteristics, or from inferred information) in the returned CallableInformation holds true for any one of the given items.
     /// </summary>
-    /// <exception cref="ArgumentException">The given sequence is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="infos"/> is empty.</exception>
     static member Common (infos : CallableInformation seq) =
         let commonCharacteristics = infos |> Seq.map (fun info -> info.Characteristics) |> Seq.toList |> ResolvedCharacteristics.Common
         let inferredForAll = infos |> Seq.map (fun info -> info.InferredInformation) |> InferredCallableInformation.Common

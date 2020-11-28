@@ -63,7 +63,7 @@ type SpecializationBundleProperties = internal {
     /// <summary>
     /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
     /// </summary>
-    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
+    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for <paramref name="spec"/>.</exception>
     static member internal BundleId (spec : Resolution<_,_>) =
         match spec.Resolved with
         | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
@@ -300,7 +300,7 @@ module SymbolResolution =
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
     /// using the given routine to resolve the declared item types.
     /// </summary>
-    /// <exception cref="ArgumentException">The given argument is a QsTupleItem opposed to a QsTuple.</exception>
+    /// <exception cref="ArgumentException">The given argument is a <see cref="QsTupleItem"/> as opposed to a <see cref="QsTuple"/>.</exception>
     let private ResolveArgumentTuple (resolveSymbol, resolveType) arg =
         let resolveArg (qsSym : QsSymbol, symType) =
             let range = qsSym.Range.ValueOr Range.Zero
@@ -329,7 +329,7 @@ module SymbolResolution =
     /// The position offset information for variables declared in the argument tuple will be set to Null.
     /// Returns the resolved signature and argument tuple, as well as an array with the diagnostics created during resolution.
     /// </summary>
-    /// <exception cref="ArgumentException">The given list of specialization characteristics is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="specBundleInfos"/> is empty.</exception>
     let internal ResolveCallableSignature (resolveType, specBundleInfos : CallableInformation list) (signature : CallableSignature) =
         let orDefault (range : QsNullable<_>) = range.ValueOr Range.Zero
         let typeParams, tpErrs =
@@ -366,7 +366,7 @@ module SymbolResolution =
     /// The position offset information for the declared named items will be set to Null.
     /// Returns the underlying type as well as the item tuple, along with an array with the diagnostics created during resolution.
     /// </summary>
-    /// <exception cref="ArgumentException">The given type tuple is an empty QsTuple.</exception>
+    /// <exception cref="ArgumentException"><paramref name="udtTuple"/> is an empty <see cref="QsTuple"/>.</exception>
     let internal ResolveTypeDeclaration resolveType (udtTuple : QsTuple<QsSymbol * QsType>) =
         let itemDeclarations = new List<LocalVariableDeclaration<string>>()
         let resolveItem (sym, range) t = sym |> function
@@ -399,7 +399,7 @@ module SymbolResolution =
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is inconsistent with the defined callables. 
     /// May throw an ArgumentException if no namespace with the given name exists, or the given source file is not listed as source of that namespace. 
     /// </summary>
-    /// <exception cref="NotSupportedException">The QsType to resolve contains a MissingType.</exception>
+    /// <exception cref="NotSupportedException"><paramref name="qsType"/> contains a <see cref="MissingType"/>.</exception>
     let rec internal ResolveType (processUDT, processTypeParameter) (qsType : QsType) = 
         let resolve = ResolveType (processUDT, processTypeParameter)
         let asResolvedType t = ResolvedType.New (true, t)
@@ -744,10 +744,8 @@ module SymbolResolution =
     /// to the corresponding bundle properties determines the resolution for the given specialization of the given kind.
     /// Returns the resolved generator as well as an array of diagnostics generated during resolution.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// No (partial) resolution is defined for the given specialization.
-    /// Fails with the standard KeyNotFoundException if the given specialization is not part of a specialization bundle in the given properties dictionary.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
+    /// <exception cref="KeyNotFoundException">The given specialization is not part of a specialization bundle in the given properties dictionary.</exception>
     let internal ResolveGenerator (properties : ImmutableDictionary<_,_>) (kind, spec : Resolution<QsSpecializationGenerator, ResolvedGenerator>) =
         let bundle : SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
         let impl, err = kind |> function

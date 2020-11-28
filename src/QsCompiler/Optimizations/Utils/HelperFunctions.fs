@@ -274,16 +274,18 @@ let rec internal isAllDiscarded = function
 
 
 /// <summary>
-/// Casts an int64 to an int, throwing an ArgumentException if outside the allowed range
+/// Casts an <see cref="int64"/> to an <see cref="int"/>.
 /// </summary>
+/// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
 let internal safeCastInt64 (i: int64): int =
     if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
     else int i
 
 /// <summary>
-/// Casts a BigInteger to an int, throwing an ArgumentException if outside the allowed range
+/// Casts a <see cref="BigInteger"/> to an <see cref="int"/>.
 /// </summary>
+/// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
 let internal safeCastBigInt (i: BigInteger): int =
     if BigInteger.Abs(i) > BigInteger (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise

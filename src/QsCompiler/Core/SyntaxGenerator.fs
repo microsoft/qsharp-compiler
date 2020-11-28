@@ -120,9 +120,9 @@ module SyntaxGenerator =
 
     /// <summary>
     /// Creates a typed expression corresponding to a call to a non-type-parametrized callable.
-    /// Does *not* verify whether the given lhs and rhs besides
-    /// throwing an ArgumentException if the type of the given lhs is valid but not a Function or Operation type.
+    /// Only verifies the type of <paramref name="lhs"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">The type of <paramref name="lhs"/> is valid but not a <see cref="QsTypeKind.Function"/> or <see cref="QsTypeKind.Operation"/> type.</exception>.
     let private CallNonGeneric (lhs : TypedExpression, rhs : TypedExpression) =
         let kind = CallLikeExpression (lhs, rhs)
         let quantumDep = lhs.InferredInformation.HasLocalQuantumDependency || rhs.InferredInformation.HasLocalQuantumDependency
@@ -137,7 +137,7 @@ module SyntaxGenerator =
     /// creates a typed expression that when executed will generate the reverse sequence for the given range.
     /// Assumes that the RangeReverse function is part of the standard library.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is of a valid type but not of type Range.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is of a valid type but not of type <see cref="QsTypeKind.Range"/>.</exception>
     let private ReverseRange (ex : TypedExpression) =
         let buildCallToReverse ex =
             let kind = Identifier.GlobalCallable BuiltIn.RangeReverse.FullName
@@ -160,7 +160,7 @@ module SyntaxGenerator =
     /// Creates a typed expression that corresponds to a call to the Length function.
     /// The Length function needs to be part of the QsCore library, and its type parameter name needs to match the one here.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is not of type array or of invalid type.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is not of type array or is of an invalid type.</exception>
     let private Length (ex : TypedExpression) =
         let callableName = BuiltIn.Length.FullName
         let kind = Identifier.GlobalCallable callableName
@@ -184,7 +184,7 @@ module SyntaxGenerator =
     /// Creates a typed expression that corresponds to subtracting one from the call to the Length function.
     /// Sets any range information in the built expression to Null, including inner expressions.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is not of type array or of invalid type.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is not of type array or is of an invalid type.</exception>
     let LengthMinusOne (ex : TypedExpression) =
         let callToLength = ex |> StripPositionInfo.Apply |> Length
         let kind = QsExpressionKind.SUB (callToLength, IntLiteral 1L)
@@ -194,7 +194,7 @@ module SyntaxGenerator =
     /// Given a typed expression of array type,
     /// creates a typed expression that when evaluated returns a new array with the order of the elements reversed.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is not of type array or of invalid type.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is not of type array or is of an invalid type.</exception>
     let private ReverseArray (ex : TypedExpression) =
         let built =
             let reversingRange = RangeExpression (RangeExpression (LengthMinusOne ex, IntLiteral -1L), IntLiteral 0L)
@@ -209,7 +209,7 @@ module SyntaxGenerator =
     /// Given a typed expression of a type that supports iteration,
     /// creates a typed expression that when evaluated returns the reversed sequence.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is of a valid type but not either of type Range or of array type.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is of a valid type but not either of type <see cref="QsTypeKind.Range"/> or of array type.</exception>
     let ReverseIterable (ex : TypedExpression) =
         let ex = StripPositionInfo.Apply ex
         match ex.ResolvedType.Resolution with
@@ -222,7 +222,7 @@ module SyntaxGenerator =
     /// Returns a boolean expression that evaluates to true if the given expression is negative.
     /// Returns an invalid expression of type Bool if the given expression is invalid.
     /// </summary>
-    /// <exception cref="ArgumentException">The type of the given expression does not support arithmetic.</exception>
+    /// <exception cref="ArgumentException">The type of <paramref name="ex"/> does not support arithmetic.</exception>
     let IsNegative (ex : TypedExpression) =
         let kind = ex.ResolvedType.Resolution |> function
             | Int -> LT (ex, IntLiteral 0L)
@@ -259,7 +259,7 @@ module SyntaxGenerator =
     /// Given an argument tuple of a callable, the name and the range of the control qubits symbol, as well as the position offset for that range,
     /// builds and returns the argument tuple for the controlled specialization.
     /// </summary>
-    /// <exception cref="ArgumentException">The given argument tuple is not a QsTuple.</exception>
+    /// <exception cref="ArgumentException">The given argument tuple is not a <see cref="QsTuple"/>.</exception>
     let WithControlQubits arg offset (name, symRange : QsNullable<_>) =
         let range = symRange.ValueOr Range.Zero
         let ctlQs = LocalVariableDeclaration.New false ((offset, range), name, QubitArray, false)
@@ -279,7 +279,7 @@ module SyntaxGenerator =
     /// combines them to a suitable argument for the controlled version of the originally called operation under the assumption that the argument was correct.
     /// The range information for the built expression is set to Null.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression for the control qubits is a valid type but not of type Qubit[].</exception>
+    /// <exception cref="ArgumentException"><paramref name="ctlQs"/> is a valid type but not of type <see cref="T:Qubit[]"/>.</exception>
     let ArgumentWithControlQubits (arg : TypedExpression) (ctlQs : TypedExpression) =
         let isInvalid = function
             | Tuple _ | Item _ | Missing -> false
@@ -314,7 +314,7 @@ module SyntaxGenerator =
     /// Creates an expression of invalid type if the given expression is invalid.
     /// Blindly builds the controlled application if the characteristics of the given operation are invalid.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is valid but not of an operation type, or if it does not support the Controlled functor.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is valid but not of type <see cref="QsTypeKind.Operation"/>, or does not support the <see cref="Controlled"/> functor.</exception>
     let ControlledOperation (ex : TypedExpression) =
         let ex = StripPositionInfo.Apply ex
         let kind = QsExpressionKind.ControlledApplication ex
@@ -333,7 +333,7 @@ module SyntaxGenerator =
     /// Creates an expression of invalid type if the given expression is invalid.
     /// Blindly builds the adjoint application if the characteristics of the given operation are invalid.
     /// </summary>
-    /// <exception cref="ArgumentException">The given expression is valid but not of an operation type, or if it does not support the Adjoint functor.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ex"/> is valid but not of type <see cref="QsTypeKind.Operation"/>, or does not support the <see cref="Adjoint"/> functor.</exception>
     let AdjointOperation (ex : TypedExpression) =
         let ex = StripPositionInfo.Apply ex
         let kind = QsExpressionKind.AdjointApplication (ex)

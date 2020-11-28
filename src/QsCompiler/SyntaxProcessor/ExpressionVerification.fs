@@ -654,7 +654,7 @@ type QsExpression with
         /// Resolves and verifies all given items, and returns the corresponding ValueTuple as typed expression.
         /// If the ValueTuple contains only one item, the item is returned instead (i.e. arity-1 tuple expressions are stripped). 
         /// </summary>
-        /// <exception cref="ArgumentException">The given items do not at least contain one element.</exception>
+        /// <exception cref="ArgumentException"><paramref name="items"/> is empty.</exception>
         let buildTuple (items : ImmutableArray<_>) = 
             let resolvedItems = (items.Select InnerExpression).ToImmutableArray()
             let resolvedTypes = (resolvedItems |> Seq.map (fun x -> x.ResolvedType)).ToImmutableArray()
