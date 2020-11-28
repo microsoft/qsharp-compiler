@@ -1,123 +1,150 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 int PauliX   = 0;
 int PauliZ   = 1;
 int ResultOne= 1;
 int* EXE_RESULT;
 
 int Qrng__RandomBit__body() {
-  int blkPrv = 0;
-  int blkCur = 0;
+  int   blkPrv = 0;
+  int   blkCur = 0;
+  int   v[20];
+  int*  pv[20];
   while (1) switch (blkCur) {
   case 0:
-      int* v_q = 0;
-      int v_bases[1];
-      int* v_0 = v_bases;
-      int v_1 = PauliX; //load
-      int* v_2 = v_0; //bitcast
-      v_2 = v_1; //store
-      int v_qubits[1];
-      int* v_3 = v_qubits;
-      int* v_4 = v_3; //bitcast
-      v_4 = v_q; //store
-      int v_rslt = 1;
-      int v_bases1[1];
-      int* v_5 = v_bases1;
-      int v_6 = PauliZ; //load
-      int* v_7 = v_5; //bitcast
-      v_7 = v_6; //store
-      int v_qubits2[1];
-      int* v_8 = v_qubits2;
-      int* v_9 = v_8; //bitcast
-      v_9 = v_q; //store
-      int v_10 = 1;
-      return v_10;
+    ;
+
+      int q;
+      int * pbases = (int*)malloc(sizeof(int)*1);
+      pv[0] = &pbases[0];
+      v[1] = PauliX; //load
+      pv[2] = pv[0]; //bitcast
+      v[2] = v[1]; //store
+      int * pqubits = (int*)malloc(sizeof(int)*1);
+      pv[3] = &pqubits[0];
+      pv[4] = pv[3]; //bitcast
+      v[4] = q; //store
+      int rslt = rand() & 0x800 == 0x800 ? 1 : 0;  // Return a random bit
+      int * pbases1 = (int*)malloc(sizeof(int)*1);
+      pv[5] = &pbases1[0];
+      v[6] = PauliZ; //load
+      pv[7] = pv[5]; //bitcast
+      v[7] = v[6]; //store
+      int * pqubits2 = (int*)malloc(sizeof(int)*1);
+      pv[8] = &pqubits2[0];
+      pv[9] = pv[8]; //bitcast
+      v[9] = q; //store
+      v[10] = rand() & 0x800 == 0x800 ? 1 : 0;  // Return a random bit
+      return v[10];
       break;
   }
 }
 int Qrng__RandomInt__body() {
-  int blkPrv = 0;
-  int blkCur = 0;
+  int   blkPrv = 0;
+  int   blkCur = 0;
+  int   v[20];
+  int*  pv[20];
   while (1) switch (blkCur) {
   case 0:
-      int v_rslt; //alloca
-      v_rslt = 0; //store
+    ;
+      int rslt; //alloca
+      rslt = 0; //store
       blkPrv = blkCur; blkCur = 1;
       break;
   case 1:
-      int v_i = blkPrv == 2 ? v_8 : 0; //phi
-      int v_0 = v_i >= 31 ? 1 : 0; //icmp
-      int v_1 = v_i <= 31 ? 1 : 0; //icmp
-      int v_2 = 1 ? v_1 : v_0; //select
-      blkPrv = blkCur; blkCur = v_2 ? 3 : 4;
+    ;
+      int i = blkPrv == 2 ? v[8] : 0; //phi
+      v[0] = i >= 31 ? 1 : 0; //icmp
+      v[1] = i <= 31 ? 1 : 0; //icmp
+      v[2] = 1 ? v[1] : v[0]; //select
+      blkPrv = blkCur; blkCur = v[2] ? 3 : 4;
       break;
   case 3:
-      int v_oneBit = Qrng__RandomBit__body();
-      int v_3 = ResultOne; //load
-      int v_4 = v_3;
-      blkPrv = blkCur; blkCur = v_4 ? 5 : 2;
+    ;
+      int oneBit = Qrng__RandomBit__body();
+      v[3] = ResultOne; //load
+      v[4] = oneBit == v[3] ? 1 : 0;
+      blkPrv = blkCur; blkCur = v[4] ? 5 : 2;
       break;
   case 5:
-      int v_5 = v_rslt; //load
-      int v_6 = v_5 + 1; 
-      int v_7 = v_6 << v_i;
-      v_rslt = v_7; //store
+    ;
+      v[5] = rslt; //load
+      v[6] = 1 << i;
+      v[7] = v[5] + v[6]; 
+      rslt = v[7]; //store
       blkPrv = blkCur; blkCur = 2;
       break;
   case 2:
-      int v_8 = v_i + 1; 
+    ;
+      v[8] = i + 1; 
       blkPrv = blkCur; blkCur = 1;
       break;
   case 4:
-      int v_9 = v_rslt; //load
-      return v_9;
+    ;
+      v[9] = rslt; //load
+      return v[9];
       break;
   }
 }
 int* Qrng__RandomInts__body() {
-  int blkPrv = 0;
-  int blkCur = 0;
+  int   blkPrv = 0;
+  int   blkCur = 0;
+  int   v[20];
+  int*  pv[20];
   while (1) switch (blkCur) {
   case 0:
-      int v_0[32];
-      int* v_rslts; //alloca
-      v_rslts = v_0; //store
+    ;
+      pv[0] = (int*)malloc(sizeof(int)*32);
+      int* prslts; //alloca
+      prslts = pv[0]; //store
       blkPrv = blkCur; blkCur = 1;
       break;
   case 1:
-      int v_i = blkPrv == 2 ? v_9 : 0; //phi
-      int v_1 = v_i >= 31 ? 1 : 0; //icmp
-      int v_2 = v_i <= 31 ? 1 : 0; //icmp
-      int v_3 = 1 ? v_2 : v_1; //select
-      blkPrv = blkCur; blkCur = v_3 ? 2 : 3;
+    ;
+      int i = blkPrv == 2 ? v[9] : 0; //phi
+      v[1] = i >= 31 ? 1 : 0; //icmp
+      v[2] = i <= 31 ? 1 : 0; //icmp
+      v[3] = 1 ? v[2] : v[1]; //select
+      blkPrv = blkCur; blkCur = v[3] ? 2 : 3;
       break;
   case 2:
-      int v_4 = v_rslts; //load
-      int* v_5 = v_4;
-      int v_6 = Qrng__RandomInt__body();
-      int* v_7 = v_5;
-      int* v_8 = v_7; //bitcast
-      v_8 = v_6; //store
-      v_rslts = v_5; //store
-      int v_9 = v_i + 1; 
+    ;
+      pv[4] = prslts; //load
+      pv[5] = pv[4];
+      v[6] = Qrng__RandomInt__body();
+      pv[7] = &pv[5][i];
+      pv[8] = pv[7]; //bitcast
+      *pv[8] = v[6]; //store hack!!!
+      prslts = pv[5]; //store
+      v[9] = i + 1; 
       blkPrv = blkCur; blkCur = 1;
       break;
   case 3:
-      int v_10 = v_rslts; //load
-      return v_10;
+    ;
+      pv[10] = prslts; //load
+      return pv[10];
       break;
   }
 }
 int* Qrng_RandomInts() {
-  int blkPrv = 0;
-  int blkCur = 0;
+  int   blkPrv = 0;
+  int   blkCur = 0;
+  int   v[20];
+  int*  pv[20];
   while (1) switch (blkCur) {
   case 0:
-      int v_0 = Qrng__RandomInts__body();
-      int* v_1 = v_0; //bitcast
-      return v_1;
+    ;
+      pv[0] = Qrng__RandomInts__body();
+      pv[1] = pv[0]; //bitcast
+      return pv[1];
       break;
   }
 }
 
 int main() {
+    srand(time(NULL));
     EXE_RESULT = Qrng_RandomInts();
+    for (int i=0; i<32; i++) 
+        printf("%2d = %08x\n",i,EXE_RESULT[i]);
 }

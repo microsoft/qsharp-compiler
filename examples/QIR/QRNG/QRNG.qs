@@ -13,7 +13,7 @@ namespace Qrng {
         for (i in 0..31) {
             let oneBit = RandomBit();
             if (oneBit == One) {
-                set rslt = rslt + 1 <<< i;
+                set rslt = rslt + (1 <<< i);
             }
             
         }

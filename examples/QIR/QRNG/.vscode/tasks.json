@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build dotnet",
             "command": "dotnet",
             "type": "process",
             "args": [
@@ -18,41 +18,18 @@
             }
         },
         {
-            "label": "publish",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "publish",
-                "${workspaceFolder}/QRNG.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "watch",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "watch",
-                "run",
-                "${workspaceFolder}/QRNG.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "type": "cppbuild",
-            "label": "gcc.exe build active file",
+            "type": "shell",
+            "label": "build gcc",
             "command": "C:\\Strawberry\\c\\bin\\gcc.exe",
             "args": [
                 "-g",
                 "${file}",
                 "-o",
-
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
+            "options": {
+                "cwd": "C:\\Strawberry\\c\\bin"
+            },
             "problemMatcher": [
                 "$gcc"
             ],
@@ -60,6 +37,7 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "detail": "compiler: C:\\Strawberry\\c\\bin\\gcc.exe"
         }
     ]
 }

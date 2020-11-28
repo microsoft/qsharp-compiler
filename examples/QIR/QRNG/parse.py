@@ -35,46 +35,69 @@ def cleanArg(arg):
     return  arg.replace(')','').replace('(','')
 
 def parseIns(blkIds,ins):
-    tkns = str(ins).replace("%","v_").replace(",","").replace("@","").replace("_.","_").split()
-    #print(f"                        ............... {tkns} [{ins.opcode}]")
+    tkns = re.sub(r'%(\d+)',r'v[\1]',str(ins))
+    tkns = re.sub("[,@%.]","",tkns)
+    tkns = tkns.split()
+    print(f"                             ////// {tkns} [{ins.opcode}]")
     if ins.opcode == 'call':
         if tkns[1] == '=':
             if eqlPart(tkns[4],'__quantum__qis__measure'):
-                print(f'      int {tkns[0]} = 1;')
+                if tkns[0][:2] == 'v[': decl = ""
+                else:                   decl = "int "
+                print(f'      {decl}{tkns[0]} = 1;                                // Return all ones for debugging')
+                print(f'//    {decl}{tkns[0]} = rand() & 0x800 == 0x800 ? 1 : 0;  // Return a random bit')
             elif eqlPart(tkns[4],'Qrng'):
-                print(f'      int {tkns[0]} = {tkns[4]};')
+                if tkns[3] == "Array*": p = "p"
+                else:                   p = ""
+                if tkns[0][:2] == 'v[': decl = ""
+                else:                   decl = "int "
+                print(f'      {decl}{p}{tkns[0]} = {tkns[4]};')
             elif eqlPart(tkns[4],'__quantum__rt__array_create_1d'):
-                print(f'      int {tkns[0]}[{cleanArg(tkns[7])}];')
-            elif eqlPart(tkns[4],'__quantum__rt__result_equal') and tkns[5] == 'v_oneBit':
-                print(f'      int {tkns[0]} = {cleanArg(tkns[7])};')
+                if tkns[0][:2] == 'v[': decl = ""
+                else:                   decl = "int * "
+                print(f'      {decl}p{tkns[0]} = (int*)malloc(sizeof(int)*{cleanArg(tkns[7])});')
+            elif eqlPart(tkns[4],'__quantum__rt__result_equal') and tkns[5] == 'oneBit':
+                print(f'      {tkns[0]} = {cleanArg(tkns[5])} == {cleanArg(tkns[7])} ? 1 : 0;')
             elif eqlPart(tkns[4],'__quantum__rt__array_get_element_ptr_1d'):
-                print(f'      int* {tkns[0]} = {cleanArg(tkns[5])};')
+                print(f'      p{tkns[0]} = &p{cleanArg(tkns[5])}[{cleanArg(tkns[7])}];')
             elif eqlPart(tkns[4],'__quantum__rt__array_copy'):
-                print(f'      int* {tkns[0]} = {cleanArg(tkns[5])};')
+                print(f'      p{tkns[0]} = p{cleanArg(tkns[5])};')
             elif eqlPart(tkns[4],'__quantum__rt__qubit_allocate'):
-                print(f'      int* {tkns[0]} = 0;')
+                print(f'      int {tkns[0]};')
             else:
                 pass
         else:
             pass #print(f'        int {tkns[0]} = 0;')
     elif ins.opcode == 'ret':
-        print(f'      return {tkns[2]};')
+        if tkns[1][-6:] == "Array*" or tkns[1][-7:] == 'Array"*': p = "p"
+        else:                        p = ""
+        print(f'      return {p}{tkns[2]};')
 
     elif ins.opcode == "alloca":
-        if tkns[3][-1:] == "*": op = "int*"
-        else:                   op = "int"
-        print(f'      {op} v_{ins.name}; //alloca')
+        if tkns[3][-1:] == "*": op = "int* p"
+        else:                   op = "int "
+        print(f'      {op}{ins.name}; //alloca')
 
     elif ins.opcode == "store":
-        print(f'      {tkns[4]} = {tkns[2]}; //store')
+        hack = False
+        for op in ins.operands:     
+            if 'Qrng__RandomInt__body' in str(op): hack = True
+        if hack:
+            print(f'      *p{tkns[4]} = {tkns[2]}; //store hack!!!')
+        else:
+            if tkns[1] == "Array*": p = "p"
+            else:                   p = ""
+            print(f'      {p}{tkns[4]} = {p}{tkns[2]}; //store')
 
     elif ins.opcode == "load":
-        print(f'      int {tkns[0]} = {tkns[5]}; //load')
+        if tkns[3] == "Array*": p = "p"
+        else:                   p = ""
+        print(f'      {p}{tkns[0]} = {p}{tkns[5]}; //load')
 
     elif ins.opcode == "bitcast":
-        if tkns[3][-1:] == "*": op = "int*"
-        else:                   op = "int"
-        print(f'      {op} {tkns[0]} = {tkns[4]}; //bitcast')
+        if tkns[3][-1:] == "*": op = "p"
+        else:                   op = ""
+        print(f'      {op}{tkns[0]} = {op}{tkns[4]}; //bitcast')
 
     elif ins.opcode == "br":
         if tkns[1] == 'label':
@@ -86,25 +109,26 @@ def parseIns(blkIds,ins):
         if tkns[3] == 'sge': cmp = '>='
         elif tkns[3] == 'sle' : cmp = '<='
         else: cmp = '???'
-        print(f'      int {tkns[0]} = {tkns[5]} {cmp} {tkns[6]} ? 1 : 0; //icmp')
+        print(f'      {tkns[0]} = {tkns[5]} {cmp} {tkns[6]} ? 1 : 0; //icmp')
 
     elif ins.opcode == "select":
         tst = tkns[4].replace("true","1").replace("false","0")
-        print(f'      int {tkns[0]} = {tst} ? {tkns[6]} : {tkns[8]}; //select')
+        print(f'      {tkns[0]} = {tst} ? {tkns[6]} : {tkns[8]}; //select')
 
     elif ins.opcode == 'phi':
         print(f'      int {tkns[0]} = blkPrv == {getBlkId(blkIds,tkns[6])} ? {tkns[5]} : {tkns[9]}; //phi')
 
     elif ins.opcode == 'add':
-        print(f'      int {tkns[0]} = {tkns[4]} + {tkns[5]}; ')
+        print(f'      {tkns[0]} = {tkns[4]} + {tkns[5]}; ')
 
     elif ins.opcode == 'shl':
-        print(f'      int {tkns[0]} = {tkns[4]} << {tkns[5]};')
+        print(f'      {tkns[0]} = {tkns[4]} << {tkns[5]};')
     else:
         pass #print(f'            ### INSTR n={ins.name} o={ins.opcode} r={tkns}')
 
 def parseBlock(blkIds,blk):
     print(f'  case {getBlkId(blkIds,blk.name)}:')
+    print(f'    ;')
     for ins in blk.instructions:
         parseIns(blkIds,ins)
     print('      break;')
@@ -116,14 +140,19 @@ def parseFunc(func):
     else:                           rtnTyp = "int"
     print(f'{rtnTyp} {func.name}() {{')
     blkIds = {}
-    print('  int blkPrv = 0;')
-    print('  int blkCur = 0;')
+    print('  int   blkPrv = 0;')
+    print('  int   blkCur = 0;')
+    print('  int   v[20];')
+    print('  int*  pv[20];')
     print('  while (1) switch (blkCur) {')
     for blk in func.blocks:
         parseBlock(blkIds,blk)
     print('  }')
     print('}')
 
+print('#include <stdio.h>')
+print('#include <stdlib.h>')
+print('#include <time.h>')
 print('int PauliX   = 0;')
 print('int PauliZ   = 1;')
 print('int ResultOne= 1;')
@@ -136,6 +165,9 @@ for func in mod.functions:
             if att == b'"EntryPoint"':
                 print('')
                 print('int main() {')
+                print('    srand(time(NULL));')
                 print(f'    EXE_RESULT = {func.name}();')
+                print('    for (int i=0; i<32; i++) ')
+                print('        printf("%2d = %08x\\n",i,EXE_RESULT[i]);')
                 print('}')
                 

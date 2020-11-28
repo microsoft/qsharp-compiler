@@ -8,6 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
+            "preLaunchTask": "build gcc",
             "program": "${workspaceFolder}/QRNG.exe",
             "args": [],
             "stopAtEntry": false,
@@ -35,7 +36,7 @@
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "build dotnet",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/QRNG.dll",
             "args": [],

@@ -35,26 +35,6 @@ declare void @__quantum__qis__x(%Qubit*)
 
 declare void @__quantum__qis__z(%Qubit*)
 
-declare double @Microsoft__Quantum__Instructions__IntAsDoubleImpl__body(i64)
-
-declare void @Microsoft__Quantum__Instructions__PhysCNOT__body(%Qubit*, %Qubit*)
-
-declare void @Microsoft__Quantum__Instructions__PhysH__body(%Qubit*)
-
-declare %Result* @Microsoft__Quantum__Instructions__PhysM__body(%Qubit*)
-
-declare %Result* @Microsoft__Quantum__Instructions__PhysMeasure__body(%Array*, %Array*)
-
-declare void @Microsoft__Quantum__Instructions__PhysRx__body(double, %Qubit*)
-
-declare void @Microsoft__Quantum__Instructions__PhysRz__body(double, %Qubit*)
-
-declare void @Microsoft__Quantum__Instructions__PhysS__body(%Qubit*)
-
-declare void @Microsoft__Quantum__Instructions__PhysX__body(%Qubit*)
-
-declare void @Microsoft__Quantum__Instructions__PhysZ__body(%Qubit*)
-
 define void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* %control, %Qubit* %target) {
 entry:
   call void @__quantum__qis__cnot(%Qubit* %control, %Qubit* %target)
@@ -136,45 +116,6 @@ entry:
   ret void
 }
 
-define %TupleHeader* @Microsoft__Quantum__Core__Attribute__body() {
-entry:
-  ret %TupleHeader* null
-}
-
-define %TupleHeader* @Microsoft__Quantum__Core__EntryPoint__body() {
-entry:
-  ret %TupleHeader* null
-}
-
-define %TupleHeader* @Microsoft__Quantum__Core__Inline__body() {
-entry:
-  ret %TupleHeader* null
-}
-
-define { %TupleHeader, %String* }* @Microsoft__Quantum__Core__Intrinsic__body(%String* %arg0) {
-entry:
-  %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %String* }* getelementptr ({ %TupleHeader, %String* }, { %TupleHeader, %String* }* null, i32 1) to i64))
-  %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %String* }*
-  %2 = getelementptr inbounds { %TupleHeader, %String* }, { %TupleHeader, %String* }* %1, i32 0, i32 1
-  store %String* %arg0, %String** %2
-  call void @__quantum__rt__string_reference(%String* %arg0)
-  ret { %TupleHeader, %String* }* %1
-}
-
-declare %TupleHeader* @__quantum__rt__tuple_create(i64)
-
-declare void @__quantum__rt__string_reference(%String*)
-
-declare i64 @Microsoft__Quantum__Core__Length__body(%Array*)
-
-declare i64 @Microsoft__Quantum__Core__RangeEnd__body(%Range)
-
-declare %Range @Microsoft__Quantum__Core__RangeReverse__body(%Range)
-
-declare i64 @Microsoft__Quantum__Core__RangeStart__body(%Range)
-
-declare i64 @Microsoft__Quantum__Core__RangeStep__body(%Range)
-
 define %Result* @Qrng__RandomBit__body() {
 entry:
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
@@ -242,8 +183,8 @@ body__1:                                          ; preds = %header__1
 
 then0__1:                                         ; preds = %body__1
   %5 = load i64, i64* %rslt
-  %6 = add i64 %5, 1
-  %7 = shl i64 %6, %i
+  %6 = shl i64 1, %i
+  %7 = add i64 %5, %6
   store i64 %7, i64* %rslt
   br label %continue__1
 
@@ -306,6 +247,65 @@ exit__1:                                          ; preds = %header__1
 declare %Array* @__quantum__rt__array_copy(%Array*)
 
 declare void @__quantum__rt__array_reference(%Array*)
+
+declare double @Microsoft__Quantum__Instructions__IntAsDoubleImpl__body(i64)
+
+declare void @Microsoft__Quantum__Instructions__PhysCNOT__body(%Qubit*, %Qubit*)
+
+declare void @Microsoft__Quantum__Instructions__PhysH__body(%Qubit*)
+
+declare %Result* @Microsoft__Quantum__Instructions__PhysM__body(%Qubit*)
+
+declare %Result* @Microsoft__Quantum__Instructions__PhysMeasure__body(%Array*, %Array*)
+
+declare void @Microsoft__Quantum__Instructions__PhysRx__body(double, %Qubit*)
+
+declare void @Microsoft__Quantum__Instructions__PhysRz__body(double, %Qubit*)
+
+declare void @Microsoft__Quantum__Instructions__PhysS__body(%Qubit*)
+
+declare void @Microsoft__Quantum__Instructions__PhysX__body(%Qubit*)
+
+declare void @Microsoft__Quantum__Instructions__PhysZ__body(%Qubit*)
+
+define %TupleHeader* @Microsoft__Quantum__Core__Attribute__body() {
+entry:
+  ret %TupleHeader* null
+}
+
+define %TupleHeader* @Microsoft__Quantum__Core__EntryPoint__body() {
+entry:
+  ret %TupleHeader* null
+}
+
+define %TupleHeader* @Microsoft__Quantum__Core__Inline__body() {
+entry:
+  ret %TupleHeader* null
+}
+
+define { %TupleHeader, %String* }* @Microsoft__Quantum__Core__Intrinsic__body(%String* %arg0) {
+entry:
+  %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %String* }* getelementptr ({ %TupleHeader, %String* }, { %TupleHeader, %String* }* null, i32 1) to i64))
+  %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %String* }*
+  %2 = getelementptr inbounds { %TupleHeader, %String* }, { %TupleHeader, %String* }* %1, i32 0, i32 1
+  store %String* %arg0, %String** %2
+  call void @__quantum__rt__string_reference(%String* %arg0)
+  ret { %TupleHeader, %String* }* %1
+}
+
+declare %TupleHeader* @__quantum__rt__tuple_create(i64)
+
+declare void @__quantum__rt__string_reference(%String*)
+
+declare i64 @Microsoft__Quantum__Core__Length__body(%Array*)
+
+declare i64 @Microsoft__Quantum__Core__RangeEnd__body(%Range)
+
+declare %Range @Microsoft__Quantum__Core__RangeReverse__body(%Range)
+
+declare i64 @Microsoft__Quantum__Core__RangeStart__body(%Range)
+
+declare i64 @Microsoft__Quantum__Core__RangeStep__body(%Range)
 
 define %"struct.quantum::Array"* @Qrng_RandomInts() #0 {
 entry:
