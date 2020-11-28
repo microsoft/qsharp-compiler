@@ -28,5 +28,4 @@ namespace Qrng {
         }
         return rslts;
     }
-
 }

@@ -1,26 +1,8 @@
 from  pprint import pprint
 import llvmlite.binding as llvm
 import re
-
-with open("QRNG.ll","r") as file:
-    text = file.read()
-#print(text)
-
-
-llvm.initialize()
-llvm.initialize_native_target()
-llvm.initialize_native_asmprinter()
-
-target = llvm.Target.from_default_triple()
-target_machine = target.create_target_machine()
-backing_mod = llvm.parse_assembly("")
-engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
-mod = llvm.parse_assembly(text)
-mod.verify()
-engine.add_module(mod)
-engine.finalize_object()
-engine.run_static_constructors()
-assembly = target_machine.emit_assembly(mod)
+import argparse
+import sys
 
 def getBlkId(blkIds,blkNam):
     blkNam = blkNam.replace("v_","")
@@ -44,8 +26,7 @@ def parseIns(blkIds,ins):
             if eqlPart(tkns[4],'__quantum__qis__measure'):
                 if tkns[0][:2] == 'v[': decl = ""
                 else:                   decl = "int "
-                print(f'      {decl}{tkns[0]} = 1;                                // Return all ones for debugging')
-                print(f'//    {decl}{tkns[0]} = rand() & 0x800 == 0x800 ? 1 : 0;  // Return a random bit')
+                print(f'        {decl}{tkns[0]} = rand() & 0x800 == 0x800 ? 1 : 0;  // Return a random bit')
             elif eqlPart(tkns[4],'Qrng'):
                 if tkns[3] == "Array*": p = "p"
                 else:                   p = ""
@@ -106,8 +87,10 @@ def parseIns(blkIds,ins):
             print(f'      blkPrv = blkCur; blkCur = {tkns[2]} ? {getBlkId(blkIds,tkns[4])} : {getBlkId(blkIds,tkns[6])};')
 
     elif ins.opcode == "icmp":
-        if tkns[3] == 'sge': cmp = '>='
+        if tkns[3] == 'sge'   : cmp = '>='
         elif tkns[3] == 'sle' : cmp = '<='
+        elif tkns[3] == 'slt' : cmp = '<'
+        elif tkns[3] == 'sgt' : cmp = '>'
         else: cmp = '???'
         print(f'      {tkns[0]} = {tkns[5]} {cmp} {tkns[6]} ? 1 : 0; //icmp')
 
@@ -150,24 +133,104 @@ def parseFunc(func):
     print('  }')
     print('}')
 
-print('#include <stdio.h>')
-print('#include <stdlib.h>')
-print('#include <time.h>')
-print('int PauliX   = 0;')
-print('int PauliZ   = 1;')
-print('int ResultOne= 1;')
-print('int* EXE_RESULT;')
-print('')
-for func in mod.functions:
-    if func.name.startswith('Qrng'):
-        parseFunc(func)
-        for att in func.attributes:
-            if att == b'"EntryPoint"':
-                print('')
-                print('int main() {')
-                print('    srand(time(NULL));')
-                print(f'    EXE_RESULT = {func.name}();')
-                print('    for (int i=0; i<32; i++) ')
-                print('        printf("%2d = %08x\\n",i,EXE_RESULT[i]);')
-                print('}')
-                
+
+def parseFile(mod,doRTT,doHost):
+    if (doRTT):
+        print('#include "synopsys_gpio.h"')
+        print('#include "ARMCM4_FP.h"')
+        print('#include "SEGGER_RTT.h"')
+        print('')
+    print('#include <stdio.h>')
+    print('#include <stdlib.h>')
+    print('')
+    print('int PauliX   = 0;')
+    print('int PauliZ   = 1;')
+    print('int ResultOne= 1;')
+    print('int EXE_RESULT[32];')
+    print('int dummy     =0;')
+    print('')
+    print('void sleep(int secs) {')
+    print('    for (int j=0; j<secs; j++)')
+    if (doHost):    print('        for (int i=0; i<200000000; i++)')
+    else:           print('        for (int i=0; i<2000000; i++)')
+    print('            dummy += i % 97;')
+    print('}')
+    print('')
+    for func in mod.functions:
+        if func.name.startswith('Qrng'):
+            parseFunc(func)
+            for att in func.attributes:
+                if att == b'"EntryPoint"':
+                    print('')
+                    print('int main() {')
+                    if (doRTT):
+                        print('    // initialize the JTAG printing library')
+                        print('    SEGGER_RTT_Init();')
+                        print('    ')
+                        print('    GPIO0->SWPORTA_DR = 0;')
+                        print('    GPIO0->SWPORTA_DDR = 0xFF;')
+                        print('    ')
+                    print('    for (int i=0; i<32; i++) EXE_RESULT[i] = -1;')
+                    print('    while (1) {')
+                    if (doRTT):
+                        print('      for (int i=0; i<32; i++) ')
+                        print('          SEGGER_RTT_printf(0,"%2d = %08x\\n",i,EXE_RESULT[i]);')
+                        print('      while (1)')
+                        print('      {')
+                        print('          // Toggle GPIO0')
+                        print('          GPIO0->SWPORTA_DR = 0x00;')
+                        print('          GPIO0->SWPORTA_DR = 0x01;')
+                        print('      }')
+                    if (doHost):
+                        print('      for (int i=0; i<32; i++) ')
+                        print('          printf("%2d = %08x\\n",i,EXE_RESULT[i]);')
+                    print('      sleep(10);')
+                    print(f'      int* rslt = {func.name}();')
+                    print('      for (int i=0; i<32; i++) ')
+                    print('          EXE_RESULT[i] = rslt[i];')
+                    print('  }')
+                    print('}')
+
+def load(inp):
+    with open(inp,"r") as file:
+        text = file.read()
+
+    llvm.initialize()
+    llvm.initialize_all_targets()
+    llvm.initialize_all_asmprinters()
+
+#    target          = llvm.Target.from_triple("x86_64")
+#    target_machine  = target.create_target_machine()
+#    backing_mod     = llvm.parse_assembly("")
+#    engine          = llvm.create_mcjit_compiler(backing_mod, target_machine)
+    mod             = llvm.parse_assembly(text)
+#    mod.verify()
+#    engine.add_module(mod)
+#    engine.finalize_object()
+#    engine.run_static_constructors()
+#    assembly        = target_machine.emit_assembly(mod)
+    return mod
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--baseName", default="QRNG",
+                    help="Base Name for .ll input and .c output")
+    parser.add_argument("-r", "--rtt", action="store_true",
+                    help="add RTT support")
+    parser.add_argument("-p", "--printf", action="store_true",
+                    help="do printf when running on host")
+    args = parser.parse_args()
+
+    inpNam = args.baseName + ".ll"
+    outNam = args.baseName + ".c"
+
+    print(f'Generating: {outNam}')
+    origStdout = sys.stdout
+    with open(outNam,"w") as out:
+        sys.stdout = out
+        mod = load(inpNam)
+        parseFile(mod,args.rtt,args.printf)
+    sys.stdout = origStdout
+
+if __name__ == '__main__':
+    main()
