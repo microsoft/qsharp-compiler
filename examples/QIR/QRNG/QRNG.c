@@ -9,7 +9,7 @@ int dummy     =0;
 
 void sleep(int secs) {
     for (int j=0; j<secs; j++)
-        for (int i=0; i<200000000; i++)
+        for (int i=0; i<2000000; i++)
             dummy += i % 97;
 }
 
@@ -246,8 +246,6 @@ int* Qrng_RandomInts() {
 int main() {
     for (int i=0; i<32; i++) EXE_RESULT[i] = -1;
     while (1) {
-      for (int i=0; i<32; i++) 
-          printf("%2d = %08x\n",i,EXE_RESULT[i]);
       sleep(10);
       int* rslt = Qrng_RandomInts();
       for (int i=0; i<32; i++) 
