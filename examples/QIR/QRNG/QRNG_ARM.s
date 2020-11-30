@@ -17,6 +17,312 @@
 	.eabi_attribute	38, 1
 	.eabi_attribute	14, 0
 	.file	"QRNG.ll"
+	.globl	Microsoft__Quantum__Core__Attribute__body
+	.p2align	1
+	.type	Microsoft__Quantum__Core__Attribute__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Core__Attribute__body:
+	.fnstart
+	movs	r0, #0
+	bx	lr
+.Lfunc_end0:
+	.size	Microsoft__Quantum__Core__Attribute__body, .Lfunc_end0-Microsoft__Quantum__Core__Attribute__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Core__EntryPoint__body
+	.p2align	1
+	.type	Microsoft__Quantum__Core__EntryPoint__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Core__EntryPoint__body:
+	.fnstart
+	movs	r0, #0
+	bx	lr
+.Lfunc_end1:
+	.size	Microsoft__Quantum__Core__EntryPoint__body, .Lfunc_end1-Microsoft__Quantum__Core__EntryPoint__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Core__Inline__body
+	.p2align	1
+	.type	Microsoft__Quantum__Core__Inline__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Core__Inline__body:
+	.fnstart
+	movs	r0, #0
+	bx	lr
+.Lfunc_end2:
+	.size	Microsoft__Quantum__Core__Inline__body, .Lfunc_end2-Microsoft__Quantum__Core__Inline__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Core__Intrinsic__body
+	.p2align	1
+	.type	Microsoft__Quantum__Core__Intrinsic__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Core__Intrinsic__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	movs	r1, #8
+	movs	r2, #0
+	str	r0, [sp, #4]
+	mov	r0, r1
+	mov	r1, r2
+	bl	__quantum__rt__tuple_create
+	ldr	r1, [sp, #4]
+	str	r1, [r0, #4]
+	str	r0, [sp]
+	mov	r0, r1
+	bl	__quantum__rt__string_reference
+	ldr	r0, [sp]
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end3:
+	.size	Microsoft__Quantum__Core__Intrinsic__body, .Lfunc_end3-Microsoft__Quantum__Core__Intrinsic__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__CNOT__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__CNOT__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__CNOT__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__cnot
+	pop	{r7, pc}
+.Lfunc_end4:
+	.size	Microsoft__Quantum__Intrinsic__CNOT__body, .Lfunc_end4-Microsoft__Quantum__Intrinsic__CNOT__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__H__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__H__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__H__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__h
+	pop	{r7, pc}
+.Lfunc_end5:
+	.size	Microsoft__Quantum__Intrinsic__H__body, .Lfunc_end5-Microsoft__Quantum__Intrinsic__H__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__IntAsDouble__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__IntAsDouble__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__IntAsDouble__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	mov	r2, r1
+	mov	r3, r0
+	str	r2, [sp, #4]
+	str	r3, [sp]
+	bl	__quantum__qis__intAsDouble
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end6:
+	.size	Microsoft__Quantum__Intrinsic__IntAsDouble__body, .Lfunc_end6-Microsoft__Quantum__Intrinsic__IntAsDouble__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Measure__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Measure__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Measure__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__measure
+	pop	{r7, pc}
+.Lfunc_end7:
+	.size	Microsoft__Quantum__Intrinsic__Measure__body, .Lfunc_end7-Microsoft__Quantum__Intrinsic__Measure__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Mz__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Mz__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Mz__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__mz
+	pop	{r7, pc}
+.Lfunc_end8:
+	.size	Microsoft__Quantum__Intrinsic__Mz__body, .Lfunc_end8-Microsoft__Quantum__Intrinsic__Mz__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Rx__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Rx__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Rx__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	mov	r3, r1
+	mov	r12, r0
+	str	r3, [sp, #4]
+	str.w	r12, [sp]
+	bl	__quantum__qis__rx
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end9:
+	.size	Microsoft__Quantum__Intrinsic__Rx__body, .Lfunc_end9-Microsoft__Quantum__Intrinsic__Rx__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Rx__adj
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Rx__adj,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Rx__adj:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	mov	r3, r1
+	mov	r12, r0
+	eor	r1, r1, #-2147483648
+	str	r3, [sp, #4]
+	str.w	r12, [sp]
+	bl	__quantum__qis__rx
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end10:
+	.size	Microsoft__Quantum__Intrinsic__Rx__adj, .Lfunc_end10-Microsoft__Quantum__Intrinsic__Rx__adj
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Rz__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Rz__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Rz__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	mov	r3, r1
+	mov	r12, r0
+	str	r3, [sp, #4]
+	str.w	r12, [sp]
+	bl	__quantum__qis__rz
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end11:
+	.size	Microsoft__Quantum__Intrinsic__Rz__body, .Lfunc_end11-Microsoft__Quantum__Intrinsic__Rz__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Rz__adj
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Rz__adj,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Rz__adj:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	mov	r3, r1
+	mov	r12, r0
+	eor	r1, r1, #-2147483648
+	str	r3, [sp, #4]
+	str.w	r12, [sp]
+	bl	__quantum__qis__rz
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end12:
+	.size	Microsoft__Quantum__Intrinsic__Rz__adj, .Lfunc_end12-Microsoft__Quantum__Intrinsic__Rz__adj
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__S__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__S__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__S__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__s
+	pop	{r7, pc}
+.Lfunc_end13:
+	.size	Microsoft__Quantum__Intrinsic__S__body, .Lfunc_end13-Microsoft__Quantum__Intrinsic__S__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__S__adj
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__S__adj,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__S__adj:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	.pad	#8
+	sub	sp, #8
+	str	r0, [sp, #4]
+	bl	__quantum__qis__s
+	ldr	r0, [sp, #4]
+	bl	__quantum__qis__z
+	add	sp, #8
+	pop	{r7, pc}
+.Lfunc_end14:
+	.size	Microsoft__Quantum__Intrinsic__S__adj, .Lfunc_end14-Microsoft__Quantum__Intrinsic__S__adj
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__X__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__X__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__X__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__x
+	pop	{r7, pc}
+.Lfunc_end15:
+	.size	Microsoft__Quantum__Intrinsic__X__body, .Lfunc_end15-Microsoft__Quantum__Intrinsic__X__body
+	.fnend
+
+	.globl	Microsoft__Quantum__Intrinsic__Z__body
+	.p2align	1
+	.type	Microsoft__Quantum__Intrinsic__Z__body,%function
+	.code	16
+	.thumb_func
+Microsoft__Quantum__Intrinsic__Z__body:
+	.fnstart
+	.save	{r7, lr}
+	push	{r7, lr}
+	bl	__quantum__qis__z
+	pop	{r7, pc}
+.Lfunc_end16:
+	.size	Microsoft__Quantum__Intrinsic__Z__body, .Lfunc_end16-Microsoft__Quantum__Intrinsic__Z__body
+	.fnend
+
 	.globl	Qrng__RandomBit__body
 	.p2align	1
 	.type	Qrng__RandomBit__body,%function
@@ -104,8 +410,8 @@ Qrng__RandomBit__body:
 	ldr	r0, [sp]
 	add	sp, #40
 	pop	{r7, pc}
-.Lfunc_end0:
-	.size	Qrng__RandomBit__body, .Lfunc_end0-Qrng__RandomBit__body
+.Lfunc_end17:
+	.size	Qrng__RandomBit__body, .Lfunc_end17-Qrng__RandomBit__body
 	.fnend
 
 	.globl	Qrng__RandomInt__body
@@ -122,14 +428,14 @@ Qrng__RandomInt__body:
 	movs	r0, #0
 	str	r0, [sp, #28]
 	str	r0, [sp, #24]
-	b	.LBB1_1
-.LBB1_1:
+	b	.LBB18_1
+.LBB18_1:
 	movs	r0, #0
 	mov	r1, r0
 	str	r0, [sp, #20]
 	str	r1, [sp, #16]
-	b	.LBB1_2
-.LBB1_2:
+	b	.LBB18_2
+.LBB18_2:
 	ldr	r0, [sp, #16]
 	ldr	r1, [sp, #20]
 	rsbs.w	r2, r1, #31
@@ -137,9 +443,9 @@ Qrng__RandomInt__body:
 	sbcs	r3, r0
 	str	r0, [sp, #12]
 	str	r1, [sp, #8]
-	blt	.LBB1_7
-	b	.LBB1_3
-.LBB1_3:
+	blt	.LBB18_7
+	b	.LBB18_3
+.LBB18_3:
 	bl	Qrng__RandomBit__body
 	mov	r1, r0
 	movw	r2, :lower16:ResultOne
@@ -150,9 +456,9 @@ Qrng__RandomInt__body:
 	bl	__quantum__rt__result_equal
 	lsls	r0, r0, #31
 	cmp	r0, #0
-	beq	.LBB1_5
-	b	.LBB1_4
-.LBB1_4:
+	beq	.LBB18_5
+	b	.LBB18_4
+.LBB18_4:
 	ldr	r0, [sp, #24]
 	ldr	r1, [sp, #28]
 	ldr	r2, [sp, #8]
@@ -172,26 +478,26 @@ Qrng__RandomInt__body:
 	adc.w	r1, r1, r4
 	str	r0, [sp, #24]
 	str	r1, [sp, #28]
-	b	.LBB1_5
-.LBB1_5:
+	b	.LBB18_5
+.LBB18_5:
 	ldr	r0, [sp, #4]
 	bl	__quantum__rt__result_unreference
-	b	.LBB1_6
-.LBB1_6:
+	b	.LBB18_6
+.LBB18_6:
 	ldr	r0, [sp, #8]
 	adds	r1, r0, #1
 	ldr	r2, [sp, #12]
 	adc	r3, r2, #0
 	str	r1, [sp, #20]
 	str	r3, [sp, #16]
-	b	.LBB1_2
-.LBB1_7:
+	b	.LBB18_2
+.LBB18_7:
 	ldr	r0, [sp, #24]
 	ldr	r1, [sp, #28]
 	add	sp, #32
 	pop	{r4, pc}
-.Lfunc_end1:
-	.size	Qrng__RandomInt__body, .Lfunc_end1-Qrng__RandomInt__body
+.Lfunc_end18:
+	.size	Qrng__RandomInt__body, .Lfunc_end18-Qrng__RandomInt__body
 	.fnend
 
 	.globl	Qrng__RandomInts__body
@@ -212,14 +518,14 @@ Qrng__RandomInts__body:
 	mov	r1, r0
 	str	r0, [sp, #40]
 	str	r1, [sp, #36]
-	b	.LBB2_1
-.LBB2_1:
+	b	.LBB19_1
+.LBB19_1:
 	movs	r0, #0
 	mov	r1, r0
 	str	r0, [sp, #32]
 	str	r1, [sp, #28]
-	b	.LBB2_2
-.LBB2_2:
+	b	.LBB19_2
+.LBB19_2:
 	ldr	r0, [sp, #28]
 	ldr	r1, [sp, #32]
 	rsbs.w	r2, r1, #31
@@ -227,9 +533,9 @@ Qrng__RandomInts__body:
 	sbcs	r3, r0
 	str	r0, [sp, #24]
 	str	r1, [sp, #20]
-	blt	.LBB2_5
-	b	.LBB2_3
-.LBB2_3:
+	blt	.LBB19_5
+	b	.LBB19_3
+.LBB19_3:
 	ldr	r0, [sp, #40]
 	bl	__quantum__rt__array_copy
 	str	r0, [sp, #16]
@@ -250,16 +556,16 @@ Qrng__RandomInts__body:
 	bl	__quantum__rt__array_reference
 	ldr	r0, [sp, #16]
 	bl	__quantum__rt__array_unreference
-	b	.LBB2_4
-.LBB2_4:
+	b	.LBB19_4
+.LBB19_4:
 	ldr	r0, [sp, #20]
 	adds	r1, r0, #1
 	ldr	r2, [sp, #24]
 	adc	r3, r2, #0
 	str	r1, [sp, #32]
 	str	r3, [sp, #28]
-	b	.LBB2_2
-.LBB2_5:
+	b	.LBB19_2
+.LBB19_5:
 	ldr	r0, [sp, #40]
 	ldr	r1, [sp, #36]
 	str	r0, [sp, #4]
@@ -268,314 +574,8 @@ Qrng__RandomInts__body:
 	ldr	r0, [sp, #4]
 	add	sp, #48
 	pop	{r7, pc}
-.Lfunc_end2:
-	.size	Qrng__RandomInts__body, .Lfunc_end2-Qrng__RandomInts__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Core__Attribute__body
-	.p2align	1
-	.type	Microsoft__Quantum__Core__Attribute__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Core__Attribute__body:
-	.fnstart
-	movs	r0, #0
-	bx	lr
-.Lfunc_end3:
-	.size	Microsoft__Quantum__Core__Attribute__body, .Lfunc_end3-Microsoft__Quantum__Core__Attribute__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Core__EntryPoint__body
-	.p2align	1
-	.type	Microsoft__Quantum__Core__EntryPoint__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Core__EntryPoint__body:
-	.fnstart
-	movs	r0, #0
-	bx	lr
-.Lfunc_end4:
-	.size	Microsoft__Quantum__Core__EntryPoint__body, .Lfunc_end4-Microsoft__Quantum__Core__EntryPoint__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Core__Inline__body
-	.p2align	1
-	.type	Microsoft__Quantum__Core__Inline__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Core__Inline__body:
-	.fnstart
-	movs	r0, #0
-	bx	lr
-.Lfunc_end5:
-	.size	Microsoft__Quantum__Core__Inline__body, .Lfunc_end5-Microsoft__Quantum__Core__Inline__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Core__Intrinsic__body
-	.p2align	1
-	.type	Microsoft__Quantum__Core__Intrinsic__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Core__Intrinsic__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	movs	r1, #8
-	movs	r2, #0
-	str	r0, [sp, #4]
-	mov	r0, r1
-	mov	r1, r2
-	bl	__quantum__rt__tuple_create
-	ldr	r1, [sp, #4]
-	str	r1, [r0, #4]
-	str	r0, [sp]
-	mov	r0, r1
-	bl	__quantum__rt__string_reference
-	ldr	r0, [sp]
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end6:
-	.size	Microsoft__Quantum__Core__Intrinsic__body, .Lfunc_end6-Microsoft__Quantum__Core__Intrinsic__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__CNOT__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__CNOT__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__CNOT__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__cnot
-	pop	{r7, pc}
-.Lfunc_end7:
-	.size	Microsoft__Quantum__Intrinsic__CNOT__body, .Lfunc_end7-Microsoft__Quantum__Intrinsic__CNOT__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__H__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__H__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__H__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__h
-	pop	{r7, pc}
-.Lfunc_end8:
-	.size	Microsoft__Quantum__Intrinsic__H__body, .Lfunc_end8-Microsoft__Quantum__Intrinsic__H__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__IntAsDouble__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__IntAsDouble__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__IntAsDouble__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	mov	r2, r1
-	mov	r3, r0
-	str	r2, [sp, #4]
-	str	r3, [sp]
-	bl	__quantum__qis__intAsDouble
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end9:
-	.size	Microsoft__Quantum__Intrinsic__IntAsDouble__body, .Lfunc_end9-Microsoft__Quantum__Intrinsic__IntAsDouble__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Measure__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Measure__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Measure__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__measure
-	pop	{r7, pc}
-.Lfunc_end10:
-	.size	Microsoft__Quantum__Intrinsic__Measure__body, .Lfunc_end10-Microsoft__Quantum__Intrinsic__Measure__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Mz__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Mz__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Mz__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__mz
-	pop	{r7, pc}
-.Lfunc_end11:
-	.size	Microsoft__Quantum__Intrinsic__Mz__body, .Lfunc_end11-Microsoft__Quantum__Intrinsic__Mz__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Rx__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Rx__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Rx__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	mov	r3, r1
-	mov	r12, r0
-	str	r3, [sp, #4]
-	str.w	r12, [sp]
-	bl	__quantum__qis__rx
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end12:
-	.size	Microsoft__Quantum__Intrinsic__Rx__body, .Lfunc_end12-Microsoft__Quantum__Intrinsic__Rx__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Rx__adj
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Rx__adj,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Rx__adj:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	mov	r3, r1
-	mov	r12, r0
-	eor	r1, r1, #-2147483648
-	str	r3, [sp, #4]
-	str.w	r12, [sp]
-	bl	__quantum__qis__rx
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end13:
-	.size	Microsoft__Quantum__Intrinsic__Rx__adj, .Lfunc_end13-Microsoft__Quantum__Intrinsic__Rx__adj
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Rz__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Rz__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Rz__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	mov	r3, r1
-	mov	r12, r0
-	str	r3, [sp, #4]
-	str.w	r12, [sp]
-	bl	__quantum__qis__rz
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end14:
-	.size	Microsoft__Quantum__Intrinsic__Rz__body, .Lfunc_end14-Microsoft__Quantum__Intrinsic__Rz__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Rz__adj
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Rz__adj,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Rz__adj:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	mov	r3, r1
-	mov	r12, r0
-	eor	r1, r1, #-2147483648
-	str	r3, [sp, #4]
-	str.w	r12, [sp]
-	bl	__quantum__qis__rz
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end15:
-	.size	Microsoft__Quantum__Intrinsic__Rz__adj, .Lfunc_end15-Microsoft__Quantum__Intrinsic__Rz__adj
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__S__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__S__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__S__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__s
-	pop	{r7, pc}
-.Lfunc_end16:
-	.size	Microsoft__Quantum__Intrinsic__S__body, .Lfunc_end16-Microsoft__Quantum__Intrinsic__S__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__S__adj
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__S__adj,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__S__adj:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	.pad	#8
-	sub	sp, #8
-	str	r0, [sp, #4]
-	bl	__quantum__qis__s
-	ldr	r0, [sp, #4]
-	bl	__quantum__qis__z
-	add	sp, #8
-	pop	{r7, pc}
-.Lfunc_end17:
-	.size	Microsoft__Quantum__Intrinsic__S__adj, .Lfunc_end17-Microsoft__Quantum__Intrinsic__S__adj
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__X__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__X__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__X__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__x
-	pop	{r7, pc}
-.Lfunc_end18:
-	.size	Microsoft__Quantum__Intrinsic__X__body, .Lfunc_end18-Microsoft__Quantum__Intrinsic__X__body
-	.fnend
-
-	.globl	Microsoft__Quantum__Intrinsic__Z__body
-	.p2align	1
-	.type	Microsoft__Quantum__Intrinsic__Z__body,%function
-	.code	16
-	.thumb_func
-Microsoft__Quantum__Intrinsic__Z__body:
-	.fnstart
-	.save	{r7, lr}
-	push	{r7, lr}
-	bl	__quantum__qis__z
-	pop	{r7, pc}
 .Lfunc_end19:
-	.size	Microsoft__Quantum__Intrinsic__Z__body, .Lfunc_end19-Microsoft__Quantum__Intrinsic__Z__body
+	.size	Qrng__RandomInts__body, .Lfunc_end19-Qrng__RandomInts__body
 	.fnend
 
 	.globl	Qrng_RandomInts

@@ -5,11 +5,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+
 
 #define DOV     0       // Verbose output for debugging
 
 #ifdef DOHOST
 unsigned int sleep(unsigned int seconds);
+#else
+//#include "synopsys_gpio.h"
+//#include "ARMCM4_FP.h"
+//#include "SEGGER_RTT.h"
 #endif
 
 void *memcpy(void *dest_str, const void *src_str, size_t number);
@@ -28,38 +34,41 @@ int  aryRef[aryMax];    // Need to keep track of ref count
 int  ary256[aryBigMax];      // Special casing the big one (just double buffer)
 int  aryCnt  = 0;
 
+int EXE_RESULT[32];
+
 void aryInit() {
     for (int i=0; i<aryMax; i++) aryRef[i] = 0;
 }
 
-void setAryLen(int* adr,int len){
+int* setAryLen(int len){
     for (int i=0; i<aryMax; i++) {
         if (aryRef[i]  == 0) {
             if (len == 256) {
                 if (aryCnt < aryBigMax) {
                     if (DOV) printf("        >>> New 256 entry buffer %d at: %d\n",aryCnt,i);
                     aryLen[i]   = len;
-                    aryAdr[i]   = adr;
+                    aryAdr[i]   = (int*)malloc(len);
                     aryRef[i]   = 1;
                     ary256[aryCnt++] = i;
                 }
                 else {
                     i  = ary256[aryCnt++ % aryBigMax];
-                    aryLen[i]   = len;
-                    aryAdr[i]   = adr;
                     aryRef[i]   = 1;
                     if (DOV) printf("        >>> OLD 256 entry buffer (%d mod %d) at: %d\n",aryCnt-1,aryBigMax,i);
                 }
             } else {
                 aryLen[i] = len;
-                aryAdr[i] = adr;
+                aryAdr[i]   = (int*)malloc(len);
                 aryRef[i] = 1;
-                if (DOV) printf("    >>> setAryLen(%08x,%d) at %d/%d\n",adr,len,i,1);
+                if (DOV) printf("    >>> setAryLen(%08x,%d) at %d/%d\n",aryAdr[i],len,i,1);
             }
-            return;
+            return aryAdr[i];
         }
     }
-    printf("!!!!!!!!!! SetAryLen: %08x,%d No room !!!!!!!!!!!!!\n",adr,len);
+#ifdef DOHOST
+    printf("!!!!!!!!!! SetAryLen: %08x,%d No room !!!!!!!!!!!!!\n",len);
+#endif
+    EXE_RESULT[0] = -2;
     exit(2);
 }
 
@@ -69,7 +78,10 @@ int getAryLen(int* adr) {
             if (DOV) printf("    >>> getAryLen(%08x,%d) at %d/%d\n",adr,aryLen[i],i,aryRef[i]);
             return aryLen[i];
         }
+#ifdef DOHOST
     printf("!!!!!!!!!! GetAryLen: %08x Not found !!!!!!!!!!!!!\n",adr);
+#endif
+    EXE_RESULT[0] = -1;
     exit(1);
 }
 
@@ -77,9 +89,11 @@ void decAryRef(int* adr) {
     for (int i=0; i<aryMax; i++) {
         if (aryRef[i] != 0 && aryAdr[i] == (int*)adr) {
             if (aryLen[i] != 256) {
-                char* didFree = --aryRef[i] == 0 ? " **FREED**" : "";
-                if (DOV) printf("    >>> decAryRef(%08x,%d) at %d/%d%s\n",adr,aryLen[i],i,aryRef[i],didFree);
-                if (didFree) free(adr);
+                if (--aryRef[i] == 0) free(adr);
+                if (DOV) {
+                    char* didFree = aryRef[i] == 0 ? " **FREED**" : "";
+                    printf("    >>> decAryRef(%08x,%d) at %d/%d%s\n",adr,aryLen[i],i,aryRef[i],didFree);
+                }
             } else if (DOV) printf("    >>> decAryRef(%08x,%d) at %d/%d IGNORED\n",adr,aryLen[i],i,aryRef[i]);
             return;
         }
@@ -98,22 +112,20 @@ void incAryRef(int* adr) {
     }
 }
 
-int* __quantum__rt__array_create_1d(int arg1,int arg2) {
-    int len = arg1*arg2;
-    int* retVal =  (int*)malloc(len); 
-    setAryLen(retVal,len);
+int* __quantum__rt__array_create_1d(int32_t arg1,int64_t arg2) {
+    int len     = arg1*arg2;
+    int* retVal =  setAryLen(len);
     if (DOV) printf(">>> %08x = array_create_1d(%d)\n",retVal,arg1);
     return retVal;
 }
-int* __quantum__rt__array_get_element_ptr_1d(int* arg1,int arg2) {
+int* __quantum__rt__array_get_element_ptr_1d(int* arg1,int64_t arg2) {
     //printf(">>> %08x = array_get_element_ptr_1d(%08x,%d)\n",arg1+arg2,arg1,arg2);
     return (arg1+arg2);
 }
 int* __quantum__rt__array_copy(int* arg1) { 
-    int len = getAryLen(arg1);
-    int* retVal = (int*)malloc(len);
+    int len     = getAryLen(arg1);
+    int* retVal = setAryLen(len);
     if (DOV) printf(">>> %08x = array_copy(%08x)\n",retVal,arg1);
-    setAryLen(retVal,len);
     memcpy(retVal,arg1,len);
     return retVal;
 }
@@ -153,9 +165,14 @@ int __quantum__rt__string_reference(int arg1) { return 0; }
 
 extern int* Qrng_RandomInts();
 
-int EXE_RESULT[32];
-
 int WinMain() { 
+#ifndef DOHOST
+    // initialize the JTAG printing library
+    //SEGGER_RTT_Init();
+
+    //GPIO0->SWPORTA_DR = 0;
+    //GPIO0->SWPORTA_DDR = 0xFF;
+#endif
     aryInit();  // Keeps track of lengths of allocated arrays
 
     // Main execution loop
@@ -169,6 +186,9 @@ int WinMain() {
         for (int i=0; i<32; i++)
             printf("%2d = %08x\n",i,EXE_RESULT[i]);
         sleep(1);
+#else
+        //GPIO0->SWPORTA_DR = 0x00;
+        //GPIO0->SWPORTA_DR = 0xFF;
 #endif
     }
 return 0;
