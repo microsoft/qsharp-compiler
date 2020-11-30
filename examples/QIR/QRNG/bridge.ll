@@ -104,6 +104,23 @@ entry:
 
 declare void @z(%class.QUBIT*)
 
+define %TupleHeader* @__quantum__rt__tuple_create(i64 %arg1) {
+entry:
+  %0 = call %"struct.quantum::TupleHeader"* @tuple_create(i64 %arg1)
+  %1 = bitcast %"struct.quantum::TupleHeader"* %0 to %TupleHeader*
+  ret %TupleHeader* %1
+}
+
+declare %"struct.quantum::TupleHeader"* @tuple_create(i64)
+
+define void @__quantum__rt__string_reference(%String* %arg1) {
+entry:
+  call void @string_reference(%String* %arg1)
+  ret void
+}
+
+declare void @string_reference(%String*)
+
 define %Qubit* @__quantum__rt__qubit_allocate() {
 entry:
   %0 = call %class.QUBIT* @qubit_allocate()
@@ -195,20 +212,3 @@ entry:
 }
 
 declare void @array_reference(%"struct.quantum::Array"*)
-
-define %TupleHeader* @__quantum__rt__tuple_create(i64 %arg1) {
-entry:
-  %0 = call %"struct.quantum::TupleHeader"* @tuple_create(i64 %arg1)
-  %1 = bitcast %"struct.quantum::TupleHeader"* %0 to %TupleHeader*
-  ret %TupleHeader* %1
-}
-
-declare %"struct.quantum::TupleHeader"* @tuple_create(i64)
-
-define void @__quantum__rt__string_reference(%String* %arg1) {
-entry:
-  call void @string_reference(%String* %arg1)
-  ret void
-}
-
-declare void @string_reference(%String*)

@@ -85,18 +85,13 @@ int Qrng__RandomInt__body() {
       int rslt; //alloca
                              ////// ['store', 'i64', '0', 'i64*', 'rslt'] [store]
       rslt = 0; //store
-                             ////// ['br', 'label', 'preheader__1'] [br]
+                             ////// ['br', 'label', 'header__1'] [br]
       blkPrv = blkCur; blkCur = 1;
       break;
   case 1:
     ;
-                             ////// ['br', 'label', 'header__1'] [br]
-      blkPrv = blkCur; blkCur = 2;
-      break;
-  case 2:
-    ;
-                             ////// ['i', '=', 'phi', 'i64', '[', '0', 'preheader__1', ']', '[', 'v[8]', 'exiting__1', ']'] [phi]
-      int i = blkPrv == 1 ? 0 : v[8]; //phi
+                             ////// ['i', '=', 'phi', 'i64', '[', 'v[8]', 'continue__1', ']', '[', '0', 'entry', ']'] [phi]
+      int i = blkPrv == 2 ? v[8] : 0; //phi
                              ////// ['v[0]', '=', 'icmp', 'sge', 'i64', 'i', '31'] [icmp]
       v[0] = i >= 31 ? 1 : 0; //icmp
                              ////// ['v[1]', '=', 'icmp', 'sle', 'i64', 'i', '31'] [icmp]
@@ -115,7 +110,7 @@ int Qrng__RandomInt__body() {
                              ////// ['v[4]', '=', 'call', 'i1', '__quantum__rt__result_equal(Result*', 'oneBit', 'Result*', 'v[3])'] [call]
       v[4] = oneBit == v[3] ? 1 : 0;
                              ////// ['br', 'i1', 'v[4]', 'label', 'then0__1', 'label', 'continue__1'] [br]
-      blkPrv = blkCur; blkCur = v[4] ? 5 : 6;
+      blkPrv = blkCur; blkCur = v[4] ? 5 : 2;
       break;
   case 5:
     ;
@@ -128,20 +123,15 @@ int Qrng__RandomInt__body() {
                              ////// ['store', 'i64', 'v[7]', 'i64*', 'rslt'] [store]
       rslt = v[7]; //store
                              ////// ['br', 'label', 'continue__1'] [br]
-      blkPrv = blkCur; blkCur = 6;
+      blkPrv = blkCur; blkCur = 2;
       break;
-  case 6:
+  case 2:
     ;
                              ////// ['call', 'void', '__quantum__rt__result_unreference(Result*', 'oneBit)'] [call]
-                             ////// ['br', 'label', 'exiting__1'] [br]
-      blkPrv = blkCur; blkCur = 7;
-      break;
-  case 7:
-    ;
                              ////// ['v[8]', '=', 'add', 'i64', 'i', '1'] [add]
       v[8] = i + 1; 
                              ////// ['br', 'label', 'header__1'] [br]
-      blkPrv = blkCur; blkCur = 2;
+      blkPrv = blkCur; blkCur = 1;
       break;
   case 4:
     ;
@@ -166,18 +156,13 @@ int* Qrng__RandomInts__body() {
       int* prslts; //alloca
                              ////// ['store', 'Array*', 'v[0]', 'Array**', 'rslts'] [store]
       prslts = pv[0]; //store
-                             ////// ['br', 'label', 'preheader__1'] [br]
+                             ////// ['br', 'label', 'header__1'] [br]
       blkPrv = blkCur; blkCur = 1;
       break;
   case 1:
     ;
-                             ////// ['br', 'label', 'header__1'] [br]
-      blkPrv = blkCur; blkCur = 2;
-      break;
-  case 2:
-    ;
-                             ////// ['i', '=', 'phi', 'i64', '[', '0', 'preheader__1', ']', '[', 'v[9]', 'exiting__1', ']'] [phi]
-      int i = blkPrv == 1 ? 0 : v[9]; //phi
+                             ////// ['i', '=', 'phi', 'i64', '[', 'v[9]', 'body__1', ']', '[', '0', 'entry', ']'] [phi]
+      int i = blkPrv == 2 ? v[9] : 0; //phi
                              ////// ['v[1]', '=', 'icmp', 'sge', 'i64', 'i', '31'] [icmp]
       v[1] = i >= 31 ? 1 : 0; //icmp
                              ////// ['v[2]', '=', 'icmp', 'sle', 'i64', 'i', '31'] [icmp]
@@ -185,9 +170,9 @@ int* Qrng__RandomInts__body() {
                              ////// ['v[3]', '=', 'select', 'i1', 'true', 'i1', 'v[2]', 'i1', 'v[1]'] [select]
       v[3] = 1 ? v[2] : v[1]; //select
                              ////// ['br', 'i1', 'v[3]', 'label', 'body__1', 'label', 'exit__1'] [br]
-      blkPrv = blkCur; blkCur = v[3] ? 3 : 4;
+      blkPrv = blkCur; blkCur = v[3] ? 2 : 3;
       break;
-  case 3:
+  case 2:
     ;
                              ////// ['v[4]', '=', 'load', 'Array*', 'Array**', 'rslts'] [load]
       pv[4] = prslts; //load
@@ -205,17 +190,12 @@ int* Qrng__RandomInts__body() {
       prslts = pv[5]; //store
                              ////// ['call', 'void', '__quantum__rt__array_reference(Array*', 'v[5])'] [call]
                              ////// ['call', 'void', '__quantum__rt__array_unreference(Array*', 'v[5])'] [call]
-                             ////// ['br', 'label', 'exiting__1'] [br]
-      blkPrv = blkCur; blkCur = 5;
-      break;
-  case 5:
-    ;
                              ////// ['v[9]', '=', 'add', 'i64', 'i', '1'] [add]
       v[9] = i + 1; 
                              ////// ['br', 'label', 'header__1'] [br]
-      blkPrv = blkCur; blkCur = 2;
+      blkPrv = blkCur; blkCur = 1;
       break;
-  case 4:
+  case 3:
     ;
                              ////// ['v[10]', '=', 'load', 'Array*', 'Array**', 'rslts'] [load]
       pv[10] = prslts; //load

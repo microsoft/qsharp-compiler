@@ -15,7 +15,6 @@ namespace Qrng {
             if (oneBit == One) {
                 set rslt = rslt + (1 <<< i);
             }
-            
         }
         return rslt;
     }

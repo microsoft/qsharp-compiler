@@ -191,7 +191,7 @@ def parseFile(mod,doRTT,doHost):
                     print('  }')
                     print('}')
 
-def load(inp):
+def load(inp,asm):
     with open(inp,"r") as file:
         text = file.read()
 
@@ -199,17 +199,21 @@ def load(inp):
     llvm.initialize_all_targets()
     llvm.initialize_all_asmprinters()
 
-#    target          = llvm.Target.from_triple("x86_64")
-#    target_machine  = target.create_target_machine()
-#    backing_mod     = llvm.parse_assembly("")
-#    engine          = llvm.create_mcjit_compiler(backing_mod, target_machine)
+    target          = llvm.Target.from_triple("x86_64-gnu")
+    target_machine  = target.create_target_machine()
+    backing_mod     = llvm.parse_assembly("")
+    engine          = llvm.create_mcjit_compiler(backing_mod, target_machine)
     mod             = llvm.parse_assembly(text)
-#    mod.verify()
-#    engine.add_module(mod)
-#    engine.finalize_object()
-#    engine.run_static_constructors()
-#    assembly        = target_machine.emit_assembly(mod)
-    return mod
+    mod.verify()
+    engine.add_module(mod)
+    engine.finalize_object()
+    engine.run_static_constructors()
+    assembly        = target_machine.emit_assembly(mod)
+
+    with open(asm,"w") as file:
+        file.write(assembly)
+
+    return mod,engine
 
 def main():
     parser = argparse.ArgumentParser()
@@ -223,12 +227,13 @@ def main():
 
     inpNam = args.baseName + ".ll"
     outNam = args.baseName + ".c"
+    asmNam = args.baseName + ".s"
 
     print(f'Generating: {outNam}')
     origStdout = sys.stdout
     with open(outNam,"w") as out:
         sys.stdout = out
-        mod = load(inpNam)
+        mod,_ = load(inpNam,asmNam)
         parseFile(mod,args.rtt,args.printf)
     sys.stdout = origStdout
 
