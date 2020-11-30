@@ -6,6 +6,231 @@
 	.globl	@feat.00
 .set @feat.00, 0
 	.file	"QRNG.ll"
+	.def	 Qrng__RandomBit__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Qrng__RandomBit__body           # -- Begin function Qrng__RandomBit__body
+	.p2align	4, 0x90
+Qrng__RandomBit__body:                  # @Qrng__RandomBit__body
+.seh_proc Qrng__RandomBit__body
+# %bb.0:                                # %entry
+	subq	$136, %rsp
+	.seh_stackalloc 136
+	.seh_endprologue
+	callq	__quantum__rt__qubit_allocate
+	movq	%rax, %rcx
+	movl	$1, %edx
+	movl	$1, %r8d
+	movq	%rcx, 128(%rsp)                 # 8-byte Spill
+	movl	%edx, %ecx
+	movl	%edx, 124(%rsp)                 # 4-byte Spill
+	movq	%r8, %rdx
+	movq	%rax, 112(%rsp)                 # 8-byte Spill
+	movq	%r8, 104(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_create_1d
+	movq	%rax, %rdx
+	xorl	%ecx, %ecx
+	movl	%ecx, %r8d
+	movq	%rax, %rcx
+	movq	%rdx, 96(%rsp)                  # 8-byte Spill
+	movq	%r8, %rdx
+	movq	%rax, 88(%rsp)                  # 8-byte Spill
+	movq	%r8, 80(%rsp)                   # 8-byte Spill
+	callq	__quantum__rt__array_get_element_ptr_1d
+	movb	PauliX(%rip), %r9b
+	movb	%r9b, (%rax)
+	movl	$8, %ecx
+	movq	104(%rsp), %rdx                 # 8-byte Reload
+	callq	__quantum__rt__array_create_1d
+	movq	%rax, %rdx
+	movq	%rax, %rcx
+	movq	80(%rsp), %r8                   # 8-byte Reload
+	movq	%rdx, 72(%rsp)                  # 8-byte Spill
+	movq	%r8, %rdx
+	movq	%rax, 64(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_get_element_ptr_1d
+	movq	112(%rsp), %rcx                 # 8-byte Reload
+	movq	%rcx, (%rax)
+	movq	88(%rsp), %rcx                  # 8-byte Reload
+	movq	64(%rsp), %rdx                  # 8-byte Reload
+	callq	__quantum__qis__measure
+	movl	124(%rsp), %ecx                 # 4-byte Reload
+	movq	104(%rsp), %rdx                 # 8-byte Reload
+	movq	%rax, 56(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_create_1d
+	movq	%rax, %rdx
+	movq	%rax, %rcx
+	movq	80(%rsp), %rax                  # 8-byte Reload
+	movq	%rdx, 48(%rsp)                  # 8-byte Spill
+	movq	%rax, %rdx
+	callq	__quantum__rt__array_get_element_ptr_1d
+	movb	PauliZ(%rip), %r9b
+	movb	%r9b, (%rax)
+	movl	$8, %ecx
+	movl	$1, %edx
+	callq	__quantum__rt__array_create_1d
+	xorl	%ecx, %ecx
+	movl	%ecx, %edx
+	movq	%rax, %rcx
+	movq	%rax, 40(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_get_element_ptr_1d
+	movq	128(%rsp), %rcx                 # 8-byte Reload
+	movq	%rcx, (%rax)
+	movq	48(%rsp), %rcx                  # 8-byte Reload
+	movq	40(%rsp), %rdx                  # 8-byte Reload
+	callq	__quantum__qis__measure
+	movq	128(%rsp), %rcx                 # 8-byte Reload
+	movq	%rax, 32(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__qubit_release
+	movq	96(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__array_unreference
+	movq	72(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__array_unreference
+	movq	48(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__array_unreference
+	movq	40(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__array_unreference
+	movq	32(%rsp), %rax                  # 8-byte Reload
+	addq	$136, %rsp
+	retq
+	.seh_handlerdata
+	.text
+	.seh_endproc
+                                        # -- End function
+	.def	 Qrng__RandomInt__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Qrng__RandomInt__body           # -- Begin function Qrng__RandomInt__body
+	.p2align	4, 0x90
+Qrng__RandomInt__body:                  # @Qrng__RandomInt__body
+.seh_proc Qrng__RandomInt__body
+# %bb.0:                                # %entry
+	subq	$72, %rsp
+	.seh_stackalloc 72
+	.seh_endprologue
+	movq	$0, 64(%rsp)
+# %bb.1:                                # %preheader__1
+	xorl	%eax, %eax
+	movl	%eax, %ecx
+	movq	%rcx, 56(%rsp)                  # 8-byte Spill
+	jmp	.LBB1_2
+.LBB1_2:                                # %header__1
+                                        # =>This Inner Loop Header: Depth=1
+	movq	56(%rsp), %rax                  # 8-byte Reload
+	movq	%rax, %rcx
+	subq	$32, %rcx
+	setl	%dl
+	testb	$1, %dl
+	movq	%rax, 48(%rsp)                  # 8-byte Spill
+	jne	.LBB1_3
+	jmp	.LBB1_7
+.LBB1_3:                                # %body__1
+                                        #   in Loop: Header=BB1_2 Depth=1
+	callq	Qrng__RandomBit__body
+	movq	ResultOne(%rip), %rdx
+	movq	%rax, %rcx
+	movq	%rax, 40(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__result_equal
+	testb	$1, %al
+	jne	.LBB1_4
+	jmp	.LBB1_5
+.LBB1_4:                                # %then0__1
+                                        #   in Loop: Header=BB1_2 Depth=1
+	movq	64(%rsp), %rax
+	movq	48(%rsp), %rcx                  # 8-byte Reload
+                                        # kill: def $cl killed $rcx
+	movl	$1, %edx
+	shlq	%cl, %rdx
+	addq	%rdx, %rax
+	movq	%rax, 64(%rsp)
+.LBB1_5:                                # %continue__1
+                                        #   in Loop: Header=BB1_2 Depth=1
+	movq	40(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__result_unreference
+# %bb.6:                                # %exiting__1
+                                        #   in Loop: Header=BB1_2 Depth=1
+	movq	48(%rsp), %rax                  # 8-byte Reload
+	addq	$1, %rax
+	movq	%rax, 56(%rsp)                  # 8-byte Spill
+	jmp	.LBB1_2
+.LBB1_7:                                # %exit__1
+	movq	64(%rsp), %rax
+	addq	$72, %rsp
+	retq
+	.seh_handlerdata
+	.text
+	.seh_endproc
+                                        # -- End function
+	.def	 Qrng__RandomInts__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Qrng__RandomInts__body          # -- Begin function Qrng__RandomInts__body
+	.p2align	4, 0x90
+Qrng__RandomInts__body:                 # @Qrng__RandomInts__body
+.seh_proc Qrng__RandomInts__body
+# %bb.0:                                # %entry
+	subq	$88, %rsp
+	.seh_stackalloc 88
+	.seh_endprologue
+	movl	$8, %ecx
+	movl	$32, %edx
+	callq	__quantum__rt__array_create_1d
+	movq	%rax, 80(%rsp)
+	movq	%rax, 72(%rsp)                  # 8-byte Spill
+# %bb.1:                                # %preheader__1
+	xorl	%eax, %eax
+	movl	%eax, %ecx
+	movq	%rcx, 64(%rsp)                  # 8-byte Spill
+	jmp	.LBB2_2
+.LBB2_2:                                # %header__1
+                                        # =>This Inner Loop Header: Depth=1
+	movq	64(%rsp), %rax                  # 8-byte Reload
+	movq	%rax, %rcx
+	subq	$32, %rcx
+	setl	%dl
+	testb	$1, %dl
+	movq	%rax, 56(%rsp)                  # 8-byte Spill
+	jne	.LBB2_3
+	jmp	.LBB2_5
+.LBB2_3:                                # %body__1
+                                        #   in Loop: Header=BB2_2 Depth=1
+	movq	80(%rsp), %rcx
+	callq	__quantum__rt__array_copy
+	movq	%rax, 48(%rsp)                  # 8-byte Spill
+	callq	Qrng__RandomInt__body
+	movq	48(%rsp), %rcx                  # 8-byte Reload
+	movq	56(%rsp), %rdx                  # 8-byte Reload
+	movq	%rax, 40(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_get_element_ptr_1d
+	movq	40(%rsp), %rcx                  # 8-byte Reload
+	movq	%rcx, (%rax)
+	movq	48(%rsp), %rax                  # 8-byte Reload
+	movq	%rax, 80(%rsp)
+	movq	%rax, %rcx
+	callq	__quantum__rt__array_reference
+	movq	48(%rsp), %rcx                  # 8-byte Reload
+	callq	__quantum__rt__array_unreference
+# %bb.4:                                # %exiting__1
+                                        #   in Loop: Header=BB2_2 Depth=1
+	movq	56(%rsp), %rax                  # 8-byte Reload
+	addq	$1, %rax
+	movq	%rax, 64(%rsp)                  # 8-byte Spill
+	jmp	.LBB2_2
+.LBB2_5:                                # %exit__1
+	movq	80(%rsp), %rax
+	movq	72(%rsp), %rcx                  # 8-byte Reload
+	movq	%rax, 32(%rsp)                  # 8-byte Spill
+	callq	__quantum__rt__array_unreference
+	movq	32(%rsp), %rax                  # 8-byte Reload
+	addq	$88, %rsp
+	retq
+	.seh_handlerdata
+	.text
+	.seh_endproc
+                                        # -- End function
 	.def	 Microsoft__Quantum__Core__Attribute__body;
 	.scl	2;
 	.type	32;
@@ -339,231 +564,6 @@ Microsoft__Quantum__Intrinsic__Z__body: # @Microsoft__Quantum__Intrinsic__Z__bod
 	callq	__quantum__qis__z
 	nop
 	addq	$40, %rsp
-	retq
-	.seh_handlerdata
-	.text
-	.seh_endproc
-                                        # -- End function
-	.def	 Qrng__RandomBit__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Qrng__RandomBit__body           # -- Begin function Qrng__RandomBit__body
-	.p2align	4, 0x90
-Qrng__RandomBit__body:                  # @Qrng__RandomBit__body
-.seh_proc Qrng__RandomBit__body
-# %bb.0:                                # %entry
-	subq	$136, %rsp
-	.seh_stackalloc 136
-	.seh_endprologue
-	callq	__quantum__rt__qubit_allocate
-	movq	%rax, %rcx
-	movl	$1, %edx
-	movl	$1, %r8d
-	movq	%rcx, 128(%rsp)                 # 8-byte Spill
-	movl	%edx, %ecx
-	movl	%edx, 124(%rsp)                 # 4-byte Spill
-	movq	%r8, %rdx
-	movq	%rax, 112(%rsp)                 # 8-byte Spill
-	movq	%r8, 104(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_create_1d
-	movq	%rax, %rdx
-	xorl	%ecx, %ecx
-	movl	%ecx, %r8d
-	movq	%rax, %rcx
-	movq	%rdx, 96(%rsp)                  # 8-byte Spill
-	movq	%r8, %rdx
-	movq	%rax, 88(%rsp)                  # 8-byte Spill
-	movq	%r8, 80(%rsp)                   # 8-byte Spill
-	callq	__quantum__rt__array_get_element_ptr_1d
-	movb	PauliX(%rip), %r9b
-	movb	%r9b, (%rax)
-	movl	$8, %ecx
-	movq	104(%rsp), %rdx                 # 8-byte Reload
-	callq	__quantum__rt__array_create_1d
-	movq	%rax, %rdx
-	movq	%rax, %rcx
-	movq	80(%rsp), %r8                   # 8-byte Reload
-	movq	%rdx, 72(%rsp)                  # 8-byte Spill
-	movq	%r8, %rdx
-	movq	%rax, 64(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_get_element_ptr_1d
-	movq	112(%rsp), %rcx                 # 8-byte Reload
-	movq	%rcx, (%rax)
-	movq	88(%rsp), %rcx                  # 8-byte Reload
-	movq	64(%rsp), %rdx                  # 8-byte Reload
-	callq	__quantum__qis__measure
-	movl	124(%rsp), %ecx                 # 4-byte Reload
-	movq	104(%rsp), %rdx                 # 8-byte Reload
-	movq	%rax, 56(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_create_1d
-	movq	%rax, %rdx
-	movq	%rax, %rcx
-	movq	80(%rsp), %rax                  # 8-byte Reload
-	movq	%rdx, 48(%rsp)                  # 8-byte Spill
-	movq	%rax, %rdx
-	callq	__quantum__rt__array_get_element_ptr_1d
-	movb	PauliZ(%rip), %r9b
-	movb	%r9b, (%rax)
-	movl	$8, %ecx
-	movl	$1, %edx
-	callq	__quantum__rt__array_create_1d
-	xorl	%ecx, %ecx
-	movl	%ecx, %edx
-	movq	%rax, %rcx
-	movq	%rax, 40(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_get_element_ptr_1d
-	movq	128(%rsp), %rcx                 # 8-byte Reload
-	movq	%rcx, (%rax)
-	movq	48(%rsp), %rcx                  # 8-byte Reload
-	movq	40(%rsp), %rdx                  # 8-byte Reload
-	callq	__quantum__qis__measure
-	movq	128(%rsp), %rcx                 # 8-byte Reload
-	movq	%rax, 32(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__qubit_release
-	movq	96(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__array_unreference
-	movq	72(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__array_unreference
-	movq	48(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__array_unreference
-	movq	40(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__array_unreference
-	movq	32(%rsp), %rax                  # 8-byte Reload
-	addq	$136, %rsp
-	retq
-	.seh_handlerdata
-	.text
-	.seh_endproc
-                                        # -- End function
-	.def	 Qrng__RandomInt__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Qrng__RandomInt__body           # -- Begin function Qrng__RandomInt__body
-	.p2align	4, 0x90
-Qrng__RandomInt__body:                  # @Qrng__RandomInt__body
-.seh_proc Qrng__RandomInt__body
-# %bb.0:                                # %entry
-	subq	$72, %rsp
-	.seh_stackalloc 72
-	.seh_endprologue
-	movq	$0, 64(%rsp)
-# %bb.1:                                # %preheader__1
-	xorl	%eax, %eax
-	movl	%eax, %ecx
-	movq	%rcx, 56(%rsp)                  # 8-byte Spill
-	jmp	.LBB18_2
-.LBB18_2:                               # %header__1
-                                        # =>This Inner Loop Header: Depth=1
-	movq	56(%rsp), %rax                  # 8-byte Reload
-	movq	%rax, %rcx
-	subq	$32, %rcx
-	setl	%dl
-	testb	$1, %dl
-	movq	%rax, 48(%rsp)                  # 8-byte Spill
-	jne	.LBB18_3
-	jmp	.LBB18_7
-.LBB18_3:                               # %body__1
-                                        #   in Loop: Header=BB18_2 Depth=1
-	callq	Qrng__RandomBit__body
-	movq	ResultOne(%rip), %rdx
-	movq	%rax, %rcx
-	movq	%rax, 40(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__result_equal
-	testb	$1, %al
-	jne	.LBB18_4
-	jmp	.LBB18_5
-.LBB18_4:                               # %then0__1
-                                        #   in Loop: Header=BB18_2 Depth=1
-	movq	64(%rsp), %rax
-	movq	48(%rsp), %rcx                  # 8-byte Reload
-                                        # kill: def $cl killed $rcx
-	movl	$1, %edx
-	shlq	%cl, %rdx
-	addq	%rdx, %rax
-	movq	%rax, 64(%rsp)
-.LBB18_5:                               # %continue__1
-                                        #   in Loop: Header=BB18_2 Depth=1
-	movq	40(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__result_unreference
-# %bb.6:                                # %exiting__1
-                                        #   in Loop: Header=BB18_2 Depth=1
-	movq	48(%rsp), %rax                  # 8-byte Reload
-	addq	$1, %rax
-	movq	%rax, 56(%rsp)                  # 8-byte Spill
-	jmp	.LBB18_2
-.LBB18_7:                               # %exit__1
-	movq	64(%rsp), %rax
-	addq	$72, %rsp
-	retq
-	.seh_handlerdata
-	.text
-	.seh_endproc
-                                        # -- End function
-	.def	 Qrng__RandomInts__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Qrng__RandomInts__body          # -- Begin function Qrng__RandomInts__body
-	.p2align	4, 0x90
-Qrng__RandomInts__body:                 # @Qrng__RandomInts__body
-.seh_proc Qrng__RandomInts__body
-# %bb.0:                                # %entry
-	subq	$88, %rsp
-	.seh_stackalloc 88
-	.seh_endprologue
-	movl	$8, %ecx
-	movl	$32, %edx
-	callq	__quantum__rt__array_create_1d
-	movq	%rax, 80(%rsp)
-	movq	%rax, 72(%rsp)                  # 8-byte Spill
-# %bb.1:                                # %preheader__1
-	xorl	%eax, %eax
-	movl	%eax, %ecx
-	movq	%rcx, 64(%rsp)                  # 8-byte Spill
-	jmp	.LBB19_2
-.LBB19_2:                               # %header__1
-                                        # =>This Inner Loop Header: Depth=1
-	movq	64(%rsp), %rax                  # 8-byte Reload
-	movq	%rax, %rcx
-	subq	$32, %rcx
-	setl	%dl
-	testb	$1, %dl
-	movq	%rax, 56(%rsp)                  # 8-byte Spill
-	jne	.LBB19_3
-	jmp	.LBB19_5
-.LBB19_3:                               # %body__1
-                                        #   in Loop: Header=BB19_2 Depth=1
-	movq	80(%rsp), %rcx
-	callq	__quantum__rt__array_copy
-	movq	%rax, 48(%rsp)                  # 8-byte Spill
-	callq	Qrng__RandomInt__body
-	movq	48(%rsp), %rcx                  # 8-byte Reload
-	movq	56(%rsp), %rdx                  # 8-byte Reload
-	movq	%rax, 40(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_get_element_ptr_1d
-	movq	40(%rsp), %rcx                  # 8-byte Reload
-	movq	%rcx, (%rax)
-	movq	48(%rsp), %rax                  # 8-byte Reload
-	movq	%rax, 80(%rsp)
-	movq	%rax, %rcx
-	callq	__quantum__rt__array_reference
-	movq	48(%rsp), %rcx                  # 8-byte Reload
-	callq	__quantum__rt__array_unreference
-# %bb.4:                                # %exiting__1
-                                        #   in Loop: Header=BB19_2 Depth=1
-	movq	56(%rsp), %rax                  # 8-byte Reload
-	addq	$1, %rax
-	movq	%rax, 64(%rsp)                  # 8-byte Spill
-	jmp	.LBB19_2
-.LBB19_5:                               # %exit__1
-	movq	80(%rsp), %rax
-	movq	72(%rsp), %rcx                  # 8-byte Reload
-	movq	%rax, 32(%rsp)                  # 8-byte Spill
-	callq	__quantum__rt__array_unreference
-	movq	32(%rsp), %rax                  # 8-byte Reload
-	addq	$88, %rsp
 	retq
 	.seh_handlerdata
 	.text

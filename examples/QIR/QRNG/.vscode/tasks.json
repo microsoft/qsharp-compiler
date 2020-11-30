@@ -12,10 +12,7 @@
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         },
         {
             "type": "shell",
@@ -23,9 +20,11 @@
             "command": "C:\\Strawberry\\c\\bin\\gcc.exe",
             "args": [
                 "-g",
-                "${file}",
+                "${workspaceFolder}/QRTstubs.c",
+                "${workspaceFolder}/QRNG_X86.s",
+                "-DDOHOST",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${workspaceFolder}/QRNG.exe"
             ],
             "options": {
                 "cwd": "C:\\Strawberry\\c\\bin"

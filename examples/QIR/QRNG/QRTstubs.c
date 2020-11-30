@@ -8,16 +8,8 @@
 
 #define DOV     0       // Verbose output for debugging
 
-#if DOHOST
+#ifdef DOHOST
 unsigned int sleep(unsigned int seconds);
-#else //DOHOST
-int dummy     = 0;
-unsigned int sleep(unsigned int seconds) {
-    for (int j=0; j<seconds; j++)
-        for (int i=0; i<2000000; i++)
-            dummy += i % 97;
-    return 0;
-}
 #endif
 
 void *memcpy(void *dest_str, const void *src_str, size_t number);
@@ -27,10 +19,14 @@ int __quantum__rt__qubit_allocate() {
     return 0; 
 }
 
-#define aryMax 100
+#define aryMax 20
 int* aryAdr[aryMax];    // Address of array
 int  aryLen[aryMax];    // Allocated length
 int  aryRef[aryMax];    // Need to keep track of ref count
+
+#define aryBigMax 2
+int  ary256[aryBigMax];      // Special casing the big one (just double buffer)
+int  aryCnt  = 0;
 
 void aryInit() {
     for (int i=0; i<aryMax; i++) aryRef[i] = 0;
@@ -39,25 +35,32 @@ void aryInit() {
 void setAryLen(int* adr,int len){
     for (int i=0; i<aryMax; i++) {
         if (aryRef[i]  == 0) {
-            aryLen[i] = len;
-            aryAdr[i] = adr;
-            aryRef[i] = 1;
-            if (DOV) printf("    >>> setAryLen(%08x,%d) at %d/%d\n",adr,len,i,1);
+            if (len == 256) {
+                if (aryCnt < aryBigMax) {
+                    if (DOV) printf("        >>> New 256 entry buffer %d at: %d\n",aryCnt,i);
+                    aryLen[i]   = len;
+                    aryAdr[i]   = adr;
+                    aryRef[i]   = 1;
+                    ary256[aryCnt++] = i;
+                }
+                else {
+                    i  = ary256[aryCnt++ % aryBigMax];
+                    aryLen[i]   = len;
+                    aryAdr[i]   = adr;
+                    aryRef[i]   = 1;
+                    if (DOV) printf("        >>> OLD 256 entry buffer (%d mod %d) at: %d\n",aryCnt-1,aryBigMax,i);
+                }
+            } else {
+                aryLen[i] = len;
+                aryAdr[i] = adr;
+                aryRef[i] = 1;
+                if (DOV) printf("    >>> setAryLen(%08x,%d) at %d/%d\n",adr,len,i,1);
+            }
             return;
         }
     }
-    // Kludge because we don't have GC, assume old stuff is re-usuable
-    for (int i=aryMax/2; i<aryMax; i++) {
-        aryLen[i-aryMax/2]  = aryLen[i];
-        aryAdr[i-aryMax/2]  = aryAdr[i];
-        aryRef[i-aryMax/2]  = aryRef[i];
-        aryRef[i]           = 0;
-    }
-    int i       = aryMax/2 + 1;
-    aryLen[i]   = len;
-    aryAdr[i]   = adr;
-    aryRef[i]   = 1;
-    if (DOV) printf("    >>> setAryLen(%08x,%d) at %d/%d *** RESET ***\n",adr,len,i,1);
+    printf("!!!!!!!!!! SetAryLen: %08x,%d No room !!!!!!!!!!!!!\n",adr,len);
+    exit(2);
 }
 
 int getAryLen(int* adr) {
@@ -66,28 +69,33 @@ int getAryLen(int* adr) {
             if (DOV) printf("    >>> getAryLen(%08x,%d) at %d/%d\n",adr,aryLen[i],i,aryRef[i]);
             return aryLen[i];
         }
+    printf("!!!!!!!!!! GetAryLen: %08x Not found !!!!!!!!!!!!!\n",adr);
     exit(1);
 }
 
 void decAryRef(int* adr) {
-    for (int i=0; i<aryMax; i++)
+    for (int i=0; i<aryMax; i++) {
         if (aryRef[i] != 0 && aryAdr[i] == (int*)adr) {
-            if (DOV) printf("    >>> decAryRef(%08x,%d) at %d/%d\n",adr,aryLen[i],i,aryRef[i]);
-            if (--aryRef[i] == 0) {
-                if (DOV) printf("        >>> FREED\n");
-                free(adr);
-            }
+            if (aryLen[i] != 256) {
+                char* didFree = --aryRef[i] == 0 ? " **FREED**" : "";
+                if (DOV) printf("    >>> decAryRef(%08x,%d) at %d/%d%s\n",adr,aryLen[i],i,aryRef[i],didFree);
+                if (didFree) free(adr);
+            } else if (DOV) printf("    >>> decAryRef(%08x,%d) at %d/%d IGNORED\n",adr,aryLen[i],i,aryRef[i]);
             return;
         }
+    }
 }
 
 void incAryRef(int* adr) {
-    for (int i=0; i<aryMax; i++)
+    for (int i=0; i<aryMax; i++) {
         if (aryRef[i] != 0 && aryAdr[i] == adr) {
-            if (DOV) printf("    >>> incAryRef(%08x,%d) at %d/%d\n",adr,aryLen[i],i,aryRef[i]);
-            aryRef[i]++;
+            if (aryLen[i] != 256) {
+                if (DOV) printf("    >>> incAryRef(%08x,%d) at %d/%d\n",adr,aryLen[i],i,aryRef[i]);
+                aryRef[i]++;
+            }
             return;
         }
+    }
 }
 
 int* __quantum__rt__array_create_1d(int arg1,int arg2) {
@@ -157,9 +165,11 @@ int WinMain() {
         for (int i=1; i<32; i++) 
             EXE_RESULT[i] = rslt[i];
 
+#ifdef DOHOST
         for (int i=0; i<32; i++)
             printf("%2d = %08x\n",i,EXE_RESULT[i]);
         sleep(1);
+#endif
     }
 return 0;
 }

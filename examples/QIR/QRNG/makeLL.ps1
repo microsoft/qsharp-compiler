@@ -5,10 +5,10 @@ dotnet run --project ..\..\..\src\QsCompiler\CommandLineTool\ build --qir s --bu
 "Convert LLVM QIR file to X86 Assembler: (QRNG_x86.s)"
 clang -S -fno-addrsig -o QRNG_x86.s QRNG.ll 
 "Convert LLVM QIR file to ARM Assembler: (QRNG_ARM.s)"
-clang -S -fno-addrsig -o QRNG_ARM.s -target "arm-cortex-m4-eabi" QRNG.ll 
+clang -S -fno-addrsig -o QRNG_ARM.s -target thumbv7m-none-unknown-eabi -mfloat-abi=hard QRNG.ll
 "Create X86 executable (QRNG.exe):"
 gcc -o QRNG.exe -DDOHOST QRTstubs.c QRNG_x86.s
-"Create ARM executable (QRNG.bin, QRNG.elf):"
+"Create ARM executable (QRNG.elf):"
 iex "$gccARM -c drivers\csi.c -o csi.o"
 iex "$gccARM -c drivers\hcl.c -o hcl.o"
 iex "$gccARM -c QRNG_ARM.s -mfloat-abi=hard -mfpu=fpv4-sp-d16 -o QRNG.o"
@@ -20,6 +20,10 @@ iex "$gccARM -c CMSIS\Device\ARM\ARMCM4\Source\startup_ARMCM4.c -o startup_ARMCM
 iex "$gccARM -c QRTstubs.c -o QRTstubs.o"
 iex "$gccARM -c RTT\SEGGER_RTT_printf.c -o SEGGER_RTT_printf.o"
 arm-none-eabi-gcc '-O2' '-mthumb' '-mcpu=cortex-m4' '-mfloat-abi=hard' '-mfpu=fpv4-sp-d16'  '-T' .\CMSIS\Device\ARM\ARMCM4\Source\GCC\gcc_arm.ld '-specs=nosys.specs' '-ffunction-sections' '-fdata-sections' '-Wl,--gc-sections' QRTstubs.o QRNG.o startup_ARMCM4.o system_ARMCM4.o acl.o csi.o hcl.o SEGGER_RTT.o SEGGER_RTT_printf.o '-o' QRNG.elf
-
+"Creating ARM bin file (QRNG.bin):"
 cmd /c arm-none-eabi-objcopy -O binary QRNG.elf QRNG.bin 
+"Location of output buffer:"
 arm-none-eabi-objdump -Ds QRNG.elf | findstr "_SEGGER_RTT EXE_RESULT"
+"Copy to shared directory:"
+copy QRNG*.* "~\Onedrive\Reilly Lab"
+copy QRTstubs.c "~\Onedrive\Reilly Lab"  
