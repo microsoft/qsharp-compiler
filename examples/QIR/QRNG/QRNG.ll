@@ -35,44 +35,25 @@ declare void @__quantum__qis__x(%Qubit*)
 
 declare void @__quantum__qis__z(%Qubit*)
 
-define %TupleHeader* @Microsoft__Quantum__Core__Attribute__body() {
-entry:
-  ret %TupleHeader* null
-}
+declare double @Microsoft__Quantum__Instructions__IntAsDoubleImpl__body(i64)
 
-define %TupleHeader* @Microsoft__Quantum__Core__EntryPoint__body() {
-entry:
-  ret %TupleHeader* null
-}
+declare void @Microsoft__Quantum__Instructions__PhysCNOT__body(%Qubit*, %Qubit*)
 
-define %TupleHeader* @Microsoft__Quantum__Core__Inline__body() {
-entry:
-  ret %TupleHeader* null
-}
+declare void @Microsoft__Quantum__Instructions__PhysH__body(%Qubit*)
 
-define { %TupleHeader, %String* }* @Microsoft__Quantum__Core__Intrinsic__body(%String* %arg0) {
-entry:
-  %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %String* }* getelementptr ({ %TupleHeader, %String* }, { %TupleHeader, %String* }* null, i32 1) to i64))
-  %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %String* }*
-  %2 = getelementptr inbounds { %TupleHeader, %String* }, { %TupleHeader, %String* }* %1, i32 0, i32 1
-  store %String* %arg0, %String** %2
-  call void @__quantum__rt__string_reference(%String* %arg0)
-  ret { %TupleHeader, %String* }* %1
-}
+declare %Result* @Microsoft__Quantum__Instructions__PhysM__body(%Qubit*)
 
-declare %TupleHeader* @__quantum__rt__tuple_create(i64)
+declare %Result* @Microsoft__Quantum__Instructions__PhysMeasure__body(%Array*, %Array*)
 
-declare void @__quantum__rt__string_reference(%String*)
+declare void @Microsoft__Quantum__Instructions__PhysRx__body(double, %Qubit*)
 
-declare i64 @Microsoft__Quantum__Core__Length__body(%Array*)
+declare void @Microsoft__Quantum__Instructions__PhysRz__body(double, %Qubit*)
 
-declare i64 @Microsoft__Quantum__Core__RangeEnd__body(%Range)
+declare void @Microsoft__Quantum__Instructions__PhysS__body(%Qubit*)
 
-declare %Range @Microsoft__Quantum__Core__RangeReverse__body(%Range)
+declare void @Microsoft__Quantum__Instructions__PhysX__body(%Qubit*)
 
-declare i64 @Microsoft__Quantum__Core__RangeStart__body(%Range)
-
-declare i64 @Microsoft__Quantum__Core__RangeStep__body(%Range)
+declare void @Microsoft__Quantum__Instructions__PhysZ__body(%Qubit*)
 
 define void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* %control, %Qubit* %target) {
 entry:
@@ -287,25 +268,44 @@ declare %Array* @__quantum__rt__array_copy(%Array*)
 
 declare void @__quantum__rt__array_reference(%Array*)
 
-declare double @Microsoft__Quantum__Instructions__IntAsDoubleImpl__body(i64)
+define %TupleHeader* @Microsoft__Quantum__Core__Attribute__body() {
+entry:
+  ret %TupleHeader* null
+}
 
-declare void @Microsoft__Quantum__Instructions__PhysCNOT__body(%Qubit*, %Qubit*)
+define %TupleHeader* @Microsoft__Quantum__Core__EntryPoint__body() {
+entry:
+  ret %TupleHeader* null
+}
 
-declare void @Microsoft__Quantum__Instructions__PhysH__body(%Qubit*)
+define %TupleHeader* @Microsoft__Quantum__Core__Inline__body() {
+entry:
+  ret %TupleHeader* null
+}
 
-declare %Result* @Microsoft__Quantum__Instructions__PhysM__body(%Qubit*)
+define { %TupleHeader, %String* }* @Microsoft__Quantum__Core__Intrinsic__body(%String* %arg0) {
+entry:
+  %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %String* }* getelementptr ({ %TupleHeader, %String* }, { %TupleHeader, %String* }* null, i32 1) to i64))
+  %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %String* }*
+  %2 = getelementptr inbounds { %TupleHeader, %String* }, { %TupleHeader, %String* }* %1, i32 0, i32 1
+  store %String* %arg0, %String** %2
+  call void @__quantum__rt__string_reference(%String* %arg0)
+  ret { %TupleHeader, %String* }* %1
+}
 
-declare %Result* @Microsoft__Quantum__Instructions__PhysMeasure__body(%Array*, %Array*)
+declare %TupleHeader* @__quantum__rt__tuple_create(i64)
 
-declare void @Microsoft__Quantum__Instructions__PhysRx__body(double, %Qubit*)
+declare void @__quantum__rt__string_reference(%String*)
 
-declare void @Microsoft__Quantum__Instructions__PhysRz__body(double, %Qubit*)
+declare i64 @Microsoft__Quantum__Core__Length__body(%Array*)
 
-declare void @Microsoft__Quantum__Instructions__PhysS__body(%Qubit*)
+declare i64 @Microsoft__Quantum__Core__RangeEnd__body(%Range)
 
-declare void @Microsoft__Quantum__Instructions__PhysX__body(%Qubit*)
+declare %Range @Microsoft__Quantum__Core__RangeReverse__body(%Range)
 
-declare void @Microsoft__Quantum__Instructions__PhysZ__body(%Qubit*)
+declare i64 @Microsoft__Quantum__Core__RangeStart__body(%Range)
+
+declare i64 @Microsoft__Quantum__Core__RangeStep__body(%Range)
 
 define %"struct.quantum::Array"* @Qrng_RandomInts() #0 {
 entry:

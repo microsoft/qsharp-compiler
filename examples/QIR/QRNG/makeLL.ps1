@@ -1,5 +1,4 @@
 $gccARM = "arm-none-eabi-gcc --std=c99 -Wextra -ffunction-sections -fdata-sections -g -O2 -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Wall -D ARMCM4_FP -W -I .\CMSIS\CMSIS\Core\Include\ -I .\CMSIS\Device\ARM\ARMCM4\Include -I .\CSR_Headers\ -I .\drivers -I .\RTT"
-
 "Create LLVM QIR file from Q# source: (QRNG.ll)"
 dotnet run --project ..\..\..\src\QsCompiler\CommandLineTool\ build --qir s --build-exe --input .\QRNG.qs ..\QirCore.qs ..\QirTarget.qs --proj QRNG
 "Convert LLVM QIR file to X86 Assembler: (QRNG_x86.s)"
@@ -24,6 +23,8 @@ arm-none-eabi-gcc '-O2' '-mthumb' '-mcpu=cortex-m4' '-mfloat-abi=hard' '-mfpu=fp
 cmd /c arm-none-eabi-objcopy -O binary QRNG.elf QRNG.bin 
 "Location of output buffer:"
 arm-none-eabi-objdump -Ds QRNG.elf | findstr "_SEGGER_RTT EXE_RESULT"
-"Copy to shared directory:"
-copy QRNG*.* "~\Onedrive\Reilly Lab"
-copy QRTstubs.c "~\Onedrive\Reilly Lab"  
+if ($env:COMPUTERNAME -eq "QTM-WECKER-01") {
+    "Copy to shared directory:"
+    copy QRNG*.* "~\Onedrive\Reilly Lab"
+    copy QRTstubs.c "~\Onedrive\Reilly Lab"  
+}

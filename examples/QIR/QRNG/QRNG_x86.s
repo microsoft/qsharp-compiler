@@ -6,73 +6,6 @@
 	.globl	@feat.00
 .set @feat.00, 0
 	.file	"QRNG.ll"
-	.def	 Microsoft__Quantum__Core__Attribute__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Microsoft__Quantum__Core__Attribute__body # -- Begin function Microsoft__Quantum__Core__Attribute__body
-	.p2align	4, 0x90
-Microsoft__Quantum__Core__Attribute__body: # @Microsoft__Quantum__Core__Attribute__body
-# %bb.0:                                # %entry
-	xorl	%eax, %eax
-                                        # kill: def $rax killed $eax
-	retq
-                                        # -- End function
-	.def	 Microsoft__Quantum__Core__EntryPoint__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Microsoft__Quantum__Core__EntryPoint__body # -- Begin function Microsoft__Quantum__Core__EntryPoint__body
-	.p2align	4, 0x90
-Microsoft__Quantum__Core__EntryPoint__body: # @Microsoft__Quantum__Core__EntryPoint__body
-# %bb.0:                                # %entry
-	xorl	%eax, %eax
-                                        # kill: def $rax killed $eax
-	retq
-                                        # -- End function
-	.def	 Microsoft__Quantum__Core__Inline__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Microsoft__Quantum__Core__Inline__body # -- Begin function Microsoft__Quantum__Core__Inline__body
-	.p2align	4, 0x90
-Microsoft__Quantum__Core__Inline__body: # @Microsoft__Quantum__Core__Inline__body
-# %bb.0:                                # %entry
-	xorl	%eax, %eax
-                                        # kill: def $rax killed $eax
-	retq
-                                        # -- End function
-	.def	 Microsoft__Quantum__Core__Intrinsic__body;
-	.scl	2;
-	.type	32;
-	.endef
-	.globl	Microsoft__Quantum__Core__Intrinsic__body # -- Begin function Microsoft__Quantum__Core__Intrinsic__body
-	.p2align	4, 0x90
-Microsoft__Quantum__Core__Intrinsic__body: # @Microsoft__Quantum__Core__Intrinsic__body
-.seh_proc Microsoft__Quantum__Core__Intrinsic__body
-# %bb.0:                                # %entry
-	subq	$56, %rsp
-	.seh_stackalloc 56
-	.seh_endprologue
-	xorl	%eax, %eax
-	movl	%eax, %edx
-	addq	$16, %rdx
-	movq	%rcx, 48(%rsp)                  # 8-byte Spill
-	movq	%rdx, %rcx
-	callq	__quantum__rt__tuple_create
-	movq	%rax, %rcx
-	movq	48(%rsp), %rdx                  # 8-byte Reload
-	movq	%rdx, 8(%rax)
-	movq	%rcx, 40(%rsp)                  # 8-byte Spill
-	movq	%rdx, %rcx
-	callq	__quantum__rt__string_reference
-	movq	40(%rsp), %rax                  # 8-byte Reload
-	addq	$56, %rsp
-	retq
-	.seh_handlerdata
-	.text
-	.seh_endproc
-                                        # -- End function
 	.def	 Microsoft__Quantum__Intrinsic__CNOT__body;
 	.scl	2;
 	.type	32;
@@ -453,8 +386,8 @@ Qrng__RandomInt__body:                  # @Qrng__RandomInt__body
 	xorl	%eax, %eax
 	movl	%eax, %ecx
 	movq	%rcx, 56(%rsp)                  # 8-byte Spill
-	jmp	.LBB18_2
-.LBB18_2:                               # %header__1
+	jmp	.LBB14_2
+.LBB14_2:                               # %header__1
                                         # =>This Inner Loop Header: Depth=1
 	movq	56(%rsp), %rax                  # 8-byte Reload
 	movq	%rax, %rcx
@@ -462,20 +395,20 @@ Qrng__RandomInt__body:                  # @Qrng__RandomInt__body
 	setl	%dl
 	testb	$1, %dl
 	movq	%rax, 48(%rsp)                  # 8-byte Spill
-	jne	.LBB18_3
-	jmp	.LBB18_7
-.LBB18_3:                               # %body__1
-                                        #   in Loop: Header=BB18_2 Depth=1
+	jne	.LBB14_3
+	jmp	.LBB14_7
+.LBB14_3:                               # %body__1
+                                        #   in Loop: Header=BB14_2 Depth=1
 	callq	Qrng__RandomBit__body
 	movq	ResultOne(%rip), %rdx
 	movq	%rax, %rcx
 	movq	%rax, 40(%rsp)                  # 8-byte Spill
 	callq	__quantum__rt__result_equal
 	testb	$1, %al
-	jne	.LBB18_4
-	jmp	.LBB18_5
-.LBB18_4:                               # %then0__1
-                                        #   in Loop: Header=BB18_2 Depth=1
+	jne	.LBB14_4
+	jmp	.LBB14_5
+.LBB14_4:                               # %then0__1
+                                        #   in Loop: Header=BB14_2 Depth=1
 	movq	64(%rsp), %rax
 	movq	48(%rsp), %rcx                  # 8-byte Reload
                                         # kill: def $cl killed $rcx
@@ -483,17 +416,17 @@ Qrng__RandomInt__body:                  # @Qrng__RandomInt__body
 	shlq	%cl, %rdx
 	addq	%rdx, %rax
 	movq	%rax, 64(%rsp)
-.LBB18_5:                               # %continue__1
-                                        #   in Loop: Header=BB18_2 Depth=1
+.LBB14_5:                               # %continue__1
+                                        #   in Loop: Header=BB14_2 Depth=1
 	movq	40(%rsp), %rcx                  # 8-byte Reload
 	callq	__quantum__rt__result_unreference
 # %bb.6:                                # %exiting__1
-                                        #   in Loop: Header=BB18_2 Depth=1
+                                        #   in Loop: Header=BB14_2 Depth=1
 	movq	48(%rsp), %rax                  # 8-byte Reload
 	addq	$1, %rax
 	movq	%rax, 56(%rsp)                  # 8-byte Spill
-	jmp	.LBB18_2
-.LBB18_7:                               # %exit__1
+	jmp	.LBB14_2
+.LBB14_7:                               # %exit__1
 	movq	64(%rsp), %rax
 	addq	$72, %rsp
 	retq
@@ -522,8 +455,8 @@ Qrng__RandomInts__body:                 # @Qrng__RandomInts__body
 	xorl	%eax, %eax
 	movl	%eax, %ecx
 	movq	%rcx, 64(%rsp)                  # 8-byte Spill
-	jmp	.LBB19_2
-.LBB19_2:                               # %header__1
+	jmp	.LBB15_2
+.LBB15_2:                               # %header__1
                                         # =>This Inner Loop Header: Depth=1
 	movq	64(%rsp), %rax                  # 8-byte Reload
 	movq	%rax, %rcx
@@ -531,10 +464,10 @@ Qrng__RandomInts__body:                 # @Qrng__RandomInts__body
 	setl	%dl
 	testb	$1, %dl
 	movq	%rax, 56(%rsp)                  # 8-byte Spill
-	jne	.LBB19_3
-	jmp	.LBB19_5
-.LBB19_3:                               # %body__1
-                                        #   in Loop: Header=BB19_2 Depth=1
+	jne	.LBB15_3
+	jmp	.LBB15_5
+.LBB15_3:                               # %body__1
+                                        #   in Loop: Header=BB15_2 Depth=1
 	movq	80(%rsp), %rcx
 	callq	__quantum__rt__array_copy
 	movq	%rax, 48(%rsp)                  # 8-byte Spill
@@ -552,18 +485,85 @@ Qrng__RandomInts__body:                 # @Qrng__RandomInts__body
 	movq	48(%rsp), %rcx                  # 8-byte Reload
 	callq	__quantum__rt__array_unreference
 # %bb.4:                                # %exiting__1
-                                        #   in Loop: Header=BB19_2 Depth=1
+                                        #   in Loop: Header=BB15_2 Depth=1
 	movq	56(%rsp), %rax                  # 8-byte Reload
 	addq	$1, %rax
 	movq	%rax, 64(%rsp)                  # 8-byte Spill
-	jmp	.LBB19_2
-.LBB19_5:                               # %exit__1
+	jmp	.LBB15_2
+.LBB15_5:                               # %exit__1
 	movq	80(%rsp), %rax
 	movq	72(%rsp), %rcx                  # 8-byte Reload
 	movq	%rax, 32(%rsp)                  # 8-byte Spill
 	callq	__quantum__rt__array_unreference
 	movq	32(%rsp), %rax                  # 8-byte Reload
 	addq	$88, %rsp
+	retq
+	.seh_handlerdata
+	.text
+	.seh_endproc
+                                        # -- End function
+	.def	 Microsoft__Quantum__Core__Attribute__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Microsoft__Quantum__Core__Attribute__body # -- Begin function Microsoft__Quantum__Core__Attribute__body
+	.p2align	4, 0x90
+Microsoft__Quantum__Core__Attribute__body: # @Microsoft__Quantum__Core__Attribute__body
+# %bb.0:                                # %entry
+	xorl	%eax, %eax
+                                        # kill: def $rax killed $eax
+	retq
+                                        # -- End function
+	.def	 Microsoft__Quantum__Core__EntryPoint__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Microsoft__Quantum__Core__EntryPoint__body # -- Begin function Microsoft__Quantum__Core__EntryPoint__body
+	.p2align	4, 0x90
+Microsoft__Quantum__Core__EntryPoint__body: # @Microsoft__Quantum__Core__EntryPoint__body
+# %bb.0:                                # %entry
+	xorl	%eax, %eax
+                                        # kill: def $rax killed $eax
+	retq
+                                        # -- End function
+	.def	 Microsoft__Quantum__Core__Inline__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Microsoft__Quantum__Core__Inline__body # -- Begin function Microsoft__Quantum__Core__Inline__body
+	.p2align	4, 0x90
+Microsoft__Quantum__Core__Inline__body: # @Microsoft__Quantum__Core__Inline__body
+# %bb.0:                                # %entry
+	xorl	%eax, %eax
+                                        # kill: def $rax killed $eax
+	retq
+                                        # -- End function
+	.def	 Microsoft__Quantum__Core__Intrinsic__body;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	Microsoft__Quantum__Core__Intrinsic__body # -- Begin function Microsoft__Quantum__Core__Intrinsic__body
+	.p2align	4, 0x90
+Microsoft__Quantum__Core__Intrinsic__body: # @Microsoft__Quantum__Core__Intrinsic__body
+.seh_proc Microsoft__Quantum__Core__Intrinsic__body
+# %bb.0:                                # %entry
+	subq	$56, %rsp
+	.seh_stackalloc 56
+	.seh_endprologue
+	xorl	%eax, %eax
+	movl	%eax, %edx
+	addq	$16, %rdx
+	movq	%rcx, 48(%rsp)                  # 8-byte Spill
+	movq	%rdx, %rcx
+	callq	__quantum__rt__tuple_create
+	movq	%rax, %rcx
+	movq	48(%rsp), %rdx                  # 8-byte Reload
+	movq	%rdx, 8(%rax)
+	movq	%rcx, 40(%rsp)                  # 8-byte Spill
+	movq	%rdx, %rcx
+	callq	__quantum__rt__string_reference
+	movq	40(%rsp), %rax                  # 8-byte Reload
+	addq	$56, %rsp
 	retq
 	.seh_handlerdata
 	.text
