@@ -1,11 +1,7 @@
-﻿using Llvm.NET.Instructions;
-using Llvm.NET.Types;
+﻿using System.Collections.Generic;
+using Llvm.NET.Instructions;
 using Llvm.NET.Values;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -55,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
         /// decrement the reference count</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string GetReleaseFunctionForType(ResolvedType t, bool isQubit)
+        private string? GetReleaseFunctionForType(ResolvedType t, bool isQubit)
         {
             if (t.Resolution.IsArrayType)
             {

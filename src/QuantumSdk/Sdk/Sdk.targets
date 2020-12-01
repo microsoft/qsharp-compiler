@@ -68,9 +68,13 @@
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
+      <!-- For the package ID that gets displayed in documentation, we default
+           to the actual package ID if it's set, but allow overriding with
+           QsharpDocsPackageId. -->
+      <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
+      <_QscDocsPackageId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageId>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
       <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
-      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc "$(QsharpDocsOutputPath)"</_QscCommandDocsFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
@@ -78,12 +82,14 @@
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
       <_QscCommandPredefinedAssemblyProperties>ProcessorArchitecture:$(ResolvedProcessorArchitecture) QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(ExecutionTarget) != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
 
@@ -126,7 +132,7 @@
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
   <Target Name="PrepareCsharpCompileAfterCsharpGeneration" DependsOnTargets="QsharpCompile" AfterTargets="QsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
     <ItemGroup>
-      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
+      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
       <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
     <Message 

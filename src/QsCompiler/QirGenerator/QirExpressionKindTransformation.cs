@@ -393,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             void CallCoreFunction(string name)
             {
-                if (name == BuiltIn.Length.FullName.Name.Value)
+                if (name == BuiltIn.Length.FullName.Name)
                 {
                     // The argument should be an array
                     var arrayArg = ExtractSingleArg();
@@ -422,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     var end = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
                     this.SharedState.ValueStack.Push(end);
                 }
-                else if (name == BuiltIn.RangeReverse.FullName.Name.Value)
+                else if (name == BuiltIn.RangeReverse.FullName.Name)
                 {
                     // The argument should be an range
                     var rangeArg = ExtractSingleArg();
@@ -472,7 +472,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 int controlledCount)
             {
                 var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                var func = this.SharedState.GetFunctionByName(callable.Item.Namespace.Value, callable.Item.Name.Value, kind);
+                var func = this.SharedState.GetFunctionByName(callable.Item.Namespace, callable.Item.Name, kind);
 
                 Value[] argList;
                 
@@ -582,9 +582,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     Identifier.GlobalCallable callable = id.Item1 as Identifier.GlobalCallable;
 
                     // Is it a call to a built-in?
-                    if (callable.Item.Namespace.Value == BuiltIn.CoreNamespace.Value)
+                    if (callable.Item.Namespace == BuiltIn.CoreNamespace)
                     {
-                        CallCoreFunction(callable.Item.Name.Value);
+                        CallCoreFunction(callable.Item.Name);
                     }
                     else
                     {
@@ -953,10 +953,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
             {
                 var location = new List<(int, ITypeRef)>();
-                if (this.SharedState.TryFindUDT(tt.Item.Namespace.Value, tt.Item.Name.Value, out QsCustomType udt)
+                if (this.SharedState.TryFindUDT(tt.Item.Namespace, tt.Item.Name, out QsCustomType udt)
                     && (accEx.Expression is ResolvedExpression.Identifier acc)
                     && (acc.Item1 is Identifier.LocalVariable loc)
-                    && this.FindNamedItem(loc.Item.Value, udt.TypeItems, location))
+                    && this.FindNamedItem(loc.Item, udt.TypeItems, location))
                 {
                     // The location list is backwards, by design, so we have to reverse it
                     location.Reverse();
@@ -1048,13 +1048,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 // Works for pointers as well as integer types
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.Equal,
+                    this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndEqual,
+                    this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsString)
@@ -1134,13 +1134,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedGreater,
+                    this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreater,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndGreaterThan,
+                    this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThan,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsBigInt)
@@ -1167,13 +1167,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedGreaterOrEqual,
+                    this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterOrEqual,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndGreaterThanOrEqual,
+                    this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThanOrEqual,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsBigInt)
@@ -1193,13 +1193,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             if (sym is Identifier.LocalVariable local)
             {
-                string name = local.Item.Value;
+                string name = local.Item;
                 this.SharedState.PushNamedValue(name);
             }
             else if (sym is Identifier.GlobalCallable globalCallable)
             {
-                if (this.SharedState.TryFindGlobalCallable(globalCallable.Item.Namespace.Value,
-                    globalCallable.Item.Name.Value, out QsCallable callable))
+                if (this.SharedState.TryFindGlobalCallable(globalCallable.Item.Namespace,
+                    globalCallable.Item.Name, out QsCallable callable))
                 {
                     var wrapper = this.SharedState.EnsureWrapperFor(callable);
                     var func = this.SharedState.GetRuntimeFunction("callable_create");
@@ -1249,14 +1249,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 || lhs.ResolvedType.Resolution.IsPauli)
             {
                 // Works for pointers as well as integer types
-                var eq = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.Equal,
+                var eq = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal,
                     lhsValue, rhsValue);
                 var ineq = this.SharedState.CurrentBuilder.Not(eq);
                 this.SharedState.ValueStack.Push(ineq);
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
-                var eq = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndEqual,
+                var eq = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual,
                     lhsValue, rhsValue);
                 var ineq = this.SharedState.CurrentBuilder.Not(eq);
                 this.SharedState.ValueStack.Push(ineq);
@@ -1332,13 +1332,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedLess,
+                    this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLess,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndLessThan,
+                    this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThan,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsBigInt)
@@ -1366,13 +1366,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedLessOrEqual,
+                    this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessOrEqual,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
                 this.SharedState.ValueStack.Push(
-                    this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.RealPredicate.OrderedAndLessThanOrEqual,
+                    this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThanOrEqual,
                     lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsBigInt)
@@ -1510,10 +1510,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             var t = ex.ResolvedType;
             if ((t.Resolution is QsResolvedTypeKind.UserDefinedType tt) && 
-                this.SharedState.TryFindUDT(tt.Item.Namespace.Value, tt.Item.Name.Value, out QsCustomType udt))
+                this.SharedState.TryFindUDT(tt.Item.Namespace, tt.Item.Name, out QsCustomType udt))
             {
                 var location = new List<(int, ITypeRef)>();
-                if (this.FindNamedItem((acc as Identifier.LocalVariable).Item.Value, udt.TypeItems, location))
+                if (this.FindNamedItem((acc as Identifier.LocalVariable).Item, udt.TypeItems, location))
                 {
                     // The location list is backwards, by design, so we have to reverse it
                     location.Reverse();
@@ -1574,7 +1574,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             switch (items)
             {
                 case QsTuple<QsTypeItem>.QsTupleItem leaf:
-                    if ((leaf.Item is QsTypeItem.Named n) && (n.Item.VariableName.Value == name))
+                    if ((leaf.Item is QsTypeItem.Named n) && (n.Item.VariableName == name))
                     {
                         return true;
                     }
@@ -1739,7 +1739,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return ResolvedExpression.InvalidExpr;
         }
 
-        public override ResolvedExpression OnStringLiteral(NonNullable<string> s, ImmutableArray<TypedExpression> exs)
+        public override ResolvedExpression OnStringLiteral(string str, ImmutableArray<TypedExpression> exs)
         {
             Value CreateConstantString(string s)
             {
@@ -1836,7 +1836,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 else if (ty.IsUserDefinedType)
                 {
                     // TODO: Do something better for UDT-to-string
-                    var udtName = (ty as QsResolvedTypeKind.UserDefinedType).Item.Name.Value;
+                    var udtName = (ty as QsResolvedTypeKind.UserDefinedType).Item.Name;
                     return CreateConstantString(udtName + "(...)");
                 }
                 else
@@ -1890,7 +1890,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             if (exs.IsEmpty)
             {
-                var stringValue = CreateConstantString(s.Value);
+                var stringValue = CreateConstantString(str);
                 this.SharedState.ValueStack.Push(stringValue);
                 this.SharedState.ScopeMgr.AddValue(stringValue, ResolvedType.New(QsResolvedTypeKind.String));
             }
@@ -1904,7 +1904,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 // make sure we skip escaped braces -- "\{".
                 Value current = null;
                 var offset = 0;
-                var str = s.Value;
                 while (offset < str.Length)
                 {
                     var (end, next, index) = FindNextExpression(str, offset);

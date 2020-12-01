@@ -20,11 +20,3 @@ steps:
   inputs:
     packageType: sdk
     version: '3.1.300'
-
-- task: Npm@1
-  displayName: 'Install vsce'
-  inputs:
-    command: custom
-    verbose: false
-    customCommand: 'install -g vsce'
- 

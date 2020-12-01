@@ -4,7 +4,7 @@ using Llvm.NET.Values;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
+
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {

@@ -1,9 +1,4 @@
-﻿using Llvm.NET.Types;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {

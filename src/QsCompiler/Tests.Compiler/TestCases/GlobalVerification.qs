@@ -1,6 +1,23 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict1 {
+    newtype Dummy = Unit;
+}
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict2 {
+    newtype Dummy = Unit;
+}
+
+/// Namespace used to test conflict with namespace name
+namespace Microsoft.Quantum.Testing.GlobalVerification.NamingConflict3 {
+    newtype Dummy = Unit;
+}
+
+
 /// This namespace contains test cases for syntax tree verification
 namespace Microsoft.Quantum.Testing.GlobalVerification {
 
@@ -121,6 +138,16 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     function LocalNamespaceShortNames24 (arg1 : Udt1, arg2 : Udt2) : Unit {
         let _ = arg1! + arg2!;
     }
+
+
+    // naming conflicts with namespace name
+
+    function NamingConflict1 () : Unit {}
+    operation NamingConflict2 () : Unit {}
+    newtype NamingConflict3 = Unit;
+    function NamingConflict4 () : Unit {}
+    operation NamingConflict5 () : Unit {}
+    newtype NamingConflict6 = Unit;
 
 
     // checking for duplicate specializations

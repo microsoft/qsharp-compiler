@@ -114,7 +114,7 @@ let ``basic transformation`` () =
 
 [<Fact>]
 let ``attaching attributes to callables`` () = 
-    let WithinNamespace nsName (c : QsNamespaceElement) = c.GetFullName().Namespace.Value = nsName
+    let WithinNamespace nsName (c : QsNamespaceElement) = c.GetFullName().Namespace = nsName
     let attGenNs = "Microsoft.Quantum.Testing.AttributeGeneration"
     let predicate = QsCallable >> WithinNamespace attGenNs
     let sources = [
@@ -170,11 +170,11 @@ let ``generation of open statements`` () =
         | QsCustomType t -> t.SourceFile
 
     let openExplicit =
-        let directive name = struct (sprintf "Microsoft.Quantum.%s" name |> NonNullable<string>.New, null)
+        let directive name = struct (sprintf "Microsoft.Quantum.%s" name, null)
         ["Canon"; "Intrinsic"] |> List.map directive
 
     let openAbbrevs =
-        let directive name = struct (sprintf "Microsoft.Quantum.%s" name |> NonNullable<string>.New, name)
+        let directive name = struct (sprintf "Microsoft.Quantum.%s" name, name)
         ["Arithmetic"; "Math"] |> List.map directive
     
     let openDirectives = openExplicit @ openAbbrevs |> ImmutableArray.ToImmutableArray

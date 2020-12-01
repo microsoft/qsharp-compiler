@@ -20,13 +20,13 @@ type TypeParameterTests () =
     let TypeParameterNS = "Microsoft.Quantum.Testing.TypeParameter"
 
     let qualifiedName name =
-        (TypeParameterNS |> NonNullable<string>.New, name |> NonNullable<string>.New) |> QsQualifiedName.New
+        (TypeParameterNS, name) |> QsQualifiedName.New
 
     let typeParameter (id : string) =
         let pieces = id.Split(".")
         Assert.True(pieces.Length = 2)
         let parent = qualifiedName pieces.[0]
-        let name = pieces.[1] |> NonNullable<string>.New
+        let name = pieces.[1]
         QsTypeParameter.New (parent, name, Null)
 
     let FooA = typeParameter "Foo.A"
@@ -52,7 +52,7 @@ type TypeParameterTests () =
     let AssertExpectedResolution expected given =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckCombinedResolution expected (resolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>),ResolvedType> []) =
+    let CheckCombinedResolution expected (resolutions : ImmutableDictionary<(QsQualifiedName * string),ResolvedType> []) =
         let combination = TypeResolutionCombination(resolutions)
         AssertExpectedResolution expected combination.CombinedResolutionDictionary
         combination.IsValid
@@ -98,9 +98,9 @@ type TypeParameterTests () =
 
     let GetCallableWithName compilation ns name =
         compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> Seq.filter (fun x -> x.Name = ns)
         |> GlobalCallableResolutions
-        |> Seq.find (fun x -> x.Key.Name.Value = name)
+        |> Seq.find (fun x -> x.Key.Name = name)
         |> (fun x -> x.Value)
 
     let GetMainExpression (compilation : QsCompilation) =
@@ -543,7 +543,7 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, [Int; FooA |> TypeParameter] |> MakeTupleType)
+            (BarA, [Int; [Int; FooA |> TypeParameter] |> MakeTupleType] |> MakeTupleType)
             (FooA, [Int; FooA |> TypeParameter] |> MakeTupleType)
         ]
 
@@ -561,7 +561,7 @@ type TypeParameterTests () =
             ]
         |]
         let expected = ResolutionFromParam [
-            (BarA, FooA |> TypeParameter |> MakeArrayType)
+            (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
             (FooA, FooA |> TypeParameter |> MakeArrayType)
         ]
 

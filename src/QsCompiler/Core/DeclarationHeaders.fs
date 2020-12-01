@@ -45,8 +45,10 @@ module DeclarationHeader =
         inherit JsonConverter<Offset>()
 
         override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : Offset, hasExistingValue : bool, serializer : JsonSerializer) =
-            let offset = serializer.Deserialize<Position>(reader)
-            if Object.ReferenceEquals(offset, null) then Offset.Undefined else Offset.Defined offset
+            if reader.ValueType <> typeof<String> || (string)reader.Value <> "Undefined" then
+                let offset = serializer.Deserialize<Position>(reader)
+                if Object.ReferenceEquals(offset, null) then Offset.Undefined else Offset.Defined offset
+            else Offset.Undefined
 
         override this.WriteJson(writer : JsonWriter, value : Offset, serializer : JsonSerializer) =
             match value with 
@@ -57,8 +59,10 @@ module DeclarationHeader =
         inherit JsonConverter<Range>()
 
         override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : Range, hasExistingValue : bool, serializer : JsonSerializer) =
-            let range = serializer.Deserialize<DataTypes.Range>(reader)
-            if Object.ReferenceEquals(range, null) then Range.Undefined else Range.Defined range
+            if reader.ValueType <> typeof<String> || (string)reader.Value <> "Undefined" then
+                let range = serializer.Deserialize<DataTypes.Range>(reader)
+                if Object.ReferenceEquals(range, null) then Range.Undefined else Range.Defined range
+            else Range.Undefined
 
         override this.WriteJson(writer : JsonWriter, value : Range, serializer : JsonSerializer) =
             match value with 
@@ -97,7 +101,7 @@ type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     Type            : ResolvedType
@@ -139,7 +143,7 @@ type CallableDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     Modifiers       : Modifiers
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
     ArgumentTuple   : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
@@ -191,7 +195,7 @@ type SpecializationDeclarationHeader = {
     Information     : CallableInformation
     Parent          : QsQualifiedName    
     Attributes      : ImmutableArray<QsDeclarationAttribute>
-    SourceFile      : NonNullable<string>
+    SourceFile      : string
     Position        : DeclarationHeader.Offset
     HeaderRange     : DeclarationHeader.Range
     Documentation   : ImmutableArray<string>

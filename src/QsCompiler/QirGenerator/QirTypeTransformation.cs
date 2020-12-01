@@ -1,13 +1,10 @@
-﻿using Llvm.NET.Types;
-using Microsoft.Quantum.QsCompiler.DataTypes;
+﻿using System;
+using System.Collections.Immutable;
+using System.Linq;
+using Llvm.NET.Types;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -37,16 +34,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.SharedState.BuiltType = this.SharedState.QirBool;
             return QsResolvedTypeKind.InvalidType;
         }
-
-        //public override CallableInformation OnCallableInformation(CallableInformation opInfo)
-        //{
-        //    return base.OnCallableInformation(opInfo);
-        //}
-
-        //public override ResolvedCharacteristics OnCharacteristicsExpression(ResolvedCharacteristics fs)
-        //{
-        //    return base.OnCharacteristicsExpression(fs);
-        //}
 
         public override QsResolvedTypeKind OnDouble()
         {
@@ -100,11 +87,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsResolvedTypeKind.InvalidType;
         }
 
-        //public override QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> OnRangeInformation(QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> r)
-        //{
-        //    return base.OnRangeInformation(r);
-        //}
-
         public override QsResolvedTypeKind OnResult()
         {
             this.SharedState.BuiltType = this.SharedState.QirResult;
@@ -125,11 +107,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsResolvedTypeKind.InvalidType;
         }
 
-        //public override QsResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
-        //{
-        //    return base.OnTypeParameter(tp);
-        //}
-
         public override QsResolvedTypeKind OnUnitType()
         {
             // Unit is represented as a null tuple pointer (an empty tuple).
@@ -142,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt)
         {
             // User-defined types are represented by their underlying types.
-            if (this.SharedState.TryFindUDT(udt.Namespace.Value, udt.Name.Value, out QsCustomType udtDefinition))
+            if (this.SharedState.TryFindUDT(udt.Namespace, udt.Name, out QsCustomType? udtDefinition))
             {
                 this.OnType(udtDefinition.Type);
             }

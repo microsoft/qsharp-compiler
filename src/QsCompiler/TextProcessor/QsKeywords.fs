@@ -13,7 +13,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 
 
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
-/// as well as a string containing the keyword itself. 
+/// as well as a string containing the keyword itself.
 type QsKeyword = {
     parse : Parser<Range, QsCompilerDiagnostic list>
     id : string
@@ -26,16 +26,16 @@ let private _LanguageKeywords = new HashSet<string>()
 /// contains all Q# keywords that denote the Q# fragment headers used as re-entry points upon parsing failures (strict subset of QsLanguageKeywords)
 let private _FragmentHeaders  = new HashSet<string>()
 
-let private qsKeyword word = 
+let private qsKeyword word =
     {parse = keyword word; id = word}
 
 /// adds the given word to the list of QsReservedKeywords, and returns the corresponding keyword
-let private addKeyword word = 
+let private addKeyword word =
     _ReservedKeywords.Add word |> ignore
     qsKeyword word
 
 /// adds the given word to the list of QsReservedKeywords and QsLanguageKeywords, and returns the corresponding keyword
-let private addLanguageKeyword word =  
+let private addLanguageKeyword word =
     _ReservedKeywords.Add word |> ignore
     _LanguageKeywords.Add word |> ignore
     qsKeyword word
@@ -47,10 +47,10 @@ let private addFragmentHeader word =
     _FragmentHeaders.Add  word |> ignore
     qsKeyword word
 
-/// Given the keyword for two functors, constructs and returns the keyword for the compined functor 
+/// Given the keyword for two functors, constructs and returns the keyword for the combined functor
 /// under the assumption tha the order of the functors does not matter.
 /// Adds the keyword for the combined functor to the list of QsReservedKeywords, QsLanguageKeywords and QsFragmentHeaders.
-let private addFunctorCombination (word1 : QsKeyword, word2 : QsKeyword) = 
+let private addFunctorCombination (word1 : QsKeyword, word2 : QsKeyword) =
     let id = sprintf "%s %s" word1.id word2.id;
     _ReservedKeywords.Add id |> ignore
     _LanguageKeywords.Add id |> ignore
@@ -81,15 +81,15 @@ let qsDouble = addLanguageKeyword Types.Double
 /// keyword for a predefined Q# type (QsLanguageKeyword)
 let qsBool   = addLanguageKeyword Types.Bool
 /// keyword for a predefined Q# type (QsLanguageKeyword)
-let qsQubit  = addLanguageKeyword Types.Qubit    
+let qsQubit  = addLanguageKeyword Types.Qubit
 /// keyword for a predefined Q# type (QsLanguageKeyword)
-let qsResult = addLanguageKeyword Types.Result 
+let qsResult = addLanguageKeyword Types.Result
 /// keyword for a predefined Q# type (QsLanguageKeyword)
 let qsPauli  = addLanguageKeyword Types.Pauli
 /// keyword for a predefined Q# type (QsLanguageKeyword)
-let qsRange  = addLanguageKeyword Types.Range 
+let qsRange  = addLanguageKeyword Types.Range
 /// keyword for a predefined Q# type (QsLanguageKeyword)
-let qsString = addLanguageKeyword Types.String 
+let qsString = addLanguageKeyword Types.String
 
 // Qs literals
 
@@ -180,7 +180,7 @@ let andOperator  = addKeyword Expressions.And
 let orOperator   = addKeyword Expressions.Or
 
 // declarations
-    
+
 /// keyword for a Q# declaration (QsFragmentHeader)
 let bodyDeclHeader    = addFragmentHeader Declarations.Body
 /// keyword for a Q# declaration (QsFragmentHeader)
@@ -222,7 +222,7 @@ let invertFunctorGenDirective     = addLanguageKeyword Directives.Invert
 let distributeFunctorGenDirective = addLanguageKeyword Directives.Distribute
 
 
-// external access to Q# keywords 
+// external access to Q# keywords
 
 /// contains all Q# keywords that cannot be used as a symbol name
 let public ReservedKeywords = _ReservedKeywords.ToImmutableHashSet()
@@ -239,9 +239,9 @@ type QsOperator = {
     cont : string
     prec : int
     isLeftAssociative : bool
-} 
-    with 
-    member internal this.Associativity = 
+}
+    with
+    member internal this.Associativity =
         if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New (str, p, assoc) = {op = str; cont = null; prec = p; isLeftAssociative = assoc}
@@ -277,16 +277,16 @@ let qsNEGop           = QsOperator.New("-"           ,   45, false)
 let qsSetUnion        = QsOperator.New("+"           ,   10, true)
 let qsSetIntersection = QsOperator.New("*"           ,   20, true)
 
-// As far as the precedence rules of Q# go, 
-// there are operators (the things above, processed by an operator precedence parser), 
+// As far as the precedence rules of Q# go,
+// there are operators (the things above, processed by an operator precedence parser),
 // modifiers (functors and unwrap, processed manually as part of certain expressions),
 // and combinators (like calls and array items, that are processed as part of the expression system).
 // The call combinator binds stronger than all operators.
 // All modifiers bind stronger than the call combinator.
-// The array item combinator binds stronger than all modifiers. 
-let qsCallCombinator        = QsOperator.New("(", ")"               , 900 , false) // Op()() is invalid and requires parentheses 
-let qsAdjointModifier       = QsOperator.New(qsAdjointFunctor.id    , 950 , false) 
+// The array item combinator binds stronger than all modifiers.
+let qsCallCombinator        = QsOperator.New("(", ")"               , 900 , true) // Op()() is fine
+let qsAdjointModifier       = QsOperator.New(qsAdjointFunctor.id    , 950 , false)
 let qsControlledModifier    = QsOperator.New(qsControlledFunctor.id , 951 , false)
-let qsUnwrapModifier        = QsOperator.New("!"                    , 1000, true) 
+let qsUnwrapModifier        = QsOperator.New("!"                    , 1000, true)
 let qsArrayAccessCombinator = QsOperator.New("[", "]"               , 1100, true)  // arr[i][j] is fine
 let qsNamedItemCombinator   = QsOperator.New("::"                   , 1100, true)  // any combination of named and array item acces is fine

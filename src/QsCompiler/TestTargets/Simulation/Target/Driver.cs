@@ -19,9 +19,10 @@ namespace Microsoft.Quantum.Testing.Simulation
         /// executes that operation on the QuantumSimulator.
         /// If no operation has been specified, 
         /// executes the operation Main defined in Microsoft.Quantum.Testing.Simulation.
-        /// Throws and EntryPointNotFoundException if a command line argument was given, 
-        /// but the corresponding operation was not found. 
         /// </summary>
+        /// <exception cref="EntryPointNotFoundException">
+        /// A command line argument was given, but the corresponding operation was not found.
+        /// </exception>
         static void Main(string[] args)
         {
             var entryPointName = args.FirstOrDefault() ?? "Microsoft.Quantum.Testing.Simulation.Main";
@@ -32,7 +33,7 @@ namespace Microsoft.Quantum.Testing.Simulation
 
             using (var qsim = new QuantumSimulator())
             {
-                Task task = entryPoint.Invoke(null, new[] { qsim }) as Task<QVoid>;
+                var task = entryPoint.Invoke(null, new[] { qsim }) as Task<QVoid>;
                 task?.Wait();
             }
         }

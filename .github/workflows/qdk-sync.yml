@@ -15,7 +15,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - id: AzureKeyVault
-        uses: Azure/get-keyvault-secrets@v1.0
+        uses: Azure/get-keyvault-secrets@v1
         with:
           keyvault: 'kv-qdk-build'
           secrets: 'qdkBuildPAT'

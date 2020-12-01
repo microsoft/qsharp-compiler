@@ -213,7 +213,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
     override this.OnIdentifier (sym, tArgs) =
         match sym with
         | LocalVariable name -> 
-            match constants.TryGetValue name.Value with 
+            match constants.TryGetValue name with
             | true, ex -> ex.Expression
             | _ -> Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
@@ -345,7 +345,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         match lhs.Expression, rhs.Expression with
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
         | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
-            StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
+            StringLiteral (a + b, a2.AddRange b2)
         | BigIntLiteral zero, op
         | op, BigIntLiteral zero when zero.IsZero -> op
         | DoubleLiteral 0.0, op

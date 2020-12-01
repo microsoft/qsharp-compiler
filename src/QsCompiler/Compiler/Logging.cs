@@ -13,11 +13,11 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 {
     public interface ILogger
     {
-        void Log(ErrorCode item, IEnumerable<string> args, string source = null, LSP.Range range = null);
+        void Log(ErrorCode item, IEnumerable<string> args, string? source = null, LSP.Range? range = null);
 
-        void Log(WarningCode item, IEnumerable<string> args, string source = null, LSP.Range range = null);
+        void Log(WarningCode item, IEnumerable<string> args, string? source = null, LSP.Range? range = null);
 
-        void Log(InformationCode item, IEnumerable<string> args, string source = null, LSP.Range range = null, params string[] messageParam);
+        void Log(InformationCode item, IEnumerable<string> args, string? source = null, LSP.Range? range = null, params string[] messageParam);
 
         void Log(params Diagnostic[] messages);
 
@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
         public LogTracker(
             DiagnosticSeverity verbosity = DiagnosticSeverity.Warning,
-            IEnumerable<int> noWarn = null,
+            IEnumerable<int>? noWarn = null,
             int lineNrOffset = 0)
         {
             this.Verbosity = verbosity;
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Logs a diagnostic message based on the given error code,
         /// with the given source as the file for which the error occurred.
         /// </summary>
-        public void Log(ErrorCode code, IEnumerable<string> args, string source = null, LSP.Range range = null) =>
+        public void Log(ErrorCode code, IEnumerable<string> args, string? source = null, LSP.Range? range = null) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Logs a a diagnostic message based on the given warning code,
         /// with the given source as the file for which the error occurred.
         /// </summary>
-        public void Log(WarningCode code, IEnumerable<string> args, string source = null, LSP.Range range = null) =>
+        public void Log(WarningCode code, IEnumerable<string> args, string? source = null, LSP.Range? range = null) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// with any message parameters appended on a new line to the message defined by the information code.
         /// The given source is listed as the file for which the error occurred.
         /// </summary>
-        public void Log(InformationCode code, IEnumerable<string> args, string source = null, LSP.Range range = null, params string[] messageParam) =>
+        public void Log(InformationCode code, IEnumerable<string> args, string? source = null, LSP.Range? range = null, params string[] messageParam) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Information,
@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Calls Print on the given diagnostic if the verbosity is sufficiently high.
         /// Does nothing if the given diagnostic is null.
         /// </summary>
-        private void Output(Diagnostic msg)
+        private void Output(Diagnostic? msg)
         {
             if (msg?.Severity <= this.Verbosity)
             {
@@ -153,14 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// prints the given diagnostic ff the logger verbosity is sufficiently high.
         /// Before printing, the line numbers are shifted by the offset specified upon initialization.
         /// Returns without doing anything if the given diagnostic is a warning that is to be ignored.
-        /// Throws an ArgumentNullException if the given diagnostic is null.
         /// </summary>
         public void Log(Diagnostic m)
         {
-            if (m == null)
-            {
-                throw new ArgumentNullException(nameof(m));
-            }
             if (m.Severity == DiagnosticSeverity.Warning &&
                 CompilationBuilder.Diagnostics.TryGetCode(m.Code, out int code)
                 && this.noWarn.Contains(code))
@@ -183,14 +178,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
         /// <summary>
         /// Increases the exception counter and calls OnException with the given exception.
-        /// Throws an ArgumentNullException if the given exception is null.
         /// </summary>
         public void Log(Exception ex)
         {
-            if (ex == null)
-            {
-                throw new ArgumentNullException(nameof(ex));
-            }
             ++this.NrExceptionsLogged;
             this.OnException(ex);
         }
@@ -198,21 +188,16 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
     public static class Formatting
     {
-        public static IEnumerable<string> Indent(params string[] items) =>
+        public static IEnumerable<string>? Indent(params string[] items) =>
             items?.Select(msg => $"    {msg}");
 
         /// <summary>
         /// Returns a string that contains all information about the given diagnostic in human readable format.
         /// The string contains one-based position information if the range information is not null,
         /// assuming the given position information is zero-based.
-        /// Throws an ArgumentNullException if the given message is null.
         /// </summary>
         public static string HumanReadableFormat(Diagnostic msg)
         {
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
             var codeStr = msg.Code == null ? string.Empty : $" {msg.Code}";
             var (startLine, startChar) = (msg.Range?.Start?.Line + 1 ?? 0, msg.Range?.Start?.Character + 1 ?? 0);
 
@@ -231,14 +216,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// in a format that is detected and processed as a diagnostic by VS and VS Code.
         /// The string contains one-based position information if the range information is not null,
         /// assuming the given position information is zero-based.
-        /// Throws an ArgumentNullException if the given message is null.
         /// </summary>
         public static string MsBuildFormat(Diagnostic msg)
         {
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
             var codeStr = msg.Code == null ? string.Empty : $" {msg.Code}";
             var (startLine, startChar) = (msg.Range?.Start?.Line + 1 ?? 0, msg.Range?.Start?.Character + 1 ?? 0);
 

@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             {
             }
 
-            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+            public override ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> typeParams)
             {
                 // Type resolutions for intrinsics are allowed
                 if (typeParams.Any(kvp => !this.SharedState.IntrinsicCallableSet.Contains(kvp.Key.Item1)))

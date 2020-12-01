@@ -75,7 +75,7 @@ let toBigInt b =
     BigIntLiteral (System.Numerics.BigInteger.Parse b) |> toExpr
 
 let toSymbol s =
-    {Symbol=Symbol (s |> NonNullable<string>.New); Range=Null}
+    {Symbol=Symbol s; Range=Null}
 
 let toIdentifier s =
     (Identifier (toSymbol s, Null)) |> toExpr

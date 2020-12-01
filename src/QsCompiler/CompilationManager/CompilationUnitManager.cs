@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -29,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// the keys are the file identifiers of the source files obtained by GetFileId for the file uri and the values are the content of each file
         /// </summary>
-        private readonly ConcurrentDictionary<NonNullable<string>, FileContentManager> fileContentManagers;
+        private readonly ConcurrentDictionary<string, FileContentManager> fileContentManagers;
 
         /// <summary>
         /// contains the CompilationUnit to which all files managed in this class instance belong to
@@ -50,12 +52,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// WaitForTypeCheck is null if a global type checking has been queued but is not yet running.
         /// If WaitForTypeCheck is not null then a global type checking may be running and can be cancelled via WaitForTypeCheck.
         /// </summary>
-        private CancellationTokenSource waitForTypeCheck;
+        private CancellationTokenSource? waitForTypeCheck;
 
         /// <summary>
         /// used to track which files have changed during global type checking
         /// </summary>
-        private readonly ManagedHashSet<NonNullable<string>> changedFiles;
+        private readonly ManagedHashSet<string> changedFiles;
 
         /// <summary>
         /// used to synchronously execute all write access
@@ -68,17 +70,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
         public CompilationUnitManager(
-            Action<Exception> exceptionLogger = null,
-            Action<PublishDiagnosticParams> publishDiagnostics = null,
+            Action<Exception>? exceptionLogger = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false,
-            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
+            RuntimeCapability? capability = null,
             bool isExecutable = false,
-            NonNullable<string> processorArchitecture = default)
+            string processorArchitecture = "Unspecified")
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.compilationUnit = new CompilationUnit(capabilities, isExecutable, processorArchitecture);
-            this.fileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
-            this.changedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
+            this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
+            this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
+            this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
@@ -94,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and then executes the given function, returning its result.
         /// Returns null if the given function to execute is null, but does everything else.
         /// </summary>
-        public T FlushAndExecute<T>(Func<T> execute = null) where T : class
+        public T? FlushAndExecute<T>(Func<T?>? execute = null) where T : class
         {
             // To enforce an up-to-date content for executing the given function,
             // we want to do a (synchronous!) global type checking on flushing,
@@ -117,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed");
                     return execute?.Invoke();
                 },
-                out T result);
+                out var result);
             return succeeded ? result : null;
         }
 
@@ -150,53 +152,46 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if the URI is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if the URI is not an absolute URI or not a file URI.</exception>
-        public static NonNullable<string> GetFileId(Uri uri) =>
-            uri is null
-                ? throw new ArgumentNullException(nameof(uri))
-                : TryGetFileId(uri, out var fileId)
-                ? fileId
-                : throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
+        public static string GetFileId(Uri uri)
+        {
+            if (!uri.IsAbsoluteUri || !uri.IsFile)
+            {
+                throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
+            }
+            return uri.LocalPath;
+        }
 
         /// <summary>
         /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI.
         /// </summary>
         /// <returns>True if converting the URI to a file ID succeeded.</returns>
         [Obsolete("Use GetFileId instead after ensuring that the URI is an absolute file URI.")]
-        public static bool TryGetFileId(Uri uri, out NonNullable<string> fileId)
+        public static bool TryGetFileId(Uri? uri, [MaybeNullWhen(false)] out string fileId)
         {
             if (!(uri is null) && uri.IsFile && uri.IsAbsoluteUri)
             {
-                fileId = NonNullable<string>.New(uri.LocalPath);
+                fileId = uri.LocalPath;
                 return true;
             }
-            else
-            {
-                fileId = default;
-                return false;
-            }
+            fileId = default;
+            return false;
         }
 
         /// <summary>
         /// Given a file id assigned by the compilation unit manager, returns the URI based on which the ID was constructed as out parameter.
         /// Returns false if the given file id is not compatible with an id generated by the compilation unit manager.
         /// </summary>
-        public static bool TryGetUri(NonNullable<string> fileId, out Uri uri) =>
-            Uri.TryCreate(Uri.UnescapeDataString(fileId.Value), UriKind.Absolute, out uri);
+        public static bool TryGetUri(string fileId, out Uri uri) =>
+            Uri.TryCreate(Uri.UnescapeDataString(fileId), UriKind.Absolute, out uri);
 
         /// <summary>
         /// Subscribes to diagnostics updated events,
         /// to events indicating when queued changes in the file content manager have not yet been processed,
         /// and to events indicating that the compilation unit wide semantic verification needs to be updated.
-        /// Throws an ArgumentNullException if the given file is null.
         /// </summary>
         private void SubscribeToFileManagerEvents(FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             file.TimerTriggeredUpdateEvent += this.TriggerFileUpdateAsync;
             if (this.EnableVerification)
             {
@@ -206,14 +201,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Unsubscribes from all events that SubscribeToFileManagerEvents subscribes to for the given file.
-        /// Throws an ArgumentNullException if the given file is null.
         /// </summary>
         private void UnsubscribeFromFileManagerEvents(FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             file.TimerTriggeredUpdateEvent -= this.TriggerFileUpdateAsync;
             if (this.EnableVerification)
             {
@@ -224,25 +214,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a FileContentManager for the given document with the given content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon processing the given content.
-        /// Throws an ArgumentNullException if the given file content is null.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
         public static FileContentManager InitializeFileManager(
             Uri uri,
             string fileContent,
-            Action<PublishDiagnosticParams> publishDiagnostics = null,
-            Action<Exception> onException = null)
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            Action<Exception>? onException = null)
         {
-            if (!TryGetFileId(uri, out NonNullable<string> docKey))
-            {
-                throw new ArgumentException("invalid TextDocumentIdentifier");
-            }
-            if (fileContent == null)
-            {
-                throw new ArgumentNullException(nameof(fileContent));
-            }
-
-            var file = new FileContentManager(uri, docKey);
+            var file = new FileContentManager(uri, GetFileId(uri));
             try
             {
                 file.ReplaceFileContent(fileContent);
@@ -258,27 +238,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a FileContentManager for each entry in the given dictionary of source files and their content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon content processing.
-        /// Throws an ArgumentNullException if the given dictionary of files and their content is null.
-        /// Throws an ArgumentException if any of the given uris is null or not an absolute file uri, or if any of the content is null.
         /// </summary>
+        /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files"/> is not an absolute file URI.</exception>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
-            Action<PublishDiagnosticParams> publishDiagnostics = null,
-            Action<Exception> onException = null)
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            Action<Exception>? onException = null)
         {
-            if (files == null)
-            {
-                throw new ArgumentNullException(nameof(files));
-            }
-            if (files.Any(item => item.Value == null))
-            {
-                throw new ArgumentException("file content cannot be null");
-            }
-            if (files.Any(item => !TryGetFileId(item.Key, out NonNullable<string> docKey)))
+            if (files.Any(item => !item.Key.IsAbsoluteUri || !item.Key.IsFile))
             {
                 throw new ArgumentException("invalid TextDocumentIdentifier");
             }
-
             return files.AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
@@ -291,16 +261,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a file with that Uri is already listed as source file,
         /// replaces the current FileContentManager for that file with the given one.
         /// If the content to update is specified and not null, replaces the tracked content in the file manager with the given one.
-        /// Throws an ArgumentNullException if any of the compulsory arguments is null or the set uri is.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
-        public Task AddOrUpdateSourceFileAsync(FileContentManager file, string updatedContent = null)
-        {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            return this.Processing.QueueForExecutionAsync(() =>
+        public Task AddOrUpdateSourceFileAsync(FileContentManager file, string? updatedContent = null) =>
+            this.Processing.QueueForExecutionAsync(() =>
             {
                 this.compilationUnit.RegisterDependentLock(file.SyncRoot);
                 this.SubscribeToFileManagerEvents(file);
@@ -316,23 +279,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 this.PublishDiagnostics(file.Diagnostics());
             });
-        }
 
         /// <summary>
         /// Adds the given source files to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// If a file with the same Uri is already listed as source file,
         /// replaces the current FileContentManager for that file with a new one and initialized its content to the given one.
         /// Spawns a compilation unit wide type checking unless suppressVerification is set to true, even if no files have been added.
-        /// Throws an ArgumentNullException if the given source files are null.
-        /// Throws an ArgumentException if an uri is not a valid absolute file uri, or if the content for a file is null.
         /// </summary>
-        public Task AddOrUpdateSourceFilesAsync(ImmutableHashSet<FileContentManager> files, bool suppressVerification = false)
-        {
-            if (files == null || files.Contains(null))
-            {
-                throw new ArgumentNullException(nameof(files));
-            }
-            return this.Processing.QueueForExecutionAsync(() =>
+        public Task AddOrUpdateSourceFilesAsync(ImmutableHashSet<FileContentManager> files, bool suppressVerification = false) =>
+            this.Processing.QueueForExecutionAsync(() =>
             {
                 foreach (var file in files)
                 {
@@ -347,31 +302,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.QueueGlobalTypeCheckingAsync();
                 }
             });
-        }
 
         /// <summary>
         /// Modifies the compilation and all diagnostics to reflect the given change.
-        /// Throws an ArgumentNullException if any of the arguments is null.
-        /// Throws a InvalidOperationException if file for which a change is given is not listed as source file.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
-        public Task SourceFileDidChangeAsync(DidChangeTextDocumentParams param)
-        {
-            if (!TryGetFileId(param?.TextDocument?.Uri, out NonNullable<string> docKey))
+        /// <exception cref="ArgumentException">The URI of the given text document identifier is null or not an absolute file URI.</exception>
+        /// <exception cref="InvalidOperationException">The file for which a change is given is not listed as a source file.</exception>
+        public Task SourceFileDidChangeAsync(DidChangeTextDocumentParams param) =>
+            this.Processing.QueueForExecutionAsync(() =>
             {
-                throw new ArgumentException("invalid TextDocumentIdentifier");
-            }
-            if (param.ContentChanges == null)
-            {
-                throw new ArgumentNullException(nameof(param.ContentChanges));
-            }
-
-            return this.Processing.QueueForExecutionAsync(() =>
-            {
+                var docKey = GetFileId(param.TextDocument.Uri);
                 var isSource = this.fileContentManagers.TryGetValue(docKey, out FileContentManager file);
                 if (!isSource)
                 {
-                    throw new InvalidOperationException($"changed file {docKey.Value} is not a source file of this compilation unit");
+                    throw new InvalidOperationException($"changed file {docKey} is not a source file of this compilation unit");
                 }
 
                 this.changedFiles.Add(docKey);
@@ -394,20 +338,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     file.AddTimerTriggeredUpdateEvent();
                 }
             });
-        }
 
         /// <summary>
         /// Called in order to process any queued changes in the file with the given URI and
         /// - if verifications are enabled - trigger a semantic check.
         /// Does not do anything if no file with the given URI is listed as source file of this compilation.
-        /// Throws an ArgumentException if the URI of the given text document identifier is null or not an absolute file URI.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
         private Task TriggerFileUpdateAsync(Uri uri)
         {
-            if (!TryGetFileId(uri, out NonNullable<string> docKey))
-            {
-                throw new ArgumentException("invalid TextDocumentIdentifier");
-            }
+            var docKey = GetFileId(uri);
             return this.Processing.QueueForExecutionAsync(() =>
             {
                 // Note that we cannot fail if the file is no longer part of the compilation,
@@ -438,14 +378,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// publishes empty Diagnostics for that file unless publishEmptyDiagnostics is set to false,
         /// and adapts all remaining diagnostics as needed.
         /// Does nothing if no file with the given Uri is listed as source file.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
         public Task TryRemoveSourceFileAsync(Uri uri, bool publishEmptyDiagnostics = true)
         {
-            if (!TryGetFileId(uri, out NonNullable<string> docKey))
-            {
-                throw new ArgumentException("invalid TextDocumentIdentifier");
-            }
+            var docKey = GetFileId(uri);
             return this.Processing.QueueForExecutionAsync(() =>
             {
                 if (!this.fileContentManagers.TryRemove(docKey, out FileContentManager file))
@@ -473,16 +410,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and adapts all remaining diagnostics as needed.
         /// Does nothing if a file with the given Uri is not listed as source file.
         /// Spawns a compilation unit wide type checking unless suppressVerification is set to true, even if no files have been removed.
-        /// Throws an ArgumentNullException if the given sequence of files are null.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">A URI in <paramref name="files"/> is not an absolute file URI.</exception>
         public Task TryRemoveSourceFilesAsync(IEnumerable<Uri> files, bool suppressVerification = false, bool publishEmptyDiagnostics = true)
         {
-            if (files == null)
-            {
-                throw new ArgumentNullException(nameof(files));
-            }
-            if (files.Any(uri => !TryGetFileId(uri, out var _)))
+            if (files.Any(uri => !uri.IsAbsoluteUri || !uri.IsFile))
             {
                 throw new ArgumentException("invalid TextDocumentIdentifier");
             }
@@ -491,7 +423,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 foreach (var uri in files)
                 {
-                    TryGetFileId(uri, out NonNullable<string> docKey);
+                    var docKey = GetFileId(uri);
                     if (!this.fileContentManagers.TryRemove(docKey, out FileContentManager file))
                     {
                         return;
@@ -519,14 +451,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Replaces the content from all referenced assemblies with the given references.
         /// Updates all diagnostics accordingly, unless suppressVerification has been set to true.
-        /// Throws an ArgumentNullException if the given references are null.
         /// </summary>
         internal Task UpdateReferencesAsync(References references, bool suppressVerification = false)
         {
-            if (references == null)
-            {
-                throw new ArgumentNullException(nameof(references));
-            }
             return this.Processing.QueueForExecutionAsync(() =>
             {
                 this.compilationUnit.UpdateReferences(references);
@@ -539,7 +466,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Replaces the content from all referenced assemblies with the given references, and updates all diagnostics accordingly.
-        /// Throws an ArgumentNullException if the given references are null.
         /// </summary>
         public Task UpdateReferencesAsync(References references) =>
             this.UpdateReferencesAsync(references, false);
@@ -581,9 +507,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.fileContentManagers.Values.OrderBy(m => m.FileName);
-            this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
+            this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName == f));
             var compilation = new CompilationUnit(
-                this.compilationUnit.RuntimeCapabilities,
+                this.compilationUnit.RuntimeCapability,
                 this.compilationUnit.IsExecutable,
                 this.compilationUnit.ProcessorArchitecture,
                 this.compilationUnit.Externals,
@@ -642,23 +568,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// for all files that have not been modified while the type checking was running. Updates and publishes the semantic diagnostics for those files.
         /// For each file that has been modified while the type checking was running,
         /// queues a task calling TypeCheckFile on that file with the given cancellationToken.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         private void RunGlobalTypeChecking(CompilationUnit compilation, ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> content, CancellationToken cancellationToken)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
-            if (content == null)
-            {
-                throw new ArgumentNullException(nameof(content));
-            }
-            if (cancellationToken == null)
-            {
-                throw new ArgumentNullException(nameof(cancellationToken));
-            }
-
             var diagnostics = QsCompilerError.RaiseOnFailure(
                 () => TypeChecking.RunTypeChecking(compilation, content, cancellationToken),
                 "error while running type checking in background");
@@ -687,7 +599,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return;
                     }
-                    var allDiagnostics = diagnostics.ToLookup(msg => NonNullable<string>.New(msg.Source));
+                    var allDiagnostics = diagnostics.ToLookup(msg => msg.Source);
                     foreach (var file in this.fileContentManagers.Values)
                     {
                         if (changedFiles.Contains(file.FileName))
@@ -721,14 +633,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given cancellation token is not cancellation requested, and the file with the document id is listed as source file,
         /// updates and resolves all global symbols for that file, and runs a type checking on the obtained content using the Compilation property.
         /// Replaces the header diagnostics and the semantic diagnostics in the file with the obtained diagnostics, and publishes them.
-        /// Throws an ArgumentNullException if the given cancellation token is null.
         /// </summary>
-        private void TypeCheckFile(NonNullable<string> fileId, CancellationToken cancellationToken)
+        private void TypeCheckFile(string fileId, CancellationToken cancellationToken)
         {
-            if (cancellationToken == null)
-            {
-                throw new ArgumentNullException(nameof(cancellationToken));
-            }
             var isSource = this.fileContentManagers.TryGetValue(fileId, out FileContentManager file);
             if (!isSource || cancellationToken.IsCancellationRequested)
             {
@@ -745,11 +652,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var diagnostics = new List<Diagnostic>();
                 var contentToCompile = file.UpdateGlobalSymbols(this.compilationUnit, diagnostics);
                 file.ImportGlobalSymbols(this.compilationUnit, diagnostics);
-                TypeChecking.ResolveGlobalSymbols(this.compilationUnit.GlobalSymbols, diagnostics, file.FileName.Value);
+                TypeChecking.ResolveGlobalSymbols(this.compilationUnit.GlobalSymbols, diagnostics, file.FileName);
                 file.ReplaceHeaderDiagnostics(diagnostics);
 
                 diagnostics = TypeChecking.RunTypeChecking(this.compilationUnit, file.GetDeclarationTrees(contentToCompile), CancellationToken.None);
-                file.ReplaceSemanticDiagnostics(diagnostics);
+                diagnostics?.Apply(file.ReplaceSemanticDiagnostics);
                 this.PublishDiagnostics(file.Diagnostics());
             }
             finally
@@ -767,18 +674,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
         /// </summary>
-        public WorkspaceEdit Rename(RenameParams param)
+        public WorkspaceEdit? Rename(RenameParams? param)
         {
-            if (!TryGetFileId(param?.TextDocument?.Uri, out NonNullable<string> docKey))
+            if (param?.TextDocument?.Uri is null
+                || !param.TextDocument.Uri.IsAbsoluteUri
+                || !param.TextDocument.Uri.IsFile)
             {
                 return null;
             }
+
             // FIXME: the correct thing to do here would be to call FlushAndExecute...!
+            var docKey = GetFileId(param.TextDocument.Uri);
             var success = this.Processing.QueueForExecution(
                 () => this.fileContentManagers.TryGetValue(docKey, out FileContentManager file)
                     ? file.Rename(this.compilationUnit, param.Position.ToQSharp(), param.NewName)
                     : null,
-                out WorkspaceEdit edit);
+                out var edit);
             return success ? edit : null;
         }
 
@@ -791,13 +702,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// NOTE: In debug mode, exceptions are always logged even if this parameter is true.
         /// </param>
-        internal T FileQuery<T>(
-            TextDocumentIdentifier textDocument,
-            Func<FileContentManager, CompilationUnit, T> query,
+        internal T? FileQuery<T>(
+            TextDocumentIdentifier? textDocument,
+            Func<FileContentManager, CompilationUnit, T?> query,
             bool suppressExceptionLogging = false)
             where T : class
         {
-            T TryQueryFile(FileContentManager f)
+            T? TryQueryFile(FileContentManager f)
             {
                 try
                 {
@@ -813,10 +724,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return null;
                 }
             }
-            if (!TryGetFileId(textDocument?.Uri, out NonNullable<string> docKey))
+            if (textDocument?.Uri is null || !textDocument.Uri.IsAbsoluteUri || !textDocument.Uri.IsFile)
             {
                 return null;
             }
+            var docKey = GetFileId(textDocument.Uri);
             var isSource = this.fileContentManagers.TryGetValue(docKey, out FileContentManager file);
             return isSource ? TryQueryFile(file) : null;
         }
@@ -831,7 +743,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before accumulating the diagnostics by calling FlushAndExecute.
         /// </summary>
-        public PublishDiagnosticParams[] GetDiagnostics(TextDocumentIdentifier textDocument = null) =>
+        public PublishDiagnosticParams[]? GetDiagnostics(TextDocumentIdentifier? textDocument = null) =>
             this.FlushAndExecute(() =>
                 textDocument != null
                     ? this.FileQuery(textDocument, (file, _) => new PublishDiagnosticParams[] { file.Diagnostics() })
@@ -842,8 +754,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before constructing the requested information by calling FlushAndExecute.
         /// </summary>
-        public IEnumerable<Uri> GetSourceFiles() =>
-            this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id.Value)).ToImmutableArray().AsEnumerable());
+        public IEnumerable<Uri>? GetSourceFiles() =>
+            this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id)).ToImmutableArray().AsEnumerable());
 
         /// <summary>
         /// Returns the current file content (text representation) in memory.
@@ -851,7 +763,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before getting the file content by calling FlushAndExecute.
         /// </summary>
-        public string[] FileContentInMemory(TextDocumentIdentifier textDocument) =>
+        public string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
                 this.FileQuery(textDocument, (file, _) => file.GetLines(0, file.NrLines()).Select(line => line.Text).ToArray()));
 
@@ -862,7 +774,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before getting the file content by calling FlushAndExecute.
         /// </summary>
-        public QsFragmentKind[][] GetTokenization(TextDocumentIdentifier textDocument) =>
+        public QsFragmentKind?[][]? GetTokenization(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
                 this.FileQuery(textDocument, (file, _) => file.GetTokenizedLines(0, file.NrLines()).Select(line => line.Select(frag => frag.Kind).ToArray()).ToArray()));
 
@@ -871,7 +783,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before constructing the syntax tree by calling FlushAndExecute.
         /// </summary>
-        public IEnumerable<QsNamespace> GetSyntaxTree() =>
+        public IEnumerable<QsNamespace>? GetSyntaxTree() =>
             this.FlushAndExecute(() => this.compilationUnit.Build().Namespaces.AsEnumerable());
 
         /// <summary>
@@ -879,7 +791,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Note: this method waits for all currently running or queued tasks to finish
         /// before constructing the Compilation object by calling FlushAndExecute.
         /// </summary>
-        public Compilation Build() => this.FlushAndExecute(() =>
+        public Compilation? Build() => this.FlushAndExecute(() =>
         {
             try
             {
@@ -900,29 +812,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Contains the file IDs assigned by the Q# compiler for all source files included in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<NonNullable<string>> SourceFiles;
+            public readonly ImmutableHashSet<string> SourceFiles;
 
             /// <summary>
             /// Contains the IDs assigned by the Q# compiler for all assemblies referenced in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<NonNullable<string>> References;
+            public readonly ImmutableHashSet<string> References;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the text representation of its content.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<string>> FileContent;
+            public readonly ImmutableDictionary<string, ImmutableArray<string>> FileContent;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the tokenization built based on its content.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
+            public readonly ImmutableDictionary<string, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
 
             /// <summary>
             /// Contains a dictionary that maps the name of a namespace to the compiled Q# namespace.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, QsNamespace> SyntaxTree;
+            public readonly ImmutableDictionary<string, QsNamespace> SyntaxTree;
 
             /// <summary>
             /// Contains the built Q# compilation.
@@ -933,13 +845,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up
             /// containing the names and corresponding short form (if any) of all opened namespaces for that (part of the) namespace in a particular source file.
             /// </summary>
-            private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string)>> openDirectivesForEachFile;
+            private readonly ImmutableDictionary<string, ILookup<string, (string, string?)>> openDirectivesForEachFile;
 
             /// <summary>
             /// Contains a dictionary that given the ID of a file included in the compilation
             /// returns all tokenized code fragments containing namespace declarations in that file.
             /// </summary>
-            private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> namespaceDeclarations;
+            private readonly ImmutableDictionary<string, ImmutableArray<CodeFragment>> namespaceDeclarations;
 
             /// <summary>
             /// Contains a dictionary that given the fully qualified name of a compiled callable returns its syntax tree.
@@ -955,37 +867,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all scope-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> ScopeDiagnostics;
+            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ScopeDiagnostics;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all syntax-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> SyntaxDiagnostics;
+            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SyntaxDiagnostics;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all context-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> ContextDiagnostics;
+            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ContextDiagnostics;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all diagnostics generated during compilation related to header information for declarations.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> HeaderDiagnostics;
+            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> HeaderDiagnostics;
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all semantic diagnostics generated during compilation for the specified implementations.
             /// </summary>
-            public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> SemanticDiagnostics;
+            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics;
 
             /// <summary>
             /// Maps a file ID assigned by the Q# compiler to all diagnostics generated during compilation.
             /// Returns an empty sequence if no file with the given ID has been included in the compilation.
             /// </summary>
-            public IEnumerable<Diagnostic> Diagnostics(NonNullable<string> file) =>
+            public IEnumerable<Diagnostic> Diagnostics(string file) =>
                 this.SourceFiles.Contains(file) ?
                     this.ScopeDiagnostics[file]
                         .Concat(this.SyntaxDiagnostics[file])
@@ -1010,13 +922,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// returns the (non-documenting) comments associated with that namespace declaration.
             /// Returns a set of empty comments otherwise.
             /// </summary>
-            public QsComments NamespaceComments(NonNullable<string> sourceFile, NonNullable<string> nsName)
+            public QsComments NamespaceComments(string sourceFile, string nsName)
             {
                 if (!this.namespaceDeclarations.TryGetValue(sourceFile, out ImmutableArray<CodeFragment> namespaces))
                 {
                     return QsComments.Empty;
                 }
-                var declarations = namespaces.Where(token => token.Kind?.DeclaredNamespaceName(null) == nsName.Value);
+                var declarations = namespaces.Where(token => token.Kind?.DeclaredNamespaceName(null) == nsName);
                 return declarations.Count() == 1 ? declarations.Single().Comments : QsComments.Empty;
             }
 
@@ -1025,22 +937,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// returns the names and corresponding short form (if any) of all opened namespaces for the (part of the) namespace in that file.
             /// Returns an empy sequence if no source file with the given ID and/or namespace with the given name exists in the compilation.
             /// </summary>
-            public IEnumerable<(NonNullable<string>, string)> OpenDirectives(NonNullable<string> sourceFile, NonNullable<string> nsName) =>
-                this.openDirectivesForEachFile
-                    .TryGetValue(nsName, out ILookup<NonNullable<string>, (NonNullable<string>, string)> lookUp)
-                        ? lookUp[sourceFile]
-                        : Enumerable.Empty<(NonNullable<string>, string)>();
+            public IEnumerable<(string, string?)> OpenDirectives(string sourceFile, string nsName) =>
+                this.openDirectivesForEachFile.TryGetValue(nsName, out var lookUp)
+                    ? lookUp[sourceFile]
+                    : Enumerable.Empty<(string, string?)>();
 
             /// <summary>
             /// Returns all the names of all callable and types defined in the namespace with the given name.
             /// The returned names are unique and do not contain duplications e.g. for types and the corresponding constructor.
             /// Returns an empty sequence if no namespace with the given name exists in the compilation.
             /// </summary>
-            public IEnumerable<NonNullable<string>> SymbolsDefinedInNamespace(NonNullable<string> nsName) =>
-                this.SyntaxTree.TryGetValue(nsName, out QsNamespace ns)
-                    ? ns.Elements.Select(element => (element is QsNamespaceElement.QsCallable c) ? c.Item.FullName.Name.Value : null)
-                        .Where(name => name != null).Select(name => NonNullable<string>.New(name))
-                    : Enumerable.Empty<NonNullable<string>>();
+            public IEnumerable<string> SymbolsDefinedInNamespace(string nsName) =>
+                this.SyntaxTree.TryGetValue(nsName, out var ns)
+                    ? ns.Elements.SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name)
+                    : Enumerable.Empty<string>();
 
             internal Compilation(CompilationUnitManager manager)
             {

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Common\AssemblyCommon.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.DocumentationGenerator</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Microsoft</Authors>
+    <Description>Experimental documentation generation tool for Q#.</Description>
+    <PackageName>Microsoft.Quantum.DocumentationGenerator</PackageName>
+    <PackageReleaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
+    <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
+    <PackageTags>Quantum Q# Qsharp</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>  
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\QsCompiler\Compiler\Compiler.csproj" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="DocumentationGenerator.props">
+      <Pack>true</Pack>
+      <PackagePath>build\Microsoft.Quantum.DocumentationGenerator.props</PackagePath>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+</Project>

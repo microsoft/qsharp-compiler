@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -94,24 +95,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// to be used as "counter-piece" to SplitLines
         /// </summary>
-        public static string JoinLines(string[] content) =>
+        [return: NotNullIfNotNull("content")]
+        public static string? JoinLines(string[] content) =>
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
         /// <summary>
-        /// Given a string, replaces the range [starChar, endChar) with the given string to insert.
+        /// Given a string, replaces the range [<paramref name="startChar"/>, <paramref name="endChar"/>) with <paramref name="insert"/>.
         /// Returns null if the given text is null.
-        /// Throws an ArgumentNullException if the given text to insert is null.
-        /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
-        internal static string GetChangedText(string lineText, int startChar, int endChar, string insert)
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="startChar"/> and <paramref name="endChar"/> do not denote a valid range within <paramref name="lineText"/>.</exception>
+        [return: NotNullIfNotNull("lineText")]
+        internal static string? GetChangedText(string? lineText, int startChar, int endChar, string insert)
         {
             if (lineText == null)
             {
                 return null;
-            }
-            if (insert == null)
-            {
-                throw new ArgumentNullException(nameof(insert));
             }
             if (startChar < 0 || startChar > lineText.Length)
             {
@@ -125,19 +123,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Return a string with the new content of the (entire) lines in the range [start, end] where start and end are the start and end line of the given change.
-        /// Verifies that the given change is consistent with the given file - i.e. the range is a valid range in file, and the text is not null, and
-        /// throws the correspoding exceptions if this is not the case.
+        /// Return a string with the new content of the (entire) lines in the range [start, end] where start and end are
+        /// the start and end line of the given change.
         /// </summary>
+        /// <exception cref="ArgumentException">The range is invalid.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The range is not contained in <paramref name="file"/>.</exception>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
             if (!file.ContainsRange(change.Range.ToQSharp()))
             {
                 throw new ArgumentOutOfRangeException(nameof(change)); // range can be empty
-            }
-            if (change.Text == null)
-            {
-                throw new ArgumentNullException(nameof(change.Text), "the given text change is null");
             }
 
             var first = file.GetLine(change.Range.Start.Line).Text;
@@ -151,108 +146,55 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false.
-        /// Returns (null, null) if the given IEnumerable is null.
-        /// Throws an ArgumentNullException if predicate is null.
         /// </summary>
-        public static (List<T>, List<T>) Partition<T>(this IEnumerable<T> collection, Func<T, bool> predicate)
-        {
-            if (predicate == null)
-            {
-                throw new ArgumentNullException(nameof(predicate));
-            }
-            return (collection?.Where(predicate).ToList(), collection?.Where(x => !predicate(x)).ToList());
-        }
+        public static (List<T>, List<T>) Partition<T>(this IEnumerable<T> collection, Func<T, bool> predicate) =>
+            (collection.Where(predicate).ToList(), collection.Where(x => !predicate(x)).ToList());
 
         /// <summary>
         /// Returns true if the given lock is either ReadLockHeld, or is UpgradeableReadLockHeld, or isWriteLockHeld.
-        /// Throws an ArgumentNullException if the given lock is null.
         /// </summary>
-        public static bool IsAtLeastReadLockHeld(this ReaderWriterLockSlim syncRoot)
-        {
-            if (syncRoot == null)
-            {
-                throw new ArgumentNullException(nameof(syncRoot));
-            }
-            return syncRoot.IsReadLockHeld || syncRoot.IsUpgradeableReadLockHeld || syncRoot.IsWriteLockHeld;
-        }
+        public static bool IsAtLeastReadLockHeld(this ReaderWriterLockSlim syncRoot) =>
+            syncRoot.IsReadLockHeld || syncRoot.IsUpgradeableReadLockHeld || syncRoot.IsWriteLockHeld;
 
         // utils for dealing with positions and ranges
 
         /// <summary>
         /// Converts the language server protocol position into a Q# compiler position.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="position"/> is invalid.</exception>
+        /// <exception cref="ArgumentException"><paramref name="position"/> is invalid.</exception>
         public static Position ToQSharp(this Lsp.Position position) =>
-            position is null
-                ? throw new ArgumentNullException(nameof(position))
-                : Position.Create(position.Line, position.Character);
+            Position.Create(position.Line, position.Character);
 
         /// <summary>
         /// Converts the Q# compiler position into a language server protocol position.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="position"/> is null.</exception>
         public static Lsp.Position ToLsp(this Position position) =>
-            position is null
-                ? throw new ArgumentNullException(nameof(position))
-                : new Lsp.Position(position.Line, position.Column);
+            new Lsp.Position(position.Line, position.Column);
 
         /// <summary>
         /// Converts the language server protocol range into a Q# compiler range.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="range"/> is invalid.</exception>
+        /// <exception cref="ArgumentException"><paramref name="range"/> is invalid.</exception>
         public static Range ToQSharp(this Lsp.Range range) =>
-            range is null
-                ? throw new ArgumentNullException(nameof(range))
-                : Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
+            Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
 
         /// <summary>
         /// Converts the Q# compiler range into a language server protocol range.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="range"/> is null.</exception>
         public static Lsp.Range ToLsp(this Range range) =>
-            range is null
-                ? throw new ArgumentNullException(nameof(range))
-                : new Lsp.Range { Start = range.Start.ToLsp(), End = range.End.ToLsp() };
+            new Lsp.Range { Start = range.Start.ToLsp(), End = range.End.ToLsp() };
 
         /// <summary>
         /// Returns true if the position is within the bounds of the file contents.
         /// </summary>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="file"/> or <paramref name="position"/> is null.
-        /// </exception>
-        internal static bool ContainsPosition(this FileContentManager file, Position position)
-        {
-            if (file is null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (position is null)
-            {
-                throw new ArgumentNullException(nameof(position));
-            }
-            return position.Line < file.NrLines() && position.Column <= file.GetLine(position.Line).Text.Length;
-        }
+        internal static bool ContainsPosition(this FileContentManager file, Position position) =>
+            position.Line < file.NrLines() && position.Column <= file.GetLine(position.Line).Text.Length;
 
         /// <summary>
         /// Returns true if the range is within the bounds of the file contents.
         /// </summary>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="file"/> or <paramref name="range"/> is null.
-        /// </exception>
-        internal static bool ContainsRange(this FileContentManager file, Range range)
-        {
-            if (file is null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (range is null)
-            {
-                throw new ArgumentNullException(nameof(range));
-            }
-            return file.ContainsPosition(range.Start) && file.ContainsPosition(range.End) && range.Start <= range.End;
-        }
+        internal static bool ContainsRange(this FileContentManager file, Range range) =>
+            file.ContainsPosition(range.Start) && file.ContainsPosition(range.End) && range.Start <= range.End;
 
         // tools for debugging
 

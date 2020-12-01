@@ -17,19 +17,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Checks that all delimiters are within -1 and the string length, and that they are sorted in ascending order.
-        /// Throws an ArgumentException if the checks fail.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
+        /// <exception cref="ArgumentException">The checks failed.</exception>
         internal static void VerifyStringDelimiters(string text, IEnumerable<int> delimiters)
         {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-            if (delimiters == null)
-            {
-                throw new ArgumentNullException(nameof(delimiters));
-            }
             var last = -2;
             foreach (int delim in delimiters)
             {
@@ -52,20 +43,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Checks that all positions are a valid index in the line text, and that they are sorted in ascending order.
         /// Checks that none of the positions lays within a string.
-        /// Throws an ArgumentException if the checks fail.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
+        /// <exception cref="ArgumentException">The checks failed.</exception>
         internal static void VerifyExcessBracketPositions(CodeLine line, IEnumerable<int> positions)
         {
-            if (line == null)
-            {
-                throw new ArgumentNullException(nameof(line));
-            }
-            if (positions == null)
-            {
-                throw new ArgumentNullException(nameof(positions));
-            }
-
             var last = -1;
             foreach (var pos in positions)
             {
@@ -87,17 +68,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Computes the updated code line based on the given previous line predecessing it,
-        /// and compares its indentation with the current line at continueAt in the given file.
+        /// and compares its indentation with the current line at <paramref name="continueAt"/> in the given file.
         /// Returns the difference of the new indentation and the current one.
-        /// Throws an ArgumentNullException if file is null.
-        /// Throws an ArgumentOutOfRangeException if the given index to continue at is less than zero or more than the number of lines in the given file.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="continueAt"/> is less than zero or more than the number of lines in <paramref name="file"/>.
+        /// </exception>
         internal static int GetIndentationChange(FileContentManager file, int continueAt, CodeLine previous) // previous: last element before the one at continueAt
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             if (continueAt < 0 || continueAt > file.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(continueAt));
@@ -118,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given line is not null and the line contains a (last) delimiter
         /// that is equal to the text length, and returns false otherwise.
         /// </summary>
-        private static bool ContinueString(CodeLine line)
+        private static bool ContinueString(CodeLine? line)
         {
             if (line == null)
             {
@@ -130,15 +108,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Computes the location of the string delimiters within a given text.
-        /// Throws an ArgumentNullException if the given text is null.
         /// </summary>
         private static IEnumerable<int> ComputeStringDelimiters(string text, bool isContinuation)
         {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
             var nrDelimiters = 0;
             if (isContinuation)
             {
@@ -195,14 +167,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given an index computed before applying RemoveStrings, computes the index after applying RemoveStrings.
         /// Returns -1 if the given index is within a string.
-        /// Throws an ArgumentNullException if delimiters is null.
         /// </summary>
         private static int IndexExcludingStrings(int indexInFullText, IEnumerable<int> delimiters)
         {
-            if (delimiters == null)
-            {
-                throw new ArgumentNullException(nameof(delimiters));
-            }
             var iter = delimiters.GetEnumerator();
             var index = indexInFullText;
             int GetStart(int pos) => pos < 0 ? 0 : StartDelimiter(pos);
@@ -225,14 +192,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given and index computed before applying RelevantCode, computes the index after applying RelevantCode.
         /// Returns -1 if the given index is negative, or is within a string or a comment, or denotes an excess bracket.
-        /// Throws an ArgumentNullException if line is null.
         /// </summary>
         private static int IndexInRelevantCode(int indexInFullText, CodeLine line)
         {
-            if (line == null)
-            {
-                throw new ArgumentNullException(nameof(line));
-            }
             if (indexInFullText < 0 || line.WithoutEnding.Length <= indexInFullText)
             {
                 return -1;
@@ -260,14 +222,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given an index computed after applying RemoveStrings, computes the index in the original text.
-        /// Throws an ArgumentNullException if delimiters is null.
         /// </summary>
         private static int IndexIncludingStrings(int indexInTrimmed, IEnumerable<int> delimiters)
         {
-            if (delimiters == null)
-            {
-                throw new ArgumentNullException(nameof(delimiters));
-            }
             var iter = delimiters.GetEnumerator();
             var index = indexInTrimmed;
             int GetStart(int pos) => pos < 0 ? 0 : StartDelimiter(pos);
@@ -284,11 +241,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given an index computed after applying RelevantCode, computes the index in the original text.
-        /// Throws an ArgumentNullException if line is null.
         /// </summary>
         private static int IndexInFullString(int indexInTrimmed, CodeLine line)
         {
-            var index = IndexIncludingStrings(indexInTrimmed, line?.StringDelimiters);
+            var index = IndexIncludingStrings(indexInTrimmed, line.StringDelimiters);
             foreach (var pos in line.ExcessBracketPositions)
             {
                 if (pos <= index)
@@ -339,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static string RelevantCode(CodeLine line)
         {
-            var delimiters = line?.StringDelimiters;
+            var delimiters = line.StringDelimiters;
             var stripped = RemoveStringsAndComment(line); // will raise an exception if line is null
             foreach (var index in line.ExcessBracketPositions.Reverse().Select(pos => IndexExcludingStrings(pos, delimiters)))
             {
@@ -352,9 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Computes the string delimiters for a truncated substring of length count starting at start based on the delimiters of the original string.
-        /// Throws an ArgumentNullException if the given delimiters are null.
-        /// Throws an ArgumentException if start or count is smaller than zero.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="start"/> or <paramref name="count"/> is smaller than zero.</exception>
         private static IEnumerable<int> TruncateStringDelimiters(IEnumerable<int> delimiters, int start, int count)
         {
             if (start < 0)
@@ -364,10 +319,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
-            }
-            if (delimiters == null)
-            {
-                throw new ArgumentNullException(nameof(delimiters));
             }
 
             var nrDelim = 0;
@@ -394,15 +345,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and - if ingoreExcessBrackets is set - excessive closing brackets.
         /// The returned index is relative to the original text.
         /// If the value returned by FindIndex is smaller than zero it is returned unchanged.
-        /// Throws an ArgumentOutOfRangeException if start and count do not define a valid range in the text of the given line.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Start and count do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, bool ignoreExcessBrackets = true)
         {
-            if (findIndex == null)
-            {
-                throw new ArgumentNullException(nameof(findIndex));
-            }
             if (ignoreExcessBrackets)
             {
                 return IndexInFullString(findIndex(RelevantCode(line)), line); // fine also for index = -1
@@ -418,12 +364,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// when ignoring end of line comments, content within strings, and - if ingoreExcessBrackets is set - excessive closing brackets.
         /// Important: This function returns the index relative to the original text, not the substring.
         /// If the value returned by FindIndex is smaller than zero it is returned unchanged.
-        /// Throws an ArgumentOutOfRangeException if start and count do not define a valid range in the text of the given line.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
-            var truncatedDelims = TruncateStringDelimiters(line?.StringDelimiters, start, count); // TruncateStringDelimiters will throw if line is null
+            var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
             var truncatedText = line.Text.Substring(start, count); // will throw if start and count are out of range
             var truncatedExcessClosings =
                 line.ExcessBracketPositions
@@ -475,23 +420,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // utils for computing indentations and excess closings
 
-        private static int NrIndents(string text)
-        {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-            return text.Length - text.Replace("{", "").Length;
-        }
+        private static int NrIndents(string text) => text.Length - text.Replace("{", "").Length;
 
-        private static int NrUnindents(string text)
-        {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-            return text.Length - text.Replace("}", "").Length;
-        }
+        private static int NrUnindents(string text) => text.Length - text.Replace("}", "").Length;
 
         /// <summary>
         /// Returns the indentation at the end of the line.
@@ -506,7 +437,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Computes the number of excess brackets on the given line based in the given line number
         /// and the list of lines containing the excess closings before that line.
-        /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
         private static int[] ComputeExcessClosings(CodeLine line, int effectiveIndent)
         {
@@ -553,14 +483,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with suitable string delimiters and the correct end of line comment position,
         /// leaving the indentation at its default value and the excess brackets uncomputed.
         /// The previous line being null or not provided indicates that there is no previous line.
-        /// Throws an ArgumentNullExceptions if the given texts are null.
         /// </summary>
-        private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine previousLine = null)
+        private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
-            if (texts == null)
-            {
-                throw new ArgumentNullException(nameof(texts));
-            }
             var continueString = ContinueString(previousLine);
             foreach (string text in texts)
             {
@@ -579,14 +504,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given the initial indentation of a sequence of CodeLines, and a sequence of code lines with the correct string delimiters set,
         /// computes and sets the correct indentation level and excess bracket positions for each line.
         /// The previous line being null or not provided indicates that there is no previous line.
-        /// Throws an ArgumentNullExceptions if the given texts are null.
         /// </summary>
         private static IEnumerable<CodeLine> SetIndentations(IEnumerable<CodeLine> lines, int currentIndentation)
         {
-            if (lines == null)
-            {
-                throw new ArgumentNullException(nameof(lines));
-            }
             foreach (var line in lines)
             {
                 var updated = line.SetIndentation(currentIndentation);
@@ -616,40 +536,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Based on the previous line, computes the new CodeLines for the given texts.
         /// The previous line being null or not provided indicates that there is no previous line.
-        /// Throws an ArgumentNullExceptions if the given texts are null.
         /// </summary>
-        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine previousLine = null)
-        {
-            return SetIndentations(InitializeCodeLines(texts, previousLine), previousLine == null ? 0 : previousLine.FinalIndentation());
-        }
+        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null) =>
+            SetIndentations(InitializeCodeLines(texts, previousLine), previousLine == null ? 0 : previousLine.FinalIndentation());
 
         /// <summary>
         /// Returns an enumerable sequence of new CodeLines when the initial indentation of the sequence is initialIndentation,
         /// (re-)computing the positions of excess brackets if needed.
-        /// Throws an ArgumentNullException if the given sequence of code lines is null.
         /// </summary>
-        private static List<CodeLine> GetUpdatedLines(this IEnumerable<CodeLine> lines, int initialIndentation)
-        {
-            return SetIndentations(lines, initialIndentation).ToList();
-        }
+        private static List<CodeLine> GetUpdatedLines(this IEnumerable<CodeLine> lines, int initialIndentation) =>
+            SetIndentations(lines, initialIndentation).ToList();
 
         /// <summary>
         /// Computes the excess closing and scope error updates for the given replacements at the position specified by start and count in the given file.
         /// Returns a sequence of CodeLines for the remaining file, if the made replacements require updating the remaining file as well, and null otherwise.
-        /// Throws an ArgumentNullException if file or replacements is null.
-        /// Throws an ArgumentException if replacements does not at least contain one CodeLine.
-        /// Throws an ArgumentOutOfRangeException if the range defined by start and count is not within the given file, where count needs to be at least one.
         /// </summary>
-        private static IEnumerable<CodeLine> ComputeUpdates(FileContentManager file, int start, int count, CodeLine[] replacements)
+        /// <exception cref="ArgumentException"><paramref name="replacements"/> does not at least contain one <see cref="CodeLine"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// The range defined by <paramref name="start"/> and <paramref name="count"/> is not within <paramref name="file"/>, or <paramref name="count"/> is less than 1.
+        /// </exception>
+        private static IEnumerable<CodeLine>? ComputeUpdates(FileContentManager file, int start, int count, CodeLine[] replacements)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (replacements == null)
-            {
-                throw new ArgumentNullException(nameof(replacements));
-            }
             if (start < 0 || start >= file.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
@@ -692,15 +599,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given the total number of excess closings in the file
         /// checks for both an unclosed scope and a missing string ending on lastLine, and adds the corresponding error(s) to updatedScopeErrors.
-        /// Throws an ArgumentNullException if file is null.
-        /// Throws an ArgumentException if the number of lines in the file is zero.
         /// </summary>
+        /// <exception cref="ArgumentException">The number of lines in <paramref name="file"/> is zero.</exception>
         private static IEnumerable<Diagnostic> CheckForMissingClosings(this FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             if (file.NrLines() == 0)
             {
                 throw new ArgumentException("the number of lines in a file can never be zero");
@@ -708,30 +610,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var lastLine = file.GetLine(file.NrLines() - 1);
             if (lastLine.FinalIndentation() > 0)
             {
-                yield return Errors.MissingClosingBracketError(file.FileName.Value, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingClosingBracketError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
             }
             if (ContinueString(lastLine))
             {
-                yield return Errors.MissingStringDelimiterError(file.FileName.Value, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
+                yield return Errors.MissingStringDelimiterError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
             }
         }
 
         /// <summary>
         /// Computes excess bracket errors for the given range of lines in file based on the corresponding CodeLine.
-        /// Throws an ArgumentNullException if file is null.
-        /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not within file.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not within <paramref name="file"/>.</exception>
         private static IEnumerable<Diagnostic> ComputeScopeDiagnostics(this FileContentManager file, int start, int count)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             foreach (var line in file.GetLines(start, count))
             {
                 foreach (var pos in line.ExcessBracketPositions)
                 {
-                    yield return Errors.ExcessBracketError(file.FileName.Value, Position.Create(start, pos));
+                    yield return Errors.ExcessBracketError(file.FileName, Position.Create(start, pos));
                 }
                 ++start;
             }
@@ -739,14 +636,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Computes excess bracket errors for the given range of lines in file based on the corresponding CodeLine.
-        /// Throws an ArgumentNullException if file is null.
-        /// Throws an ArgumentOutOfRangeException if start is not within file.
         /// </summary>
-        private static IEnumerable<Diagnostic> ComputeScopeDiagnostics(this FileContentManager file, int start)
-        {
-            // will raise an exception if file is null
-            return ComputeScopeDiagnostics(file, start, file == null ? 0 : file.NrLines() - start);
-        }
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> is not within <paramref name="file"/>.</exception>
+        private static IEnumerable<Diagnostic> ComputeScopeDiagnostics(this FileContentManager file, int start) =>
+            ComputeScopeDiagnostics(file, start, file == null ? 0 : file.NrLines() - start);
 
         // the actual update routine
 
@@ -760,7 +653,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 () => ComputeCodeLines(newText, start > 0 ? file.GetLine(start - 1) : null).ToArray(),
                 "scope tracking update failed during computing the replacements");
 
-            IEnumerable<CodeLine> updateRemaining = QsCompilerError.RaiseOnFailure(
+            IEnumerable<CodeLine>? updateRemaining = QsCompilerError.RaiseOnFailure(
                 () => ComputeUpdates(file, start, count, replacements),
                 "scope tracking update failed during computing the updates");
 
@@ -798,16 +691,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Attempts to compute an incremental update for the change specified by start, count and newText, and updates file accordingly.
         /// The given argument newText replaces the entire lines from start to (but not including) start + count.
         /// If the given change is null, then (only) the currently queued unprocessed changes are processed.
-        /// Throws an ArgumentNullException if file is null.
-        /// Any other exceptions should be throws (and caught, and possibly re-thrown) during the updating.
         /// </summary>
-        internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent change)
+        internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent? change)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-
             /// <summary>
             /// Replaces the lines in the range [start, end] with those for the given text.
             /// </summary>
@@ -848,7 +734,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 // process the currently queued changes if necessary
-                if (file.DequeueUnprocessedChanges(out int start, out string text))
+                if (file.DequeueUnprocessedChanges(out var start, out var text))
                 {
                     ComputeUpdate(start, start, text);
                 }

@@ -4,7 +4,6 @@
 module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -16,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations
 type internal FindDistinctQubits private (_private_) =
     inherit Core.SyntaxTreeTransformation()
 
-    member val DistinctNames : Set<NonNullable<string>> = Set.empty with get, set
+    member val DistinctNames : Set<string> = Set.empty with get, set
 
     internal new () as this = 
         new FindDistinctQubits("_private_") then
@@ -51,8 +50,8 @@ and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) =
 type internal MutationChecker private (_private_) =
     inherit Core.SyntaxTreeTransformation()
 
-    member val DeclaredVariables : Set<NonNullable<string>> = Set.empty with get, set
-    member val MutatedVariables : Set<NonNullable<string>> = Set.empty with get, set
+    member val DeclaredVariables : Set<string> = Set.empty with get, set
+    member val MutatedVariables : Set<string> = Set.empty with get, set
 
     /// Contains the set of variables that this code doesn't declare but does mutate.
     member this.ExternalMutations = this.MutatedVariables - this.DeclaredVariables
@@ -111,7 +110,7 @@ and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 
 /// private helper class for ReplaceTypeParams
 type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) = 
-    inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
+    inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * string, ResolvedType>>(parent)
 
     override this.OnTypeParameter tp =
         let key = tp.Origin, tp.TypeName
@@ -123,7 +122,7 @@ type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) =
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type paremeter resolution dictionaries. 
 type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, _private_) =
-    inherit Core.SyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
+    inherit Core.SyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * string, ResolvedType>>(typeParams)
 
     internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
         new ReplaceTypeParams(typeParams, "_private_") then

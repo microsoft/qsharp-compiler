@@ -47,7 +47,7 @@ type Circuit = {
 /// In the future, this will include a map from all symbols to their Q# representation.
 type private CircuitContext = {
     callables: ImmutableDictionary<QsQualifiedName, QsCallable>
-    distinctNames: Set<NonNullable<string>>
+    distinctNames: Set<string>
     qubits: ImmutableArray<TypedExpression>
     unknownValues: ImmutableArray<TypedExpression>
 }

@@ -147,6 +147,12 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="TestCases\CapabilityTests\Verification.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\CapabilityTests\Inference.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -247,9 +253,6 @@
     <None Include="TestCases\LocalVerification.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\CapabilityVerification.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="TestCases\Transformation.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -271,21 +274,36 @@
     <None Include="TestCases\ClassicalControl.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\CycleDetection.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\CycleValidation.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\PopulateCallGraph.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\TypeParameter.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\CompilationLoader.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
+    <Compile Include="ExternalRewriteStepsManagerTests.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
     <Compile Include="CompletionParsingTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
     <Compile Include="CapabilityVerificationTests.fs" />
+    <Compile Include="CapabilityInferenceTests.fs" />
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="TypeParameterTests.fs" />
     <Compile Include="RegexTests.fs" />
@@ -294,6 +312,7 @@
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
     <Compile Include="AccessModifierTests.fs" />
+    <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="QirTests.fs" />
   </ItemGroup>
 

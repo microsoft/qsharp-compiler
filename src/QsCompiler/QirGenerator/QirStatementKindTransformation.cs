@@ -1,20 +1,15 @@
-﻿using Llvm.NET.Instructions;
-using Llvm.NET.Types;
-using Llvm.NET.Values;
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
+using Llvm.NET.Types;
+using Llvm.NET.Values;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
-    using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
@@ -176,8 +171,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             var testName = this.SharedState.GenerateUniqueName("test");
 
             // The array to iterate through, if any
-            Value arrayValue = null;
-            ITypeRef arrayElementType = null;
+            (Value, ITypeRef)? array = null;
+            //ITypeRef? arrayElementType = null;
 
             // First compute the iteration range
             Value startValue;
@@ -220,16 +215,15 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 this.SharedState.RegisterName(stepName, stepValue);
                 this.SharedState.RegisterName(endName, endValue);
             }
-            else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
+            else if (stm.IterationValues.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrType)
             {
-                arrayElementType = this.SharedState.LlvmTypeFromQsharpType(
-                    (stm.IterationValues.ResolvedType.Resolution as QsResolvedTypeKind.ArrayType).Item);
+                var elementType = this.SharedState.LlvmTypeFromQsharpType(arrType.Item);
                 startValue = this.SharedState.CurrentContext.CreateConstant(0L);
                 stepValue = this.SharedState.CurrentContext.CreateConstant(1L);
                 this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
-                arrayValue = this.SharedState.ValueStack.Pop();
+                array = (this.SharedState.ValueStack.Pop(), elementType);
                 var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetRuntimeFunction("array_get_length"), arrayValue,
+                    this.SharedState.GetRuntimeFunction("array_get_length"), array.Value.Item1,
                     this.SharedState.CurrentContext.CreateConstant(0));
                 endValue = this.SharedState.CurrentBuilder.Sub(arrayLength,
                     this.SharedState.CurrentContext.CreateConstant(1L));
@@ -243,9 +237,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
 
             // If we're iterating through a range, we can use the iteration variable name directly.
-            // Otherwise, we need to generate a unique name that for the iteration through the array's indices.
-            var iterationVar = (arrayValue == null) ?
-                (stm.LoopItem.Item1 as SymbolTuple.VariableName).Item.Value
+            // Otherwise, we need to generate a unique name for the iteration through the array's indices.
+            var iterationVar = array == null && stm.LoopItem.Item1 is SymbolTuple.VariableName loopVar 
+                ? loopVar.Item 
                 : this.SharedState.GenerateUniqueName("iter");
 
             // We need to reflect the standard LLVM block structure for a loop
@@ -293,12 +287,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // and potentially deconstruct it
             this.SharedState.SetCurrentBlock(bodyBlock);
             this.SharedState.ScopeMgr.OpenScope();
-            if (arrayValue != null)
+            if (array != null)
             {
                 var p = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetRuntimeFunction("array_get_element_ptr_1d"), arrayValue, iterationValue);
-                var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, arrayElementType.CreatePointerType());
-                var item = this.SharedState.CurrentBuilder.Load(arrayElementType, itemPtr);
+                    this.SharedState.GetRuntimeFunction("array_get_element_ptr_1d"), array.Value.Item1, iterationValue);
+                var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, array.Value.Item2.CreatePointerType());
+                var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
             }
             // Now finish the block with the statements in the body
@@ -318,22 +312,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             return QsStatementKind.EmptyStatement;
         }
-
-        //public override Tuple<QsNullable<TypedExpression>, QsPositionedBlock> OnPositionedBlock(QsNullable<TypedExpression> intro, QsPositionedBlock block)
-        //{
-        //    // Don't recurse!!
-        //    return new Tuple<QsNullable<TypedExpression>, QsPositionedBlock>(intro, block);
-        //}
-
-        //public override ResolvedInitializer OnQubitInitializer(ResolvedInitializer init)
-        //{
-        //    return base.OnQubitInitializer(init);
-        //}
-
-        //public override QsStatementKind OnQubitScope(QsQubitScope stm)
-        //{
-        //    return base.OnQubitScope(stm);
-        //}
 
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
@@ -396,16 +374,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsStatementKind.EmptyStatement;
         }
 
-        //public override QsStatementKind OnStatementKind(QsStatementKind kind)
-        //{
-        //    return base.OnStatementKind(kind);
-        //}
-
-        //public override SymbolTuple OnSymbolTuple(SymbolTuple syms)
-        //{
-        //    return base.OnSymbolTuple(syms);
-        //}
-
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
             // Given a symbol with an existing binding, update the binding to a bew value and
@@ -437,9 +405,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Update an item, which might be a single symbol or a tuple, to a new Value
             void UpdateItem(TypedExpression item, Value itemValue)
             {
-                if (item.Expression is ResolvedExpression.Identifier id)
+                if (item.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    UpdateBinding((id.Item1 as Identifier.LocalVariable).Item.Value, itemValue);
+                    UpdateBinding(varName.Item, itemValue);
                 }
                 else if (item.Expression is ResolvedExpression.ValueTuple tuple)
                 {
@@ -555,11 +523,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 if (item is SymbolTuple.VariableName v)
                 {
-                    BindVariable(v.Item.Value, itemValue, itemType);
+                    BindVariable(v.Item, itemValue, itemType);
                 }
                 else if (item is SymbolTuple.VariableNameTuple t)
                 {
-                    BindTuple(t.Item, (itemType.Resolution as QsResolvedTypeKind.TupleType).Item, itemValue);
+                    BindTuple(t.Item, ((QsResolvedTypeKind.TupleType)itemType.Resolution).Item, itemValue);
                 }
             }
 
@@ -572,7 +540,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="binding">The Q# binding to process</param>
         private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
         {
-            var qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
+            ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
             var allocateOne = this.SharedState.GetRuntimeFunction("qubit_allocate");
             var allocateArray = this.SharedState.GetRuntimeFunction("qubit_allocate_array");
 
@@ -617,10 +585,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 switch (item)
                 {
                     case SymbolTuple.VariableName v:
-                        AllocateVariable(v.Item.Value, itemInit);
+                        AllocateVariable(v.Item, itemInit);
                         break;
                     case SymbolTuple.VariableNameTuple t:
-                        AllocateTuple(t.Item, (itemInit.Resolution as ResolvedInitializerKind.QubitTupleAllocation).Item);
+                        AllocateTuple(t.Item, ((ResolvedInitializerKind.QubitTupleAllocation)itemInit.Resolution).Item);
                         break;
                 }
             }

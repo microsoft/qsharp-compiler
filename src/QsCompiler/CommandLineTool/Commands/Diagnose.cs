@@ -78,14 +78,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Logs the content of each file in the given compilation as Information using the given logger.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
         private static void PrintFileContentInMemory(Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             foreach (var file in compilation.SourceFiles)
             {
                 IEnumerable<string> inMemory = compilation.FileContent[file];
@@ -101,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.FileContentInMemory,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: $"{Environment.NewLine}{string.Concat(inMemory)}");
             }
         }
@@ -110,14 +105,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Logs the tokenization of each file in the given compilation as Information using the given logger.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the tokens that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
         private static void PrintContentTokenization(Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             foreach (var file in compilation.SourceFiles)
             {
                 var tokenization = compilation.Tokenization[file].Select(tokens => tokens.Select(token => token.Kind));
@@ -140,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.BuiltTokenization,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: serialization.ToArray());
             }
         }
@@ -151,15 +141,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
-        /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
-        private static void PrintSyntaxTree(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        private static void PrintSyntaxTree(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
@@ -170,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 void PrintTree(string serialization) => logger.Log(
                     InformationCode.BuiltSyntaxTree,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: new string[] { "", serialization });
 
                 if (!stripWrapping)
@@ -190,15 +175,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
-        /// Throws an ArgumentNullException if the given compilation is null.
         /// </summary>
-        private static void PrintGeneratedQs(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        private static void PrintGeneratedQs(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
-            if (compilation == null)
-            {
-                throw new ArgumentNullException(nameof(compilation));
-            }
             evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
@@ -212,9 +192,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 else
                 {
                     var imports = evaluatedTree.ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                    SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
+                    SyntaxTreeToQsharp.Apply(out var generated, evaluatedTree, (file, imports));
                     var code = new string[] { "" }.Concat(generated.Single().Values.Select(nsCode => $"{nsCode}{Environment.NewLine}"));
-                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file.Value, messageParam: code.ToArray());
+                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file, messageParam: code.ToArray());
                 }
             }
         }
@@ -223,15 +203,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         /// <summary>
         /// Strips the namespace and callable declaration that is consistent with the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
-        /// Throws an ArgumentNullException if the given syntaxTree is null.
         /// </summary>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         public static IEnumerable<QsStatement> StripSnippetWrapping(IEnumerable<QsNamespace> syntaxTree)
         {
-            if (syntaxTree == null)
-            {
-                throw new ArgumentNullException(nameof(syntaxTree));
-            }
             var incorrectWrapperException = new ArgumentException("syntax tree does not reflect the expected wrapper");
             if (syntaxTree.Count() != 1 || syntaxTree.Single().Elements.Count() != 1)
             {
@@ -253,19 +228,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Prints the data structures requested by the given options using the given logger.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         public static int Run(DiagnoseOptions options, ConsoleLogger logger)
         {
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-            if (logger == null)
-            {
-                throw new ArgumentNullException(nameof(logger));
-            }
-
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
                 logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
@@ -274,18 +239,22 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
-                TargetPackageAssemblies = options.TargetSpecificDecompositions,
-                RuntimeCapabilities = options.RuntimeCapabilites,
-                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
+                RuntimeCapability = options.RuntimeCapability,
+                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 IsExecutable = options.MakeExecutable,
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             };
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(
+                options.LoadSourcesOrSnippet(logger),
+                options.References ?? Enumerable.Empty<string>(),
+                loadOptions,
+                logger);
             if (loaded.VerifiedCompilation == null)
             {
                 return ReturnCode.Status(loaded);

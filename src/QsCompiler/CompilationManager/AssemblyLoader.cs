@@ -4,15 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -30,19 +31,16 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns false if some of the content could not be loaded successfully,
         /// possibly because the referenced assembly has been compiled with an older compiler version.
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
-        /// Throws an ArgumentNullException if the given uri is null.
-        /// Throws a FileNotFoundException if no file with the given name exists.
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception> onDeserializationException = null)
+        /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
+        /// <exception cref="ArgumentException"><paramref name="asm"/> is not an absolute file URI.</exception>
+        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
         {
-            if (asm == null)
+            var id = CompilationUnitManager.GetFileId(asm);
+            if (!File.Exists(asm.LocalPath))
             {
-                throw new ArgumentNullException(nameof(asm));
-            }
-            if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
-            {
-                throw new FileNotFoundException($"The uri '{asm}' given to the assembly loader is invalid or the file does not exist.");
+                throw new FileNotFoundException($"The file '{asm.LocalPath}' given to the assembly loader does not exist.");
             }
 
             using var stream = File.OpenRead(asm.LocalPath);
@@ -64,15 +62,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// possibly because the referenced assembly has been compiled with an older compiler version.
         /// Catches any exception throw upon loading the compilation, and invokes onException with it if such an action has been specified.
         /// Sets the out parameter to null if an exception occurred during loading.
-        /// Throws an ArgumentNullException if the given uri is null.
-        /// Throws a FileNotFoundException if no file with the given name exists.
         /// </summary>
-        public static bool LoadReferencedAssembly(string asmPath, out QsCompilation compilation, Action<Exception> onException = null)
+        /// <exception cref="FileNotFoundException"><paramref name="asmPath"/> does not exist.</exception>
+        public static bool LoadReferencedAssembly(
+            string asmPath,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onException = null)
         {
-            if (asmPath == null)
-            {
-                throw new ArgumentNullException(nameof(asmPath));
-            }
             if (!File.Exists(asmPath))
             {
                 throw new FileNotFoundException($"The file '{asmPath}' does not exist.");
@@ -95,37 +91,63 @@ namespace Microsoft.Quantum.QsCompiler
         // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
 
         /// <summary>
-        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding Q# compilation.
-        /// Returns true if the compilation could be deserialized without throwing an exception, and false otherwise.
+        /// Given a binary representation of compiled Q# code, returns the corresponding Q# compilation.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
-        /// Throws an ArgumentNullException if the given stream is null, but ignores exceptions thrown during deserialization.
         /// </summary>
-        public static bool LoadSyntaxTree(Stream stream, out QsCompilation compilation, Action<Exception> onDeserializationException = null)
+        public static bool LoadSyntaxTree(
+            byte[] byteArray,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
         {
-            if (stream == null)
-            {
-                throw new ArgumentNullException(nameof(stream));
-            }
-            using var reader = new BsonDataReader(stream);
-            (compilation, reader.ReadRootValueAsArray) = (null, false);
+            compilation = null;
             try
             {
-                compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
-                return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
             }
             catch (Exception ex)
             {
                 onDeserializationException?.Invoke(ex);
                 return false;
             }
+
+            return compilation != null && IsValidCompilation(compilation);
         }
 
         /// <summary>
+        /// Given a stream containing a binary representation of compiled Q# code, returns the corresponding Q# compilation.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
+        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
+        /// </summary>
+        [Obsolete("Only loads binary representations generated by compiler versions up to 0.13.20102604.")]
+        public static bool LoadSyntaxTree(
+            Stream stream,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
+        {
+            using var reader = new BsonDataReader(stream);
+            (compilation, reader.ReadRootValueAsArray) = (null, false);
+            try
+            {
+                compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
+            }
+            catch (Exception ex)
+            {
+                onDeserializationException?.Invoke(ex);
+                return false;
+            }
+
+            return compilation != null && IsValidCompilation(compilation);
+        }
+
+        private static bool IsValidCompilation(QsCompilation compilation) =>
+            !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
+
+        /// <summary>
         /// Creates a dictionary of all manifest resources in the given reader.
-        /// Returns null if the given reader is null.
         /// </summary>
         private static ImmutableDictionary<string, ManifestResource> Resources(this MetadataReader reader) =>
-            reader?.ManifestResources
+            reader.ManifestResources
                 .Select(reader.GetManifestResource)
                 .ToImmutableDictionary(
                     resource => reader.GetString(resource.Name),
@@ -135,24 +157,34 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a reader for the byte stream of a dotnet dll, loads any Q# compilation included as a resource.
         /// Returns true as well as the loaded compilation if the given dll includes a suitable resource, and returns false otherwise.
         /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
-        /// Throws an ArgumentNullException if any of the given readers is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        private static bool FromResource(PEReader assemblyFile, out QsCompilation compilation, Action<Exception> onDeserializationException = null)
+        private static bool FromResource(
+            PEReader assemblyFile,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
         {
-            if (assemblyFile == null)
-            {
-                throw new ArgumentNullException(nameof(assemblyFile));
-            }
-            var metadataReader = assemblyFile.GetMetadataReader();
             compilation = null;
+            var metadataReader = assemblyFile.GetMetadataReader();
+            bool isBondV1ResourcePresent = false;
+            bool isNewtonSoftResourcePresent = false;
+            ManifestResource resource;
+            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
+            {
+                isBondV1ResourcePresent = true;
+            }
+            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+            {
+                isNewtonSoftResourcePresent = true;
+            }
 
             // The offset of resources is relative to the resources directory.
             // It is possible that there is no offset given because a valid dll allows for extenal resources.
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
+            var isResourcePresent = isBondV1ResourcePresent || isNewtonSoftResourcePresent;
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out var resource) ||
+                !isResourcePresent ||
                 !resource.Implementation.IsNil)
             {
                 return false;
@@ -167,7 +199,18 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+
+            // Use the correct method depending on the resource.
+            if (isBondV1ResourcePresent)
+            {
+                return LoadSyntaxTree(resourceData, out compilation, onDeserializationException);
+            }
+            else if (isNewtonSoftResourcePresent)
+            {
+                return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+            }
+
+            return false;
         }
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
@@ -230,21 +273,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a reader for the byte stream of a dotnet dll, read its custom attributes and
         /// returns a tuple containing the name of the attribute and the constructor argument
         /// for all attributes defined in a Microsoft.Quantum* namespace.
-        /// Throws an ArgumentNullException if the given stream is null.
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
         private static IEnumerable<(string, string)> LoadHeaderAttributes(PEReader assemblyFile)
         {
-            if (assemblyFile == null)
-            {
-                throw new ArgumentNullException(nameof(assemblyFile));
-            }
             var metadataReader = assemblyFile.GetMetadataReader();
             return metadataReader.GetAssemblyDefinition().GetCustomAttributes()
                 .Select(metadataReader.GetCustomAttribute)
-                .Select(attribute => GetAttribute(metadataReader, attribute))
-                .Where(ctorItems => ctorItems.HasValue)
-                .Select(ctorItems => ctorItems.Value).ToImmutableArray();
+                .SelectNotNull(attribute => GetAttribute(metadataReader, attribute))
+                .ToImmutableArray();
         }
     }
 }

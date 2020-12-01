@@ -1,0 +1,914 @@
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+// This schema corresponds to the C# code at Generated/CompilerDataStructures.cs
+// N.B Whenever this schema changes, C# code must be generated again.
+
+namespace Microsoft.Quantum.QsCompiler.BondSchemas;
+
+// Data structures from DataTypes.fs
+
+struct Position
+{
+    5: int32 Line;
+
+    10: int32 Column;
+}
+
+struct Range
+{
+    5: Position Start;
+
+    10: Position End;
+}
+
+// Data structures from SyntaxTokens.fs
+
+enum AccessModifier
+{
+    DefaultAccess,
+    Internal
+}
+
+struct Modifiers
+{
+    5: AccessModifier Access = DefaultAccess;
+}
+
+enum QsGeneratorDirective
+{
+    SelfInverse,
+    Invert,
+    Distribute,
+    InvalidGenerator
+}
+
+enum QsResult
+{
+    Zero,
+    One
+}
+
+enum QsPauli
+{
+    PauliX,
+    PauliY,
+    PauliZ,
+    PauliI
+}
+
+// N.B. Does not completely represent F#'s QsExpressionKind.
+//      Used by QsExpressionKindComposition to do a complete representation of the original F# type.
+enum QsExpressionKind
+{
+    UnitValue,
+    Identifier,
+    ValueTuple,
+    IntLiteral,
+    BigIntLiteral,
+    DoubleLiteral,
+    BoolLiteral,
+    StringLiteral,
+    ResultLiteral,
+    PauliLiteral,
+    RangeLiteral,
+    NewArray,
+    ValueArray,
+    ArrayItem,
+    NamedItem,
+    NEG,
+    NOT,
+    BNOT,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    POW,
+    EQ,
+    NEQ,
+    LT,
+    LTE,
+    GT,
+    GTE,
+    AND,
+    OR,
+    BOR,
+    BAND,
+    BXOR,
+    LSHIFT,
+    RSHIFT,
+    CONDITIONAL,
+    CopyAndUpdate,
+    UnwrapApplication,
+    AdjointApplication,
+    ControlledApplication,
+    CallLikeExpression,
+    MissingExpr,
+    InvalidExpr
+}
+
+// Used to encapsulate data when QsExpressionKind is Identifier.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindIdentifier<TSymbol, TType>
+{
+    5: TSymbol Symbol;
+
+    10: nullable<vector<TType>> Types;
+}
+
+// Used to encapsulate data when QsExpressionKind is StringLiteral.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindStringLiteral<TExpression>
+{
+    5: string StringLiteral;
+
+    10: vector<TExpression> Expressions;
+}
+
+// Used to encapsulate data when QsExpressionKind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindExpressionDouble<TExpression>
+{
+    5: TExpression Expression1;
+
+    10: TExpression Expression2;
+}
+
+// Used to encapsulate data when QsExpressionKind is CONDITIONAL, CopyAndUpdate.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindExpressionTriple<TExpression>
+{
+    5: TExpression Expression1;
+
+    10: TExpression Expression2;
+
+    15: TExpression Expression3;
+}
+
+// Used to encapsulate data when QsExpressionKind is NewArray.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindNewArray<TExpression, TType>
+{
+    5: TType Type;
+
+    10: TExpression Expression;
+}
+
+// Used to encapsulate data when QsExpressionKind is NamedItem.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindNamedItem<TExpression, TSymbol>
+{
+    5: TExpression Expression;
+
+    10: TSymbol Symbol;
+}
+
+// Completely represents F#'s QsExpressionKind.
+// N.B. Does not have an equivalent F# type.
+struct QsExpressionKindComposition<TExpression, TSymbol, TType>
+{
+    5: required QsExpressionKind Kind = InvalidExpr;
+
+    // Not null when Kind is Identifier.
+    10: nullable<QsExpressionKindIdentifier<TSymbol, TType>> Identifier;
+
+    // Not null when Kind is IntLiteral.
+    20: nullable<int64> IntLiteral;
+
+    // Not null when Kind is BigIntLiteral.
+    25: nullable<blob> BigIntLiteral;
+
+    // Not null when Kind is DoubleLiteral.
+    30: nullable<double> DoubleLiteral;
+
+    // Not null when Kind is BoolLiteral.
+    35: nullable<bool> BoolLiteral;
+
+    // Not null when Kind is StringLiteral.
+    40: nullable<QsExpressionKindStringLiteral<TExpression>> StringLiteral;
+
+    // Not null when Kind is ResultLiteral.
+    45: nullable<QsResult> ResultLiteral;
+
+    // Not null when Kind is PauliLiteral.
+    50: nullable<QsPauli> PauliLiteral;
+
+    // Not null when Kind is NewArray.
+    55: nullable<QsExpressionKindNewArray<TExpression, TType>> NewArray;
+
+    // Not null when Kind is NamedItem.
+    60: nullable<QsExpressionKindNamedItem<TExpression, TSymbol>> NamedItem;
+
+    // Not null when Kind is NEG, NOT, BNOT, UnwrapApplication, AdjointApplication, ControlledApplication.
+    65: nullable<TExpression> Expression;
+
+    // Not null when Kind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
+    70: nullable<QsExpressionKindExpressionDouble<TExpression>> ExpressionDouble;
+
+    // Not null when Kind is CONDITIONAL, CopyAndUpdate.
+    75: nullable<QsExpressionKindExpressionTriple<TExpression>> ExpressionTriple;
+
+    // Not null when Kind is ValueTuple, ValueArray.
+    80: nullable<vector<TExpression>> ExpressionArray;
+}
+
+// Data structures from SyntaxTree.fs
+
+enum QsBindingKind
+{
+    ImmutableBinding,
+    MutableBinding
+}
+
+enum QsSpecializationKind
+{
+    QsBody,
+    QsAdjoint,
+    QsControlled,
+    QsControlledAdjoint
+}
+
+enum QsCallableKind
+{
+    Operation,
+    Function,
+    TypeConstructor
+}
+
+enum QsQubitScopeKind
+{
+    Allocate,
+    Borrow
+}
+
+struct QsQualifiedName
+{
+    5: string Namespace;
+
+    10: string Name;
+}
+
+// Represents the possible kinds of SymbolTuple.
+// N.B. Does not have an equivalent F# type.
+enum SymbolTupleKind
+{
+    InvalidItem,
+    VariableName,
+    VariableNameTuple,
+    DiscardedItem
+}
+
+struct SymbolTuple
+{
+    5: required SymbolTupleKind Kind = InvalidItem;
+
+    // Not null when Kind is VariableName.
+    10: nullable<string> VariableName;
+
+    // Not null when Kind is VariableNameTuple.
+    15: nullable<vector<SymbolTuple>> VariableNameTuple;
+}
+
+struct QsBinding<T>
+{
+    5: QsBindingKind Kind = ImmutableBinding;
+
+    10: SymbolTuple Lhs;
+
+    15: T Rhs;
+}
+
+// Represents the possible kinds of Identifier.
+// N.B. Does not have an equivalent F# type.
+enum IdentifierKind
+{
+    LocalVariable,
+    GlobalCallable,
+    InvalidIdentifier
+}
+
+struct Identifier
+{
+    5: required IdentifierKind Kind = LocalVariable;
+
+    // Not null when Kind is LocalVariable.
+    10: nullable<string> LocalVariable;
+
+    // Not null when Kind is GlobalCallable.
+    15: nullable<QsQualifiedName> GlobalCallable;
+}
+
+struct QsLocation
+{
+    5: Position Offset;
+
+    10: Range Range;
+}
+
+struct QsTypeParameter
+{
+    5: QsQualifiedName Origin;
+
+    10: string TypeName;
+
+    15: nullable<Range> Range;
+}
+
+struct UserDefinedType
+{
+    5: string Namespace;
+
+    10: string Name;
+
+    15: nullable<Range> Range;
+}
+
+enum OpProperty
+{
+    Adjointable,
+    Controllable
+}
+
+// N.B. Does not completely represent F#'s CharacteristicsKind.
+//      Used by CharacteristicsKindComposition to do a complete representation of the original F# type.
+enum CharacteristicsKind
+{
+    EmptySet,
+    SimpleSet,
+    Union,
+    Intersection,
+    InvalidSetExpr
+}
+
+// Used to encapsulate data when CharacteristicsKind is Union or Intersection.
+// N.B. Does not have an equivalent F# type.
+struct CharacteristicsKindSetOperation<T>
+{
+    5: T Set1;
+
+    10: T Set2;
+}
+
+// Completely represents F#'s CharacteristicsKind.
+// N.B. Does not have an equivalent F# type.
+struct CharacteristicsKindComposition<T>
+{
+    5: required CharacteristicsKind Kind = InvalidSetExpr;
+
+    // Not null when Kind is SimpleSet.
+    10: nullable<OpProperty> SimpleSet;
+
+    // Not null when Kind is Union or Intersection.
+    15: nullable<CharacteristicsKindSetOperation<T>> SetOperation;
+}
+
+struct ResolvedCharacteristics
+{
+    5: CharacteristicsKindComposition<ResolvedCharacteristics> Expression;
+}
+
+struct InferredCallableInformation
+{
+    5: bool IsSelfAdjoint;
+
+    10: bool IsIntrinsic;
+}
+
+struct CallableInformation
+{
+    5: ResolvedCharacteristics Characteristics;
+
+    10: InferredCallableInformation InferredInformation;
+}
+
+// N.B. Does not completely represent F#'s QsTypeKind.
+//      Used by QsTypeKindComposition to do a complete representation of the original F# type.
+enum QsTypeKind
+{
+    UnitType,
+    Int,
+    BigInt,
+    Double,
+    Bool,
+    String,
+    Qubit,
+    Result,
+    Pauli,
+    Range,
+    ArrayType,
+    TupleType,
+    UserDefinedType,
+    TypeParameter,
+    Operation,
+    Function,
+    MissingType,
+    InvalidType
+}
+
+// Used to encapsulate data when QsTypeKind is Function.
+// N.B. Does not have an equivalent F# type.
+struct QsTypeKindFunction<T>
+{
+    5: T Type1;
+
+    10: T Type2;
+}
+
+// Used to encapsulate data when QsTypeKind is Operation.
+// N.B. Does not have an equivalent F# type.
+struct QsTypeKindOperation<TType, TCharacteristics>
+{
+    5: TType Type1;
+
+    10: TType Type2;
+
+    15: TCharacteristics Characteristics;
+}
+
+// Completely represents F#'s QsTypeKind.
+// N.B. Does not have an equivalent F# type.
+struct QsTypeKindComposition<TType, TUdt, TParam, TCharacteristics>
+{
+    5: required QsTypeKind Kind = InvalidType;
+
+    // Not null when Kind is ArrayType.
+    10: nullable<TType> ArrayType;
+
+    // Not null when Kind is TupleType.
+    15: nullable<vector<TType>> TupleType;
+
+    // Not null when Kind is UserDefinedType.
+    20: nullable<TUdt> UserDefinedType;
+
+    // Not null when Kind is TypeParameter.
+    25: nullable<TParam> TypeParameter;
+
+    // Not null when Kind is Operation.
+    30: nullable<QsTypeKindOperation<TType, TCharacteristics>> Operation;
+
+    // Not null when Kind is Function.
+    35: nullable<QsTypeKindFunction<TType>> Function;
+}
+
+struct ResolvedType
+{
+    5: QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> TypeKind;
+}
+
+struct InferredExpressionInformation
+{
+    5: bool IsMutable;
+
+    10: bool HasLocalQuantumDependency;
+}
+
+struct TypedArgument
+{
+    5: QsQualifiedName Callable;
+
+    10: string Name;
+
+    15: ResolvedType Resolution;
+}
+
+struct TypedExpression
+{
+    5: QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> Expression;
+
+    10: vector<TypedArgument> TypedArguments;
+
+    15: ResolvedType ResolvedType;
+
+    20: InferredExpressionInformation InferredInformation;
+
+    25: nullable<Range> Range;
+}
+
+// N.B. Does not completely represent F#'s QsInitializerKind.
+//      Used by QsInitializerKindComposition to do a complete representation of the original F# type.
+enum QsInitializerKind
+{
+    SingleQubitAllocation,
+    QubitRegisterAllocation,
+    QubitTupleAllocation,
+    InvalidInitializer
+}
+
+// Completely represents F#'s QsInitializerKind.
+// N.B. Does not have an equivalent F# type.
+struct QsInitializerKindComposition<TInitializer, TExpression>
+{
+    5: required QsInitializerKind Kind = InvalidInitializer;
+
+    // Not null when Kind is QubitRegisterAllocation.
+    10: nullable<TExpression> QubitRegisterAllocation;
+
+    // Not null when Kind is QubitTupleAllocation.
+    15: nullable<vector<TInitializer>> QubitTupleAllocation;
+}
+
+struct ResolvedInitializer
+{
+    5: QsInitializerKindComposition<ResolvedInitializer, TypedExpression> Initializer;
+
+    10: ResolvedType ResolvedType;
+}
+
+struct LocalVariableDeclaration<TVariableName>
+{
+    5: TVariableName VariableName;
+
+    10: ResolvedType Type;
+
+    15: InferredExpressionInformation InferredInformation;
+
+    20: nullable<Position> Position;
+
+    25: Range Range;
+}
+
+struct LocalDeclarations
+{
+    5: vector<LocalVariableDeclaration<string>> Variables;
+}
+
+struct QsValueUpdate
+{
+    5: TypedExpression Lhs;
+
+    10: TypedExpression Rhs;
+}
+
+struct QsComments
+{
+    5: vector<string> OpeningComments;
+
+    10: vector<string> ClosingComments;
+}
+
+struct QsScope;
+
+struct QsPositionedBlock
+{
+    5: QsScope Body;
+
+    10: nullable<QsLocation> Location;
+
+    15: QsComments Comments;
+}
+
+// Used to encapsulate a conditional block tuple.
+// N.B. Does not have an equivalent F# type.
+struct QsConditionalBlock
+{
+    5: TypedExpression Expression;
+
+    10: QsPositionedBlock Block;
+}
+
+struct QsConditionalStatement
+{
+    5: vector<QsConditionalBlock> ConditionalBlocks;
+
+    10: nullable<QsPositionedBlock> Default;
+}
+
+// Used to encapsulate a loop item tuple.
+// N.B. Does not have an equivalent F# type.
+struct QsLoopItem
+{
+    5: SymbolTuple SymbolTuple;
+
+    10: ResolvedType ResolvedType;
+}
+
+struct QsForStatement
+{
+    5: QsLoopItem LoopItem;
+
+    10: TypedExpression IterationValues;
+
+    15: QsScope Body;
+}
+
+struct QsWhileStatement
+{
+    5: TypedExpression Condition;
+
+    10: QsScope Body;
+}
+
+struct QsRepeatStatement
+{
+    5: QsPositionedBlock RepeatBlock;
+
+    10: TypedExpression SuccessCondition;
+
+    15: QsPositionedBlock FixupBlock;
+}
+
+struct QsConjugation
+{
+    5: QsPositionedBlock OuterTransformation;
+
+    10: QsPositionedBlock InnerTransformation;
+}
+
+struct QsQubitScope
+{
+    5: QsQubitScopeKind Kind = Allocate;
+
+    10: QsBinding<ResolvedInitializer> Binding;
+
+    15: QsScope Body;
+}
+
+// N.B. Does not completely represent F#'s QsStatementKind.
+//      Used by QsStatementKindComposition to do a complete representation of the original F# type.
+enum QsStatementKind
+{
+    QsExpressionStatement,
+    QsReturnStatement,
+    QsFailStatement,
+    QsVariableDeclaration,
+    QsValueUpdate,
+    QsConditionalStatement,
+    QsForStatement,
+    QsWhileStatement,
+    QsRepeatStatement,
+    QsConjugation,
+    QsQubitScope,
+    EmptyStatement
+}
+
+// Completely represents F#'s QsStatementKind.
+// N.B. Does not have an equivalent F# type.
+struct QsStatementKindComposition
+{
+    5: required QsStatementKind Kind = EmptyStatement;
+
+    // Not null when Kind is QsExpressionStatement, QsReturnStatement, QsFailStatement.
+    10: nullable<TypedExpression> TypedExpression;
+
+    // Not null when Kind is QsVariableDeclaration.
+    15: nullable<QsBinding<TypedExpression>> VariableDeclaration;
+
+    // Not null when Kind is QsValueUpdate.
+    20: nullable<QsValueUpdate> ValueUpdate;
+
+    // Not null when Kind is QsConditionalStatement.
+    25: nullable<QsConditionalStatement> ConditionalStatement;
+
+    // Not null when Kind is QsForStatement.
+    30: nullable<QsForStatement> ForStatement;
+
+    // Not null when Kind is QsWhileStatement.
+    35: nullable<QsWhileStatement> WhileStatement;
+
+    // Not null when Kind is QsRepeatStatement.
+    40: nullable<QsRepeatStatement> RepeatStatement;
+
+    // Not null when Kind is QsConjugation.
+    45: nullable<QsConjugation> Conjugation;
+
+    // Not null when Kind is QsQubitScope.
+    50: nullable<QsQubitScope> QubitScope;
+}
+
+struct QsStatement
+{
+    5: QsStatementKindComposition Statement;
+
+    10: LocalDeclarations SymbolDeclarations;
+
+    15: nullable<QsLocation> Location;
+
+    20: QsComments Comments;
+}
+
+struct QsScope
+{
+    5: vector<QsStatement> Statements;
+
+    10: LocalDeclarations KnownSymbols;
+}
+
+// Represents the possible kinds of QsLocalSymbol.
+// N.B. Does not have an equivalent F# type.
+enum QsLocalSymbolKind
+{
+    ValidName,
+    InvalidName
+}
+
+struct QsLocalSymbol
+{
+    5: required QsLocalSymbolKind Kind = InvalidName;
+
+    // Non-null when 'Kind' is 'ValidName'.
+    10: nullable<string> Name;
+}
+
+struct QsDeclarationAttribute
+{
+    5: nullable<UserDefinedType> TypeId;
+
+    10: TypedExpression Argument;
+
+    15: Position Offset;
+
+    20: QsComments Comments;
+}
+
+struct ResolvedSignature
+{
+    5: vector<QsLocalSymbol> TypeParameters;
+
+    10: ResolvedType ArgumentType;
+
+    15: ResolvedType ReturnType;
+
+    20: CallableInformation Information;
+}
+
+// Represents the possible kinds of QsTuple.
+// N.B. Does not have an equivalent F# type.
+enum QsTupleKind
+{
+    QsTupleItem,
+    QsTuple
+}
+
+struct QsTuple<T>
+{
+    5: required QsTupleKind Kind = QsTupleItem;
+
+    // Not null when Kind is QsTupleItem.
+    10: nullable<T> Item;
+
+    // Not null when Kind is QsTuple.
+    15: nullable<vector<QsTuple<T>>> Items;
+}
+
+// Represents the possible kinds of SpecializationImplementation.
+// N.B. Does not have an equivalent F# type.
+enum SpecializationImplementationKind
+{
+    Provided,
+    Intrinsic,
+    External,
+    Generated
+}
+
+// Used to encapsulate data when SpecializationImplementationKind is Provided.
+// N.B. Does not have an equivalent F# type.
+struct SpecializationImplementationKindProvided
+{
+    5: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> Tuple;
+
+    10: QsScope Implementation;
+}
+
+struct SpecializationImplementation
+{
+    5: required SpecializationImplementationKind Kind = Generated;
+
+    // Not null when Kind is Provided.
+    10: nullable<SpecializationImplementationKindProvided> Provided;
+
+    // Not null when Kind is Generated.
+    15: nullable<QsGeneratorDirective> Generated;
+}
+
+struct QsSpecialization
+{
+    5: QsSpecializationKind Kind = QsBody;
+
+    10: QsQualifiedName Parent;
+
+    15: vector<QsDeclarationAttribute> Attributes;
+
+    20: string SourceFile;
+
+    25: nullable<QsLocation> Location;
+
+    30: nullable<vector<ResolvedType>> TypeArguments;
+
+    35: ResolvedSignature Signature;
+
+    40: SpecializationImplementation Implementation;
+
+    45: vector<string> Documentation;
+
+    50: QsComments Comments;
+}
+
+struct QsCallable
+{
+    5: QsCallableKind Kind = Operation;
+
+    10: QsQualifiedName FullName;
+
+    15: vector<QsDeclarationAttribute> Attributes;
+
+    20: Modifiers Modifiers;
+
+    25: string SourceFile;
+
+    30: nullable<QsLocation> Location;
+
+    35: ResolvedSignature Signature;
+
+    40: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ArgumentTuple;
+
+    45: vector<QsSpecialization> Specializations;
+
+    50: vector<string> Documentation;
+
+    55: QsComments Comments;
+}
+
+// Represents the possible kinds of QsTypeItem.
+// N.B. Does not have an equivalent F# type.
+enum QsTypeItemKind
+{
+    Named,
+    Anonymous
+}
+
+struct QsTypeItem
+{
+    5: required QsTypeItemKind Kind = Named;
+
+    // Not null when Kind is Named.
+    10: nullable<LocalVariableDeclaration<string>> Named;
+
+    // Not null when Kind is Anonymous.
+    15: nullable<ResolvedType> Anonymous;
+}
+
+struct QsCustomType
+{
+    5: QsQualifiedName FullName;
+
+    10: vector<QsDeclarationAttribute> Attributes;
+
+    15: Modifiers Modifiers;
+
+    20: string SourceFile;
+
+    25: nullable<QsLocation> Location;
+
+    30: ResolvedType Type;
+
+    35: QsTuple<QsTypeItem> TypeItems;
+
+    40: vector<string> Documentation;
+
+    45: QsComments Comments;
+}
+
+// Represents the possible kinds of QsNamespaceElement.
+// N.B. Does not have an equivalent F# type.
+enum QsNamespaceElementKind
+{
+    QsCallable,
+    QsCustomType
+}
+
+struct QsNamespaceElement
+{
+    5: required QsNamespaceElementKind Kind = QsCallable;
+
+    // Non-null when 'Kind' is 'QsCallable'.
+    10: nullable<QsCallable> Callable;
+
+    // Non-null when 'Kind' is 'QsCustomType'.
+    15: nullable<QsCustomType> CustomType;
+}
+
+// Used to encapsulate F#'s representation of namespace documentation.
+// N.B. Does not have an equivalent F# type.
+struct QsSourceFileDocumentation
+{
+    5: string FileName;
+
+    10: vector<string> DocumentationItems;
+}
+
+struct QsNamespace
+{
+    5: string Name;
+
+    10: vector<QsNamespaceElement> Elements;
+
+    15: list<QsSourceFileDocumentation> Documentation;
+}
+
+struct QsCompilation
+{
+    5: vector<QsNamespace> Namespaces;
+
+    10: vector<QsQualifiedName> EntryPoints;
+}
