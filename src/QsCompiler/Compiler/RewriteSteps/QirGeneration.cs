@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using Microsoft.Quantum.QsCompiler.QirGenerator;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -15,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public QirGeneration(string outputFileName)
         {
-            this.config = new Configuration(outputFileName, generateClangWrappers: true);
+            this.config = new Configuration(outputFileName, generateInteropWrappers: true);
         }
 
         /// <inheritdoc/>

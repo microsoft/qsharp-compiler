@@ -66,14 +66,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         protected internal IrFunction? CurrentFunction { get; set; }
         protected internal BasicBlock? CurrentBlock { get; set; }
         protected internal InstructionBuilder CurrentBuilder { get; set; }
-        public Stack<Value> ValueStack { get; private set; }
-        public Stack<ResolvedType> ExpressionTypeStack { get; private set; }
-        public Stack<List<Value>> QubitReleaseStack { get; private set; }
-        internal ScopeManager ScopeMgr { get; private set; }
-        private BitcodeModule BridgeModule { get; set; }
+        protected internal readonly Stack<Value> ValueStack;
+        protected internal readonly Stack<ResolvedType> ExpressionTypeStack;
+        internal readonly ScopeManager ScopeMgr;
+        private readonly BitcodeModule BridgeModule;
 
         // LLVM type for passing up layers
-        public ITypeRef BuiltType { get; set;}
+        internal ITypeRef? BuiltType { get; set;}
 
         // Current inlining level
         private int inlineLevel = 0;
@@ -821,8 +820,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <returns>The equivalent QIR type</returns>
         public ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
         {
+            this.BuiltType = null;
             this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType;
+            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
         }
 
         /// <summary>
