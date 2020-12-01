@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public override QsResolvedTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
         {
             var elementTypes = ts.Select(this.GetITypeForType).ToArray();
-            this.SharedState.BuiltType = this.SharedState.CurrentContext.CreateStructType(
+            this.SharedState.BuiltType = this.SharedState.Context.CreateStructType(
                 false, this.SharedState.QirTupleHeader, elementTypes).CreatePointerType();
             return QsResolvedTypeKind.InvalidType;
         }
@@ -126,7 +126,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             else
             {
                 // This should never happen.
-                this.SharedState.BuiltType = this.SharedState.CurrentContext.TokenType;
+                this.SharedState.BuiltType = this.SharedState.Context.TokenType;
             }
             return QsResolvedTypeKind.InvalidType;
         }

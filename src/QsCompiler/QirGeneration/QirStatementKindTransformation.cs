@@ -34,23 +34,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override QsStatementKind OnAllocateQubits(QsQubitScope stm)
         {
-            QsBinding<ResolvedInitializer> binding = stm.Binding;
-            QsScope body = stm.Body;
-
             this.SharedState.ScopeMgr.OpenScope();
-
-            // Apply the bindings and add them to the scope
-            this.ProcessQubitBinding(binding);
-
-            // Process the body
-            this.Transformation.Statements.OnScope(body);
-
-            // Release the qubits, if we haven't already done a return
-            if (this.SharedState.CurrentBlock.Terminator == null)
-            {
-                this.SharedState.ScopeMgr.CloseScope();
-            }
-
+            this.ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
+            this.Transformation.Statements.OnScope(stm.Body); // Process the body
+            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             return QsStatementKind.EmptyStatement;
         }
 
@@ -60,10 +47,15 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return this.OnAllocateQubits(stm);
         }
 
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
         public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
         {
-            var clauses = stm.ConditionalBlocks;
+            if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
+            {
+                throw new InvalidOperationException("the current function or the current block is set to null");
+            }
 
+            var clauses = stm.ConditionalBlocks;
             // Create the "continuation" block, used for all conditionals
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
 
@@ -124,18 +116,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsStatementKind.EmptyStatement;
         }
 
-        // Conjugations get dealt with before now, so we don't need to handle them.
-        //public override QsStatementKind OnConjugation(QsConjugation stm)
-        //{
-        //    return base.OnConjugation(stm);
-        //}
-
-        // No work to do for empty statements.
-        //public override QsStatementKind OnEmptyStatement()
-        //{
-        //    return base.OnEmptyStatement();
-        //}
-
         public override QsStatementKind OnExpressionStatement(TypedExpression ex)
         {
             this.Transformation.Expressions.OnTypedExpression(ex);
@@ -162,8 +142,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsStatementKind.EmptyStatement;
         }
 
+        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
+            if (this.SharedState.CurrentFunction == null)
+            {
+                throw new InvalidOperationException("current function is set to null");
+            }
+
             // Loop variables
             var startName = this.SharedState.GenerateUniqueName("start");
             var stepName = this.SharedState.GenerateUniqueName("step");
@@ -197,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 else
                 {
                     // 1 is the step
-                    stepValue = this.SharedState.CurrentContext.CreateConstant(1L);
+                    stepValue = this.SharedState.Context.CreateConstant(1L);
                     this.SharedState.RegisterName(stepName, stepValue);
                     // And the original Item1 is the start
                     this.Transformation.Expressions.OnTypedExpression(rlit.Item1);
@@ -218,15 +204,15 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             else if (stm.IterationValues.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrType)
             {
                 var elementType = this.SharedState.LlvmTypeFromQsharpType(arrType.Item);
-                startValue = this.SharedState.CurrentContext.CreateConstant(0L);
-                stepValue = this.SharedState.CurrentContext.CreateConstant(1L);
+                startValue = this.SharedState.Context.CreateConstant(0L);
+                stepValue = this.SharedState.Context.CreateConstant(1L);
                 this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
                 array = (this.SharedState.ValueStack.Pop(), elementType);
                 var arrayLength = this.SharedState.CurrentBuilder.Call(
                     this.SharedState.GetRuntimeFunction("array_get_length"), array.Value.Item1,
-                    this.SharedState.CurrentContext.CreateConstant(0));
+                    this.SharedState.Context.CreateConstant(0));
                 endValue = this.SharedState.CurrentBuilder.Sub(arrayLength,
-                    this.SharedState.CurrentContext.CreateConstant(1L));
+                    this.SharedState.Context.CreateConstant(1L));
                 this.SharedState.RegisterName(startName, startValue);
                 this.SharedState.RegisterName(stepName, stepValue);
                 this.SharedState.RegisterName(endName, endValue);
@@ -264,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Preheader block: compute the range and test direction for the loop, then branch to the header
             this.SharedState.SetCurrentBlock(preheaderBlock);
             var testValue = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedGreater, 
-                stepValue, this.SharedState.CurrentContext.CreateConstant(0L));
+                stepValue, this.SharedState.Context.CreateConstant(0L));
             this.SharedState.RegisterName(testName, testValue);
             this.SharedState.CurrentBuilder.Branch(headerBlock);
 
@@ -295,8 +281,15 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
             }
+
             // Now finish the block with the statements in the body
-            this.FinishCurrentBlock(stm.Body, exitingBlock);
+            this.Transformation.Statements.OnScope(stm.Body);
+            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+            this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            if (!isTerminated)
+            {
+                this.SharedState.CurrentBuilder.Branch(exitingBlock);
+            }
 
             // Exiting block -- update the iteration value and the phi node
             this.SharedState.SetCurrentBlock(exitingBlock);
@@ -313,8 +306,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsStatementKind.EmptyStatement;
         }
 
+        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
+            if (this.SharedState.CurrentFunction == null)
+            {
+                throw new InvalidOperationException("current function is set to null");
+            }
+
             // The basic approach here is to put the repeat into one basic block.
             // A second basic block holds the evaluation of the test expression and the test itself.
             // The fixup is in a third basic block, and then there is a final basic block as the continuation.
@@ -342,7 +341,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.ProcessUnscopedBlock(fixupBlock, stm.FixupBlock.Body, repeatBlock);
 
             this.SharedState.SetCurrentBlock(contBlock);
-            this.SharedState.ScopeMgr.CloseScope();
+            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
 
             this.SharedState.CloseNamingScope();
 
@@ -390,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void UpdateTuple(ImmutableArray<TypedExpression> items, Value val)
             {
                 var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                var tupleType = this.SharedState.CurrentContext.CreateStructType(false, this.SharedState.QirTupleHeader,
+                var tupleType = this.SharedState.Context.CreateStructType(false, this.SharedState.QirTupleHeader,
                     itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
@@ -435,8 +434,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return QsStatementKind.EmptyStatement;
         }
 
+        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
         {
+            if (this.SharedState.CurrentFunction == null)
+            {
+                throw new InvalidOperationException("current function is set to null");
+            }
+
             // The basic approach here is to put the evaluation of the test expression into one basic block,
             // the body of the loop in a second basic block, and then have a third basic block as the continuation.
 
@@ -445,24 +450,19 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("wend"));
 
             this.SharedState.CurrentBuilder.Branch(testBlock);
-
             this.SharedState.SetCurrentBlock(testBlock);
             // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
             // expression to perform an allocation that needs to get cleaned up, so...
             this.SharedState.ScopeMgr.OpenScope();
             this.Transformation.Expressions.OnTypedExpression(stm.Condition);
             var test = this.SharedState.ValueStack.Pop();
-            this.SharedState.ScopeMgr.CloseScope();
+            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
 
             this.SharedState.OpenNamingScope();
-
             this.ProcessBlock(bodyBlock, stm.Body, testBlock);
-
             this.SharedState.CloseNamingScope();
-
             this.SharedState.SetCurrentBlock(contBlock);
-
             return QsStatementKind.EmptyStatement;
         }
 
@@ -498,7 +498,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
                 var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.CurrentContext.CreateStructType(false, this.SharedState.QirTupleHeader,
+                var tupleType = this.SharedState.Context.CreateStructType(false, this.SharedState.QirTupleHeader,
                     itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
@@ -612,27 +612,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.SharedState.SetCurrentBlock(block);
             this.SharedState.ScopeMgr.OpenScope();
             this.Transformation.Statements.OnScope(scope);
-            this.SharedState.ScopeMgr.CloseScope();
-            if (this.SharedState.CurrentBlock.Terminator == null)
-            {
-                this.SharedState.CurrentBuilder.Branch(continuation);
-            }
-        }
-
-        /// <summary>
-        /// Generate QIR for a Q# scope, with a specified continuation block.
-        /// The QIR starts in the current basic block, but may be generated into many blocks depending
-        /// on the Q# code.
-        /// The ref counting scope should be opened before this method is invoked.
-        /// </summary>
-        /// <param name="scope">The Q# scope to generate QIR for</param>
-        /// <param name="continuation">The block where execution should continue after this scope,
-        /// assuming that the scope doesn't end with a return statement</param>
-        private void FinishCurrentBlock(QsScope scope, BasicBlock continuation)
-        {
-            this.Transformation.Statements.OnScope(scope);
-            this.SharedState.ScopeMgr.CloseScope();
-            if (this.SharedState.CurrentBlock.Terminator == null)
+            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+            this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            if (!isTerminated)
             {
                 this.SharedState.CurrentBuilder.Branch(continuation);
             }
@@ -652,7 +634,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             this.SharedState.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
-            if (this.SharedState.CurrentBlock.Terminator == null)
+            if (this.SharedState.CurrentBlock?.Terminator == null)
             {
                 this.SharedState.CurrentBuilder.Branch(continuation);
             }

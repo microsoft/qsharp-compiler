@@ -3,8 +3,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>Microsoft.Quantum.QsCompiler.QirGenerator</RootNamespace>
-    <AssemblyName>Microsoft.Quantum.QsCompiler.QirGenerator</AssemblyName>
+    <RootNamespace>Microsoft.Quantum.QsCompiler.QirGeneration</RootNamespace>
+    <AssemblyName>Microsoft.Quantum.QsCompiler.QirGeneration</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

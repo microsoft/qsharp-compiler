@@ -14,7 +14,7 @@
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj" />
     <ProjectReference Include="..\Optimizations\Optimizations.fsproj" />
     <ProjectReference Include="..\..\Documentation\DocumentationParser\DocumentationParser.csproj" />
-    <ProjectReference Include="..\QirGenerator\QirGenerator.csproj" />
+    <ProjectReference Include="..\QirGeneration\QirGeneration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

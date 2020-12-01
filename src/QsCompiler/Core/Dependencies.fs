@@ -85,6 +85,21 @@ type BuiltIn = {
         Kind = Function (TypeParameters = ImmutableArray.Create "T")
     }
 
+    static member RangeStart = {
+        FullName = {Name = "RangeStart"; Namespace = BuiltIn.CoreNamespace}
+        Kind = Function (TypeParameters = ImmutableArray.Empty)
+    }
+
+    static member RangeStep = {
+        FullName = {Name = "RangeStep"; Namespace = BuiltIn.CoreNamespace}
+        Kind = Function (TypeParameters = ImmutableArray.Empty)
+    }
+
+    static member RangeEnd = {
+        FullName = {Name = "RangeEnd"; Namespace = BuiltIn.CoreNamespace}
+        Kind = Function (TypeParameters = ImmutableArray.Empty)
+    }
+
     static member RangeReverse = {
         FullName = {Name = "RangeReverse"; Namespace = BuiltIn.CoreNamespace}
         Kind = Function (TypeParameters = ImmutableArray.Empty)

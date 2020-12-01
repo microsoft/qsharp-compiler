@@ -5,46 +5,21 @@ using System.IO;
 using Microsoft.Quantum.QsCompiler.QirGenerator;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-namespace Microsoft.Quantum.QsCompiler
+namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    public class QirGeneratorStep : IRewriteStep
+    public class QirGeneration : IRewriteStep
     {
-        public class QirConfiguration
-        {
-            private static readonly ImmutableDictionary<string, string> clangInteropTypeMapping =
-                ImmutableDictionary.CreateRange(new Dictionary<string, string>
-                {
-                    ["Result"] = "class.RESULT",
-                    ["Array"] = "struct.quantum::Array",
-                    ["Callable"] = "struct.quantum::Callable",
-                    ["TuplePointer"] = "struct.quantum::TupleHeader",
-                    ["Qubit"] = "class.QUBIT"
-                });
-
-            internal readonly ImmutableDictionary<string, string> InteropTypeMapping;
-
-            public readonly string OutputFileName;
-
-            public QirConfiguration(string outputFileName, Dictionary<string, string>? interopTypeMapping = null)
-            {
-                this.InteropTypeMapping = interopTypeMapping != null
-                    ? interopTypeMapping.ToImmutableDictionary()
-                    : clangInteropTypeMapping;
-                this.OutputFileName = outputFileName;
-            }
-        }
-
-        private readonly QirConfiguration config;
+        private readonly Configuration config;
 
         private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
 
-        public QirGeneratorStep(QirConfiguration configuration)
+        public QirGeneration(string outputFileName)
         {
-            this.config = configuration;
+            this.config = new Configuration(outputFileName, generateClangWrappers: true);
         }
 
         /// <inheritdoc/>
-        public string Name => "QIR Generator";
+        public string Name => "QIR Generation";
 
         /// <inheritdoc/>
         public int Priority => 0;
@@ -81,13 +56,8 @@ namespace Microsoft.Quantum.QsCompiler
         {
             try
             {
-                var context = new GenerationContext(compilation, this.config.OutputFileName)
-                {
-                    ClangTypeMappings = this.config.InteropTypeMapping,
-                    GenerateClangWrappers = true
-                };
+                var context = new GenerationContext(compilation, this.config);
                 var transform = new QirTransformation(context);
-                context.StartNewModule();
 
                 foreach (var ns in compilation.Namespaces)
                 {
@@ -99,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler
                     context.GenerateEntryPoint(epName);
                 }
 
-                context.EndModule();
+                context.Emit();
             }
             catch (Exception ex)
             {

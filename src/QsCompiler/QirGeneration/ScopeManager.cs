@@ -176,11 +176,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// the pending releases are not generated.
         /// The releases are generated in the current block.
         /// </summary>
-        public void CloseScope()
+        public void CloseScope(bool isTerminated)
         {
             var releases = this.releaseStack.Pop();
             // If the current block is already terminated, presumably be a return, don't generate releases
-            if (this.sharedState.CurrentBlock.Terminator == null)
+            if (!isTerminated)
             {
                 this.GenerateReleasesForLevel(releases, this.sharedState.CurrentBuilder);
             }
