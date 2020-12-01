@@ -65,9 +65,10 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
             static TransformationBase[] Script(ImmutableDictionary<QsQualifiedName, QsCallable> callables) =>
                 new TransformationBase[]
                 {
+                    new CallableInlining(callables),
                     new ConstantPropagation(callables),
-                    new VariableRemoval(),
-                    new StatementRemoval(true),
+                    //new VariableRemoval(),
+                    //new StatementRemoval(true),
                 };
 
             transformed = new ListIdentifiers().OnCompilation(compilation); // adds a comment with all used identifiers to each callable
