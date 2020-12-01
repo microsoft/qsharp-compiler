@@ -12,14 +12,12 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
@@ -201,6 +199,11 @@ namespace Microsoft.Quantum.QsCompiler
             public bool EnableAdditionalChecks;
 
             /// <summary>
+            /// Whether or not QIR should be generated for this compilation.
+            /// </summary>
+            public bool GenerateQir;
+
+            /// <summary>
             /// Handle to pass arbitrary constants with which to populate the corresponding dictionary for loaded rewrite steps.
             /// These values will take precedence over any already existing values that the default constructor sets.
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
@@ -258,8 +261,17 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public enum Status
         {
+            /// <summary>
+            /// Indicates that a compilation step has not been executed.
+            /// </summary>
             NotRun = -1,
+            /// <summary>
+            /// Indicates that a compilation step successfully executed.
+            /// </summary>
             Succeeded = 0,
+            /// <summary>
+            /// Indicates that a compilation step executed but failed.
+            /// </summary>
             Failed = 1
         }
 
@@ -455,11 +467,6 @@ namespace Microsoft.Quantum.QsCompiler
         public readonly string? DllOutputPath;
 
         /// <summary>
-        /// Whether or not QIR should be generated for this compilation.
-        /// </summary>
-        public bool GenerateQir;
-
-        /// <summary>
         /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references.
         /// </summary>
         public IEnumerable<QsNamespace>? GeneratedSyntaxTree =>
@@ -636,13 +643,13 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            if (options?.GenerateQir ?? false)
+            if (this.config.GenerateQir && this.CompilationOutput != null)
             {
-                RaiseCompilationTaskStart("OutputGeneration", "QirGeneration");
+                this.RaiseCompilationTaskStart("OutputGeneration", "QirGeneration");
                 var outFileName = this.config.ProjectName ?? "test";
                 if (this.Validation == Status.Succeeded)
                 {
-                    var gen = new QirGeneratorStep(outFileName);
+                    var gen = new QirGeneration(outFileName);
                     gen.Transformation(this.CompilationOutput, out QsCompilation ignore);
                 }
                 else
@@ -653,7 +660,7 @@ namespace Microsoft.Quantum.QsCompiler
                         File.AppendAllText($"{outFileName}.log", $"  {diag.Message} at line {diag.Range.Start.Line}\n");
                     }
                 }
-                RaiseCompilationTaskEnd("OutputGeneration", "QirGeneration");
+                this.RaiseCompilationTaskEnd("OutputGeneration", "QirGeneration");
             }
 
             this.RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");

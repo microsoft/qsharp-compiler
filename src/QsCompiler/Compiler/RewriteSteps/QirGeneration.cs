@@ -55,20 +55,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             try
             {
-                var context = new GenerationContext(compilation, this.config);
-                var transform = new QirTransformation(context);
-
-                foreach (var ns in compilation.Namespaces)
-                {
-                    transform.Namespaces.OnNamespace(ns);
-                }
-
-                foreach (var epName in compilation.EntryPoints)
-                {
-                    context.GenerateEntryPoint(epName);
-                }
-
-                context.Emit();
+                var transformation = new QirTransformation(compilation, this.config);
+                transformation.Apply();
+                transformation.Emit();
             }
             catch (Exception ex)
             {

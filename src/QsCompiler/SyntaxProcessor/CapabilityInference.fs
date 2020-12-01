@@ -219,7 +219,7 @@ let private globalReferences scope =
 let private referenceDiagnostic context (name, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
+        let capability = (SymbolResolution.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
         if context.Capability.Implies capability
         then None
         else
@@ -314,7 +314,7 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
 
     // The capability of a callable based on its initial capability and the capability of all dependencies.
     and callableCapability visited (callable : QsCallable) =
-        (BuiltIn.TryGetRequiredCapability callable.Attributes).ValueOrApply (fun () ->
+        (SymbolResolution.TryGetRequiredCapability callable.Attributes).ValueOrApply (fun () ->
             if isDeclaredInSourceFile callable
             then
                 [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Base
@@ -347,7 +347,7 @@ let InferCapabilities compilation =
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
+                let isMissingCapability = SymbolResolution.TryGetRequiredCapability callable.Attributes |> isQsNull
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute
                 else callable

@@ -2,7 +2,6 @@
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.IO
@@ -22,7 +21,7 @@ let private callables =
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =
     let fullName = CapabilityVerificationTests.testName name
-    let actual = BuiltIn.TryGetRequiredCapability callables.[fullName].Attributes
+    let actual = SymbolResolution.TryGetRequiredCapability callables.[fullName].Attributes
     Assert.Equal (Value capability, actual)
 
 [<Fact>]
