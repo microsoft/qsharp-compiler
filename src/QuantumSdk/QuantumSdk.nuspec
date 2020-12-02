@@ -23,7 +23,7 @@
     <file src="DefaultItems\**\*" target="DefaultItems" exclude="**\*.v.template"/>
     <file src="ProjectSystem\**\*" target="ProjectSystem" exclude="**\*.v.template"/>
     <file src="Tools\BuildConfiguration\bin\$Configuration$\netcoreapp3.1\publish\**" target="tools\utils" exclude="**\*.pdb" />
-    <file src="..\QsCompiler\CommandLineTool\bin\$Configuration$\netcoreapp3.1\publish\**" target="tools\qsc" exclude="**\*.pdb" />
+    <file src="..\QsCompiler\CommandLineTool\bin\$Configuration$\netcoreapp3.1\publish\**" target="tools\qsc" />
     <file src="..\..\build\assets\qdk-nuget-icon.png" target="images" />
   </files>
 </package>
