@@ -719,12 +719,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
                 var capturePointer = builder.BitCast(func.Parameters[0], captureType.CreatePointerType());
                 Value innerArgTuple;
-                if ((kind == QsSpecializationKind.QsControlled) || (kind == QsSpecializationKind.QsControlledAdjoint))
+                if (kind == QsSpecializationKind.QsControlled || kind == QsSpecializationKind.QsControlledAdjoint)
                 {
+                    var parArgsStruct = (IStructType)parArgsType;
+
                     // Deal with the extra control qubit arg for controlled and controlled-adjoint
                     // Note that there's a special case if the base specialization only takes a single parameter,
                     // in which case we don't create the sub-tuple.
-                    if ((parArgsType as IStructType).Members.Count > 2)
+                    if (parArgsStruct.Members.Count > 2)
                     {
                         var ctlArgsType = this.SharedState.Context.CreateStructType(false,
                             this.SharedState.QirTupleHeader, this.SharedState.QirArray, this.SharedState.QirTuplePointer);
@@ -747,10 +749,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             new Value[] { this.SharedState.Context.CreateConstant(0L), this.SharedState.Context.CreateConstant(2) });
                         builder.Store(restTuple, destArgsPointer);
                     }
-                    else
+                    else if (parArgsStruct.Members.Count == 2)
                     {
                         // First process the incoming argument. Remember, [0] is the %TupleHeader.
-                        var singleArgType = (parArgsType as IStructType).Members[1];
+                        var singleArgType = parArgsStruct.Members[1];
                         var inputArgsType = this.SharedState.Context.CreateStructType(false,
                             this.SharedState.QirTupleHeader, this.SharedState.QirArray, singleArgType);
                         var inputArgsPointer = builder.BitCast(func.Parameters[1], inputArgsType.CreatePointerType());
@@ -776,6 +778,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         var destArgsPointer = builder.GetElementPtr(innerArgType, typedNewTuple,
                             new Value[] { this.SharedState.Context.CreateConstant(0L), this.SharedState.Context.CreateConstant(2) });
                         builder.Store(restTuple, destArgsPointer);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("argument tuple is expected to have a least one member in addition to the tuple header");
                     }
                 }
                 else
@@ -1255,8 +1261,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     this.SharedState.ValueStack.Push(callableValue);
                     this.SharedState.ScopeMgr.AddValue(callableValue,
                         ResolvedType.New(QsResolvedTypeKind.NewOperation(
-                            new Tuple<ResolvedType, ResolvedType>(callable.Signature.ArgumentType, 
-                                                                    callable.Signature.ReturnType),
+                            new Tuple<ResolvedType, ResolvedType>(callable.Signature.ArgumentType, callable.Signature.ReturnType),
                             CallableInformation.NoInformation)));
                 }
                 else

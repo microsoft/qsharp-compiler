@@ -571,16 +571,19 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 string LocalVarName(QsArgumentTuple v)
                 {
-                    if (v is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
-                    {
-                        return varName.Item;
-                    }
-                    else
+                    if (v is QsArgumentTuple.QsTuple)
                     {
                         var name = this.GenerateUniqueName("arg");
                         tupleQueue.Enqueue((name, v));
                         return name;
                     }
+                    else 
+                    {
+                        return v is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName
+                            ? varName.Item
+                            : this.GenerateUniqueName("arg");
+                    }
+
                 }
 
                 return arg is QsArgumentTuple.QsTuple tuple
@@ -611,8 +614,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 int idx = 1;
                 foreach (var argName in ArgTupleToNames(tupleArg, pendingTuples))
                 {
-                    var elementPointer = this.GetTupleElementPointer((tupleValue.NativeType as IPointerType).ElementType, tupleValue, idx);
-                    var element = this.CurrentBuilder.Load((elementPointer.NativeType as IPointerType).ElementType, elementPointer);
+                    var elementPointer = this.GetTupleElementPointer(((IPointerType)tupleValue.NativeType).ElementType, tupleValue, idx);
+                    var element = this.CurrentBuilder.Load(((IPointerType)elementPointer.NativeType).ElementType, elementPointer);
                     this.namesInScope.Peek().Add(argName, (element, false));
                     idx++;
                 }
@@ -1355,7 +1358,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     {
                         case ResolvedExpression.ValueTuple _:
                             // Handle inner tuples: allocate space. initialize, and then recurse
-                            var subTupleTypeRef = (this.LlvmTypeFromQsharpType(items[i].ResolvedType) as IPointerType).ElementType;
+                            var subTupleTypeRef = ((IPointerType)this.LlvmTypeFromQsharpType(items[i].ResolvedType)).ElementType;
                             var subTupleAsTuplePointer = this.CreateTupleForType(subTupleTypeRef);
                             var subTupleAsTypedPointer = this.CurrentBuilder.BitCast(subTupleAsTuplePointer, subTupleTypeRef.CreatePointerType());
                             FillStructSlot(tupleTypeRef, tupleToFillPointer, subTupleAsTypedPointer, i + 1);
