@@ -166,6 +166,30 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
     |> Seq.fold foldPatterns (false, Seq.empty)
     |> snd
 
+let private repeatStatementPatterns { RepeatBlock = repeatBlock; SuccessCondition = successCondition; FixupBlock = fixupBlock } =
+    let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
+        match s.Statement with
+        | QsReturnStatement _ -> [ s ]
+        | _ -> []
+    let returnPatterns (block : QsPositionedBlock) =
+        block.Body.Statements
+        |> Seq.collect returnStatements
+        |> Seq.map (fun statement ->
+            let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
+            ReturnInResultConditionedBlock range)
+    let setPatterns (block : QsPositionedBlock) =
+        nonLocalUpdates block.Body
+        |> Seq.map (fun (name, range) -> SetInResultConditionedBlock (name, Value range))
+    let foldPatterns (dependsOnResult, diagnostics) (block : QsPositionedBlock) =
+        if dependsOnResult || successCondition.Exists isResultEquality
+        then true, Seq.concat [ diagnostics; returnPatterns block; setPatterns block ]
+        else false, diagnostics
+
+    [repeatBlock; fixupBlock]
+    |> Seq.fold foldPatterns (false, Seq.empty)
+    |> snd
+
+
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray ()
@@ -181,6 +205,13 @@ let private statementPatterns statement =
                     expressionPatterns true condition |> Seq.map (addOffset blockOffset) |> patterns.AddRange
                     this.Transformation.Statements.OnScope block.Body |> ignore
                 QsConditionalStatement statement
+
+            override this.OnRepeatStatement statement =
+                repeatStatementPatterns statement |> patterns.AddRange
+                expressionPatterns true statement.SuccessCondition |> Seq.map (addOffset (locationOffset statement.RepeatBlock.Location)) |> patterns.AddRange
+                this.Transformation.Statements.OnScope statement.RepeatBlock.Body |> ignore
+                this.Transformation.Statements.OnScope statement.FixupBlock.Body |> ignore
+                QsRepeatStatement statement
     }
     transformation.Expressions <- {
         new ExpressionTransformation (transformation, TransformationOptions.NoRebuild) with
