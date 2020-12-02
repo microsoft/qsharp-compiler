@@ -18,6 +18,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public void Apply()
         {
+            this.SharedState.InitializeRuntimeLibrary();
+            this.SharedState.RegisterQuantumInstructions();
+
             foreach (var ns in this.SharedState.Compilation.Namespaces)
             {
                 this.Namespaces.OnNamespace(ns);

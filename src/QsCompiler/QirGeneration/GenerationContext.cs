@@ -65,13 +65,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         // Current state
         public readonly Context Context;
         public readonly BitcodeModule Module;
+        private readonly BitcodeModule BridgeModule;
         protected internal IrFunction? CurrentFunction { get; set; }
         protected internal BasicBlock? CurrentBlock { get; set; }
         protected internal InstructionBuilder CurrentBuilder { get; set; }
         protected internal readonly Stack<Value> ValueStack;
         protected internal readonly Stack<ResolvedType> ExpressionTypeStack;
         internal readonly ScopeManager ScopeMgr;
-        private readonly BitcodeModule BridgeModule;
 
         // LLVM type for passing up layers
         internal ITypeRef? BuiltType { get; set;}
@@ -132,6 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             Library.RegisterNative();
             this.Context = new Context();
             this.CurrentBuilder = new InstructionBuilder(this.Context);
+            this.Module = this.Context.CreateBitcodeModule();
             this.BridgeModule = this.Context.CreateBitcodeModule("bridge");
             this.ValueStack = new Stack<Value>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
@@ -166,23 +167,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             #endregion
 
-            // Initialization
             this.StandardWrapperSignature = this.Context.GetFunctionType(this.Context.VoidType,
                     new[] { this.QirTuplePointer, this.QirTuplePointer, this.QirTuplePointer });
-
-            #region Module initialization
-
-            this.Module = this.Context.CreateBitcodeModule();
-
             this.runtimeLibrary = new FunctionLibrary(this.Module,
                 s => SpecialFunctionName(SpecialFunctionKind.Runtime, s));
-            this.InitializeRuntimeLibrary();
-
             this.quantumLibrary = new FunctionLibrary(this.Module,
                 s => SpecialFunctionName(SpecialFunctionKind.QuantumInstruction, s));
-            this.RegisterQuantumInstructions();
-
-            #endregion
 
             #region Constants
 
@@ -312,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// Initializes the QIR runtime library.
         /// See <see cref="FunctionLibrary"/>.
         /// </summary>
-        private void InitializeRuntimeLibrary()
+        public void InitializeRuntimeLibrary()
         {
             #region int library functions
             this.runtimeLibrary.AddFunction("int_power", this.QirInt, this.QirInt, this.QirInt);
@@ -428,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <br/><br/>
         /// In addition, interop-compatible wrappers are generated for all of the quantum operations.
         /// </summary>
-        private void RegisterQuantumInstructions()
+        public void RegisterQuantumInstructions()
         {
             foreach (var ns in this.Compilation.Namespaces)
             {
