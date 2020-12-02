@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
@@ -95,6 +96,56 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
+        /// Gets the name of the unreference runtime function for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
+        /// decrement the reference count</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? GetReleaseFunctionForType(ITypeRef t, bool isQubit)
+        {
+            if (t == this.sharedState.QirArray)
+            {
+                if (isQubit)
+                {
+                    return "qubit_release_array";
+                }
+                else
+                {
+                    return "array_unreference";
+                }
+            }
+            else if (t == this.sharedState.QirQubit)
+            {
+                return "qubit_release";
+            }
+            else if (t == this.sharedState.QirResult)
+            {
+                return "result_unreference";
+            }
+            else if (t == this.sharedState.QirString)
+            {
+                return "string_unreference";
+            }
+            else if (t == this.sharedState.QirBigInt)
+            {
+                return "bigint_unreference";
+            }
+            else if ((t == this.sharedState.QirTuplePointer) || this.sharedState.IsTupleType(t))
+            {
+                return "tuple_unreference";
+            }
+            else if (t == this.sharedState.QirCallable)
+            {
+                return "callable_unreference";
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Adds a value to the current topmost scope.
         /// </summary>
         /// <param name="valueToRelease">The Value to be released</param>
@@ -104,6 +155,20 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public void AddValue(Value valueToRelease, ResolvedType valueType)
         {
             var releaser = this.GetReleaseFunctionForType(valueType, false);
+            if (releaser != null)
+            {
+                this.releaseStack.Peek().Add((valueToRelease, releaser));
+            }
+        }
+
+        /// <summary>
+        /// Adds a value to the current topmost scope, using its LLVM type to figure out how to
+        /// dereference the value.
+        /// </summary>
+        /// <param name="valueToRelease">The Value to be released</param>
+        public void AddValue(Value valueToRelease)
+        {
+            var releaser = this.GetReleaseFunctionForType(valueToRelease.NativeType, false);
             if (releaser != null)
             {
                 this.releaseStack.Peek().Add((valueToRelease, releaser));

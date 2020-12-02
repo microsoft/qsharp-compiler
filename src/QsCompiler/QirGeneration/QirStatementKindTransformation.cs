@@ -396,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
-                    var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                    var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                     var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i+1], itemValuePtr);
                     UpdateItem(items[i], itemValue);
                 }
@@ -497,7 +497,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Bind a structured Value to a tuple of variables (which might contain embedded tuples)
             void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
             {
-                Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
                 var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.QirTupleHeader).ToArray();
                 var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
@@ -509,8 +508,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         // Nothing to do
                     }
                     else
-                    {
-                        var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                    { 
+                        var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                         var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i + 1], itemValuePtr);
                         BindItem(item, itemValue, types[i]);
                     }
@@ -571,7 +570,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Generate the allocations for a tuple of variables (or embedded tuples)
             void AllocateTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedInitializer> types)
             {
-                Contract.Assert(items.Length == types.Length, "Initialization list doesn't match symbols");
                 for (int i = 0; i < items.Length; i++)
                 {
                     AllocateItem(items[i], types[i]);

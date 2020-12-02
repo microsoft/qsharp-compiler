@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
@@ -566,12 +567,88 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="argTuple">The specialization's argument tuple</param>
         public void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
         {
-            IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg)
+            //            void ProcessSubArg(QsArgumentTuple arg, Value val)
+            //            {
+            //                switch (arg)
+            //                {
+            //                    case QsArgumentTuple.QsTuple tuple:
+            //                        var items = tuple.Item;
+            //                        var n = items.Length;
+            //                        if (n > 0)
+            //                        {
+            //                            ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
+            //                            // Convert value from TuplePointer to the proper type
+            //                            Value asStructPointer = this.CurrentBuilder.BitCast(val,
+            //                                tupleTypeRef.CreatePointerType());
+            //                            var indices = new Value[] { this.CurrentContext.CreateConstant(0L),
+            //                                                    this.CurrentContext.CreateConstant(1) };
+            //                            for (var i = 0; i < n; i++)
+            //                            {
+            //                                indices[1] = this.CurrentContext.CreateConstant(i + 1);
+            //                                Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
+            //#pragma warning disable CS0618 // Type or member is obsolete -- computing the type that ptr points to is tricky, so we just rely on it's .NativeType
+            //                                var subVal = this.CurrentBuilder.Load(ptr);
+            //#pragma warning restore CS0618 // Type or member is obsolete
+            //                                ProcessSubArg(tuple.Item[i], subVal);
+            //                            }
+            //                        }
+            //                        break;
+            //                    case QsArgumentTuple.QsTupleItem item:
+            //                        var argName = (item.Item.VariableName as QsLocalSymbol.ValidName).Item.Value;
+            //                        namesInScope.Peek().Add(argName, (val, false));
+            //                        break;
+            //                }
+            //            }
+
+            //            void ProcessTopLevelArg(QsArgumentTuple arg, int index)
+            //            {
+            //                // Register the parameter name
+            //                var argName = arg switch
+            //                {
+            //                    QsArgumentTuple.QsTupleItem item => (item.Item.VariableName as QsLocalSymbol.ValidName).Item.Value,
+            //                    _ => this.GenerateUniqueName("arg")
+            //                };
+            //                this.CurrentFunction.Parameters[index].Name = argName;
+            //                namesInScope.Peek().Add(argName, (this.CurrentFunction.Parameters[index], false));
+
+            //                // If the arg is a sub-tuple, process it
+            //                if (arg.IsQsTuple)
+            //                {
+            //                    ProcessSubArg(arg, this.CurrentFunction.Parameters[index]);
+            //                }
+            //            }
+
+            //            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
+            //            this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
+            //            this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
+
+            //            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
+            //            var topLevelArgs = argTuple switch
+            //            {
+            //                QsArgumentTuple.QsTuple tuple => tuple.Item,
+            //                _ => new QsArgumentTuple[] { argTuple }.ToImmutableArray()
+            //            };
+            //            var i = 0;
+            //            foreach (var arg in topLevelArgs)
+            //            {
+            //                ProcessTopLevelArg(arg, i);
+            //                i++;
+            //            }
+            IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
             {
-                string LocalVarName(QsArgumentTuple v) => 
-                    v is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName
-                    ? varName.Item
-                    : this.GenerateUniqueName("arg");
+                string LocalVarName(QsArgumentTuple v)
+                {
+                    if (v is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
+                    {
+                        return varName.Item;
+                    }
+                    else
+                    {
+                        var name = this.GenerateUniqueName("arg");
+                        tupleQueue.Enqueue((name, v));
+                        return name;
+                    }
+                }
 
                 return arg is QsArgumentTuple.QsTuple tuple
                     ? tuple.Item.Select(item => LocalVarName(item))
@@ -583,12 +660,29 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
             this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
+            var pendingTuples = new Queue<(string, QsArgumentTuple)>();
             var i = 0;
-            foreach (var argName in ArgTupleToNames(argTuple))
+            foreach (var argName in ArgTupleToNames(argTuple, pendingTuples))
             {
                 this.CurrentFunction.Parameters[i].Name = argName;
                 this.namesInScope.Peek().Add(argName, (this.CurrentFunction.Parameters[i], false));
                 i++;
+            }
+
+            // Now break up input tuples
+            while (pendingTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
+            {
+                var (tupleArgName, tupleArg) = tuple;
+                this.PushNamedValue(tupleArgName);
+                var tupleValue = this.ValueStack.Pop();
+                int idx = 1;
+                foreach (var argName in ArgTupleToNames(tupleArg, pendingTuples))
+                {
+                    var elementPointer = this.GetTupleElementPointer((tupleValue.NativeType as IPointerType).ElementType, tupleValue, idx);
+                    var element = this.CurrentBuilder.Load((elementPointer.NativeType as IPointerType).ElementType, elementPointer);
+                    this.namesInScope.Peek().Add(argName, (element, false));
+                    idx++;
+                }
             }
         }
 
@@ -629,8 +723,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 for (int i = 0; i < args.Length-1; i++)
                 {
                     this.CurrentFunction.Parameters[i].Name = $"arg{i}";
-                    var itemPtr = this.CurrentBuilder.GetStructElementPointer(udtTupleType,
-                        udtTuple, (uint)i + 1);
+                    var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                     // Add a reference to the value, if necessary
                     this.AddRef(this.CurrentFunction.Parameters[i]);
@@ -1129,6 +1222,30 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
+        /// Returns a pointer to a tuple element.
+        /// This is a thin wrapper around the LLVM GEP instruction.
+        /// </summary>
+        /// <param name="t">The type of the tuple structure (not the type of the pointer!).</param>
+        /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
+        /// <param name="index">The element's index into the tuple. The tuple header is index 0, the first data item is index 1.</param>
+        /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        /// <returns></returns>
+        internal Value GetTupleElementPointer(ITypeRef t, Value tuple, int index, InstructionBuilder? b = null)
+        {
+            Value[] indices = new Value[]
+            {
+                this.Context.CreateConstant(0L),
+                this.Context.CreateConstant(index)
+            };
+            var builder = b ?? this.CurrentBuilder;
+            var typedTuple = tuple.NativeType == t.CreatePointerType()
+                ? tuple
+                : builder.BitCast(tuple, t.CreatePointerType());
+            var elementPointer = builder.GetElementPtr(t, typedTuple, indices);
+            return elementPointer;
+        }
+
+        /// <summary>
         /// Creates and returns a deep copy of a tuple.
         /// By default this uses the current builder, but an alternate builder may be provided.
         /// </summary>
@@ -1152,8 +1269,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 for (int i = 0; i < elementTypes.Length; i++)
                 {
                     var elementType = elementTypes[i];
-                    var originalElementPointer = builder.GetStructElementPointer(originalTypeRef,
-                        typedOriginal, (uint)i + 1);
+                    var originalElementPointer = this.GetTupleElementPointer(originalTypeRef, typedOriginal, i + 1, builder);
                     var originalElement = builder.Load(this.LlvmTypeFromQsharpType(elementType), 
                         originalElementPointer);
                     Value elementValue = elementType.Resolution switch
@@ -1164,8 +1280,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             builder.Call(this.GetRuntimeFunction("array_copy"), originalElement),
                         _ => originalElement,
                     };
-                    var copyElementPointer = builder.GetStructElementPointer(originalTypeRef,
-                        typedCopy, (uint)i + 1);
+                    var copyElementPointer = this.GetTupleElementPointer(originalTypeRef, typedCopy, i + 1, builder);
                     builder.Store(elementValue, copyElementPointer);
                 }
 
@@ -1283,12 +1398,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         this.Context.CreateConstant(position)
                     };
                 var elementPointer = this.CurrentBuilder.GetElementPtr(structType, pointerToStruct, indices);
-                this.CurrentBuilder.Store(fillValue, elementPointer);
+                var castValue = fillValue.NativeType == this.QirTuplePointer
+                    ? this.CurrentBuilder.BitCast(fillValue, (structType as IStructType).Members[position])
+                    : fillValue;
+                this.CurrentBuilder.Store(castValue, elementPointer);
             }
 
             void FillItem(ITypeRef structType, Value pointerToStruct, TypedExpression fillExpr, int position)
             {
-                Contract.Assert(!fillExpr.ResolvedType.Resolution.IsTupleType, "FillItem is for non-tuple items only");
                 this.Transformation.Expressions.OnTypedExpression(fillExpr);
                 var fillValue = this.ValueStack.Pop();
                 FillStructSlot(structType, pointerToStruct, fillValue, position);
@@ -1305,10 +1422,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     {
                         case ResolvedExpression.ValueTuple _:
                             // Handle inner tuples: allocate space. initialize, and then recurse
-                            var subTupleTypeRef = this.LlvmTypeFromQsharpType(items[i].ResolvedType);
+                            var subTupleTypeRef = (this.LlvmTypeFromQsharpType(items[i].ResolvedType) as IPointerType).ElementType;
                             var subTupleAsTuplePointer = this.CreateTupleForType(subTupleTypeRef);
-                            FillStructSlot(tupleTypeRef, tupleToFillPointer, subTupleAsTuplePointer, i + 1);
-                            this.FillTuple(subTupleAsTuplePointer, items[i]);
+                            var subTupleAsTypedPointer = this.CurrentBuilder.BitCast(subTupleAsTuplePointer, subTupleTypeRef.CreatePointerType());
+                            FillStructSlot(tupleTypeRef, tupleToFillPointer, subTupleAsTypedPointer, i + 1);
+                            this.FillTuple(subTupleAsTypedPointer, items[i]);
                             break;
                         default:
                             FillItem(tupleTypeRef, tupleToFillPointer, items[i], i + 1);
@@ -1338,6 +1456,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void MapTupleInner(TypedExpression source, QsArgumentTuple destination, 
                 List<(string, Value)> assignmentQueue)
             {
+                if (source.Expression.IsUnitValue)
+                {
+                    // Nothing to do, so bail
+                    return;
+                }
                 if (destination is QsArgumentTuple.QsTuple tuple)
                 {
                     var items = tuple.Item;
@@ -1392,7 +1515,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 for (var index = 0; index < 4; index++)
                 {
                     QsSpecializationKind kind = FunctionArray[index];
-                    if (callable.Specializations.Any(spec => spec.Kind == kind))
+                    if (callable.Specializations.Any(spec => spec.Kind == kind && spec.Implementation.IsProvided))
                     {
                         var f = this.Module.CreateFunction(CallableWrapperName(callable, kind),
                             this.StandardWrapperSignature);
@@ -1416,16 +1539,29 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             // Generate the code that decomposes the tuple back into the named arguments
             // Note that we don't want to recurse here!!.
-            List<Value> GenerateArgTupleDecomposition(QsArgumentTuple arg, Value value)
+            List<Value> GenerateArgTupleDecomposition(QsArgumentTuple arg, Value value, QsSpecializationKind kind)
             {
                 Value BuildLoadForArg(QsArgumentTuple arg, Value value)
                 {
                     ITypeRef argTypeRef = arg is QsArgumentTuple.QsTupleItem item
                         ? this.BuildArgItemTupleType(item)
-                        : this.QirTuplePointer;
+                        : this.BuildArgTupleType(arg).CreatePointerType();
                     // value is a pointer to the argument
                     Value actualArg = this.CurrentBuilder.Load(argTypeRef, value);
                     return actualArg;
+                }
+
+                // Controlled specializations have different signatures, so adjust what we have
+                if (kind.IsQsControlled || kind.IsQsControlledAdjoint)
+                {
+                    var ctlArg = new LocalVariableDeclaration<QsLocalSymbol>(
+                        QsLocalSymbol.NewValidName(this.GenerateUniqueName("ctls")),
+                        ResolvedType.New(QsResolvedTypeKind.NewArrayType(ResolvedType.New(QsResolvedTypeKind.Qubit))),
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Position>.Null,
+                        DataTypes.Range.Zero);
+                    var ctlArgs = new QsArgumentTuple[] { QsArgumentTuple.NewQsTupleItem(ctlArg), arg };
+                    arg = QsArgumentTuple.NewQsTuple(ctlArgs.ToImmutableArray());
                 }
 
                 List<Value> args = new List<Value>();
@@ -1517,10 +1653,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var callable = kvp.Value.Item1;
                 foreach (var spec in callable.Specializations)
                 {
-                    if (GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
+                    if (spec.Implementation.IsProvided && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
                     {
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
-                        var argList = GenerateArgTupleDecomposition(callable.ArgumentTuple, argTupleValue);
+                        var argList = GenerateArgTupleDecomposition(callable.ArgumentTuple, argTupleValue, spec.Kind);
                         var result = GenerateBaseMethodCall(callable, spec, argList);
                         PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2], 1);
                         this.CurrentBuilder.Return();
