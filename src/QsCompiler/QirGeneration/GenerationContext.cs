@@ -567,73 +567,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="argTuple">The specialization's argument tuple</param>
         public void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
         {
-            //            void ProcessSubArg(QsArgumentTuple arg, Value val)
-            //            {
-            //                switch (arg)
-            //                {
-            //                    case QsArgumentTuple.QsTuple tuple:
-            //                        var items = tuple.Item;
-            //                        var n = items.Length;
-            //                        if (n > 0)
-            //                        {
-            //                            ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
-            //                            // Convert value from TuplePointer to the proper type
-            //                            Value asStructPointer = this.CurrentBuilder.BitCast(val,
-            //                                tupleTypeRef.CreatePointerType());
-            //                            var indices = new Value[] { this.CurrentContext.CreateConstant(0L),
-            //                                                    this.CurrentContext.CreateConstant(1) };
-            //                            for (var i = 0; i < n; i++)
-            //                            {
-            //                                indices[1] = this.CurrentContext.CreateConstant(i + 1);
-            //                                Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
-            //#pragma warning disable CS0618 // Type or member is obsolete -- computing the type that ptr points to is tricky, so we just rely on it's .NativeType
-            //                                var subVal = this.CurrentBuilder.Load(ptr);
-            //#pragma warning restore CS0618 // Type or member is obsolete
-            //                                ProcessSubArg(tuple.Item[i], subVal);
-            //                            }
-            //                        }
-            //                        break;
-            //                    case QsArgumentTuple.QsTupleItem item:
-            //                        var argName = (item.Item.VariableName as QsLocalSymbol.ValidName).Item.Value;
-            //                        namesInScope.Peek().Add(argName, (val, false));
-            //                        break;
-            //                }
-            //            }
-
-            //            void ProcessTopLevelArg(QsArgumentTuple arg, int index)
-            //            {
-            //                // Register the parameter name
-            //                var argName = arg switch
-            //                {
-            //                    QsArgumentTuple.QsTupleItem item => (item.Item.VariableName as QsLocalSymbol.ValidName).Item.Value,
-            //                    _ => this.GenerateUniqueName("arg")
-            //                };
-            //                this.CurrentFunction.Parameters[index].Name = argName;
-            //                namesInScope.Peek().Add(argName, (this.CurrentFunction.Parameters[index], false));
-
-            //                // If the arg is a sub-tuple, process it
-            //                if (arg.IsQsTuple)
-            //                {
-            //                    ProcessSubArg(arg, this.CurrentFunction.Parameters[index]);
-            //                }
-            //            }
-
-            //            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
-            //            this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
-            //            this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
-
-            //            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
-            //            var topLevelArgs = argTuple switch
-            //            {
-            //                QsArgumentTuple.QsTuple tuple => tuple.Item,
-            //                _ => new QsArgumentTuple[] { argTuple }.ToImmutableArray()
-            //            };
-            //            var i = 0;
-            //            foreach (var arg in topLevelArgs)
-            //            {
-            //                ProcessTopLevelArg(arg, i);
-            //                i++;
-            //            }
             IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
             {
                 string LocalVarName(QsArgumentTuple v)
@@ -918,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="resolvedType">The Q# type</param>
         /// <returns>The equivalent QIR structure type</returns>
-        public ITypeRef LlvmStructTypeFromQsharpType(ResolvedType resolvedType)
+        public IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType)
         {
             if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
             {
@@ -1390,7 +1323,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="expr">The Q# expression to evaluate and fill in the tuple with</param>
         internal void FillTuple(Value pointerToTuple, TypedExpression expr)
         {
-            void FillStructSlot(ITypeRef structType, Value pointerToStruct, Value fillValue, int position)
+            void FillStructSlot(IStructType structType, Value pointerToStruct, Value fillValue, int position)
             {
                 // Generate a store for the value
                 Value[] indices = new Value[] {
@@ -1399,12 +1332,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     };
                 var elementPointer = this.CurrentBuilder.GetElementPtr(structType, pointerToStruct, indices);
                 var castValue = fillValue.NativeType == this.QirTuplePointer
-                    ? this.CurrentBuilder.BitCast(fillValue, (structType as IStructType).Members[position])
+                    ? this.CurrentBuilder.BitCast(fillValue, structType.Members[position])
                     : fillValue;
                 this.CurrentBuilder.Store(castValue, elementPointer);
             }
 
-            void FillItem(ITypeRef structType, Value pointerToStruct, TypedExpression fillExpr, int position)
+            void FillItem(IStructType structType, Value pointerToStruct, TypedExpression fillExpr, int position)
             {
                 this.Transformation.Expressions.OnTypedExpression(fillExpr);
                 var fillValue = this.ValueStack.Pop();
