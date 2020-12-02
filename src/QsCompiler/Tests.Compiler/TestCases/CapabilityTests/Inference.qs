@@ -157,6 +157,61 @@
             X(q);
         }
     }
+
+    // BasicMeasurementFeedback repeat-until loop
+
+    operation BmfRepeatUntil(q : Qubit) : Unit {
+        repeat {
+            X(q);
+        }
+        until (M(q) == One);
+    }
+
+    operation BmfRepeatUntilFixup(q : Qubit) : Unit {
+        repeat {
+            X(q);
+        }
+        until (M(q) == One)
+        fixup {
+            Reset(q);
+        }
+    }
+
+    // FullComputation repeat-until loop
+
+    operation FullCRepeatUntil(q : Qubit) : Unit {
+        mutable r = Zero;
+        repeat {
+            X(q);
+            set r = M(q);
+        }
+        until (r == One);
+    }
+
+    operation FullCRepeatUntilFixup(q : Qubit) : Unit {
+        mutable r = M(q);
+        repeat {
+
+        }
+        until (r == One)
+        fixup {
+            X(q);
+            set r = M(q);
+        }
+    }
+
+    // BasicQuantumFunctionality repeat-until loop
+
+    operation BqfRepeatUntilFixup(q : Qubit) : Unit {
+        mutable i = 0;
+        repeat {
+            X(q);
+        }
+        until (i <= 0)
+        fixup {
+            set i = i + 1;
+        }
+    }
 }
 
 namespace Microsoft.Quantum.Core {

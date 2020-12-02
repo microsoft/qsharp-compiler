@@ -125,3 +125,20 @@ let ``Infers with uncalled reference`` () =
     [ "ReferenceBmfA"
       "ReferenceBmfB" ]
     |> List.iter (expect BasicMeasurementFeedback)
+
+[<Fact>]
+let ``Infers with simple repeat loop`` () =
+    [ "BmfRepeatUntil"
+      "BmfRepeatUntilFixup" ]
+    |> List.iter (expect BasicMeasurementFeedback)
+
+[<Fact>]
+let ``Infers with mutable repeat loop`` () =
+    [ "FullCRepeatUntil"
+      "FullCRepeatUntilFixup" ]
+    |> List.iter (expect FullComputation)
+
+[<Fact>]
+let ``Infers with classical repeat loop`` () =
+    [ "BqfRepeatUntilFixup" ]
+    |> List.iter (expect BasicQuantumFunctionality)
