@@ -2,11 +2,12 @@
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Llvm.NET.Types;
-using Llvm.NET.Values;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -249,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             // Preheader block: compute the range and test direction for the loop, then branch to the header
             this.SharedState.SetCurrentBlock(preheaderBlock);
-            var testValue = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedGreater, 
+            var testValue = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, 
                 stepValue, this.SharedState.Context.CreateConstant(0L));
             this.SharedState.RegisterName(testName, testValue);
             this.SharedState.CurrentBuilder.Branch(headerBlock);
@@ -262,9 +263,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // We can't add the other incoming value yet, because we haven't generated it yet.
             // We'll add it when we generate the exiting block.
             // TODO: simplify the following if the step is a compile-time constant
-            var aboveEnd = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedGreaterOrEqual,
+            var aboveEnd = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThanOrEqual,
                 iterationValue, endValue);
-            var belowEnd = this.SharedState.CurrentBuilder.Compare(Llvm.NET.Instructions.IntPredicate.SignedLessOrEqual,
+            var belowEnd = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual,
                 iterationValue, endValue);
             var continueValue = this.SharedState.CurrentBuilder.Select(testValue, belowEnd, aboveEnd);
             this.SharedState.CurrentBuilder.Branch(continueValue, bodyBlock, exitBlock);
@@ -388,15 +389,15 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Update a tuple of items from a tuple value.
             void UpdateTuple(ImmutableArray<TypedExpression> items, Value val)
             {
-                var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                var tupleType = this.SharedState.Context.CreateStructType(false, this.SharedState.QirTupleHeader,
-                    itemTypes);
+                var itemTypes = items
+                    .Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType))
+                    .Prepend(this.SharedState.QirTupleHeader).ToArray();
+                var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
-                    var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer,
-                        (uint)i + 1);
-                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
+                    var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i+1], itemValuePtr);
                     UpdateItem(items[i], itemValue);
                 }
             }
@@ -497,9 +498,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
             {
                 Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
-                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.Context.CreateStructType(false, this.SharedState.QirTupleHeader,
-                    itemTypes);
+                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.QirTupleHeader).ToArray();
+                var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
@@ -510,9 +510,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     }
                     else
                     {
-                        var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer,
-                            (uint)i + 1);
-                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
+                        var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i + 1], itemValuePtr);
                         BindItem(item, itemValue, types[i]);
                     }
                 }
@@ -541,8 +540,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
         {
             ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
-            var allocateOne = this.SharedState.GetRuntimeFunction("qubit_allocate");
-            var allocateArray = this.SharedState.GetRuntimeFunction("qubit_allocate_array");
+            IrFunction allocateOne = this.SharedState.GetRuntimeFunction("qubit_allocate");
+            IrFunction allocateArray = this.SharedState.GetRuntimeFunction("qubit_allocate_array");
 
             // Generate the allocation for a single variable
             void AllocateVariable(string variable, ResolvedInitializer init)

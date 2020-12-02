@@ -6,13 +6,13 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Llvm.NET;
-using Llvm.NET.Instructions;
-using Llvm.NET.Interop;
-using Llvm.NET.Types;
-using Llvm.NET.Values;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Interop;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -54,6 +54,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
     /// </summary>
     public class GenerationContext : IDisposable
     {
+        private static readonly ILibLlvm libContext = Library.InitializeLLVM();
+
         #region Member variables
 
         public readonly Configuration Config;
@@ -109,7 +111,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public readonly IFunctionType StandardWrapperSignature;
 
         // Various internal bits of data
-        private readonly IDisposable libContext;
         private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
         private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -124,12 +125,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="outputFile">The base path of the QIR file to write, with no extension</param>
         internal GenerationContext(QsCompilation comp, Configuration config, QirTransformation? transformation = null)
         {
+            libContext.RegisterTarget(CodeGenTarget.Native);
+
             this.Compilation = comp;
             this.Config = config;
             this._Transformation = transformation;
 
-            this.libContext = Library.InitializeLLVM();
-            Library.RegisterNative();
             this.Context = new Context();
             this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.Module = this.Context.CreateBitcodeModule();
@@ -187,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.QirPauliZ = this.Module.AddGlobal(this.QirPauli, true, Linkage.External,
                 this.Context.CreateConstant(this.QirPauli, 2, false), "PauliZ");
             this.QirEmptyRange = this.Module.AddGlobal(this.QirRange, true, Linkage.Internal,
-                this.Context.CreateNamedConstantStruct(this.QirRange as IStructType,
+                this.Context.CreateNamedConstantStruct((IStructType)this.QirRange,
                     this.Context.CreateConstant(0L),
                     this.Context.CreateConstant(1L),
                     this.Context.CreateConstant(-1L)),
@@ -554,7 +555,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
             var argTypeRefs = ArgTupleToTypes(argTuple);
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.AddFunction(name, signature);
+            return this.Module.CreateFunction(name, signature);
         }
 
         /// <summary>
@@ -602,21 +603,21 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             var args = udt.Type.Resolution switch
             {
-                QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).ToArray(),
-                _ when udt.Type.Resolution.IsUnitType => new ITypeRef[0],
-                _ => new ITypeRef[] { this.LlvmTypeFromQsharpType(udt.Type) }
+                QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.QirTupleHeader).ToArray(),
+                _ when udt.Type.Resolution.IsUnitType => new ITypeRef[] { this.QirTupleHeader },
+                _ => new ITypeRef[] { this.QirTupleHeader, this.LlvmTypeFromQsharpType(udt.Type) }
             };
-            var udtTupleType = this.Context.CreateStructType(false, this.QirTupleHeader, args);
-            var udtPointerType = args.Length > 0 ? udtTupleType.CreatePointerType() : this.QirTuplePointer;
-            var signature = this.Context.GetFunctionType(udtPointerType, args);
+            var udtTupleType = this.Context.CreateStructType(false, args);
+            var udtPointerType = args.Length > 1 ? udtTupleType.CreatePointerType() : this.QirTuplePointer;
+            var signature = this.Context.GetFunctionType(udtPointerType, args[1..]);
 
-            this.StartSpecialization();
-            this.CurrentFunction = this.Module.AddFunction(name, signature);
+            this.StartSpecialization();            
+            this.CurrentFunction = this.Module.CreateFunction(name, signature);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
             // An easy case -- (), a marker UDT
-            if (args.Length == 0)
+            if (args.Length == 1)
             {
                 this.CurrentBuilder.Return(udtPointerType.GetNullValue());
             }
@@ -625,7 +626,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var tuple = this.CreateTupleForType(udtTupleType);
                 var udtTuple = this.CurrentBuilder.BitCast(tuple, udtPointerType);
 
-                for (int i = 0; i < args.Length; i++)
+                for (int i = 0; i < args.Length-1; i++)
                 {
                     this.CurrentFunction.Parameters[i].Name = $"arg{i}";
                     var itemPtr = this.CurrentBuilder.GetStructElementPointer(udtTupleType,
@@ -828,13 +829,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
             {
-                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray();
-                return this.Context.CreateStructType(false, this.QirTupleHeader, elementTypes);
+                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.QirTupleHeader).ToArray();
+                return this.Context.CreateStructType(false, elementTypes);
             }
             else
             {
-                this.Transformation.Types.OnType(resolvedType);
-                return this.Context.CreateStructType(false, this.QirTupleHeader, this.BuiltType);
+                return this.Context.CreateStructType(false, this.QirTupleHeader, this.LlvmTypeFromQsharpType(resolvedType));
             }
         }
 
@@ -1070,8 +1070,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 case QsArgumentTuple.QsTuple tuple:
                 {
-                    var elems = tuple.Item.Select(this.BuildArgItemTupleType).ToArray();
-                    return this.Context.CreateStructType(false, this.QirTupleHeader, elems).CreatePointerType();
+                    var elems = tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.QirTupleHeader).ToArray();
+                    return this.Context.CreateStructType(false, elems).CreatePointerType();
                 }
 
                 case QsArgumentTuple.QsTupleItem item:
@@ -1098,10 +1098,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             if (arg is QsArgumentTuple.QsTuple tuple)
             {
-                var itemTypeRefs = tuple.Item.Select(this.BuildArgItemTupleType).ToArray();
-                return itemTypeRefs.Length == 0
+                return tuple.Item.Length == 0
                     ? this.Context.VoidType
-                    : this.Context.CreateStructType(false, this.QirTupleHeader, itemTypeRefs);
+                    : this.Context.CreateStructType(
+                        false,
+                        tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.QirTupleHeader).ToArray());
             }
             else if (arg is QsArgumentTuple.QsTupleItem item)
             {
@@ -1393,7 +1394,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     QsSpecializationKind kind = FunctionArray[index];
                     if (callable.Specializations.Any(spec => spec.Kind == kind))
                     {
-                        var f = this.Module.AddFunction(CallableWrapperName(callable, kind),
+                        var f = this.Module.CreateFunction(CallableWrapperName(callable, kind),
                             this.StandardWrapperSignature);
                         funcs[index] = f;
                     }
@@ -1758,7 +1759,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 if (MapToCType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
                     (mappedResultType != func.ReturnType))
                 {
-                    var epFunc = this.Module.AddFunction(epName, 
+                    var epFunc = this.Module.CreateFunction(epName, 
                         this.Context.GetFunctionType(mappedResultType, mappedArgList));
                     var namedValues = new Dictionary<string, Value>();
                     for (var i = 0; i < mappedNameList.Count; i++)
@@ -1784,7 +1785,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
                             var copyBlock = epFunc.AppendBasicBlock("copy");
                             var nextBlock = epFunc.AppendBasicBlock("next");
-                            var cond = builder.Compare(IntPredicate.SignedGreater, length, this.Context.CreateConstant(0L));
+                            var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
                             builder.Branch(cond, copyBlock, nextBlock);
                             builder = new InstructionBuilder(copyBlock);
                             var destBase = builder.Call(this.GetRuntimeFunction("array_get_element_ptr_1d"), array,
@@ -1851,13 +1852,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
         private void GenerateInteropWrapper(IrFunction func, string baseName)
         {
-            func = this.BridgeModule.AddFunction(func.Name, func.Signature);
+            func = this.BridgeModule.CreateFunction(func.Name, func.Signature);
 
             var mappedResultType = this.MapToInteropType(func.ReturnType);
             var argTypes = func.Parameters.Select(p => p.NativeType).ToArray();
             var mappedArgTypes = argTypes.Select(this.MapToInteropType).ToArray();
 
-            var interopFunction = this.BridgeModule.AddFunction(baseName,
+            var interopFunction = this.BridgeModule.CreateFunction(baseName,
                 this.Context.GetFunctionType(mappedResultType, mappedArgTypes));
 
             for (var i = 0; i < func.Parameters.Count; i++)
@@ -2004,7 +2005,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 if (disposing)
                 {
                     this.Context.Dispose();
-                    this.libContext.Dispose();
                 }
 
                 this.disposedValue = true;

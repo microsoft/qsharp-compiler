@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
-using Llvm.NET.Types;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -101,9 +100,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override QsResolvedTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
         {
-            var elementTypes = ts.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-            this.SharedState.BuiltType = this.SharedState.Context.CreateStructType(
-                false, this.SharedState.QirTupleHeader, elementTypes).CreatePointerType();
+            var elementTypes = ts
+                .Select(this.SharedState.LlvmTypeFromQsharpType)
+                .Prepend(this.SharedState.QirTupleHeader).ToArray();
+            this.SharedState.BuiltType = this.SharedState.Context.CreateStructType(false, elementTypes).CreatePointerType();
             return QsResolvedTypeKind.InvalidType;
         }
 

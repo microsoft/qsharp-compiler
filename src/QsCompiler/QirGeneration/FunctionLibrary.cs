@@ -1,10 +1,9 @@
-﻿using Llvm.NET;
-using Llvm.NET.Types;
-using Llvm.NET.Values;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -67,9 +66,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <returns>The object that represents the function</returns>
         public IrFunction GetFunction(string name)
         {
-            var mappedName = nameMapper(name);
-            var func = module.GetFunction(mappedName) ?? module.AddFunction(mappedName, this.runtimeFunctions[name]);
-            usedRuntimeFunctions[name] = func;
+            var mappedName = this.nameMapper(name);
+            var func = this.module.TryGetFunction(mappedName, out var fct) ?
+                fct : this.module.CreateFunction(mappedName, this.runtimeFunctions[name]);
+            this.usedRuntimeFunctions[name] = func;
             return func;
         }
 
@@ -80,34 +80,34 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             public LibEnumerator(Dictionary<string, IrFunction> dict)
             {
-                innerEnum = dict.GetEnumerator();
+                this.innerEnum = dict.GetEnumerator();
             }
 
-            public KeyValuePair<string, IrFunction> Current => innerEnum.Current;
+            public KeyValuePair<string, IrFunction> Current => this.innerEnum.Current;
 
-            object IEnumerator.Current => innerEnum.Current;
+            object IEnumerator.Current => this.innerEnum.Current;
 
-            public bool MoveNext() => innerEnum.MoveNext();
+            public bool MoveNext() => this.innerEnum.MoveNext();
 
             public void Reset() => throw new NotImplementedException();
 
             protected virtual void Dispose(bool disposing)
             {
-                if (!disposedValue)
+                if (!this.disposedValue)
                 {
                     if (disposing)
                     {
-                        innerEnum.Dispose();
+                        this.innerEnum.Dispose();
                     }
 
-                    disposedValue = true;
+                    this.disposedValue = true;
                 }
             }
 
             public void Dispose()
             {
                 // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-                Dispose(disposing: true);
+                this.Dispose(disposing: true);
                 GC.SuppressFinalize(this);
             }
         }
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <returns>The enumerator</returns>
         public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() => 
-            new LibEnumerator(usedRuntimeFunctions);
+            new LibEnumerator(this.usedRuntimeFunctions);
 
         /// <summary>
         /// Gets an enumerator through the runtime functions in this library that have
@@ -129,6 +129,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// key and the actual LLVM function object as the value.
         /// </summary>
         /// <returns>The enumerator</returns>
-        IEnumerator IEnumerable.GetEnumerator() => new LibEnumerator(usedRuntimeFunctions);
+        IEnumerator IEnumerable.GetEnumerator() => new LibEnumerator(this.usedRuntimeFunctions);
     }
 }

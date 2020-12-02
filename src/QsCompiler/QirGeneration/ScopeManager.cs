@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using Llvm.NET.Instructions;
-using Llvm.NET.Values;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {

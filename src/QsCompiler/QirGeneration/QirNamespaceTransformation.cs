@@ -1,7 +1,7 @@
-﻿using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+﻿using System;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using System;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
