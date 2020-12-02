@@ -229,6 +229,12 @@ namespace Microsoft.Quantum.QsCompiler
                 this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
 
             /// <summary>
+            /// Indicates whether the compiler will refactor repeat-until loops by lifting them into generated recursive operations.
+            /// </summary>
+            internal bool LiftRepeatLoops =>
+                this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
+
+            /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
             /// </summary>
             internal bool LoadTargetSpecificDecompositions =>
@@ -557,7 +563,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var steps = new List<(int, Func<QsCompilation?>)>();
 
-            if (true)
+            if (this.config.LiftRepeatLoops)
             {
                 var rewriteStep = new LoadedStep(new LoopLifting(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.LoopLifting)));

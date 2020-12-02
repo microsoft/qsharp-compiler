@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.LoopLifting;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -39,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = compilation;
+            transformed = LiftLoops.Apply(compilation);
             return true;
         }
 
