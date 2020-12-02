@@ -273,6 +273,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
+            internal Status LoopLifting = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
@@ -555,6 +556,12 @@ namespace Microsoft.Quantum.QsCompiler
             // executing the specified rewrite steps
 
             var steps = new List<(int, Func<QsCompilation?>)>();
+
+            if (true)
+            {
+                var rewriteStep = new LoadedStep(new LoopLifting(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.LoopLifting)));
+            }
 
             if (this.config.ConvertClassicalControl)
             {

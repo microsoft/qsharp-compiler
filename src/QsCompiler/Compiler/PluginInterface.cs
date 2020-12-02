@@ -18,6 +18,12 @@ namespace Microsoft.Quantum.QsCompiler
     public static class RewriteStepPriorities
     {
         /// <summary>
+        /// Priority of the built-in transformation that changes repeat-until loops
+        /// into lifted recursive operation invocation.
+        /// </summary>
+        public const int RepeatLoopSubstitutions = 1500;
+
+        /// <summary>
         /// Priority of the built-in transformation that replaces
         /// if-statements with the corresponding calls to built-in quantum operations if possible.
         /// </summary>
