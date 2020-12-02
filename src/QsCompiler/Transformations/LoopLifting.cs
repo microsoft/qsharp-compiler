@@ -28,17 +28,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
         private class LiftRepeatBodies : ContentLifting.LiftContent<ContentLifting.LiftContent.TransformationState>
         {
             public LiftRepeatBodies() : base(new ContentLifting.LiftContent.TransformationState())
-            { }
+            { 
+
+            }
 
             private new class StatementKindTransformation
                 : ContentLifting.LiftContent<ContentLifting.LiftContent.TransformationState>.StatementKindTransformation
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<ContentLifting.LiftContent.TransformationState> parent)
                     : base(parent)
-                { }
+                {
+
+                }
 
                 public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
                 {
+                    if (this.SharedState.LiftBody(statement.RepeatBlock.Body, out var callable, out var call))
+                    {
+                        this.SharedState.GeneratedOperations?.Add(callable);
+                        var block = new QsPositionedBlock(
+                            new QsScope(ImmutableArray.Create(call), statement.RepeatBlock.Body.KnownSymbols),
+                            statement.RepeatBlock.Location,
+                            statement.RepeatBlock.Comments);
+                        return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
+                            block,
+                            statement.SuccessCondition,
+                            statement.FixupBlock));
+                    }
+
                     return QsStatementKind.NewQsRepeatStatement(statement);
                 }
             }
