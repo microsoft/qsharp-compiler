@@ -60,7 +60,7 @@
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
-    <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp/</GeneratedFilesOutputPath>
+    <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)qsharp\'))</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath>$([MSBuild]::Unescape('$(GeneratedFilesOutputPath)').Replace('\','/'))</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)/</GeneratedFilesOutputPath>
     <!-- output path for generating documentation -->
