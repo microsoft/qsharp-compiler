@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -20,67 +23,78 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
     using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
 
-    public class Configuration
-    {
-        private static readonly ImmutableDictionary<string, string> clangInteropTypeMapping =
-            ImmutableDictionary.CreateRange(new Dictionary<string, string>
-            {
-                ["Result"] = "class.RESULT",
-                ["Array"] = "struct.quantum::Array",
-                ["Callable"] = "struct.quantum::Callable",
-                ["TuplePointer"] = "struct.quantum::TupleHeader",
-                ["Qubit"] = "class.QUBIT"
-            });
-
-        internal readonly ImmutableDictionary<string, string> InteropTypeMapping;
-
-        internal readonly bool GenerateInteropWrappers;
-
-        public readonly string OutputFileName;
-
-        public Configuration(string outputFileName, bool generateInteropWrappers = false, Dictionary<string, string>? interopTypeMapping = null)
-        {
-            this.GenerateInteropWrappers = generateInteropWrappers;
-            this.InteropTypeMapping = interopTypeMapping != null
-                ? interopTypeMapping.ToImmutableDictionary()
-                : clangInteropTypeMapping;
-            this.OutputFileName = outputFileName;
-        }
-    }
-
     /// <summary>
     /// This class holds the shared state used across a QIR generation pass.
     /// It also holds a large number of shared utility routines.
     /// </summary>
-    public class GenerationContext : IDisposable
+    public sealed class GenerationContext : IDisposable
     {
-        private static readonly ILibLlvm libContext = Library.InitializeLLVM();
+        private static readonly ILibLlvm libContext;
+        static GenerationContext()
+        {
+            libContext = Library.InitializeLLVM();
+            libContext.RegisterTarget(CodeGenTarget.Native);
+        }
 
         #region Member variables
 
+        /// <summary>
+        /// The configuration for QIR generation.
+        /// </summary>
         public readonly Configuration Config;
+        /// <summary>
+        /// The compilation unit for which QIR is generated.
+        /// </summary>
         public readonly QsCompilation Compilation;
-        internal QirTransformation? _Transformation { private get; set; }
+
+        /// <summary>
+        /// The context used for QIR generation.
+        /// </summary>
+        /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
+        public readonly Context Context;
+        /// <summary>
+        /// The module used for QIR generation.
+        /// Generated wrappers to facilitate interoperability are created in a separate <see cref="InteropModule"/>.
+        /// </summary>
+        /// <inheritdoc cref="BitcodeModule"/>
+        public readonly BitcodeModule Module;
+        /// <summary>
+        /// The module used for constructing function wrappers to facilitate interoperability.
+        /// </summary>
+        /// <inheritdoc cref="BitcodeModule"/>
+        public readonly BitcodeModule InteropModule;
+
+        private QirTransformation? _Transformation;
+        /// <summary>
+        /// The syntax tree transformation that constructs QIR.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The transformation has not been set via <see cref="SetTransformation"/>.</exception>
         public QirTransformation Transformation =>
             this._Transformation ?? throw new InvalidOperationException("no transformation defined");
+        /// <summary>
+        /// Sets the syntax tree transformation that is used to construct QIR.
+        /// </summary>
+        public void SetTransformation(QirTransformation transformation) =>
+            this._Transformation = transformation;
 
-        // Current state
-        public readonly Context Context;
-        public readonly BitcodeModule Module;
-        private readonly BitcodeModule BridgeModule;
-        protected internal IrFunction? CurrentFunction { get; set; }
-        protected internal BasicBlock? CurrentBlock { get; set; }
-        protected internal InstructionBuilder CurrentBuilder { get; set; }
-        protected internal readonly Stack<Value> ValueStack;
-        protected internal readonly Stack<ResolvedType> ExpressionTypeStack;
+        private readonly FunctionLibrary runtimeLibrary;
+        private readonly FunctionLibrary quantumLibrary;
+
+        internal IrFunction? CurrentFunction { get; private set; }
+        internal BasicBlock? CurrentBlock { get; private set; }
+        internal InstructionBuilder CurrentBuilder { get; private set; }
+        internal int CurrentInlineLevel { get; private set; } = 0;
+        internal ITypeRef? BuiltType { get; set; }
+
         internal readonly ScopeManager ScopeMgr;
+        internal readonly Stack<Value> ValueStack;
+        internal readonly Stack<ResolvedType> ExpressionTypeStack;
 
-        // LLVM type for passing up layers
-        internal ITypeRef? BuiltType { get; set;}
+        private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
+        private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
 
-        // Current inlining level
-        private int inlineLevel = 0;
-        public int CurrentInlineLevel => this.inlineLevel;
+        private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
+        private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
 
         // QIR types
         public readonly ITypeRef QirInt;
@@ -94,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public readonly ITypeRef QirBigInt;
         public readonly ITypeRef QirArray;
         public readonly ITypeRef QirCallable;
-        private readonly ITypeRef qirResultStruct;
+        public readonly ITypeRef QirResultStruct;
 
         // QIR constants
         public readonly Value QirResultZero;
@@ -110,31 +124,27 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public readonly ITypeRef QirTuplePointer;
         public readonly IFunctionType StandardWrapperSignature;
 
-        // Various internal bits of data
-        private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
-        private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
-        private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
-        private readonly FunctionLibrary runtimeLibrary;
-        private readonly FunctionLibrary quantumLibrary;
-        private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
+        #endregion
 
         /// <summary>
         /// Constructs a new generation context.
+        /// Before using the constructed context, the following needs to be done:
+        /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>, 
+        /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
+        /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructions"/>.
         /// </summary>
-        /// <param name="comp">The current compilation</param>
-        /// <param name="outputFile">The base path of the QIR file to write, with no extension</param>
-        internal GenerationContext(QsCompilation comp, Configuration config, QirTransformation? transformation = null)
+        /// <param name="compilation">The compilation unit for which QIR is generated.</param>
+        /// <param name="config">The configuration for QIR generation.</param>
+        internal GenerationContext(QsCompilation compilation, Configuration config)
         {
-            libContext.RegisterTarget(CodeGenTarget.Native);
-
-            this.Compilation = comp;
+            this.Compilation = compilation;
             this.Config = config;
-            this._Transformation = transformation;
+            this._Transformation = null; // needs to be set by the instantiating transformation
 
             this.Context = new Context();
             this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.Module = this.Context.CreateBitcodeModule();
-            this.BridgeModule = this.Context.CreateBitcodeModule("bridge");
+            this.InteropModule = this.Context.CreateBitcodeModule("bridge");
             this.ValueStack = new Stack<Value>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.ScopeMgr = new ScopeManager(this);
@@ -144,8 +154,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.QirInt = this.Context.Int64Type;
             this.QirDouble = this.Context.DoubleType;
             this.QirBool = this.Context.BoolType;
-            this.qirResultStruct = this.Context.CreateStructType("Result");
-            this.QirResult = this.qirResultStruct.CreatePointerType();
+            this.QirResultStruct = this.Context.CreateStructType("Result");
+            this.QirResult = this.QirResultStruct.CreatePointerType();
             //this.QirPauli = this.CurrentContext.CreateStructType("Pauli", false, this.CurrentContext.Int8Type);
             this.QirPauli = this.Context.GetIntType(2);
             var qirQubitStruct = this.Context.CreateStructType("Qubit");
@@ -196,8 +206,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             #endregion
         }
-
-        #endregion
 
         #region Static properties and methods
 
@@ -371,9 +379,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.runtimeLibrary.AddFunction("tuple_is_writable", this.Context.BoolType, this.QirTuplePointer);
             #endregion
             #region Standard array library functions
-            this.runtimeLibrary.AddVarargsFunction("array_create", this.QirArray, this.Context.Int32Type, 
+            this.runtimeLibrary.AddVarArgsFunction("array_create", this.QirArray, this.Context.Int32Type, 
                 this.Context.Int32Type);
-            this.runtimeLibrary.AddVarargsFunction("array_get_element_ptr", 
+            this.runtimeLibrary.AddVarArgsFunction("array_get_element_ptr", 
                 this.Context.Int8Type.CreatePointerType(), this.QirArray);
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction("array_create_1d", this.QirArray, this.Context.Int32Type, 
@@ -495,11 +503,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
                 var bridgeFileName = Path.Combine(Path.GetDirectoryName(this.Config.OutputFileName), "bridge.ll");
 
-                if (!this.BridgeModule.Verify(out string bridgeValidationErrors))
+                if (!this.InteropModule.Verify(out string bridgeValidationErrors))
                 {
                     File.WriteAllText(bridgeFileName, $"LLVM errors:\n{bridgeValidationErrors}");
                 }
-                else if (!this.BridgeModule.WriteToTextFile(bridgeFileName, out string bridgeError))
+                else if (!this.InteropModule.WriteToTextFile(bridgeFileName, out string bridgeError))
                 {
                     throw new IOException(bridgeError);
                 }
@@ -518,7 +526,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             //this.QubitReleaseStack.Clear();
             this.ScopeMgr.Reset();
             this.namesInScope.Clear();
-            this.inlineLevel = 0;
+            this.CurrentInlineLevel = 0;
             this.uniqueNameIds.Clear();
         }
 
@@ -761,7 +769,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// This method does not check to make sure that the block isn't already current.
         /// </summary>
         /// <param name="b">The block to make current</param>
-        protected internal void SetCurrentBlock(BasicBlock b)
+        internal void SetCurrentBlock(BasicBlock b)
         {
             this.CurrentBlock = b;
             this.CurrentBuilder = new InstructionBuilder(b);
@@ -773,7 +781,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness</param>
         /// <returns>The new block</returns>
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
-        protected internal BasicBlock AddBlockAfterCurrent(string name)
+        internal BasicBlock AddBlockAfterCurrent(string name)
         {
             if (this.CurrentFunction == null)
             {
@@ -845,7 +853,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="t">The LLVM type to compute the size of</param>
         /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
         /// <returns>An LLVM value containing the size of the type in bytes</returns>
-        protected internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
+        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
         {
             if (t.IsInteger)
             {
@@ -1022,7 +1030,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public void StartInlining()
         {
             this.OpenNamingScope();
-            this.inlineLevel++;
+            this.CurrentInlineLevel++;
         }
 
         /// <summary>
@@ -1031,7 +1039,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         public void StopInlining()
         {
-            this.inlineLevel--;
+            this.CurrentInlineLevel--;
             this.CloseNamingScope();
         }
 
@@ -1044,7 +1052,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public string InlinedName(string name)
         {
             var sb = new StringBuilder();
-            for (int i = 0; i < this.inlineLevel; i++)
+            for (int i = 0; i < this.CurrentInlineLevel; i++)
             {
                 sb.Append('.');
             }
@@ -1852,13 +1860,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
         private void GenerateInteropWrapper(IrFunction func, string baseName)
         {
-            func = this.BridgeModule.CreateFunction(func.Name, func.Signature);
+            func = this.InteropModule.CreateFunction(func.Name, func.Signature);
 
             var mappedResultType = this.MapToInteropType(func.ReturnType);
             var argTypes = func.Parameters.Select(p => p.NativeType).ToArray();
             var mappedArgTypes = argTypes.Select(this.MapToInteropType).ToArray();
 
-            var interopFunction = this.BridgeModule.CreateFunction(baseName,
+            var interopFunction = this.InteropModule.CreateFunction(baseName,
                 this.Context.GetFunctionType(mappedResultType, mappedArgTypes));
 
             for (var i = 0; i < func.Parameters.Count; i++)
@@ -1998,7 +2006,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         private bool disposedValue = false; // To detect redundant calls
 
-        protected virtual void Dispose(bool disposing)
+        void Dispose(bool disposing)
         {
             if (!this.disposedValue)
             {

@@ -1,22 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\Common\AssemblyCommon.props" />
+
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
+
   <PropertyGroup>
     <!-- Workaround for https://github.com/dotnet/cli/issues/9514, see https://stackoverflow.com/a/51644988/267841. -->
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj">
       <Private>true</Private>
     </ProjectReference>
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.2.6" />
@@ -26,15 +31,13 @@
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.3.57" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="StreamJsonRpc" Version="2.2.34" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
     <PackageReference Include="System.Reactive" Version="4.2.0" />
     <PackageReference Include="System.Reflection.Metadata" Version="1.7.0" />
     <PackageReference Include="System.Security.Permissions" Version="4.6.0" />
   </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
+
 </Project>

@@ -4,7 +4,6 @@
   <PropertyGroup>
     <AssemblyName>Simulation</AssemblyName>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <PlatformTarget>x64</PlatformTarget>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -13,11 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="..\..\..\..\Common\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.13.201118474-beta" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
   </ItemGroup>
+  
 </Project>

@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Core\Core.fsproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+  </ItemGroup>
+
 </Project>

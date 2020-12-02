@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Ubiquity.NET.Llvm;
@@ -53,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The simple, unmangled name of the function</param>
         /// <param name="returnType">The return type of the function</param>
         /// <param name="argTypes">The types of the function's fixed arguments, as an array</param>
-        public void AddVarargsFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
+        public void AddVarArgsFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
         {
             this.runtimeFunctions[name] = this.module.Context.GetFunctionType(returnType, argTypes, true);
         }

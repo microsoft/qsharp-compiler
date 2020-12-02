@@ -14,15 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
     <Compile Include="..\..\Common\SigningConstants.cs" Link="Properties\SigningConstants.cs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
 </Project>

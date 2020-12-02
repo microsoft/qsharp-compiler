@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public QirTransformation(QsCompilation compilation, Configuration config)
         : base(new GenerationContext(compilation, config), TransformationOptions.NoRebuild)
         {
-            this.SharedState._Transformation = this;
+            this.SharedState.SetTransformation(this);
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);

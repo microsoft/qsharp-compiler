@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
@@ -18,10 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>
