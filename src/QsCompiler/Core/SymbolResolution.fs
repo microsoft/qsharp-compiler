@@ -255,7 +255,11 @@ module SymbolResolution =
     /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
     /// the RequiresCapability attribute.
     let TryGetRequiredCapability attributes =
-        let getCapability (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksRequiredCapability then Some att.Argument else None
+        let getCapability (att : QsDeclarationAttribute) = 
+            if att |> BuiltIn.MarksRequiredCapability then att.Argument.Expression |> function 
+                | ValueTuple vs when vs.Length = 2 -> Some vs.[0]
+                | _ -> None
+            else None
         let capabilities = 
             StringArgument (getCapability, fun ex -> ex.Expression) attributes
             |> QsNullable<_>.Choose RuntimeCapability.TryParse |> ImmutableHashSet.CreateRange
