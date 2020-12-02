@@ -22,7 +22,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            return compilation;
+            return new LiftRepeatBodies().OnCompilation(compilation);
+        }
+
+        private class LiftRepeatBodies : ContentLifting.LiftContent<ContentLifting.LiftContent.TransformationState>
+        {
+            public LiftRepeatBodies() : base(new ContentLifting.LiftContent.TransformationState())
+            { }
+
+            private new class StatementKindTransformation
+                : ContentLifting.LiftContent<ContentLifting.LiftContent.TransformationState>.StatementKindTransformation
+            {
+                public StatementKindTransformation(SyntaxTreeTransformation<ContentLifting.LiftContent.TransformationState> parent)
+                    : base(parent)
+                { }
+
+                public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
+                {
+                    return QsStatementKind.NewQsRepeatStatement(statement);
+                }
+            }
         }
     }
 }
