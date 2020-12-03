@@ -330,6 +330,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 throw new InvalidOperationException("current function is set to null");
             }
 
+            Value PopAndRegister(string name, bool isMutable = false)
+            {
+                Value value = this.SharedState.ValueStack.Pop();
+                this.SharedState.RegisterName(name, value, isMutable);
+                return value;
+            }
+
             // Loop variables
             var startName = this.SharedState.GenerateUniqueName("start");
             var stepName = this.SharedState.GenerateUniqueName("step");
@@ -348,16 +355,16 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 // Item2 is always the end. Either Item1 is the start and 1 is the step,
                 // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
                 this.Transformation.Expressions.OnTypedExpression(rlit.Item2);
-                endValue = this.SharedState.PopAndRegister(endName);
+                endValue = PopAndRegister(endName);
 
                 if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
                 {
                     // Item2 is now the step
                     this.Transformation.Expressions.OnTypedExpression(rlitInner.Item2);
-                    stepValue = this.SharedState.PopAndRegister(stepName);
+                    stepValue = PopAndRegister(stepName);
                     // And Item1 the start
                     this.Transformation.Expressions.OnTypedExpression(rlitInner.Item1);
-                    startValue = this.SharedState.PopAndRegister(startName);
+                    startValue = PopAndRegister(startName);
                 }
                 else
                 {
@@ -366,7 +373,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     this.SharedState.RegisterName(stepName, stepValue);
                     // And the original Item1 is the start
                     this.Transformation.Expressions.OnTypedExpression(rlit.Item1);
-                    startValue = this.SharedState.PopAndRegister(startName);
+                    startValue = PopAndRegister(startName);
                 }
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsRange)
