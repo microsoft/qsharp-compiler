@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
         {
             public LiftRepeatBodies() : base(new ContentLifting.LiftContent.TransformationState())
             { 
-
+                this.StatementKinds = new StatementKindTransformation(this);
             }
 
             private new class StatementKindTransformation
@@ -43,20 +43,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                 public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
                 {
-                    if (this.SharedState.LiftBody(statement.RepeatBlock.Body, out var callable, out var call))
+                    var contextValidScope = this.SharedState.IsValidScope;
+                    var contextParams = this.SharedState.GeneratedOpParams;
+                    this.SharedState.IsValidScope = true;
+                    this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
+
+                    var block = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
+
+                    if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
                     {
                         this.SharedState.GeneratedOperations?.Add(callable);
-                        var block = new QsPositionedBlock(
+                        block = new QsPositionedBlock(
                             new QsScope(ImmutableArray.Create(call), statement.RepeatBlock.Body.KnownSymbols),
-                            statement.RepeatBlock.Location,
-                            statement.RepeatBlock.Comments);
-                        return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
-                            block,
-                            statement.SuccessCondition,
-                            statement.FixupBlock));
+                            block.Location,
+                            block.Comments);
                     }
 
-                    return QsStatementKind.NewQsRepeatStatement(statement);
+                    return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
+                        block,
+                        statement.SuccessCondition,
+                        this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock)));
                 }
             }
         }
