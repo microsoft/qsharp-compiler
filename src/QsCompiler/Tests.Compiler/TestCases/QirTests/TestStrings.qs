@@ -9,6 +9,8 @@ namespace Microsoft.Quantum.Testing.QIR
         let y = $"a+b is {a+b}";
         let z = $"{y}";
         let i = $"Constant double {1.2} bool {true} Pauli {PauliX} Result {One} BigInt {1L} Range {0..3}";
-        return $"a+b is {x}";
+        let j = $"a+b is {x}";
+        let k = $"{a}";
+        return "";
     }
 }

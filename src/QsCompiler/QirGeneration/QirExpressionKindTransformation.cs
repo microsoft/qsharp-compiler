@@ -2017,12 +2017,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 // way to do this, but it's simple and clear, and strings are uncommon in Q#.
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
-                var constantString = this.SharedState.Context.CreateConstantString(cleanStr);
-                if (cleanStr.Length == 0)
-                {
-                    return constantString;
-                }
-
+                var constantString = cleanStr.Length > 0
+                    ? this.SharedState.Context.CreateConstantString(cleanStr)
+                    : this.SharedState.Types.String.GetNullValue();
                 var zeroLengthString = this.SharedState.CurrentBuilder.BitCast(
                     constantString,
                     this.SharedState.Context.Int8Type.CreateArrayType(0));
@@ -2205,7 +2202,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         offset = next;
                     }
                 }
-                current ??= this.SharedState.Context.CreateConstantString("");
+                current ??= CreateConstantString("");
                 this.SharedState.ValueStack.Push(current);
                 this.SharedState.ScopeMgr.AddValue(current, ResolvedType.New(QsResolvedTypeKind.String));
             }

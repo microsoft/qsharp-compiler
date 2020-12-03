@@ -70,13 +70,17 @@ entry:
   call void @__quantum__rt__string_unreference(%String* %35)
   %36 = call %String* @__quantum__rt__string_create(i32 7, [0 x i8] bitcast ([7 x i8] c"a+b is " to [0 x i8]))
   call void @__quantum__rt__string_reference(%String* %x)
-  %37 = call %String* @__quantum__rt__string_concatenate(%String* %36, %String* %x)
+  %j = call %String* @__quantum__rt__string_concatenate(%String* %36, %String* %x)
   call void @__quantum__rt__string_unreference(%String* %36)
   call void @__quantum__rt__string_unreference(%String* %x)
+  %k = call %String* @__quantum__rt__int_to_string(i64 %a)
+  %37 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8] zeroinitializer)
   call void @__quantum__rt__string_unreference(%String* %x)
   call void @__quantum__rt__string_unreference(%String* %y)
   call void @__quantum__rt__string_unreference(%String* %y)
   call void @__quantum__rt__bigint_unreference(%BigInt* %26)
   call void @__quantum__rt__string_unreference(%String* %i)
+  call void @__quantum__rt__string_unreference(%String* %j)
+  call void @__quantum__rt__string_unreference(%String* %k)
   ret %String* %37
 }
