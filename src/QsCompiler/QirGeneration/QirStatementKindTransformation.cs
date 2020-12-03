@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -15,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
     using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
 
-    public class QirStatementKindTransformation : StatementKindTransformation<GenerationContext>
+    internal class QirStatementKindTransformation : StatementKindTransformation<GenerationContext>
     {
         public QirStatementKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation) : base(parentTransformation)
         {

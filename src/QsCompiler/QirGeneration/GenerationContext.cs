@@ -27,13 +27,16 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
     /// This class holds the shared state used across a QIR generation pass.
     /// It also holds a large number of shared utility routines.
     /// </summary>
+    [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1124:Do not use regions")]
+    [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line")]
     public sealed class GenerationContext : IDisposable
     {
-        private static readonly ILibLlvm libContext;
+        private static readonly ILibLlvm LibContext;
+
         static GenerationContext()
         {
-            libContext = Library.InitializeLLVM();
-            libContext.RegisterTarget(CodeGenTarget.Native);
+            LibContext = Library.InitializeLLVM();
+            LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
         #region Member variables
@@ -42,6 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// The configuration for QIR generation.
         /// </summary>
         public readonly Configuration Config;
+
         /// <summary>
         /// The compilation unit for which QIR is generated.
         /// </summary>
@@ -52,30 +56,34 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
         public readonly Context Context;
+
         /// <summary>
         /// The module used for QIR generation.
         /// Generated wrappers to facilitate interoperability are created in a separate <see cref="InteropModule"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
         public readonly BitcodeModule Module;
+
         /// <summary>
         /// The module used for constructing function wrappers to facilitate interoperability.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
         public readonly BitcodeModule InteropModule;
 
-        private QirTransformation? _Transformation;
+        private QirTransformation? transformation;
+
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
         /// <exception cref="InvalidOperationException">The transformation has not been set via <see cref="SetTransformation"/>.</exception>
         public QirTransformation Transformation =>
-            this._Transformation ?? throw new InvalidOperationException("no transformation defined");
+            this.transformation ?? throw new InvalidOperationException("no transformation defined");
+
         /// <summary>
         /// Sets the syntax tree transformation that is used to construct QIR.
         /// </summary>
         public void SetTransformation(QirTransformation transformation) =>
-            this._Transformation = transformation;
+            this.transformation = transformation;
 
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumLibrary;
@@ -139,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             this.Compilation = compilation;
             this.Config = config;
-            this._Transformation = null; // needs to be set by the instantiating transformation
+            this.transformation = null; // needs to be set by the instantiating transformation
 
             this.Context = new Context();
             this.CurrentBuilder = new InstructionBuilder(this.Context);
@@ -149,62 +157,61 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.ScopeMgr = new ScopeManager(this);
 
-            #region Standard types
+            // Standard types
 
             this.QirInt = this.Context.Int64Type;
             this.QirDouble = this.Context.DoubleType;
             this.QirBool = this.Context.BoolType;
             this.QirResultStruct = this.Context.CreateStructType("Result");
             this.QirResult = this.QirResultStruct.CreatePointerType();
-            //this.QirPauli = this.CurrentContext.CreateStructType("Pauli", false, this.CurrentContext.Int8Type);
             this.QirPauli = this.Context.GetIntType(2);
             var qirQubitStruct = this.Context.CreateStructType("Qubit");
             this.QirQubit = qirQubitStruct.CreatePointerType();
-            this.QirRange = this.Context.CreateStructType("Range", false, this.Context.Int64Type,
-                this.Context.Int64Type, this.Context.Int64Type);
+            this.QirRange = this.Context.CreateStructType("Range", false, this.Context.Int64Type, this.Context.Int64Type, this.Context.Int64Type);
             var qirStringStruct = this.Context.CreateStructType("String");
             this.QirString = qirStringStruct.CreatePointerType();
             var qirBigIntStruct = this.Context.CreateStructType("BigInt");
             this.QirBigInt = qirBigIntStruct.CreatePointerType();
             // It would be nice if TupleHeader were opaque, but it can't be because it appears directly
             // (that is, not as a pointer) in tuple structures, but would have unknown length if it were opaque.
-            this.QirTupleHeader = this.Context.CreateStructType("TupleHeader", false,
-                this.Context.Int32Type);
+            this.QirTupleHeader = this.Context.CreateStructType("TupleHeader", false, this.Context.Int32Type);
             this.QirTuplePointer = this.QirTupleHeader.CreatePointerType();
-            var qirArrayStruct = this.Context.CreateStructType("Array");
-            this.QirArray = qirArrayStruct.CreatePointerType();
-            var qirCallableStruct = this.Context.CreateStructType("Callable");
-            this.QirCallable = qirCallableStruct.CreatePointerType();
+            this.QirArray = this.Context.CreateStructType("Array").CreatePointerType();
+            this.QirCallable = this.Context.CreateStructType("Callable").CreatePointerType();
+            this.StandardWrapperSignature = this.Context.GetFunctionType(
+                this.Context.VoidType,
+                new[] { this.QirTuplePointer, this.QirTuplePointer, this.QirTuplePointer });
 
-            #endregion
+            // Constants
 
-            this.StandardWrapperSignature = this.Context.GetFunctionType(this.Context.VoidType,
-                    new[] { this.QirTuplePointer, this.QirTuplePointer, this.QirTuplePointer });
-            this.runtimeLibrary = new FunctionLibrary(this.Module,
-                s => SpecialFunctionName(SpecialFunctionKind.Runtime, s));
-            this.quantumLibrary = new FunctionLibrary(this.Module,
-                s => SpecialFunctionName(SpecialFunctionKind.QuantumInstruction, s));
-
-            #region Constants
+            Value CreatePauli(string name, ulong idx) =>
+                this.Module.AddGlobal(this.QirPauli, true, Linkage.External, this.Context.CreateConstant(this.QirPauli, idx, false), name);
 
             this.QirResultZero = this.Module.AddGlobal(this.QirResult, "ResultZero");
             this.QirResultOne = this.Module.AddGlobal(this.QirResult, "ResultOne");
-            this.QirPauliI = this.Module.AddGlobal(this.QirPauli, true, Linkage.External,
-                this.Context.CreateConstant(this.QirPauli, 0, false), "PauliI");
-            this.QirPauliX = this.Module.AddGlobal(this.QirPauli, true, Linkage.External,
-                this.Context.CreateConstant(this.QirPauli, 1, false), "PauliX");
-            this.QirPauliY = this.Module.AddGlobal(this.QirPauli, true, Linkage.External,
-                this.Context.CreateConstant(this.QirPauli, 3, false), "PauliY");
-            this.QirPauliZ = this.Module.AddGlobal(this.QirPauli, true, Linkage.External,
-                this.Context.CreateConstant(this.QirPauli, 2, false), "PauliZ");
-            this.QirEmptyRange = this.Module.AddGlobal(this.QirRange, true, Linkage.Internal,
-                this.Context.CreateNamedConstantStruct((IStructType)this.QirRange,
+            this.QirPauliI = CreatePauli("PauliI", 0);
+            this.QirPauliX = CreatePauli("PauliX", 1);
+            this.QirPauliY = CreatePauli("PauliY", 3);
+            this.QirPauliZ = CreatePauli("PauliZ", 2);
+            this.QirEmptyRange = this.Module.AddGlobal(
+                this.QirRange,
+                true,
+                Linkage.Internal,
+                this.Context.CreateNamedConstantStruct(
+                    (IStructType)this.QirRange,
                     this.Context.CreateConstant(0L),
                     this.Context.CreateConstant(1L),
                     this.Context.CreateConstant(-1L)),
                 "EmptyRange");
 
-            #endregion
+            // Libraries
+
+            this.runtimeLibrary = new FunctionLibrary(
+                this.Module,
+                s => SpecialFunctionName(SpecialFunctionKind.Runtime, s));
+            this.quantumLibrary = new FunctionLibrary(
+                this.Module,
+                s => SpecialFunctionName(SpecialFunctionKind.QuantumInstruction, s));
         }
 
         #region Static properties and methods
@@ -216,15 +223,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             QsSpecializationKind.QsBody,
             QsSpecializationKind.QsAdjoint,
             QsSpecializationKind.QsControlled,
-            QsSpecializationKind.QsControlledAdjoint
-        );
+            QsSpecializationKind.QsControlledAdjoint);
 
         /// <summary>
         /// Cleans a namespace name by replacing periods with double underscores.
         /// </summary>
         /// <param name="namespaceName">The namespace name to clean</param>
         /// <returns>The cleaned name</returns>
-        static public string CleanNamespaceName(string namespaceName) => namespaceName.Replace(".", "__");
+        public static string CleanNamespaceName(string namespaceName) => namespaceName.Replace(".", "__");
 
         /// <summary>
         /// Generates a mangled name for a callable specialization.

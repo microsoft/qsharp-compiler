@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -11,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
     internal class QirTypeTransformation : TypeTransformation<GenerationContext>
     {
-        public QirTypeTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options) 
+        public QirTypeTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options)
             : base(parentTransformation, options)
         {
         }
@@ -50,16 +53,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             this.SharedState.BuiltType = this.SharedState.QirInt;
             return QsResolvedTypeKind.InvalidType;
-        }
-
-        public override QsResolvedTypeKind OnInvalidType()
-        {
-            return base.OnInvalidType();
-        }
-
-        public override QsResolvedTypeKind OnMissingType()
-        {
-            return base.OnMissingType();
         }
 
         public override QsResolvedTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)

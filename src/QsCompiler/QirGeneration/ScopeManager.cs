@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Values;
@@ -35,14 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.sharedState = ctx;
         }
 
-        /// <summary>
-        /// Opens a new ref counting scope.
-        /// The new scope is a child of the current scope (it is pushed on to the scope stack).
-        /// </summary>
-        public void OpenScope()
-        {
-            this.releaseStack.Push(new List<(Value, string)>());
-        }
+        // private helpers
 
         /// <summary>
         /// Gets the name of the unreference runtime function for a given Q# type.
@@ -95,6 +91,49 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
+        /// Generates the releases (unreference calls) for a single scope in the stack.
+        /// </summary>
+        /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
+        /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
+        private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
+        {
+            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
+            {
+                IrFunction func = this.sharedState.GetRuntimeFunction(releaseFunc);
+                // special case for tuples
+                if (releaseFunc == "tuple_unreference")
+                {
+                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.QirTuplePointer);
+                    builder.Call(func, untypedTuple);
+                }
+                else
+                {
+                    builder.Call(func, valueToRelease);
+                }
+            }
+        }
+
+        // public methods
+
+        /// <summary>
+        /// Resets the manager by emptying the scope stack.
+        /// </summary>
+        public void Reset()
+        {
+            this.releaseStack.Clear();
+            this.releaseStack.Push(new List<(Value, string)>());
+        }
+
+        /// <summary>
+        /// Opens a new ref counting scope.
+        /// The new scope is a child of the current scope (it is pushed on to the scope stack).
+        /// </summary>
+        public void OpenScope()
+        {
+            this.releaseStack.Push(new List<(Value, string)>());
+        }
+
+        /// <summary>
         /// Adds a value to the current topmost scope.
         /// </summary>
         /// <param name="valueToRelease">The Value to be released</param>
@@ -126,15 +165,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Resets the manager by emptying the scope stack.
-        /// </summary>
-        public void Reset()
-        {
-            this.releaseStack.Clear();
-            this.releaseStack.Push(new List<(Value, string)>());
-        }
-
-        /// <summary>
         /// Removes a pending Value from those to be unreferenced.
         /// This is necessary, for example, for values that are returned to the caller.
         /// </summary>
@@ -144,29 +174,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             foreach (var level in this.releaseStack)
             {
                 level.RemoveAll(item => item.Item1 == valueToRemove);
-            }
-        }
-
-        /// <summary>
-        /// Generates the releases (unreference calls) for a single scope in the stack.
-        /// </summary>
-        /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
-        /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
-        private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
-        {
-            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
-            {
-                IrFunction func = this.sharedState.GetRuntimeFunction(releaseFunc);
-                // special case for tuples
-                if (releaseFunc == "tuple_unreference")
-                {
-                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.QirTuplePointer);
-                    builder.Call(func, untypedTuple);
-                }
-                else
-                {
-                    builder.Call(func, valueToRelease);
-                }
             }
         }
 

@@ -20,8 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
     {
         private readonly BitcodeModule module;
         private readonly Dictionary<string, IFunctionType> runtimeFunctions = new Dictionary<string, IFunctionType>();
-        private readonly Dictionary<string, IrFunction> usedRuntimeFunctions =
-            new Dictionary<string, IrFunction>();
+        private readonly Dictionary<string, IrFunction> usedRuntimeFunctions = new Dictionary<string, IrFunction>();
         private readonly Func<string, string> nameMapper;
 
         /// <summary>
@@ -118,17 +117,17 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <summary>
         /// Gets an enumerator through the runtime functions in this library that have
         /// actually been used.
-        /// The enumerator returns KeyValuePairs with the base name of the function as 
+        /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
         /// <returns>The enumerator</returns>
-        public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() => 
+        public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() =>
             new LibEnumerator(this.usedRuntimeFunctions);
 
         /// <summary>
         /// Gets an enumerator through the runtime functions in this library that have
         /// actually been used.
-        /// The enumerator returns KeyValuePairs with the base name of the function as 
+        /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
         /// <returns>The enumerator</returns>

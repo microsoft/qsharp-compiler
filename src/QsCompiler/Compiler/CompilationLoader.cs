@@ -265,10 +265,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates that a compilation step has not been executed.
             /// </summary>
             NotRun = -1,
+
             /// <summary>
             /// Indicates that a compilation step successfully executed.
             /// </summary>
             Succeeded = 0,
+
             /// <summary>
             /// Indicates that a compilation step executed but failed.
             /// </summary>

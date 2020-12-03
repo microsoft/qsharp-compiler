@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
     public class Configuration
     {
-        private static readonly ImmutableDictionary<string, string> clangInteropTypeMapping =
+        private static readonly ImmutableDictionary<string, string> ClangInteropTypeMapping =
             ImmutableDictionary.CreateRange(new Dictionary<string, string>
             {
                 ["Result"] = "class.RESULT",
@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.GenerateInteropWrappers = generateInteropWrappers;
             this.InteropTypeMapping = interopTypeMapping != null
                 ? interopTypeMapping.ToImmutableDictionary()
-                : clangInteropTypeMapping;
+                : ClangInteropTypeMapping;
             this.OutputFileName = outputFileName;
         }
     }
