@@ -48,21 +48,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     this.SharedState.IsValidScope = true;
                     this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
 
-                    var block = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
+                    var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
 
                     if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
                     {
                         this.SharedState.GeneratedOperations?.Add(callable);
                         block = new QsPositionedBlock(
-                            new QsScope(ImmutableArray.Create(call), statement.RepeatBlock.Body.KnownSymbols),
+                            new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                             block.Location,
                             block.Comments);
                     }
 
+                    this.SharedState.IsValidScope = contextValidScope;
+                    this.SharedState.GeneratedOpParams = contextParams;
+
                     return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
                         block,
                         statement.SuccessCondition,
-                        this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock)));
+                        this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock).Item2));
                 }
             }
         }
