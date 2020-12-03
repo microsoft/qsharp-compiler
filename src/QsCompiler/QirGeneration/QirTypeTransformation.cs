@@ -23,73 +23,73 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
-            this.SharedState.BuiltType = this.SharedState.QirArray;
+            this.SharedState.BuiltType = this.SharedState.Types.QirArray;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBigInt()
         {
-            this.SharedState.BuiltType = this.SharedState.QirBigInt;
+            this.SharedState.BuiltType = this.SharedState.Types.QirBigInt;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBool()
         {
-            this.SharedState.BuiltType = this.SharedState.QirBool;
+            this.SharedState.BuiltType = this.SharedState.Types.QirBool;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnDouble()
         {
-            this.SharedState.BuiltType = this.SharedState.QirDouble;
+            this.SharedState.BuiltType = this.SharedState.Types.QirDouble;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnFunction(ResolvedType it, ResolvedType ot)
         {
-            this.SharedState.BuiltType = this.SharedState.QirCallable;
+            this.SharedState.BuiltType = this.SharedState.Types.QirCallable;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnInt()
         {
-            this.SharedState.BuiltType = this.SharedState.QirInt;
+            this.SharedState.BuiltType = this.SharedState.Types.QirInt;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)
         {
-            this.SharedState.BuiltType = this.SharedState.QirCallable;
+            this.SharedState.BuiltType = this.SharedState.Types.QirCallable;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnPauli()
         {
-            this.SharedState.BuiltType = this.SharedState.QirPauli;
+            this.SharedState.BuiltType = this.SharedState.Types.QirPauli;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnQubit()
         {
-            this.SharedState.BuiltType = this.SharedState.QirQubit;
+            this.SharedState.BuiltType = this.SharedState.Types.QirQubit;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnRange()
         {
-            this.SharedState.BuiltType = this.SharedState.QirRange;
+            this.SharedState.BuiltType = this.SharedState.Types.QirRange;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnResult()
         {
-            this.SharedState.BuiltType = this.SharedState.QirResult;
+            this.SharedState.BuiltType = this.SharedState.Types.QirResult;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnString()
         {
-            this.SharedState.BuiltType = this.SharedState.QirString;
+            this.SharedState.BuiltType = this.SharedState.Types.QirString;
             return QsResolvedTypeKind.InvalidType;
         }
 
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             var elementTypes = ts
                 .Select(this.SharedState.LlvmTypeFromQsharpType)
-                .Prepend(this.SharedState.QirTupleHeader).ToArray();
+                .Prepend(this.SharedState.Types.QirTupleHeader).ToArray();
             this.SharedState.BuiltType = this.SharedState.Context.CreateStructType(false, elementTypes).CreatePointerType();
             return QsResolvedTypeKind.InvalidType;
         }
@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Unit is represented as a null tuple pointer (an empty tuple).
             // This is necessary because "void" in LLVM is not a proper type and can't be included
             // as an element in a struct.
-            this.SharedState.BuiltType = this.SharedState.QirTuple;
+            this.SharedState.BuiltType = this.SharedState.Types.QirTuple;
             return QsResolvedTypeKind.InvalidType;
         }
 
