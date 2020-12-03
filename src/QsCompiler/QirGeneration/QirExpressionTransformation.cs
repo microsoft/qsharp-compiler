@@ -24,6 +24,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
         }
 
+        // public overrides
+
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
             this.SharedState.ExpressionTypeStack.Push(ex.ResolvedType);

@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
     internal class QirNamespaceTransformation : NamespaceTransformation<GenerationContext>
     {
-        internal class TransformationContext
+        private class TransformationContext
         {
             private QsCallable? currentCallable = null;
             private QsSpecialization? currentSpecialization = null;
@@ -47,6 +47,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public QirNamespaceTransformation(GenerationContext sharedState) : base(sharedState)
         {
         }
+
+        // public overrides
 
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {

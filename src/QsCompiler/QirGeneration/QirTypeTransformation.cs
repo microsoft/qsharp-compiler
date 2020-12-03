@@ -19,6 +19,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
         }
 
+        // public overrides
+
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
             this.SharedState.BuiltType = this.SharedState.QirArray;
