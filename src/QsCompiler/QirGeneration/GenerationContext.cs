@@ -81,19 +81,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public QirTransformation Transformation =>
             this.transformation ?? throw new InvalidOperationException("no transformation defined");
 
-        /// <summary>
-        /// Sets the syntax tree transformation that is used to construct QIR.
-        /// </summary>
-        public void SetTransformation(QirTransformation transformation) =>
-            this.transformation = transformation;
-
         private QirTransformation? transformation;
 
         private readonly ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables;
         private readonly ImmutableDictionary<QsQualifiedName, QsCustomType> globalTypes;
 
         private readonly FunctionLibrary runtimeLibrary;
-        private readonly FunctionLibrary quantumLibrary;
+        private readonly FunctionLibrary quantumInstructionSet;
 
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
@@ -118,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// Before using the constructed context, the following needs to be done:
         /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>,
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
-        /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructions"/>.
+        /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
         /// </summary>
         /// <param name="compilation">The compilation unit for which QIR is generated.</param>
         /// <param name="config">The configuration for QIR generation.</param>
@@ -144,9 +138,22 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.runtimeLibrary = new FunctionLibrary(
                 this.Module,
                 s => Callables.FunctionName(Component.RuntimeLibrary, s));
-            this.quantumLibrary = new FunctionLibrary(
+            this.quantumInstructionSet = new FunctionLibrary(
                 this.Module,
                 s => Callables.FunctionName(Component.QuantumInstructionSet, s));
+        }
+
+        /// <summary>
+        /// Sets the syntax tree transformation that is used to construct QIR.
+        /// </summary>
+        internal void SetTransformation(
+            QirTransformation transformation,
+            out FunctionLibrary runtimeLibrary,
+            out FunctionLibrary quantumInstructionSet)
+        {
+            this.transformation = transformation;
+            runtimeLibrary = this.runtimeLibrary;
+            quantumInstructionSet = this.quantumInstructionSet;
         }
 
         #region Static members
@@ -156,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="namespaceName">The namespace name to clean</param>
         /// <returns>The cleaned name</returns>
-        public static string FlattenNamespaceName(string namespaceName) =>
+        internal static string FlattenNamespaceName(string namespaceName) =>
             namespaceName.Replace(".", "__");
 
         /// <summary>
@@ -169,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The callable's name</param>
         /// <param name="kind">The specialization kind</param>
         /// <returns>The mangled name for the specialization</returns>
-        public static string FunctionName(string namespaceName, string name, QsSpecializationKind kind)
+        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
             var suffix =
                 kind.IsQsBody ? "body" :
@@ -177,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 kind.IsQsControlled ? "ctrl" :
                 kind.IsQsControlledAdjoint ? "ctrladj" :
                 throw new NotImplementedException("unknown specialization kind");
-            return $"{FlattenNamespaceName(namespaceName)}__{name}__{suffix}";
+            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}__{suffix}";
         }
 
         /// <summary>
@@ -188,18 +195,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The unqualified name of the Q# callable.</param>
         /// <param name="kind">The specialization kind</param>
         /// <returns>The mangled name for the wrapper</returns>
-        public static string FunctionWrapperName(string namespaceName, string name, QsSpecializationKind kind) =>
-            $"{FunctionName(namespaceName, name, kind)}__wrapper";
-
-        /// <summary>
-        /// Generates a mangled name for a callable specialization wrapper.
-        /// Wrapper names are the mangled specialization name followed by double underscore and "wrapper".
-        /// </summary>
-        /// <param name="callable">The Q# callable</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <returns>The mangled name for the wrapper</returns>
-        internal static string FunctionWrapperName(QsCallable callable, QsSpecializationKind kind) =>
-            FunctionWrapperName(callable.FullName.Namespace, callable.FullName.Name, kind);
+        public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
+            $"{FunctionName(fullName, kind)}__wrapper";
 
         /// <summary>
         /// Order of specializations in the wrapper array
@@ -221,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
         public IrFunction GetRuntimeFunction(string name) =>
-            this.runtimeLibrary.GetFunction(name);
+            this.runtimeLibrary.GetOrCreateFunction(name);
 
         /// <summary>
         /// Gets the LLVM object for a quantum instruction set function.
@@ -230,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
         public IrFunction GetQuantumFunction(string name) =>
-            this.quantumLibrary.GetFunction(name);
+            this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
@@ -360,7 +357,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <br/><br/>
         /// In addition, interop-compatible wrappers are generated for all of the quantum operations.
         /// </summary>
-        public void RegisterQuantumInstructions()
+        public void RegisterQuantumInstructionSet()
         {
             foreach (var c in this.globalCallables.Values)
             {
@@ -374,10 +371,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     var argTypeArray = (c.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType tuple)
                         ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray()
                         : new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
-                    this.quantumLibrary.AddFunction(name, returnType, argTypeArray);
+                    this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
                     if (this.Config.GenerateInteropWrappers)
                     {
-                        var func = this.quantumLibrary.GetFunction(name);
+                        var func = this.quantumInstructionSet.GetOrCreateFunction(name);
                         this.GenerateInteropWrapper(func, name);
                     }
                 }
@@ -590,9 +587,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         #region Function management
 
         /// <summary>
-        /// Preps the shared state for a new specialization.
+        /// Preps the shared state for a new QIR function.
         /// </summary>
-        internal void StartSpecialization()
+        internal void StartFunction()
         {
             this.ScopeMgr.Reset();
             this.namesInScope.Clear();
@@ -601,10 +598,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Ends a specialization by finishing the current basic block.
+        /// Ends a QIR function by finishing the current basic block.
         /// </summary>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        internal void EndSpecialization()
+        internal void EndFunction()
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -642,12 +639,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Generates the declaration for a specialization to the current module.
+        /// Generates the declaration for a QIR function to the current module.
         /// Usually <see cref="GenerateFunctionHeader"/> is used, which generates the start of the actual definition.
-        /// This method is primarily useful for specializations with external or intrinsic implementations, which get
+        /// This method is primarily useful for Q# specializations with external or intrinsic implementations, which get
         /// generated as declarations with no definition.
         /// </summary>
-        /// <param name="spec">The specialization</param>
+        /// <param name="spec">The Q# specialization for which to register a function</param>
         /// <param name="argTuple">The specialization's argument tuple</param>
         internal IrFunction RegisterFunction(QsSpecialization spec, QsArgumentTuple argTuple)
         {
@@ -667,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
             }
 
-            var name = FunctionName(spec.Parent.Namespace, spec.Parent.Name, spec.Kind);
+            var name = FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
@@ -677,11 +674,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Generates the start of the definition for a specialization in the current module.
+        /// Generates the start of the definition for a QIR function in the current module.
         /// Specifically, an entry block for the function is created, and the function's arguments are given names.
         /// </summary>
-        /// <param name="spec">The specialization</param>
-        /// <param name="argTuple">The specialization's argument tuple</param>
+        /// <param name="spec">The Q# specialization for which to register a function.</param>
+        /// <param name="argTuple">The specialization's argument tuple.</param>
         internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
         {
             IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg)
@@ -717,7 +714,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="udt">The Q# user-defined type</param>
         internal void GenerateConstructor(QsCustomType udt)
         {
-            var name = FunctionName(udt.FullName.Namespace, udt.FullName.Name, QsSpecializationKind.QsBody);
+            var name = FunctionName(udt.FullName, QsSpecializationKind.QsBody);
 
             var args = udt.Type.Resolution switch
             {
@@ -729,7 +726,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             var udtPointerType = args.Length > 1 ? udtTupleType.CreatePointerType() : this.Types.Tuple;
             var signature = this.Context.GetFunctionType(udtPointerType, args[1..]);
 
-            this.StartSpecialization();
+            this.StartFunction();
             this.CurrentFunction = this.Module.CreateFunction(name, signature);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -758,17 +755,17 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Tries to get the function for a specialization by name so it can be called.
+        /// Tries to get the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, false is returned.
         /// </summary>
         /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
-        /// <param name="kind">The specialization kind</param>
+        /// <param name="name">The Q# callable's name</param>
+        /// <param name="kind">The Q# specialization kind</param>
         /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
         /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
-        private bool TryGetFunction(string namespaceName, string name, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
+        private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
-            var fullName = FunctionName(namespaceName, name, kind);
+            var fullName = FunctionName(callableName, kind);
             foreach (var func in this.Module.Functions)
             {
                 if (func.Name == fullName)
@@ -783,29 +780,29 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Gets the function for a specialization by name so it can be called.
+        /// Gets the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, its declaration is generated so that it can be called.
         /// </summary>
         /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
-        /// <param name="kind">The specialization kind</param>
+        /// <param name="name">The Q# callable's name</param>
+        /// <param name="kind">The Q# specialization kind</param>
         /// <returns>The LLVM object for the corresponding LLVM function</returns>
-        internal IrFunction GetFunctionByName(string namespaceName, string name, QsSpecializationKind kind)
+        internal IrFunction GetFunctionByName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
             // If the function is already defined, return it
-            if (this.TryGetFunction(namespaceName, name, kind, out IrFunction? function))
+            if (this.TryGetFunction(fullName, kind, out IrFunction? function))
             {
                 return function;
             }
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
-            if (this.TryGetGlobalCallable(new QsQualifiedName(namespaceName, name), out QsCallable? callable))
+            if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
                 return this.RegisterFunction(spec, callable.ArgumentTuple);
             }
             // If we can't find the function at all, it's a problem...
-            throw new KeyNotFoundException($"Can't find callable {namespaceName}.{name}");
+            throw new KeyNotFoundException($"Can't find callable {fullName}");
         }
 
         /// <summary>
@@ -828,7 +825,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     QsSpecializationKind kind = FunctionArray[index];
                     if (callable.Specializations.Any(spec => spec.Kind == kind))
                     {
-                        var f = this.Module.CreateFunction(FunctionWrapperName(callable, kind), this.Types.FunctionSignature);
+                        var f = this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature);
                         funcs[index] = f;
                     }
                     else
@@ -846,7 +843,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Tries to get the wrapper function for a specialization.
+        /// Tries to get the QIR wrapper function for a Q# specialization.
         /// If the wrapper function hasn't been generated yet, false is returned.
         /// </summary>
         /// <param name="callable">The callable</param>
@@ -855,7 +852,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
         private bool TryGetWrapper(QsCallable callable, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
-            var fullName = FunctionWrapperName(callable, kind);
+            var fullName = FunctionWrapperName(callable.FullName, kind);
             foreach (var func in this.Module.Functions)
             {
                 if (func.Name == fullName)
@@ -942,7 +939,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             Value GenerateBaseMethodCall(QsCallable callable, QsSpecialization spec, List<Value> args)
             {
-                if (this.TryGetFunction(callable.FullName.Namespace, callable.FullName.Name, spec.Kind, out IrFunction? func))
+                if (this.TryGetFunction(callable.FullName, spec.Kind, out IrFunction? func))
                 {
                     return this.CurrentBuilder.Call(func, args.ToArray());
                 }
@@ -1310,7 +1307,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 return changed;
             }
 
-            if (this.TryGetFunction(qualifiedName.Namespace, qualifiedName.Name, QsSpecializationKind.QsBody, out IrFunction? func)
+            if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
                 && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
             {
                 var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";

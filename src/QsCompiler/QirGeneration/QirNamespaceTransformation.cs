@@ -73,10 +73,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override Tuple<QsArgumentTuple, QsScope> OnProvidedImplementation(QsArgumentTuple argTuple, QsScope body)
         {
-            this.SharedState.StartSpecialization();
+            this.SharedState.StartFunction();
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple);
             this.Transformation.Statements.OnScope(body);
-            this.SharedState.EndSpecialization();
+            this.SharedState.EndFunction();
             this.context.SetCurrentSpecialization(null);
             return new Tuple<QsArgumentTuple, QsScope>(argTuple, body);
         }

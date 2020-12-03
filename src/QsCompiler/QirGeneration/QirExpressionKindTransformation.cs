@@ -501,7 +501,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ITypeRef captureType, ITypeRef parArgsType, RebuildItem rebuild)
             {
-                var funcName = GenerationContext.FunctionWrapperName("Lifted", name, kind);
+                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
                 var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
 
                 func.Parameters[0].Name = "capture-tuple";
@@ -1050,7 +1050,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void CallGlobal(Identifier.GlobalCallable callable, QsResolvedTypeKind methodType, bool isAdjoint, int controlledCount)
             {
                 var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                var func = this.SharedState.GetFunctionByName(callable.Item.Namespace, callable.Item.Name, kind);
+                var func = this.SharedState.GetFunctionByName(callable.Item, kind);
 
                 // If the operation has more than one "Controlled" functor applied, we will need to adjust the arg list
                 // and build a single array of control qubits

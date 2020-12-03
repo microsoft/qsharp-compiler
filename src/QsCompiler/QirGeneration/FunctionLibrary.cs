@@ -12,11 +12,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
     /// <summary>
     /// A simple class to manage a library of runtime functions.
-    /// This class tries to avoid clutter by only generating declarations for functions that are actually
-    /// called.
-    /// Functions that are defined but never used will not have an declaration generated.
+    /// Delays generating declarations for functions until they are needed.
+    /// Declarations for functions that are added but never queried will not be generated.
     /// </summary>
-    internal class FunctionLibrary : IEnumerable<KeyValuePair<string, IrFunction>>
+    public class FunctionLibrary : IEnumerable<KeyValuePair<string, IrFunction>>
     {
         private readonly BitcodeModule module;
         private readonly Dictionary<string, IFunctionType> runtimeFunctions = new Dictionary<string, IFunctionType>();
@@ -66,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The simple, unmangled name of the function</param>
         /// <returns>The object that represents the function</returns>
-        public IrFunction GetFunction(string name)
+        public IrFunction GetOrCreateFunction(string name)
         {
             var mappedName = this.nameMapper(name);
             var func = this.module.TryGetFunction(mappedName, out var fct) ?

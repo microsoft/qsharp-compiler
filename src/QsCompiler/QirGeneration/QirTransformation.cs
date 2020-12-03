@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.IO;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -8,16 +9,26 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
     public class QirTransformation : SyntaxTreeTransformation<GenerationContext>
     {
+        public readonly Configuration Config;
+
         /// <summary>
         /// The compilation unit for which QIR is generated.
         /// </summary>
         public readonly QsCompilation Compilation;
 
+        public readonly FunctionLibrary RuntimeLibrary;
+
+        public readonly FunctionLibrary QuantumInstructionSet;
+
         public QirTransformation(QsCompilation compilation, Configuration config)
         : base(new GenerationContext(compilation.Namespaces, config), TransformationOptions.NoRebuild)
         {
-            this.SharedState.SetTransformation(this);
+            this.Config = config;
             this.Compilation = compilation;
+
+            this.SharedState.SetTransformation(this, out this.RuntimeLibrary, out this.QuantumInstructionSet);
+            this.SharedState.InitializeRuntimeLibrary();
+            this.SharedState.RegisterQuantumInstructionSet();
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
@@ -28,9 +39,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public void Apply()
         {
-            this.SharedState.InitializeRuntimeLibrary();
-            this.SharedState.RegisterQuantumInstructions();
-
             foreach (var ns in this.Compilation.Namespaces)
             {
                 this.Namespaces.OnNamespace(ns);
@@ -42,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
         }
 
-        public void Emit()
-        {
-            this.SharedState.Emit();
-        }
+        /// <summary>
+        /// Writes the current content to the output file.
+        /// </summary>
+        public void Emit() => this.SharedState.Emit();
     }
 }
