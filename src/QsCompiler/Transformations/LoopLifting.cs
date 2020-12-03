@@ -60,12 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         var contextValidScope = this.SharedState.IsValidScope;
                         var contextParams = this.SharedState.GeneratedOpParams;
                         this.SharedState.IsValidScope = true;
-                        var variables = new List<LocalVariableDeclaration<string>>();
-                        variables.AddRange(repeatBlock.Body.KnownSymbols.Variables);
-                        variables.AddRange(fixupBlock.Body.KnownSymbols.Variables);
-                        this.SharedState.GeneratedOpParams = variables.ToImmutableArray();
+                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray();
+                        this.SharedState.GeneratedOpParams = variables;
 
-                        var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables.ToImmutableArray()));
+                        var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables));
                         var newBlock = new QsPositionedBlock(newScope, repeatBlock.Location, repeatBlock.Comments);
 
                         var canLift = this.SharedState.LiftBody(newBlock.Body, out var callable, out var call);
