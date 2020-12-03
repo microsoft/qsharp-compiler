@@ -14,6 +14,9 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 {
+    using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     /// <summary>
     /// Performs the transformation steps needed to lift any repeat-until loops
     /// into generated recursive operations.
@@ -45,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                 {
                     var contextValidScope = this.SharedState.IsValidScope;
                     var contextParams = this.SharedState.GeneratedOpParams;
-                    this.SharedState.IsValidScope = true;
+                    this.SharedState.IsValidScope = IsConditionedOnResult(statement.SuccessCondition);
                     this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
 
                     var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
@@ -66,6 +69,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         block,
                         statement.SuccessCondition,
                         this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock).Item2));
+                }
+
+                private bool IsConditionedOnResult(
+                    TypedExpression expression)
+                {
+                    if (expression.Expression is ExpressionKind.EQ eq)
+                    {
+                        return eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result ||
+                            eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result;
+                    }
+                    else if (expression.Expression is ExpressionKind.NEQ neq)
+                    {
+                        return neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result ||
+                            neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result;
+                    }
+                    else if (expression.Expression is ExpressionKind.AND andEx)
+                    {
+                        return IsConditionedOnResult(andEx.Item1) || IsConditionedOnResult(andEx.Item2);
+                    }
+                    else if (expression.Expression is ExpressionKind.OR orEx)
+                    {
+                        return IsConditionedOnResult(orEx.Item1) || IsConditionedOnResult(orEx.Item2);
+                    }
+                    else if (expression.Expression is ExpressionKind.NOT notEx)
+                    {
+                        return IsConditionedOnResult(notEx.Item);
+                    }
+
+                    return false;
                 }
             }
         }
