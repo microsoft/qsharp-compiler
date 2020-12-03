@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         var contextValidScope = this.SharedState.IsValidScope;
                         var contextParams = this.SharedState.GeneratedOpParams;
                         this.SharedState.IsValidScope = true;
-                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray();
+                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables, new BasicVariableComparer()).ToImmutableArray();
                         this.SharedState.GeneratedOpParams = variables;
 
                         var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables));
@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         this.SharedState.GeneratedOpParams = contextParams;
                         if (canLift && callable != null && call != null)
                         {
-                            this.SharedState.GeneratedOperations?.Add(callable);
+                            this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call));
                             return call.Statement;
                         }
                     }
@@ -110,6 +110,66 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     return statements.ToImmutableArray();
                 }
 
+                private static QsCallable MakeRecursive(QsCallable callable, QsStatement call)
+                {
+                    var specialization = callable.Specializations.Single();
+                    var providedImplementation = (SpecializationImplementation.Provided)specialization.Implementation;
+                    var statements = new List<QsStatement>(providedImplementation.Item2.Statements);
+                    var conditionalStatement = (QsStatementKind.QsConditionalStatement)statements.Last().Statement;
+                    var conditionalScopeStatements = new List<QsStatement>(conditionalStatement.Item.Default.Item.Body.Statements);
+
+                    conditionalScopeStatements.Add(call);
+                    var newKnownVariables = new LocalDeclarations(
+                        conditionalStatement.Item.Default.Item.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables).ToImmutableArray());
+
+                    var newConditionalStatement = new QsConditionalStatement(
+                        conditionalStatement.Item.ConditionalBlocks,
+                        QsNullable<QsPositionedBlock>.NewValue(
+                            new QsPositionedBlock(
+                                new QsScope(
+                                    conditionalScopeStatements.ToImmutableArray(),
+                                    newKnownVariables),
+                                conditionalStatement.Item.Default.Item.Location,
+                                conditionalStatement.Item.Default.Item.Comments)));
+
+                    statements.Add(new QsStatement(
+                        QsStatementKind.NewQsConditionalStatement(newConditionalStatement),
+                        LocalDeclarations.Empty,
+                        QsNullable<QsLocation>.Null,
+                        QsComments.Empty));
+
+                    var newSpecialization = new QsSpecialization(
+                        specialization.Kind,
+                        specialization.Parent,
+                        specialization.Attributes,
+                        specialization.SourceFile,
+                        specialization.Location,
+                        specialization.TypeArguments,
+                        specialization.Signature,
+                        SpecializationImplementation.NewProvided(
+                            providedImplementation.Item1,
+                            new QsScope(
+                                statements.ToImmutableArray(),
+                                providedImplementation.Item2.KnownSymbols)),
+                        specialization.Documentation,
+                        specialization.Comments);
+
+                    var newCallable = new QsCallable(
+                        QsCallableKind.Operation,
+                        callable.FullName,
+                        callable.Attributes,
+                        callable.Modifiers,
+                        callable.SourceFile,
+                        callable.Location,
+                        callable.Signature,
+                        callable.ArgumentTuple,
+                        new ImmutableArray<QsSpecialization> { newSpecialization },
+                        callable.Documentation,
+                        callable.Comments);
+
+                    return newCallable;
+                }
+
                 private bool IsConditionedOnResult(
                     TypedExpression expression)
                 {
@@ -138,7 +198,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                     return false;
                 }
-            }
+
+                private class BasicVariableComparer : IEqualityComparer<LocalVariableDeclaration<string>>
+                {
+                    public bool Equals(LocalVariableDeclaration<string> rhs, LocalVariableDeclaration<string> lhs)
+                    {
+                        if (ReferenceEquals(lhs, rhs))
+                        {
+                            return true;
+                        }
+
+                        if (lhs == null || rhs == null)
+                        {
+                            return false;
+                        }
+
+                        return lhs.VariableName == rhs.VariableName && lhs.Type == rhs.Type;
+                    }
+
+                    public int GetHashCode(LocalVariableDeclaration<string> variableDeclaration)
+                    {
+                        if (variableDeclaration == null)
+                        {
+                            return 0;
+                        }
+
+                        int hashName = variableDeclaration.VariableName.GetHashCode();
+                        int hashType = variableDeclaration.Type.GetHashCode();
+                        return hashName ^ hashType;
+                    }
+                }
+           }
         }
     }
 }
