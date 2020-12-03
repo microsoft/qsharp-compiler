@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt)
         {
             // User-defined types are represented by their underlying types.
-            if (this.SharedState.TryFindUDT(udt.GetFullName(), out QsCustomType? udtDefinition))
+            if (this.SharedState.TryGetCustomType(udt.GetFullName(), out QsCustomType? udtDefinition))
             {
                 this.OnType(udtDefinition.Type);
             }

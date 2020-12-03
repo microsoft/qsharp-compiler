@@ -8,10 +8,17 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
     public class QirTransformation : SyntaxTreeTransformation<GenerationContext>
     {
+        /// <summary>
+        /// The compilation unit for which QIR is generated.
+        /// </summary>
+        public readonly QsCompilation Compilation;
+
         public QirTransformation(QsCompilation compilation, Configuration config)
-        : base(new GenerationContext(compilation, config), TransformationOptions.NoRebuild)
+        : base(new GenerationContext(compilation.Namespaces, config), TransformationOptions.NoRebuild)
         {
             this.SharedState.SetTransformation(this);
+            this.Compilation = compilation;
+
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
@@ -24,12 +31,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.SharedState.InitializeRuntimeLibrary();
             this.SharedState.RegisterQuantumInstructions();
 
-            foreach (var ns in this.SharedState.Compilation.Namespaces)
+            foreach (var ns in this.Compilation.Namespaces)
             {
                 this.Namespaces.OnNamespace(ns);
             }
 
-            foreach (var epName in this.SharedState.Compilation.EntryPoints)
+            foreach (var epName in this.Compilation.EntryPoints)
             {
                 this.SharedState.GenerateEntryPoint(epName);
             }

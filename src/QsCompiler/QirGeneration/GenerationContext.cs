@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -47,11 +46,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public readonly Configuration Config;
 
         /// <summary>
-        /// The compilation unit for which QIR is generated.
-        /// </summary>
-        public readonly QsCompilation Compilation;
-
-        /// <summary>
         /// The context used for QIR generation.
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
@@ -80,8 +74,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         public readonly Constants Constants;
 
-        private QirTransformation? transformation;
-
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
@@ -94,6 +86,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         public void SetTransformation(QirTransformation transformation) =>
             this.transformation = transformation;
+
+        private QirTransformation? transformation;
+
+        private readonly ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables;
+        private readonly ImmutableDictionary<QsQualifiedName, QsCustomType> globalTypes;
 
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumLibrary;
@@ -125,10 +122,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="compilation">The compilation unit for which QIR is generated.</param>
         /// <param name="config">The configuration for QIR generation.</param>
-        internal GenerationContext(QsCompilation compilation, Configuration config)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, Configuration config)
         {
             this.Config = config;
-            this.Compilation = compilation;
             this.Context = new Context();
             this.Module = this.Context.CreateBitcodeModule();
             this.InteropModule = this.Context.CreateBitcodeModule("bridge");
@@ -141,6 +137,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.ValueStack = new Stack<Value>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.ScopeMgr = new ScopeManager(this);
+
+            this.globalCallables = syntaxTree.GlobalCallableResolutions();
+            this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.runtimeLibrary = new FunctionLibrary(
                 this.Module,
@@ -221,7 +220,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
-        public IrFunction GetRuntimeFunction(string name) => this.runtimeLibrary.GetFunction(name);
+        public IrFunction GetRuntimeFunction(string name) =>
+            this.runtimeLibrary.GetFunction(name);
 
         /// <summary>
         /// Gets the LLVM object for a quantum instruction set function.
@@ -229,7 +229,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
-        public IrFunction GetQuantumFunction(string name) => this.quantumLibrary.GetFunction(name);
+        public IrFunction GetQuantumFunction(string name) =>
+            this.quantumLibrary.GetFunction(name);
 
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
@@ -238,30 +239,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The callable's name</param>
         /// <param name="callable">The Q# callable, if found</param>
         /// <returns>true if the callable is found, false if not</returns>
-        internal bool TryFindGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable)
-        {
-            callable = null;
-
-            foreach (var ns in this.Compilation.Namespaces)
-            {
-                if (ns.Name == fullName.Namespace)
-                {
-                    foreach (var element in ns.Elements)
-                    {
-                        if (element is QsNamespaceElement.QsCallable c)
-                        {
-                            if (c.GetFullName().Name == fullName.Name)
-                            {
-                                callable = c.Item;
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
+        public bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
+            this.globalCallables.TryGetValue(fullName, out callable);
 
         /// <summary>
         /// Tries to find a Q# user-defined type in the current compilation.
@@ -270,30 +249,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The UDT's name</param>
         /// <param name="udt">The Q# UDT< if found</param>
         /// <returns>true if the UDT is found, false if not</returns>
-        internal bool TryFindUDT(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt)
-        {
-            udt = null;
-
-            foreach (var ns in this.Compilation.Namespaces)
-            {
-                if (ns.Name == fullName.Namespace)
-                {
-                    foreach (var element in ns.Elements)
-                    {
-                        if (element is QsNamespaceElement.QsCustomType t)
-                        {
-                            if (t.GetFullName().Name == fullName.Name)
-                            {
-                                udt = t.Item;
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
+        public bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
+            this.globalTypes.TryGetValue(fullName, out udt);
 
         #endregion
 
@@ -405,27 +362,23 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         public void RegisterQuantumInstructions()
         {
-            foreach (var ns in this.Compilation.Namespaces)
+            foreach (var c in this.globalCallables.Values)
             {
-                foreach (var element in ns.Elements)
+                if (SymbolResolution.TryGetQISCode(c.Attributes) is var att && att.IsValue)
                 {
-                    if (element is QsNamespaceElement.QsCallable c
-                        && SymbolResolution.TryGetQISCode(c.Item.Attributes) is var att && att.IsValue)
+                    var name = att.Item;
+                    // Special handling for Unit since by default it turns into an empty tuple
+                    var returnType = c.Signature.ReturnType.Resolution.IsUnitType
+                        ? this.Context.VoidType
+                        : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
+                    var argTypeArray = (c.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType tuple)
+                        ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray()
+                        : new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
+                    this.quantumLibrary.AddFunction(name, returnType, argTypeArray);
+                    if (this.Config.GenerateInteropWrappers)
                     {
-                        var name = att.Item;
-                        // Special handling for Unit since by default it turns into an empty tuple
-                        var returnType = c.Item.Signature.ReturnType.Resolution.IsUnitType
-                            ? this.Context.VoidType
-                            : this.LlvmTypeFromQsharpType(c.Item.Signature.ReturnType);
-                        var argTypeArray = (c.Item.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType tuple)
-                            ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray()
-                            : new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Item.Signature.ArgumentType) };
-                        this.quantumLibrary.AddFunction(name, returnType, argTypeArray);
-                        if (this.Config.GenerateInteropWrappers)
-                        {
-                            var func = this.quantumLibrary.GetFunction(name);
-                            this.GenerateInteropWrapper(func, name);
-                        }
+                        var func = this.quantumLibrary.GetFunction(name);
+                        this.GenerateInteropWrapper(func, name);
                     }
                 }
             }
@@ -846,7 +799,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
-            if (this.TryFindGlobalCallable(new QsQualifiedName(namespaceName, name), out QsCallable? callable))
+            if (this.TryGetGlobalCallable(new QsQualifiedName(namespaceName, name), out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
                 return this.RegisterFunction(spec, callable.ArgumentTuple);
@@ -1358,7 +1311,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
 
             if (this.TryGetFunction(qualifiedName.Namespace, qualifiedName.Name, QsSpecializationKind.QsBody, out IrFunction? func)
-                && this.TryFindGlobalCallable(qualifiedName, out QsCallable? callable))
+                && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
             {
                 var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";
 
