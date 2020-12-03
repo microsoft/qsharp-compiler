@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         callable.Location,
                         callable.Signature,
                         callable.ArgumentTuple,
-                        new ImmutableArray<QsSpecialization> { newSpecialization },
+                        new List<QsSpecialization> { newSpecialization }.ToImmutableArray(),
                         callable.Documentation,
                         callable.Comments);
 
