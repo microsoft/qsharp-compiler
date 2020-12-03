@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
             {
                 Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
-                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.Types.QirTupleHeader).ToArray();
+                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.Types.TupleHeader).ToArray();
                 var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
                 else
                 {
-                    allocation = Constant.UndefinedValueFor(this.SharedState.Types.QirQubit);
+                    allocation = Constant.UndefinedValueFor(this.SharedState.Types.Qubit);
                 }
                 this.SharedState.RegisterName(variable, allocation);
             }
@@ -438,7 +438,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             // Header block: phi node to assign the iteration variable, then test
             this.SharedState.SetCurrentBlock(headerBlock);
-            var iterationValue = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.Types.QirInt);
+            var iterationValue = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.Types.Int);
             iterationValue.AddIncoming(startValue, preheaderBlock);
             this.SharedState.RegisterName(iterationVar, iterationValue);
             // We can't add the other incoming value yet, because we haven't generated it yet.
@@ -572,7 +572,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 var itemTypes = items
                     .Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType))
-                    .Prepend(this.SharedState.Types.QirTupleHeader).ToArray();
+                    .Prepend(this.SharedState.Types.TupleHeader).ToArray();
                 var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)

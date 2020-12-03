@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 // special case for tuples
                 if (releaseFunc == "tuple_unreference")
                 {
-                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.QirTuple);
+                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.Tuple);
                     builder.Call(func, untypedTuple);
                 }
                 else

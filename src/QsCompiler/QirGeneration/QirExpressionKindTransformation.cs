@@ -186,7 +186,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 {
                     var itemType = this.SharedState.Context.CreateStructType(
                         false,
-                        types.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i)).Prepend(this.SharedState.Types.QirTupleHeader).ToArray());
+                        types.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i)).Prepend(this.SharedState.Types.TupleHeader).ToArray());
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
                     return new InnerTuple(this.SharedState, argType, itemType, items);
                 }
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ITypeRef captureType, ITypeRef parArgsType, RebuildItem rebuild)
             {
                 var funcName = GenerationContext.CallableWrapperName("Lifted", name, kind);
-                var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.QirCallableSignature);
+                var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.CallableSignature);
 
                 func.Parameters[0].Name = "capture-tuple";
                 func.Parameters[1].Name = "arg-tuple";
@@ -263,9 +263,9 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     // Deal with the extra control qubit arg for controlled and controlled-adjoint
                     var ctlArgsType = this.SharedState.Context.CreateStructType(
                         false,
-                        this.SharedState.Types.QirTupleHeader,
-                        this.SharedState.Types.QirArray,
-                        this.SharedState.Types.QirTuple);
+                        this.SharedState.Types.TupleHeader,
+                        this.SharedState.Types.Array,
+                        this.SharedState.Types.Tuple);
                     var ctlArgsPointer = builder.BitCast(func.Parameters[1], ctlArgsType.CreatePointerType());
                     var controlsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(), ctlArgsPointer, 1u);
                     var restPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(), ctlArgsPointer, 2u);
@@ -278,7 +278,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     this.SharedState.ScopeMgr.AddValue(innerArgTuple, dummyTupleType);
                     var typedNewTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
                     var destControlsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(), typedNewTuple, 1u);
-                    var controls = builder.Load(this.SharedState.Types.QirArray, controlsPointer);
+                    var controls = builder.Load(this.SharedState.Types.Array, controlsPointer);
                     builder.Store(controls, destControlsPointer);
                     var destArgsPointer = builder.GetStructElementPointer(ctlArgsType.CreatePointerType(), typedNewTuple, 2u);
                     builder.Store(restTuple, destArgsPointer);
@@ -289,7 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
 
                 var innerCallablePtr = builder.GetStructElementPointer(captureType, capturePointer, 1u);
-                var innerCallable = builder.Load(this.SharedState.Types.QirCallable, innerCallablePtr);
+                var innerCallable = builder.Load(this.SharedState.Types.Callable, innerCallablePtr);
                 // Depending on the specialization, we may have to get a different specialization of the callable
                 var specToCall = GetSpecializedInnerCallable(innerCallable, kind, builder);
                 var invoke = this.SharedState.GetRuntimeFunction("callable_invoke");
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 QsResolvedTypeKind.TupleType pat => this.SharedState.Context.CreateStructType(
                     false,
-                    pat.Item.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.Types.QirTupleHeader).ToArray()),
+                    pat.Item.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.Types.TupleHeader).ToArray()),
                 _ => this.SharedState.LlvmStructTypeFromQsharpType(paArgTuple)
             };
 
@@ -333,7 +333,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             // Create the capture tuple
             // Note that we set aside the first element of the capture tuple for the inner operation to call
-            var capTypeList = (new ITypeRef[] { this.SharedState.Types.QirTupleHeader, this.SharedState.Types.QirCallable })
+            var capTypeList = (new ITypeRef[] { this.SharedState.Types.TupleHeader, this.SharedState.Types.Callable })
                 .Concat(caps.Select(c => c.Item1.NativeType)).ToArray();
             var capType = this.SharedState.Context.CreateStructType(false, capTypeList);
             var cap = this.SharedState.CreateTupleForType(capType);
@@ -695,7 +695,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
                 if (inlinedCallable.Signature.ReturnType.Resolution.IsUnitType)
                 {
-                    this.SharedState.ValueStack.Push(this.SharedState.Types.QirTuple.GetNullValue());
+                    this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
                 }
             }
 
@@ -748,8 +748,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             this.SharedState.CurrentBuilder.SDiv(
                                 this.SharedState.CurrentBuilder.Sub(end, start), step)));
                     var newRange = this.SharedState.CurrentBuilder.Load(
-                        this.SharedState.Types.QirRange,
-                        this.SharedState.Constants.QirEmptyRange);
+                        this.SharedState.Types.Range,
+                        this.SharedState.Constants.EmptyRange);
                     var reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, newStart, 0u);
                     reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, this.SharedState.CurrentBuilder.Neg(step), 1u);
                     reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, start, 2u);
@@ -836,14 +836,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 Value argTuple;
                 if (argType.Resolution.IsUnitType)
                 {
-                    argTuple = this.SharedState.Types.QirTuple.GetNullValue();
+                    argTuple = this.SharedState.Types.Tuple.GetNullValue();
                 }
                 else
                 {
                     ITypeRef argStructType = this.SharedState.LlvmStructTypeFromQsharpType(argType);
                     Value argStruct = this.SharedState.CreateTupleForType(argStructType);
                     this.SharedState.FillTuple(argStruct, arg);
-                    argTuple = this.SharedState.CurrentBuilder.BitCast(argStruct, this.SharedState.Types.QirTuple);
+                    argTuple = this.SharedState.CurrentBuilder.BitCast(argStruct, this.SharedState.Types.Tuple);
                 }
 
                 // Allocate the result tuple, if needed
@@ -853,11 +853,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 Value? resultTuple = null;
                 if (resultResolvedType.Resolution.IsUnitType)
                 {
-                    resultTuple = this.SharedState.Types.QirTuple.GetNullValue();
+                    resultTuple = this.SharedState.Types.Tuple.GetNullValue();
                     this.SharedState.CurrentBuilder.Call(func, this.ProcessAndEvaluateSubexpression(method), argTuple, resultTuple);
 
                     // Now push the result. For now we assume it's a scalar.
-                    this.SharedState.ValueStack.Push(this.SharedState.Types.QirTuple.GetNullValue());
+                    this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
                 }
                 else
                 {
@@ -1045,12 +1045,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
                 else
                 {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirTuple));
+                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Tuple));
                 }
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirInt));
+                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
             }
             return ResolvedExpression.InvalidExpr;
         }
@@ -1151,7 +1151,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.QirDouble);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, rhsValue));
             }
             else if (lhs.ResolvedType.Resolution.IsBigInt)
@@ -1163,7 +1163,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirInt));
+                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -1244,7 +1244,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 {
                     var wrapper = this.SharedState.EnsureWrapperFor(callable);
                     var func = this.SharedState.GetRuntimeFunction("callable_create");
-                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.QirTuple.GetNullValue());
+                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
 
                     this.SharedState.ValueStack.Push(callableValue);
                     this.SharedState.ScopeMgr.AddValue(
@@ -1255,7 +1255,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
                 else
                 {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirCallable));
+                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Callable));
                 }
             }
             else
@@ -1553,12 +1553,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
                 else
                 {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirInt));
+                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
                 }
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirInt));
+                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -1585,7 +1585,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             QsTuple<QsTypeItem>.QsTupleItem l => GetTypeItemType(l),
                             _ => this.SharedState.Context.TokenType
                         })
-                        .Prepend(this.SharedState.Types.QirTupleHeader).ToArray();
+                        .Prepend(this.SharedState.Types.TupleHeader).ToArray();
                         return this.SharedState.Context.CreateStructType(false, types).CreatePointerType();
                     default:
                         // This should never happen
@@ -1660,27 +1660,27 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public override ResolvedExpression OnPauliLiteral(QsPauli p)
         {
             void LoadAndPushPauli(Value pauli) =>
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Load(this.SharedState.Types.QirPauli, pauli));
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli));
 
             if (p.IsPauliI)
             {
-                LoadAndPushPauli(this.SharedState.Constants.QirPauliI);
+                LoadAndPushPauli(this.SharedState.Constants.PauliI);
             }
             else if (p.IsPauliX)
             {
-                LoadAndPushPauli(this.SharedState.Constants.QirPauliX);
+                LoadAndPushPauli(this.SharedState.Constants.PauliX);
             }
             else if (p.IsPauliY)
             {
-                LoadAndPushPauli(this.SharedState.Constants.QirPauliY);
+                LoadAndPushPauli(this.SharedState.Constants.PauliY);
             }
             else if (p.IsPauliZ)
             {
-                LoadAndPushPauli(this.SharedState.Constants.QirPauliZ);
+                LoadAndPushPauli(this.SharedState.Constants.PauliZ);
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.QirPauli));
+                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Pauli));
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -1705,8 +1705,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             var end = this.ProcessAndEvaluateSubexpression(rhs);
 
-            Value rangePtr = this.SharedState.Constants.QirEmptyRange;
-            Value range = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.QirRange, rangePtr);
+            Value rangePtr = this.SharedState.Constants.EmptyRange;
+            Value range = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, rangePtr);
             range = this.SharedState.CurrentBuilder.InsertValue(range, start, 0);
             range = this.SharedState.CurrentBuilder.InsertValue(range, step, 1);
             range = this.SharedState.CurrentBuilder.InsertValue(range, end, 2);
@@ -1717,8 +1717,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override ResolvedExpression OnResultLiteral(QsResult r)
         {
-            var valuePtr = r.IsOne ? this.SharedState.Constants.QirResultOne : this.SharedState.Constants.QirResultZero;
-            var value = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.QirResult, valuePtr);
+            var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
+            var value = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
             this.SharedState.ValueStack.Push(value);
 
             return ResolvedExpression.InvalidExpr;
@@ -1982,7 +1982,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         public override ResolvedExpression OnUnitValue()
         {
-            this.SharedState.ValueStack.Push(this.SharedState.Types.QirTuple.GetNullValue());
+            this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
 
             return ResolvedExpression.InvalidExpr;
         }
@@ -2030,7 +2030,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Build the LLVM structure type we need
             var rest = vs
                 .Select(v => this.SharedState.LlvmTypeFromQsharpType(v.ResolvedType))
-                .Prepend(this.SharedState.Types.QirTupleHeader).ToArray();
+                .Prepend(this.SharedState.Types.TupleHeader).ToArray();
             var tupleType = this.SharedState.Context.CreateStructType(false, rest);
 
             // Allocate the tuple and record it to get released later
