@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                     conditionalScopeStatements.Add(call);
                     var newKnownVariables = new LocalDeclarations(
-                        conditionalStatement.Item.Default.Item.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables).ToImmutableArray());
+                        conditionalStatement.Item.Default.Item.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables, new BasicVariableComparer()).ToImmutableArray());
 
                     var newConditionalStatement = new QsConditionalStatement(
                         conditionalStatement.Item.ConditionalBlocks,
@@ -132,6 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                                 conditionalStatement.Item.Default.Item.Location,
                                 conditionalStatement.Item.Default.Item.Comments)));
 
+                    statements.RemoveAt(statements.Count - 1);
                     statements.Add(new QsStatement(
                         QsStatementKind.NewQsConditionalStatement(newConditionalStatement),
                         LocalDeclarations.Empty,
