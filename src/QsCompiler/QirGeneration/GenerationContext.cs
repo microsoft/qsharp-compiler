@@ -22,7 +22,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
     using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
 
     /// <summary>
     /// This class holds the shared state used across a QIR generation pass.
@@ -806,6 +805,31 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
+        /// Tries to get the function for a specialization by name so it can be called.
+        /// If the function hasn't been generated yet, false is returned.
+        /// </summary>
+        /// <param name="namespaceName">The callable's namespace</param>
+        /// <param name="name">The callable's name</param>
+        /// <param name="kind">The specialization kind</param>
+        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
+        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
+        private bool TryGetFunction(string namespaceName, string name, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
+        {
+            var fullName = FunctionName(namespaceName, name, kind);
+            foreach (var func in this.Module.Functions)
+            {
+                if (func.Name == fullName)
+                {
+                    function = func;
+                    return true;
+                }
+            }
+
+            function = null;
+            return false;
+        }
+
+        /// <summary>
         /// Gets the function for a specialization by name so it can be called.
         /// If the function hasn't been generated yet, its declaration is generated so that it can be called.
         /// </summary>
@@ -829,31 +853,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             // If we can't find the function at all, it's a problem...
             throw new KeyNotFoundException($"Can't find callable {namespaceName}.{name}");
-        }
-
-        /// <summary>
-        /// Tries to get the function for a specialization by name so it can be called.
-        /// If the function hasn't been generated yet, false is returned.
-        /// </summary>
-        /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
-        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
-        private bool TryGetFunction(string namespaceName, string name, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
-        {
-            var fullName = FunctionName(namespaceName, name, kind);
-            foreach (var func in this.Module.Functions)
-            {
-                if (func.Name == fullName)
-                {
-                    function = func;
-                    return true;
-                }
-            }
-
-            function = null;
-            return false;
         }
 
         /// <summary>
