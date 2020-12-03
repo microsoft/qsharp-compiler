@@ -105,20 +105,27 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
 
         // QIR types
+
         public readonly ITypeRef QirInt;
         public readonly ITypeRef QirDouble;
         public readonly ITypeRef QirBool;
-        public readonly ITypeRef QirResult;
         public readonly ITypeRef QirPauli;
-        public readonly ITypeRef QirQubit;
-        public readonly ITypeRef QirRange;
-        public readonly ITypeRef QirString;
-        public readonly ITypeRef QirBigInt;
-        public readonly ITypeRef QirArray;
-        public readonly ITypeRef QirCallable;
-        public readonly ITypeRef QirResultStruct;
+
+        public readonly IPointerType QirResult;
+        public readonly IPointerType QirQubit;
+        public readonly IPointerType QirString;
+        public readonly IPointerType QirBigInt;
+        public readonly IPointerType QirTuple;
+        public readonly IPointerType QirArray;
+        public readonly IPointerType QirCallable;
+
+        public readonly IStructType QirRange;
+        public readonly IStructType QirTupleHeader;
+
+        public readonly IFunctionType QirCallableSignature;
 
         // QIR constants
+
         public readonly Value QirResultZero;
         public readonly Value QirResultOne;
         public readonly Value QirPauliI;
@@ -126,11 +133,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public readonly Value QirPauliY;
         public readonly Value QirPauliZ;
         public readonly Value QirEmptyRange;
-
-        // Internal types
-        public readonly ITypeRef QirTupleHeader;
-        public readonly ITypeRef QirTuplePointer;
-        public readonly IFunctionType StandardWrapperSignature;
 
         #endregion
 
@@ -162,25 +164,24 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.QirInt = this.Context.Int64Type;
             this.QirDouble = this.Context.DoubleType;
             this.QirBool = this.Context.BoolType;
-            this.QirResultStruct = this.Context.CreateStructType("Result");
-            this.QirResult = this.QirResultStruct.CreatePointerType();
             this.QirPauli = this.Context.GetIntType(2);
-            var qirQubitStruct = this.Context.CreateStructType("Qubit");
-            this.QirQubit = qirQubitStruct.CreatePointerType();
+
             this.QirRange = this.Context.CreateStructType("Range", false, this.Context.Int64Type, this.Context.Int64Type, this.Context.Int64Type);
-            var qirStringStruct = this.Context.CreateStructType("String");
-            this.QirString = qirStringStruct.CreatePointerType();
-            var qirBigIntStruct = this.Context.CreateStructType("BigInt");
-            this.QirBigInt = qirBigIntStruct.CreatePointerType();
             // It would be nice if TupleHeader were opaque, but it can't be because it appears directly
             // (that is, not as a pointer) in tuple structures, but would have unknown length if it were opaque.
             this.QirTupleHeader = this.Context.CreateStructType("TupleHeader", false, this.Context.Int32Type);
-            this.QirTuplePointer = this.QirTupleHeader.CreatePointerType();
+
+            this.QirResult = this.Context.CreateStructType("Result").CreatePointerType();
+            this.QirQubit = this.Context.CreateStructType("Qubit").CreatePointerType();
+            this.QirString = this.Context.CreateStructType("String").CreatePointerType();
+            this.QirBigInt = this.Context.CreateStructType("BigInt").CreatePointerType();
+            this.QirTuple = this.QirTupleHeader.CreatePointerType();
             this.QirArray = this.Context.CreateStructType("Array").CreatePointerType();
             this.QirCallable = this.Context.CreateStructType("Callable").CreatePointerType();
-            this.StandardWrapperSignature = this.Context.GetFunctionType(
+
+            this.QirCallableSignature = this.Context.GetFunctionType(
                 this.Context.VoidType,
-                new[] { this.QirTuplePointer, this.QirTuplePointer, this.QirTuplePointer });
+                new[] { this.QirTuple, this.QirTuple, this.QirTuple });
 
             // Constants
 
@@ -377,12 +378,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 this.QirBigInt);
             #endregion
             #region Standard tuple library functions
-            this.runtimeLibrary.AddFunction("tuple_init_stack", this.Context.VoidType, this.QirTuplePointer);
-            this.runtimeLibrary.AddFunction("tuple_init_heap", this.Context.VoidType, this.QirTuplePointer);
-            this.runtimeLibrary.AddFunction("tuple_create", this.QirTuplePointer, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction("tuple_reference", this.Context.VoidType, this.QirTuplePointer);
-            this.runtimeLibrary.AddFunction("tuple_unreference", this.Context.VoidType, this.QirTuplePointer);
-            this.runtimeLibrary.AddFunction("tuple_is_writable", this.Context.BoolType, this.QirTuplePointer);
+            this.runtimeLibrary.AddFunction("tuple_init_stack", this.Context.VoidType, this.QirTuple);
+            this.runtimeLibrary.AddFunction("tuple_init_heap", this.Context.VoidType, this.QirTuple);
+            this.runtimeLibrary.AddFunction("tuple_create", this.QirTuple, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction("tuple_reference", this.Context.VoidType, this.QirTuple);
+            this.runtimeLibrary.AddFunction("tuple_unreference", this.Context.VoidType, this.QirTuple);
+            this.runtimeLibrary.AddFunction("tuple_is_writable", this.Context.BoolType, this.QirTuple);
             #endregion
             #region Standard array library functions
             this.runtimeLibrary.AddVarArgsFunction("array_create", this.QirArray, this.Context.Int32Type, 
@@ -405,10 +406,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             #endregion
             #region Callable library functions
             this.runtimeLibrary.AddFunction("callable_create", this.QirCallable, 
-                this.StandardWrapperSignature.CreatePointerType().CreateArrayType(4).CreatePointerType(),
-                this.QirTuplePointer);
+                this.QirCallableSignature.CreatePointerType().CreateArrayType(4).CreatePointerType(),
+                this.QirTuple);
             this.runtimeLibrary.AddFunction("callable_invoke", this.Context.VoidType, this.QirCallable,
-                this.QirTuplePointer, this.QirTuplePointer);
+                this.QirTuple, this.QirTuple);
             this.runtimeLibrary.AddFunction("callable_copy", this.QirCallable, this.QirCallable);
             this.runtimeLibrary.AddFunction("callable_make_adjoint", this.Context.VoidType, this.QirCallable);
             this.runtimeLibrary.AddFunction("callable_make_controlled", this.Context.VoidType, this.QirCallable);
@@ -622,7 +623,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 _ => new ITypeRef[] { this.QirTupleHeader, this.LlvmTypeFromQsharpType(udt.Type) }
             };
             var udtTupleType = this.Context.CreateStructType(false, args);
-            var udtPointerType = args.Length > 1 ? udtTupleType.CreatePointerType() : this.QirTuplePointer;
+            var udtPointerType = args.Length > 1 ? udtTupleType.CreatePointerType() : this.QirTuple;
             var signature = this.Context.GetFunctionType(udtPointerType, args[1..]);
 
             this.StartSpecialization();            
@@ -1187,7 +1188,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else
             {
-                return Constant.UndefinedValueFor(this.QirTuplePointer);
+                return Constant.UndefinedValueFor(this.QirTuple);
             }
         }
 
@@ -1220,7 +1221,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else
             {
-                return Constant.UndefinedValueFor(this.QirTuplePointer);
+                return Constant.UndefinedValueFor(this.QirTuple);
             }
         }
 
@@ -1409,7 +1410,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     if (callable.Specializations.Any(spec => spec.Kind == kind))
                     {
                         var f = this.Module.CreateFunction(CallableWrapperName(callable, kind),
-                            this.StandardWrapperSignature);
+                            this.QirCallableSignature);
                         funcs[index] = f;
                     }
                     else
@@ -1436,7 +1437,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 {
                     ITypeRef argTypeRef = arg is QsArgumentTuple.QsTupleItem item
                         ? this.BuildArgItemTupleType(item)
-                        : this.QirTuplePointer;
+                        : this.QirTuple;
                     // value is a pointer to the argument
                     Value actualArg = this.CurrentBuilder.Load(argTypeRef, value);
                     return actualArg;
@@ -1503,7 +1504,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 }
                 else
                 {
-                    return Constant.UndefinedValueFor(this.QirTuplePointer);
+                    return Constant.UndefinedValueFor(this.QirTuple);
                 }
             }
 
@@ -1938,7 +1939,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 typeName = "Callable";
             }
-            else if (t == this.QirTuplePointer)
+            else if (t == this.QirTuple)
             {
                 typeName = "TuplePointer";
             }
@@ -1992,7 +1993,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 else if (this.IsTupleType(t))
                 {
                     s = "tuple_reference";
-                    valToAddref = this.CurrentBuilder.BitCast(v, this.QirTuplePointer);
+                    valToAddref = this.CurrentBuilder.BitCast(v, this.QirTuple);
                 }
                 else if (t == this.QirCallable)
                 {

@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Unit is represented as a null tuple pointer (an empty tuple).
             // This is necessary because "void" in LLVM is not a proper type and can't be included
             // as an element in a struct.
-            this.SharedState.BuiltType = this.SharedState.QirTuplePointer;
+            this.SharedState.BuiltType = this.SharedState.QirTuple;
             return QsResolvedTypeKind.InvalidType;
         }
 
