@@ -38,6 +38,49 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
+        /// <summary>
+        /// This type is used to map Q# types to interop-friendly types.
+        /// </summary>
+        private class ArgMapping
+        {
+            internal readonly string BaseName;
+
+            /// <summary>
+            /// The first item contains the array type, and the second item contains the array count name.
+            /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
+            /// </summary>
+            private readonly (ITypeRef, string)? arrayInfo;
+
+            /// <summary>
+            /// Contains the struct type.
+            /// If <see cref="structInfo"/> is not null, then <see cref="arrayInfo"/> is null.
+            /// </summary>
+            private readonly ITypeRef? structInfo;
+
+            internal bool IsArray => this.arrayInfo != null;
+            internal ITypeRef ArrayType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
+            internal string ArrayCountName => this.arrayInfo?.Item2 ?? throw new InvalidOperationException("not an array");
+
+            internal bool IsStruct => this.structInfo != null;
+            internal ITypeRef StructType => this.structInfo ?? throw new InvalidOperationException("not a struct");
+
+            private ArgMapping(string baseName, (ITypeRef, string)? arrayInfo = null, ITypeRef? structInfo = null)
+            {
+                this.BaseName = baseName;
+                this.arrayInfo = arrayInfo;
+                this.structInfo = structInfo;
+            }
+
+            internal static ArgMapping Create(string baseName) =>
+                new ArgMapping(baseName);
+
+            internal ArgMapping WithArrayInfo(ITypeRef arrayType, string arrayCountName) =>
+                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
+
+            internal ArgMapping WithStructInfo(ITypeRef arrayType, string arrayCountName) =>
+                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
+        }
+
         #region Member variables
 
         /// <summary>
@@ -206,48 +249,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             QsSpecializationKind.QsAdjoint,
             QsSpecializationKind.QsControlled,
             QsSpecializationKind.QsControlledAdjoint);
-
-        #endregion
-
-        #region Look-up
-
-        /// <summary>
-        /// Gets the LLVM object for a runtime library function.
-        /// If this is the first reference to the function, its declaration is added to the module.
-        /// </summary>
-        /// <param name="name">The name of the function.</param>
-        /// <returns>The LLVM function object</returns>
-        internal IrFunction GetOrCreateRuntimeFunction(string name) =>
-            this.runtimeLibrary.GetOrCreateFunction(name);
-
-        /// <summary>
-        /// Gets the LLVM object for a quantum instruction set function.
-        /// If this is the first reference to the function, its declaration is added to the module.
-        /// </summary>
-        /// <param name="name">The name of the function.</param>
-        /// <returns>The LLVM function object</returns>
-        internal IrFunction GetOrCreateQuantumFunction(string name) =>
-            this.quantumInstructionSet.GetOrCreateFunction(name);
-
-        /// <summary>
-        /// Tries to find a global Q# callable in the current compilation.
-        /// </summary>
-        /// <param name="nsName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
-        /// <param name="callable">The Q# callable, if found</param>
-        /// <returns>true if the callable is found, false if not</returns>
-        internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
-            this.globalCallables.TryGetValue(fullName, out callable);
-
-        /// <summary>
-        /// Tries to find a Q# user-defined type in the current compilation.
-        /// </summary>
-        /// <param name="nsName">The UDT's namespace</param>
-        /// <param name="name">The UDT's name</param>
-        /// <param name="udt">The Q# UDT< if found</param>
-        /// <returns>true if the UDT is found, false if not</returns>
-        internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
-            this.globalTypes.TryGetValue(fullName, out udt);
 
         #endregion
 
@@ -425,162 +426,308 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         #endregion
 
-        #region Type helpers
+        #region Interop utils
 
         /// <summary>
-        /// Gets the QIR equivalent for a Q# type.
-        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
+        /// Generates an interop-friendly wrapper around the Q# entry point using the configured type mapping.
         /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR type</returns>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
+        /// <param name="qualifiedName">The namespace-qualified name of the Q# entry point</param>
+        public void GenerateEntryPoint(QsQualifiedName qualifiedName)
         {
-            this.BuiltType = null;
-            this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
+            // Unfortunately this is different enough from all of the other type mapping we do to require
+            // an actual different routine. Blech...
+            bool MapToCType(QsArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
+            {
+                bool changed = false;
+
+                if (t is QsArgumentTuple.QsTuple tuple)
+                {
+                    foreach (QsArgumentTuple inner in tuple.Item)
+                    {
+                        changed |= MapToCType(inner, typeList, nameList, mappingList);
+                    }
+                }
+                else if (t is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
+                {
+                    var baseName = varName.Item;
+                    var map = ArgMapping.Create(baseName);
+                    switch (item.Item.Type.Resolution)
+                    {
+                        case QsResolvedTypeKind.ArrayType array:
+                            // TODO: Handle multidimensional arrays
+                            // TODO: Handle arrays of structs
+                            typeList.Add(this.Context.Int64Type);
+                            var elementTypeRef = this.LlvmTypeFromQsharpType(array.Item);
+                            typeList.Add(elementTypeRef.CreatePointerType());
+                            var arrayCountName = $"{baseName}__count";
+                            nameList.Add(arrayCountName);
+                            nameList.Add(baseName);
+                            map = map.WithArrayInfo(elementTypeRef, arrayCountName);
+                            changed = true;
+                            mappingList.Add(map);
+                            break;
+                        case QsResolvedTypeKind.TupleType _:
+                            // TODO: Handle structs
+                            break;
+                        default:
+                            typeList.Add(this.LlvmTypeFromQsharpType(item.Item.Type));
+                            nameList.Add(baseName);
+                            mappingList.Add(map);
+                            break;
+                    }
+                }
+                return changed;
+            }
+
+            if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
+                && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
+            {
+                var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";
+
+                // Check to see if the arg list needs mapping to more C-friendly types
+                // TODO: handle complicated return types
+                var mappedArgList = new List<ITypeRef>();
+                var mappedNameList = new List<string>();
+                var mappingList = new List<ArgMapping>();
+                var arraysToReleaseList = new List<Value>();
+                var mappedResultType = this.MapToInteropType(func.ReturnType);
+                if (MapToCType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
+                    (mappedResultType != func.ReturnType))
+                {
+                    var epFunc = this.Module.CreateFunction(epName, this.Context.GetFunctionType(mappedResultType, mappedArgList));
+                    var namedValues = new Dictionary<string, Value>();
+                    for (var i = 0; i < mappedNameList.Count; i++)
+                    {
+                        epFunc.Parameters[i].Name = mappedNameList[i];
+                        namedValues[epFunc.Parameters[i].Name] = epFunc.Parameters[i];
+                    }
+                    var entryBlock = epFunc.AppendBasicBlock("entry");
+                    var builder = new InstructionBuilder(entryBlock);
+                    // Build the argument list for the inner function
+                    var argValueList = new List<Value>();
+                    foreach (var mapping in mappingList)
+                    {
+                        if (mapping.IsArray)
+                        {
+                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType, builder);
+                            var elementSize = builder.IntCast(elementSize64, this.Context.Int32Type, false);
+                            var length = namedValues[mapping.ArrayCountName];
+                            var array = builder.Call(this.GetOrCreateRuntimeFunction("array_create_1d"), elementSize, length);
+                            argValueList.Add(array);
+                            arraysToReleaseList.Add(array);
+                            // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
+                            var copyBlock = epFunc.AppendBasicBlock("copy");
+                            var nextBlock = epFunc.AppendBasicBlock("next");
+                            var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
+                            builder.Branch(cond, copyBlock, nextBlock);
+                            builder = new InstructionBuilder(copyBlock);
+                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array, this.Context.CreateConstant(0L));
+                            builder.MemCpy(
+                                destBase,
+                                namedValues[mapping.BaseName],
+                                builder.Mul(length, builder.IntCast(elementSize, this.Context.Int64Type, true)),
+                                false);
+                            builder.Branch(nextBlock);
+                            builder = new InstructionBuilder(nextBlock);
+                        }
+                        else if (mapping.IsStruct)
+                        {
+                            // TODO: map structures
+                        }
+                        else
+                        {
+                            argValueList.Add(namedValues[mapping.BaseName]);
+                        }
+                    }
+                    if (func.ReturnType.IsVoid)
+                    {
+                        // A void entry point would be odd, but it isn't illegal
+                        builder.Call(func, argValueList);
+                        foreach (var arrayToRelease in arraysToReleaseList)
+                        {
+                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
+                        }
+                        builder.Return();
+                    }
+                    else
+                    {
+                        Value result = builder.Call(func, argValueList);
+                        foreach (var arrayToRelease in arraysToReleaseList)
+                        {
+                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
+                        }
+
+                        if (mappedResultType != func.ReturnType)
+                        {
+                            result = builder.BitCast(result, mappedResultType);
+                        }
+                        builder.Return(result);
+                    }
+                    // Mark the function as an entry point
+                    epFunc.AddAttributeAtIndex(
+                        FunctionAttributeIndex.Function,
+                        this.Context.CreateAttribute("EntryPoint"));
+                }
+                else
+                {
+                    this.Module.AddAlias(func, epName).Linkage = Linkage.External;
+                    // Mark the function as an entry point
+                    func.AddAttributeAtIndex(
+                        FunctionAttributeIndex.Function,
+                        this.Context.CreateAttribute("EntryPoint"));
+                }
+            }
         }
 
         /// <summary>
-        /// Gets the QIR equivalent for a Q# type, as a structure.
-        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
-        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
-        /// and the "normal" converted type as the second element.
+        /// Generates a stub implementation for a runtime function or quantum instruction using the specified type mappings for interoperability.
+        /// Note that wrappers go into a separate module from the other QIR code.
         /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR structure type</returns>
-        internal ITypeRef LlvmStructTypeFromQsharpType(ResolvedType resolvedType)
+        /// <param name="func">The function to generate a stub for</param>
+        /// <param name="baseName">The function that the stub should call</param>
+        /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
+        private void GenerateInteropWrapper(IrFunction func, string baseName)
         {
-            if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
+            // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
+
+            func = this.InteropModule.CreateFunction(func.Name, func.Signature);
+
+            var mappedResultType = this.MapToInteropType(func.ReturnType);
+            var argTypes = func.Parameters.Select(p => p.NativeType).ToArray();
+            var mappedArgTypes = argTypes.Select(this.MapToInteropType).ToArray();
+
+            var interopFunction = this.InteropModule.CreateFunction(
+                baseName,
+                this.Context.GetFunctionType(mappedResultType, mappedArgTypes));
+
+            for (var i = 0; i < func.Parameters.Count; i++)
             {
-                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.Types.TupleHeader).ToArray();
-                return this.Context.CreateStructType(false, elementTypes);
+                func.Parameters[i].Name = $"arg{i + 1}";
+            }
+
+            var builder = new InstructionBuilder(func.AppendBasicBlock("entry"));
+            var implArgs = Enumerable.Range(0, argTypes.Length)
+                .Select(index => argTypes[index] == mappedArgTypes[index]
+                    ? func.Parameters[index]
+                    : builder.BitCast(func.Parameters[index], mappedArgTypes[index]))
+                .ToArray();
+            var interopReturnValue = builder.Call(interopFunction, implArgs);
+            if (func.ReturnType == this.Context.VoidType)
+            {
+                builder.Return();
+            }
+            else if (func.ReturnType == mappedResultType)
+            {
+                builder.Return(interopReturnValue);
             }
             else
             {
-                return this.Context.CreateStructType(false, this.Types.TupleHeader, this.LlvmTypeFromQsharpType(resolvedType));
+                var returnValue = builder.BitCast(interopReturnValue, func.ReturnType);
+                builder.Return(returnValue);
             }
         }
 
         /// <summary>
-        /// Computes the size in bytes of an LLVM type as an LLVM value.
-        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
+        /// Maps a QIR type to a more interop-friendly type using the specified type mapping for interoperability.
         /// </summary>
-        /// <param name="t">The LLVM type to compute the size of</param>
-        /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
-        /// <returns>An LLVM value containing the size of the type in bytes</returns>
-        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
+        /// <param name="t">The type to map</param>
+        /// <returns>The mapped type</returns>
+        private ITypeRef MapToInteropType(ITypeRef t)
         {
-            if (t.IsInteger)
+            string typeName = "";
+            if (t == this.Types.Result)
             {
-                return this.Context.CreateConstant((long)((t.IntegerBitWidth + 7) / 8));
+                typeName = "Result";
             }
-            else if (t.IsDouble)
+            else if (t == this.Types.Array)
             {
-                return this.Context.CreateConstant(8L);
+                typeName = "Array";
             }
-            else if (t.IsPointer)
+            else if (t == this.Types.Pauli)
             {
-                // We assume 64-bit address space
-                return this.Context.CreateConstant(8L);
+                typeName = "Pauli";
+            }
+            else if (t == this.Types.BigInt)
+            {
+                typeName = "BigInt";
+            }
+            else if (t == this.Types.String)
+            {
+                typeName = "String";
+            }
+            else if (t == this.Types.Qubit)
+            {
+                typeName = "Qubit";
+            }
+            else if (t == this.Types.Callable)
+            {
+                typeName = "Callable";
+            }
+            else if (t == this.Types.Tuple)
+            {
+                typeName = "TuplePointer";
+            }
+
+            if ((typeName != "") && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
+            {
+                if (this.interopType.TryGetValue(typeName, out ITypeRef interopType))
+                {
+                    return interopType;
+                }
+                else
+                {
+                    var newType = this.Context.CreateStructType(replacementName).CreatePointerType();
+                    this.interopType[typeName] = newType;
+                    return newType;
+                }
             }
             else
             {
-                // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
-                var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
-                var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = b.PointerToInt(secondPtr, this.Context.Int64Type);
-                return this.CurrentBuilder.Sub(second, first);
+                return t;
             }
         }
-
-        /// <summary>
-        /// Determines whether an LLVM type is a pointer to a tuple.
-        /// Specifically, is the type a pointer to a structure whose first element is a TupleHeader?
-        /// </summary>
-        /// <param name="t">The type to check</param>
-        /// <returns>true if t is a pointer to a tuple, false otherwise</returns>
-        private bool IsTupleType(ITypeRef t) =>
-            t is IPointerType pt
-            && pt.ElementType is IStructType st
-            && st.Members.Count > 0
-            && st.Members[0] == this.Types.TupleHeader;
 
         #endregion
 
-        #region Tuple and argument tuple creation
+        #region Look-up
 
         /// <summary>
-        /// Builds the LLVM type that represents a Q# argument tuple as a passed value.
-        /// <br/><br/>
-        /// See also <seealso cref="LlvmTypeFromQsharpType(ResolvedType)"/>.
+        /// Gets the LLVM object for a runtime library function.
+        /// If this is the first reference to the function, its declaration is added to the module.
         /// </summary>
-        /// <param name="argItem">The Q# argument tuple</param>
-        /// <returns>The LLVM type</returns>
-        private ITypeRef BuildArgItemTupleType(QsArgumentTuple argItem)
-        {
-            switch (argItem)
-            {
-                case QsArgumentTuple.QsTuple tuple:
-                    {
-                        var elems = tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray();
-                        return this.Context.CreateStructType(false, elems).CreatePointerType();
-                    }
-
-                case QsArgumentTuple.QsTupleItem item:
-                    {
-                        // Single items get translated to the appropriate LLVM type
-                        return this.LlvmTypeFromQsharpType(item.Item.Type);
-                    }
-                default:
-                    {
-                        throw new NotImplementedException("Unknown item in argument tuple.");
-                    }
-            }
-        }
+        /// <param name="name">The name of the function.</param>
+        /// <returns>The LLVM function object</returns>
+        internal IrFunction GetOrCreateRuntimeFunction(string name) =>
+            this.runtimeLibrary.GetOrCreateFunction(name);
 
         /// <summary>
-        /// Builds the LLVM type that represents a Q# argument tuple as a structure.
-        /// Note that tupled arguments generate an LLVM structure type.
-        /// <br/><br/>
-        /// See also <seealso cref="LlvmStructTypeFromQsharpType(ResolvedType)"/>.
+        /// Gets the LLVM object for a quantum instruction set function.
+        /// If this is the first reference to the function, its declaration is added to the module.
         /// </summary>
-        /// <param name="arg">The Q# argument tuple</param>
-        /// <returns>The LLVM type</returns>
-        private ITypeRef BuildArgTupleType(QsArgumentTuple arg)
-        {
-            if (arg is QsArgumentTuple.QsTuple tuple)
-            {
-                return tuple.Item.Length == 0
-                    ? this.Context.VoidType
-                    : this.Context.CreateStructType(
-                        false,
-                        tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray());
-            }
-            else if (arg is QsArgumentTuple.QsTupleItem item)
-            {
-                var itemTypeRef = this.LlvmTypeFromQsharpType(item.Item.Type);
-                return this.Context.CreateStructType(false, this.Types.TupleHeader, itemTypeRef);
-            }
-            else
-            {
-                throw new NotImplementedException("Unknown item in argument tuple.");
-            }
-        }
+        /// <param name="name">The name of the function.</param>
+        /// <returns>The LLVM function object</returns>
+        internal IrFunction GetOrCreateQuantumFunction(string name) =>
+            this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
-        /// Creates a new tuple for an LLVM structure type.
-        /// The new tuple is created using the current builder.
+        /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
-        /// <param name="t">The LLVM structure type for the tuple</param>
-        /// <returns>A value containing the pointer to the new tuple</returns>
-        internal Value CreateTupleForType(ITypeRef t)
-        {
-            var size = this.ComputeSizeForType(t, this.CurrentBuilder);
-            var tuple = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction("tuple_create"), size);
-            return tuple;
-        }
+        /// <param name="nsName">The callable's namespace</param>
+        /// <param name="name">The callable's name</param>
+        /// <param name="callable">The Q# callable, if found</param>
+        /// <returns>true if the callable is found, false if not</returns>
+        internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
+            this.globalCallables.TryGetValue(fullName, out callable);
+
+        /// <summary>
+        /// Tries to find a Q# user-defined type in the current compilation.
+        /// </summary>
+        /// <param name="nsName">The UDT's namespace</param>
+        /// <param name="name">The UDT's name</param>
+        /// <param name="udt">The Q# UDT< if found</param>
+        /// <returns>true if the UDT is found, false if not</returns>
+        internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
+            this.globalTypes.TryGetValue(fullName, out udt);
 
         #endregion
 
@@ -987,6 +1134,165 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         #endregion
 
+        #region Type helpers
+
+        /// <summary>
+        /// Gets the QIR equivalent for a Q# type.
+        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
+        /// </summary>
+        /// <param name="resolvedType">The Q# type</param>
+        /// <returns>The equivalent QIR type</returns>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
+        {
+            this.BuiltType = null;
+            this.Transformation.Types.OnType(resolvedType);
+            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
+        }
+
+        /// <summary>
+        /// Gets the QIR equivalent for a Q# type, as a structure.
+        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
+        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
+        /// and the "normal" converted type as the second element.
+        /// </summary>
+        /// <param name="resolvedType">The Q# type</param>
+        /// <returns>The equivalent QIR structure type</returns>
+        internal ITypeRef LlvmStructTypeFromQsharpType(ResolvedType resolvedType)
+        {
+            if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
+            {
+                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.Types.TupleHeader).ToArray();
+                return this.Context.CreateStructType(false, elementTypes);
+            }
+            else
+            {
+                return this.Context.CreateStructType(false, this.Types.TupleHeader, this.LlvmTypeFromQsharpType(resolvedType));
+            }
+        }
+
+        /// <summary>
+        /// Computes the size in bytes of an LLVM type as an LLVM value.
+        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
+        /// </summary>
+        /// <param name="t">The LLVM type to compute the size of</param>
+        /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
+        /// <returns>An LLVM value containing the size of the type in bytes</returns>
+        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
+        {
+            if (t.IsInteger)
+            {
+                return this.Context.CreateConstant((long)((t.IntegerBitWidth + 7) / 8));
+            }
+            else if (t.IsDouble)
+            {
+                return this.Context.CreateConstant(8L);
+            }
+            else if (t.IsPointer)
+            {
+                // We assume 64-bit address space
+                return this.Context.CreateConstant(8L);
+            }
+            else
+            {
+                // Everything else we let getelementptr compute for us
+                var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
+                var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
+                var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
+                var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });
+                var second = b.PointerToInt(secondPtr, this.Context.Int64Type);
+                return this.CurrentBuilder.Sub(second, first);
+            }
+        }
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to a tuple.
+        /// Specifically, is the type a pointer to a structure whose first element is a TupleHeader?
+        /// </summary>
+        /// <param name="t">The type to check</param>
+        /// <returns>true if t is a pointer to a tuple, false otherwise</returns>
+        private bool IsTupleType(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Members.Count > 0
+            && st.Members[0] == this.Types.TupleHeader;
+
+        #endregion
+
+        #region Tuple and argument tuple creation
+
+        /// <summary>
+        /// Builds the LLVM type that represents a Q# argument tuple as a passed value.
+        /// <br/><br/>
+        /// See also <seealso cref="LlvmTypeFromQsharpType(ResolvedType)"/>.
+        /// </summary>
+        /// <param name="argItem">The Q# argument tuple</param>
+        /// <returns>The LLVM type</returns>
+        private ITypeRef BuildArgItemTupleType(QsArgumentTuple argItem)
+        {
+            switch (argItem)
+            {
+                case QsArgumentTuple.QsTuple tuple:
+                    {
+                        var elems = tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray();
+                        return this.Context.CreateStructType(false, elems).CreatePointerType();
+                    }
+
+                case QsArgumentTuple.QsTupleItem item:
+                    {
+                        // Single items get translated to the appropriate LLVM type
+                        return this.LlvmTypeFromQsharpType(item.Item.Type);
+                    }
+                default:
+                    {
+                        throw new NotImplementedException("Unknown item in argument tuple.");
+                    }
+            }
+        }
+
+        /// <summary>
+        /// Builds the LLVM type that represents a Q# argument tuple as a structure.
+        /// Note that tupled arguments generate an LLVM structure type.
+        /// <br/><br/>
+        /// See also <seealso cref="LlvmStructTypeFromQsharpType(ResolvedType)"/>.
+        /// </summary>
+        /// <param name="arg">The Q# argument tuple</param>
+        /// <returns>The LLVM type</returns>
+        private ITypeRef BuildArgTupleType(QsArgumentTuple arg)
+        {
+            if (arg is QsArgumentTuple.QsTuple tuple)
+            {
+                return tuple.Item.Length == 0
+                    ? this.Context.VoidType
+                    : this.Context.CreateStructType(
+                        false,
+                        tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray());
+            }
+            else if (arg is QsArgumentTuple.QsTupleItem item)
+            {
+                var itemTypeRef = this.LlvmTypeFromQsharpType(item.Item.Type);
+                return this.Context.CreateStructType(false, this.Types.TupleHeader, itemTypeRef);
+            }
+            else
+            {
+                throw new NotImplementedException("Unknown item in argument tuple.");
+            }
+        }
+
+        /// <summary>
+        /// Creates a new tuple for an LLVM structure type.
+        /// The new tuple is created using the current builder.
+        /// </summary>
+        /// <param name="t">The LLVM structure type for the tuple</param>
+        /// <returns>A value containing the pointer to the new tuple</returns>
+        internal Value CreateTupleForType(ITypeRef t)
+        {
+            var size = this.ComputeSizeForType(t, this.CurrentBuilder);
+            var tuple = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction("tuple_create"), size);
+            return tuple;
+        }
+
+        #endregion
+
         #region Inlining support
         // Embedded inlining -- inlining while in the middle of inlining -- should work,
         // but is not tested.
@@ -1030,6 +1336,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         #endregion
 
+        #region Block, scope, and value management
+
         /// <summary>
         /// Makes the given basic block current, creates a new builder for it, and makes that builder current.
         /// This method does not check to make sure that the block isn't already current.
@@ -1072,6 +1380,27 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             return next == null
                 ? this.CurrentFunction.AppendBasicBlock(continueName)
                 : this.CurrentFunction.InsertBasicBlock(continueName, next);
+        }
+
+        /// <summary>
+        /// Opens a new naming scope and pushes it on top of the naming scope stack.
+        /// <para>
+        /// Naming scopes map variable names to values.
+        /// New names are always added to the scope on top of the stack.
+        /// When looking for a name, the stack is searched top-down.
+        /// </para>
+        /// </summary>
+        internal void OpenNamingScope()
+        {
+            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
+        }
+
+        /// <summary>
+        /// Closes the current naming scope by popping it off of the naming scope stack.
+        /// </summary>
+        internal void CloseNamingScope()
+        {
+            this.namesInScope.Pop();
         }
 
         /// <summary>
@@ -1150,27 +1479,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
-        /// <summary>
-        /// Opens a new naming scope and pushes it on top of the naming scope stack.
-        /// <para>
-        /// Naming scopes map variable names to values.
-        /// New names are always added to the scope on top of the stack.
-        /// When looking for a name, the stack is searched top-down.
-        /// </para>
-        /// </summary>
-        internal void OpenNamingScope()
-        {
-            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
-        }
-
-        /// <summary>
-        /// Closes the current naming scope by popping it off of the naming scope stack.
-        /// </summary>
-        internal void CloseNamingScope()
-        {
-            this.namesInScope.Pop();
-        }
-
         internal void AddReference(Value v)
         {
             string? s = null;
@@ -1208,310 +1516,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 var func = this.GetOrCreateRuntimeFunction(s);
                 this.CurrentBuilder.Call(func, valToAddref);
-            }
-        }
-
-        #region Interop utils
-
-        /// <summary>
-        /// This type is used to map Q# types to interop-friendly types.
-        /// </summary>
-        private class ArgMapping
-        {
-            internal readonly string BaseName;
-
-            /// <summary>
-            /// The first item contains the array type, and the second item contains the array count name.
-            /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
-            /// </summary>
-            private readonly (ITypeRef, string)? arrayInfo;
-
-            /// <summary>
-            /// Contains the struct type.
-            /// If <see cref="structInfo"/> is not null, then <see cref="arrayInfo"/> is null.
-            /// </summary>
-            private readonly ITypeRef? structInfo;
-
-            internal bool IsArray => this.arrayInfo != null;
-            internal ITypeRef ArrayType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
-            internal string ArrayCountName => this.arrayInfo?.Item2 ?? throw new InvalidOperationException("not an array");
-
-            internal bool IsStruct => this.structInfo != null;
-            internal ITypeRef StructType => this.structInfo ?? throw new InvalidOperationException("not a struct");
-
-            private ArgMapping(string baseName, (ITypeRef, string)? arrayInfo = null, ITypeRef? structInfo = null)
-            {
-                this.BaseName = baseName;
-                this.arrayInfo = arrayInfo;
-                this.structInfo = structInfo;
-            }
-
-            internal static ArgMapping Create(string baseName) =>
-                new ArgMapping(baseName);
-
-            internal ArgMapping WithArrayInfo(ITypeRef arrayType, string arrayCountName) =>
-                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
-
-            internal ArgMapping WithStructInfo(ITypeRef arrayType, string arrayCountName) =>
-                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
-        }
-
-        /// <summary>
-        /// Generates an interop-friendly wrapper around the Q# entry point using the configured type mapping.
-        /// </summary>
-        /// <param name="qualifiedName">The namespace-qualified name of the Q# entry point</param>
-        public void GenerateEntryPoint(QsQualifiedName qualifiedName)
-        {
-            // Unfortunately this is different enough from all of the other type mapping we do to require
-            // an actual different routine. Blech...
-            bool MapToCType(QsArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
-            {
-                bool changed = false;
-
-                if (t is QsArgumentTuple.QsTuple tuple)
-                {
-                    foreach (QsArgumentTuple inner in tuple.Item)
-                    {
-                        changed |= MapToCType(inner, typeList, nameList, mappingList);
-                    }
-                }
-                else if (t is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
-                {
-                    var baseName = varName.Item;
-                    var map = ArgMapping.Create(baseName);
-                    switch (item.Item.Type.Resolution)
-                    {
-                        case QsResolvedTypeKind.ArrayType array:
-                            // TODO: Handle multidimensional arrays
-                            // TODO: Handle arrays of structs
-                            typeList.Add(this.Context.Int64Type);
-                            var elementTypeRef = this.LlvmTypeFromQsharpType(array.Item);
-                            typeList.Add(elementTypeRef.CreatePointerType());
-                            var arrayCountName = $"{baseName}__count";
-                            nameList.Add(arrayCountName);
-                            nameList.Add(baseName);
-                            map = map.WithArrayInfo(elementTypeRef, arrayCountName);
-                            changed = true;
-                            mappingList.Add(map);
-                            break;
-                        case QsResolvedTypeKind.TupleType _:
-                            // TODO: Handle structs
-                            break;
-                        default:
-                            typeList.Add(this.LlvmTypeFromQsharpType(item.Item.Type));
-                            nameList.Add(baseName);
-                            mappingList.Add(map);
-                            break;
-                    }
-                }
-                return changed;
-            }
-
-            if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
-                && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
-            {
-                var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";
-
-                // Check to see if the arg list needs mapping to more C-friendly types
-                // TODO: handle complicated return types
-                var mappedArgList = new List<ITypeRef>();
-                var mappedNameList = new List<string>();
-                var mappingList = new List<ArgMapping>();
-                var arraysToReleaseList = new List<Value>();
-                var mappedResultType = this.MapToInteropType(func.ReturnType);
-                if (MapToCType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
-                    (mappedResultType != func.ReturnType))
-                {
-                    var epFunc = this.Module.CreateFunction(epName, this.Context.GetFunctionType(mappedResultType, mappedArgList));
-                    var namedValues = new Dictionary<string, Value>();
-                    for (var i = 0; i < mappedNameList.Count; i++)
-                    {
-                        epFunc.Parameters[i].Name = mappedNameList[i];
-                        namedValues[epFunc.Parameters[i].Name] = epFunc.Parameters[i];
-                    }
-                    var entryBlock = epFunc.AppendBasicBlock("entry");
-                    var builder = new InstructionBuilder(entryBlock);
-                    // Build the argument list for the inner function
-                    var argValueList = new List<Value>();
-                    foreach (var mapping in mappingList)
-                    {
-                        if (mapping.IsArray)
-                        {
-                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType, builder);
-                            var elementSize = builder.IntCast(elementSize64, this.Context.Int32Type, false);
-                            var length = namedValues[mapping.ArrayCountName];
-                            var array = builder.Call(this.GetOrCreateRuntimeFunction("array_create_1d"), elementSize, length);
-                            argValueList.Add(array);
-                            arraysToReleaseList.Add(array);
-                            // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
-                            var copyBlock = epFunc.AppendBasicBlock("copy");
-                            var nextBlock = epFunc.AppendBasicBlock("next");
-                            var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
-                            builder.Branch(cond, copyBlock, nextBlock);
-                            builder = new InstructionBuilder(copyBlock);
-                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array, this.Context.CreateConstant(0L));
-                            builder.MemCpy(
-                                destBase,
-                                namedValues[mapping.BaseName],
-                                builder.Mul(length, builder.IntCast(elementSize, this.Context.Int64Type, true)),
-                                false);
-                            builder.Branch(nextBlock);
-                            builder = new InstructionBuilder(nextBlock);
-                        }
-                        else if (mapping.IsStruct)
-                        {
-                            // TODO: map structures
-                        }
-                        else
-                        {
-                            argValueList.Add(namedValues[mapping.BaseName]);
-                        }
-                    }
-                    if (func.ReturnType.IsVoid)
-                    {
-                        // A void entry point would be odd, but it isn't illegal
-                        builder.Call(func, argValueList);
-                        foreach (var arrayToRelease in arraysToReleaseList)
-                        {
-                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
-                        }
-                        builder.Return();
-                    }
-                    else
-                    {
-                        Value result = builder.Call(func, argValueList);
-                        foreach (var arrayToRelease in arraysToReleaseList)
-                        {
-                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
-                        }
-
-                        if (mappedResultType != func.ReturnType)
-                        {
-                            result = builder.BitCast(result, mappedResultType);
-                        }
-                        builder.Return(result);
-                    }
-                    // Mark the function as an entry point
-                    epFunc.AddAttributeAtIndex(
-                        FunctionAttributeIndex.Function,
-                        this.Context.CreateAttribute("EntryPoint"));
-                }
-                else
-                {
-                    this.Module.AddAlias(func, epName).Linkage = Linkage.External;
-                    // Mark the function as an entry point
-                    func.AddAttributeAtIndex(
-                        FunctionAttributeIndex.Function,
-                        this.Context.CreateAttribute("EntryPoint"));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Generates a stub implementation for a runtime function or quantum instruction using the specified type mappings for interoperability.
-        /// Note that wrappers go into a separate module from the other QIR code.
-        /// </summary>
-        /// <param name="func">The function to generate a stub for</param>
-        /// <param name="baseName">The function that the stub should call</param>
-        /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
-        private void GenerateInteropWrapper(IrFunction func, string baseName)
-        {
-            // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
-
-            func = this.InteropModule.CreateFunction(func.Name, func.Signature);
-
-            var mappedResultType = this.MapToInteropType(func.ReturnType);
-            var argTypes = func.Parameters.Select(p => p.NativeType).ToArray();
-            var mappedArgTypes = argTypes.Select(this.MapToInteropType).ToArray();
-
-            var interopFunction = this.InteropModule.CreateFunction(
-                baseName,
-                this.Context.GetFunctionType(mappedResultType, mappedArgTypes));
-
-            for (var i = 0; i < func.Parameters.Count; i++)
-            {
-                func.Parameters[i].Name = $"arg{i + 1}";
-            }
-
-            var builder = new InstructionBuilder(func.AppendBasicBlock("entry"));
-            var implArgs = Enumerable.Range(0, argTypes.Length)
-                .Select(index => argTypes[index] == mappedArgTypes[index]
-                    ? func.Parameters[index]
-                    : builder.BitCast(func.Parameters[index], mappedArgTypes[index]))
-                .ToArray();
-            var interopReturnValue = builder.Call(interopFunction, implArgs);
-            if (func.ReturnType == this.Context.VoidType)
-            {
-                builder.Return();
-            }
-            else if (func.ReturnType == mappedResultType)
-            {
-                builder.Return(interopReturnValue);
-            }
-            else
-            {
-                var returnValue = builder.BitCast(interopReturnValue, func.ReturnType);
-                builder.Return(returnValue);
-            }
-        }
-
-        /// <summary>
-        /// Maps a QIR type to a more interop-friendly type using the specified type mapping for interoperability.
-        /// </summary>
-        /// <param name="t">The type to map</param>
-        /// <returns>The mapped type</returns>
-        private ITypeRef MapToInteropType(ITypeRef t)
-        {
-            string typeName = "";
-            if (t == this.Types.Result)
-            {
-                typeName = "Result";
-            }
-            else if (t == this.Types.Array)
-            {
-                typeName = "Array";
-            }
-            else if (t == this.Types.Pauli)
-            {
-                typeName = "Pauli";
-            }
-            else if (t == this.Types.BigInt)
-            {
-                typeName = "BigInt";
-            }
-            else if (t == this.Types.String)
-            {
-                typeName = "String";
-            }
-            else if (t == this.Types.Qubit)
-            {
-                typeName = "Qubit";
-            }
-            else if (t == this.Types.Callable)
-            {
-                typeName = "Callable";
-            }
-            else if (t == this.Types.Tuple)
-            {
-                typeName = "TuplePointer";
-            }
-
-            if ((typeName != "") && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
-            {
-                if (this.interopType.TryGetValue(typeName, out ITypeRef interopType))
-                {
-                    return interopType;
-                }
-                else
-                {
-                    var newType = this.Context.CreateStructType(replacementName).CreatePointerType();
-                    this.interopType[typeName] = newType;
-                    return newType;
-                }
-            }
-            else
-            {
-                return t;
             }
         }
 

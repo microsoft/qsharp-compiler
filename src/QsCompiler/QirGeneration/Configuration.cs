@@ -6,6 +6,9 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
+    /// <summary>
+    /// Class that contains all configurable settings for the QIR emission.
+    /// </summary>
     public class Configuration
     {
         private static readonly ImmutableDictionary<string, string> ClangInteropTypeMapping =
