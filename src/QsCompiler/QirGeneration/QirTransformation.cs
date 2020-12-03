@@ -26,15 +26,16 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.Config = config;
             this.Compilation = compilation;
 
-            this.SharedState.SetTransformation(this, out this.RuntimeLibrary, out this.QuantumInstructionSet);
-            this.SharedState.InitializeRuntimeLibrary();
-            this.SharedState.RegisterQuantumInstructionSet();
-
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
             this.Types = new QirTypeTransformation(this, TransformationOptions.NoRebuild);
+
+            // needs to be *after* the proper subtransformations are set
+            this.SharedState.SetTransformation(this, out this.RuntimeLibrary, out this.QuantumInstructionSet);
+            this.SharedState.InitializeRuntimeLibrary();
+            this.SharedState.RegisterQuantumInstructionSet();
         }
 
         public void Apply()
