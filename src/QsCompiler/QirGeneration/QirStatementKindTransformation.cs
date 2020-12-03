@@ -111,8 +111,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
         {
             ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
-            IrFunction allocateOne = this.SharedState.GetRuntimeFunction("qubit_allocate");
-            IrFunction allocateArray = this.SharedState.GetRuntimeFunction("qubit_allocate_array");
+            IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction("qubit_allocate");
+            IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction("qubit_allocate_array");
 
             // Generate the allocation for a single variable
             void AllocateVariable(string variable, ResolvedInitializer init)
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.Transformation.Expressions.OnTypedExpression(ex);
             var message = this.SharedState.ValueStack.Pop();
 
-            this.SharedState.CurrentBuilder.Call(this.SharedState.GetRuntimeFunction("fail"), message);
+            this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction("fail"), message);
             // Even though this terminates the block execution, we'll still wind up terminating
             // the containing Q# statement block, and thus the LLVM basic block, so we don't need
             // to tell LLVM that this is actually a terminator.
@@ -395,7 +395,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
                 array = (this.SharedState.ValueStack.Pop(), elementType);
                 var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetRuntimeFunction("array_get_length"),
+                    this.SharedState.GetOrCreateRuntimeFunction("array_get_length"),
                     array.Value.Item1,
                     this.SharedState.Context.CreateConstant(0));
                 endValue = this.SharedState.CurrentBuilder.Sub(
@@ -465,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (array != null)
             {
                 var p = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetRuntimeFunction("array_get_element_ptr_1d"), array.Value.Item1, iterationValue);
+                    this.SharedState.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array.Value.Item1, iterationValue);
                 var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, array.Value.Item2.CreatePointerType());
                 var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);

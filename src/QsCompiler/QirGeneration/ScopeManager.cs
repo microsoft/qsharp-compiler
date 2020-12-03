@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
             {
-                IrFunction func = this.sharedState.GetRuntimeFunction(releaseFunc);
+                IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
                 // special case for tuples
                 if (releaseFunc == "tuple_unreference")
                 {

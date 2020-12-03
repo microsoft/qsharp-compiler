@@ -217,7 +217,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
-        public IrFunction GetRuntimeFunction(string name) =>
+        internal IrFunction GetOrCreateRuntimeFunction(string name) =>
             this.runtimeLibrary.GetOrCreateFunction(name);
 
         /// <summary>
@@ -226,7 +226,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
-        public IrFunction GetQuantumFunction(string name) =>
+        internal IrFunction GetOrCreateQuantumFunction(string name) =>
             this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The callable's name</param>
         /// <param name="callable">The Q# callable, if found</param>
         /// <returns>true if the callable is found, false if not</returns>
-        public bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
+        internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
             this.globalCallables.TryGetValue(fullName, out callable);
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The UDT's name</param>
         /// <param name="udt">The Q# UDT< if found</param>
         /// <returns>true if the UDT is found, false if not</returns>
-        public bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
+        internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
         #endregion
@@ -578,7 +578,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         internal Value CreateTupleForType(ITypeRef t)
         {
             var size = this.ComputeSizeForType(t, this.CurrentBuilder);
-            var tuple = this.CurrentBuilder.Call(this.GetRuntimeFunction("tuple_create"), size);
+            var tuple = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction("tuple_create"), size);
             return tuple;
         }
 
@@ -995,7 +995,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// Start inlining a callable invocation.
         /// This opens a new naming scope and increases the inlining level.
         /// </summary>
-        public void StartInlining()
+        internal void StartInlining()
         {
             this.OpenNamingScope();
             this.CurrentInlineLevel++;
@@ -1005,7 +1005,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// Stop inlining a callable invocation.
         /// This pops the top naming scope and decreases the inlining level.
         /// </summary>
-        public void StopInlining()
+        internal void StopInlining()
         {
             this.CurrentInlineLevel--;
             this.CloseNamingScope();
@@ -1017,7 +1017,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The name to map</param>
         /// <returns>The mapped name</returns>
-        public string InlinedName(string name)
+        internal string InlinedName(string name)
         {
             var sb = new StringBuilder();
             for (int i = 0; i < this.CurrentInlineLevel; i++)
@@ -1206,7 +1206,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             if (s != null)
             {
-                var func = this.GetRuntimeFunction(s);
+                var func = this.GetOrCreateRuntimeFunction(s);
                 this.CurrentBuilder.Call(func, valToAddref);
             }
         }
@@ -1340,7 +1340,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             var elementSize64 = this.ComputeSizeForType(mapping.ArrayType, builder);
                             var elementSize = builder.IntCast(elementSize64, this.Context.Int32Type, false);
                             var length = namedValues[mapping.ArrayCountName];
-                            var array = builder.Call(this.GetRuntimeFunction("array_create_1d"), elementSize, length);
+                            var array = builder.Call(this.GetOrCreateRuntimeFunction("array_create_1d"), elementSize, length);
                             argValueList.Add(array);
                             arraysToReleaseList.Add(array);
                             // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
@@ -1349,7 +1349,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
                             builder.Branch(cond, copyBlock, nextBlock);
                             builder = new InstructionBuilder(copyBlock);
-                            var destBase = builder.Call(this.GetRuntimeFunction("array_get_element_ptr_1d"), array, this.Context.CreateConstant(0L));
+                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array, this.Context.CreateConstant(0L));
                             builder.MemCpy(
                                 destBase,
                                 namedValues[mapping.BaseName],
@@ -1373,7 +1373,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         builder.Call(func, argValueList);
                         foreach (var arrayToRelease in arraysToReleaseList)
                         {
-                            builder.Call(this.GetRuntimeFunction("array_unreference"), arrayToRelease);
+                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
                         }
                         builder.Return();
                     }
@@ -1382,7 +1382,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         Value result = builder.Call(func, argValueList);
                         foreach (var arrayToRelease in arraysToReleaseList)
                         {
-                            builder.Call(this.GetRuntimeFunction("array_unreference"), arrayToRelease);
+                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
                         }
 
                         if (mappedResultType != func.ReturnType)
