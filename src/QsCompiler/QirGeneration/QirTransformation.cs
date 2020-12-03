@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.IO;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -54,6 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <summary>
         /// Writes the current content to the output file.
         /// </summary>
-        public void Emit() => this.SharedState.Emit();
+        public void Emit(string fileName, bool generateInteropWrappers = true) =>
+            this.SharedState.Emit(fileName, generateInteropWrappers: generateInteropWrappers);
     }
 }

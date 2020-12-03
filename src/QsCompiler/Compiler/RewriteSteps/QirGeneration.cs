@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using Microsoft.Quantum.QsCompiler.QirGenerator;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
@@ -8,13 +7,13 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     public class QirGeneration : IRewriteStep
     {
-        private readonly Configuration config;
+        private readonly string outputFile;
 
         private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
 
         public QirGeneration(string outputFileName)
         {
-            this.config = new Configuration(outputFileName, generateInteropWrappers: true);
+            this.outputFile = outputFileName;
         }
 
         /// <inheritdoc/>
@@ -55,14 +54,14 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             try
             {
-                var transformation = new QirTransformation(compilation, this.config);
+                var transformation = new QirTransformation(compilation, new Configuration());
                 transformation.Apply();
-                transformation.Emit();
+                transformation.Emit(this.outputFile);
             }
             catch (Exception ex)
             {
                 this.diagnostics.Add(new IRewriteStep.Diagnostic() { Severity = CodeAnalysis.DiagnosticSeverity.Warning, Message = ex.Message });
-                File.WriteAllText($"{this.config.OutputFileName}.ll", $"Exception: {ex.Message} at:\n{ex.StackTrace}");
+                //File.WriteAllText($"{this.config.OutputFileName}.ll", $"Exception: {ex.Message} at:\n{ex.StackTrace}");
             }
 
             transformed = compilation;

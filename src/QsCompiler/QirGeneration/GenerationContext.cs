@@ -373,11 +373,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray()
                         : new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
                     this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
-                    if (this.Config.GenerateInteropWrappers)
-                    {
-                        var func = this.quantumInstructionSet.GetOrCreateFunction(name);
-                        this.GenerateInteropWrapper(func, name);
-                    }
                 }
             }
         }
@@ -385,39 +380,71 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <summary>
         /// Writes the current content to the output file.
         /// </summary>
-        public void Emit()
+        public void Emit(string fileName, bool overwrite = true, bool generateInteropWrappers = false)
         {
             this.GenerateQueuedWrappers();
 
+            var logFile = Path.ChangeExtension(fileName, ".log");
+            var llFile = Path.ChangeExtension(fileName, ".ll");
+            var bridgeFile = Path.Combine(Path.GetDirectoryName(fileName), "bridge.ll");
+
+            var existing = new[]
+            {
+                File.Exists(logFile) ? logFile : null,
+                File.Exists(llFile) ? llFile : null,
+                generateInteropWrappers && File.Exists(bridgeFile) ? bridgeFile : null
+            };
+
+            if (!overwrite && existing.Any(s => s != null))
+            {
+                var argStr = string.Join(", ", existing.Where(s => s == null));
+                throw new ArgumentException($"The following file(s) already exist(s): {argStr}");
+            }
+
             if (this.Module.Verify(out string validationErrors))
             {
-                File.WriteAllText($"{this.Config.OutputFileName}.log", "No errors\n");
+                File.WriteAllText(logFile, "No errors\n");
             }
             else
             {
-                File.WriteAllText($"{this.Config.OutputFileName}.log", $"LLVM errors:\n{validationErrors}");
+                var errStr = new[]
+                {
+                    "LLVM errors:",
+                    "___________________________",
+                    validationErrors.ToString(),
+                    "___________________________",
+                    Environment.NewLine
+                };
+                File.WriteAllText(logFile, string.Join(Environment.NewLine, errStr));
             }
 
-            if (!this.Module.WriteToTextFile($"{this.Config.OutputFileName}.ll", out string errorMessage))
+            if (!this.Module.WriteToTextFile(llFile, out string errorMessage))
             {
                 throw new IOException(errorMessage);
             }
 
             // Generate the wrappers for the runtime library that were used, if requested
-            if (this.Config.GenerateInteropWrappers)
+            if (generateInteropWrappers)
             {
                 foreach (var kvp in this.runtimeLibrary)
                 {
                     this.GenerateInteropWrapper(kvp.Value, kvp.Key);
                 }
 
-                var bridgeFileName = Path.Combine(Path.GetDirectoryName(this.Config.OutputFileName), "bridge.ll");
+                foreach (var c in this.globalCallables.Values)
+                {
+                    if (SymbolResolution.TryGetQISCode(c.Attributes) is var att && att.IsValue)
+                    {
+                        var func = this.quantumInstructionSet.GetOrCreateFunction(att.Item);
+                        this.GenerateInteropWrapper(func, att.Item);
+                    }
+                }
 
                 if (!this.InteropModule.Verify(out string bridgeValidationErrors))
                 {
-                    File.WriteAllText(bridgeFileName, $"LLVM errors:\n{bridgeValidationErrors}");
+                    File.WriteAllText(bridgeFile, $"LLVM errors:\n{bridgeValidationErrors}");
                 }
-                else if (!this.InteropModule.WriteToTextFile(bridgeFileName, out string bridgeError))
+                else if (!this.InteropModule.WriteToTextFile(bridgeFile, out string bridgeError))
                 {
                     throw new IOException(bridgeError);
                 }
@@ -665,7 +692,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else if (t == this.Types.Tuple)
             {
-                typeName = "TuplePointer";
+                typeName = "Tuple";
             }
 
             if ((typeName != "") && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
@@ -1037,7 +1064,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     if (n > 0)
                     {
                         ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
-                        // Convert value from TuplePointer to the proper type
+                        // Convert value from Tuple to the proper type
                         Value asStructPointer = this.CurrentBuilder.BitCast(value, tupleTypeRef.CreatePointerType());
                         var indices = new Value[]
                         {
