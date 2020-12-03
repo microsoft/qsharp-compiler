@@ -46,12 +46,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                 public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
                 {
+                    var (_, repeatBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
+                    var (_, fixupBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock);
+
+                    if (!IsConditionedOnResult(statement.SuccessCondition))
+                    {
+                        // This is not a repeat based on a result, so we can assume it is classical and return
+                        // it without any transformation.
+                        return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
+                            repeatBlock,
+                            statement.SuccessCondition,
+                            fixupBlock);
+                    }
+
                     var contextValidScope = this.SharedState.IsValidScope;
                     var contextParams = this.SharedState.GeneratedOpParams;
-                    this.SharedState.IsValidScope = IsConditionedOnResult(statement.SuccessCondition);
+                    this.SharedState.IsValidScope = true;
                     this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
 
-                    var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
+                    var newScope = new QsScope(BuildStatements(statement), block.Body.Context, block.Body);
+
+                    var newBlock = new QsPositionedBlock(newScope, block.Location, block.Comments);
 
                     if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
                     {
@@ -64,11 +79,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                     this.SharedState.IsValidScope = contextValidScope;
                     this.SharedState.GeneratedOpParams = contextParams;
+                }
 
-                    return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
-                        block,
-                        statement.SuccessCondition,
-                        this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock).Item2));
+                private static ImmutableArray<QsStatement> BuildStatements(QsRepeatStatement statement)
+                {
+                    throw new NotImplemented();
                 }
 
                 private bool IsConditionedOnResult(
