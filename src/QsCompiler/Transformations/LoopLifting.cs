@@ -23,6 +23,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
     /// </summary>
     public static class LiftLoops
     {
+        /// <summary>
+        /// Applies the repeat loop lifting transformation to the given compilation.
+        /// </summary>
+        /// <returns>
+        /// The transformed compilation.
+        /// </returns>
         public static QsCompilation Apply(QsCompilation compilation)
         {
             return new LiftRepeatBodies().OnCompilation(compilation);
@@ -30,8 +36,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
         private class LiftRepeatBodies : ContentLifting.LiftContent<ContentLifting.LiftContent.TransformationState>
         {
-            public LiftRepeatBodies() : base(new ContentLifting.LiftContent.TransformationState())
-            { 
+            public LiftRepeatBodies()
+                : base(new ContentLifting.LiftContent.TransformationState())
+            {
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
@@ -41,7 +48,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                 public StatementKindTransformation(SyntaxTreeTransformation<ContentLifting.LiftContent.TransformationState> parent)
                     : base(parent)
                 {
-
                 }
 
                 public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
@@ -49,41 +55,61 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     var (_, repeatBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
                     var (_, fixupBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock);
 
-                    if (!IsConditionedOnResult(statement.SuccessCondition))
+                    if (this.IsConditionedOnResult(statement.SuccessCondition))
                     {
-                        // This is not a repeat based on a result, so we can assume it is classical and return
-                        // it without any transformation.
-                        return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
-                            repeatBlock,
-                            statement.SuccessCondition,
-                            fixupBlock);
+                        var contextValidScope = this.SharedState.IsValidScope;
+                        var contextParams = this.SharedState.GeneratedOpParams;
+                        this.SharedState.IsValidScope = true;
+                        var variables = new List<LocalVariableDeclaration<string>>();
+                        variables.AddRange(repeatBlock.Body.KnownSymbols.Variables);
+                        variables.AddRange(fixupBlock.Body.KnownSymbols.Variables);
+                        this.SharedState.GeneratedOpParams = variables.ToImmutableArray();
+
+                        var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables.ToImmutableArray()));
+                        var newBlock = new QsPositionedBlock(newScope, repeatBlock.Location, repeatBlock.Comments);
+
+                        var canLift = this.SharedState.LiftBody(newBlock.Body, out var callable, out var call);
+                        this.SharedState.IsValidScope = contextValidScope;
+                        this.SharedState.GeneratedOpParams = contextParams;
+                        if (canLift && callable != null && call != null)
+                        {
+                            this.SharedState.GeneratedOperations?.Add(callable);
+                            return call.Statement;
+                        }
                     }
 
-                    var contextValidScope = this.SharedState.IsValidScope;
-                    var contextParams = this.SharedState.GeneratedOpParams;
-                    this.SharedState.IsValidScope = true;
-                    this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
-
-                    var newScope = new QsScope(BuildStatements(statement), block.Body.Context, block.Body);
-
-                    var newBlock = new QsPositionedBlock(newScope, block.Location, block.Comments);
-
-                    if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
-                    {
-                        this.SharedState.GeneratedOperations?.Add(callable);
-                        block = new QsPositionedBlock(
-                            new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
-                            block.Location,
-                            block.Comments);
-                    }
-
-                    this.SharedState.IsValidScope = contextValidScope;
-                    this.SharedState.GeneratedOpParams = contextParams;
+                    // This is not a repeat based on a result, so we can assume it is classical and return
+                    // it without any transformation.
+                    return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
+                        repeatBlock,
+                        statement.SuccessCondition,
+                        fixupBlock));
                 }
 
-                private static ImmutableArray<QsStatement> BuildStatements(QsRepeatStatement statement)
+                private static ImmutableArray<QsStatement> BuildStatements(QsPositionedBlock repeatBlock, QsPositionedBlock fixupBlock, TypedExpression successCondition)
                 {
-                    throw new NotImplemented();
+                    var statements = new List<QsStatement>();
+                    statements.AddRange(repeatBlock.Body.Statements);
+
+                    var emptyScope = new QsScope(
+                        ImmutableArray<QsStatement>.Empty,
+                        LocalDeclarations.Empty);
+                    var conditionalBlock = Tuple.Create(
+                        successCondition,
+                        new QsPositionedBlock(
+                            emptyScope,
+                            QsNullable<QsLocation>.Null,
+                            QsComments.Empty));
+                    var conditionalStatement = new QsConditionalStatement(
+                        new List<Tuple<TypedExpression, QsPositionedBlock>> { conditionalBlock }.ToImmutableArray(),
+                        QsNullable<QsPositionedBlock>.NewValue(fixupBlock));
+                    statements.Add(new QsStatement(
+                        QsStatementKind.NewQsConditionalStatement(conditionalStatement),
+                        LocalDeclarations.Empty,
+                        QsNullable<QsLocation>.Null,
+                        QsComments.Empty));
+
+                    return statements.ToImmutableArray();
                 }
 
                 private bool IsConditionedOnResult(
@@ -101,15 +127,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     }
                     else if (expression.Expression is ExpressionKind.AND andEx)
                     {
-                        return IsConditionedOnResult(andEx.Item1) || IsConditionedOnResult(andEx.Item2);
+                        return this.IsConditionedOnResult(andEx.Item1) || this.IsConditionedOnResult(andEx.Item2);
                     }
                     else if (expression.Expression is ExpressionKind.OR orEx)
                     {
-                        return IsConditionedOnResult(orEx.Item1) || IsConditionedOnResult(orEx.Item2);
+                        return this.IsConditionedOnResult(orEx.Item1) || this.IsConditionedOnResult(orEx.Item2);
                     }
                     else if (expression.Expression is ExpressionKind.NOT notEx)
                     {
-                        return IsConditionedOnResult(notEx.Item);
+                        return this.IsConditionedOnResult(notEx.Item);
                     }
 
                     return false;
