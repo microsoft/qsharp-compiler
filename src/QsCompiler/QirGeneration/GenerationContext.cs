@@ -99,22 +99,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumLibrary;
 
-        /// <summary>
-        /// Gets the LLVM object for a runtime library function.
-        /// If this is the first reference to the function, its declaration is added to the module.
-        /// </summary>
-        /// <param name="name">The name of the function.</param>
-        /// <returns>The LLVM function object</returns>
-        public IrFunction GetRuntimeFunction(string name) => this.runtimeLibrary.GetFunction(name);
-
-        /// <summary>
-        /// Gets the LLVM object for a quantum instruction set function.
-        /// If this is the first reference to the function, its declaration is added to the module.
-        /// </summary>
-        /// <param name="name">The name of the function.</param>
-        /// <returns>The LLVM function object</returns>
-        public IrFunction GetQuantumFunction(string name) => this.quantumLibrary.GetFunction(name);
-
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
@@ -227,6 +211,90 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             QsSpecializationKind.QsAdjoint,
             QsSpecializationKind.QsControlled,
             QsSpecializationKind.QsControlledAdjoint);
+
+        #endregion
+
+        #region Look-up
+
+        /// <summary>
+        /// Gets the LLVM object for a runtime library function.
+        /// If this is the first reference to the function, its declaration is added to the module.
+        /// </summary>
+        /// <param name="name">The name of the function.</param>
+        /// <returns>The LLVM function object</returns>
+        public IrFunction GetRuntimeFunction(string name) => this.runtimeLibrary.GetFunction(name);
+
+        /// <summary>
+        /// Gets the LLVM object for a quantum instruction set function.
+        /// If this is the first reference to the function, its declaration is added to the module.
+        /// </summary>
+        /// <param name="name">The name of the function.</param>
+        /// <returns>The LLVM function object</returns>
+        public IrFunction GetQuantumFunction(string name) => this.quantumLibrary.GetFunction(name);
+
+        /// <summary>
+        /// Tries to find a global Q# callable in the current compilation.
+        /// </summary>
+        /// <param name="nsName">The callable's namespace</param>
+        /// <param name="name">The callable's name</param>
+        /// <param name="callable">The Q# callable, if found</param>
+        /// <returns>true if the callable is found, false if not</returns>
+        internal bool TryFindGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable)
+        {
+            callable = null;
+
+            foreach (var ns in this.Compilation.Namespaces)
+            {
+                if (ns.Name == fullName.Namespace)
+                {
+                    foreach (var element in ns.Elements)
+                    {
+                        if (element is QsNamespaceElement.QsCallable c)
+                        {
+                            if (c.GetFullName().Name == fullName.Name)
+                            {
+                                callable = c.Item;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Tries to find a Q# user-defined type in the current compilation.
+        /// </summary>
+        /// <param name="nsName">The UDT's namespace</param>
+        /// <param name="name">The UDT's name</param>
+        /// <param name="udt">The Q# UDT< if found</param>
+        /// <returns>true if the UDT is found, false if not</returns>
+        internal bool TryFindUDT(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt)
+        {
+            udt = null;
+
+            foreach (var ns in this.Compilation.Namespaces)
+            {
+                if (ns.Name == fullName.Namespace)
+                {
+                    foreach (var element in ns.Elements)
+                    {
+                        if (element is QsNamespaceElement.QsCustomType t)
+                        {
+                            if (t.GetFullName().Name == fullName.Name)
+                            {
+                                udt = t.Item;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
 
         #endregion
 
@@ -730,7 +798,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     var itemPtr = this.CurrentBuilder.GetStructElementPointer(udtTupleType, udtTuple, (uint)i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                     // Add a reference to the value, if necessary
-                    this.AddRef(this.CurrentFunction.Parameters[i]);
+                    this.AddReference(this.CurrentFunction.Parameters[i]);
                 }
 
                 this.CurrentBuilder.Return(udtTuple);
@@ -754,7 +822,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
-            if (this.TryFindGlobalCallable(namespaceName, name, out QsCallable? callable))
+            if (this.TryFindGlobalCallable(new QsQualifiedName(namespaceName, name), out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
                 return this.RegisterFunction(spec, callable.ArgumentTuple);
@@ -1154,130 +1222,50 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.namesInScope.Pop();
         }
 
-        #region Utils for global declaration
-
-        /// <summary>
-        /// Tries to find a global Q# callable in the current compilation.
-        /// </summary>
-        /// <param name="nsName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
-        /// <param name="callable">The Q# callable, if found</param>
-        /// <returns>true if the callable is found, false if not</returns>
-        public bool TryFindGlobalCallable(string nsName, string name, [MaybeNullWhen(false)] out QsCallable callable)
+        internal void AddReference(Value v)
         {
-            callable = null;
-
-            foreach (var ns in this.Compilation.Namespaces)
+            string? s = null;
+            var t = v.NativeType;
+            Value valToAddref = v;
+            if (t.IsPointer)
             {
-                if (ns.Name == nsName)
+                if (t == this.Types.Array)
                 {
-                    foreach (var element in ns.Elements)
-                    {
-                        if (element is QsNamespaceElement.QsCallable c)
-                        {
-                            if (c.GetFullName().Name == name)
-                            {
-                                callable = c.Item;
-                                return true;
-                            }
-                        }
-                    }
+                    s = "array_reference";
+                }
+                else if (t == this.Types.Result)
+                {
+                    s = "result_reference";
+                }
+                else if (t == this.Types.String)
+                {
+                    s = "string_reference";
+                }
+                else if (t == this.Types.BigInt)
+                {
+                    s = "bigint_reference";
+                }
+                else if (this.IsTupleType(t))
+                {
+                    s = "tuple_reference";
+                    valToAddref = this.CurrentBuilder.BitCast(v, this.Types.Tuple);
+                }
+                else if (t == this.Types.Callable)
+                {
+                    s = "callable_reference";
                 }
             }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Tries to find a Q# user-defined type in the current compilation.
-        /// </summary>
-        /// <param name="nsName">The UDT's namespace</param>
-        /// <param name="name">The UDT's name</param>
-        /// <param name="udt">The Q# UDT< if found</param>
-        /// <returns>true if the UDT is found, false if not</returns>
-        public bool TryFindUDT(string nsName, string name, [MaybeNullWhen(false)] out QsCustomType udt)
-        {
-            udt = null;
-
-            foreach (var ns in this.Compilation.Namespaces)
+            if (s != null)
             {
-                if (ns.Name == nsName)
-                {
-                    foreach (var element in ns.Elements)
-                    {
-                        if (element is QsNamespaceElement.QsCustomType t)
-                        {
-                            if (t.GetFullName().Name == name)
-                            {
-                                udt = t.Item;
-                                return true;
-                            }
-                        }
-                    }
-                }
+                var func = this.GetRuntimeFunction(s);
+                this.CurrentBuilder.Call(func, valToAddref);
             }
-
-            return false;
         }
-
-        /// <summary>
-        /// Tells whether or not a callable invocation should be inlined.
-        /// For this purpose, any invocation of a top-level callable with the "Inline" attribute
-        /// should be inlined.
-        /// </summary>
-        /// <param name="method">The Q# callable expression to invoke</param>
-        /// <param name="callable">The top-level callable to inline, if appropriate</param>
-        /// <returns>true if the callable should be inlined, false if not</returns>
-        public bool IsInlined(TypedExpression method, [MaybeNullWhen(false)] out QsCallable callable)
-        {
-            callable = null;
-            if ((method.Expression is ResolvedExpression.Identifier id) && id.Item1 is Identifier.GlobalCallable c)
-            {
-                var nsName = c.Item.Namespace;
-                var name = c.Item.Name;
-                if (this.TryFindGlobalCallable(nsName, name, out callable))
-                {
-                    return callable.Attributes.Any(att =>
-                        att.TypeId.IsValue &&
-                        att.TypeId.Item.Namespace == BuiltIn.Inline.FullName.Namespace &&
-                        att.TypeId.Item.Name == BuiltIn.Inline.FullName.Name);
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Tells whether or not a Q# callable expression is a quantum instruction.
-        /// For this purpose, quantum instructions are top-level operations that have the "Intrinsic" attribute.
-        /// </summary>
-        /// <param name="method">The Q# callable expression to invoke</param>
-        /// <param name="instructionName">The quantum instruction name, if the callable is a quantum instruction</param>
-        /// <returns>true if the callable is a quantum instruction, false if not</returns>
-        public bool IsQuantumInstructionCall(TypedExpression method, out string instructionName)
-        {
-            instructionName = "";
-            if ((method.Expression is ResolvedExpression.Identifier id) && id.Item1 is Identifier.GlobalCallable c)
-            {
-                var nsName = c.Item.Namespace;
-                var name = c.Item.Name;
-
-                if (this.TryFindGlobalCallable(nsName, name, out QsCallable? callable)
-                    && SymbolResolution.TryGetQISCode(callable.Attributes) is var att && att.IsValue)
-                {
-                    instructionName = att.Item;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        #endregion
 
         #region Interop utils
 
         /// <summary>
-        /// This type is used by <see cref="GenerateEntryPoint(QsQualifiedName)"/> to map Q# types to
-        /// interop-friendly types.
+        /// This type is used to map Q# types to interop-friendly types.
         /// </summary>
         private class ArgMapping
         {
@@ -1285,11 +1273,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             /// <summary>
             /// The first item contains the array type, and the second item contains the array count name.
+            /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
             /// </summary>
             private readonly (ITypeRef, string)? arrayInfo;
 
             /// <summary>
             /// Contains the struct type.
+            /// If <see cref="structInfo"/> is not null, then <see cref="arrayInfo"/> is null.
             /// </summary>
             private readonly ITypeRef? structInfo;
 
@@ -1316,8 +1306,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             internal ArgMapping WithStructInfo(ITypeRef arrayType, string arrayCountName) =>
                 new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
         }
-
-        // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
 
         /// <summary>
         /// Generates an interop-friendly wrapper around the Q# entry point using the configured type mapping.
@@ -1371,7 +1359,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
 
             if (this.TryGetFunction(qualifiedName.Namespace, qualifiedName.Name, QsSpecializationKind.QsBody, out IrFunction? func)
-                && this.TryFindGlobalCallable(qualifiedName.Namespace, qualifiedName.Name, out QsCallable? callable))
+                && this.TryFindGlobalCallable(qualifiedName, out QsCallable? callable))
             {
                 var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";
 
@@ -1479,6 +1467,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
         private void GenerateInteropWrapper(IrFunction func, string baseName)
         {
+            // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
+
             func = this.InteropModule.CreateFunction(func.Name, func.Signature);
 
             var mappedResultType = this.MapToInteropType(func.ReturnType);
@@ -1573,50 +1563,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             else
             {
                 return t;
-            }
-        }
-
-        #endregion
-
-        #region Miscellaneous
-
-        internal void AddRef(Value v)
-        {
-            string? s = null;
-            var t = v.NativeType;
-            Value valToAddref = v;
-            if (t.IsPointer)
-            {
-                if (t == this.Types.Array)
-                {
-                    s = "array_reference";
-                }
-                else if (t == this.Types.Result)
-                {
-                    s = "result_reference";
-                }
-                else if (t == this.Types.String)
-                {
-                    s = "string_reference";
-                }
-                else if (t == this.Types.BigInt)
-                {
-                    s = "bigint_reference";
-                }
-                else if (this.IsTupleType(t))
-                {
-                    s = "tuple_reference";
-                    valToAddref = this.CurrentBuilder.BitCast(v, this.Types.Tuple);
-                }
-                else if (t == this.Types.Callable)
-                {
-                    s = "callable_reference";
-                }
-            }
-            if (s != null)
-            {
-                var func = this.GetRuntimeFunction(s);
-                this.CurrentBuilder.Call(func, valToAddref);
             }
         }
 

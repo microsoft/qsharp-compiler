@@ -138,6 +138,8 @@ type UserDefinedType = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsNullable<Range>
 }
+    with
+    member this.GetFullName () = {Namespace = this.Namespace; Name = this.Name}
 
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.

@@ -53,6 +53,11 @@ type BuiltIn = {
         | Value tId -> tId.Namespace = BuiltIn.Deprecated.FullName.Namespace && tId.Name = BuiltIn.Deprecated.FullName.Name
         | Null -> false
 
+    /// Returns true if the given attribute indicates that the corresponding callable should be inlined.
+    static member MarksInlining (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace = BuiltIn.Inline.FullName.Namespace && tId.Name = BuiltIn.Inline.FullName.Name
+        | Null -> false
+
     /// Returns true if the given attribute marks the corresponding declaration as unit test.
     static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace = BuiltIn.Test.FullName.Namespace && tId.Name = BuiltIn.Test.FullName.Name

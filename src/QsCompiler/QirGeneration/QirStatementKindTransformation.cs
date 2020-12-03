@@ -571,7 +571,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 var ptr = this.SharedState.GetNamedPointer(symbol);
                 this.SharedState.CurrentBuilder.Store(newValue, ptr);
-                this.SharedState.AddRef(newValue);
+                this.SharedState.AddReference(newValue);
             }
 
             // Update a tuple of items from a tuple value.

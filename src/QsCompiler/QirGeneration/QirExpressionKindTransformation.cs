@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private Value DeepCopyUDT(Value original, ResolvedType t, InstructionBuilder? b = null)
         {
             if ((t.Resolution is QsResolvedTypeKind.UserDefinedType tt) &&
-                this.SharedState.TryFindUDT(tt.Item.Namespace, tt.Item.Name, out QsCustomType? udt))
+                this.SharedState.TryFindUDT(tt.Item.GetFullName(), out QsCustomType? udt))
             {
                 if (udt.Type.Resolution.IsTupleType)
                 {
@@ -602,7 +602,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 var item = this.SharedState.CurrentBuilder.GetStructElementPointer(capType, capture, (uint)n + 2);
                 this.SharedState.CurrentBuilder.Store(caps[n].Item1, item);
-                this.SharedState.AddRef(caps[n].Item1);
+                this.SharedState.AddReference(caps[n].Item1);
             }
 
             // Create the lifted specialization implementation(s)
@@ -1135,11 +1135,14 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 this.BuildPartialApplication(method, arg);
             }
-            else if (this.SharedState.IsQuantumInstructionCall(method, out string instructionName))
+            else if (method.Expression is ResolvedExpression.Identifier id
+                && id.Item1 is Identifier.GlobalCallable cName
+                && this.SharedState.TryFindGlobalCallable(cName.Item, out QsCallable? callable)
+                && SymbolResolution.TryGetQISCode(callable.Attributes) is var qisCode && qisCode.IsValue)
             {
                 // Handle the special case of a call to an operation that maps directly to a quantum instruction.
                 // Note that such an operation will never have an Adjoint or Controlled specialization.
-                CallQuantumInstruction(instructionName);
+                CallQuantumInstruction(qisCode.Item);
             }
             else
             {
@@ -1147,16 +1150,18 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var (baseMethod, isAdjoint, controlledCount) = ResolveModifiers(method, false, 0);
 
                 // Check for, and handle, inlining
-                if (this.SharedState.IsInlined(baseMethod, out QsCallable? inlinedCallable))
+                if (baseMethod.Expression is ResolvedExpression.Identifier baseId
+                    && baseId.Item1 is Identifier.GlobalCallable baseCallable)
                 {
-                    InlineCalledRoutine(inlinedCallable, isAdjoint, controlledCount > 0);
-                }
-                else if (baseMethod.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.GlobalCallable callable)
-                {
-                    // SupportedByRuntime pushes the necessary LLVM if it is supported
-                    if (!SupportedByRuntime(callable.Item))
+                    if (this.SharedState.TryFindGlobalCallable(baseCallable.Item, out var inlinedCallable)
+                        && inlinedCallable.Attributes.Any(BuiltIn.MarksInlining))
                     {
-                        CallGlobal(callable, baseMethod.ResolvedType.Resolution, isAdjoint, controlledCount);
+                        InlineCalledRoutine(inlinedCallable, isAdjoint, controlledCount > 0);
+                    }
+                    // SupportedByRuntime pushes the necessary LLVM if it is supported
+                    else if (!SupportedByRuntime(baseCallable.Item))
+                    {
+                        CallGlobal(baseCallable, baseMethod.ResolvedType.Resolution, isAdjoint, controlledCount);
                     }
                 }
                 else
@@ -1269,7 +1274,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
             {
                 var location = new List<(int, ITypeRef)>();
-                if (this.SharedState.TryFindUDT(tt.Item.Namespace, tt.Item.Name, out QsCustomType? udt)
+                if (this.SharedState.TryFindUDT(tt.Item.GetFullName(), out QsCustomType? udt)
                     && accEx.Expression is ResolvedExpression.Identifier acc
                     && acc.Item1 is Identifier.LocalVariable loc
                     && this.FindNamedItem(loc.Item, udt.TypeItems, location))
@@ -1496,7 +1501,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else if (sym is Identifier.GlobalCallable globalCallable)
             {
-                if (this.SharedState.TryFindGlobalCallable(globalCallable.Item.Namespace, globalCallable.Item.Name, out QsCallable? callable))
+                if (this.SharedState.TryFindGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {
                     var wrapper = this.SharedState.GetWrapperName(callable);
                     var func = this.SharedState.GetRuntimeFunction("callable_create");
@@ -1784,7 +1789,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             var t = ex.ResolvedType;
             if (t.Resolution is QsResolvedTypeKind.UserDefinedType tt
-                && this.SharedState.TryFindUDT(tt.Item.Namespace, tt.Item.Name, out QsCustomType? udt)
+                && this.SharedState.TryFindUDT(tt.Item.GetFullName(), out QsCustomType? udt)
                 && acc is Identifier.LocalVariable itemName)
             {
                 var location = new List<(int, ITypeRef)>();
