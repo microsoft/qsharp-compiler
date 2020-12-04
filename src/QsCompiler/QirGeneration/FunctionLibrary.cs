@@ -8,7 +8,7 @@ using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
-namespace Microsoft.Quantum.QsCompiler.QirGenerator
+namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
     /// A simple class to manage a library of runtime functions.

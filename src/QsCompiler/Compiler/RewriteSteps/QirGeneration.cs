@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
-using Microsoft.Quantum.QsCompiler.QirGenerator;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Collections.Generic;
+using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
@@ -51,9 +54,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            var transformation = new QirTransformation(compilation, new Configuration());
-            transformation.Apply();
-            transformation.Emit(this.outputFile);
+            var generator = new Generator(compilation, new Configuration());
+            generator.Apply();
+            generator.Emit(this.outputFile);
             transformed = compilation;
             return true;
         }

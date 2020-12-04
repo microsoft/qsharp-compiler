@@ -17,7 +17,7 @@ using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
-namespace Microsoft.Quantum.QsCompiler.QirGenerator
+namespace Microsoft.Quantum.QsCompiler.QIR
 {
     using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -121,10 +121,10 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
         /// <exception cref="InvalidOperationException">The transformation has not been set via <see cref="SetTransformation"/>.</exception>
-        public QirTransformation Transformation =>
+        public Generator Transformation =>
             this.transformation ?? throw new InvalidOperationException("no transformation defined");
 
-        private QirTransformation? transformation;
+        private Generator? transformation;
 
         private readonly ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables;
         private readonly ImmutableDictionary<QsQualifiedName, QsCustomType> globalTypes;
@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// Sets the syntax tree transformation that is used to construct QIR.
         /// </summary>
         internal void SetTransformation(
-            QirTransformation transformation,
+            Generator transformation,
             out FunctionLibrary runtimeLibrary,
             out FunctionLibrary quantumInstructionSet)
         {
@@ -256,7 +256,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
         /// <summary>
         /// Initializes the QIR runtime library.
-        /// See <see cref="FunctionLibrary"/>.
         /// </summary>
         public void InitializeRuntimeLibrary()
         {
