@@ -1,1 +1,0 @@
-FOR %f in (*.nupkg) DO nuget.exe push -Source "https://pkgs.dev.azure.com/ms-quantum-public/Microsoft Quantum (public)/_packaging/alpha/nuget/v3/index.json" -ApiKey AzureDevOps %f
