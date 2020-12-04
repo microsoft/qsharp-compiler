@@ -160,6 +160,41 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
+                private (bool, QsConditionalStatement) ProcessNOT(QsConditionalStatement conditionStatement)
+                {
+                    // This method expects elif blocks to have been abstracted out
+                    if (conditionStatement.ConditionalBlocks.Length != 1)
+                    {
+                        return (false, conditionStatement);
+                    }
+
+                    var (condition, block) = conditionStatement.ConditionalBlocks[0];
+
+                    if (condition.Expression is ExpressionKind.NOT notCondition)
+                    {
+                        var newConditionalBlock = conditionStatement.Default;
+                        if (newConditionalBlock.IsNull)
+                        {
+                            var emptyScope = new QsScope(
+                                ImmutableArray<QsStatement>.Empty,
+                                LocalDeclarations.Empty);
+                            newConditionalBlock = QsNullable<QsPositionedBlock>.NewValue(
+                                new QsPositionedBlock(
+                                    emptyScope,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty));
+                        }
+
+                        return (true, new QsConditionalStatement(
+                            ImmutableArray.Create(Tuple.Create(notCondition.Item, newConditionalBlock.Item)),
+                            QsNullable<QsPositionedBlock>.NewValue(block)));
+                    }
+                    else
+                    {
+                        return (false, conditionStatement);
+                    }
+                }
+
                 /// <summary>
                 /// Converts conditional statements to nested structures so they do not
                 /// have elif blocks or top-most OR or AND conditions.
@@ -170,13 +205,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     {
                         var stm = condition.Item;
                         (_, stm) = this.ProcessElif(stm);
-                        bool wasOrProcessed, wasAndProcessed;
+                        bool wasOrProcessed, wasAndProcessed, wasNotProcessed;
                         do
                         {
                             (wasOrProcessed, stm) = this.ProcessOR(stm);
                             (wasAndProcessed, stm) = this.ProcessAND(stm);
+                            (wasNotProcessed, stm) = this.ProcessNOT(stm);
                         }
-                        while (wasOrProcessed || wasAndProcessed);
+                        while (wasOrProcessed || wasAndProcessed || wasNotProcessed);
 
                         return new QsStatement(
                             QsStatementKind.NewQsConditionalStatement(stm),
@@ -184,6 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             statement.Location,
                             statement.Comments);
                     }
+
                     return statement;
                 }
 
