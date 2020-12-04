@@ -122,6 +122,24 @@ namespace Microsoft.Quantum.Intrinsic {
         return PhysMeasure(bases, qubits);
     }
 
+    operation MResetZ(qb : Qubit) : Result
+    {
+        let res = Mz(qb);
+        if (res == One)
+        {
+            X(qb);
+        }
+        return res;
+    }
+
+    operation Reset(qb : Qubit) : Unit
+    {
+        if (Mz(qb) == One)
+        {
+            X(qb);
+        }
+    }
+
     @Inline()
     operation Rx(theta : Double, qb : Qubit) : Unit
     is Adj {
@@ -137,7 +155,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     @Inline()
     operation Rz(theta : Double, qb : Qubit) : Unit
-    is Adj {
+    is Adj + Ctl {
         body  (...)
         {
             PhysRz(theta, qb);  
@@ -146,6 +164,20 @@ namespace Microsoft.Quantum.Intrinsic {
         {
             PhysRz(-theta, qb);  
 		}
+        controlled (ctls, ...)
+        {
+            PhysRz(theta / 2.0, qb);
+            CNOT(ctls[0], qb);
+            PhysRz(-theta / 2.0, qb);
+            CNOT(ctls[0], qb);
+        }
+        controlled adjoint (ctls, ...)
+        {
+            PhysRz(-theta / 2.0, qb);
+            CNOT(ctls[0], qb);
+            PhysRz(theta / 2.0, qb);
+            CNOT(ctls[0], qb);
+        }
 	}
 
     @Inline()
@@ -162,5 +194,11 @@ namespace Microsoft.Quantum.Intrinsic {
     function IntAsDouble(i : Int) : Double
     {
         return IntAsDoubleImpl(i);
+    }
+
+    @Inline()
+    function PI() : Double
+    {
+        return 3.14159265357989;
     }
 }
