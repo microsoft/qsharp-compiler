@@ -5,6 +5,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -69,8 +70,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
             {
                 Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
-                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).Prepend(this.SharedState.Types.TupleHeader).ToArray();
-                var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
+                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
+                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
@@ -82,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                     else
                     {
                         var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
-                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i + 1], itemValuePtr);
+                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
                         BindItem(item, itemValue, types[i]);
                     }
                 }
@@ -111,8 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
         {
             ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
-            IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction("qubit_allocate");
-            IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction("qubit_allocate_array");
+            IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
+            IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
 
             // Generate the allocation for a single variable
             void AllocateVariable(string variable, ResolvedInitializer init)
@@ -314,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.Transformation.Expressions.OnTypedExpression(ex);
             var message = this.SharedState.ValueStack.Pop();
 
-            this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction("fail"), message);
+            this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
             // Even though this terminates the block execution, we'll still wind up terminating
             // the containing Q# statement block, and thus the LLVM basic block, so we don't need
             // to tell LLVM that this is actually a terminator.
@@ -395,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
                 array = (this.SharedState.ValueStack.Pop(), elementType);
                 var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction("array_get_length"),
+                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength),
                     array.Value.Item1,
                     this.SharedState.Context.CreateConstant(0));
                 endValue = this.SharedState.CurrentBuilder.Sub(
@@ -465,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             if (array != null)
             {
                 var p = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array.Value.Item1, iterationValue);
+                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array.Value.Item1, iterationValue);
                 var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, array.Value.Item2.CreatePointerType());
                 var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
@@ -577,15 +578,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             // Update a tuple of items from a tuple value.
             void UpdateTuple(ImmutableArray<TypedExpression> items, Value val)
             {
-                var itemTypes = items
-                    .Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType))
-                    .Prepend(this.SharedState.Types.TupleHeader).ToArray();
-                var tupleType = this.SharedState.Context.CreateStructType(false, itemTypes);
+                var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
+                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
                     var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
-                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i + 1], itemValuePtr);
+                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
                     UpdateItem(items[i], itemValue);
                 }
             }

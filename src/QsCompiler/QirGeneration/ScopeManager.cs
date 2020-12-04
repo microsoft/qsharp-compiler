@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Values;
@@ -53,36 +54,36 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 if (isQubit)
                 {
-                    return "qubit_release_array";
+                    return RuntimeLibrary.QubitReleaseArray;
                 }
                 else
                 {
-                    return "array_unreference";
+                    return RuntimeLibrary.ArrayUnreference;
                 }
             }
             else if (t.Resolution.IsQubit)
             {
-                return "qubit_release";
+                return RuntimeLibrary.QubitRelease;
             }
             else if (t.Resolution.IsResult)
             {
-                return "result_unreference";
+                return RuntimeLibrary.ResultUnreference;
             }
             else if (t.Resolution.IsString)
             {
-                return "string_unreference";
+                return RuntimeLibrary.StringUnreference;
             }
             else if (t.Resolution.IsBigInt)
             {
-                return "bigint_unreference";
+                return RuntimeLibrary.BigintUnreference;
             }
             else if (t.Resolution.IsTupleType)
             {
-                return "tuple_unreference";
+                return RuntimeLibrary.TupleUnreference;
             }
             else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
             {
-                return "callable_unreference";
+                return RuntimeLibrary.CallableUnreference;
             }
             else
             {
@@ -101,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
                 // special case for tuples
-                if (releaseFunc == "tuple_unreference")
+                if (releaseFunc == RuntimeLibrary.TupleUnreference)
                 {
                     var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.Tuple);
                     builder.Call(func, untypedTuple);

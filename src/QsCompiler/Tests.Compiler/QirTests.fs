@@ -3,36 +3,13 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.QirTests
 
-open System
 open System.IO
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
-open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Xunit
-
-let private pathRoot = 
-    Path.GetPathRoot(Directory.GetCurrentDirectory())
-
-let private parentDir = 
-    Path.GetDirectoryName(Directory.GetCurrentDirectory())
 
 let private testOne expected args = 
     let result = Program.Main args
     Assert.Equal(expected, result)
-
-let private testInput expected args =
-    [
-        [|"diagnose"|]
-        [|"build"; "-o"; "outputFolder"|]
-    ] 
-    |> List.iter (fun v -> Array.append v args |> testOne expected) 
-
-let private testSnippet expected args = 
-    [
-        [|"diagnose"|]
-        [|"build"|]
-    ] 
-    |> List.iter (fun v -> Array.append v args |> testOne expected) 
 
 let private clearOutput name =
     File.WriteAllText(name, "Test did not run to completion")

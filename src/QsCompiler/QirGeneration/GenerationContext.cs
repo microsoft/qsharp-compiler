@@ -388,6 +388,16 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             var llFile = Path.ChangeExtension(fileName, ".ll");
             var bridgeFile = Path.Combine(Path.GetDirectoryName(fileName), "bridge.ll");
 
+            string ErrorString(string msg) =>
+                string.Join(Environment.NewLine, new[]
+                {
+                    "LLVM errors:",
+                    "___________________________",
+                    msg,
+                    "___________________________",
+                    Environment.NewLine
+                });
+
             var existing = new[]
             {
                 File.Exists(logFile) ? logFile : null,
@@ -407,15 +417,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
             else
             {
-                var errStr = new[]
-                {
-                    "LLVM errors:",
-                    "___________________________",
-                    validationErrors.ToString(),
-                    "___________________________",
-                    Environment.NewLine
-                };
-                File.WriteAllText(logFile, string.Join(Environment.NewLine, errStr));
+                File.WriteAllText(logFile, ErrorString(validationErrors));
             }
 
             if (!this.Module.WriteToTextFile(llFile, out string errorMessage))
@@ -442,7 +444,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
                 if (!this.InteropModule.Verify(out string bridgeValidationErrors))
                 {
-                    File.WriteAllText(bridgeFile, $"LLVM errors:\n{bridgeValidationErrors}");
+                    File.WriteAllText(bridgeFile, ErrorString(bridgeValidationErrors));
                 }
                 else if (!this.InteropModule.WriteToTextFile(bridgeFile, out string bridgeError))
                 {
@@ -463,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             // Unfortunately this is different enough from all of the other type mapping we do to require
             // an actual different routine. Blech...
-            bool MapToCType(QsArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
+            bool MapType(QsArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
             {
                 bool changed = false;
 
@@ -471,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 {
                     foreach (QsArgumentTuple inner in tuple.Item)
                     {
-                        changed |= MapToCType(inner, typeList, nameList, mappingList);
+                        changed |= MapType(inner, typeList, nameList, mappingList);
                     }
                 }
                 else if (t is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
@@ -518,7 +520,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var mappingList = new List<ArgMapping>();
                 var arraysToReleaseList = new List<Value>();
                 var mappedResultType = this.MapToInteropType(func.ReturnType);
-                if (MapToCType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
+                if (MapType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
                     (mappedResultType != func.ReturnType))
                 {
                     var epFunc = this.Module.CreateFunction(epName, this.Context.GetFunctionType(mappedResultType, mappedArgList));
@@ -539,7 +541,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             var elementSize64 = this.ComputeSizeForType(mapping.ArrayType, builder);
                             var elementSize = builder.IntCast(elementSize64, this.Context.Int32Type, false);
                             var length = namedValues[mapping.ArrayCountName];
-                            var array = builder.Call(this.GetOrCreateRuntimeFunction("array_create_1d"), elementSize, length);
+                            var array = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d), elementSize, length);
                             argValueList.Add(array);
                             arraysToReleaseList.Add(array);
                             // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
@@ -548,7 +550,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
                             builder.Branch(cond, copyBlock, nextBlock);
                             builder = new InstructionBuilder(copyBlock);
-                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction("array_get_element_ptr_1d"), array, this.Context.CreateConstant(0L));
+                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, this.Context.CreateConstant(0L));
                             builder.MemCpy(
                                 destBase,
                                 namedValues[mapping.BaseName],
@@ -572,7 +574,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         builder.Call(func, argValueList);
                         foreach (var arrayToRelease in arraysToReleaseList)
                         {
-                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
+                            builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
                         }
                         builder.Return();
                     }
@@ -581,7 +583,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                         Value result = builder.Call(func, argValueList);
                         foreach (var arrayToRelease in arraysToReleaseList)
                         {
-                            builder.Call(this.GetOrCreateRuntimeFunction("array_unreference"), arrayToRelease);
+                            builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
                         }
 
                         if (mappedResultType != func.ReturnType)
@@ -664,36 +666,55 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             string typeName = "";
             if (t == this.Types.Result)
             {
-                typeName = "Result";
+                typeName = TypeNames.Result;
             }
             else if (t == this.Types.Array)
             {
-                typeName = "Array";
+                typeName = TypeNames.Array;
             }
             else if (t == this.Types.Pauli)
             {
-                typeName = "Pauli";
+                typeName = TypeNames.Pauli;
+            }
+            // we use 32 bit ints in some cases, e.g. for exponents
+            else if (t == this.Types.Int || t == this.Context.Int32Type)
+            {
+                typeName = TypeNames.Int;
+            }
+            else if (t == this.Types.Double)
+            {
+                typeName = TypeNames.Double;
+            }
+            else if (t == this.Types.Bool)
+            {
+                typeName = TypeNames.Bool;
             }
             else if (t == this.Types.BigInt)
             {
-                typeName = "BigInt";
+                typeName = TypeNames.BigInt;
             }
             else if (t == this.Types.String)
             {
-                typeName = "String";
+                typeName = TypeNames.String;
             }
             else if (t == this.Types.Qubit)
             {
-                typeName = "Qubit";
+                typeName = TypeNames.Qubit;
             }
             else if (t == this.Types.Callable)
             {
-                typeName = "Callable";
+                typeName = TypeNames.Callable;
+            }
+            else if (t == this.Types.Range)
+            {
+                typeName = TypeNames.Range;
             }
             else if (t == this.Types.Tuple)
             {
-                typeName = "Tuple";
+                typeName = TypeNames.Tuple;
             }
+            // todo: Currently, e.g. void (this.Context.VoidType) is not covered,
+            // and for some reason we end up with i8* here as well. It would be good to cover everything and throw if something is not covered.
 
             if ((typeName != "") && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
             {
@@ -892,13 +913,13 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
 
             var args = udt.Type.Resolution switch
             {
-                QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.Types.TupleHeader).ToArray(),
-                _ when udt.Type.Resolution.IsUnitType => new ITypeRef[] { this.Types.TupleHeader },
-                _ => new ITypeRef[] { this.Types.TupleHeader, this.LlvmTypeFromQsharpType(udt.Type) }
+                QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).ToArray(),
+                _ when udt.Type.Resolution.IsUnitType => Array.Empty<ITypeRef>(),
+                _ => new ITypeRef[] { this.LlvmTypeFromQsharpType(udt.Type) }
             };
-            var udtTupleType = this.Context.CreateStructType(false, args);
-            var udtPointerType = args.Length > 1 ? udtTupleType.CreatePointerType() : this.Types.Tuple;
-            var signature = this.Context.GetFunctionType(udtPointerType, args[1..]);
+            var udtTupleType = this.Types.CreateConcreteTupleType(args);
+            var udtPointerType = args.Length > 0 ? udtTupleType.CreatePointerType() : this.Types.Tuple;
+            var signature = this.Context.GetFunctionType(udtPointerType, args);
 
             this.StartFunction();
             this.CurrentFunction = this.Module.CreateFunction(name, signature);
@@ -906,7 +927,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
             // An easy case -- (), a marker UDT
-            if (args.Length == 1)
+            if (args.Length == 0)
             {
                 this.CurrentBuilder.Return(udtPointerType.GetNullValue());
             }
@@ -915,7 +936,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 var tuple = this.CreateTupleForType(udtTupleType);
                 var udtTuple = this.CurrentBuilder.BitCast(tuple, udtPointerType);
 
-                for (int i = 0; i < args.Length - 1; i++)
+                for (int i = 0; i < args.Length; i++)
                 {
                     this.CurrentFunction.Parameters[i].Name = $"arg{i}";
                     var itemPtr = this.CurrentBuilder.GetStructElementPointer(udtTupleType, udtTuple, (uint)i + 1);
@@ -1059,9 +1080,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                 List<Value> args = new List<Value>();
                 if (arg is QsArgumentTuple.QsTuple tuple)
                 {
-                    var items = tuple.Item;
-                    var n = items.Length;
-                    if (n > 0)
+                    if (tuple.Item.Length > 0)
                     {
                         ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
                         // Convert value from Tuple to the proper type
@@ -1071,11 +1090,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
                             this.Context.CreateConstant(0L),
                             this.Context.CreateConstant(1)
                         };
-                        for (var i = 0; i < n; i++)
+                        for (var i = 0; i < tuple.Item.Length; i++)
                         {
                             indices[1] = this.Context.CreateConstant(i + 1);
                             Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
-                            args.Add(BuildLoadForArg(items[i], ptr));
+                            args.Add(BuildLoadForArg(tuple.Item[i], ptr));
                         }
                     }
                 }
@@ -1188,12 +1207,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         {
             if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
             {
-                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType).Prepend(this.Types.TupleHeader).ToArray();
-                return this.Context.CreateStructType(false, elementTypes);
+                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType);
+                return this.Types.CreateConcreteTupleType(elementTypes);
             }
             else
             {
-                return this.Context.CreateStructType(false, this.Types.TupleHeader, this.LlvmTypeFromQsharpType(resolvedType));
+                return this.Types.CreateConcreteTupleType(this.LlvmTypeFromQsharpType(resolvedType));
             }
         }
 
@@ -1231,18 +1250,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             }
         }
 
-        /// <summary>
-        /// Determines whether an LLVM type is a pointer to a tuple.
-        /// Specifically, is the type a pointer to a structure whose first element is a TupleHeader?
-        /// </summary>
-        /// <param name="t">The type to check</param>
-        /// <returns>true if t is a pointer to a tuple, false otherwise</returns>
-        private bool IsTupleType(ITypeRef t) =>
-            t is IPointerType pt
-            && pt.ElementType is IStructType st
-            && st.Members.Count > 0
-            && st.Members[0] == this.Types.TupleHeader;
-
         #endregion
 
         #region Tuple and argument tuple creation
@@ -1259,20 +1266,20 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             switch (argItem)
             {
                 case QsArgumentTuple.QsTuple tuple:
-                    {
-                        var elems = tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray();
-                        return this.Context.CreateStructType(false, elems).CreatePointerType();
-                    }
+                {
+                    var elems = tuple.Item.Select(this.BuildArgItemTupleType);
+                    return this.Types.CreateConcreteTupleType(elems).CreatePointerType();
+                }
 
                 case QsArgumentTuple.QsTupleItem item:
-                    {
-                        // Single items get translated to the appropriate LLVM type
-                        return this.LlvmTypeFromQsharpType(item.Item.Type);
-                    }
+                {
+                    // Single items get translated to the appropriate LLVM type
+                    return this.LlvmTypeFromQsharpType(item.Item.Type);
+                }
                 default:
-                    {
-                        throw new NotImplementedException("Unknown item in argument tuple.");
-                    }
+                {
+                    throw new NotImplementedException("Unknown item in argument tuple.");
+                }
             }
         }
 
@@ -1290,14 +1297,12 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 return tuple.Item.Length == 0
                     ? this.Context.VoidType
-                    : this.Context.CreateStructType(
-                        false,
-                        tuple.Item.Select(this.BuildArgItemTupleType).Prepend(this.Types.TupleHeader).ToArray());
+                    : this.Types.CreateConcreteTupleType(tuple.Item.Select(this.BuildArgItemTupleType));
             }
             else if (arg is QsArgumentTuple.QsTupleItem item)
             {
                 var itemTypeRef = this.LlvmTypeFromQsharpType(item.Item.Type);
-                return this.Context.CreateStructType(false, this.Types.TupleHeader, itemTypeRef);
+                return this.Types.CreateConcreteTupleType(itemTypeRef);
             }
             else
             {
@@ -1515,28 +1520,28 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 if (t == this.Types.Array)
                 {
-                    s = "array_reference";
+                    s = RuntimeLibrary.ArrayReference;
                 }
                 else if (t == this.Types.Result)
                 {
-                    s = "result_reference";
+                    s = RuntimeLibrary.ResultReference;
                 }
                 else if (t == this.Types.String)
                 {
-                    s = "string_reference";
+                    s = RuntimeLibrary.StringReference;
                 }
                 else if (t == this.Types.BigInt)
                 {
-                    s = "bigint_reference";
+                    s = RuntimeLibrary.BigintReference;
                 }
-                else if (this.IsTupleType(t))
+                else if (this.Types.IsTupleType(t))
                 {
-                    s = "tuple_reference";
+                    s = RuntimeLibrary.TupleReference;
                     valToAddref = this.CurrentBuilder.BitCast(v, this.Types.Tuple);
                 }
                 else if (t == this.Types.Callable)
                 {
-                    s = "callable_reference";
+                    s = RuntimeLibrary.CallableReference;
                 }
             }
             if (s != null)

@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Microsoft.Quantum.QIR;
 
 namespace Microsoft.Quantum.QsCompiler.QirGenerator
 {
@@ -14,11 +15,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         private static readonly ImmutableDictionary<string, string> ClangInteropTypeMapping =
             ImmutableDictionary.CreateRange(new Dictionary<string, string>
             {
-                ["Result"] = "class.RESULT",
-                ["Array"] = "struct.quantum::Array",
-                ["Callable"] = "struct.quantum::Callable",
-                ["Tuple"] = "struct.quantum::TupleHeader",
-                ["Qubit"] = "class.QUBIT"
+                [TypeNames.Result] = "class.RESULT",
+                [TypeNames.Array] = "struct.quantum::Array",
+                [TypeNames.Callable] = "struct.quantum::Callable",
+                [TypeNames.Tuple] = "struct.quantum::TupleHeader",
+                [TypeNames.Qubit] = "class.QUBIT"
             });
 
         internal readonly ImmutableDictionary<string, string> InteropTypeMapping;
@@ -26,7 +27,11 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <summary>
         /// Constructs a class instance storing the configurable settings for QIR emission.
         /// </summary>
-        /// <param name="interopTypeMapping"></param>
+        /// <param name="interopTypeMapping">
+        /// Optional parameter that maps the name of a QIR type to the name of the corresponding interop type.
+        /// The mapping specifies with which type names the QIR types are replaced with
+        /// when generating the interop wrappers and entry point(s).
+        /// </param>
         public Configuration(Dictionary<string, string>? interopTypeMapping = null)
         {
             this.InteropTypeMapping = interopTypeMapping != null

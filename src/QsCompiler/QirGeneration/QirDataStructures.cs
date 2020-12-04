@@ -2,29 +2,89 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {
+    /// <summary>
+    /// Each class instance contains the QIR types defined and used
+    /// within the compilation unit given upon instantiation.
+    /// </summary>
     public class Types
     {
+        /// <summary>
+        /// Represents the type of a 64-bit signed integer in QIR.
+        /// </summary>
         public readonly ITypeRef Int;
+
+        /// <summary>
+        /// Represents the type of a double precision floating point number in QIR.
+        /// </summary>
         public readonly ITypeRef Double;
+
+        /// <summary>
+        /// Represents the type of a boolean value in QIR.
+        /// </summary>
         public readonly ITypeRef Bool;
+
+        /// <summary>
+        /// Represents the type of a single-qubit Pauli matrix in QIR
+        /// used to indicate e.g. the basis of a quantum measurement.
+        /// The type is a two-bit integer type.
+        /// </summary>
         public readonly ITypeRef Pauli;
 
+        /// <summary>
+        /// Represents the type of a result value from a quantum measurement in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// </summary>
         public readonly IPointerType Result;
-        public readonly IPointerType Qubit;
-        public readonly IPointerType String;
-        public readonly IPointerType BigInt;
-        public readonly IPointerType Tuple;
-        public readonly IPointerType Array;
-        public readonly IPointerType Callable;
 
-        public readonly IStructType Range;
-        public readonly IStructType TupleHeader;
+        /// <summary>
+        /// Represents the type of a string value in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// </summary>
+        public readonly IPointerType Qubit;
+
+        /// <summary>
+        /// Represents the type of a string value in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// </summary>
+        public readonly IPointerType String;
+
+        /// <summary>
+        /// Represents the type of a big integer value in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// </summary>
+        public readonly IPointerType BigInt;
+
+        /// <summary>
+        /// Represents the type of an array in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// Item access is provided by the runtime library.
+        /// The library method(s) return byte pointers
+        /// that need to be cast to the appropriate type.
+        /// </summary>
+        public readonly IPointerType Array;
+
+        /// <summary>
+        /// Represents the type of a tuple value in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// For item access and deconstruction, tuple values need to be cast
+        /// to a suitable concrete type depending on the types of their items.
+        /// Such a concrete tuple type is constructed using <see cref="CreateConcreteTupleType"/>.
+        /// </summary>
+        public readonly IPointerType Tuple;
+
+        /// <summary>
+        /// Represents the type of a callable value in QIR.
+        /// The type is a pointer to an opaque struct.
+        /// </summary>
+        public readonly IPointerType Callable;
 
         /// <summary>
         /// Represents the signature of a callable specialization in QIR.
@@ -35,32 +95,104 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public readonly IFunctionType FunctionSignature;
 
+        /// <summary>
+        /// Represents the type of a range of numbers defined by a start, step, and end value.
+        /// The type is a named struct that contains three 64-bit integers.
+        /// </summary>
+        public readonly IStructType Range;
+
+        // private fields
+
+        private readonly IStructType tupleHeader;
+        private readonly Context context;
+
+        // constructor
+
         internal Types(Context context)
         {
-            this.Int = context.Int64Type;
-            this.Double = context.DoubleType;
-            this.Bool = context.BoolType;
-            this.Pauli = context.GetIntType(2);
+            this.context = context;
 
-            this.Range = context.CreateStructType("Range", false, context.Int64Type, context.Int64Type, context.Int64Type);
-            // It would be nice if TupleHeader were opaque, but it can't be because it appears directly
-            // (that is, not as a pointer) in tuple structures, but would have unknown length if it were opaque.
-            this.TupleHeader = context.CreateStructType("TupleHeader", false, context.Int32Type);
+            this.tupleHeader = context.CreateStructType(TypeNames.Tuple, false, context.Int32Type); // private
+            this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
-            this.Result = context.CreateStructType("Result").CreatePointerType();
-            this.Qubit = context.CreateStructType("Qubit").CreatePointerType();
-            this.String = context.CreateStructType("String").CreatePointerType();
-            this.BigInt = context.CreateStructType("BigInt").CreatePointerType();
-            this.Tuple = this.TupleHeader.CreatePointerType();
-            this.Array = context.CreateStructType("Array").CreatePointerType();
-            this.Callable = context.CreateStructType("Callable").CreatePointerType();
+            this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
+            this.Qubit = context.CreateStructType(TypeNames.Qubit).CreatePointerType();
+            this.String = context.CreateStructType(TypeNames.String).CreatePointerType();
+            this.BigInt = context.CreateStructType(TypeNames.BigInt).CreatePointerType();
+            this.Tuple = this.tupleHeader.CreatePointerType();
+            this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
+            this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
             this.FunctionSignature = context.GetFunctionType(
                 context.VoidType,
                 new[] { this.Tuple, this.Tuple, this.Tuple });
+
+            this.Int = context.Int64Type;
+            this.Double = context.DoubleType;
+            this.Bool = context.BoolType;
+            this.Pauli = context.GetIntType(2);
         }
+
+        // public members
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains the given items.
+        /// Values of this type always contain a tuple header as the first item and are
+        /// always passed as a pointer to that item.
+        /// </summary>
+        public IStructType CreateConcreteTupleType(IEnumerable<ITypeRef> items) =>
+            this.context.CreateStructType(false, items.Prepend(this.tupleHeader).ToArray());
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains the given items.
+        /// Values of this type always contain a tuple header as the first item
+        /// and are always passed as a pointer to that item.
+        /// </summary>
+        public IStructType CreateConcreteTupleType(params ITypeRef[] items) =>
+            this.CreateConcreteTupleType((IEnumerable<ITypeRef>)items);
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to a tuple.
+        /// Tuple values in QIR always contain a tuple header as the first item.
+        /// </summary>
+        public bool IsTupleType(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Members.Count > 0
+            && st.Members[0] == this.tupleHeader;
     }
 
+    /// <summary>
+    /// Contains the names of all LLVM structures used to represent types in QIR.
+    /// </summary>
+    public static class TypeNames
+    {
+        public const string Int = "Int";
+        public const string Double = "Double";
+        public const string Bool = "Bool";
+        public const string Pauli = "Pauli";
+
+        // names of used structs
+
+        public const string Callable = "Callable";
+        public const string Result = "Result";
+        public const string Qubit = "Qubit";
+        public const string Range = "Range";
+        public const string BigInt = "BigInt";
+        public const string String = "String";
+        public const string Array = "Array";
+        public const string Tuple = "TupleHeader";
+
+        // There is no separate struct type for Tuple,
+        // since within QIR, there is not type distinction between tuples with different item types or number of items.
+        // Using the TupleHeader struct is hence sufficient to ensure this limited type safety.
+        // The Tuple pointer is hence simply a pointer to the tuple header and no additional separate struct exists.
+    }
+
+    /// <summary>
+    /// Each class instance contains the QIR constants defined and used
+    /// within the compilation unit given upon instantiation.
+    /// </summary>
     public class Constants
     {
         public readonly Value ResultZero;
@@ -95,36 +227,49 @@ namespace Microsoft.Quantum.QIR
         }
     }
 
+    /// <summary>
+    /// Enum to distinguish different components that are ultimately combined
+    /// to execute a program compiled into QIR.
+    /// </summary>
     public enum Component
     {
+        /// <summary>
+        /// Contains all functions that are supported by the (classical) QIR runtime.
+        /// </summary>
         RuntimeLibrary,
+
+        /// <summary>
+        /// Contains all functions that are supported by the quantum processor itself.
+        /// </summary>
         QuantumInstructionSet
     }
 
+    /// <summary>
+    /// Static class that contains common conventions for QIR functions and callable values.
+    /// </summary>
     public static class Callables
     {
         /// <summary>
-        /// Generates a mangled name for a special function.
-        /// Special functions are either part of the QIR runtime library or part of the target-specified
-        /// quantum instruction set.
+        /// Generates a mangled name for a function that is expected to be provided by a component,
+        /// such as QIR runtime library or the quantum instruction set, rather than defined in source code.
         /// The mangled names are a double underscore, "quantum", and another double underscore, followed by
         /// "rt" or "qis", another double underscore, and then the base name.
         /// </summary>
-        /// <param name="kind">The kind of special function</param>
-        /// <param name="name">The name of the special function</param>
+        /// <param name="kind">The component that is expected to provide the function</param>
+        /// <param name="name">The name of the function without the component prefix</param>
         /// <returns>The mangled function name</returns>
         /// <exception cref="ArgumentException">No naming convention is defined for the given component.</exception>
-        public static string FunctionName(Component kind, string name)
+        public static string FunctionName(Component component, string name) => component switch
         {
-            return kind switch
-            {
-                Component.RuntimeLibrary => $"__quantum__rt__{name}",
-                Component.QuantumInstructionSet => $"__quantum__qis__{name}",
-                _ => throw new ArgumentException("unkown software component"),
-            };
-        }
+            Component.RuntimeLibrary => $"__quantum__rt__{name}",
+            Component.QuantumInstructionSet => $"__quantum__qis__{name}",
+            _ => throw new ArgumentException("unkown software component"),
+        };
     }
 
+    /// <summary>
+    /// Static class that contains common conventions for the QIR runtime library.
+    /// </summary>
     public static class RuntimeLibrary
     {
         // int functions

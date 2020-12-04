@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.QirGenerator;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
@@ -52,20 +51,10 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            try
-            {
-                var transformation = new QirTransformation(compilation, new Configuration());
-                transformation.Apply();
-                transformation.Emit(this.outputFile);
-            }
-            catch (Exception ex)
-            {
-                this.diagnostics.Add(new IRewriteStep.Diagnostic() { Severity = CodeAnalysis.DiagnosticSeverity.Warning, Message = ex.Message });
-                //File.WriteAllText($"{this.config.OutputFileName}.ll", $"Exception: {ex.Message} at:\n{ex.StackTrace}");
-            }
-
+            var transformation = new QirTransformation(compilation, new Configuration());
+            transformation.Apply();
+            transformation.Emit(this.outputFile);
             transformed = compilation;
-
             return true;
         }
     }
