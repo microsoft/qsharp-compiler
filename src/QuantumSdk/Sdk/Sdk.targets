@@ -62,8 +62,8 @@
       <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
     </ReadLinesFromFile>
     <ItemGroup>
-      <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
-      <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
+      <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)\$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
+      <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder)" />
       <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
@@ -79,8 +79,6 @@
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">$(_NewLine)--build-exe</_QscCommandIsExecutableFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">$(_NewLine)--input$(_NewLineIndent)"@(QsharpCompile->'%(FullPath)', '"$(_NewLineIndent)"')"</_QscCommandInputFlag>
       <_QscCommandOutputPath>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)\qsharp\'))</_QscCommandOutputPath>
-      <_QscCommandOutputPath>$([MSBuild]::Unescape('$(_QscCommandOutputPath)').Replace('\','/'))</_QscCommandOutputPath>
-      <_QscCommandOutputPath Condition="!HasTrailingSlash('$(_QscCommandOutputPath)')">$(_QscCommandOutputPath)/</_QscCommandOutputPath>
       <_QscCommandOutputFlag>$(_NewLine)--output$(_NewLineIndent)"$(_QscCommandOutputPath)"</_QscCommandOutputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQsharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
