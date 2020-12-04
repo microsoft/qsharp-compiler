@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -92,6 +93,56 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Gets the name of the unreference runtime function for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
+        /// decrement the reference count</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? GetReleaseFunctionForType(ITypeRef t, bool isQubit)
+        {
+            if (t == this.sharedState.Types.Array)
+            {
+                if (isQubit)
+                {
+                    return RuntimeLibrary.QubitReleaseArray;
+                }
+                else
+                {
+                    return RuntimeLibrary.ArrayUnreference;
+                }
+            }
+            else if (t == this.sharedState.Types.Qubit)
+            {
+                return RuntimeLibrary.QubitRelease;
+            }
+            else if (t == this.sharedState.Types.Result)
+            {
+                return RuntimeLibrary.ResultUnreference;
+            }
+            else if (t == this.sharedState.Types.String)
+            {
+                return RuntimeLibrary.StringUnreference;
+            }
+            else if (t == this.sharedState.Types.BigInt)
+            {
+                return RuntimeLibrary.BigintUnreference;
+            }
+            else if (t == this.sharedState.Types.Tuple || this.sharedState.Types.IsTupleType(t))
+            {
+                return RuntimeLibrary.TupleUnreference;
+            }
+            else if (t == this.sharedState.Types.Callable)
+            {
+                return RuntimeLibrary.CallableUnreference;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Generates the releases (unreference calls) for a single scope in the stack.
         /// </summary>
         /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
@@ -138,12 +189,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a value to the current topmost scope.
         /// </summary>
         /// <param name="valueToRelease">The Value to be released</param>
-        /// <param name="valueType">The Q# type of the value; note that this doesn't have to
-        /// be precise, it just needs to be correct enough to determine the correct unreference
-        /// runtime function</param>
-        public void AddValue(Value valueToRelease, ResolvedType valueType)
+        /// <param name="valueType">
+        /// Optional parameter with the Q# type of the value;
+        /// If no parameter is given, then the release function will be determined
+        /// based on the NativeType of the value to release.
+        /// </param>
+        public void AddValue(Value valueToRelease, ResolvedType? valueType = null)
         {
-            var releaser = this.GetReleaseFunctionForType(valueType, false);
+            var releaser = valueType == null
+                ? this.GetReleaseFunctionForType(valueToRelease.NativeType, false)
+                : this.GetReleaseFunctionForType(valueType, false);
             if (releaser != null)
             {
                 this.releaseStack.Peek().Add((valueToRelease, releaser));

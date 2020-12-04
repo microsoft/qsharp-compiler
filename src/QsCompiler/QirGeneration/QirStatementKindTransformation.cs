@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                        var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                         var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
                         BindItem(item, itemValue, types[i]);
                     }
@@ -583,7 +583,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
                 for (int i = 0; i < items.Length; i++)
                 {
-                    var itemValuePtr = this.SharedState.CurrentBuilder.GetStructElementPointer(tupleType, tuplePointer, (uint)i + 1);
+                    var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                     var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
                     UpdateItem(items[i], itemValue);
                 }
