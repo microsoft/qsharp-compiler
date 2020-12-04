@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                             successCondition.Range),
                         fixupBlock);
                     var conditionalStatement = new QsConditionalStatement(
-                        new List<Tuple<TypedExpression, QsPositionedBlock>> { conditionalBlock }.ToImmutableArray(),
+                        ImmutableArray.Create(conditionalBlock),
                         QsNullable<QsPositionedBlock>.Null);
                     statements.Add(new QsStatement(
                         QsStatementKind.NewQsConditionalStatement(conditionalStatement),
@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                             conditionalBlock.Item2.Comments));
 
                     var newConditionalStatement = new QsConditionalStatement(
-                        new List<Tuple<TypedExpression, QsPositionedBlock>> { newConditionalBlock }.ToImmutableArray(),
+                        ImmutableArray.Create(newConditionalBlock),
                         QsNullable<QsPositionedBlock>.Null);
                     statements.RemoveAt(statements.Count - 1);
                     statements.Add(new QsStatement(
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         callable.Location,
                         callable.Signature,
                         callable.ArgumentTuple,
-                        new List<QsSpecialization> { newSpecialization }.ToImmutableArray(),
+                        ImmutableArray.Create(newSpecialization),
                         callable.Documentation,
                         callable.Comments);
 
