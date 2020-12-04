@@ -129,8 +129,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             for (int index = 0; index < parmChars.Length; index++)
             {
-                var precededByEscape = index > 0 && parmChars[index - 1] == '^';
-                var ignoreIfQuote = inQuote && precededByEscape;
+                var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
+                var ignoreIfQuote = inQuote && precededByBackslash;
                 if (parmChars[index] == '"' && !ignoreIfQuote)
                 {
                     inQuote = !inQuote;
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     parmChars[index] = ' ';
                 }
-                if (!inQuote && !precededByEscape && char.IsWhiteSpace(parmChars[index]))
+                if (!inQuote && !precededByBackslash && char.IsWhiteSpace(parmChars[index]))
                 {
                     parmChars[index] = '\n';
                 }
