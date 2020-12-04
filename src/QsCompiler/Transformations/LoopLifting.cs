@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         this.SharedState.GeneratedOpParams = contextParams;
                         if (canLift && callable != null && call != null)
                         {
-                            this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call));
+                            this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call, new LocalDeclarations(variables)));
                             return call.Statement;
                         }
                     }
@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     return statements.ToImmutableArray();
                 }
 
-                private static QsCallable MakeRecursive(QsCallable callable, QsStatement call)
+                private static QsCallable MakeRecursive(QsCallable callable, QsStatement call, LocalDeclarations knownSymbols)
                 {
                     var specialization = callable.Specializations.Single();
                     var providedImplementation = (SpecializationImplementation.Provided)specialization.Implementation;
@@ -119,15 +119,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     var conditionalScopeStatements = new List<QsStatement>(conditionalBlock.Item2.Body.Statements);
 
                     conditionalScopeStatements.Add(call);
-                    var newKnownVariables = new LocalDeclarations(
-                        conditionalBlock.Item2.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables).ToImmutableArray());
 
                     var newConditionalBlock = Tuple.Create(
                         conditionalBlock.Item1,
                         new QsPositionedBlock(
                             new QsScope(
                                 conditionalScopeStatements.ToImmutableArray(),
-                                newKnownVariables),
+                                knownSymbols),
                             conditionalBlock.Item2.Location,
                             conditionalBlock.Item2.Comments));
 
