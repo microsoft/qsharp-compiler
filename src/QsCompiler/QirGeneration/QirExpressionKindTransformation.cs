@@ -94,14 +94,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class InnerTuple : RebuildItem
         {
-            public readonly GenerationContext SharedState;
             public readonly ResolvedType TupleType;
             public readonly ImmutableArray<RebuildItem> Items;
 
             public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, ITypeRef itemType, IEnumerable<RebuildItem>? items)
             : base(sharedState, itemType)
             {
-                this.SharedState = sharedState;
                 this.TupleType = tupleType;
                 this.Items = items?.ToImmutableArray() ?? ImmutableArray<RebuildItem>.Empty;
             }
@@ -2144,35 +2142,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsBigInt)
                 {
-                    return SimpleToString(ex, "bigint_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.BigintToString);
                 }
                 else if (ty.IsBool)
                 {
-                    return SimpleToString(ex, "bool_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.BoolToString);
                 }
                 else if (ty.IsInt)
                 {
-                    return SimpleToString(ex, "int_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.IntToString);
                 }
                 else if (ty.IsResult)
                 {
-                    return SimpleToString(ex, "result_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.ResultToString);
                 }
                 else if (ty.IsPauli)
                 {
-                    return SimpleToString(ex, "pauli_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.PauliToString);
                 }
                 else if (ty.IsQubit)
                 {
-                    return SimpleToString(ex, "qubit_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.QubitToString);
                 }
                 else if (ty.IsRange)
                 {
-                    return SimpleToString(ex, "range_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.RangeToString);
                 }
                 else if (ty.IsDouble)
                 {
-                    return SimpleToString(ex, "double_to_string");
+                    return SimpleToString(ex, RuntimeLibrary.DoubleToString);
                 }
                 else if (ty.IsFunction)
                 {
