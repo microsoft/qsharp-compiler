@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -69,8 +68,8 @@ type BuiltIn = {
         | Null -> false
 
     /// Returns true if the given attribute defines a code identifying an instruction within the quantum instruction set that matches this callable.
-    static member DefinesQISCode (att : QsDeclarationAttribute) = att.TypeId |> function
-        | Value tId -> tId.Namespace = BuiltIn.Intrinsic.FullName.Namespace && tId.Name = BuiltIn.Intrinsic.FullName.Name
+    static member DefinesTargetInstruction (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace = BuiltIn.TargetInstruction.FullName.Namespace && tId.Name = BuiltIn.TargetInstruction.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
@@ -132,8 +131,8 @@ type BuiltIn = {
 
     // dependencies in Microsoft.Quantum.Targeting
 
-    static member Intrinsic = {
-        FullName = {Name = "BuiltIn"; Namespace = BuiltIn.TargetingNamespace}
+    static member TargetInstruction = {
+        FullName = {Name = "TargetInstruction"; Namespace = BuiltIn.TargetingNamespace}
         Kind = Attribute
     }
 

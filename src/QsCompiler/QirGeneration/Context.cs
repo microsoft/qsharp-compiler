@@ -354,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Finds and registers all of the quantum instructions in the current compilation.
-        /// For this purpose, quantum instructions are any operations that have the "Intrinsic" attribute.
+        /// For this purpose, quantum instructions are any operations that have the TargetInstruction attribute.
         /// <br/><br/>
         /// In addition, interop-compatible wrappers are generated for all of the quantum operations.
         /// </summary>

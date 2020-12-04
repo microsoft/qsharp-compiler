@@ -270,7 +270,7 @@ module SymbolResolution =
     /// Returns the string code as Value if this is the case, and Null otherwise.
     /// The returned Value is based on the first attribute that indicates the code.
     let TryGetQISCode attributes = 
-        let loadedViaTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesQISCode then Some att.Argument else None
+        let loadedViaTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesTargetInstruction then Some att.Argument else None
         StringArgument (loadedViaTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
 

@@ -6,12 +6,12 @@
 namespace Microsoft.Quantum.Instructions{
     open Microsoft.Quantum.Targeting;
 
-    @BuiltIn("k")
+    @TargetInstruction("k")
     operation PhysK (qb : Qubit, n : Int) : Unit {
         body intrinsic;
     }
 
-    @BuiltIn("ck")
+    @TargetInstruction("ck")
     operation PhysCtrlK (ctrls : Qubit[], qb : Qubit, n : Int) : Unit {
         body intrinsic;
     }

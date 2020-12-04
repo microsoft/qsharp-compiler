@@ -4,49 +4,49 @@
 namespace Microsoft.Quantum.Instructions {
     open Microsoft.Quantum.Targeting;
 
-    @BuiltIn("h")
+    @TargetInstruction("h")
     operation PhysH (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("x")
+    @TargetInstruction("x")
     operation PhysX (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("s")
+    @TargetInstruction("s")
     operation PhysS (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("t")
+    @TargetInstruction("t")
     operation PhysT (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("rx")
+    @TargetInstruction("rx")
     operation PhysRx (theta : Double, qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("rz")
+    @TargetInstruction("rz")
     operation PhysRz (theta : Double, qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("cnot")
+    @TargetInstruction("cnot")
     operation PhysCNOT (control : Qubit, target : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @BuiltIn("mz")
+    @TargetInstruction("mz")
     operation PhysM (qb : Qubit) : Result
     {
         body intrinsic;

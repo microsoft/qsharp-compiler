@@ -3,6 +3,10 @@
 
 namespace Microsoft.Quantum.Core {
 
+    // only here to force a certain order for QIR emission (the String argument will do) 
+    // to have the tests be a tiny bit less fragile
+    internal newtype _Dummy = String;
+
     @Attribute()
     newtype Attribute = Unit;
 
@@ -26,5 +30,5 @@ namespace Microsoft.Quantum.Core {
 namespace Microsoft.Quantum.Targeting {
 
     @Attribute()
-    newtype BuiltIn = String;
+    newtype TargetInstruction = String;
 }
