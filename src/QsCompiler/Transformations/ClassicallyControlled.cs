@@ -353,45 +353,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
 
                 /// <summary>
-                /// Gets an identifier and argument tuple for the built-in operation NoOp.
-                /// </summary>
-                private (TypedExpression Id, TypedExpression Args) GetNoOp()
-                {
-                    var opInfo = BuiltIn.NoOp;
-
-                    var properties = new[] { OpProperty.Adjointable, OpProperty.Controllable };
-                    var characteristics = new CallableInformation(
-                        ResolvedCharacteristics.FromProperties(properties),
-                        new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
-
-                    var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
-                    var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
-                            Tuple.Create(unitType, unitType),
-                            characteristics));
-
-                    var args = new TypedExpression(
-                        ExpressionKind.UnitValue,
-                        TypeArgsResolution.Empty,
-                        unitType,
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Range>.Null);
-                    var typeArgs = ImmutableArray.Create(unitType);
-
-                    var identifier = new TypedExpression(
-                        ExpressionKind.NewIdentifier(
-                            Identifier.NewGlobalCallable(opInfo.FullName),
-                            QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs)),
-                        typeArgs
-                            .Zip(((BuiltInKind.Operation)opInfo.Kind).TypeParameters, (type, param) => Tuple.Create(opInfo.FullName, param, type))
-                            .ToImmutableArray(),
-                        operationType,
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Range>.Null);
-
-                    return (identifier, args);
-                }
-
-                /// <summary>
                 /// Creates a value tuple expression containing the given expressions.
                 /// </summary>
                 private TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
@@ -477,8 +438,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         return null; // ToDo: Diagnostic message - inequality block exists, but is not valid
                     }
 
-                    equalityInfo ??= this.GetNoOp();
-                    inequalityInfo ??= this.GetNoOp();
+                    equalityInfo ??= LiftConditionBlocks.GetNoOp();
+                    inequalityInfo ??= LiftConditionBlocks.GetNoOp();
 
                     // Get characteristic properties from global id
                     var props = ImmutableHashSet<OpProperty>.Empty;
@@ -829,6 +790,45 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         public static QsCompilation Apply(QsCompilation compilation) =>
             new LiftContent().OnCompilation(compilation);
 
+        /// <summary>
+        /// Gets an identifier and argument tuple for the built-in operation NoOp.
+        /// </summary>
+        internal static (TypedExpression Id, TypedExpression Args) GetNoOp()
+        {
+            var opInfo = BuiltIn.NoOp;
+
+            var properties = new[] { OpProperty.Adjointable, OpProperty.Controllable };
+            var characteristics = new CallableInformation(
+                ResolvedCharacteristics.FromProperties(properties),
+                new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
+
+            var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
+            var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
+                    Tuple.Create(unitType, unitType),
+                    characteristics));
+
+            var args = new TypedExpression(
+                ExpressionKind.UnitValue,
+                TypeArgsResolution.Empty,
+                unitType,
+                new InferredExpressionInformation(false, false),
+                QsNullable<Range>.Null);
+            var typeArgs = ImmutableArray.Create(unitType);
+
+            var identifier = new TypedExpression(
+                ExpressionKind.NewIdentifier(
+                    Identifier.NewGlobalCallable(opInfo.FullName),
+                    QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs)),
+                typeArgs
+                    .Zip(((BuiltInKind.Operation)opInfo.Kind).TypeParameters, (type, param) => Tuple.Create(opInfo.FullName, param, type))
+                    .ToImmutableArray(),
+                operationType,
+                new InferredExpressionInformation(false, false),
+                QsNullable<Range>.Null);
+
+            return (identifier, args);
+        }
+
         private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
         {
             internal class TransformationState : ContentLifting.LiftContent.TransformationState
@@ -882,12 +882,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         // the condition logic for the conversion and using that condition here
                         // var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
-                        if (this.IsScopeSingleCall(block.Body))
+                        if (block.Body.Statements.Length == 0)
+                        {
+                            // This is an empty scope, so it can just be treated as a call to NoOp.
+                            var (id, args) = GetNoOp();
+                            var callExpression = new TypedExpression(
+                                ExpressionKind.NewCallLikeExpression(id, args),
+                                TypeArgsResolution.Empty,
+                                ResolvedType.New(ResolvedTypeKind.UnitType),
+                                new InferredExpressionInformation(false, true),
+                                QsNullable<Range>.Null);
+                            var callStatement = new QsStatement(
+                                QsStatementKind.NewQsExpressionStatement(callExpression),
+                                LocalDeclarations.Empty,
+                                QsNullable<QsLocation>.Null,
+                                QsComments.Empty);
+                            newConditionBlocks.Add(Tuple.Create(
+                                expr.Item,
+                                new QsPositionedBlock(
+                                    new QsScope(
+                                        ImmutableArray.Create(callStatement),
+                                        LocalDeclarations.Empty),
+                                    block.Location,
+                                    block.Comments)));
+                        }
+                        else if (this.IsScopeSingleCall(block.Body))
                         {
                             newConditionBlocks.Add(Tuple.Create(expr.Item, block));
                         }
-                        // ToDo: We may want to prevent empty blocks from getting lifted
-                        // else if (block.Body.Statements.Length > 0)
                         else
                         {
                             // Lift the scope to its own operation
