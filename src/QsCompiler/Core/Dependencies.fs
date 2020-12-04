@@ -125,6 +125,18 @@ type BuiltIn = {
         Kind = Attribute
     }
 
+    static member Inline = {
+        FullName = {Name = "Inline"; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
+    // dependencies in Microsoft.Quantum.Targeting
+
+    static member Intrinsic = {
+        FullName = {Name = "BuiltIn"; Namespace = BuiltIn.TargetingNamespace}
+        Kind = Attribute
+    }
+
     static member RequiresCapability = {
         FullName = {Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace}
         Kind = Attribute
@@ -147,18 +159,6 @@ type BuiltIn = {
     static member NoOp = {
         FullName = {Name = "NoOp"; Namespace = BuiltIn.CanonNamespace}
         Kind = Operation (TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false)
-    }
-
-    // dependencies in Microsoft.Quantum.QsCompiler.QirGenerator
-
-    static member Intrinsic = {
-        FullName = {Name = "Intrinsic"; Namespace = BuiltIn.CoreNamespace}
-        Kind = Attribute
-    }
-
-    static member Inline = {
-        FullName = {Name = "Inline"; Namespace = BuiltIn.CoreNamespace}
-        Kind = Attribute
     }
 
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions

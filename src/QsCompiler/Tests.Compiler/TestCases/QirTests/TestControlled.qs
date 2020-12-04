@@ -3,23 +3,21 @@
 
 // This test extends the basic target with a K gate that implements Controlled.
 // THis isn't a real gate, it's just used for testing purposes.
-namespace Microsoft.Quantum.Instructions
-{
-    @Intrinsic("k")
-    operation PhysK (qb : Qubit, n : Int) : Unit 
-    {
+namespace Microsoft.Quantum.Instructions{
+    open Microsoft.Quantum.Targeting;
+
+    @BuiltIn("k")
+    operation PhysK (qb : Qubit, n : Int) : Unit {
         body intrinsic;
     }
 
-    @Intrinsic("ck")
-    operation PhysCtrlK (ctrls : Qubit[], qb : Qubit, n : Int) : Unit 
-    {
+    @BuiltIn("ck")
+    operation PhysCtrlK (ctrls : Qubit[], qb : Qubit, n : Int) : Unit {
         body intrinsic;
     }
 }
 
-namespace Microsoft.Quantum.Intrinsic
-{
+namespace Microsoft.Quantum.Intrinsic{
     open Microsoft.Quantum.Instructions;
 
     @Inline()
@@ -37,13 +35,12 @@ namespace Microsoft.Quantum.Intrinsic
 	}
 }
 
-namespace Microsoft.Quantum.Testing.QIR
-{
+namespace Microsoft.Quantum.Testing.QIR{
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
-    operation TestControlled () : Bool
-    {
+    operation TestControlled () : Bool {
+
         let k2 = K(_, 2);
         let ck2 = Controlled k2;
         let ck1 = K(_, _);
