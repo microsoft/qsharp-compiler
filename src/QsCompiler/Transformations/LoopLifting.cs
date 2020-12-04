@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         var contextValidScope = this.SharedState.IsValidScope;
                         var contextParams = this.SharedState.GeneratedOpParams;
                         this.SharedState.IsValidScope = true;
-                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables, new BasicVariableComparer()).ToImmutableArray();
+                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray();
                         this.SharedState.GeneratedOpParams = variables;
 
                         var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables));
@@ -89,18 +89,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     var statements = new List<QsStatement>();
                     statements.AddRange(repeatBlock.Body.Statements);
 
-                    var emptyScope = new QsScope(
-                        ImmutableArray<QsStatement>.Empty,
-                        LocalDeclarations.Empty);
                     var conditionalBlock = Tuple.Create(
-                        successCondition,
-                        new QsPositionedBlock(
-                            emptyScope,
-                            QsNullable<QsLocation>.Null,
-                            QsComments.Empty));
+                        new TypedExpression(
+                            ExpressionKind.NewNOT(successCondition),
+                            successCondition.TypeArguments,
+                            successCondition.ResolvedType,
+                            successCondition.InferredInformation,
+                            successCondition.Range),
+                        fixupBlock);
                     var conditionalStatement = new QsConditionalStatement(
                         new List<Tuple<TypedExpression, QsPositionedBlock>> { conditionalBlock }.ToImmutableArray(),
-                        QsNullable<QsPositionedBlock>.NewValue(fixupBlock));
+                        QsNullable<QsPositionedBlock>.Null);
                     statements.Add(new QsStatement(
                         QsStatementKind.NewQsConditionalStatement(conditionalStatement),
                         LocalDeclarations.Empty,
@@ -116,22 +115,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     var providedImplementation = (SpecializationImplementation.Provided)specialization.Implementation;
                     var statements = new List<QsStatement>(providedImplementation.Item2.Statements);
                     var conditionalStatement = (QsStatementKind.QsConditionalStatement)statements.Last().Statement;
-                    var conditionalScopeStatements = new List<QsStatement>(conditionalStatement.Item.Default.Item.Body.Statements);
+                    var conditionalBlock = conditionalStatement.Item.ConditionalBlocks.Single();
+                    var conditionalScopeStatements = new List<QsStatement>(conditionalBlock.Item2.Body.Statements);
 
                     conditionalScopeStatements.Add(call);
                     var newKnownVariables = new LocalDeclarations(
-                        conditionalStatement.Item.Default.Item.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables, new BasicVariableComparer()).ToImmutableArray());
+                        conditionalBlock.Item2.Body.KnownSymbols.Variables.Union(call.SymbolDeclarations.Variables).ToImmutableArray());
+
+                    var newConditionalBlock = Tuple.Create(
+                        conditionalBlock.Item1,
+                        new QsPositionedBlock(
+                            new QsScope(
+                                conditionalScopeStatements.ToImmutableArray(),
+                                newKnownVariables),
+                            conditionalBlock.Item2.Location,
+                            conditionalBlock.Item2.Comments));
 
                     var newConditionalStatement = new QsConditionalStatement(
-                        conditionalStatement.Item.ConditionalBlocks,
-                        QsNullable<QsPositionedBlock>.NewValue(
-                            new QsPositionedBlock(
-                                new QsScope(
-                                    conditionalScopeStatements.ToImmutableArray(),
-                                    newKnownVariables),
-                                conditionalStatement.Item.Default.Item.Location,
-                                conditionalStatement.Item.Default.Item.Comments)));
-
+                        new List<Tuple<TypedExpression, QsPositionedBlock>> { newConditionalBlock }.ToImmutableArray(),
+                        QsNullable<QsPositionedBlock>.Null);
                     statements.RemoveAt(statements.Count - 1);
                     statements.Add(new QsStatement(
                         QsStatementKind.NewQsConditionalStatement(newConditionalStatement),
@@ -198,36 +200,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     }
 
                     return false;
-                }
-
-                private class BasicVariableComparer : IEqualityComparer<LocalVariableDeclaration<string>>
-                {
-                    public bool Equals(LocalVariableDeclaration<string> rhs, LocalVariableDeclaration<string> lhs)
-                    {
-                        if (ReferenceEquals(lhs, rhs))
-                        {
-                            return true;
-                        }
-
-                        if (lhs == null || rhs == null)
-                        {
-                            return false;
-                        }
-
-                        return lhs.VariableName == rhs.VariableName && lhs.Type == rhs.Type;
-                    }
-
-                    public int GetHashCode(LocalVariableDeclaration<string> variableDeclaration)
-                    {
-                        if (variableDeclaration == null)
-                        {
-                            return 0;
-                        }
-
-                        int hashName = variableDeclaration.VariableName.GetHashCode();
-                        int hashType = variableDeclaration.Type.GetHashCode();
-                        return hashName ^ hashType;
-                    }
                 }
            }
         }
