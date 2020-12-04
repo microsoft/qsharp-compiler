@@ -58,17 +58,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.context.SetCurrentCallable(c);
-            return base.OnCallableDeclaration(c);
+            c = base.OnCallableDeclaration(c);
+            this.context.SetCurrentCallable(null);
+            return c;
         }
 
         public override void OnExternalImplementation()
         {
-            this.SharedState.RegisterFunction(this.context.GetCurrentSpecialization(), this.context.GetCurrentCallable().ArgumentTuple);
+            this.SharedState.RegisterFunction(
+                this.context.GetCurrentSpecialization(),
+                this.context.GetCurrentCallable().ArgumentTuple);
         }
 
         public override void OnIntrinsicImplementation()
         {
-            this.SharedState.RegisterFunction(this.context.GetCurrentSpecialization(), this.context.GetCurrentCallable().ArgumentTuple);
+            this.SharedState.RegisterFunction(
+                this.context.GetCurrentSpecialization(),
+                this.context.GetCurrentCallable().ArgumentTuple);
         }
 
         public override Tuple<QsArgumentTuple, QsScope> OnProvidedImplementation(QsArgumentTuple argTuple, QsScope body)
@@ -77,21 +83,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple);
             this.Transformation.Statements.OnScope(body);
             this.SharedState.EndFunction();
-            this.context.SetCurrentSpecialization(null);
-            return new Tuple<QsArgumentTuple, QsScope>(argTuple, body);
+            return Tuple.Create(argTuple, body);
         }
 
         public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec)
         {
             this.context.SetCurrentSpecialization(spec);
-            return base.OnSpecializationDeclaration(spec);
+            spec = base.OnSpecializationDeclaration(spec);
+            this.context.SetCurrentSpecialization(null);
+            return spec;
         }
 
         public override QsCustomType OnTypeDeclaration(QsCustomType t)
         {
             // Generate the type constructor
             this.SharedState.GenerateConstructor(t);
-
             return base.OnTypeDeclaration(t);
         }
     }
