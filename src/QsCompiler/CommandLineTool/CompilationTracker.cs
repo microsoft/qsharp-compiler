@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Represents the name of the parent compilation task.
             /// </summary>
-            public readonly string ParentName;
+            public readonly string? ParentName;
 
             /// <summary>
             /// Represents the name of the compilation task.
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
             /// </summary>
-            internal static string GenerateKey(string parentName, string name)
+            internal static string GenerateKey(string? parentName, string name)
             {
                 return string.Format("{0}.{1}", parentName ?? "ROOT", name);
             }
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Creates a compilation task object and starts its stopwatch.
             /// </summary>
-            public CompilationTask(string parentName, string name)
+            public CompilationTask(string? parentName, string name)
             {
                 this.ParentName = parentName;
                 this.Name = name;
@@ -107,10 +107,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 this.Children = new Dictionary<string, CompilationTaskNode>();
             }
 
-            public void WriteToJson(Utf8JsonWriter jsonWriter, string prefix)
+            public void WriteToJson(Utf8JsonWriter jsonWriter, string? prefix)
             {
                 var preparedPrefix = "";
-                if (!string.IsNullOrEmpty(prefix)) {
+                if (!string.IsNullOrEmpty(prefix))
+                {
                     preparedPrefix = $"{prefix}.";
                 }
 
@@ -300,9 +301,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         /// <summary>
         /// Publishes the results to text files in the specified folder.
-        /// Throws an IOException if the specified output folder is a file path.
-        /// Throws a NotSupportedException if the path to the output folder is malformed.
         /// </summary>
+        /// <exception cref="NotSupportedException"><paramref name="outputFolder"/> is malformed.</exception>
+        /// <exception cref="IOException"><paramref name="outputFolder"/> is a file path.</exception>
         public static void PublishResults(string outputFolder)
         {
             var compilationProcessesForest = BuildCompilationTasksHierarchy();

@@ -9,7 +9,6 @@ open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -21,7 +20,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Specifically, the tracked properties are pushed and popped for each scope. 
 type private TrackedScope = private {
     /// used to track all local variables defined on this scope, as well as their inferred information
-    LocalVariables : Dictionary<NonNullable<string>, LocalVariableDeclaration<NonNullable<string>>>
+    LocalVariables : Dictionary<string, LocalVariableDeclaration<string>>
     /// contains the set of functors that each operation called on this scope needs to support
     RequiredFunctorSupport : ImmutableHashSet<QsFunctor>
 }
@@ -80,7 +79,7 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// If a local variable with the given name is visible on the current scope, 
     /// returns the dictionary that contains its declaration as Value.
     /// Returns Null otherwise. 
-    let localVariableWithName (name : NonNullable<string>) = 
+    let localVariableWithName name =
         let rec varDecl = function 
             | [] -> Null
             | (head : TrackedScope) :: _ when head.LocalVariables.ContainsKey name -> Value head.LocalVariables
@@ -91,7 +90,7 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// returns a its its header information as Value. Returns Null otherwise.  
     /// If no namespace is specified, the namespace resolution is done under the assumption that the unqualified name is used within the 
     /// source file, namespace, and callable associated with this symbol tracker instance. 
-    let globalTypeWithName (ns, name : NonNullable<string>) = ns |> function
+    let globalTypeWithName (ns, name) = ns |> function
         | None -> GlobalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
         | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile)
 
@@ -99,7 +98,7 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// returns a its header information as Value. Returns Null otherwise. 
     /// If no namespace is specified, the namespace resolution is done under the assumption that the unqualified name is used within the 
     /// source file, namespace, and callable associated with this symbol tracker instance. 
-    let globalCallableWithName (ns, name : NonNullable<string>) = ns |> function
+    let globalCallableWithName (ns, name) = ns |> function
         | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile) 
         | Some nsName -> GlobalSymbols().TryGetCallable (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile)
 
@@ -149,11 +148,11 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// Returns true and an empty array of diagnostics if the declaration has been successfully added, 
     /// and returns false as well as an array with diagnostics otherwise. 
     /// Throws an InvalidOperationException if no scope is currently open.
-    member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<NonNullable<string>>) =
+    member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<string>) =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
-        if (globalTypeWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName.Value]) |]
-        elif (globalCallableWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, [decl.VariableName.Value]) |]
-        elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, [decl.VariableName.Value]) |]
+        if (globalTypeWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName]) |]
+        elif (globalCallableWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, [decl.VariableName]) |]
+        elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, [decl.VariableName]) |]
         else pushedScopes.Head.LocalVariables.Add(decl.VariableName, decl); true, [||]
 
     /// If the variable name in the given variable declaration is valid, 
@@ -204,9 +203,16 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
             let properties = (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
-        let buildCallable kind fullName (decl : ResolvedSignature) attributes = 
-            let deprecated = attributes |> SymbolResolution.TryFindRedirect |> SymbolResolution.GenerateDeprecationWarning (fullName, qsSym.RangeOrDefault)
-            for msg in deprecated do msg |> addDiagnostic
+        let buildCallable kind fullName (decl : ResolvedSignature) attributes =
+            // if parent is deprecated, no longer generate warning
+            let parentAttrs =
+                match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
+                | Found decl -> decl.Attributes
+                | _ -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise
+            if not (Seq.exists BuiltIn.MarksDeprecation parentAttrs) then
+                SymbolResolution.TryFindRedirect attributes
+                |> SymbolResolution.GenerateDeprecationWarning (fullName, qsSym.RangeOrDefault)
+                |> Array.iter addDiagnostic
             let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
@@ -215,21 +221,21 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
             qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error (code, args) |> addDiagnostic
             invalid
 
-        let resolveGlobal (ns : NonNullable<string> option, sym : NonNullable<string>) input =
+        let resolveGlobal (ns, sym) input =
             match input with
             | Found (decl : CallableDeclarationHeader) -> decl.Kind |> function
                 | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
                 | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
             | Ambiguous possibilities ->
-                let possibleNames = String.Join(", ", possibilities |> Seq.map (fun nsName -> nsName.Value))
-                addDiagnosticForSymbol ErrorCode.AmbiguousCallable [sym.Value; possibleNames]
+                let possibleNames = String.Join(", ", possibilities)
+                addDiagnosticForSymbol ErrorCode.AmbiguousCallable [sym; possibleNames]
             | Inaccessible ->
                 match ns with
-                | None -> addDiagnosticForSymbol ErrorCode.InaccessibleCallable [sym.Value]
-                | Some ns -> addDiagnosticForSymbol ErrorCode.InaccessibleCallableInNamespace [sym.Value; ns.Value]
-            | NotFound -> addDiagnosticForSymbol ErrorCode.UnknownIdentifier [sym.Value]
-        
+                | None -> addDiagnosticForSymbol ErrorCode.InaccessibleCallable [sym]
+                | Some ns -> addDiagnosticForSymbol ErrorCode.InaccessibleCallableInNamespace [sym; ns]
+            | NotFound -> addDiagnosticForSymbol ErrorCode.UnknownIdentifier [sym]
+
         let resolveNative sym =
             match localVariableWithName sym with 
             | Value dict ->
@@ -259,7 +265,7 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
         | Found decl -> Value decl
         | _ ->
             // may occur when the return type of a referenced callable is defined in an assembly that is not referenced
-            addError (ErrorCode.IndirectlyReferencedExpressionType, [sprintf "%s.%s" udt.Namespace.Value udt.Name.Value])
+            addError (ErrorCode.IndirectlyReferencedExpressionType, [sprintf "%s.%s" udt.Namespace udt.Name])
             Null
 
     /// Given the fully qualified name of a user defined type, returns its underlying type where all range information is stripped.
@@ -273,31 +279,41 @@ type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedN
     /// returns the type of the item where all range information is stripped.
     /// Adds a suitable diagnostic and returns an invalid type if the item type could not be determined.
     member this.GetItemType (item : Identifier) addError (udt : UserDefinedType) = 
-        let namedWithName name = function | Named n when n.VariableName.Value = name -> Some n | _ -> None
+        let namedWithName name = function | Named n when n.VariableName = name -> Some n | _ -> None
         match this.TryGetTypeDeclaration addError udt with
         | Null -> InvalidType |> ResolvedType.New 
         | Value decl -> item |> function 
             | InvalidIdentifier -> InvalidType |> ResolvedType.New
             | GlobalCallable _ -> addError (ErrorCode.ExpectingItemName, []); InvalidType |> ResolvedType.New
-            | LocalVariable name -> decl.TypeItems.Items |> Seq.choose (namedWithName name.Value) |> Seq.toList |> function
+            | LocalVariable name -> decl.TypeItems.Items |> Seq.choose (namedWithName name) |> Seq.toList |> function
                 | [itemDecl] -> itemDecl.Type |> StripPositionInfo.Apply
-                | _ -> addError (ErrorCode.UnknownItemName, [udt.Name.Value; name.Value]); InvalidType |> ResolvedType.New
+                | _ -> addError (ErrorCode.UnknownItemName, [udt.Name; name]); InvalidType |> ResolvedType.New
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
-    { /// The symbol tracker for the parent callable.
+    // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
+
+    { /// The namespace manager for global symbols.
+      Globals : NamespaceManager
+
+      /// The symbol tracker for the parent callable.
       Symbols : SymbolTracker
+
       /// True if the parent callable for the current scope is an operation.
       IsInOperation : bool
+
       /// True if the current expression is contained within the condition of an if- or elif-statement.
+      [<Obsolete>]
       IsInIfCondition : bool
+
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
-      /// The runtime capabilities for the compilation unit.
-      Capabilities : RuntimeCapabilities
+
+      /// The runtime capability of the compilation unit.
+      Capability : RuntimeCapability
+
       /// The name of the processor architecture for the compilation unit.
-      ProcessorArchitecture : NonNullable<string> }
-    with
+      ProcessorArchitecture : string }
 
     /// <summary>
     /// Creates a scope context for the specialization.
@@ -310,20 +326,20 @@ type ScopeContext =
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
     /// not exist in the given namespace manager.
     /// </exception>
-    static member Create (nsManager : NamespaceManager)
-                         capabilities
-                         processorArchitecture
-                         (spec : SpecializationDeclarationHeader) =
+    static member Create
+        (nsManager : NamespaceManager) capability processorArchitecture (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
-            { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
+            { Globals = nsManager
+              Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
               IsInIfCondition = false
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capabilities = capabilities
+              Capability = capability
               ProcessorArchitecture = processorArchitecture }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
 
     /// Returns a new scope context for an expression that is contained within the condition of an if- or
     /// elif-statement.
+    [<Obsolete>]
     member this.WithinIfCondition = { this with IsInIfCondition = true }

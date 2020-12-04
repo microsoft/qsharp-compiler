@@ -1151,6 +1151,15 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         DeprecatedCallable();
     }
 
+    @ Deprecated("nested")
+    function NestedDeprecatedCallable() : Unit {
+        DeprecatedCallable();
+    }
+
+    function UsingNestedDeprecatedCallable() : Unit {
+        NestedDeprecatedCallable();
+    }
+
     function UsingRenamedCallable () : Unit {
         RenamedCallable();
     }
@@ -1164,6 +1173,24 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     @ DeprecatedAttribute()
     newtype UsingDeprecatedAttribute3 = Unit;
+
+    @ Deprecated("")
+    function DeprecatedAttributeInDeprecatedCallable() : Unit {
+        UsingDeprecatedAttribute1();
+    }
+
+    function UsingDepAttrInDepCall() : Unit {
+        DeprecatedAttributeInDeprecatedCallable();
+    }
+
+    @ Deprecated("")
+    function DeprecatedTypeInDeprecatedCallable() : Unit {
+        let _ = DeprecatedType();
+    }
+
+    function UsingDepTypeInDepCall() : Unit {
+        DeprecatedTypeInDeprecatedCallable();
+    }
 
     @ RenamedAttribute()
     function UsingRenamedAttribute1 () : Unit {}

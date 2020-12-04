@@ -125,7 +125,7 @@ let AllPathsReturnValueOrFail body =
 /// Returns a lookup that contains the generated diagnostics and their positions for each file.
 /// Throws an ArgumentException if the location for a generated diagnostic cannot be determined. 
 let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHeader>) = 
-    let diagnostics = new List<(Position * NonNullable<string>) * _>()
+    let diagnostics = List<_> ()
     let getLocation (header: TypeDeclarationHeader) = 
         header.Location.ValueOrApply (fun _ -> ArgumentException "The given type header contains no location information." |> raise)
 

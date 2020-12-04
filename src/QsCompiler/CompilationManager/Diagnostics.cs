@@ -79,16 +79,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable Diagnostic from the given CompilerDiagnostic returned by the Q# compiler.
         /// The message range contained in the given CompilerDiagnostic is first converted to a Position object,
         /// and then added to the given positionOffset if the latter is not null.
-        /// Throws an ArgumentNullException if the Range of the given CompilerDiagnostic is null.
-        /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
-        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position positionOffset = null)
-        {
-            if (msg.Range == null)
-            {
-                throw new ArgumentNullException(nameof(msg.Range));
-            }
-            return new Diagnostic
+        /// <exception cref="ArgumentOutOfRangeException">The contained range contains zero or negative entries, or its Start is bigger than its End.</exception>
+        internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null) =>
+            new Diagnostic
             {
                 Severity = Severity(msg),
                 Code = Code(msg),
@@ -96,14 +90,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Message = msg.Message,
                 Range = ((positionOffset ?? Position.Zero) + msg.Range).ToLsp()
             };
-        }
 
         internal const string QsCodePrefix = "QS";
 
         public static bool TryGetCode(string str, out int code)
         {
             code = -1;
-            str = str?.Trim();
+            str = str?.Trim() ?? "";
             return !string.IsNullOrWhiteSpace(str) &&
                 str.StartsWith(QsCodePrefix, StringComparison.InvariantCultureIgnoreCase) &&
                 int.TryParse(str.Substring(2), out code);
@@ -129,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // warnings 70**
 
-        public static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string? source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
@@ -164,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // errors 70**
 
-        public static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string? source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,

@@ -19,25 +19,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using SpecializationBundle = Dictionary<
+        QsNullable<ImmutableArray<ResolvedType>>,
+        ImmutableDictionary<QsSpecializationKind, QsSpecialization>>;
 
     /// <summary>
     /// Class used to represent contextual information for expression transformations.
     /// </summary>
     public class TransformationContext
     {
-        public string CurrentNamespace;
-        public ImmutableHashSet<NonNullable<string>> OpenedNamespaces;
-        public ImmutableDictionary<NonNullable<string>, NonNullable<string>> NamespaceShortNames; // mapping namespace names to their short names
-        public ImmutableHashSet<NonNullable<string>> SymbolsInCurrentNamespace;
-        public ImmutableHashSet<NonNullable<string>> AmbiguousNames;
+        public string? CurrentNamespace;
+        public ImmutableHashSet<string> OpenedNamespaces;
+        public ImmutableDictionary<string, string> NamespaceShortNames; // mapping namespace names to their short names
+        public ImmutableHashSet<string> SymbolsInCurrentNamespace;
+        public ImmutableHashSet<string> AmbiguousNames;
 
         public TransformationContext()
         {
             this.CurrentNamespace = null;
-            this.OpenedNamespaces = ImmutableHashSet<NonNullable<string>>.Empty;
-            this.NamespaceShortNames = ImmutableDictionary<NonNullable<string>, NonNullable<string>>.Empty;
-            this.SymbolsInCurrentNamespace = ImmutableHashSet<NonNullable<string>>.Empty;
-            this.AmbiguousNames = ImmutableHashSet<NonNullable<string>>.Empty;
+            this.OpenedNamespaces = ImmutableHashSet<string>.Empty;
+            this.NamespaceShortNames = ImmutableDictionary<string, string>.Empty;
+            this.SymbolsInCurrentNamespace = ImmutableHashSet<string>.Empty;
+            this.AmbiguousNames = ImmutableHashSet<string>.Empty;
         }
     }
 
@@ -59,25 +62,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public class TransformationState
         {
-            public Action BeforeInvalidType = null;
-            public Action BeforeInvalidSet = null;
-            public Action BeforeInvalidIdentifier = null;
-            public Action BeforeInvalidExpression = null;
-            public Action BeforeInvalidSymbol = null;
-            public Action BeforeInvalidInitializer = null;
-            public Action BeforeExternalImplementation = null;
-            public Action BeforeInvalidFunctorGenerator = null;
+            public Action? BeforeInvalidType = null;
+            public Action? BeforeInvalidSet = null;
+            public Action? BeforeInvalidIdentifier = null;
+            public Action? BeforeInvalidExpression = null;
+            public Action? BeforeInvalidSymbol = null;
+            public Action? BeforeInvalidInitializer = null;
+            public Action? BeforeExternalImplementation = null;
+            public Action? BeforeInvalidFunctorGenerator = null;
 
-            internal string TypeOutputHandle = null;
-            internal string ExpressionOutputHandle = null;
+            internal string? TypeOutputHandle = null;
+            internal string? ExpressionOutputHandle = null;
             internal readonly List<string> StatementOutputHandle = new List<string>();
             internal readonly List<string> NamespaceOutputHandle = new List<string>();
 
             internal QsComments StatementComments = QsComments.Empty;
             internal TransformationContext Context;
-            internal IEnumerable<string> NamespaceDocumentation = null;
+            internal IEnumerable<string>? NamespaceDocumentation = null;
 
-            public TransformationState(TransformationContext context = null) =>
+            public TransformationState(TransformationContext? context = null) =>
                 this.Context = context ?? new TransformationContext();
 
             internal static bool PrecededByCode(IEnumerable<string> output) =>
@@ -98,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
         }
 
-        public SyntaxTreeToQsharp(TransformationContext context = null)
+        public SyntaxTreeToQsharp(TransformationContext? context = null)
         : base(new TransformationState(context), TransformationOptions.NoRebuild)
         {
             this.Types = new TypeTransformation(this);
@@ -113,20 +116,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public static SyntaxTreeToQsharp Default =>
             new SyntaxTreeToQsharp();
 
-        public string ToCode(ResolvedType t)
+        public string? ToCode(ResolvedType t)
         {
             this.Types.OnType(t);
             return this.SharedState.TypeOutputHandle;
         }
 
-        public string ToCode(QsExpressionKind k)
+        public string? ToCode(QsExpressionKind k)
         {
             this.ExpressionKinds.OnExpressionKind(k);
             return this.SharedState.ExpressionOutputHandle;
         }
 
-        public string ToCode(TypedExpression ex) =>
+        public string? ToCode(TypedExpression ex) =>
             this.ToCode(ex.Expression);
+
+        public string ToCode(QsCustomType type)
+        {
+            var nrPreexistingLines = this.SharedState.NamespaceOutputHandle.Count;
+            this.Namespaces.OnTypeDeclaration(type);
+            return string.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
+        }
 
         public string ToCode(QsStatementKind stmKind)
         {
@@ -145,20 +155,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return string.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
         }
 
-        public static string CharacteristicsExpression(ResolvedCharacteristics characteristics) =>
+        public static string? CharacteristicsExpression(ResolvedCharacteristics characteristics) =>
             TypeTransformation.CharacteristicsExpression(characteristics);
 
         public static string ArgumentTuple(
                 QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
-                Func<ResolvedType, string> typeTransformation,
-                Action onInvalidName = null,
+                Func<ResolvedType, string?> typeTransformation,
+                Action? onInvalidName = null,
                 bool symbolsOnly = false) =>
             NamespaceTransformation.ArgumentTuple(arg, item => (NamespaceTransformation.SymbolName(item.VariableName, onInvalidName), item.Type), typeTransformation, symbolsOnly);
 
-        public static string DeclarationSignature(QsCallable c, Func<ResolvedType, string> typeTransformation, Action onInvalidName = null)
+        public static string DeclarationSignature(QsCallable c, Func<ResolvedType, string?> typeTransformation, Action? onInvalidName = null)
         {
             var argTuple = ArgumentTuple(c.ArgumentTuple, typeTransformation, onInvalidName);
-            return $"{c.FullName.Name.Value}{NamespaceTransformation.TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
+            return $"{c.FullName.Name}{NamespaceTransformation.TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
         }
 
         /// <summary>
@@ -166,28 +176,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// generates a dictionary that maps (the name of) each partial namespace contained in the file
         /// to a string containing the formatted Q# code for the part of the namespace.
         /// Qualified or unqualified names for types and identifiers are generated based on the given namespace and open directives.
-        /// Throws an ArgumentNullException if the given namespace is null.
         /// -> IMPORTANT: The given namespace is expected to contain *all* elements in that namespace for the *entire* compilation unit!
         /// </summary>
         public static bool Apply(
-            out List<ImmutableDictionary<NonNullable<string>, string>> generatedCode,
+            out List<ImmutableDictionary<string, string>> generatedCode,
             IEnumerable<QsNamespace> namespaces,
-            params (NonNullable<string>, ImmutableDictionary<NonNullable<string>, ImmutableArray<(NonNullable<string>, string)>>)[] openDirectives)
+            params (string, ImmutableDictionary<string, ImmutableArray<(string, string?)>>)[] openDirectives)
         {
-            if (namespaces == null)
-            {
-                throw new ArgumentNullException(nameof(namespaces));
-            }
-
-            generatedCode = new List<ImmutableDictionary<NonNullable<string>, string>>();
+            generatedCode = new List<ImmutableDictionary<string, string>>();
             var symbolsInNS = namespaces.ToImmutableDictionary(ns => ns.Name, ns => ns.Elements
-                .Select(element => (element is QsNamespaceElement.QsCallable c) ? c.Item.FullName.Name.Value : null)
-                .Where(name => name != null).Select(name => NonNullable<string>.New(name)).ToImmutableHashSet());
+                .SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name)
+                .ToImmutableHashSet());
 
             var success = true;
             foreach (var (sourceFile, imports) in openDirectives)
             {
-                var nsInFile = new Dictionary<NonNullable<string>, string>();
+                var nsInFile = new Dictionary<string, string>();
                 foreach (var ns in namespaces)
                 {
                     var tree = FilterBySourceFile.Apply(ns, sourceFile);
@@ -204,10 +208,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         .Select(group => group.Key).ToImmutableHashSet();
 
                     var openedNS = imports[ns.Name].Where(o => o.Item2 == null).Select(o => o.Item1).ToImmutableHashSet();
-                    var nsShortNames = imports[ns.Name].Where(o => o.Item2 != null).ToImmutableDictionary(o => o.Item1, o => NonNullable<string>.New(o.Item2));
+                    var nsShortNames = imports[ns.Name]
+                        .SelectNotNull(o => o.Item2?.Apply(item2 => (o.Item1, item2)))
+                        .ToImmutableDictionary(o => o.Item1, o => o.Item2);
                     var context = new TransformationContext
                     {
-                        CurrentNamespace = ns.Name.Value,
+                        CurrentNamespace = ns.Name,
                         OpenedNamespaces = openedNS,
                         NamespaceShortNames = nsShortNames,
                         SymbolsInCurrentNamespace = symbolsInNS[ns.Name],
@@ -242,9 +248,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public class TypeTransformation
         : TypeTransformation<TransformationState>
         {
-            private readonly Func<ResolvedType, string> typeToQs;
+            private readonly Func<ResolvedType, string?> typeToQs;
 
-            protected string Output // the sole purpose of this is a shorter name ...
+            protected string? Output // the sole purpose of this is a shorter name ...
             {
                 get => this.SharedState.TypeOutputHandle;
                 set => this.SharedState.TypeOutputHandle = value;
@@ -264,7 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // internal static methods
 
-            internal static string CharacteristicsExpression(ResolvedCharacteristics characteristics, Action onInvalidSet = null)
+            internal static string? CharacteristicsExpression(ResolvedCharacteristics characteristics, Action? onInvalidSet = null)
             {
                 int currentPrecedence = 0;
                 string SetPrecedenceAndReturn(int prec, string str)
@@ -286,7 +292,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     if (charEx.Expression is CharacteristicsKind<ResolvedCharacteristics>.SimpleSet set)
                     {
-                        string setName = null;
+                        string setName;
                         if (set.Item.IsAdjointable)
                         {
                             setName = Keywords.qsAdjSet.id;
@@ -427,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
-                this.Output = $"'{tp.TypeName.Value}";
+                this.Output = $"'{tp.TypeName}";
                 return QsTypeKind.NewTypeParameter(tp);
             }
 
@@ -441,12 +447,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
-                var isInCurrentNamespace = udt.Namespace.Value == this.SharedState.Context.CurrentNamespace;
+                var isInCurrentNamespace = udt.Namespace == this.SharedState.Context.CurrentNamespace;
                 var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(udt.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
                 var hasShortName = this.SharedState.Context.NamespaceShortNames.TryGetValue(udt.Namespace, out var shortName);
                 this.Output = isInCurrentNamespace || (isInOpenNamespace && !this.SharedState.Context.AmbiguousNames.Contains(udt.Name))
-                    ? udt.Name.Value
-                    : $"{(hasShortName ? shortName.Value : udt.Namespace.Value)}.{udt.Name.Value}";
+                    ? udt.Name
+                    : $"{(hasShortName ? shortName : udt.Namespace)}.{udt.Name}";
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
@@ -481,9 +487,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private static readonly Regex InterpolationArg =
                 new Regex(@"(?<!\\)\{[0-9]+\}");
 
-            private readonly Func<ResolvedType, string> typeToQs;
+            private readonly Func<ResolvedType, string?> typeToQs;
 
-            protected string Output // the sole purpose of this is a shorter name ...
+            protected string? Output // the sole purpose of this is a shorter name ...
             {
                 get => this.SharedState.ExpressionOutputHandle;
                 set => this.SharedState.ExpressionOutputHandle = value;
@@ -498,11 +504,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private static string ReplaceInterpolatedArgs(string text, Func<int, string> replace)
             {
                 var itemNr = 0;
-                string ReplaceMatch(Match m) => replace?.Invoke(itemNr++);
+                string ReplaceMatch(Match m) => replace.Invoke(itemNr++);
                 return InterpolationArg.Replace(text, ReplaceMatch);
             }
 
-            private string Recur(int prec, TypedExpression ex)
+            private string? Recur(int prec, TypedExpression ex)
             {
                 this.Transformation.Expressions.OnTypedExpression(ex);
                 return prec < this.currentPrecedence || this.currentPrecedence == int.MaxValue // need to cover the case where prec = currentPrec = MaxValue
@@ -865,10 +871,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnStringLiteral(NonNullable<string> s, ImmutableArray<TypedExpression> exs)
+            public override QsExpressionKind OnStringLiteral(string s, ImmutableArray<TypedExpression> exs)
             {
                 string InterpolatedArg(int index) => $"{{{this.Recur(int.MinValue, exs[index])}}}";
-                this.Output = exs.Length == 0 ? $"\"{s.Value}\"" : $"$\"{ReplaceInterpolatedArgs(s.Value, InterpolatedArg)}\"";
+                this.Output = exs.Length == 0 ? $"\"{s}\"" : $"$\"{ReplaceInterpolatedArgs(s, InterpolatedArg)}\"";
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewStringLiteral(s, exs);
             }
@@ -934,7 +940,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 if (sym is Identifier.LocalVariable loc)
                 {
-                    this.Output = loc.Item.Value;
+                    this.Output = loc.Item;
                 }
                 else if (sym.IsInvalidIdentifier)
                 {
@@ -943,12 +949,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
                 else if (sym is Identifier.GlobalCallable global)
                 {
-                    var isInCurrentNamespace = global.Item.Namespace.Value == this.SharedState.Context.CurrentNamespace;
+                    var isInCurrentNamespace = global.Item.Namespace == this.SharedState.Context.CurrentNamespace;
                     var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(global.Item.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(global.Item.Name);
                     var hasShortName = this.SharedState.Context.NamespaceShortNames.TryGetValue(global.Item.Namespace, out var shortName);
                     this.Output = isInCurrentNamespace || (isInOpenNamespace && !this.SharedState.Context.AmbiguousNames.Contains(global.Item.Name))
-                        ? global.Item.Name.Value
-                        : $"{(hasShortName ? shortName.Value : global.Item.Namespace.Value)}.{global.Item.Name.Value}";
+                        ? global.Item.Name
+                        : $"{(hasShortName ? shortName : global.Item.Namespace)}.{global.Item.Name}";
                 }
                 else
                 {
@@ -975,7 +981,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         {
             private int currentIndendation = 0;
 
-            private readonly Func<TypedExpression, string> expressionToQs;
+            private readonly Func<TypedExpression, string?> expressionToQs;
 
             private bool PrecededByCode =>
                 TransformationState.PrecededByCode(this.SharedState.StatementOutputHandle);
@@ -1006,7 +1012,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
             }
 
-            private void AddStatement(string stm)
+            private void AddStatement(string? stm)
             {
                 var comments = this.SharedState.StatementComments;
                 if (this.PrecededByBlock || (this.PrecededByCode && comments.OpeningComments.Length != 0))
@@ -1046,7 +1052,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
                 else if (sym is SymbolTuple.VariableName name)
                 {
-                    return name.Item.Value;
+                    return name.Item;
                 }
                 else if (sym is SymbolTuple.VariableNameTuple tuple)
                 {
@@ -1251,12 +1257,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         : NamespaceTransformation<TransformationState>
         {
             private int currentIndendation = 0;
-            private string currentSpecialization = null;
+            private string? currentSpecialization = null;
             private int nrSpecialzations = 0;
 
             private QsComments declarationComments = QsComments.Empty;
 
-            private readonly Func<ResolvedType, string> typeToQs;
+            private readonly Func<ResolvedType, string?> typeToQs;
 
             private List<string> Output => // the sole purpose of this is a shorter name ...
                 this.SharedState.NamespaceOutputHandle;
@@ -1289,7 +1295,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddToOutput($"{str};");
             }
 
-            private void AddDocumentation(IEnumerable<string> doc)
+            private void AddDocumentation(IEnumerable<string>? doc)
             {
                 if (doc == null)
                 {
@@ -1342,11 +1348,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // internal static methods
 
-            internal static string SymbolName(QsLocalSymbol sym, Action onInvalidName)
+            internal static string SymbolName(QsLocalSymbol sym, Action? onInvalidName)
             {
                 if (sym is QsLocalSymbol.ValidName n)
                 {
-                    return n.Item.Value;
+                    return n.Item;
                 }
                 else if (sym.IsInvalidName)
                 {
@@ -1359,7 +1365,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
             }
 
-            internal static string TypeParameters(ResolvedSignature sign, Action onInvalidName)
+            internal static string TypeParameters(ResolvedSignature sign, Action? onInvalidName)
             {
                 if (sign.TypeParameters.IsEmpty)
                 {
@@ -1370,8 +1376,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             internal static string ArgumentTuple<T>(
                 QsTuple<T> arg,
-                Func<T, (string, ResolvedType)> getItemNameAndType,
-                Func<ResolvedType, string> typeTransformation,
+                Func<T, (string?, ResolvedType)> getItemNameAndType,
+                Func<ResolvedType, string?> typeTransformation,
                 bool symbolsOnly = false)
             {
                 if (arg is QsTuple<T>.QsTuple t)
@@ -1538,7 +1544,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var characteristics = this.SharedState.TypeOutputHandle;
 
                 var userDefinedSpecs = c.Specializations.Where(spec => spec.Implementation.IsProvided);
-                var specBundles = SpecializationBundleProperties.Bundle(spec => spec.TypeArguments, spec => spec.Kind, userDefinedSpecs);
+                SpecializationBundle specBundles = SpecializationBundleProperties.Bundle(spec => spec.TypeArguments, spec => spec.Kind, userDefinedSpecs);
                 bool NeedsToBeExplicit(QsSpecialization s)
                 {
                     if (s.Kind.IsQsBody)
@@ -1610,11 +1616,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     this.OnAttribute(attribute);
                 }
 
-                (string, ResolvedType) GetItemNameAndType(QsTypeItem item)
+                (string?, ResolvedType) GetItemNameAndType(QsTypeItem item)
                 {
                     if (item is QsTypeItem.Named named)
                     {
-                        return (named.Item.VariableName.Value, named.Item.Type);
+                        return (named.Item.VariableName, named.Item.Type);
                     }
                     else if (item is QsTypeItem.Anonymous type)
                     {
@@ -1626,7 +1632,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     }
                 }
                 var udtTuple = ArgumentTuple(t.TypeItems, GetItemNameAndType, this.typeToQs);
-                this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
+                this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name} = {udtTuple}");
                 return t;
             }
 
@@ -1649,15 +1655,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
-                if (this.SharedState.Context.CurrentNamespace != ns.Name.Value)
+                if (this.SharedState.Context.CurrentNamespace != ns.Name)
                 {
                     this.SharedState.Context =
-                        new TransformationContext { CurrentNamespace = ns.Name.Value };
+                        new TransformationContext { CurrentNamespace = ns.Name };
                     this.SharedState.NamespaceDocumentation = null;
                 }
 
                 this.AddDocumentation(this.SharedState.NamespaceDocumentation);
-                this.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
+                this.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name}");
                 this.AddBlock(() =>
                 {
                     var context = this.SharedState.Context;
@@ -1668,11 +1674,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     }
                     foreach (var nsName in explicitImports.OrderBy(name => name))
                     {
-                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}");
+                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName}");
                     }
                     foreach (var kv in context.NamespaceShortNames.OrderBy(pair => pair.Key))
                     {
-                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key.Value} {Keywords.importedAs.id} {kv.Value.Value}");
+                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key} {Keywords.importedAs.id} {kv.Value}");
                     }
                     if (explicitImports.Any() || context.NamespaceShortNames.Any())
                     {

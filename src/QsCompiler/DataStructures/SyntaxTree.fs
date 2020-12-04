@@ -63,20 +63,20 @@ type QsQubitScopeKind =
 /// used to represent a qualified name within Q# - i.e. a namespace name followed by a symbol name
 type QsQualifiedName = {
     /// the name of the namespace in which a namespace element is declared
-    Namespace : NonNullable<string>
+    Namespace : string
     /// the declared name of the namespace element
-    Name : NonNullable<string>
+    Name : string
 }
     with
     override this.ToString () =
-        sprintf "%s.%s" this.Namespace.Value this.Name.Value
+        sprintf "%s.%s" this.Namespace this.Name
 
 
 type SymbolTuple =
 /// indicates in invalid variable name
 | InvalidItem
 /// indicates a valid Q# variable name
-| VariableName of NonNullable<string>
+| VariableName of string
 /// indicates a tuple of Q# variable names or (nested) tuples of variable names
 | VariableNameTuple of ImmutableArray<SymbolTuple>
 /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
@@ -97,7 +97,7 @@ type QsBinding<'T> = {
 
 type Identifier =
 /// an identifier referring to a locally declared variable visible on the current scope
-| LocalVariable of NonNullable<string>
+| LocalVariable of string
 /// in identifier referring to a globally declared callable -> note that type names are *not* represented as identifiers
 | GlobalCallable of QsQualifiedName
 /// an identifier of unknown origin - i.e. the identifier could not be associated with any globally declared callable or local variable
@@ -121,7 +121,7 @@ type QsTypeParameter = {
     /// the qualified name of the callable the type parameter belongs to
     Origin : QsQualifiedName
     /// the name of the type parameter
-    TypeName : NonNullable<string>
+    TypeName : string
     /// the range at which the type parameter occurs relative to the statement (or partial statement) root
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsNullable<Range>
@@ -131,9 +131,9 @@ type QsTypeParameter = {
 /// used to represent the use of a user defined type within a fully resolved Q# type
 type UserDefinedType = {
     /// the name of the namespace in which the type is declared
-    Namespace : NonNullable<string>
+    Namespace : string
     /// the name of the declared type
-    Name : NonNullable<string>
+    Name : string
     /// the range at which the type occurs relative to the statement (or partial statement) root
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsNullable<Range>
@@ -347,7 +347,7 @@ type TypedExpression = {
     /// contains all type arguments implicitly or explicitly determined by the expression,
     /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression,
     /// or who have explicitly been resolved by provided type arguments
-    TypeArguments : ImmutableArray<QsQualifiedName * NonNullable<string> * ResolvedType>
+    TypeArguments : ImmutableArray<QsQualifiedName * string * ResolvedType>
     /// the type of the expression after applying the type arguments
     ResolvedType : ResolvedType
     /// contains information generated and/or tracked by the compiler
@@ -435,7 +435,7 @@ type LocalVariableDeclaration<'Name> = {
 /// used to attach information about which symbols are declared to each scope and statement
 type LocalDeclarations = { // keeping things here as arrays for resource reasons
     /// contains all declared variables
-    Variables : ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>
+    Variables : ImmutableArray<LocalVariableDeclaration<string>>
 }
     with
     member this.IsEmpty = this.Variables.Length = 0
@@ -589,7 +589,7 @@ and QsStatement = {
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable
 type QsLocalSymbol =
-| ValidName of NonNullable<string>
+| ValidName of string
 | InvalidName
 
 
@@ -646,7 +646,7 @@ type QsSpecialization = {
     /// contains all attributes associated with the specialization
     Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
-    SourceFile : NonNullable<string>
+    SourceFile : string
     /// Contains the location information for the declared specialization.
     /// The position offset represents the position in the source file where the specialization is declared,
     /// and the range contains the range of the corresponding specialization header.
@@ -682,7 +682,7 @@ type QsCallable = {
     /// Represents the Q# keywords attached to the declaration that modify its behavior.
     Modifiers : Modifiers
     /// identifier for the file the callable is declared in
-    SourceFile : NonNullable<string>
+    SourceFile : string
     /// Contains the location information for the declared callable.
     /// The position offset represents the position in the source file where the callable is declared,
     /// and the range contains the range occupied by its name relative to that position.
@@ -715,7 +715,7 @@ type QsCallable = {
 /// used to represent the named and anonymous items in a user defined type
 type QsTypeItem =
 /// represents a named item in a user defined type
-| Named of LocalVariableDeclaration<NonNullable<string>>
+| Named of LocalVariableDeclaration<string>
 /// represents an anonymous item in a user defined type
 | Anonymous of ResolvedType
 
@@ -729,7 +729,7 @@ type QsCustomType = {
     /// Represents the Q# keywords attached to the declaration that modify its behavior.
     Modifiers : Modifiers
     /// identifier for the file the type is declared in
-    SourceFile : NonNullable<string>
+    SourceFile : string
     /// Contains the location information for the declared type.
     /// The position offset represents the position in the source file where the type is declared,
     /// and the range contains the range occupied by the type name relative to that position.
@@ -762,7 +762,6 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
-
     with
     member this.GetFullName () =
         match this with
@@ -776,22 +775,21 @@ type QsNamespaceElement =
 type QsNamespace = {
     /// the name of the namespace -
     /// represented as non-nullable string, since Q# does not support nested namespaces
-    Name : NonNullable<string>
+    Name : string
     /// all elements contained in the namespace - i.e. functions, operations, and user defined types
     /// Note: specializations for declared callables must be contained in the same namespace as the callable declaration,
     /// and are represented as part of the callable they belong to.
     Elements : ImmutableArray<QsNamespaceElement>
     /// Contains all documentation for this namespace within this compilation unit.
     /// The key is the name of the source file the documentation has been specified in.
-    Documentation : ILookup<NonNullable<string>, ImmutableArray<string>>
+    Documentation : ILookup<string, ImmutableArray<string>>
 }
     with
     member this.WithElements (getElements : Func<_,_>) = {this with Elements = getElements.Invoke(this.Elements)}
 
-
 /// Describes a compiled Q# library or executable.
 type QsCompilation = {
-    /// contains all compiled namespaces
+    /// Contains all compiled namespaces
     Namespaces : ImmutableArray<QsNamespace>
     /// Contains the names of all entry points of the compilation.
     /// In the case of a library the array is empty.

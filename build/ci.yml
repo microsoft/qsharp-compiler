@@ -2,7 +2,7 @@ name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
 
 variables:
   Build.Major: 0
-  Build.Minor: 12
+  Build.Minor: 14
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
@@ -15,6 +15,7 @@ trigger: none
 pr:
 - main
 - feature/*
+- features/*
 - release/*
 
 jobs:

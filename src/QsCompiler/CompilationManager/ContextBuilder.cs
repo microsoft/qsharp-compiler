@@ -11,7 +11,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
@@ -23,17 +22,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Verifies that all tokens are ordered according to their range.
-        /// Throws an ArgumentNullException if the given tokens are null, or if any of the contained elements are.
-        /// Throws an ArgumentException if this is not the case.
         /// </summary>
+        /// <exception cref="ArgumentException">Not all <paramref name="tokens"/> are ordered according to their range.</exception>
         internal static void VerifyTokenOrdering(IEnumerable<CodeFragment> tokens)
         {
-            if (tokens == null || tokens.Any(x => x == null))
-            {
-                throw new ArgumentNullException(nameof(tokens));
-            }
-
-            Position previousEnding = null;
+            Position? previousEnding = null;
             foreach (var token in tokens)
             {
                 if (!(previousEnding is null) && previousEnding > token.Range.Start)
@@ -47,14 +40,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the TokenIndex for the first token in the given file, or null if no such token exists.
-        /// Throws an ArgumentNullException if file is null.
         /// </summary>
-        internal static CodeFragment.TokenIndex FirstToken(this FileContentManager file)
+        internal static CodeFragment.TokenIndex? FirstToken(this FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             var lineNr = 0;
             while (file.GetTokenizedLine(lineNr).Length == 0 && ++lineNr < file.NrLines())
             {
@@ -66,14 +54,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the TokenIndex for the last token in the given file, or null if no such token exists.
-        /// Throws an ArgumentNullException if file is null.
         /// </summary>
-        internal static CodeFragment.TokenIndex LastToken(this FileContentManager file)
+        internal static CodeFragment.TokenIndex? LastToken(this FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             var lastNonEmpty = file.NrLines();
             while (lastNonEmpty-- > 0 && file.GetTokenizedLine(lastNonEmpty).Length == 0)
             {
@@ -85,16 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns true if the given token is fully included in the given range.
-        /// Throws an ArgumentNullException if the token is null.
         /// </summary>
-        internal static bool IsWithinRange(this CodeFragment token, Range range)
-        {
-            if (token == null)
-            {
-                throw new ArgumentNullException(nameof(token));
-            }
-            return range.Contains(token.Range.Start) && range.ContainsEnd(token.Range.End);
-        }
+        internal static bool IsWithinRange(this CodeFragment token, Range range) =>
+            range.Contains(token.Range.Start) && range.ContainsEnd(token.Range.End);
 
         /// <summary>
         /// Returns a function that returns true if a given fragment ends at or before the given position.
@@ -130,10 +106,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given file or the specified position is null,
         /// or if the specified position is not within the current Content range.
         /// </summary>
-        public static CodeFragment TryGetFragmentAt(
+        public static CodeFragment? TryGetFragmentAt(
             this FileContentManager file,
-            Position pos,
-            out CodeFragment.TokenIndex tIndex,
+            Position? pos,
+            out CodeFragment.TokenIndex? tIndex,
             bool includeEnd = false)
         {
             tIndex = null;
@@ -165,7 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given file or position is null, or if no such namespace can be found
         /// (e.g. because the namespace name is invalid).
         /// </summary>
-        public static string TryGetNamespaceAt(this FileContentManager file, Position pos)
+        public static string? TryGetNamespaceAt(this FileContentManager file, Position pos)
         {
             if (file == null || pos == null || !file.ContainsPosition(pos))
             {
@@ -173,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var namespaces = file.GetNamespaceDeclarations();
             var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
-            return preceding.Any() ? preceding.Last().Item1.Value : null;
+            return preceding.Any() ? preceding.Last().Item1 : null;
         }
 
         /// <summary>
@@ -186,10 +162,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a callable name as well as existing specializations can be found, but no specialization precedes the given position,
         /// returns null for the specialization kind as well as for its position.
         /// </summary>
-        public static ((NonNullable<string>, Position), (QsSpecializationKind, Position))? TryGetClosestSpecialization(
+        public static ((string, Position), (QsSpecializationKind?, Position?))? TryGetClosestSpecialization(
             this FileContentManager file, Position pos)
         {
-            QsSpecializationKind GetSpecializationKind(CodeFragment fragment)
+            QsSpecializationKind? GetSpecializationKind(CodeFragment fragment)
             {
                 var specDecl = fragment.Kind.DeclaredSpecialization();
                 if (specDecl.IsNull)
@@ -229,11 +205,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (specializations.Any() && lastPreceding == null)
                 {
                     // the given position is within a callable declaration
-                    return ((NonNullable<string>.New(callableName), callablePosition), (null, null));
+                    return ((callableName, callablePosition), (null, null));
                 }
                 return lastPreceding == null
-                    ? ((NonNullable<string>.New(callableName), callablePosition), (QsSpecializationKind.QsBody, callablePosition))
-                    : ((NonNullable<string>.New(callableName), callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
+                    ? ((callableName, callablePosition), (QsSpecializationKind.QsBody, callablePosition))
+                    : ((callableName, callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
             }
             finally
             {
@@ -245,15 +221,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given file contains any tokens overlapping with the given fragment.
         /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
         /// whereas the range of the given fragment is assumed to be the absolute range.
-        /// Throws an ArgumentNullException if the given file or range is null.
-        /// Throws an ArgumentOutOfRangeException if the given range is not a valid range within file.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="range"/> is not a valid range within <paramref name="file"/>.</exception>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
             if (!file.ContainsRange(range))
             {
                 throw new ArgumentOutOfRangeException(nameof(range));
@@ -284,20 +255,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Assuming both the current tokens and the tokens to update are sorted according to their range,
         /// merges the current and updated tokens such that the merged collection is sorted as well.
-        /// Throws an ArgumentNullException if either current or updated, or any of their elements are null.
-        /// Throws an ArgumentException if the token verification for the merged collection fails.
         /// </summary>
+        /// <exception cref="QsCompilerException">The token verification for the merged collection failed.</exception>
         internal static List<CodeFragment> MergeTokens(IEnumerable<CodeFragment> current, IEnumerable<CodeFragment> updated)
         {
-            if (current == null || current.Any(x => x == null))
-            {
-                throw new ArgumentNullException(nameof(current));
-            }
-            if (updated == null || updated.Any(x => x == null))
-            {
-                throw new ArgumentNullException(nameof(updated));
-            }
-
             var merged = new List<CodeFragment>(0);
             void NextBatch(ref IEnumerable<CodeFragment> batch, IEnumerable<CodeFragment> next)
             {
@@ -329,20 +290,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Comparing for equality by value,
         /// returns the index of the first element in the given list of CodeFragments that matches the given token,
         /// or -1 if no such element exists.
-        /// Throws an ArgumentNullException if the given list is null.
         /// </summary>
         internal static int FindByValue(this IReadOnlyList<CodeFragment> list, CodeFragment token)
         {
-            if (list == null)
-            {
-                throw new ArgumentNullException(nameof(list));
-            }
-            if (token == null)
-            {
-                var nrNonNull = list.TakeWhile(x => x != null).Count();
-                return nrNonNull == list.Count ? -1 : nrNonNull;
-            }
-
             var index = -1;
             var tokenRange = token.Range;
             while (++index < list.Count && list[index].Range.Start < tokenRange.Start)
@@ -354,38 +304,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the index of the closest preceding non-empty token with the next lower indentation level.
         /// Returns null if no such token exists.
-        /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
-        internal static CodeFragment.TokenIndex GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
+        internal static CodeFragment.TokenIndex? GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
-            if (tIndex == null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while (--tokenIndex != null)
-            {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Kind != null && fragment.Indentation < indentation)
                 {
                     break; // ignore empty fragments
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation - 1 ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation - 1 ? current : null;
         }
 
         /// <summary>
         /// Returns an IEnumerable with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
-        /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetNonEmptyParents(this CodeFragment.TokenIndex tIndex)
         {
-            if (tIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
             for (var current = tIndex.GetNonEmptyParent(); current != null; current = current.GetNonEmptyParent())
             {
                 yield return current;
@@ -399,21 +338,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// up to the point where we are at the same indentation level again.
         /// If deep is set to false, then of those only the tokens with an indentation level that is precisely
         /// one larger than the one of the parent token are returned.
-        /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetChildren(this CodeFragment.TokenIndex tIndex, bool deep = true)
         {
-            if (tIndex == null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null && current.GetFragment().Indentation > indentation)
             {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while (++tokenIndex != null && tokenIndex.GetFragment().Indentation > indentation)
-            {
-                if (deep || tokenIndex.GetFragment().Indentation == indentation + 1)
+                if (deep || current.GetFragment().Indentation == indentation + 1)
                 {
-                    yield return tokenIndex;
+                    yield return current;
                 }
             }
         }
@@ -421,66 +355,49 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the index of the preceding non-empty token on the same indentation level, or null if no such token exists.
         /// Includes empty tokens if includeEmpty is set to true.
-        /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
-        internal static CodeFragment.TokenIndex PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
+        internal static CodeFragment.TokenIndex? PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            if (tIndex == null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while (--tokenIndex != null)
-            {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         /// <summary>
         /// Returns the index of the next non-empty token on the same indenation level, or null if no such token exists.
         /// Includes empty tokens if includeEmpty is set to true.
-        /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
-        internal static CodeFragment.TokenIndex NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
+        internal static CodeFragment.TokenIndex? NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            if (tIndex == null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null)
             {
-                throw new ArgumentNullException(nameof(tIndex));
-            }
-
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while (++tokenIndex != null)
-            {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         // routines related to "reconstructing" the syntax tree from the saved tokens to do context checks
 
         /// <summary>
         /// Returns the context object for the given token index, ignoring empty fragments.
-        /// Throws an ArgumentNullException if the given token index is null.
         /// </summary>
         private static Context.SyntaxTokenContext GetContext(this CodeFragment.TokenIndex tokenIndex)
         {
-            if (tokenIndex == null)
-            {
-                throw new ArgumentNullException(nameof(tokenIndex));
-            }
-            QsNullable<QsFragmentKind> Nullable(CodeFragment token, bool precedesSelf) =>
+            QsNullable<QsFragmentKind> Nullable(CodeFragment? token, bool precedesSelf) =>
                 token?.Kind == null
                 ? QsNullable<QsFragmentKind>.Null
                 : precedesSelf && !token.IncludeInCompilation // fragments that *follow * self need to be re-evaluated first
@@ -502,19 +419,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and adds the computed diagnostics to the ones returned as out parameter.
         /// Marks the token indices which are to be excluded from compilation due to context errors.
         /// Returns the line numbers for which the context diagnostics have been recomputed.
-        /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
         private static HashSet<int> VerifyContext(this FileContentManager file, SortedSet<int> changedLines, out List<Diagnostic> diagnostics)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (changedLines == null)
-            {
-                throw new ArgumentNullException(nameof(changedLines));
-            }
-
             IEnumerable<CodeFragment.TokenIndex> TokenIndices(int lineNr) =>
                 Enumerable.Range(0, file.GetTokenizedLine(lineNr).Count()).Select(index => new CodeFragment.TokenIndex(file, lineNr, index));
 
@@ -530,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (include, verifications) = Context.VerifySyntaxTokenContext(context);
                 foreach (var msg in verifications)
                 {
-                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.Range.Start));
+                    messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
                 }
 
                 if (include)
@@ -568,25 +475,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given the line number of the lines that contain tokens that (possibly) have been modified,
         /// checks which callable declaration they can potentially belong to and returns the fully qualified name of those callables.
-        /// Throws an ArgumentNullException if the given file or the collection of changed lines is null.
         /// </summary>
         internal static IEnumerable<(Range, QsQualifiedName)> CallablesWithContentModifications(this FileContentManager file, IEnumerable<int> changedLines)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-            if (changedLines == null)
-            {
-                throw new ArgumentNullException(nameof(changedLines));
-            }
-
             var lastInFile = file.LastToken()?.GetFragment()?.Range?.End ?? file.End();
             var callables = file.GetCallableDeclarations().Select(tuple => // these are sorted according to their line number
             {
                 var ns = file.TryGetNamespaceAt(tuple.Item2.Start);
                 QsCompilerError.Verify(ns != null, "namespace for callable declaration should not be null"); // invalid namespace names default to an unknown namespace name, but remain included in the compilation
-                return (tuple.Item2.Start, new QsQualifiedName(NonNullable<string>.New(ns), tuple.Item1));
+                return (tuple.Item2.Start, new QsQualifiedName(ns, tuple.Item1));
             }).ToList();
 
             // NOTE: The range of modifications that has to trigger an update of the syntax tree for a callable
@@ -620,15 +517,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Dequeues all lines whose tokens has changed and verifies the positions of these tokens.
         /// Does nothing if no lines have been modified.
         /// Recomputes and pushes the context diagnostics for the processed tokens otherwise.
-        /// Throws an ArgumentNullException if file is null.
         /// </summary>
         internal static void UpdateContext(this FileContentManager file)
         {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-
             file.SyncRoot.EnterUpgradeableReadLock();
             try
             {

@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
@@ -19,9 +18,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public int Priority => RewriteStepPriorities.ControlFlowSubstitutions;
 
-        public IDictionary<string, string> AssemblyConstants { get; }
+        public IDictionary<string, string?> AssemblyConstants { get; }
 
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
         public bool ImplementsPreconditionVerification => true;
 
@@ -31,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public ClassicallyControlled()
         {
-            this.AssemblyConstants = new Dictionary<string, string>();
+            this.AssemblyConstants = new Dictionary<string, string?>();
         }
 
         public bool PreconditionVerification(QsCompilation compilation)
@@ -77,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             throw new System.NotImplementedException();
         }
 
-        private bool CheckForRequired(QsCompilation compilation, NonNullable<string> namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
+        private bool CheckForRequired(QsCompilation compilation, string namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
         {
             var builtInNs = compilation.Namespaces
                 .FirstOrDefault(ns => ns.Name.Equals(namespaceName));

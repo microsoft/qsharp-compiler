@@ -25,7 +25,7 @@ type AttributeAnnotation = {
     with
     static member internal NonInterpolatedStringArgument inner = function
         | Item arg -> inner arg |> function
-            | StringLiteral (str, interpol) when interpol.Length = 0 -> str.Value
+            | StringLiteral (str, interpol) when interpol.Length = 0 -> str
             | _ -> null
         | _ -> null
 
@@ -83,7 +83,7 @@ type ResolutionResult<'T> =
     | Found of 'T
     /// A result indicating that an unqualified symbol is ambiguous, and it is possible to resolve it to more than one
     /// namespace. Includes the list of possible namespaces.
-    | Ambiguous of NonNullable<string> seq
+    | Ambiguous of string seq
     /// A result indicating that the symbol resolved to a declaration which is not accessible from the location
     /// referencing it.
     | Inaccessible
@@ -134,7 +134,7 @@ module internal ResolutionResult =
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
     /// result containing the namespaces of all Found results given by applying nsGetter to each value. Otherwise,
     /// returns the same value as TryFirstBest.
-    let internal TryAtMostOne<'T> (nsGetter : 'T -> NonNullable<string>) (results : seq<ResolutionResult<'T>>)
+    let internal TryAtMostOne<'T> (nsGetter : 'T -> string) (results : seq<ResolutionResult<'T>>)
             : ResolutionResult<'T> =
         let found = results |> Seq.filter (function | Found _ -> true | _ -> false)
         if Seq.length found > 1
@@ -149,7 +149,7 @@ module internal ResolutionResult =
     /// Returns a Found result if there is only one in the sequence. If there is more than one, raises an exception.
     /// Otherwise, returns the same value as ResolutionResult.TryFirstBest.
     let internal AtMostOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
-        TryAtMostOne (fun _ -> NonNullable<_>.New "") >> function
+        TryAtMostOne (fun _ -> "") >> function
         | Ambiguous _ -> QsCompilerError.Raise "Resolution is ambiguous"
                          Exception () |> raise
         | result -> result
@@ -175,8 +175,8 @@ module SymbolResolution =
 
     /// Returns true if any one of the given unresolved attributes indicates a deprecation.
     let internal IndicatesDeprecation checkQualification attribute = attribute.Id.Symbol |> function
-        | Symbol sym -> sym.Value = BuiltIn.Deprecated.FullName.Name.Value && checkQualification ""
-        | QualifiedSymbol (ns, sym) -> sym.Value = BuiltIn.Deprecated.FullName.Name.Value && (ns.Value = BuiltIn.Deprecated.FullName.Namespace.Value || checkQualification ns.Value)
+        | Symbol sym -> sym = BuiltIn.Deprecated.FullName.Name && checkQualification ""
+        | QualifiedSymbol (ns, sym) -> sym = BuiltIn.Deprecated.FullName.Name && (ns = BuiltIn.Deprecated.FullName.Namespace || checkQualification ns)
         | _ -> false
 
     /// Given the redirection extracted by TryFindRedirect,
@@ -184,7 +184,7 @@ module SymbolResolution =
     /// Returns an empty array if no redirection was determined, i.e. the given redirection was Null.
     let GenerateDeprecationWarning (fullName : QsQualifiedName, range) redirect = redirect |> function
         | Value redirect ->
-            let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
+            let usedName = sprintf "%s.%s" fullName.Namespace fullName.Name
             if String.IsNullOrWhiteSpace redirect then [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
             else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
         | Null -> [| |]
@@ -220,7 +220,7 @@ module SymbolResolution =
         let matchQualifiedName = SyntaxGenerator.FullyQualifiedName.Match fullName
         let asQualifiedName (str : string) = 
             let pieces = str.Split '.'
-            {Namespace = String.Join('.', pieces.Take(pieces.Length-1)) |> NonNullable<string>.New; Name = pieces.Last() |> NonNullable<string>.New}
+            {Namespace = String.Join('.', pieces.Take(pieces.Length-1)); Name = pieces.Last()}
         if matchQualifiedName.Success then Some (matchQualifiedName.Value |> asQualifiedName) else None
 
     /// Checks whether the given attributes define an alternative name that may be used when loading a type or callable for testing purposes.
@@ -251,6 +251,27 @@ module SymbolResolution =
                 | false, _ -> null
         StringArgument (getTarget, fun ex -> ex.Expression) attributes
         |> Seq.map targetName |> ImmutableHashSet.CreateRange
+
+    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
+    /// the RequiresCapability attribute.
+    let TryGetRequiredCapability attributes =
+        let getCapability (att : QsDeclarationAttribute) = 
+            if att |> BuiltIn.MarksRequiredCapability then att.Argument.Expression |> function 
+                | ValueTuple vs when vs.Length = 2 -> Some vs.[0]
+                | _ -> None
+            else None
+        let capabilities = 
+            StringArgument (getCapability, fun ex -> ex.Expression) attributes
+            |> QsNullable<_>.Choose RuntimeCapability.TryParse |> ImmutableHashSet.CreateRange
+        if Seq.isEmpty capabilities then Null
+        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
+
+    /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.
+    /// Returns the string code as Value if this is the case, and Null otherwise.
+    /// The returned Value is based on the first attribute that indicates the code.
+    let TryGetQISCode attributes = 
+        let loadedViaTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesQISCode then Some att.Argument else None
+        StringArgument (loadedViaTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
 
     // routines for resolving types and signatures
@@ -334,7 +355,7 @@ module SymbolResolution =
                 | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
                 | QsSymbolKind.Symbol sym ->
                     if not (tps |> List.exists (fst >> (=)(ValidName sym))) then (ValidName sym, range) :: tps, errs
-                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [sym.Value])) :: errs
+                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [sym])) :: errs
                 | _ -> invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs
             ) ([], []) |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
         let resolveArg (sym, range) t = sym |> function
@@ -360,12 +381,12 @@ module SymbolResolution =
     /// Returns the underlying type as well as the item tuple, along with an array with the diagnostics created during resolution.
     /// Throws an ArgumentException if the given type tuple is an empty QsTuple.
     let internal ResolveTypeDeclaration resolveType (udtTuple : QsTuple<QsSymbol * QsType>) =
-        let itemDeclarations = new List<LocalVariableDeclaration<NonNullable<string>>>()
+        let itemDeclarations = new List<LocalVariableDeclaration<string>>()
         let resolveItem (sym, range) t = sym |> function
             | QsSymbolKind.MissingSymbol
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
-            | QsSymbolKind.Symbol sym when itemDeclarations.Exists (fun item -> item.VariableName.Value = sym.Value) ->
-                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, [sym.Value]) |]
+            | QsSymbolKind.Symbol sym when itemDeclarations.Exists (fun item -> item.VariableName = sym) ->
+                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, [sym]) |]
             | QsSymbolKind.Symbol sym ->
                 let info = {IsMutable = false; HasLocalQuantumDependency = false}
                 itemDeclarations.Add { VariableName = sym; Type = t; InferredInformation = info; Position = Null; Range = range }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -15,8 +15,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
-using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -34,11 +32,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             internal Headers(
                 string source,
-                IEnumerable<CallableDeclarationHeader> callables = null,
-                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null,
-                IEnumerable<TypeDeclarationHeader> types = null)
+                IEnumerable<CallableDeclarationHeader>? callables = null,
+                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation?)>? specs = null,
+                IEnumerable<TypeDeclarationHeader>? types = null)
             {
-                NonNullable<string> SourceOr(NonNullable<string> origSource) => NonNullable<string>.New(source ?? origSource.Value);
+                string SourceOr(string origSource) => source ?? origSource;
                 this.Types = types?.Select(t => t.FromSource(SourceOr(t.SourceFile))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
                 this.Callables = callables?.Select(c => c.FromSource(SourceOr(c.SourceFile))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
                 this.Specializations = specs?.Select(s => (s.Item1.FromSource(SourceOr(s.Item1.SourceFile)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
@@ -50,26 +48,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// The source is expected to be the path to the dll from which the syntax has been loaded.
             /// Returns an empty set of headers if the given syntax tree is null.
             /// </summary>
-            public Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree)
+            public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
-                    source.Value,
-                    syntaxTree?.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                    syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)),
-                    syntaxTree?.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
+                    source,
+                    syntaxTree.Callables().Where(c => c.SourceFile.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
+                    syntaxTree.Specializations().Where(c => c.SourceFile.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
+                    syntaxTree.Types().Where(c => c.SourceFile.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             {
             }
 
-            internal Headers(NonNullable<string> source, IEnumerable<(string, string)> attributes)
+            internal Headers(string source, IEnumerable<(string, string)> attributes)
                 : this(
-                    source.Value,
+                    source,
                     CallableHeaders(attributes),
-                    SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation)null)),
+                    SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation?)null)),
                     TypeHeaders(attributes))
             {
             }
         }
 
-        private static Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
+        private static Func<(string, string), string?> IsDeclaration(string declarationType) => (attribute) =>
         {
             var (typeName, serialization) = attribute;
             if (!typeName.Equals(declarationType, StringComparison.InvariantCultureIgnoreCase))
@@ -109,11 +107,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Position declLocation)
             {
                 var attName = new UserDefinedType(
-                    NonNullable<string>.New(GeneratedAttributes.Namespace),
-                    NonNullable<string>.New(GeneratedAttributes.LoadedViaTestNameInsteadOf),
+                    GeneratedAttributes.Namespace,
+                    GeneratedAttributes.LoadedViaTestNameInsteadOf,
                     QsNullable<Range>.Null);
                 var attArg = SyntaxGenerator.StringLiteral(
-                    NonNullable<string>.New(originalName.ToString()),
+                    originalName.ToString(),
                     ImmutableArray<TypedExpression>.Empty);
                 return new QsDeclarationAttribute(
                     QsNullable<UserDefinedType>.NewValue(attName),
@@ -137,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
+                                   (SpecializationImplementation?)rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
             return new Headers(source, callables, specializations, types);
         }
 
@@ -147,34 +145,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and the second one listing all sources in which it occurs.
         /// Returns null if the given sequence of elements is null.
         /// </summary>
-        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName Name, NonNullable<string> Source, AccessModifier Access)> elements) =>
-            elements?.Where(e => Namespace.IsDeclarationAccessible(false, e.Access))
-                     .GroupBy(e => e.Name)
-                     .Where(g => g.Count() != 1)
-                     .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source.Value))))
-                     .Select(c => ($"{c.Key.Namespace.Value}.{c.Key.Name.Value}", c.Item2));
+        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName Name, string Source, AccessModifier Access)> elements) =>
+            elements
+                .Where(e => Namespace.IsDeclarationAccessible(false, e.Access))
+                .GroupBy(e => e.Name)
+                .Where(g => g.Count() != 1)
+                .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source))))
+                .Select(c => ($"{c.Key.Namespace}.{c.Key.Name}", c.Item2));
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
         /// </summary>
-        public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations;
+        public readonly ImmutableDictionary<string, Headers> Declarations;
 
         public static References Empty =
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
+            new References(ImmutableDictionary<string, Headers>.Empty);
 
         /// <summary>
         /// Combines the current references with the given references, and verifies that there are no conflicts.
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// Throws an ArgumentNullException if the given dictionary of references is null.
-        /// Throws an ArgumentException if the given set shares references with the current one.
         /// </summary>
-        internal References CombineWith(References other, Action<ErrorCode, string[]> onError = null)
+        /// <exception cref="ArgumentException">The given set (<paramref name="other"/>) shares references with the current one.</exception>
+        internal References CombineWith(References other, Action<ErrorCode, string[]>? onError = null)
         {
-            if (other == null)
-            {
-                throw new ArgumentNullException(nameof(other));
-            }
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any())
             {
                 throw new ArgumentException("common references exist");
@@ -187,9 +181,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Verifies that there are no conflicts for the new set of references.
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// Throws an ArgumentNullException if the given diagnostics are null.
         /// </summary>
-        internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
+        internal References Remove(string source, Action<ErrorCode, string[]>? onError = null) =>
             new References(this.Declarations.Remove(source), onError: onError);
 
         /// <summary>
@@ -199,17 +192,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
         /// If loadTestNames is set to true, then public types and callables declared in referenced assemblies
         /// are exposed via their test name defined by the corresponding attribute.
-        /// Throws an ArgumentNullException if the given dictionary of references is null.
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
+        public References(ImmutableDictionary<string, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]>? onError = null)
         {
-            this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
+            this.Declarations = refs;
             if (loadTestNames)
             {
                 this.Declarations = this.Declarations
                     .ToImmutableDictionary(
                         reference => reference.Key,
-                        reference => LoadTestNames(reference.Key.Value, reference.Value));
+                        reference => LoadTestNames(reference.Key, reference.Value));
             }
 
             if (onError == null)
@@ -245,8 +237,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static bool CombineSyntaxTrees(
             out ImmutableArray<QsNamespace> combined,
             int additionalAssemblies = 0,
-            Action<ErrorCode, string[]> onError = null,
-            params (NonNullable<string>, ImmutableArray<QsNamespace>)[] loaded)
+            Action<ErrorCode, string[]>? onError = null,
+            params (string, ImmutableArray<QsNamespace>)[] loaded)
         {
             combined = ImmutableArray<QsNamespace>.Empty;
             if (loaded == null)
@@ -285,7 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// Class representing a compilation;
     /// apart from storing and providing the means to update the compilation itself,
     /// it stores referenced content and provides the infrastructure to track global symbols.
-    /// IMPORTANT: The responsiblity to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
+    /// IMPORTANT: The responsibility to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
@@ -299,9 +291,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ReaderWriterLockSlim syncRoot;
         private readonly HashSet<ReaderWriterLockSlim> dependentLocks;
 
-        internal readonly RuntimeCapabilities RuntimeCapabilities;
+        internal readonly RuntimeCapability RuntimeCapability;
         internal readonly bool IsExecutable;
-        internal readonly NonNullable<string> ProcessorArchitecture;
+        internal readonly string ProcessorArchitecture;
 
         /// <inheritdoc/>
         public void Dispose()
@@ -312,50 +304,52 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a new CompilationUnit to store and update a compilation referencing the given content (if any),
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
-        /// Throws an ArgumentNullException if any of the given locks is.
         /// </summary>
         internal CompilationUnit(
-            RuntimeCapabilities capabilities,
+            RuntimeCapability capability,
             bool isExecutable,
-            NonNullable<string> processorArchitecture,
-            References externals = null,
-            IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
+            string processorArchitecture,
+            References? externals = null,
+            IEnumerable<ReaderWriterLockSlim>? dependentLocks = null)
         {
-            this.syncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-            this.dependentLocks = dependentLocks == null
-                ? new HashSet<ReaderWriterLockSlim>()
-                : new HashSet<ReaderWriterLockSlim>(dependentLocks);
-            if (dependentLocks?.Contains(null) ?? false)
-            {
-                throw new ArgumentNullException(nameof(dependentLocks), "one or more of the given locks is null");
-            }
+            externals ??= References.Empty;
+            dependentLocks ??= Enumerable.Empty<ReaderWriterLockSlim>();
 
-            this.RuntimeCapabilities = capabilities;
+            this.syncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+            this.dependentLocks = new HashSet<ReaderWriterLockSlim>(dependentLocks);
+
+            this.RuntimeCapability = capability;
             this.IsExecutable = isExecutable;
             this.ProcessorArchitecture = processorArchitecture;
 
             this.compiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.compiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();
-            this.UpdateReferences(externals ?? References.Empty);
+            this.Externals = externals;
+            this.GlobalSymbols = this.CreateGlobalSymbols();
         }
 
         /// <summary>
+        /// Creates a new instance of the namespace manager for global symbols.
+        /// </summary>
+        private NamespaceManager CreateGlobalSymbols() => new NamespaceManager(
+            this,
+            this.Externals.Declarations.Values.SelectMany(h => h.Callables),
+            this.Externals.Declarations.Values.SelectMany(h =>
+                h.Specializations.Select(t => Tuple.Create(t.Item1, t.Item2))),
+            this.Externals.Declarations.Values.SelectMany(h => h.Types),
+            this.RuntimeCapability,
+            this.IsExecutable);
+
+        /// <summary>
         /// Replaces the GlobalSymbols to match the newly specified references.
-        /// Throws an ArgumentNullException if the given references are null.
         /// </summary>
         internal void UpdateReferences(References externals)
         {
             this.EnterWriteLock();
             try
             {
-                this.Externals = externals ?? throw new ArgumentNullException(nameof(externals));
-                this.GlobalSymbols = new NamespaceManager(
-                    this,
-                    this.Externals.Declarations.Values.SelectMany(h => h.Callables),
-                    this.Externals.Declarations.Values.SelectMany(h => h.Specializations.Select(t => new Tuple<SpecializationDeclarationHeader, SpecializationImplementation>(t.Item1, t.Item2))),
-                    this.Externals.Declarations.Values.SelectMany(h => h.Types),
-                    this.RuntimeCapabilities,
-                    this.IsExecutable);
+                this.Externals = externals;
+                this.GlobalSymbols = this.CreateGlobalSymbols();
             }
             finally
             {
@@ -367,15 +361,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Registers the given lock as a dependent lock -
         /// i.e. whenever both this compilation unit and a dependent lock are required,
         /// ensures that the compilation unit has to be the outer lock.
-        /// Throws an ArgumentNullException if the given lock is null.
         /// </summary>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
             #if DEBUG
-            if (depLock == null)
-            {
-                throw new ArgumentNullException(nameof(depLock));
-            }
             this.syncRoot.EnterWriteLock();
             try
             {
@@ -394,15 +383,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Removes the given lock from the set of dependent locks.
         /// Returns true if the lock was successfully removed and false otherwise.
-        /// Throws an ArgumentNullException if the given lock is null.
         /// </summary>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
             #if DEBUG
-            if (depLock == null)
-            {
-                throw new ArgumentNullException(nameof(depLock));
-            }
             this.syncRoot.EnterWriteLock();
             try
             {
@@ -422,8 +406,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters a read-lock, provided none of the dependent locks is set, or a compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterReadLock()
         {
             #if DEBUG
@@ -443,8 +427,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters an upgradeable read-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterUpgradeableReadLock()
         {
             #if DEBUG
@@ -463,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Enters a write-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held.
-        /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterWriteLock()
         {
             #if DEBUG
@@ -521,19 +505,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// If the given updates are not null, replaces the contained types in the compilation, or adds them if they do not yet exist.
         /// Proceeds to remove any types that are not currently listed in GlobalSymbols from the compilation, and updates all position information.
-        /// Throws an ArgumentNullException if any of the given types to update is null.
         /// </summary>
         internal void UpdateTypes(IEnumerable<QsCustomType> updates)
         {
             this.syncRoot.EnterWriteLock();
             try
             {
-                if (updates != null)
+                foreach (var t in updates)
                 {
-                    foreach (var t in updates)
-                    {
-                        this.compiledTypes[t.FullName] = t ?? throw new ArgumentNullException(nameof(updates), "the given compiled type is null");
-                    }
+                    this.compiledTypes[t.FullName] = t;
                 }
 
                 // remove all types that are no listed in GlobalSymbols
@@ -585,19 +565,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given updates are not null, replaces the contained callables in the compilation, or adds them if they do not yet exist.
         /// Proceeds to remove any callables and specializations that are not currently listed in GlobalSymbols from the compilation,
         /// and updates the position information for all callables and specializations.
-        /// Throws an ArgumentNullException if any of the given callables to update is null.
         /// </summary>
         internal void UpdateCallables(IEnumerable<QsCallable> updates)
         {
             this.syncRoot.EnterWriteLock();
             try
             {
-                foreach (var c in updates ?? Array.Empty<QsCallable>())
+                foreach (var c in updates)
                 {
-                    if (c?.Specializations == null || c.Specializations.Contains(null))
-                    {
-                        throw new ArgumentNullException(nameof(updates), "the given compiled callable or specialization is null");
-                    }
                     this.compiledCallables[c.FullName] = c;
                 }
 
@@ -710,15 +685,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Constructs a suitable callable for a given callable declaration header -
         /// i.e. given all information about a callable except the implementation of its specializations,
         /// constructs a QsCallable with the implementation of each specialization set to External.
-        /// Throws an ArgumentNullException if the given header is null.
         /// </summary>
         private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
-            if (header == null)
-            {
-                throw new ArgumentNullException(nameof(header));
-            }
             if (Namespace.IsDeclarationAccessible(false, header.Modifiers.Access))
             {
                 var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
@@ -770,15 +740,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Constructs a suitable type for a given type declaration header.
-        /// Throws an ArgumentNullException if the given header is null.
         /// </summary>
-        private QsCustomType GetImportedType(TypeDeclarationHeader header)
-        {
-            if (header == null)
-            {
-                throw new ArgumentNullException(nameof(header));
-            }
-            return new QsCustomType(
+        private QsCustomType GetImportedType(TypeDeclarationHeader header) =>
+            new QsCustomType(
                 header.QualifiedName,
                 header.Attributes,
                 header.Modifiers,
@@ -788,31 +752,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 header.TypeItems,
                 header.Documentation,
                 QsComments.Empty);
-        }
 
         /// <summary>
         /// Builds a syntax tree containing the given callables and types,
         /// and attaches the documentation specified by the given dictionary - if any - to each namespace.
         /// All elements within a namespace will be sorted in alphabetical order.
-        /// Throws an ArgumentNullException if the given callables or types are null.
         /// </summary>
         public static ImmutableArray<QsNamespace> NewSyntaxTree(
             IEnumerable<QsCallable> callables,
             IEnumerable<QsCustomType> types,
-            IReadOnlyDictionary<NonNullable<string>, ILookup<NonNullable<string>, ImmutableArray<string>>> documentation = null)
+            IReadOnlyDictionary<string, ILookup<string, ImmutableArray<string>>>? documentation = null)
         {
-            if (callables == null)
-            {
-                throw new ArgumentNullException(nameof(callables));
-            }
-            if (types == null)
-            {
-                throw new ArgumentNullException(nameof(types));
-            }
-            var emptyLookup = Array.Empty<NonNullable<string>>().ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
+            var emptyLookup = Array.Empty<string>().ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
 
-            static string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
-            static string ElementName(QsNamespaceElement e) =>
+            static string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace}.{fullName.Name}";
+            static string? ElementName(QsNamespaceElement e) =>
                 e is QsNamespaceElement.QsCustomType t ? QualifiedName(t.Item.FullName) :
                 e is QsNamespaceElement.QsCallable c ? QualifiedName(c.Item.FullName) : null;
             var namespaceElements = callables.Select(c => (c.FullName.Namespace, QsNamespaceElement.NewQsCallable(c)))
@@ -830,8 +784,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the built Q# compilation reflecting the current internal state.
         /// Note that functor generation directives are *not* evaluated in the the returned compilation,
         /// and the returned compilation may contain invalid parts.
-        /// Throws an InvalidOperationException if a callable definition is listed in GlobalSymbols for which no compilation exists.
         /// </summary>
+        /// <exception cref="InvalidOperationException">A callable definition is listed in <see cref="GlobalSymbols"/> for which no compilation exists.</exception>
         public QsCompilation Build()
         {
             this.syncRoot.EnterReadLock();
@@ -845,7 +799,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for type " +
-                        $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.SourceFile}'");
                     }
                 }
 
@@ -861,7 +815,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for callable " +
-                        $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.SourceFile}'");
                     }
 
                     foreach (var (_, specHeader) in this.GlobalSymbols.DefinedSpecializations(declaration.QualifiedName))
@@ -871,7 +825,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (!compiledSpecs.Any())
                         {
                             throw new InvalidOperationException($"missing compilation for specialization " +
-                            $"{specHeader.Kind} of {specHeader.Parent.Namespace.Value}.{specHeader.Parent.Name.Value} in '{specHeader.SourceFile.Value}'");
+                            $"{specHeader.Kind} of {specHeader.Parent.Namespace}.{specHeader.Parent.Name} in '{specHeader.SourceFile}'");
                         }
                     }
                 }
@@ -894,9 +848,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a look-up that contains the names of all namespaces and the corresponding short hand, if any,
         /// imported within a certain source file for the given namespace.
-        /// Throws an ArgumentException if no namespace with the given name exists.
         /// </summary>
-        public ILookup<NonNullable<string>, (NonNullable<string>, string)> GetOpenDirectives(NonNullable<string> nsName)
+        /// <exception cref="ArgumentException">No namespace exists with name <paramref name="nsName"/>.</exception>
+        public ILookup<string, (string, string?)> GetOpenDirectives(string nsName)
         {
             this.syncRoot.EnterReadLock();
             try
@@ -915,12 +869,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null without setting any of the out parameters if the given file or position is null, or if the parent callable could not be determined.
         /// Sets the correct namespace name and callable position but returns no implementation if the given position is within a callable declaration.
         /// </summary>
-        internal QsScope TryGetSpecializationAt(
+        internal QsScope? TryGetSpecializationAt(
             FileContentManager file,
             Position pos,
-            out QsQualifiedName callableName,
-            out Position callablePos,
-            out Position specializationPos)
+            out QsQualifiedName? callableName,
+            out Position? callablePos,
+            out Position? specializationPos)
         {
             (callableName, callablePos, specializationPos) = (null, null, null);
             if (file == null || pos == null || !file.ContainsPosition(pos))
@@ -941,9 +895,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var ((cName, cPos), (specKind, sPos)) = root.Value;
             (callablePos, specializationPos) = (cPos, sPos);
-            callableName = new QsQualifiedName(NonNullable<string>.New(nsName), cName);
+            callableName = new QsQualifiedName(nsName, cName);
 
-            QsSpecialization GetSpecialization(QsQualifiedName fullName, QsSpecializationKind kind)
+            QsSpecialization? GetSpecialization(QsQualifiedName fullName, QsSpecializationKind? kind)
             {
                 if (kind == null || fullName == null)
                 {
@@ -957,7 +911,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsCompilerError.Verify(compiled.Count() <= 1, "currently expecting at most one specialization per kind");
                 return compiled.SingleOrDefault();
             }
-            QsSpecialization relevantSpecialization = GetSpecialization(callableName, specKind);
+            var relevantSpecialization = GetSpecialization(callableName, specKind);
             if (relevantSpecialization == null || sPos == null || !relevantSpecialization.Implementation.IsProvided)
             {
                 return null;
@@ -975,7 +929,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value.
         /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
         /// </summary>
-        internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Position callablePos, Position specPos, LocalDeclarations declarations = null)
+        internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position? callablePos, Position? specPos, LocalDeclarations? declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
             {
@@ -987,7 +941,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new LocalDeclarations(definedVars);
             }
 
-            if (parentCallable == null)
+            if (parentCallable == null || callablePos is null || specPos is null)
             {
                 return LocalDeclarations.Empty;
             }
@@ -1007,7 +961,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object.
         /// Sets the parent name to null, if no parent could be determind.
         /// </summary>
-        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
+        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName? parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
             var declarations = implementation?.LocalDeclarationsAt(pos - specPos, includeDeclaredAtPosition);
@@ -1028,31 +982,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="predicate">If specified, only types and callables from a source for which
         /// this function returns true are renamed.</param>
         /// <returns>The renamed and updated callables and types.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when the given callables or types are null.</exception>
         internal static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>) RenameInternalDeclarations(
             IEnumerable<QsCallable> callables,
             IEnumerable<QsCustomType> types,
             int additionalAssemblies = 0,
-            Func<NonNullable<string>, bool> predicate = null)
+            Func<string, bool>? predicate = null)
         {
-            if (callables == null)
-            {
-                throw new ArgumentNullException(nameof(callables));
-            }
-            if (types == null)
-            {
-                throw new ArgumentNullException(nameof(types));
-            }
-            predicate ??= _ => true;
-
             // Assign a unique ID to each reference.
 
-            var decorator = new NameDecorator($"QsRef");
-            var ids =
-                callables.Select(callable => callable.SourceFile.Value)
-                .Concat(types.Select(type => type.SourceFile.Value))
+            NameDecorator decorator = new NameDecorator($"QsRef");
+            ImmutableDictionary<string, int> ids =
+                callables.Select(callable => callable.SourceFile)
+                .Concat(types.Select(type => type.SourceFile))
                 .Distinct()
-                .Where(source => predicate(NonNullable<string>.New(source)))
+                .Where(source => predicate?.Invoke(source) ?? true)
                 // this setup will mean that internal declarations won't get replaced with target specific implementations
                 .Select((source, idx) => (source, idx))
                 // we need an id here that is uniquely associated with a source name
@@ -1064,7 +1007,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 group
                 .Where(item =>
                     !Namespace.IsDeclarationAccessible(false, item.Access) &&
-                    predicate(NonNullable<string>.New(item.Source)))
+                    (predicate?.Invoke(item.Source) ?? true))
                 .ToImmutableDictionary(
                     item => item.Name,
                     item => decorator.Decorate(item.Name, ids[item.Source]));
@@ -1073,19 +1016,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var transformations =
                 callables.Select(callable =>
-                    (name: callable.FullName, source: callable.SourceFile.Value, access: callable.Modifiers.Access))
+                    (name: callable.FullName, source: callable.SourceFile, access: callable.Modifiers.Access))
                 .Concat(types.Select(type =>
-                    (name: type.FullName, source: type.SourceFile.Value, access: type.Modifiers.Access)))
+                    (name: type.FullName, source: type.SourceFile, access: type.Modifiers.Access)))
                 .GroupBy(item => item.source)
                 .ToImmutableDictionary(
                     group => group.Key,
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable))
+                callable => transformations[callable.SourceFile].Namespaces.OnCallableDeclaration(callable))
                 .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type))
+                type => transformations[type.SourceFile].Namespaces.OnTypeDeclaration(type))
                 .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }

@@ -13,18 +13,22 @@
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Utils.fs" />
     <Compile Include="ConstructorExtensions.fs" />
-    <Compile Include="TransformationOptions.fs" />
-    <Compile Include="TypeTransformation.fs" />    
-    <Compile Include="ExpressionTransformation.fs" />
-    <Compile Include="StatementTransformation.fs" />
-    <Compile Include="NamespaceTransformation.fs" />
-    <Compile Include="SyntaxTreeTransformation.fs" />
+    <Compile Include="Transformations\TransformationOptions.fs" />
+    <Compile Include="Transformations\TypeTransformation.fs" />
+    <Compile Include="Transformations\ExpressionTransformation.fs" />
+    <Compile Include="Transformations\StatementTransformation.fs" />
+    <Compile Include="Transformations\NamespaceTransformation.fs" />
+    <Compile Include="Transformations\SyntaxTreeTransformation.fs" />
     <Compile Include="Dependencies.fs" />
     <Compile Include="SyntaxGenerator.fs" />
     <Compile Include="DeclarationHeaders.fs" />
     <Compile Include="SymbolResolution.fs" />
-    <Compile Include="SymbolTable.fs" />
+    <Compile Include="SymbolTable\SymbolNotFoundException.fs" />
+    <Compile Include="SymbolTable\PartialNamespace.fs" />
+    <Compile Include="SymbolTable\Namespace.fs" />
+    <Compile Include="SymbolTable\NamespaceManager.fs" />
   </ItemGroup>
 
   <ItemGroup>

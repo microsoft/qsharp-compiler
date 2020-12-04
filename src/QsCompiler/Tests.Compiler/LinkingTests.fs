@@ -40,13 +40,13 @@ type LinkingTests (output:ITestOutputHelper) =
     }
 
     let qualifiedName ns name = {
-            Namespace = NonNullable<_>.New ns
-            Name = NonNullable<_>.New name
+            Namespace = ns
+            Name = name
         }
 
     let createReferences : seq<string * IEnumerable<QsNamespace>> -> References =
         Seq.map (fun (source, namespaces) ->
-            KeyValuePair.Create(NonNullable<_>.New source, References.Headers (NonNullable<_>.New source, namespaces)))
+            KeyValuePair.Create(source, References.Headers (source, namespaces)))
         >> ImmutableDictionary.CreateRange
         >> References
 
@@ -57,6 +57,13 @@ type LinkingTests (output:ITestOutputHelper) =
         let declaration = if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null) then 0 else 1
         references.SharedState.Locations.Count + declaration
 
+    let getCallablesWithSuffix compilation ns (suffix : string) =
+        compilation.Namespaces
+        |> Seq.filter (fun x -> x.Name = ns)
+        |> GlobalCallableResolutions
+        |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
+        |> Seq.map (fun x -> x.Value)
+
     do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
@@ -65,8 +72,7 @@ type LinkingTests (output:ITestOutputHelper) =
         sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.EntryPoints"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
     member private this.BuildWithSource input (manager : CompilationUnitManager) = 
@@ -98,7 +104,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         compilation
 
-    member private this.BuildReference (source : NonNullable<string>, content) = 
+    member private this.BuildReference (source : string, content) =
         let comp = this.BuildContent(new CompilationUnitManager(), content)
         Assert.Empty (comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
@@ -126,10 +132,10 @@ type LinkingTests (output:ITestOutputHelper) =
         Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[testNumber-1] result
 
         (*Find the overridden operation in the appropriate namespace*)
-        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicResolutionNs, NonNullable<_>.New "Override")
+        let targetCallName = QsQualifiedName.New(Signatures.IntrinsicResolutionNs, "Override")
         let targetCallable =
             result.Namespaces
-            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicResolutionNs)
+            |> Seq.find (fun ns -> ns.Name = Signatures.IntrinsicResolutionNs)
             |> (fun x -> [x]) |> SyntaxExtensions.Callables
             |> Seq.find (fun call -> call.FullName = targetCallName)
 
@@ -154,7 +160,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
-            |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
+            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNs)
         let references = createReferences ["InternalRenaming.dll", namespaces]
         let referenceCompilation = this.BuildContent (manager, "", references)
 
@@ -172,7 +178,35 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.Equal (0, afterCountOriginal)
         Assert.Equal (beforeCount, afterCount)
 
+    member private this.RunMonomorphizationAccessModifierTest testNumber =
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[testNumber]
+        let compilation = this.CompileMonomorphization source
 
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesInternal"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables originally internal should remain internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesPublic"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables originally internal should remain internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesInternal"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | Internal -> true | _ -> false),
+            "Callables with internal arguments should be internal.")
+
+        let generated = getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesPublic"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x)
+        
+        Assert.True((match generated.Modifiers.Access with | DefaultAccess -> true | _ -> false),
+            "Callables originally public should remain public if all arguments are public.")
+
+    
     [<Fact>]
     [<Trait("Category","Monomorphization")>]
     member this.``Monomorphization Basic Implementation`` () =
@@ -191,8 +225,56 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Args`` () =
+        this.RunMonomorphizationAccessModifierTest 4
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 5
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Array Args`` () =
+        this.RunMonomorphizationAccessModifierTest 6
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Array Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 7
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Tuple Args`` () =
+        this.RunMonomorphizationAccessModifierTest 8
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Tuple Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 9
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Op Args`` () =
+        this.RunMonomorphizationAccessModifierTest 10
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Access Modifier Resolution Op Returns`` () =
+        this.RunMonomorphizationAccessModifierTest 11
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
     member this.``Monomorphization Type Parameter Resolutions`` () =
-        let source = LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs" |> Seq.last
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[12]
         let compilation = this.CompileMonomorphization source
 
         let callables = compilation.Namespaces |> GlobalCallableResolutions
@@ -205,10 +287,10 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> false
         let isConcretizationOf (expected : QsQualifiedName) (given : QsQualifiedName) = 
             given.Namespace = expected.Namespace && 
-            given.Name.Value.Length > 34 && 
-            given.Name.Value.[0] = '_' &&
-            given.Name.Value.[33] = '_' &&
-            given.Name.Value.[34..] = expected.Name.Value
+            given.Name.Length > 34 &&
+            given.Name.[0] = '_' &&
+            given.Name.[33] = '_' &&
+            given.Name.[34..] = expected.Name
 
         let mutable gotLength, gotIndexRange = false, false
         let onExpr (ex : TypedExpression) = 
@@ -225,7 +307,7 @@ type LinkingTests (output:ITestOutputHelper) =
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
             | _ -> ()
 
-        let walker = new TypedExpressionWalker<unit>(new Action<_>(onExpr));
+        let walker = TypedExpressionWalker(Action<_> onExpr, ())
         walker.Transformation.OnCompilation compilation |> ignore
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
@@ -285,7 +367,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify compilationManager entryPoint []
-        this.Expect "EntryPointInLibrary" [Error ErrorCode.EntryPointInLibrary]
+        this.Expect "EntryPointInLibrary" [Warning WarningCode.EntryPointInLibrary]
 
 
     [<Fact>]
@@ -325,7 +407,11 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Entry point return type restriction for quantum processors`` () =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
-        let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true, capabilities = RuntimeCapabilities.QPRGen0)
+        let compilationManager =
+            new CompilationUnitManager
+                (Action<_> (fun ex -> failwith ex.Message),
+                 isExecutable = true,
+                 capability = BasicQuantumFunctionality)
         let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
         
@@ -460,7 +546,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let sourceCompilation = this.BuildContent (manager, chunks.[7])
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
-            |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
+            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNs)
 
         let references = createReferences ["InternalRenaming1.dll", namespaces
                                            "InternalRenaming2.dll", namespaces]
@@ -478,7 +564,7 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Combine conflicting syntax trees`` () = 
 
-        let checkInvalidCombination (conflicts : ImmutableDictionary<_,_>) (sources : (NonNullable<string> * string) seq) = 
+        let checkInvalidCombination (conflicts : ImmutableDictionary<_, _>) sources =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
             let trees = sources |> Seq.map this.BuildReference |> Seq.toArray
             let onError _ (args : _[]) = 
@@ -488,7 +574,7 @@ type LinkingTests (output:ITestOutputHelper) =
             let success = References.CombineSyntaxTrees(&combined, 0, new Action<_,_>(onError), trees)
             Assert.False(success, "combined conflicting syntax trees")
 
-        let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
+        let source =  sprintf "Reference%i.dll"
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
         let buildDict (args : _ seq) = args.ToImmutableDictionary(fst, snd)
 
@@ -527,7 +613,7 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Combine syntax trees to a valid reference`` () = 
 
-        let checkValidCombination (sources : ImmutableDictionary<NonNullable<string>, (string * Set<_>)>) = 
+        let checkValidCombination (sources : ImmutableDictionary<_, _>) =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
             let trees = sources |> Seq.map (fun kv -> this.BuildReference (kv.Key, fst kv.Value)) |> Seq.toArray
             let sourceIndex = (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i))).ToImmutableDictionary(fst, snd)
@@ -536,22 +622,22 @@ type LinkingTests (output:ITestOutputHelper) =
             Assert.True(success, "failed to combine syntax trees")
 
             let decorator = new NameDecorator("QsRef")
-            let undecorate (assertUndecorated : bool) (fullName : QsQualifiedName, srcIdx, source : NonNullable<string>) = 
-                let name = decorator.Undecorate fullName.Name.Value
+            let undecorate (assertUndecorated : bool) (fullName : QsQualifiedName, srcIdx) =
+                let name = decorator.Undecorate fullName.Name
                 if name <> null then 
-                    Assert.Equal<string>(decorator.Decorate(name, srcIdx), fullName.Name.Value)
-                    {Namespace = fullName.Namespace; Name = name |> NonNullable<string>.New}
+                    Assert.Equal<string>(decorator.Decorate(name, srcIdx), fullName.Name)
+                    {Namespace = fullName.Namespace; Name = name}
                 else Assert.False(assertUndecorated, sprintf "name %s is not decorated" (fullName.ToString())); fullName
 
             /// Verifies that internal names have been decorated appropriately, 
             /// and that the correct source is set. 
             let AssertSource (fullName : QsQualifiedName, source, modifier : _ option) = 
                 match sources.TryGetValue source with 
-                | true, (_, decls) -> 
+                | true, (_, decls : _ Set) ->
                     let idx = sourceIndex.[source]
                     let name = 
-                        if modifier.IsNone then undecorate false (fullName, idx, source) 
-                        elif modifier.Value = Internal then undecorate true (fullName, idx, source)
+                        if modifier.IsNone then undecorate false (fullName, idx)
+                        elif modifier.Value = Internal then undecorate true (fullName, idx)
                         else fullName
                     Assert.True(decls.Contains name)
                 | false, _ -> Assert.True(false, "wrong source")
@@ -566,11 +652,11 @@ type LinkingTests (output:ITestOutputHelper) =
                 AssertSource (sDecl.Parent, sDecl.SourceFile, None)
                 sDecl
             let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
-            checker.OnCompilation({EntryPoints = ImmutableArray<QsQualifiedName>.Empty; Namespaces = combined}) |> ignore
+            checker.OnCompilation(QsCompilation.New (combined, ImmutableArray<QsQualifiedName>.Empty)) |> ignore
 
-        let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
+        let source =  sprintf "Reference%i.dll"
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
-        let fullName (ns, name) = {Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name}
+        let fullName (ns, name) = {Namespace = ns; Name = name}
         let buildDict (args : _ seq) = args.ToImmutableDictionary(fst, snd)
 
         let declInSource1 = new Set<_>([

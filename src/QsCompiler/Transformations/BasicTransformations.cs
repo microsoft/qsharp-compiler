@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -16,8 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal readonly HashSet<NonNullable<string>> SourceFiles =
-                new HashSet<NonNullable<string>>();
+            internal readonly HashSet<string> SourceFiles = new HashSet<string>();
         }
 
         private GetSourceFiles()
@@ -33,14 +31,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespaces.
-        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null.
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
+        public static ImmutableHashSet<string> Apply(IEnumerable<QsNamespace> namespaces)
         {
-            if (namespaces == null || namespaces.Contains(null))
-            {
-                throw new ArgumentNullException(nameof(namespaces));
-            }
             var filter = new GetSourceFiles();
             foreach (var ns in namespaces)
             {
@@ -51,9 +44,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null.
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) =>
+        public static ImmutableHashSet<string> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
 
         // helper classes
@@ -72,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return spec;
             }
 
-            public override NonNullable<string> OnSourceFile(NonNullable<string> f)
+            public override string OnSourceFile(string f)
             {
                 this.SharedState.SourceFiles.Add(f);
                 return base.OnSourceFile(f);
@@ -91,15 +83,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal readonly Func<NonNullable<string>, bool> Predicate;
+            internal readonly Func<string, bool> Predicate;
             internal readonly List<(int?, QsNamespaceElement)> Elements =
                 new List<(int?, QsNamespaceElement)>();
 
-            public TransformationState(Func<NonNullable<string>, bool> predicate) =>
-                this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+            public TransformationState(Func<string, bool> predicate) =>
+                this.Predicate = predicate;
         }
 
-        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
+        public FilterBySourceFile(Func<string, bool> predicate)
         : base(new TransformationState(predicate))
         {
             this.Namespaces = new NamespaceTransformation(this);
@@ -110,20 +102,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // static methods for convenience
 
-        public static QsNamespace Apply(QsNamespace ns, Func<NonNullable<string>, bool> predicate)
+        public static QsNamespace Apply(QsNamespace ns, Func<string, bool> predicate)
         {
-            if (ns == null)
-            {
-                throw new ArgumentNullException(nameof(ns));
-            }
             var filter = new FilterBySourceFile(predicate);
             return filter.Namespaces.OnNamespace(ns);
         }
 
-        public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileIds)
+        public static QsNamespace Apply(QsNamespace ns, params string[] fileIds)
         {
-            var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
-            return Apply(ns, s => sourcesToKeep.Contains(s.Value));
+            var sourcesToKeep = fileIds.ToImmutableHashSet();
+            return Apply(ns, sourcesToKeep.Contains);
         }
 
         // helper classes
@@ -215,8 +203,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this.Recur = recur;
                 this.Seed = seed;
                 this.FoldResult = seed;
-                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
-                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(fold));
+                this.Condition = condition;
+                this.ConstructFold = fold;
             }
         }
 
@@ -235,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public class StatementTransformation<TSelector>
         : Core.StatementTransformation<TransformationState> where TSelector : SelectByFoldingOverExpressions
         {
-            protected TSelector SubSelector;
+            protected TSelector? SubSelector;
             protected readonly Func<TransformationState, TSelector> CreateSelector;
 
             /// <summary>
@@ -244,7 +232,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// </summary>
             public StatementTransformation(Func<TransformationState, TSelector> createSelector, SyntaxTreeTransformation<TransformationState> parent)
             : base(parent) =>
-                this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
+                this.CreateSelector = createSelector;
 
             /// <inheritdoc/>
             public override QsStatement OnStatement(QsStatement stm)
@@ -267,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector.SharedState.SatisfiesCondition)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         statements.Add(transformed);
                     }
@@ -357,11 +345,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
         : base(parent, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+            this.OnExpression = onExpression;
 
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState)
         : base(internalState, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+            this.OnExpression = onExpression;
 
         public readonly Action<TypedExpression> OnExpression;
 
@@ -371,5 +359,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             this.OnExpression(ex);
             return base.OnTypedExpression(ex);
         }
+    }
+
+    /// <summary>
+    /// Adds the given variable declarations to the list of defined variables for each scope.
+    /// </summary>
+    internal class AddVariableDeclarations<T>
+    : StatementTransformation<T>
+    {
+        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
+
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
+        : base(parent) =>
+            this.addedVariableDeclarations = addedVars;
+
+        /// <inheritdoc/>
+        public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
+            base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.addedVariableDeclarations)));
     }
 }

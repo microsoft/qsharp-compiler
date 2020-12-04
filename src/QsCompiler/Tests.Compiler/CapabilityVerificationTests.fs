@@ -3,36 +3,38 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityVerificationTests
 
-open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.IO
 open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
-let private compile capabilities =
-    CompilerTests.Compile ("TestCases", ["CapabilityVerification.qs"], capabilities = capabilities)
+let private compile capability =
+    CompilerTests.Compile
+        ("TestCases",
+         ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"],
+         references = [File.ReadAllLines("ReferenceTargets.txt").[1]],
+         capability = capability)
 
-/// The unknown capability tester.
-let private unknown = CompilerTests (compile RuntimeCapabilities.Unknown)
+/// The FullComputation capability tester.
+let private fullComputation = compile FullComputation |> CompilerTests
 
-/// The QPRGen0 capability tester.
-let private gen0 = CompilerTests (compile RuntimeCapabilities.QPRGen0)
+/// The BasicQuantumFunctionality capability tester.
+let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> CompilerTests
 
-/// The QPRGen1 capability tester.
-let private gen1 = CompilerTests (compile RuntimeCapabilities.QPRGen1)
+/// The BasicMeasurementFeedback capability tester.
+let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
 
 /// The qualified name for the test case name.
-let private testName name =
-    QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.CapabilityVerification",
-                         NonNullable<_>.New name)
+let internal testName name = { Namespace = "Microsoft.Quantum.Testing.Capability"; Name = name }
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
-let private expect (tester : CompilerTests) errorCodes name = tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
+let private expect (tester : CompilerTests) errorCodes name =
+    tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
 
 /// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
-/// QPRGen0, and no errors in Unknown.
+/// BasicQuantumFunctionality, and no errors in FullComputation.
 let private simpleTests =
     [ "ResultAsBool"
       "ResultAsBoolNeq"
@@ -44,6 +46,7 @@ let private simpleTests =
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "ResultAsBoolOpElseSet"
+      "NestedResultIfReturn"
       "ElifSet"
       "ElifElifSet"
       "ElifElseSet"
@@ -54,84 +57,130 @@ let private simpleTests =
       "EmptyIfOp"
       "EmptyIfNeqOp"
       "Reset"
-      "ResetNeq" ]
+      "ResetNeq"
+      "OverrideBmfToFull"
+      "OverrideBmfToBqf"
+      "OverrideFullToBmf"
+      "ExplicitBmf" ]
 
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
-    List.iter (expect unknown []) simpleTests
-    "SetReusedName" |> expect unknown [ErrorCode.LocalVariableAlreadyExists]
+    List.iter (expect fullComputation []) simpleTests
+    "SetReusedName" |> expect fullComputation [ErrorCode.LocalVariableAlreadyExists]
     [ "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
+
+let ``BasicQuantumFunctionality allows callables without Result comparison`` () =
+    [ "NoOp"
+      "OverrideBqfToBmf" ]
+    |> List.iter (expect basicQuantumFunctionality [])
 
 [<Fact>]
-let ``QPRGen0 restricts all Result comparison`` () =
-    List.iter (expect gen0 [ErrorCode.UnsupportedResultComparison]) simpleTests
-    "SetReusedName" |> expect gen0 [ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison]
+let ``BasicQuantumFunctionality restricts all Result comparison`` () =
+    simpleTests |> List.iter (expect basicQuantumFunctionality [ErrorCode.UnsupportedResultComparison])
+    "SetReusedName" |> expect basicQuantumFunctionality
+        [ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison]
     [ "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
-let ``QPRGen1 restricts Result comparison in functions`` () =
+let ``BasicMeasurementFeedback restricts Result comparison in functions`` () =
     [ "ResultAsBool"
       "ResultAsBoolNeq" ]
-    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
     [ "ResultTuple"
       "ResultArray" ]
-    |> List.iter (expect unknown [ErrorCode.InvalidTypeInEqualityComparison])
+    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
 
 [<Fact>]
-let ``QPRGen1 restricts non-if Result comparison in operations`` () =
+let ``BasicMeasurementFeedback restricts non-if Result comparison in operations`` () =
     [ "ResultAsBoolOp"
       "ResultAsBoolNeqOp" ]
-    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
 
 [<Fact>]
-let ``QPRGen1 restricts return from Result if`` () =
+let ``BasicMeasurementFeedback restricts return from Result if`` () =
     [ "ResultAsBoolOpReturnIf"
       "ResultAsBoolOpReturnIfNested"
-      "ResultAsBoolNeqOpReturnIf" ]
-    |> List.iter (expect gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
+      "ResultAsBoolNeqOpReturnIf"
+      "NestedResultIfReturn" ]
+    |> List.iter (expect basicMeasurementFeedback <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
-let ``QPRGen1 allows local mutable set from Result if`` () = "SetLocal" |> expect gen1 []
+let ``BasicMeasurementFeedback allows local mutable set from Result if`` () =
+    "SetLocal" |> expect basicMeasurementFeedback []
 
 [<Fact>]
-let ``QPRGen1 restricts non-local mutable set from Result if`` () =
+let ``BasicMeasurementFeedback restricts non-local mutable set from Result if`` () =
     [ "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "SetTuple" ]
-    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
     "SetReusedName"
-    |> expect gen1 (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
+    |> expect basicMeasurementFeedback
+        (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
 
 [<Fact>]
-let ``QPRGen1 restricts non-local mutable set from Result elif`` () =
+let ``BasicMeasurementFeedback restricts non-local mutable set from Result elif`` () =
     [ "ElifSet"
       "ElifElifSet" ]
-    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
-let ``QPRGen1 restricts non-local mutable set from Result else`` () =
+let ``BasicMeasurementFeedback restricts non-local mutable set from Result else`` () =
     [ "ResultAsBoolOpElseSet"
       "ElifElseSet" ]
-    |> List.iter (expect gen1 [ErrorCode.SetInResultConditionedBlock])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
-let ``QPRGen1 restricts empty Result if function`` () =
+let ``BasicMeasurementFeedback restricts empty Result if function`` () =
     [ "EmptyIf"
       "EmptyIfNeq" ]
-    |> List.iter (expect gen1 [ErrorCode.ResultComparisonNotInOperationIf])
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
 
 [<Fact>]
-let ``QPRGen1 allows empty Result if operation`` () =
+let ``BasicMeasurementFeedback allows empty Result if operation`` () =
     [ "EmptyIfOp"
       "EmptyIfNeqOp" ]
-    |> List.iter (expect gen1 [])
+    |> List.iter (expect basicMeasurementFeedback [])
 
 [<Fact>]
-let ``QPRGen1 allows operation call from Result if`` () =
+let ``BasicMeasurementFeedback allows operation call from Result if`` () =
     [ "Reset"
-      "ResetNeq" ]
-    |> List.iter (expect gen1 [])
+      "ResetNeq"
+      "OverrideBmfToFull"
+      "OverrideBmfToBqf"
+      "ExplicitBmf" ]
+    |> List.iter (expect basicMeasurementFeedback [])
+
+[<Fact>]
+let ``FullComputation allows all library calls and references`` () =
+    [ "CallLibraryBqf"
+      "ReferenceLibraryBqf"
+      "CallLibraryBmf"
+      "ReferenceLibraryBmf"
+      "CallLibraryFull"
+      "ReferenceLibraryFull" ]
+    |> List.iter (expect fullComputation [])
+
+[<Fact>]
+let ``BasicMeasurementFeedback restricts library calls and references`` () =
+    [ "CallLibraryBqf"
+      "CallLibraryBmf" ]
+    |> List.iter (expect basicMeasurementFeedback [])
+    [ "CallLibraryFull"
+      "ReferenceLibraryFull" ]
+    |> List.iter (expect basicMeasurementFeedback [ErrorCode.UnsupportedCapability])
+
+[<Fact>]
+let ``BasicQuantumFunctionality restricts library calls and references`` () =
+    [ "CallLibraryBqf"
+      "ReferenceLibraryBqf" ]
+    |> List.iter (expect basicQuantumFunctionality [])
+    [ "CallLibraryBmf"
+      "ReferenceLibraryBmf"
+      "CallLibraryFull"
+      "ReferenceLibraryFull" ]
+    |> List.iter (expect basicQuantumFunctionality [ErrorCode.UnsupportedCapability])

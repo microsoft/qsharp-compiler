@@ -20,13 +20,12 @@ type LocalVerificationTests () =
         ]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-        let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.LocalVerification"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 
     [<Fact>]
-    member this.``type argument inference`` () = 
+    member this.``Type argument inference`` () = 
         this.Expect "TypeArgumentsInference1"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference2"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall]
         this.Expect "TypeArgumentsInference3"  [Error ErrorCode.UnresolvedTypeParameterForRecursiveCall; Error ErrorCode.MultipleTypesInArray]
@@ -55,9 +54,9 @@ type LocalVerificationTests () =
         this.Expect "TypeArgumentsInference26" []
         this.Expect "TypeArgumentsInference27" [Error ErrorCode.ConstrainsTypeParameter]
         this.Expect "TypeArgumentsInference28" [Error ErrorCode.ArgumentTypeMismatch]
-        this.Expect "TypeArgumentsInference29" []
-        this.Expect "TypeArgumentsInference30" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
-        this.Expect "TypeArgumentsInference31" [Error ErrorCode.TypeParameterResConflictWithTypeArgument]
+        this.Expect "TypeArgumentsInference29" [Error ErrorCode.InvalidCyclicTypeParameterResolution]
+        this.Expect "TypeArgumentsInference30" [Error ErrorCode.TypeParameterResConflictWithTypeArgument; Error ErrorCode.InvalidCyclicTypeParameterResolution]
+        this.Expect "TypeArgumentsInference31" [Error ErrorCode.TypeParameterResConflictWithTypeArgument; Error ErrorCode.InvalidCyclicTypeParameterResolution]
         this.Expect "TypeArgumentsInference32" [Error ErrorCode.ConstrainsTypeParameter]
         this.Expect "TypeArgumentsInference33" [Error ErrorCode.ArgumentTypeMismatch]
         this.Expect "TypeArgumentsInference34" []
@@ -242,6 +241,7 @@ type LocalVerificationTests () =
     member this.``Deprecation warnings`` () =
         this.Expect "DeprecatedType"               []
         this.Expect "RenamedType"                  []
+        this.Expect "DeprecatedCallable"           []
         this.Expect "DuplicateDeprecateAttribute1" [Warning WarningCode.DuplicateAttribute]
         this.Expect "DuplicateDeprecateAttribute2" [Warning WarningCode.DuplicateAttribute]
 
@@ -261,6 +261,13 @@ type LocalVerificationTests () =
         this.Expect "UsingRenamedAttribute1"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute2"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute3"       [Warning WarningCode.DeprecationWithRedirect]
+
+        this.Expect "NestedDeprecatedCallable"     []
+        this.Expect "DeprecatedAttributeInDeprecatedCallable" []
+        this.Expect "DeprecatedTypeInDeprecatedCallable" []
+        this.Expect "UsingNestedDeprecatedCallable" [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingDepAttrInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDepTypeInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
                                                    
         this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]

@@ -251,19 +251,8 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     // comparison for any derived type).
     let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [toString lhsType; toString rhsType]
     let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
-
-    // This assumes that:
-    // - Result has no derived types that support equality comparisons.
-    // - Compound types containing Result (e.g., tuples or arrays of results) do not support equality comparison.
-    match baseType.Resolution with
-    | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
-        addError (ErrorCode.UnsupportedResultComparison, [context.ProcessorArchitecture.Value]) rhsRange
-    | Result when context.Capabilities = RuntimeCapabilities.QPRGen1 &&
-                  not (context.IsInOperation && context.IsInIfCondition) ->
-        addError (ErrorCode.ResultComparisonNotInOperationIf, [context.ProcessorArchitecture.Value]) rhsRange
-    | _ ->
-        let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
-        VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore
+    let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
+    VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them. 
 /// Adds a MissingExprInArray error with the corresponding range using addError if one of the given types is missing. 
@@ -459,7 +448,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         if containsInvalid then invalid
         else remaining |> function | [] -> None | [t] -> Some t | _ -> TupleType (remaining.ToImmutableArray()) |> ResolvedType.New |> Some
     
-    let lookUp = new List<(QsQualifiedName * NonNullable<string>) * (ResolvedType * Range)>()
+    let lookUp = new List<(QsQualifiedName * string) * (ResolvedType * Range)>()
     let addTpResolution range (tp, exT) = lookUp.Add (tp, (exT, range))
     let rec recur (targetT : ResolvedType, argEx : QsExpression) = 
         let pushErrs errCodes = for code in errCodes do argEx.RangeOrDefault |> addError code
@@ -578,7 +567,7 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
     let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx 
     if directRecursion then rhsRange |> addError (ErrorCode.InvalidUseOfTypeParameterizedObject, [])
     // we need to check if all type parameters are consistently resolved
-    let tpResolutions = new List<(QsQualifiedName * NonNullable<string>) * ResolvedType>()
+    let tpResolutions = new List<(QsQualifiedName * string) * ResolvedType>()
     let addTpResolution (key, exT) = 
         // we can ignoring external type parameters, 
         // since for a set-statement these can only occur if either the lhs can either not be set or has been assigned previously

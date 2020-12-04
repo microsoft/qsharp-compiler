@@ -6,6 +6,7 @@
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsCompilationManager</AssemblyName>
+    <RootNamespace>Microsoft.Quantum.QsCompiler.CompilationBuilder</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BondSchemas\BondSchemas.csproj" />
     <ProjectReference Include="..\Core\Core.fsproj" />
     <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
     <ProjectReference Include="..\SyntaxProcessor\SyntaxProcessor.fsproj" />

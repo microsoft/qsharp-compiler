@@ -68,8 +68,7 @@ let internal namespaceName = // internal for testing purposes
         let names = path @ [sym]
         let namespaceStr = names |> List.choose id |> String.concat "."
         if names |> List.contains None then (None, range) |> preturn
-        elif sym.Value.EndsWith "_" && not (namespaceStr.Contains "__" || namespaceStr.Contains "_.") then // REL0920: remove the second half and return None for pattern errors
-            buildWarning (preturn range) WarningCode.UseOfUnderscorePattern >>% (Some namespaceStr, range)
+        elif sym.Value.EndsWith "_" then buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern >>% (None, range)
         else (Some namespaceStr, range) |> preturn
     multiSegmentSymbol ErrorCode.InvalidPathSegment >>= asNamespaceName
 
@@ -82,7 +81,7 @@ let internal namespaceName = // internal for testing purposes
 let private expectedNamespaceName continuation =
     let namespaceName = namespaceName |>> function 
         | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
-        | Some name, range -> (name |> NonNullable<string>.New |> Symbol, range) |> QsSymbol.New
+        | Some name, range -> (Symbol name, range) |> QsSymbol.New
     expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
 /// Parses the condition e.g. for if, elif and until clauses.
@@ -151,7 +150,7 @@ let private signature =
             let invalidName = symbolNameLike ErrorCode.InvalidTypeParameterName .>> opt (pchar '\'') |> term |>> snd
             let invalid = buildError invalidName ErrorCode.InvalidTypeParameterName >>% None
             term (typeParameterNameLike <|> invalid) |>> function 
-            | Some sym, range -> (Symbol (NonNullable<string>.New sym), range) |> QsSymbol.New
+            | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
             | None, _ -> invalidSymbol
         let validList = 
             let typeParams = commaSep1 genericParam ErrorCode.InvalidTypeParameterDeclaration ErrorCode.MissingTypeParameterDeclaration invalidSymbol eof

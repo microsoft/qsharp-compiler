@@ -25,48 +25,48 @@ let ``Reserved patterns`` () =
         ("_mySymbol" , true , Some "_mySymbol" , [])
         ("mySymbol_" , true , Some "mySymbol_" , [])
         ("my_symbol" , true , Some "my_symbol" , [])
-        ("my__symbol", true , Some "my__symbol", [Warning WarningCode.UseOfUnderscorePattern])
-        ("__mySymbol", true , Some "__mySymbol", [Warning WarningCode.UseOfUnderscorePattern])
-        ("mySymbol__", true , Some "mySymbol__", [Warning WarningCode.UseOfUnderscorePattern])
-        ("__my__sym" , true , Some "__my__sym" , [Warning WarningCode.UseOfUnderscorePattern])
-        ("my__sym__" , true , Some "my__sym__" , [Warning WarningCode.UseOfUnderscorePattern])
-        ("__mysym__" , true , None             , [Error ErrorCode.InvalidUseOfReservedKeyword])
+        ("my__symbol", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__mySymbol", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("mySymbol__", true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__my__sym" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("my__sym__" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__mysym__" , true , None             , [Error ErrorCode.InvalidUseOfUnderscorePattern])
     ]
     |> List.iter (testOne (symbolNameLike ErrorCode.InvalidIdentifierName))
     [
         ("a.b"    , true , ([Some "a"   ], Some "b"   ), [])
         ("_a.b"   , true , ([Some "_a"  ], Some "b"   ), [])
-        ("a_.b"   , true , ([Some "a_"  ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
+        ("a_.b"   , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
         ("a._b"   , true , ([Some "a"   ], Some "_b"  ), [])
         ("a.b_"   , true , ([Some "a"   ], Some "b_"  ), [])
         ("_a.b_"  , true , ([Some "_a"  ], Some "b_"  ), [])
-        ("a_._b"  , true , ([Some "a_"  ], Some "_b"  ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b"  , true , ([Some "__a" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__a.b" , true , ([Some "a__a"], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__.b"  , true , ([Some "a__" ], Some "b"   ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.__b"  , true , ([Some "a"   ], Some "__b" ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__b" , true , ([Some "a"   ], Some "b__b"), [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__"  , true , ([Some "a"   ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b__", true , ([Some "__a" ], Some "b__" ), [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+        ("a_._b"  , true , ([None       ], Some "_b"  ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b"  , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__a.b" , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__.b"  , true , ([None       ], Some "b"   ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.__b"  , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__b" , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__"  , true , ([Some "a"   ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b__", true , ([None       ], None       ), [Error ErrorCode.InvalidUseOfUnderscorePattern; Error ErrorCode.InvalidUseOfUnderscorePattern])
     ]
     |> List.iter (testOne (multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> fst))
     [
         ("a.b"    , true , Some "a.b"    , [])
         ("_a.b"   , true , Some "_a.b"   , [])
-        ("a_.b"   , true , Some "a_.b"   , [Warning WarningCode.UseOfUnderscorePattern])
+        ("a_.b"   , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
         ("a._b"   , true , Some "a._b"   , [])
-        ("a.b_"   , true , Some "a.b_"   , [Warning WarningCode.UseOfUnderscorePattern])
-        ("_a.b_"  , true , Some "_a.b_"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a_._b"  , true , Some "a_._b"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b"  , true , Some "__a.b"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__a.b" , true , Some "a__a.b" , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a__.b"  , true , Some "a__.b"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.__b"  , true , Some "a.__b"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__b" , true , Some "a.b__b" , [Warning WarningCode.UseOfUnderscorePattern])
-        ("a.b__"  , true , Some "a.b__"  , [Warning WarningCode.UseOfUnderscorePattern])
-        ("__a.b__", true , Some "__a.b__", [Warning WarningCode.UseOfUnderscorePattern; Warning WarningCode.UseOfUnderscorePattern])
+        ("a.b_"   , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("_a.b_"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a_._b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__a.b" , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a__.b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.__b"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__b" , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("a.b__"  , true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern])
+        ("__a.b__", true , None          , [Error ErrorCode.InvalidUseOfUnderscorePattern; Error ErrorCode.InvalidUseOfUnderscorePattern])
     ]
-    |> List.iter (testOne (namespaceName |>> fst))
+    |> List.iter (testOne (namespaceName |>> fst)) 
 
 
 [<Fact>]
@@ -244,7 +244,13 @@ let ``Expression literal tests`` () =
         ("1L",                    true,    toBigInt "1",                                                          []); 
         ("+1L",                   true,    toBigInt "1",                                                          []); 
         ("-1L",                   true,    toExpr (NEG (toBigInt "1")),                                           []); 
-        ("10000000000000000L",    true,    toBigInt "10000000000000000",                                          []); 
+        ("10000000000000000L",    true,    toBigInt "10000000000000000",                                          []);
+        ("0b111L",                true,    toBigInt "7",                                                          []);
+        ("0b1101L",               true,    toBigInt "13",                                                         []);
+        ("0b1100101011111110L",   true,    toBigInt "51966",                                                      []);
+        ("0o1L",                  true,    toBigInt "1",                                                          []);
+        ("0o105L",                true,    toBigInt "69",                                                         []);
+        ("0o12345L",              true,    toBigInt "5349",                                                       []); 
         ("0xfL",                  true,    toBigInt "15",                                                         []); 
         ("0xffL",                 true,    toBigInt "255",                                                        []); 
         ("1l",                    true,    toBigInt "1",                                                          []); 
@@ -255,10 +261,18 @@ let ``Expression literal tests`` () =
         ("+0xfl",                 true,    toBigInt "15",                                                         []); 
         ("0xffl",                 true,    toBigInt "255",                                                        []); 
         ("+0xffl",                true,    toBigInt "255",                                                        []); 
+        ("0o1",                   true,    toInt 1,                                                               []); 
+        ("+0o1",                  true,    toInt 1,                                                               []); 
+        ("-0o1",                  true,    toExpr (NEG (toInt 1)),                                                []); 
         ("0b1",                   true,    toInt 1,                                                               []); 
         ("0b100",                 true,    toInt 4,                                                               []); 
         ("+0b100",                true,    toInt 4,                                                               []); 
         ("-0b100",                true,    toExpr (NEG (toInt 4)),                                                []);
+        ("0o1",                   true,    toInt 1,                                                               []); 
+        ("0o100",                 true,    toInt 64,                                                              []);
+        ("+0o100",                true,    toInt 64,                                                              []);
+        ("-0o100",                true,    toExpr (NEG (toInt 64)),                                               []);
+        (".1e-1",                 true,    toExpr (DoubleLiteral 0.01),                                           []); 
         (".1",                    true,    toExpr (DoubleLiteral 0.1),                                            []); 
         ("1.0",                   true,    toExpr (DoubleLiteral 1.0),                                            []); 
         ("1.",                    true,    toExpr (DoubleLiteral 1.0),                                            []); 
@@ -266,13 +280,13 @@ let ``Expression literal tests`` () =
         ("-1.0",                  true,    toExpr (NEG (toExpr (DoubleLiteral 1.0))),                             []); 
         ("-1.0e2",                true,    toExpr (NEG (toExpr (DoubleLiteral 100.0))),                           []);
         ("-1.0e-2",               true,    toExpr (NEG (toExpr (DoubleLiteral 0.01))),                            []);
-        ("\"\"",                  true,    toExpr (StringLiteral (NonNullable<string>.New "", noExprs)),          []);
-        ("\"hello\"",             true,    toExpr (StringLiteral (NonNullable<string>.New "hello", noExprs)),     []);
-        ("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
-        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
-        ("\"hello\\n\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\n", noExprs)),   []);
-        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral (NonNullable<string>.New "hello\r\n", noExprs)), []);
-        ("\"hello\\t\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\t", noExprs)),   []);
+        ("\"\"",                  true,    toExpr (StringLiteral ("", noExprs)),                                  []);
+        ("\"hello\"",             true,    toExpr (StringLiteral ("hello", noExprs)),                             []);
+        ("\"hello\\\\\"",         true,    toExpr (StringLiteral ("hello\\", noExprs)),                           []);
+        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral ("\"hello\"", noExprs)),                         []);
+        ("\"hello\\n\"",          true,    toExpr (StringLiteral ("hello\n", noExprs)),                           []);
+        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral ("hello\r\n", noExprs)),                         []);
+        ("\"hello\\t\"",          true,    toExpr (StringLiteral ("hello\t", noExprs)),                           []);
         ("One",                   true,    toExpr (ResultLiteral One),                                            []);
         ("Zero",                  true,    toExpr (ResultLiteral Zero),                                           []);
         ("PauliI",                true,    toExpr (PauliLiteral PauliI),                                          []);
@@ -338,8 +352,7 @@ let ``Simple comparison expression tests`` () =
 let ``Identifier tests`` () =
     [
         ("x",                   true,    toIdentifier "x",                                                          []); 
-        ("a.b.c",               true,    toExpr (Identifier ({Symbol=QualifiedSymbol("a.b" |> NonNullable<string>.New,
-                                                                                     "c" |> NonNullable<string>.New);
+        ("a.b.c",               true,    toExpr (Identifier ({Symbol=QualifiedSymbol("a.b", "c");
                                                               Range=Null}, Null)),                              []); 
     ]
     |> List.iter testExpr
@@ -371,37 +384,149 @@ let ``Complex literal tests`` () =
 [<Fact>]
 let ``Call tests`` () =
     [
-        ("x()",                 true,    toExpr (CallLikeExpression (toIdentifier "x", UnitValue |> toExpr)),       []);
-        ("x(1,2)",              true,    toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                     toTuple [ toInt 1; 
-                                                                               toInt 2])),      []);
-        ("Adjoint x()",         true,    toExpr (CallLikeExpression (AdjointApplication (toIdentifier "x") |> toExpr, 
-                                                                     UnitValue |> toExpr)),                     []);
-        ("Controlled x()",      true,    toExpr (CallLikeExpression (ControlledApplication (toIdentifier "x") |> toExpr, 
-                                                                     UnitValue |> toExpr)),                     []);
-
-        ("(x(_,1))(2)",         true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toInt 1])
-                                                                    )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,1))(1,2)",       true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toInt 1])
-                                                                    )], toTuple [ toInt 1;
-                                                                                 toInt 2 ])),                   []);
-        ("(x(1,(2, _)))(2)",    true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ toInt 1;
-                                                                                                           toTuple [ toInt 2;
-                                                                                                                     MissingExpr |> toExpr];
-                                                                                                         ])
-                                                                    )], toTuple [ toInt 2 ])),                   []);
-        ("(x(_,(2, _)))(1,2)",  true,    toExpr (CallLikeExpression (toTuple [toExpr (CallLikeExpression (toIdentifier "x", 
-                                                                                                 toTuple [ MissingExpr |> toExpr;
-                                                                                                           toTuple [ toInt 2;
-                                                                                                                     MissingExpr |> toExpr];
-                                                                                                         ])
-                                                                    )], toTuple [ toInt 1;
-                                                                                 toInt 2 ])),                   []);
+        "x()", true, CallLikeExpression (toIdentifier "x", toExpr UnitValue) |> toExpr, []
+        "x(1,2)", true, CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toInt 2 ]) |> toExpr, []
+        "Adjoint x()",
+            true,
+            CallLikeExpression (toIdentifier "x" |> AdjointApplication |> toExpr, toExpr UnitValue) |> toExpr,
+            []
+        "Controlled x()",
+            true,
+            CallLikeExpression (toIdentifier "x" |> ControlledApplication |> toExpr, toExpr UnitValue) |> toExpr,
+            []
+        "f(1)(2)",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "f(1)(2)(3)",
+            true,
+            ((CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+             |> CallLikeExpression
+             |> toExpr,
+             toTuple [ toInt 3 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "f(1)(2)[3]",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(f(1)(2))[3]",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toInt 3)
+            |> ArrayItem
+            |> toExpr,
+            []
+        "(f(1)(2))[3](4)",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toInt 3)
+            |> ArrayItem
+            |> toExpr
+            |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
+            []
+        "f(1)(2)::X",
+            true,
+            (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(f(1)(2))::X",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr,
+            []
+        "(f(1)(2))::X(4)",
+            true,
+            ([ (CallLikeExpression (toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toSymbol "X")
+            |> NamedItem
+            |> toExpr
+            |> (fun left -> CallLikeExpression (left, toTuple [ toInt 4 ]) |> toExpr),
+            []
+        "(x(_,1))(2)",
+            true,
+            (toTuple [ CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,1)(2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(_,1))(1,2)",
+            true,
+            (toTuple [ CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,1)(1,2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(1,(2, _)))(2)",
+            true,
+            ([ CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> toExpr ]
+             |> toTuple,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(1,(2, _))(2)",
+            true,
+            (CallLikeExpression (toIdentifier "x", toTuple [ toInt 1; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> toExpr,
+             toTuple [ toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "(x(_,(2, _)))(1,2)",
+            true,
+            ([ (toIdentifier "x", toTuple [ toExpr MissingExpr; toTuple [ toInt 2; toExpr MissingExpr ] ])
+               |> CallLikeExpression
+               |> toExpr ]
+             |> toTuple,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
+        "x(_,(2, _))(1,2)",
+            true,
+            ((toIdentifier "x", toTuple [ toExpr MissingExpr; toTuple [ toInt 2; toExpr MissingExpr ] ])
+             |> CallLikeExpression
+             |> toExpr,
+             toTuple [ toInt 1; toInt 2 ])
+            |> CallLikeExpression
+            |> toExpr,
+            []
     ]
     |> List.iter testExpr
 

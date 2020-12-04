@@ -9,7 +9,6 @@ open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
@@ -65,75 +64,6 @@ let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker) (ex : T
 let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker) = 
     if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
-
-/// <summary>
-/// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
-/// </summary>
-/// <param name="parent">The name of the callable in which the expression occurs.</param>
-/// <param name="expression">The expression.</param>
-let private isResultComparison ({ Expression = expression } : TypedExpression) =
-    let validType = function
-        | InvalidType -> None
-        | kind -> Some kind
-    let binaryType lhs rhs = validType lhs.ResolvedType.Resolution |> Option.defaultValue rhs.ResolvedType.Resolution
-
-    // This assumes that:
-    // - Result has no derived types that support equality comparisons.
-    // - Compound types containing Result (e.g., tuples or arrays of results) do not support equality comparison.
-    match expression with
-    | EQ (lhs, rhs) -> binaryType lhs rhs = Result
-    | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
-    | _ -> false
-
-/// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned. The
-/// symbol tracker is not modified. Returns the name of the variable and the location of the reassignment.
-let private nonLocalUpdates (symbols : SymbolTracker) (scope : QsScope) =
-    // This assumes that a variable with the same name cannot be re-declared in an inner scope (i.e., shadowing is not
-    // allowed).
-    let identifierExists (name, location : QsLocation) =
-        let symbol = { Symbol = Symbol name; Range = Value location.Range }
-        match (symbols.ResolveIdentifier ignore symbol |> fst).VariableName with
-        | InvalidIdentifier -> false
-        | _ -> true
-    let accumulator = AccumulateIdentifiers()
-    accumulator.Statements.OnScope scope |> ignore
-    accumulator.SharedState.ReassignedVariables
-    |> Seq.collect (fun grouping -> Seq.map (fun location -> grouping.Key, location) grouping)
-    |> Seq.filter identifierExists
-
-/// Verifies that any conditional blocks which depend on a measurement result do not use any language constructs that
-/// are not supported by the runtime capabilities. Returns the diagnostics for the blocks.
-let private verifyResultConditionalBlocks context condBlocks elseBlock =
-    // Diagnostics for return statements.
-    let returnStatements (statement : QsStatement) = statement.ExtractAll <| fun s ->
-        match s.Statement with
-        | QsReturnStatement _ -> [s]
-        | _ -> []
-    let returnError (statement : QsStatement) =
-        let error = ErrorCode.ReturnInResultConditionedBlock, [context.ProcessorArchitecture.Value]
-        let location = statement.Location.ValueOr { Offset = Position.Zero; Range = Range.Zero }
-        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
-    let returnErrors (block : QsPositionedBlock) =
-        block.Body.Statements |> Seq.collect returnStatements |> Seq.map returnError
-
-    // Diagnostics for variable reassignments.
-    let setError (name : NonNullable<string>, location : QsLocation) =
-        let error = ErrorCode.SetInResultConditionedBlock, [name.Value; context.ProcessorArchitecture.Value]
-        location.Offset + location.Range |> QsCompilerDiagnostic.Error error 
-    let setErrors (block : QsPositionedBlock) = nonLocalUpdates context.Symbols block.Body |> Seq.map setError
-
-    let blocks =
-        elseBlock
-        |> QsNullable<_>.Map (fun block -> SyntaxGenerator.BoolLiteral true, block)
-        |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
-        |> Seq.append condBlocks
-    let foldErrors (dependsOnResult, diagnostics) (condition : TypedExpression, block) =
-        if dependsOnResult || condition.Exists isResultComparison
-        then true, Seq.concat [returnErrors block; setErrors block; diagnostics]
-        else false, diagnostics
-    if context.Capabilities = RuntimeCapabilities.QPRGen1
-    then Seq.fold foldErrors (false, Seq.empty) blocks |> snd
-    else Seq.empty
 
 
 // utils for building QsStatements from QsFragmentKinds
@@ -261,7 +191,7 @@ let NewValueUpdate comments (location : QsLocation) context (lhs : QsExpression,
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters 
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise. 
-let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : NonNullable<string>, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
+let private TryAddDeclaration isMutable (symbols : SymbolTracker) (name : string, location, localQdep) (rhsType : ResolvedType, rhsEx, rhsRange) =
     let t, tpErr = 
         if rhsType.isTypeParametrized symbols.Parent || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then 
             InvalidType |> ResolvedType.New, [| rhsRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
@@ -342,18 +272,15 @@ let NewConditionalBlock comments location context (qsExpr : QsExpression) =
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.
 /// Throws an ArgumentException if the given if-block contains no location information.
-let NewIfStatement context (ifBlock : TypedExpression * QsPositionedBlock) elifBlocks elseBlock =
+let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock) elifBlocks elseBlock =
     let location =
         match (snd ifBlock).Location with
         | Null -> ArgumentException "No location is set for the given if-block." |> raise
         | Value location -> location
     let condBlocks = Seq.append (Seq.singleton ifBlock) elifBlocks
-    let statement =
-        QsConditionalStatement.New (condBlocks, elseBlock)
-        |> QsConditionalStatement
-        |> asStatement QsComments.Empty location LocalDeclarations.Empty
-    let diagnostics = verifyResultConditionalBlocks context condBlocks elseBlock
-    statement, diagnostics
+    QsConditionalStatement.New (condBlocks, elseBlock)
+    |> QsConditionalStatement
+    |> asStatement QsComments.Empty location LocalDeclarations.Empty
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.

@@ -5,7 +5,7 @@ entry:
   %2 = call %String* @__quantum__rt__string_concatenate(%String* %0, %String* %1)
   call void @__quantum__rt__string_unreference(%String* %0)
   call void @__quantum__rt__string_unreference(%String* %1)
-  %3 = call %String* @__quantum__rt__string_create(i32 5, [0 x i8] bitcast ([5 x i8] c" \5C \0D\0A" to [0 x i8]))
+  %3 = call %String* @__quantum__rt__string_create(i32 5, [0 x i8] bitcast ([5 x i8] c" \\ \0D\0A" to [0 x i8]))
   %x = call %String* @__quantum__rt__string_concatenate(%String* %2, %String* %3)
   call void @__quantum__rt__string_unreference(%String* %2)
   call void @__quantum__rt__string_unreference(%String* %3)

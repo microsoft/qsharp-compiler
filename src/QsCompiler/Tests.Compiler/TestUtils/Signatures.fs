@@ -35,7 +35,7 @@ let private _DefaultTypes = _MakeTypeMap [||]
 
 let private _MakeSig input (typeMap : IDictionary<string,ResolvedType> ) =
     let ns, name, args, rtrn = input
-    let fullName = { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name }
+    let fullName = { Namespace = ns; Name = name }
     let argType =
         if Array.isEmpty args then
             typeMap.["Unit"]
@@ -52,10 +52,10 @@ let private _MakeSignatures sigs =
 let _MakeTypeParam originNs originName paramName =
     originName + "." + paramName, {
         Origin = {
-            Namespace = NonNullable<_>.New originNs;
-            Name = NonNullable<_>.New originName
+            Namespace = originNs
+            Name = originName
         }
-        TypeName = NonNullable<_>.New paramName
+        TypeName = paramName
         Range = Null
     } |> TypeParameter
 
@@ -64,7 +64,7 @@ let _MakeTypeParam originNs originName paramName =
 let public SignatureCheck checkedNamespaces targetSignatures compilation =
 
     let getNs targetNs =
-        match Seq.tryFind (fun (ns : QsNamespace) -> ns.Name.Value = targetNs) compilation.Namespaces with
+        match Seq.tryFind (fun (ns : QsNamespace) -> ns.Name = targetNs) compilation.Namespaces with
         | Some ns -> ns
         | None -> sprintf "Expected but did not find namespace: %s" targetNs |> failwith
 
@@ -78,8 +78,8 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call
         let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature
 
-        call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
-        call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
+        call_fullName.Namespace = sig_fullName.Namespace &&
+        call_fullName.Name.EndsWith sig_fullName.Name &&
         call_argType = sig_argType &&
         call_rtrnType = sig_rtrnType
 
@@ -99,7 +99,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         callableSigs
         |> Seq.tryFindIndex (fun callSig -> doesCallMatchSig callSig targetSig)
         |> (fun x ->
-                Assert.True (x <> None, sprintf "Expected but did not find: %s.*%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution)
+                Assert.True (x <> None, sprintf "Expected but did not find: %s.*%s %s : %A" sig_fullName.Namespace sig_fullName.Name (makeArgsString sig_argType) sig_rtrnType.Resolution)
                 callableSigs <- removeAt x.Value callableSigs
            )
 
@@ -114,6 +114,8 @@ let public GenericsNs = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
 let public InternalRenamingNs = "Microsoft.Quantum.Testing.InternalRenaming"
+let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
+let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -147,24 +149,22 @@ let public MonomorphizationSignatures =
             GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit"
             GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit"
 
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit"
-            GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit"
 
-            GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int"
             GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int"
-            GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int"
+        |])
+        (_DefaultTypes, [| (*Test Case 4*)
+            MonomorphizationNs, "Test4", [||], "Unit"
+            GenericsNs, "Test4Main", [||], "Unit"
+            GenericsNs, "_GenericCallsSelf", [||], "Unit"
+            GenericsNs, "_GenericCallsSelf2", [|"Double"|], "Unit"
         |])
     |]
     |> _MakeSignatures
 
 let private _IntrinsicResolutionTypes = _MakeTypeMap [|
-        "TestType", {Namespace = NonNullable<_>.New "Microsoft.Quantum.Testing.IntrinsicResolution"; Name = NonNullable<_>.New "TestType"; Range = Null} |> UserDefinedType
+        "TestType", {Namespace = "Microsoft.Quantum.Testing.IntrinsicResolution"; Name = "TestType"; Range = Null} |> UserDefinedType
     |]
 
 /// Expected callable signatures to be found when running Intrinsic Resolution tests

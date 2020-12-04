@@ -41,14 +41,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-        public IEnumerable<string> Plugins { get; set; }
+        public IEnumerable<string>? Plugins { get; set; }
 
         [Option(
             "target-specific-decompositions",
             Required = false,
             SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
-        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
+        public IEnumerable<string>? TargetSpecificDecompositions { get; set; }
 
         [Option(
             "load-test-names",
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
-        public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
+        public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
             "runtime",
@@ -71,6 +71,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             SetName = CODE_MODE,
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
+
+        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites.ToCapability();
 
         [Option(
             "build-exe",
@@ -90,9 +92,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             parsed = new Dictionary<string, string>();
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
-                var pieces = keyValue?.Split(":");
-                var valid = pieces != null && pieces.Length == 2;
-                success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
+                // NB: We use `count: 2` here to ensure that assembly constants can contain colons.
+                var pieces = keyValue?.Split(":", count: 2);
+                success =
+                    success && !(pieces is null) && pieces.Length == 2 &&
+                    parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
             }
             return success;
         }
@@ -117,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = DefaultOptions.Verbosity,
             HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
-        public string Verbosity { get; set; }
+        public string? Verbosity { get; set; }
 
         [Option(
             "format",
@@ -132,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = true,
             SetName = CODE_MODE,
             HelpText = "Q# code or name of the Q# file to compile.")]
-        public IEnumerable<string> Input { get; set; }
+        public IEnumerable<string>? Input { get; set; }
 
         [Option(
             's',
@@ -140,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = true,
             SetName = SNIPPET_MODE,
             HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
-        public string CodeSnippet { get; set; }
+        public string? CodeSnippet { get; set; }
 
         [Option(
             'f',
@@ -157,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = new string[0],
             HelpText = "Referenced binaries to include in the compilation.")]
-        public IEnumerable<string> References { get; set; }
+        public IEnumerable<string>? References { get; set; }
 
         [Option(
             'n',
@@ -165,14 +169,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = new int[0],
             HelpText = "Warnings with the given code(s) will be ignored.")]
-        public IEnumerable<int> NoWarn { get; set; }
+        public IEnumerable<int>? NoWarn { get; set; }
 
         [Option(
             "package-load-fallback-folders",
             Required = false,
             SetName = CODE_MODE,
             HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
-        public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+        public IEnumerable<string>? PackageLoadFallbackFolders { get; set; }
 
         /// <summary>
         /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
@@ -192,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// If a logger is given, logs the options as CommandLineArguments Information before returning the printed string.
         /// </summary>
-        public string[] Print(ILogger logger = null)
+        public string[] Print(ILogger? logger = null)
         {
             string Value(PropertyInfo p)
             {
@@ -251,16 +255,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static readonly Uri SNIPPET_FILE_URI = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
 
-        private static NonNullable<string> SNIPPET_FILE_ID
-        {
-            get
-            {
-                QsCompilerError.Verify(
-                    CompilationUnitManager.TryGetFileId(SNIPPET_FILE_URI, out NonNullable<string> id),
-                    "invalid code snippet id");
-                return id;
-            }
-        }
+        private static string SNIPPET_FILE_ID =>
+            QsCompilerError.RaiseOnFailure(
+                () => CompilationUnitManager.GetFileId(SNIPPET_FILE_URI),
+                "invalid code snippet id");
 
         /// <summary>
         /// name of the namespace within which code snippets are compiled
@@ -285,8 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Helper function that returns true if the given file id is consistent with the one for a code snippet.
         /// </summary>
-        public static bool IsCodeSnippet(NonNullable<string> fileId) =>
-            fileId.Value == SNIPPET_FILE_ID.Value;
+        public static bool IsCodeSnippet(string fileId) => fileId == SNIPPET_FILE_ID;
 
         /// <summary>
         /// Returns a function that given a routine for loading files from disk,
@@ -297,17 +294,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         internal CompilationLoader.SourceLoader LoadSourcesOrSnippet(ILogger logger) => loadFromDisk =>
         {
-            bool inputIsEmptyOrNull = this.Input == null || !this.Input.Any();
-            if (this.CodeSnippet == null && !inputIsEmptyOrNull)
+            var input = this.Input ?? Enumerable.Empty<string>();
+            if (this.CodeSnippet == null && input.Any())
             {
-                return loadFromDisk(this.Input);
+                return loadFromDisk(input);
             }
-            else if (this.CodeSnippet != null && inputIsEmptyOrNull)
+            else if (this.CodeSnippet != null && !input.Any())
             {
                 return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
             }
 
-            if (inputIsEmptyOrNull)
+            if (!input.Any())
             {
                 logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
             }
