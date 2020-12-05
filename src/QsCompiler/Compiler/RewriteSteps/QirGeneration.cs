@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPreconditionVerification => true;
 
         /// <inheritdoc/>
-        public bool ImplementsTransformation => false;
+        public bool ImplementsTransformation => true;
 
         /// <inheritdoc/>
         public bool ImplementsPostconditionVerification => false;

@@ -382,26 +382,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void Emit(string fileName, bool overwrite = true, bool generateInteropWrappers = false)
         {
-            this.GenerateQueuedWrappers();
-
-            var logFile = Path.ChangeExtension(fileName, ".log");
-            var llFile = Path.ChangeExtension(fileName, ".ll");
-            var bridgeFile = Path.Combine(Path.GetDirectoryName(fileName), "bridge.ll");
-
-            string ErrorString(string msg) =>
-                string.Join(Environment.NewLine, new[]
-                {
-                    "LLVM errors:",
-                    "___________________________",
-                    msg,
-                    "___________________________",
-                    Environment.NewLine
-                });
-
+            var bridgeFile = Path.Combine(
+                Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + "_bridge.ll");
             var existing = new[]
             {
-                File.Exists(logFile) ? logFile : null,
-                File.Exists(llFile) ? llFile : null,
+                File.Exists(fileName) ? fileName : null,
                 generateInteropWrappers && File.Exists(bridgeFile) ? bridgeFile : null
             };
 
@@ -411,16 +397,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException($"The following file(s) already exist(s): {argStr}");
             }
 
-            if (this.Module.Verify(out string validationErrors))
+            this.GenerateQueuedWrappers();
+
+            if (!this.Module.Verify(out string validationErrors))
             {
-                File.WriteAllText(logFile, "No errors\n");
-            }
-            else
-            {
-                File.WriteAllText(logFile, ErrorString(validationErrors));
+                File.WriteAllText(fileName, $"LLVM errors:{Environment.NewLine}{validationErrors}");
             }
 
-            if (!this.Module.WriteToTextFile(llFile, out string errorMessage))
+            if (!this.Module.WriteToTextFile(fileName, out string errorMessage))
             {
                 throw new IOException(errorMessage);
             }
@@ -444,7 +428,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (!this.InteropModule.Verify(out string bridgeValidationErrors))
                 {
-                    File.WriteAllText(bridgeFile, ErrorString(bridgeValidationErrors));
+                    File.WriteAllText(bridgeFile, $"LLVM errors:{Environment.NewLine}{bridgeValidationErrors}");
                 }
                 else if (!this.InteropModule.WriteToTextFile(bridgeFile, out string bridgeError))
                 {
