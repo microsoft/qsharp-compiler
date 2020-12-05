@@ -2,61 +2,63 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Instructions {
-    @Intrinsic("h")
+    open Microsoft.Quantum.Targeting;
+
+    @TargetInstruction("h")
     operation PhysH (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @Intrinsic("s")
-    operation PhysS (qb : Qubit) : Unit 
-    {
-        body intrinsic;
-    }
-
-    @Intrinsic("z")
-    operation PhysZ (qb : Qubit) : Unit 
-    {
-        body intrinsic;
-    }
-
-    @Intrinsic("x")
+    @TargetInstruction("x")
     operation PhysX (qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @Intrinsic("rx")
+    @TargetInstruction("s")
+    operation PhysS (qb : Qubit) : Unit 
+    {
+        body intrinsic;
+    }
+
+    @TargetInstruction("t")
+    operation PhysT (qb : Qubit) : Unit 
+    {
+        body intrinsic;
+    }
+
+    @TargetInstruction("rx")
     operation PhysRx (theta : Double, qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @Intrinsic("rz")
+    @TargetInstruction("rz")
     operation PhysRz (theta : Double, qb : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @Intrinsic("cnot")
+    @TargetInstruction("cnot")
     operation PhysCNOT (control : Qubit, target : Qubit) : Unit 
     {
         body intrinsic;
     }
 
-    @Intrinsic("mz")
+    @TargetInstruction("mz")
     operation PhysM (qb : Qubit) : Result
     {
         body intrinsic;
     }
 
-    @Intrinsic("measure")
+    @TargetInstruction("measure")
     operation PhysMeasure (bases : Pauli[], qubits : Qubit[]) : Result
     {
         body intrinsic;
     }
 
-    @Intrinsic("intAsDouble")
+    @TargetInstruction("intAsDouble")
     function IntAsDoubleImpl(i : Int) : Double
     {
         body intrinsic;
@@ -111,7 +113,13 @@ namespace Microsoft.Quantum.Intrinsic {
 	}
 
     @Inline()
-    operation Mz(qb : Qubit) : Result
+    operation T(qb : Qubit) : Unit
+    {
+        PhysT(qb);  
+	}
+
+    @Inline()
+    operation M(qb : Qubit) : Result
     {
         return PhysM(qb);  
 	}

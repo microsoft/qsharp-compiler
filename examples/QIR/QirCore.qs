@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Core
-{
-    @Attribute()
-    newtype Attribute = Unit;
+namespace Microsoft.Quantum.Core{
 
     @Attribute()
-    newtype Intrinsic = (String);
+    newtype Attribute = Unit;
 
     @Attribute()
     newtype Inline = Unit;
@@ -24,4 +21,10 @@ namespace Microsoft.Quantum.Core
     function RangeEnd (range : Range) : Int { body intrinsic; }
 
     function RangeReverse (range : Range) : Range { body intrinsic; }
+}
+
+namespace Microsoft.Quantum.Targeting {
+
+    @Attribute()
+    newtype TargetInstruction = String;
 }
