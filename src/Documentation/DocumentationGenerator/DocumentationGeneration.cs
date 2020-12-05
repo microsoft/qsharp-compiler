@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.Documentation
         /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            if (this.AssemblyConstants.TryGetValue("DocsOutputPath", out var path) && path != null)
+            if (this.AssemblyConstants.TryGetValue(QsCompiler.ReservedKeywords.AssemblyConstants.DocsOutputPath, out var path) && path != null)
             {
                 this.docsOutputPath = path;
             }
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.Documentation
         {
             var docProcessor = new ProcessDocComments(
                 this.docsOutputPath,
-                this.AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
+                this.AssemblyConstants.TryGetValue(QsCompiler.ReservedKeywords.AssemblyConstants.DocsPackageId, out var packageName)
                 ? packageName
                 : null);
 

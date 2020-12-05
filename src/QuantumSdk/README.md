@@ -147,14 +147,26 @@ The command to invoke the Q# compiler. The value set by default invokes the Q# c
 - `QscVerbosity`:    
 Defines the verbosity of the Q# compiler. Recognized values are: Quiet, Minimal, Normal, Detailed, and Diagnostic.
 
+- `PerfDataGeneration`:    
+Specifies whether to generate performance analysis data for the compilation. The default value is "true" if `PerfDataOutputPath` is specified and "false" otherwise.
+
+- `PerfDataOutputPath`:    
+Directory where the generated performance analysis data will be saved. If no directory is specified and `PerfDataGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/perf".
+
+- `QirGeneration`:    
+Specifies whether to generate QIR for the compiled Q# code. The default value is "true" if `QirOutputPath` is specified and "false" otherwise.
+
+- `QirOutputPath`:    
+Directory where the generated QIR will be saved. If no directory is specified and `QirGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/qir".
+
 - `QsharpDocsGeneration`:    
-Specified whether to generate yml documentation for the compiled Q# code. The default value is "false".
+Specifies whether to generate yml documentation for the compiled Q# code. The default value is "true" if `QsharpDocsOutputPath` is specified and "false" otherwise.
 
 - `QsharpDocsOutputPath`:    
-Directory where any generated documentation will be saved.
+Directory where the generated documentation will be saved. If no directory is specified and `QsharpDocsGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/docs".
 
 - `QsharpDocsPackageId`:    
-Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overriden to allow for documenting parts of metapackages.
+Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overridden to allow for documenting parts of metapackages.
 
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)

@@ -22,7 +22,7 @@
 
   <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
   <PropertyGroup>
-    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library' Or '$(NoEntryPoint)' == 'true'">QsharpLibrary</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library' Or $(NoEntryPoint)">QsharpLibrary</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe' And '$(NoEntryPoint)' != 'true'">QsharpExe</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(ResolvedQsharpOutputType)' != 'QsharpLibrary' And '$(ResolvedQsharpOutputType)' != 'QsharpExe'"></ResolvedQsharpOutputType>
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
@@ -30,12 +30,12 @@
 
   <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell.'))">HoneywellProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('ionq.'))">IonQProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci.'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('honeywell.'))">HoneywellProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('ionq.'))">IonQProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('qci.'))">QCIProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq.*', 'honeywell.*', 'qci.*', or 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)">Possible values must match 'ionq.*', 'honeywell.*', 'qci.*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
@@ -57,20 +57,32 @@
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
+    <!-- true/false optional properties -->
+    <QirGeneration Condition="'$(QirGeneration)' != 'true'">'$(QirOutputPath)' != ''</QirGeneration>
+    <QsharpDocsGeneration Condition="'$(QsharpDocsGeneration)' != 'true'">'$(QsharpDocsOutputPath)' != ''</QsharpDocsGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataGeneration)' != 'true'">'$(PerfDataOutputPath)' != ''</PerfDataGeneration>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
     <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp/</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath>$([MSBuild]::Unescape('$(GeneratedFilesOutputPath)').Replace('\','/'))</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)/</GeneratedFilesOutputPath>
-    <!-- output path for generating documentation -->
-    <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs/</QsharpDocsOutputPath>
-    <QsharpDocsOutputPath>$([MSBuild]::Unescape('$(QsharpDocsOutputPath)').Replace('\','/'))</QsharpDocsOutputPath>
-    <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
     <!-- output path for generating qsc config file -->
     <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)config/</QscBuildConfigOutputPath>
     <QscBuildConfigOutputPath>$([MSBuild]::Unescape('$(QscBuildConfigOutputPath)').Replace('\','/'))</QscBuildConfigOutputPath>
     <QscBuildConfigOutputPath Condition="!HasTrailingSlash('$(QscBuildConfigOutputPath)')">$(QscBuildConfigOutputPath)/</QscBuildConfigOutputPath>
+    <!-- output path for generating QIR -->
+    <QirOutputPath Condition="'$(QirOutputPath)' == ''">$(MSBuildProjectDirectory)/qir/</QirOutputPath>
+    <QirOutputPath>$([MSBuild]::Unescape('$(QirOutputPath)').Replace('\','/'))</QirOutputPath>
+    <QirOutputPath Condition="!HasTrailingSlash('$(QirOutputPath)')">$(QirOutputPath)/</QirOutputPath>
+    <!-- output path for generating documentation -->
+    <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(MSBuildProjectDirectory)/docs/</QsharpDocsOutputPath>
+    <QsharpDocsOutputPath>$([MSBuild]::Unescape('$(QsharpDocsOutputPath)').Replace('\','/'))</QsharpDocsOutputPath>
+    <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
+    <!-- output path for generating perf data -->
+    <PerfDataOutputPath Condition="'$(PerfDataOutputPath)' == ''">$(MSBuildProjectDirectory)/perf/</PerfDataOutputPath>
+    <PerfDataOutputPath>$([MSBuild]::Unescape('$(PerfDataOutputPath)').Replace('\','/'))</PerfDataOutputPath>
+    <PerfDataOutputPath Condition="!HasTrailingSlash('$(PerfDataOutputPath)')">$(PerfDataOutputPath)/</PerfDataOutputPath>
   </PropertyGroup>
 
 
