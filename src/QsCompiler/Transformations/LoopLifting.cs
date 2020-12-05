@@ -55,7 +55,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                     var contextValidScope = this.SharedState.IsValidScope;
                     var contextParams = this.SharedState.GeneratedOpParams;
                     this.SharedState.IsValidScope = true;
+
+                    this.SharedState.GeneratedOpParams = statement.RepeatBlock.Body.KnownSymbols.Variables;
                     var (_, repeatBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
+                    this.SharedState.GeneratedOpParams = statement.FixupBlock.Body.KnownSymbols.Variables;
                     var (_, fixupBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock);
 
                     var newStatement = QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
@@ -65,15 +68,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                     if (this.SharedState.IsValidScope && this.IsConditionedOnResult(statement.SuccessCondition))
                     {
-                        var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray();
-                        this.SharedState.GeneratedOpParams = variables;
+                        var variables = new LocalDeclarations(repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray());
+                        this.SharedState.GeneratedOpParams = variables.Variables;
 
-                        var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables));
+                        var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), variables);
                         var newBlock = new QsPositionedBlock(newScope, repeatBlock.Location, repeatBlock.Comments);
 
                         if (this.SharedState.LiftBody(newBlock.Body, out var callable, out var call))
                         {
-                            this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call, new LocalDeclarations(variables)));
+                            this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call, variables));
                             newStatement = call.Statement;
                         }
                     }
