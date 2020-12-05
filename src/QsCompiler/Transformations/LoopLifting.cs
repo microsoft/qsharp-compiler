@@ -52,36 +52,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
 
                 public override QsStatementKind OnRepeatStatement(QsRepeatStatement statement)
                 {
+                    var contextValidScope = this.SharedState.IsValidScope;
+                    var contextParams = this.SharedState.GeneratedOpParams;
+                    this.SharedState.IsValidScope = true;
                     var (_, repeatBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.RepeatBlock);
                     var (_, fixupBlock) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, statement.FixupBlock);
 
-                    if (this.IsConditionedOnResult(statement.SuccessCondition))
+                    var newStatement = QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
+                        repeatBlock,
+                        statement.SuccessCondition,
+                        fixupBlock));
+
+                    if (this.SharedState.IsValidScope && this.IsConditionedOnResult(statement.SuccessCondition))
                     {
-                        var contextValidScope = this.SharedState.IsValidScope;
-                        var contextParams = this.SharedState.GeneratedOpParams;
-                        this.SharedState.IsValidScope = true;
                         var variables = repeatBlock.Body.KnownSymbols.Variables.Union(fixupBlock.Body.KnownSymbols.Variables).ToImmutableArray();
                         this.SharedState.GeneratedOpParams = variables;
 
                         var newScope = new QsScope(BuildStatements(repeatBlock, fixupBlock, statement.SuccessCondition), new LocalDeclarations(variables));
                         var newBlock = new QsPositionedBlock(newScope, repeatBlock.Location, repeatBlock.Comments);
 
-                        var canLift = this.SharedState.LiftBody(newBlock.Body, out var callable, out var call);
-                        this.SharedState.IsValidScope = contextValidScope;
-                        this.SharedState.GeneratedOpParams = contextParams;
-                        if (canLift && callable != null && call != null)
+                        if (this.SharedState.LiftBody(newBlock.Body, out var callable, out var call))
                         {
                             this.SharedState.GeneratedOperations?.Add(MakeRecursive(callable, call, new LocalDeclarations(variables)));
-                            return call.Statement;
+                            newStatement = call.Statement;
                         }
                     }
 
-                    // This is not a repeat based on a result, so we can assume it is classical and return
-                    // it without any transformation.
-                    return QsStatementKind.NewQsRepeatStatement(new QsRepeatStatement(
-                        repeatBlock,
-                        statement.SuccessCondition,
-                        fixupBlock));
+                    this.SharedState.IsValidScope = contextValidScope;
+                    this.SharedState.GeneratedOpParams = contextParams;
+                    return newStatement;
                 }
 
                 private static ImmutableArray<QsStatement> BuildStatements(QsPositionedBlock repeatBlock, QsPositionedBlock fixupBlock, TypedExpression successCondition)
