@@ -118,42 +118,44 @@ in the project that implements the compilation step.
 
 The Sdk defines the following properties for each project using it:
 
-- `QsharpLangVersion`:
+- `QsharpLangVersion`:    
 The version of the Q# language specification.
 
-- `QuantumSdkVersion`:
+- `QuantumSdkVersion`:   
 The NuGet version of the Sdk package.
 
 The following properties can be configured to customize the build:
 
-- `AdditionalQscArguments`:
+- `AdditionalQscArguments`:   
 May contain additional arguments to pass to the Q# command line compiler. Valid additional arguments are `--emit-dll`, or `--no-warn` followed by any number of integers specifying the warnings to ignore.
 
-- `CsharpGeneration`:
+- `CsharpGeneration`:   
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit.
 
-- `DefaultSimulator`:
+- `DefaultSimulator`:   
 Specifies the simulator to use by default for execution. Valid values are QuantumSimulator, ToffoliSimulator, ResourcesEstimator, or the fully qualified name of a custom simulator.
 
-- `IncludeQsharpCorePackages`:
+- `IncludeQsharpCorePackages`:    
 Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries.
 
-- `IncludeProviderPackages`:
+- `IncludeProviderPackages`:    
 Specifies whether the packages for specific hardware providers should be automatically included based on the specified `ExecutionTarget`. This property is set to true by default. If set to false, the Sdk will not automatically reference any provider packages.
 
-- `QscExe`:
+- `QscExe`:    
 The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property.
 
-- `QscVerbosity`:
+- `QscVerbosity`:    
 Defines the verbosity of the Q# compiler. Recognized values are: Quiet, Minimal, Normal, Detailed, and Diagnostic.
 
-- `QsharpDocsGeneration`:
+- `QsharpDocsGeneration`:    
 Specified whether to generate yml documentation for the compiled Q# code. The default value is "false".
 
-- `QsharpDocsOutputPath`:
+- `QsharpDocsOutputPath`:    
 Directory where any generated documentation will be saved.
 
-- `QsharpDocsPackageId`: Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overriden to allow for documenting parts of metapackages.
+- `QsharpDocsPackageId`:    
+Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overriden to allow for documenting parts of metapackages.
+
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
 
@@ -161,16 +163,16 @@ Directory where any generated documentation will be saved.
 
 The following configurable item groups are used by the Sdk:
 
-- `PackageLoadFallbackFolder`:
+- `PackageLoadFallbackFolder`:    
 Contains the directories where the Q# compiler will look for a suitable dll if a qsc reference or one if its dependencies cannot be found. By default, the project output path is included in this item group.
 
-- `PackageReference`:
+- `PackageReference`:    
 Contains all referenced NuGet packages. Package references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
-- `ProjectReference`:
+- `ProjectReference`:    
 Contains all referenced projects. Project references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
-- `QsharpCompile`:
+- `QsharpCompile`:    
 Contains all Q# source files included in the compilation.
 
 # Sdk Packages #
@@ -195,6 +197,6 @@ To avoid issues with conflicting packages, we load each Q# compiler extension in
 ## Known Issues ##
 
 The following issues and PRs may be of interest when using the Sdk:
-> https://github.com/NuGet/Home/issues/8692
-> https://github.com/dotnet/runtime/issues/949
-> https://github.com/NuGet/NuGet.Client/pull/3170
+> https://github.com/NuGet/Home/issues/8692    
+> https://github.com/dotnet/runtime/issues/949    
+> https://github.com/NuGet/NuGet.Client/pull/3170    

@@ -39,22 +39,20 @@
     <PackageReference Condition="$(QsharpDocsGeneration)"
                       Include="Microsoft.Quantum.DocumentationGenerator" Version="0.13.201118474-beta"
                       IsImplicitlyDefined="true" 
-                      IsQscReference="true"
-                      ExecutionTarget="Any"
-                      Priority="-2"
-                      PrivateAssets="All" />
+                      IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" 
+                      Include="Microsoft.Quantum.Simulators" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)" 
+                      Include="Microsoft.Quantum.Runtime.Core" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'"
-                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.13.201118474-beta"
-                      IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
-      Include="Microsoft.Quantum.CsharpGeneration" Version="0.13.201118474-beta" IsImplicitlyDefined="true"
-      IsQscReference="true" ExecutionTarget="Any" Priority="-1" />
+                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)"
+                      Include="Microsoft.Quantum.CsharpGeneration" Version="0.13.201118474-beta" IsImplicitlyDefined="true"
+                      IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
   </ItemGroup>
 
 

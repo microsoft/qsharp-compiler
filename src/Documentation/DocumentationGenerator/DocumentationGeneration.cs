@@ -15,6 +15,7 @@ namespace Microsoft.Quantum.Documentation
     /// </summary>
     public class DocumentationGeneration : IRewriteStep
     {
+        private string docsOutputPath = "";
         private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
         /// <summary>
@@ -49,7 +50,12 @@ namespace Microsoft.Quantum.Documentation
         /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            var preconditionPassed = true; // nothing to check
+            if (this.AssemblyConstants.TryGetValue("DocsOutputPath", out var path) && path != null)
+            {
+                this.docsOutputPath = path;
+            }
+
+            var preconditionPassed = string.IsNullOrEmpty(this.docsOutputPath);
             if (preconditionPassed)
             {
                 // Diagnostics with severity Info or lower usually won't be displayed to the user.
@@ -59,7 +65,16 @@ namespace Microsoft.Quantum.Documentation
                 this.diagnostics.Add(new IRewriteStep.Diagnostic
                 {
                     Severity = DiagnosticSeverity.Info,
-                    Message = $"Precondition for {this.Name} was {(preconditionPassed ? "satisfied" : "not satisfied")}.",
+                    Message = $"Precondition for {this.Name} was satisfied.",
+                    Stage = IRewriteStep.Stage.PreconditionVerification,
+                });
+            }
+            else
+            {
+                this.diagnostics.Add(new IRewriteStep.Diagnostic
+                {
+                    Severity = DiagnosticSeverity.Warning,
+                    Message = $"Precondition for {this.Name} was not satisfied: Missing assembly property DocsOutputPath.",
                     Stage = IRewriteStep.Stage.PreconditionVerification,
                 });
             }
@@ -67,16 +82,14 @@ namespace Microsoft.Quantum.Documentation
             return preconditionPassed;
         }
 
+        /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var docProcessor = new ProcessDocComments(
-                this.AssemblyConstants.TryGetValue("DocsOutputPath", out var path)
-                ? path
-                : null,
+                this.docsOutputPath,
                 this.AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
                 ? packageName
-                : null
-            );
+                : null);
 
             docProcessor.OnDiagnostic += diagnostic =>
             {
@@ -87,6 +100,7 @@ namespace Microsoft.Quantum.Documentation
             return true;
         }
 
+        /// <inheritdoc/>
         public bool PostconditionVerification(QsCompilation compilation) =>
             throw new NotImplementedException();
     }
