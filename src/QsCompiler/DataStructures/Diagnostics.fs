@@ -316,6 +316,7 @@ type ErrorCode =
 
     | CsharpGenerationGeneratedError = 8001
     | PublishingPerfResultsFailed = 8101
+    | SyntaxTreeNotMonomorphized = 8102
 
 
 type WarningCode = 
@@ -715,6 +716,7 @@ type DiagnosticItem =
 
             | ErrorCode.CsharpGenerationGeneratedError            -> ""
             | ErrorCode.PublishingPerfResultsFailed               -> "Performance results failed to be published at \"{0}\"."
+            | ErrorCode.SyntaxTreeNotMonomorphized                -> "The given compilation contains type parameters. The monomorphization pass needs to be run to eliminate them."
 
             | _                                                   -> ""
         code |> ApplyArguments             

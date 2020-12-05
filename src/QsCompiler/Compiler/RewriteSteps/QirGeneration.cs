@@ -1,13 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    public class QirGeneration : IRewriteStep
+    internal class QirGeneration : IRewriteStep
     {
         private readonly string outputFile;
 
@@ -31,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.diagnostics;
 
         /// <inheritdoc/>
-        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPreconditionVerification => true;
 
         /// <inheritdoc/>
         public bool ImplementsTransformation => false;
@@ -42,7 +46,21 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            return true;
+            try
+            {
+                ValidateMonomorphization.Apply(compilation);
+                return true;
+            }
+            catch
+            {
+                this.diagnostics.Add(new IRewriteStep.Diagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Stage = IRewriteStep.Stage.PreconditionVerification,
+                    Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>())
+                });
+                return false;
+            }
         }
 
         /// <inheritdoc/>
