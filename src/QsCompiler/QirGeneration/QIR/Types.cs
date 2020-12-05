@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.QIR
         {
             this.context = context;
 
-            this.tupleHeader = context.CreateStructType(TypeNames.Tuple, false, context.Int32Type); // private
+            this.tupleHeader = context.CreateStructType(TypeNames.Tuple, false, context.Int32Type, context.Int32Type); // private
             this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
             this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
