@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LoopLifting
                         }
                     }
 
-                    this.SharedState.IsValidScope = contextValidScope;
+                    this.SharedState.IsValidScope = this.SharedState.IsValidScope && contextValidScope;
                     this.SharedState.GeneratedOpParams = contextParams;
                     return newStatement;
                 }
