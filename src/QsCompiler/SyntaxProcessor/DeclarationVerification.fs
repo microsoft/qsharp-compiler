@@ -204,13 +204,7 @@ let public BuildArgumentControlledAdjoint (this : QsTuple<LocalVariableDeclarati
 /// Given an immutable array with local variable declarations returns an immutable array containing only the declarations with a valid name. 
 [<Extension>]
 let public ValidDeclarations (this : ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>) = 
-    let withValidName (d : LocalVariableDeclaration<_>) = 
-        d.VariableName |> function 
-        | ValidName name -> 
-            let mut, qDep = d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
-            Some (LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))
-        | _ -> None
-    (this |> Seq.choose withValidName).ToImmutableArray()
+    SyntaxGenerator.ValidDeclarations this
 
 /// For each contained declaration in the given LocalDeclarations object, 
 /// applies the given function to its position offset and builds a new declaration with the position offset set to the returned value. 

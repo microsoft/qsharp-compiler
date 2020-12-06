@@ -712,6 +712,10 @@ type QsCallable = {
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSourceFile file = {this with SourceFile = file}
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsIntrinsic = this.Signature.Information.InferredInformation.IsIntrinsic
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsSelfAdjoint = this.Signature.Information.InferredInformation.IsSelfAdjoint
 
 
 /// used to represent the named and anonymous items in a user defined type

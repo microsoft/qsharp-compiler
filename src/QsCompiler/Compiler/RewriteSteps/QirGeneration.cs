@@ -15,21 +15,23 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     {
         private readonly string outputFile;
 
-        private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
+        private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
         public QirGeneration(string outputFileName)
         {
             this.outputFile = outputFileName;
+            this.diagnostics = new List<IRewriteStep.Diagnostic>();
+            this.AssemblyConstants = new Dictionary<string, string?>();
         }
 
         /// <inheritdoc/>
         public string Name => "QIR Generation";
 
         /// <inheritdoc/>
-        public int Priority => 0;
+        public int Priority => -10; // currently not used
 
         /// <inheritdoc/>
-        public IDictionary<string, string?> AssemblyConstants { get; } = new Dictionary<string, string?>();
+        public IDictionary<string, string?> AssemblyConstants { get; }
 
         /// <inheritdoc/>
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.diagnostics;
@@ -44,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPostconditionVerification => false;
 
         /// <inheritdoc/>
-        public bool PostconditionVerification(QsCompilation compilation)
+        public bool PreconditionVerification(QsCompilation compilation)
         {
             try
             {
@@ -64,12 +66,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         }
 
         /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation)
-        {
-            return true;
-        }
-
-        /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var generator = new Generator(compilation, new Configuration());
@@ -78,5 +74,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             transformed = compilation;
             return true;
         }
+
+        /// <inheritdoc/>
+        public bool PostconditionVerification(QsCompilation compilation) =>
+            throw new NotImplementedException();
     }
 }

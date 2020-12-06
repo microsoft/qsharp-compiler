@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     {
         public string Name => "Intrinsic Resolution";
 
-        public int Priority => 10; // Not used for built-in transformations like this
+        public int Priority => 1200; // currently not used
 
         public IDictionary<string, string?> AssemblyConstants { get; }
 

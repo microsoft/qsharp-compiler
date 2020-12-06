@@ -250,6 +250,16 @@ module SyntaxGenerator =
     let ExtractItems (this : QsTuple<_>) =
         this.Items.ToImmutableArray()
 
+    /// Given an immutable array with local variable declarations returns an immutable array containing only the declarations with a valid name. 
+    let ValidDeclarations (this : ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>) = 
+        let withValidName (d : LocalVariableDeclaration<_>) = 
+            d.VariableName |> function 
+            | ValidName name -> 
+                let mut, qDep = d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
+                Some (LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))
+            | _ -> None
+        (this |> Seq.choose withValidName).ToImmutableArray()
+
     /// Strips all range information from the given signature.
     let WithoutRangeInfo (signature : ResolvedSignature) =
         let argType = signature.ArgumentType |> StripPositionInfo.Apply

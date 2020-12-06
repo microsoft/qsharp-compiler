@@ -294,8 +294,9 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status Serialization = Status.NotRun;
             internal Status BinaryFormat = Status.NotRun;
             internal Status DllGeneration = Status.NotRun;
-            internal Status QirGeneration = Status.NotRun;
             internal Status CapabilityInference = Status.NotRun;
+            internal Status TargetInstructionInference = Status.NotRun;
+            internal Status QirGeneration = Status.NotRun;
             internal Status[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
@@ -316,6 +317,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
                 this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
+                this.WasSuccessful(options.QirOutputFolder != null, this.TargetInstructionInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 this.WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
@@ -378,6 +380,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed when compiling a library.
         /// </summary>
         public Status CapabilityInference => this.compilationStatus.CapabilityInference;
+
+        /// <summary>
+        /// Indicates whether a separate callable that corresponds to an instruction
+        /// implemented by the execution target has been generated for each intrinsic specialization.
+        /// This rewrite step is only executed when generating QIR.
+        /// </summary>
+        public Status TargetInstructionInference => this.compilationStatus.TargetInstructionInference;
 
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully.
@@ -619,6 +628,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
+            }
+
+            if (this.config.QirOutputFolder != null)
+            {
+                var separateTargetInstructions = new LoadedStep(new TargetInstructionInference(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((separateTargetInstructions.Priority, () => this.ExecuteAsAtomicTransformation(separateTargetInstructions, ref this.compilationStatus.TargetInstructionInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)

@@ -5,10 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
+namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
 {
     public static class ReplaceWithTargetIntrinsics
     {
@@ -99,3 +98,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
         }
     }
 }
+
+namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
+{
+    [Obsolete("Please use Microsoft.Quantum.QsCompiler.Transformations.Targeting.ReplaceWithTargetIntrinsics instead.")]
+    public static class ReplaceWithTargetIntrinsics
+    {
+        /// <summary>
+        /// Merge the environment-specific syntax tree with the target tree. The resulting tree will
+        /// have the union of the namespaces found in both input trees. All namespaces in the intersection
+        /// between the trees will be merged so that the environment's definitions of elements are preserved
+        /// over the target's definitions.
+        /// </summary>
+        [Obsolete("Please use Microsoft.Quantum.QsCompiler.Transformations.Targeting.ReplaceWithTargetIntrinsics.Apply instead.")]
+        public static QsCompilation Apply(QsCompilation environment, QsCompilation target) =>
+            Targeting.ReplaceWithTargetIntrinsics.Apply(environment, target);
+    }
+}
+

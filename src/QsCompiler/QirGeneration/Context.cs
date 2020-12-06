@@ -362,7 +362,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             foreach (var c in this.globalCallables.Values)
             {
-                if (SymbolResolution.TryGetQISCode(c.Attributes) is var att && att.IsValue)
+                if (SymbolResolution.TryGetTargetInstructionName(c.Attributes) is var att && att.IsValue)
                 {
                     var name = att.Item;
                     // Special handling for Unit since by default it turns into an empty tuple
@@ -419,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 foreach (var c in this.globalCallables.Values)
                 {
-                    if (SymbolResolution.TryGetQISCode(c.Attributes) is var att && att.IsValue)
+                    if (SymbolResolution.TryGetTargetInstructionName(c.Attributes) is var att && att.IsValue)
                     {
                         var func = this.quantumInstructionSet.GetOrCreateFunction(att.Item);
                         this.GenerateInteropWrapper(func, att.Item);

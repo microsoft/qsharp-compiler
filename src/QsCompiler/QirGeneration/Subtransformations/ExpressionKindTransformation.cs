@@ -1227,7 +1227,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (method.Expression is ResolvedExpression.Identifier id
                 && id.Item1 is Identifier.GlobalCallable cName
                 && this.SharedState.TryGetGlobalCallable(cName.Item, out QsCallable? callable)
-                && SymbolResolution.TryGetQISCode(callable.Attributes) is var qisCode && qisCode.IsValue)
+                && SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var qisCode && qisCode.IsValue)
             {
                 // Handle the special case of a call to an operation that maps directly to a quantum instruction.
                 // Note that such an operation will never have an Adjoint or Controlled specialization.
