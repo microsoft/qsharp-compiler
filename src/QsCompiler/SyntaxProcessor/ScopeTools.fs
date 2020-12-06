@@ -47,7 +47,7 @@ type private TrackedScope = private {
 /// (i.e. if the version number of the <see cref="NamespaceManager"/> has changed). 
 /// </summary>
 /// <exception cref="ArgumentException">
-/// <paramref name="globals"/> does not contain all resolutions, or <paramref name="globals"/> does not contain a callable with name <paramref name="parent"/>.
+/// The given <see cref="NamespaceManager"/> does not contain all resolutions, or does not contain a callable with the given parent name.
 /// </exception>
 type SymbolTracker(globals : NamespaceManager, sourceFile, parent : QsQualifiedName) =  
 // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
