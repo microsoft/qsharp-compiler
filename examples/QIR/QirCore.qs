@@ -12,6 +12,9 @@ namespace Microsoft.Quantum.Core{
     @Attribute()
     newtype EntryPoint = Unit;
 
+    @Attribute()
+    newtype Deprecated = (NewName : String);
+
     function Length<'T> (array : 'T[]) : Int { body intrinsic; }
 
     function RangeStart (range : Range) : Int { body intrinsic; }

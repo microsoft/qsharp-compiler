@@ -16,6 +16,12 @@ namespace Microsoft.Quantum.Instructions {
         body intrinsic;
     }
 
+    @TargetInstruction("z")
+    operation PhysZ (qb : Qubit) : Unit 
+    {
+        body intrinsic;
+    }
+
     @TargetInstruction("s")
     operation PhysS (qb : Qubit) : Unit 
     {
@@ -132,7 +138,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     operation MResetZ(qb : Qubit) : Result
     {
-        let res = Mz(qb);
+        let res = M(qb);
         if (res == One)
         {
             X(qb);
@@ -142,7 +148,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     operation Reset(qb : Qubit) : Unit
     {
-        if (Mz(qb) == One)
+        if (M(qb) == One)
         {
             X(qb);
         }
