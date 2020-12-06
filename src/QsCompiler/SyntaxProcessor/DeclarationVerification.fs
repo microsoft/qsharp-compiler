@@ -108,10 +108,10 @@ let public DeclaredCallableName this onInvalid =
 [<Extension>]
 let public DeclaredSpecialization this : QsNullable<(QsSpecializationKind * QsSpecializationGenerator) * QsNullable<ImmutableArray<QsType>>> =
     match this with 
-    | BodyDeclaration gen -> ((QsSpecializationKind.QsBody, gen), Null) |> Value
-    | AdjointDeclaration gen -> ((QsSpecializationKind.QsAdjoint, gen), Null) |> Value
-    | ControlledDeclaration gen -> ((QsSpecializationKind.QsControlled, gen), Null) |> Value
-    | ControlledAdjointDeclaration gen -> ((QsSpecializationKind.QsControlledAdjoint, gen), Null) |> Value
+    | BodyDeclaration gen -> ((QsBody, gen), Null) |> Value
+    | AdjointDeclaration gen -> ((QsAdjoint, gen), Null) |> Value
+    | ControlledDeclaration gen -> ((QsControlled, gen), Null) |> Value
+    | ControlledAdjointDeclaration gen -> ((QsControlledAdjoint, gen), Null) |> Value
     | _ -> Null
 
 
