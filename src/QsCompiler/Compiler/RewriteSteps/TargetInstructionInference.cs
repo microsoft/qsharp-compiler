@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -46,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => this.diagnostics;
 
         /// <inheritdoc/>
-        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPreconditionVerification => true;
 
         /// <inheritdoc/>
         public bool ImplementsTransformation => true;
@@ -55,8 +57,12 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPostconditionVerification => false;
 
         /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation) =>
-            throw new NotImplementedException();
+        public bool PreconditionVerification(QsCompilation compilation)
+        {
+            var attributes = compilation.Namespaces.Attributes().Select(att => att.FullName).ToImmutableHashSet();
+            return attributes.Contains(BuiltIn.TargetInstruction.FullName)
+                && attributes.Contains(BuiltIn.Inline.FullName);
+        }
 
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)

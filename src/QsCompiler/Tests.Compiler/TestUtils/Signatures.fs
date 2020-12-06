@@ -71,7 +71,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let mutable callableSigs =
         checkedNamespaces
         |> Seq.map (fun checkedNs -> getNs checkedNs)
-        |> SyntaxExtensions.Callables
+        |> SyntaxTreeExtensions.Callables
         |> Seq.map (fun call -> (call.FullName, StripPositionInfo.Apply call.Signature.ArgumentType, StripPositionInfo.Apply call.Signature.ReturnType))
 
     let doesCallMatchSig call signature =
