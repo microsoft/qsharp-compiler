@@ -58,9 +58,12 @@
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
     <!-- true/false optional properties -->
-    <QirGeneration Condition="'$(QirGeneration)' != 'true'">'$(QirOutputPath)' != ''</QirGeneration>
-    <QsharpDocsGeneration Condition="'$(QsharpDocsGeneration)' != 'true'">'$(QsharpDocsOutputPath)' != ''</QsharpDocsGeneration>
-    <PerfDataGeneration Condition="'$(PerfDataGeneration)' != 'true'">'$(PerfDataOutputPath)' != ''</PerfDataGeneration>
+    <QirGeneration Condition="'$(QirGeneration)' == '' And '$(QirOutputPath)' != ''">true</QirGeneration>
+    <QirGeneration Condition="'$(QirGeneration)' == '' And '$(QirOutputPath)' == ''">false</QirGeneration>
+    <QsharpDocsGeneration Condition="'$(QsharpDocsGeneration)' == '' And '$(QsharpDocsOutputPath)' != ''">true</QsharpDocsGeneration>
+    <QsharpDocsGeneration Condition="'$(QsharpDocsGeneration)' == '' And '$(QsharpDocsOutputPath)' == ''">false</QsharpDocsGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataGeneration)' == '' And '$(PerfDataOutputPath)' != ''">true</PerfDataGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataGeneration)' == '' And '$(PerfDataOutputPath)' == ''">false</PerfDataGeneration>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
