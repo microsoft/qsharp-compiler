@@ -1,4 +1,4 @@
-﻿define void @Lifted__PartialApplication__1__body__wrapper(%TupleHeader* %capture-tuple, %TupleHeader* %arg-tuple, %TupleHeader* %result-tuple) {
+﻿define void @Lifted__PartialApplication__1__adj__wrapper(%TupleHeader* %capture-tuple, %TupleHeader* %arg-tuple, %TupleHeader* %result-tuple) {
 entry:
   %0 = bitcast %TupleHeader* %capture-tuple to { %TupleHeader, %Callable*, double }*
   %1 = bitcast %TupleHeader* %arg-tuple to { %TupleHeader, %Qubit* }*
@@ -14,7 +14,10 @@ entry:
   store %Qubit* %9, %Qubit** %7
   %10 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %0, i64 0, i32 1
   %11 = load %Callable*, %Callable** %10
-  call void @__quantum__rt__callable_invoke(%Callable* %11, %TupleHeader* %2, %TupleHeader* %result-tuple)
+  %12 = call %Callable* @__quantum__rt__callable_copy(%Callable* %11)
+  call void @__quantum__rt__callable_make_adjoint(%Callable* %12)
+  call void @__quantum__rt__callable_invoke(%Callable* %12, %TupleHeader* %2, %TupleHeader* %result-tuple)
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %2)
+  call void @__quantum__rt__callable_unreference(%Callable* %12)
   ret void
 }

@@ -21,6 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // TODO: Disabling nullable annotations is a workaround for
             // https://github.com/commandlineparser/commandline/issues/136.
 #nullable disable annotations
+
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -56,14 +57,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
 
-#nullable restore annotations
-
             [Option(
                 "proj",
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Name of the project (needs to be usable as file name).")]
-            public string? ProjectName { get; set; }
+            public string ProjectName { get; set; }
 
             [Option(
                 "emit-dll",
@@ -78,14 +77,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
-            public string? QirOutputFolder { get; set; }
+            public string QirOutputFolder { get; set; }
 
             [Option(
                 "perf",
                 Required = false,
                 SetName = CODE_MODE,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
-            public string? PerfOutputFolder { get; set; }
+            public string PerfOutputFolder { get; set; }
+
+#nullable restore annotations
 
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles.
