@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         public static bool TryAddMissingTargetInstructionAttributes(QsCompilation compilation, out QsCompilation transformed)
         {
             var success = true;
-            var instructionNames = new List<string>();
+            List<string> instructionNames = new List<string>();
             // populate the intruction names with all manually specified ones first
             foreach (var callable in compilation.Namespaces.Callables())
             {
@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                 {
                     if (c.Item.IsIntrinsic)
                     {
-                        var callable = c.Item;
+                        QsCallable callable = c.Item;
                         if (!callable.Specializations.Any(spec => spec.Kind.IsQsBody))
                         {
                             throw new ArgumentException("missing body specialization");
