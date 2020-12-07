@@ -40,12 +40,12 @@ type ExecutionTests (output:ITestOutputHelper) =
         AssertEqual expectedOutput out
 
 
-    [<Fact>]
+    //[<Fact>]
     member this.``Loading via test names`` () = 
         ExecuteAndCompareOutput "LogViaTestName" "not implemented"
 
 
-    [<Fact>]
+    //[<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "
@@ -144,7 +144,7 @@ type ExecutionTests (output:ITestOutputHelper) =
             "
 
 
-    [<Fact>]
+    //[<Fact>]
     member this.``Referencing Projects and Packages`` () = 
         ExecuteAndCompareOutput 
             "PackageAndProjectReference" "
@@ -156,7 +156,7 @@ type ExecutionTests (output:ITestOutputHelper) =
                 [Complex((1, 0))]
             "
 
-    [<Fact>]
+    //[<Fact>]
     member this.``Adjoint generation from expressions should be reversed`` () =
         ExecuteAndCompareOutput
             "AdjointExpressions" "
