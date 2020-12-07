@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         /// <summary>
         /// Performs Monomorphization on the given compilation.
         /// </summary>
-        public static QsCompilation Apply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics = true)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
@@ -89,17 +89,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 final.Add(ReplaceTypeParamCalls.Apply(callable, getConcreteIdentifier, intrinsicCallableSet));
             }
 
-            return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet);
+            return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet, keepAllIntrinsics);
         }
 
         #region ResolveGenerics
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet, bool keepIntrinsics)
             {
-                var filter = new ResolveGenerics(callables.ToLookup(res => res.FullName.Namespace), intrinsicCallableSet);
-
+                var filter = new ResolveGenerics(callables.ToLookup(res => res.FullName.Namespace), intrinsicCallableSet, keepIntrinsics);
                 return filter.OnCompilation(compilation);
             }
 
@@ -119,10 +118,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            private ResolveGenerics(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet, bool keepIntrinsics)
                 : base(new TransformationState(namespaceCallables, intrinsicCallableSet))
             {
-                this.Namespaces = new NamespaceTransformation(this);
+                this.Namespaces = new NamespaceTransformation(this, keepIntrinsics);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -130,15 +129,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                private readonly bool keepIntrinsics;
+
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent, bool keepIntrinsics) : base(parent)
                 {
+                    this.keepIntrinsics = keepIntrinsics;
                 }
 
                 private bool NamespaceElementFilter(QsNamespaceElement elem)
                 {
                     if (elem is QsNamespaceElement.QsCallable call)
                     {
-                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || this.SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
+                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) ||
+                            (this.keepIntrinsics && this.SharedState.IntrinsicCallableSet.Contains(call.Item.FullName));
                     }
                     else
                     {
