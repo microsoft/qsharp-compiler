@@ -22,7 +22,7 @@
 
   <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
   <PropertyGroup>
-    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library' Or $(NoEntryPoint)">QsharpLibrary</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library' Or '$(NoEntryPoint)' == 'true'">QsharpLibrary</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe' And '$(NoEntryPoint)' != 'true'">QsharpExe</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(ResolvedQsharpOutputType)' != 'QsharpLibrary' And '$(ResolvedQsharpOutputType)' != 'QsharpExe'"></ResolvedQsharpOutputType>
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
@@ -30,12 +30,12 @@
 
   <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('honeywell.'))">HoneywellProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('ionq.'))">IonQProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)) And $(ExecutionTarget.StartsWith('qci.'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell.'))">HoneywellProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('ionq.'))">IonQProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci.'))">QCIProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or $(NoEntryPoint)">Possible values must match 'ionq.*', 'honeywell.*', 'qci.*', or 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq.*', 'honeywell.*', 'qci.*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
