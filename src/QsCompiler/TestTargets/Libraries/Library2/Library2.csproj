@@ -6,10 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.13.201118474-beta" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.14.201219726-alpha" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)../build/Library.props"/>
-  <Import Project="$(MSBuildThisFileDirectory)../build/Library.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)../build/Library.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../build/Library.targets" />
 
 </Project>
