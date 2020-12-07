@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Testing.QIR
         {
             within
             {
-                H(q);
+                T(q);
             }
             apply
             {
