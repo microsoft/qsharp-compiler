@@ -15,8 +15,7 @@ type GlobalVerificationTests () =
     inherit CompilerTests(CompilerTests.Compile ("TestCases", ["General.qs"; "GlobalVerification.qs"; "Types.qs"; System.IO.Path.Join("LinkingTests", "Core.qs")]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-        let ns = "Microsoft.Quantum.Testing.GlobalVerification" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.GlobalVerification"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 

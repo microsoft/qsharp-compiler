@@ -248,7 +248,7 @@ module SyntaxGenerator =
         let range = symRange.ValueOr Range.Zero
         let ctlQs = LocalVariableDeclaration.New false ((offset, range), name, QubitArray, false)
         let unitArg =
-            let argName = NonNullable<_>.New InternalUse.UnitArgument |> ValidName;
+            let argName = ValidName InternalUse.UnitArgument
             let unitT = UnitType |> ResolvedType.New
             LocalVariableDeclaration.New false ((offset,range), argName, unitT, false) |> QsTupleItem // the range is not accurate here, but also irrelevant
         match arg with
@@ -277,7 +277,7 @@ module SyntaxGenerator =
         let getItemName = function
         | QsTupleItem (item : LocalVariableDeclaration<QsLocalSymbol>) ->
             item.VariableName |> function
-            | ValidName name -> name.Value
+            | ValidName name -> name
             | InvalidName -> null
         | _ -> null
         match arg with

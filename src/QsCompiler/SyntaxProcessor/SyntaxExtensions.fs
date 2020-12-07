@@ -258,7 +258,7 @@ let public PrintSummary (doc : string seq) markdown =
         if String.IsNullOrWhiteSpace info then "" else sprintf "%s%s%s" newLine newLine info
     else ""
 
-let private namespaceDocumentation (docs : ILookup<NonNullable<string>, ImmutableArray<_>>, markdown) =
+let private namespaceDocumentation (docs : ILookup<_, ImmutableArray<_>>, markdown) =
     // FIXME: currently all documentation for a namespace is simply given in concatenated form here
     let allDoc = docs.SelectMany(fun entry -> entry.SelectMany(fun d -> d.AsEnumerable())) // the key is the source file
     PrintSummary allDoc markdown
@@ -278,7 +278,7 @@ type private TName () =
         this.Output <- "?"
         InvalidType
     override this.OnUserDefinedType udt =
-        this.Output <- udt.Name.Value
+        this.Output <- udt.Name
         UserDefinedType udt
     member this.Apply t =
         this.OnType t |> ignore
@@ -295,23 +295,23 @@ let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
             let kind = showModifiers "user-defined type" decl.Modifiers |> toUpperFirst
-            let name = decl.QualifiedName.Name.Value |> withNewLine
-            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine
+            let name = decl.QualifiedName.Name |> withNewLine
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
             let info = sprintf "Underlying type: %s" (TypeName decl.Type)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "%s %s%s%s%s" kind name ns info doc
-        | None, Some sym -> sprintf "Type %s" sym.Value
+        | None, Some sym -> sprintf "Type %s" sym
         | _ -> "?"
     let typeParamName onUnknown (sym : QsSymbol) =
         let name = sym.Symbol |> function
-            | Symbol name -> name.Value
+            | Symbol name -> name
             | _ -> null
         if String.IsNullOrWhiteSpace name then onUnknown else sprintf "'%s" name
 
     let rec typeName tKind =
         let udtName udt =
             match udt |> globalTypeResolution symbolTable (currentNS, source) with
-            | Some _, Some sym -> sym.Value // hovering over the udt will show its namespace and source
+            | Some _, Some sym -> sym // hovering over the udt will show its namespace and source
             | _ -> "?"
         let characteristics ex = CharacteristicsAnnotation (QsType.TryResolve ex, sprintf " %s")
         let inner (ts : ImmutableArray<QsType>) = [for t in ts do yield t.Type] |> List.map typeName
@@ -340,7 +340,6 @@ let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType
     | QsTypeKind.UserDefinedType udt -> udtInfo udt
     | QsTypeKind.TypeParameter p     -> sprintf "Type parameter %s%s" (p |> typeParamName "") doc
     | _                              -> sprintf "Built-in type %s%s" (typeName qsType.Type) doc
-    |> NonNullable<string>.New
 
 let private printCallableKind = function
     | QsCallableKind.Function -> "function"
@@ -372,7 +371,7 @@ let public VariableInfo (symbolTable : NamespaceManager) (locals : LocalDeclarat
     | Some decl, _ ->
         let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers |> toUpperFirst
         let nameAndSignature = PrintSignature decl |> withNewLine
-        let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value
+        let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace
         let doc = PrintSummary decl.Documentation markdown
         sprintf "%s %s%s%s" kind nameAndSignature ns doc
     | None, Some sym ->
@@ -380,14 +379,13 @@ let public VariableInfo (symbolTable : NamespaceManager) (locals : LocalDeclarat
         if localVars.ContainsKey sym then
             let decl = localVars.[sym]
             let kind = if decl.InferredInformation.IsMutable then "Mutable" else "Immutable"
-            sprintf "%s variable %s%sType: %s" kind sym.Value newLine (TypeName decl.Type)
+            sprintf "%s variable %s%sType: %s" kind sym newLine (TypeName decl.Type)
         else symbolTable.Documentation().TryGetValue(sym) |> function
-            | true, docs -> sprintf "Namespace %s%s" sym.Value (namespaceDocumentation (docs, markdown))
-            | false,_ -> sprintf "Variable %s" sym.Value
+            | true, docs -> sprintf "Namespace %s%s" sym (namespaceDocumentation (docs, markdown))
+            | false,_ -> sprintf "Variable %s" sym
     | _ -> qsSym.Symbol |> function
-        | QualifiedSymbol (ns, sym) -> sprintf "%s.%s" ns.Value sym.Value
+        | QualifiedSymbol (ns, sym) -> sprintf "%s.%s" ns sym
         | _ -> "Unknown symbol"
-    |> NonNullable<string>.New
 
 [<Extension>]
 let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, source) (qsSym : QsSymbol) markdown =
@@ -396,15 +394,15 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
         match locals.AsVariableLookup().TryGetValue name with
         | true, decl ->
             let kind = if decl.InferredInformation.IsMutable then "a mutable" else "an immutable"
-            let name = name.Value |> withNewLine
+            let name = name |> withNewLine
             let info = sprintf "Type: %s" (TypeName decl.Type)
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
         | Some decl, _ ->
             let kind = showModifiers "user-defined type" decl.Modifiers
-            let name = decl.QualifiedName.Name.Value |> withNewLine
-            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine
+            let name = decl.QualifiedName.Name |> withNewLine
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
             let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "Declaration of %s %s%s%s%s" kind name ns info doc
@@ -412,8 +410,8 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
         match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
             let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers
-            let name = decl.QualifiedName.Name.Value |> withNewLine
-            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine
+            let name = decl.QualifiedName.Name |> withNewLine
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
             let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
             let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
             let functorSupport characteristics =
@@ -424,12 +422,11 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
             sprintf "Declaration of %s %s%s%s%s%s%s" kind name ns input output fs doc
         | None, _ ->
         match symbolTable.Documentation().TryGetValue name with
-        | true, docs -> sprintf "Declaration of a partial namespace %s%s" name.Value (namespaceDocumentation (docs, markdown))
-        | false, _ -> sprintf "Symbol declaration %s" name.Value
+        | true, docs -> sprintf "Declaration of a partial namespace %s%s" name (namespaceDocumentation (docs, markdown))
+        | false, _ -> sprintf "Symbol declaration %s" name
     | QsSymbolKind.MissingSymbol -> "Discarded symbol assignment"
     | QsSymbolKind.OmittedSymbols -> "Omitted symbols representing the argument of the top level declaration"
     | _ -> "Invalid symbol declaration"
-    |> NonNullable<string>.New
 
 [<Extension>]
 let public LiteralInfo (ex : QsExpression) markdown =
@@ -445,7 +442,6 @@ let public LiteralInfo (ex : QsExpression) markdown =
     | QsExpressionKind.MissingExpr                   -> "Omitted argument used within partial applications"
     | QsExpressionKind.InvalidExpr                   -> "?"
     | _                                              -> QsCompilerError.Raise "no string defined for given expression in query to LiteralInfo"; ""
-    |> NonNullable<string>.New
 
 
 // extensions providing information for editor commands

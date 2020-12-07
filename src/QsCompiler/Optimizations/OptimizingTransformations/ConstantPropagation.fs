@@ -98,7 +98,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
                 let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                 let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
                 let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
-                defineVar (fun _ -> true) parent.Constants (name.Value, expr)
+                defineVar (fun _ -> true) parent.Constants (name, expr)
             | _ -> ())
 
         let body = this.Statements.OnScope stm.Body

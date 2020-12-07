@@ -72,12 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
-        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites switch
-        {
-            AssemblyConstants.RuntimeCapabilities.QPRGen0 => RuntimeCapability.BasicQuantumFunctionality,
-            AssemblyConstants.RuntimeCapabilities.QPRGen1 => RuntimeCapability.BasicMeasurementFeedback,
-            _ => RuntimeCapability.FullComputation
-        };
+        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites.ToCapability();
 
         [Option(
             "build-exe",
@@ -260,16 +255,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static readonly Uri SNIPPET_FILE_URI = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
 
-        private static NonNullable<string> SNIPPET_FILE_ID
-        {
-            get
-            {
-                QsCompilerError.Verify(
-                    CompilationUnitManager.TryGetFileId(SNIPPET_FILE_URI, out NonNullable<string> id),
-                    "invalid code snippet id");
-                return id;
-            }
-        }
+        private static string SNIPPET_FILE_ID =>
+            QsCompilerError.RaiseOnFailure(
+                () => CompilationUnitManager.GetFileId(SNIPPET_FILE_URI),
+                "invalid code snippet id");
 
         /// <summary>
         /// name of the namespace within which code snippets are compiled
@@ -294,8 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Helper function that returns true if the given file id is consistent with the one for a code snippet.
         /// </summary>
-        public static bool IsCodeSnippet(NonNullable<string> fileId) =>
-            fileId.Value == SNIPPET_FILE_ID.Value;
+        public static bool IsCodeSnippet(string fileId) => fileId == SNIPPET_FILE_ID;
 
         /// <summary>
         /// Returns a function that given a routine for loading files from disk,

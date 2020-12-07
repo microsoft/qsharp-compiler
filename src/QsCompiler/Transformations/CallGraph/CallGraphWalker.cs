@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using GraphBuilder = CallGraphBuilder<CallGraphNode, CallGraphEdge>;
     using Range = DataTypes.Range;
-    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
 
     internal static partial class BuildCallGraph
     {

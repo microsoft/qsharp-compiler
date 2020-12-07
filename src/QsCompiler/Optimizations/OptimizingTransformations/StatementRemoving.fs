@@ -55,12 +55,12 @@ and private VariableRemovalStatements (parent : StatementRemoval, removeFunction
             let myList = jointFlatten (s.Binding.Lhs, s.Binding.Rhs) |> Seq.collect (fun (l, r) ->
                 match l, r.Resolution with
                 | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
-                    let elemI = fun i -> Identifier (LocalVariable (NonNullable<_>.New (sprintf "__qsItem%d__%s__" i name.Value)), Null)
+                    let elemI = fun i -> Identifier (LocalVariable (sprintf "__qsItem%d__%s__" i name), Null)
                     let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                     let newStmt = QsVariableDeclaration (QsBinding.New QsBindingKind.ImmutableBinding (l, expr))
                     newStatements <- wrapStmt newStmt :: newStatements
                     Seq.init (safeCastInt64 num) (fun i ->
-                        VariableName (NonNullable<_>.New (sprintf "__qsItem%d__%s__" i name.Value)),
+                        VariableName (sprintf "__qsItem%d__%s__" i name),
                         ResolvedInitializer.New SingleQubitAllocation)
                 | DiscardedItem, _ -> Seq.empty
                 | _ -> Seq.singleton (l, r)) |> List.ofSeq

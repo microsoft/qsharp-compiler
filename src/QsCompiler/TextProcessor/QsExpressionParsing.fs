@@ -230,7 +230,7 @@ let internal numericLiteral =
 /// Handles both interpolates and non-interpolated strings.
 let internal stringLiteral =
     let strExpr = getStringContent (expectedExpr eof) |>> fun (str, items) -> 
-        StringLiteral (str |> NonNullable<string>.New, items.ToImmutableArray()) 
+        StringLiteral (str, items.ToImmutableArray())
     attempt strExpr |> asExpression
 
 /// Parses an identifier (qualified or unqualified symbol) as QsExpression.
@@ -383,10 +383,11 @@ let private argumentTuple =
 /// Expects tuple brackets around the argument even if the argument consists of a single tuple item. 
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers - 
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser. 
-let internal callLikeExpr = 
-    attempt ((itemAccessExpr <|> identifier <|> tupledItem expr) .>>. argumentTuple) // identifier needs to come *after* arrayItemExpr
-    |>> fun (callable, arg) -> applyBinary CallLikeExpression () callable arg
-
+let internal callLikeExpr =
+    // identifier needs to come *after* arrayItemExpr
+    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple
+    |>> List.Cons
+    |>> List.reduce (applyBinary CallLikeExpression ())
 
 // processing terms of operator precedence parsers
 

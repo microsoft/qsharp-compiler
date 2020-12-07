@@ -40,16 +40,16 @@ $artifacts = @{
 
     Assemblies = $VsixAssemblies + @(
         ".\src\Documentation\DocumentationGenerator\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.DocumentationGenerator.dll",
-
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompilationManager.dll",
+        ".\src\Documentation\DocumentationParser\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDocumentationParser.dll",
+        ".\src\QsCompiler\BondSchemas\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.BondSchemas.dll",
+        ".\src\QsCompiler\CompilationManager\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompilationManager.dll",
         ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCompiler.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCore.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDataStructures.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDocumentationParser.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsOptimizations.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsSyntaxProcessor.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTextProcessor.dll",
-        ".\src\QsCompiler\Compiler\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll"
+        ".\src\QsCompiler\Core\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsCore.dll",
+        ".\src\QsCompiler\DataStructures\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDataStructures.dll",
+        ".\src\QsCompiler\Optimizations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsOptimizations.dll",
+        ".\src\QsCompiler\SyntaxProcessor\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsSyntaxProcessor.dll",
+        ".\src\QsCompiler\TextProcessor\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTextProcessor.dll",
+        ".\src\QsCompiler\Transformations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll"
 
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsc.dll",
 

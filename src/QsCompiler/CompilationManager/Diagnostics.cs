@@ -79,8 +79,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable Diagnostic from the given CompilerDiagnostic returned by the Q# compiler.
         /// The message range contained in the given CompilerDiagnostic is first converted to a Position object,
         /// and then added to the given positionOffset if the latter is not null.
-        /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The contained range contains zero or negative entries, or its Start is bigger than its End.</exception>
         internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null) =>
             new Diagnostic
             {

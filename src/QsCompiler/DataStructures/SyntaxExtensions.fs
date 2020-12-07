@@ -389,7 +389,7 @@ let (| Missing | _ |) arg =
 // filter for type parameter resolution dictionaries
 
 [<Extension>]
-let FilterByOrigin (this : ImmutableDictionary<(QsQualifiedName * NonNullable<string>), ResolvedType>) origin =
+let FilterByOrigin (this : ImmutableDictionary<(QsQualifiedName * string), ResolvedType>) origin =
     this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange
 
 // look-up for udt and global callables

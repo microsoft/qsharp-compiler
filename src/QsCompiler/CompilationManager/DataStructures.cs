@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -228,21 +229,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             public int Index { get; private set; }
 
             /// <summary>
-            /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the content)
-            /// and initializes an instance of TokenIndex.
-            /// Throws an ArgumentOutOfRangeException if line or index are negative,
-            /// or line is larger than or equal to the number of Tokens lists in file,
-            /// or index is larger than or equal to the number of Tokens on the given line.
+            /// Verifies the given line number and index *only* against the Tokens listed in file (and not against the
+            /// content) and initializes an instance of TokenIndex.
             /// </summary>
+            /// <exception cref="ArgumentOutOfRangeException">The line or index are negative.</exception>
+            /// <exception cref="FileContentException">
+            /// The line is outside the bounds of the file, or the index is outside the bounds of the line.
+            /// </exception>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
-                if (line < 0 || line >= file.NrTokenizedLines())
+                if (line < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
                 }
-                if (index < 0 || index >= file.GetTokenizedLine(line).Length)
+                if (index < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                if (line >= file.NrTokenizedLines())
+                {
+                    throw new FileContentException("Line exceeds the bounds of the file.");
+                }
+                if (index >= file.GetTokenizedLine(line).Length)
+                {
+                    throw new FileContentException("Token exceeds the bounds of the line.");
                 }
 
                 this.file = file;
@@ -260,26 +270,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Marks the token returned by GetToken for the associated file as excluded from the compilation.
-            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal void MarkAsExcluded()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = false;
             }
 
             /// <summary>
             /// Marks the token returned by GetToken for the associated file as included in the compilation.
-            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal void MarkAsIncluded()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = true;
             }
@@ -287,13 +301,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal CodeFragment GetFragment()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
             }
@@ -301,8 +317,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Returns the corresponding fragment for the token at the saved TokenIndex including any closing comments for that fragment -
             /// i.e. a copy of the token where its range denotes the absolute range within the file.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             internal CodeFragment GetFragmentWithClosingComments()
             {
                 var fragment = this.GetFragment();
@@ -322,13 +340,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the next token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             public TokenIndex? Next()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
@@ -344,13 +364,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Returns the TokenIndex of the previous token in File or null if no such token exists.
-            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
+            /// <exception cref="FileContentException">
+            /// The line or index are no longer within the associated file.
+            /// </exception>
             public TokenIndex? Previous()
             {
                 if (!this.IsWithinFile())
                 {
-                    throw new InvalidOperationException("token index is no longer valid within its associated file");
+                    throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
                 var res = new TokenIndex(this);
                 if (res.Index-- > 0)
@@ -389,13 +411,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
             /// RelativeToRoot is set to the position of the fragment start relative to the given parent start position.
-            /// Throws an ArgumentException if the given parent start position is larger than the fragment start position.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
                 if (fragment.Range.Start < parentStart)
                 {
-                    throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
+                    throw new ArgumentException("parentStart needs to be smaller than or equal to the fragment start.", nameof(parentStart));
                 }
                 this.Fragment = fragment;
                 this.Children = children;
@@ -404,12 +426,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
         }
 
-        public readonly NonNullable<string> Source;
-        public readonly NonNullable<string> Namespace;
-        public readonly NonNullable<string> Callable;
+        public readonly string Source;
+        public readonly string Namespace;
+        public readonly string Callable;
         public readonly IReadOnlyList<TreeNode>? Specializations;
 
-        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode>? specs)
+        public FragmentTree(string source, string ns, string callable, IEnumerable<TreeNode>? specs)
         {
             this.Source = source;
             this.Namespace = ns;
@@ -425,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal Position Position { get; }
 
-        internal readonly NonNullable<string> SymbolName;
-        internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
+        internal readonly string SymbolName;
+        internal readonly Tuple<string, Range> PositionedSymbol;
 
         internal readonly T Declaration;
         internal readonly ImmutableArray<AttributeAnnotation> Attributes;
@@ -436,7 +458,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
             Position offset,
-            (NonNullable<string>, Range) sym,
+            (string, Range) sym,
             T decl,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
@@ -444,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         {
             this.Position = offset;
             this.SymbolName = sym.Item1;
-            this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
+            this.PositionedSymbol = new Tuple<string, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
             this.Attributes = attributes;
             this.Documentation = doc;
@@ -457,9 +479,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the symbol of the extracted declaration is not an unqualified symbol,
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the keepInvalid parameter has been set to a string value.
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
-        /// Throws an ArgumentException if this verification fails as well.
-        /// Throws an ArgumentException if the extracted declaration is Null.
         /// </summary>
+        /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified or invalid symbol.</exception>
+        /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
             CodeFragment.TokenIndex tIndex,
@@ -483,7 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (symName, symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 
@@ -512,8 +534,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Invalidates (i.e. removes) all elements in the range [start, start + count), and
         /// updates all elements that are larger than or equal to start + count with the given lineNrChange.
-        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
+        /// </exception>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             this.namespaceDeclarations.InvalidateOrUpdate(start, count, lineNrChange);
@@ -611,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to SortedSet<int>
+    /// threadsafe wrapper to <see cref="SortedSet{T}"/> whose generic type argument is <see cref="int"/>.
     /// </summary>
     public class ManagedSortedSet // *don't* dispose of the sync root!
     {
@@ -675,8 +699,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Removes all elements in the range [start, start + count) from the set, and
         /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange.
         /// Returns the number of removed elements.
-        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             if (start < 0)
@@ -712,7 +736,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to HashSet<T>
+    /// threadsafe wrapper to <see cref="HashSet{T}"/>
     /// </summary>
     public class ManagedHashSet<T> // *don't* dispose of the sync root!
     {
@@ -771,7 +795,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to List<T>
+    /// threadsafe wrapper to <see cref="List{T}"/>
     /// </summary>
     public class ManagedList<T> // *don't* dispose of the sync root!
     {
@@ -895,6 +919,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             try
             {
                 return this.content[index];
+            }
+            finally
+            {
+                this.SyncRoot.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Gets the item at the index if the index does not exceed the bounds of the list.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
+        internal bool TryGetItem(int index, [MaybeNullWhen(false)] out T item)
+        {
+            this.SyncRoot.EnterReadLock();
+            try
+            {
+                if (index < this.content.Count)
+                {
+                    item = this.content[index];
+                    return true;
+                }
+                item = default;
+                return false;
             }
             finally
             {

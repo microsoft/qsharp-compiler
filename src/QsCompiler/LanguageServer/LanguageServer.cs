@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -83,13 +84,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             void ProcessFileEvents(IEnumerable<FileEvent> e) =>
                 this.OnDidChangeWatchedFiles(JToken.Parse(JsonConvert.SerializeObject(
                     new DidChangeWatchedFilesParams { Changes = e.ToArray() })));
+            this.fileWatcher = new FileWatcher(_ =>
+                this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
             var fileEvents = Observable.FromEvent<FileWatcher.FileEventHandler, FileEvent>(
                     handler => this.fileWatcher.FileEvent += handler,
                     handler => this.fileWatcher.FileEvent -= handler)
                 .Where(e => !e.Uri.LocalPath.EndsWith("tmp", StringComparison.InvariantCultureIgnoreCase) && !e.Uri.LocalPath.EndsWith('~'));
 
             this.projectsInWorkspace = new HashSet<Uri>();
-            this.fileWatcher = new FileWatcher(_ => this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
             this.fileEvents = new CoalesceingQueue();
             this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
             this.editorState = new EditorState(
@@ -147,15 +149,30 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
-            var line = "\n=============================\n";
-            this.LogToWindow($"{line}{ex}{line}", MessageType.Error);
-            var logLocation = "the output window";  // todo: generate a proper error log in a file somewhere
-            var message = "The Q# Language Server has encountered an error. Diagnostics will be reloaded upon saving the file.";
-            if (this.showInteralErrorMessage)
+            const string line = "\n=============================\n";
+            const string logLocation = "the output window"; // TODO: Generate a proper error log in a file somewhere.
+            const string message =
+                "The Q# Language Server has encountered an error. Diagnostics will be reloaded upon saving the file.";
+
+            switch (ex)
             {
-                this.showInteralErrorMessage = false;
-                this.internalErrorTimer.Start();
-                this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
+                case FileContentException _:
+                    this.LogToWindow($"A file query couldn't access file content: {ex.Message}", MessageType.Info);
+                    break;
+                case SymbolNotFoundException _:
+                    this.LogToWindow($"A file query couldn't find a symbol: {ex.Message}", MessageType.Info);
+                    break;
+                default:
+                    this.LogToWindow($"{line}{ex}{line}", MessageType.Error);
+                    if (this.showInteralErrorMessage)
+                    {
+                        this.showInteralErrorMessage = false;
+                        this.internalErrorTimer.Start();
+                        this.ShowInWindow(
+                            $"{message}\nDetails on the encountered error have been logged to {logLocation}.",
+                            MessageType.Error);
+                    }
+                    break;
             }
         }
 

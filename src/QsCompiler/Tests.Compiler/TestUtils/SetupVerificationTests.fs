@@ -36,7 +36,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
             if attributes.Length = 0 then (c.Location.ValueOrApply (fun _ -> failwith "missing position information")).Offset
             else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
-            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.Location <> Null)
+            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
             let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp ())
             
@@ -51,7 +51,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
              
     let VerifyDiagnosticsOfSeverity severity name (expected : IEnumerable<_>) = 
         let exists, diag = diagnostics.TryGetValue name
-        Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace.Value name.Name.Value)
+        Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace name.Name)
         let got = 
             diag.Where(fun d -> d.Severity = severity) 
             |> Seq.choose (fun d -> Diagnostics.TryGetCode d.Code |> function 
@@ -63,7 +63,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation) =
         let nrMismatch = gotLookup.Where (fun g -> g.Count() <> expectedLookup.[g.Key].Count())
         Assert.False(codeMismatch.Any() || nrMismatch.Any(), 
             sprintf "%A code mismatch for %s.%s \nexpected: %s\ngot: %s" 
-                severity name.Namespace.Value name.Name.Value (String.Join(", ", expected)) (String.Join(", ", got)))
+                severity name.Namespace name.Name (String.Join(", ", expected)) (String.Join(", ", got)))
 
 
     member this.Verify (name, expected : IEnumerable<ErrorCode>) = 

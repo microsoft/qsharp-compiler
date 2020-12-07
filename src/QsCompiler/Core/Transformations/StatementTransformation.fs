@@ -213,12 +213,12 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
     abstract member OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnLocation loc = loc
 
-    abstract member OnVariableName : NonNullable<string> -> NonNullable<string>
+    abstract member OnVariableName : string -> string
     default this.OnVariableName name = name
 
     abstract member OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
     default this.OnLocalDeclarations decl = 
-        let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
+        let onLocalVariableDeclaration (local : LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
             let name = this.OnVariableName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type 

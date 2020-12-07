@@ -35,10 +35,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsVisible(NonNullable<string> source, AccessModifier access, NonNullable<string> qualifiedName)
+            bool IsVisible(string source, AccessModifier access, string name)
             {
-                var name = qualifiedName.Value;
-                var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source.Value);
+                var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source);
                 return includeInDocs && access.IsDefaultAccess && !(name.StartsWith("_") || name.EndsWith("_")
                         || name.EndsWith("Impl", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplA", StringComparison.InvariantCultureIgnoreCase)
@@ -46,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         || name.EndsWith("ImplCA", StringComparison.InvariantCultureIgnoreCase));
             }
 
-            this.name = ns.Name.Value;
+            this.name = ns.Name;
             this.uid = this.name.ToLowerInvariant();
 
             this.summary = "";

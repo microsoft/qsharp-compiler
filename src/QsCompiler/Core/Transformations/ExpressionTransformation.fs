@@ -115,7 +115,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
         let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
-    abstract member OnStringLiteral : NonNullable<string> * ImmutableArray<TypedExpression> -> ExpressionKind
+    abstract member OnStringLiteral : string * ImmutableArray<TypedExpression> -> ExpressionKind
     default this.OnStringLiteral (s, exs) =
         let exs = exs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         StringLiteral |> Node.BuildOr InvalidExpr (s, exs)
@@ -370,7 +370,7 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     // nodes containing subexpressions or subtypes
 
-    abstract member OnTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
+    abstract member OnTypeParamResolutions : ImmutableDictionary<(QsQualifiedName * string), ResolvedType> -> ImmutableDictionary<(QsQualifiedName * string), ResolvedType>
     default this.OnTypeParamResolutions typeParams =
         let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
         let filteredTypeParams =

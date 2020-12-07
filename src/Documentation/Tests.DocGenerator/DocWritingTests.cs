@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                 new[] { AccessModifier.DefaultAccess, AccessModifier.Internal }
                 .SelectMany(access =>
                 {
-                    var source = NonNullable<string>.New("Tests.qs");
+                    var source = "Tests.qs";
                     var unit = ResolvedType.New(QsType.UnitType);
 
                     var signature = new ResolvedSignature(
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                         QsNamespaceElement.NewQsCustomType(type)
                     };
                 });
-            var emptyLookup = Array.Empty<ImmutableArray<string>>().ToLookup(x => NonNullable<string>.New(""));
+            var emptyLookup = Array.Empty<ImmutableArray<string>>().ToLookup(x => "");
             var ns = new QsNamespace(CanonName, elements.ToImmutableArray(), emptyLookup);
             var docNs = new DocNamespace(ns);
             var stream = new MemoryStream();

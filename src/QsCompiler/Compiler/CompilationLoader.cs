@@ -14,14 +14,11 @@ using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
-using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Newtonsoft.Json.Bson;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
@@ -480,7 +477,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.RaiseCompilationTaskStart(null, "OverallCompilation");
 
             // loading the content to compiler
-
+            BondSchemas.Protocols.Initialize();
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
@@ -512,9 +509,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.OnCompilerException,
                 capability: this.config.RuntimeCapability,
                 isExecutable: this.config.IsExecutable,
-                processorArchitecture: NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture)
+                processorArchitecture: string.IsNullOrWhiteSpace(processorArchitecture)
                     ? "Unspecified"
-                    : processorArchitecture));
+                    : processorArchitecture);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
@@ -618,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var ms = new MemoryStream())
             {
                 this.RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
-                var serialized = this.config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                var serialized = this.config.SerializeSyntaxTree && this.WriteSyntaxTreeSerialization(ms);
                 this.RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
@@ -735,14 +732,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// Logs the names of the given assemblies as Information.
         /// Does nothing if the given argument is null.
         /// </summary>
-        private void PrintResolvedAssemblies(IEnumerable<NonNullable<string>> assemblies)
+        private void PrintResolvedAssemblies(IEnumerable<string> assemblies)
         {
             if (assemblies == null)
             {
                 return;
             }
             var args = assemblies.Any()
-                ? assemblies.Select(name => name.Value).ToArray()
+                ? assemblies.ToArray()
                 : new string[] { "(none)" };
             this.logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
@@ -809,14 +806,14 @@ namespace Microsoft.Quantum.QsCompiler
             void LogError(ErrorCode errCode, string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
             void LogException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
 
-            (NonNullable<string>, ImmutableArray<QsNamespace>)? LoadReferences(string path)
+            (string, ImmutableArray<QsNamespace>)? LoadReferences(string path)
             {
                 try
                 {
                     var targetDll = Path.GetFullPath(path);
                     if (AssemblyLoader.LoadReferencedAssembly(targetDll, out var loaded, LogException))
                     {
-                        return (NonNullable<string>.New(path), loaded.Namespaces);
+                        return (path, loaded.Namespaces);
                     }
                     LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
                     return null;
@@ -965,32 +962,28 @@ namespace Microsoft.Quantum.QsCompiler
         /// Does *not* close the given memory stream, and
         /// returns true if the serialization has been successfully generated.
         /// </summary>
-        private bool SerializeSyntaxTree(MemoryStream ms)
+        private bool WriteSyntaxTreeSerialization(MemoryStream ms)
         {
             void LogError() => this.LogAndUpdate(
                 ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
 
-            this.compilationStatus.Serialization = 0;
+            void LogExceptionAndError(Exception ex)
+            {
+                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
+
+                LogError();
+            }
+
+            this.compilationStatus.Serialization = Status.Succeeded;
             if (this.CompilationOutput == null)
             {
                 LogError();
                 return false;
             }
 
-            using var writer = new BsonDataWriter(ms) { CloseOutput = false };
-            var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
+            var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.EndsWith(".qs")));
             var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
-            try
-            {
-                Json.Serializer.Serialize(writer, compilation);
-            }
-            catch (Exception ex)
-            {
-                this.LogAndUpdate(ref this.compilationStatus.Serialization, ex);
-                LogError();
-                return false;
-            }
-            return true;
+            return SerializeSyntaxTree(compilation, ms, LogExceptionAndError);
         }
 
         /// <summary>
@@ -1006,7 +999,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.compilationStatus.BinaryFormat = 0;
 
-            var projId = NonNullable<string>.New(Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetRandomFileName()));
+            var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetRandomFileName());
             var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.BuildOutputFolder) ? "." : this.config.BuildOutputFolder);
             var target = GeneratedFile(projId, outFolder, ".bson", "");
 
@@ -1051,12 +1044,12 @@ namespace Microsoft.Quantum.QsCompiler
             // We need to force the inclusion of references despite that we do not include C# code that depends on them.
             // This is done via generating a certain handle in all dlls built via this compilation loader.
             // This checks if that handle is available to merely generate a warning if we can't include the reference.
-            bool CanBeIncluded(NonNullable<string> dll)
+            bool CanBeIncluded(string dll)
             {
                 // no need to throw in case this fails - ignore the reference instead
                 try
                 {
-                    using var stream = File.OpenRead(dll.Value);
+                    using var stream = File.OpenRead(dll);
                     using var assemblyFile = new PEReader(stream);
                     var metadataReader = assemblyFile.GetMetadataReader();
                     return metadataReader.TypeDefinitions
@@ -1073,12 +1066,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var referencePaths = this.CompilationOutput?.Namespaces
                     .Apply(ns => GetSourceFiles.Apply(ns)) // we choose to keep only Q# references that have been used
-                    .Where(file => file.Value.EndsWith(".dll"));
-                var references = referencePaths.Select((dll, id) => (dll, CreateReference(dll.Value, id), CanBeIncluded(dll))).ToImmutableArray();
+                    .Where(file => file.EndsWith(".dll"));
+                var references = referencePaths.Select((dll, id) => (dll, CreateReference(dll, id), CanBeIncluded(dll))).ToImmutableArray();
                 var csharpTree = MetadataGeneration.GenerateAssemblyMetadata(references.Where(r => r.Item3).Select(r => r.Item2));
                 foreach (var (dropped, _, _) in references.Where(r => !r.Item3))
                 {
-                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped.Value }, null);
+                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped }, null);
                     this.LogAndUpdate(ref this.compilationStatus.DllGeneration, warning);
                 }
 
@@ -1090,7 +1083,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceName, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.SyntaxTreeResourceName, () => serialization, true);
                 var result = compilation.Emit(
                     outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
@@ -1116,22 +1109,47 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
         /// </summary>
         public static bool ReadBinary(string file, [NotNullWhen(true)] out QsCompilation? syntaxTree) =>
-            ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))), out syntaxTree);
+            AssemblyLoader.LoadSyntaxTree(File.ReadAllBytes(Path.GetFullPath(file)), out syntaxTree);
 
         /// <summary>
         /// Given a stream with the content of a Q# binary file, returns the corresponding compilation as out parameter.
         /// </summary>
-        public static bool ReadBinary(Stream stream, [NotNullWhen(true)] out QsCompilation? syntaxTree) =>
-            AssemblyLoader.LoadSyntaxTree(stream, out syntaxTree);
+        public static bool ReadBinary(Stream stream, [NotNullWhen(true)] out QsCompilation? syntaxTree)
+        {
+            var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            return AssemblyLoader.LoadSyntaxTree(memoryStream.ToArray(), out syntaxTree);
+        }
+
+        private static bool SerializeSyntaxTree(QsCompilation syntaxTree, Stream stream, Action<Exception>? onException = null)
+        {
+            try
+            {
+                BondSchemas.Protocols.SerializeQsCompilationToSimpleBinary(syntaxTree, stream);
+            }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a binary representation of the Q# compilation to supplied stream.
+        /// </summary>
+        public static bool WriteBinary(QsCompilation syntaxTree, Stream stream) =>
+            SerializeSyntaxTree(syntaxTree, stream);
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder.
         /// Returns the computed absolute path for a file with the specified ending.
         /// If the content for that file is specified, writes that content to disk.
-        /// Throws an ArgumentException if the given file id is incompatible with and id assigned by the Q# compiler.
-        /// Throws the corresponding exception any of the path operations fails or if the writing fails.
+        /// Throws the corresponding exception if any of the path operations fails or if the writing fails.
         /// </summary>
-        public static string GeneratedFile(NonNullable<string> fileId, string outputFolder, string fileEnding, string? content = null)
+        /// <exception cref="ArgumentException"><paramref name="fileId"/> is incompatible with an id assigned by the Q# compiler.</exception>
+        public static string GeneratedFile(string fileId, string outputFolder, string fileEnding, string? content = null)
         {
             if (!CompilationUnitManager.TryGetUri(fileId, out var file))
             {

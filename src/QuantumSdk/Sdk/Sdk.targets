@@ -85,7 +85,7 @@
       <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageeId)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
@@ -132,7 +132,7 @@
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
   <Target Name="PrepareCsharpCompileAfterCsharpGeneration" DependsOnTargets="QsharpCompile" AfterTargets="QsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
     <ItemGroup>
-      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
+      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
       <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
     <Message 

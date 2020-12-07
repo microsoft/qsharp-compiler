@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.Sdk.Tools
         /// Work in progress: 
         /// The signature and output of this method will change in the future. 
         /// </summary>
-        private static bool WriteConfigFile(string configFile, string[] qscReferences, bool verbose = false)
+        private static bool WriteConfigFile(string? configFile, string[] qscReferences, bool verbose = false)
         {
             try
             {

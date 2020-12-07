@@ -20,8 +20,7 @@ type LocalVerificationTests () =
         ]))
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-        let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
-        let name = name |> NonNullable<_>.New
+        let ns = "Microsoft.Quantum.Testing.LocalVerification"
         this.VerifyDiagnostics (QsQualifiedName.New (ns, name), diag)
 
 
@@ -242,6 +241,7 @@ type LocalVerificationTests () =
     member this.``Deprecation warnings`` () =
         this.Expect "DeprecatedType"               []
         this.Expect "RenamedType"                  []
+        this.Expect "DeprecatedCallable"           []
         this.Expect "DuplicateDeprecateAttribute1" [Warning WarningCode.DuplicateAttribute]
         this.Expect "DuplicateDeprecateAttribute2" [Warning WarningCode.DuplicateAttribute]
 
@@ -261,6 +261,13 @@ type LocalVerificationTests () =
         this.Expect "UsingRenamedAttribute1"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute2"       [Warning WarningCode.DeprecationWithRedirect]
         this.Expect "UsingRenamedAttribute3"       [Warning WarningCode.DeprecationWithRedirect]
+
+        this.Expect "NestedDeprecatedCallable"     []
+        this.Expect "DeprecatedAttributeInDeprecatedCallable" []
+        this.Expect "DeprecatedTypeInDeprecatedCallable" []
+        this.Expect "UsingNestedDeprecatedCallable" [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingDepAttrInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDepTypeInDepCall"        [Warning WarningCode.DeprecationWithoutRedirect]
                                                    
         this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]

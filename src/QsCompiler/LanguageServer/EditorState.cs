@@ -12,8 +12,8 @@ using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -36,7 +36,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
         /// </summary>
-        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles;
+        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles =
+            new ConcurrentDictionary<Uri, FileContentManager>();
 
         private FileContentManager? GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
 
@@ -86,7 +87,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish);
-            this.openFiles = new ConcurrentDictionary<Uri, FileContentManager>();
             this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
@@ -126,8 +126,9 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapabilities = RuntimeCapability.TryParse(resRuntimeCapability)
-                .ValueOr(RuntimeCapability.FullComputation);
+            var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
+                ? result.ToCapability()
+                : RuntimeCapability.FullComputation;
 
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
@@ -147,9 +148,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             info = new ProjectInformation(
                 version,
                 outputPath,
-                runtimeCapabilities,
+                runtimeCapability,
                 isExecutable,
-                NonNullable<string>.New(string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture),
+                string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
                 loadTestNames,
                 sourceFiles,
                 projectReferences,
@@ -221,8 +222,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Invokes the given Action showError with a suitable message if the given file cannot be loaded.
         /// Invokes the given Action logError with a suitable message if the given file cannot be associated with a compilation unit,
         /// or if the given file is already listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task OpenFileAsync(
             TextDocumentItem textDocument,
             Action<string, MessageType>? showError = null,
@@ -232,43 +233,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("invalid text document identifier");
             }
-            // If the file is not associated with a project, we will create a temporary project file for all files in that folder.
-            // We spawn a second query below for the actual processing of the file to ensure that a created project file
-            // is properly registered with the project manager before processing.
-            var createdTemporaryProject = false;
-            this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
-            {
-                if (this.IgnoreFile(textDocument.Uri))
-                {
-                    return;
-                }
-
-                if (!associatedWithProject && textDocument.Uri.LocalPath.EndsWith(".qs", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    try
-                    {
-                        var projectUri = this.QsTemporaryProjectLoader(textDocument.Uri, sdkVersion: null); // null means the Sdk version will be set to the extension version
-                        this.projects.ProjectChangedOnDiskAsync(projectUri, this.QsProjectLoader, this.GetOpenFile);
-                        this.onTemporaryProjectLoaded?.Invoke(projectUri);
-                        createdTemporaryProject = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        logError?.Invoke($"Failed to create temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
-                        manager.LogException(ex);
-                    }
-                }
-            }).Wait(); // needed to ensure that the ProjectChangedOnDiskAsync is queued before the ManagerTaskAsync below
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
-                }
-
-                if (createdTemporaryProject && !associatedWithProject)
-                {
-                    logError?.Invoke($"Failed to load temporary .csproj for {textDocument.Uri.LocalPath}.", MessageType.Info);
                 }
 
                 var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
@@ -319,8 +288,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// To be called whenever a file is changed within the editor (i.e. changes are not necessarily reflected on disk).
         /// Does nothing if the given file is listed as to be ignored.
-        /// Throws an ArgumentException if the uri of the text document identifier in the given parameter is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of the text document identifier in the given parameter is not an absolute file URI.</exception>
         internal Task DidChangeAsync(DidChangeTextDocumentParams param)
         {
             if (!ValidFileUri(param.TextDocument.Uri))
@@ -348,8 +317,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Used to reload the file content when a file is saved.
         /// Does nothing if the given file is listed as to be ignored.
         /// Expects to get the entire content of the file at the time of saving as argument.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task SaveFileAsync(TextDocumentIdentifier textDocument, string fileContent)
         {
             if (!ValidFileUri(textDocument.Uri))
@@ -383,8 +352,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Does nothing if the given file is listed as to be ignored.
         /// Otherwise the file content is reloaded from disk (in case changes in the editor are discarded without closing), and the diagnostics are updated.
         /// Invokes the given Action onError with a suitable message if the given file is not listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is null or not an absolute file URI.</exception>
         internal Task CloseFileAsync(TextDocumentIdentifier textDocument, Action<string, MessageType>? onError = null)
         {
             if (textDocument is null || !ValidFileUri(textDocument.Uri))

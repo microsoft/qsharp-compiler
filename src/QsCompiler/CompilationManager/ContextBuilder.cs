@@ -22,8 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Verifies that all tokens are ordered according to their range.
-        /// Throws an ArgumentException if this is not the case.
         /// </summary>
+        /// <exception cref="ArgumentException">Not all <paramref name="tokens"/> are ordered according to their range.</exception>
         internal static void VerifyTokenOrdering(IEnumerable<CodeFragment> tokens)
         {
             Position? previousEnding = null;
@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var namespaces = file.GetNamespaceDeclarations();
             var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
-            return preceding.Any() ? preceding.Last().Item1.Value : null;
+            return preceding.Any() ? preceding.Last().Item1 : null;
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a callable name as well as existing specializations can be found, but no specialization precedes the given position,
         /// returns null for the specialization kind as well as for its position.
         /// </summary>
-        public static ((NonNullable<string>, Position), (QsSpecializationKind?, Position?))? TryGetClosestSpecialization(
+        public static ((string, Position), (QsSpecializationKind?, Position?))? TryGetClosestSpecialization(
             this FileContentManager file, Position pos)
         {
             QsSpecializationKind? GetSpecializationKind(CodeFragment fragment)
@@ -205,11 +205,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (specializations.Any() && lastPreceding == null)
                 {
                     // the given position is within a callable declaration
-                    return ((NonNullable<string>.New(callableName), callablePosition), (null, null));
+                    return ((callableName, callablePosition), (null, null));
                 }
                 return lastPreceding == null
-                    ? ((NonNullable<string>.New(callableName), callablePosition), (QsSpecializationKind.QsBody, callablePosition))
-                    : ((NonNullable<string>.New(callableName), callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
+                    ? ((callableName, callablePosition), (QsSpecializationKind.QsBody, callablePosition))
+                    : ((callableName, callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
             }
             finally
             {
@@ -221,8 +221,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given file contains any tokens overlapping with the given fragment.
         /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
         /// whereas the range of the given fragment is assumed to be the absolute range.
-        /// Throws an ArgumentOutOfRangeException if the given range is not a valid range within file.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="range"/> is not a valid range within <paramref name="file"/>.</exception>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
             if (!file.ContainsRange(range))
@@ -255,8 +255,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Assuming both the current tokens and the tokens to update are sorted according to their range,
         /// merges the current and updated tokens such that the merged collection is sorted as well.
-        /// Throws a QsCompilerException if the token verification for the merged collection fails.
         /// </summary>
+        /// <exception cref="QsCompilerException">The token verification for the merged collection failed.</exception>
         internal static List<CodeFragment> MergeTokens(IEnumerable<CodeFragment> current, IEnumerable<CodeFragment> updated)
         {
             var merged = new List<CodeFragment>(0);
@@ -307,17 +307,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Previous()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Kind != null && fragment.Indentation < indentation)
                 {
                     break; // ignore empty fragments
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation - 1 ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation - 1 ? current : null;
         }
 
         /// <summary>
@@ -341,13 +341,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetChildren(this CodeFragment.TokenIndex tIndex, bool deep = true)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Next()) != null && tokenIndex.GetFragment().Indentation > indentation)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null && current.GetFragment().Indentation > indentation)
             {
-                if (deep || tokenIndex.GetFragment().Indentation == indentation + 1)
+                if (deep || current.GetFragment().Indentation == indentation + 1)
                 {
-                    yield return tokenIndex;
+                    yield return current;
                 }
             }
         }
@@ -358,17 +358,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Previous()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Previous()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         /// <summary>
@@ -377,17 +377,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static CodeFragment.TokenIndex? NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
-            var tokenIndex = new CodeFragment.TokenIndex(tIndex);
-            var indentation = tokenIndex.GetFragment().Indentation;
-            while ((tokenIndex = tokenIndex.Next()) != null)
+            var current = tIndex;
+            var indentation = current.GetFragment().Indentation;
+            while ((current = current.Next()) != null)
             {
-                var fragment = tokenIndex.GetFragment();
+                var fragment = current.GetFragment();
                 if (fragment.Indentation <= indentation && (fragment.Kind != null || includeEmpty))
                 {
                     break;
                 }
             }
-            return tokenIndex != null && tokenIndex.GetFragment().Indentation == indentation ? tokenIndex : null;
+            return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
         // routines related to "reconstructing" the syntax tree from the saved tokens to do context checks
@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (include, verifications) = Context.VerifySyntaxTokenContext(context);
                 foreach (var msg in verifications)
                 {
-                    messages.Add(Diagnostics.Generate(file.FileName.Value, msg, fragment.Range.Start));
+                    messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
                 }
 
                 if (include)
@@ -483,7 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var ns = file.TryGetNamespaceAt(tuple.Item2.Start);
                 QsCompilerError.Verify(ns != null, "namespace for callable declaration should not be null"); // invalid namespace names default to an unknown namespace name, but remain included in the compilation
-                return (tuple.Item2.Start, new QsQualifiedName(NonNullable<string>.New(ns), tuple.Item1));
+                return (tuple.Item2.Start, new QsQualifiedName(ns, tuple.Item1));
             }).ToList();
 
             // NOTE: The range of modifications that has to trigger an update of the syntax tree for a callable

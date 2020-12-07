@@ -4,9 +4,7 @@
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityVerificationTests
 
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.IO
 open Xunit
@@ -29,9 +27,7 @@ let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> Com
 let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
 
 /// The qualified name for the test case name.
-let internal testName name =
-    QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.Capability",
-                         NonNullable<_>.New name)
+let internal testName name = { Namespace = "Microsoft.Quantum.Testing.Capability"; Name = name }
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
 let private expect (tester : CompilerTests) errorCodes name =
