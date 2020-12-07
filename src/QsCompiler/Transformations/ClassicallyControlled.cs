@@ -932,7 +932,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         }
 
                         this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = this.SharedState.IsValidScope && contextValidScope;
+                        this.SharedState.IsValidScope = contextValidScope;
 
                         if (!this.SharedState.IsConditionLiftable)
                         {
@@ -976,7 +976,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         }
 
                         this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = this.SharedState.IsValidScope && contextValidScope;
+                        this.SharedState.IsValidScope = contextValidScope;
                     }
 
                     if (this.SharedState.IsConditionLiftable)
