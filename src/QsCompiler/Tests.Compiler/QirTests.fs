@@ -72,7 +72,11 @@ let ``QIR UDT construction`` () =
 [<Fact>]
 let ``QIR UDT accessor`` () =
     qirTest false "TestUdtAccessor"
-    
+
+[<Fact>]
+let ``QIR UDT argument`` () =
+    qirTest false "TestUdtArgument"
+   
 [<Fact>]
 let ``QIR UDT update`` () =
     qirTest false "TestUdtUpdate"
