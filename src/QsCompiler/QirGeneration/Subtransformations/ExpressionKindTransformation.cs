@@ -1496,8 +1496,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
+                // RHS must be an integer that can fit into an i32
+                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
                 var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.IntPower);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, rhsValue));
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
             }
             else if (lhs.ResolvedType.Resolution.IsDouble)
             {
@@ -1588,7 +1590,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 string name = local.Item;
                 this.SharedState.PushNamedValue(name);
             }
-            else if (sym is Identifier.GlobalCallable globalCallable)
+            else if (sym is Identifier.GlobalCallable globalCallable) // FIXME: WHAT IF IT IS A TYPE CONSTRUCTOR??
             {
                 if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {

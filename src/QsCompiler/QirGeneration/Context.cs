@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void InitializeRuntimeLibrary()
         {
             // int library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.IntPower, this.Types.Int, this.Types.Int, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.IntPower, this.Types.Int, this.Types.Int, this.Context.Int32Type);
 
             // result library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultReference, this.Context.VoidType, this.Types.Result);
@@ -1036,7 +1036,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
+                        try
+                        {
+                            funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
+                        }
+                        catch (NullReferenceException)
+                        {
+                            Console.WriteLine($"null ref exception for {kind} of {callable.FullName}");
+                            throw;
+                        }
                     }
                 }
 
