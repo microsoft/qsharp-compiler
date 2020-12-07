@@ -57,20 +57,32 @@
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
+    <!-- true/false optional properties -->
+    <QirGeneration Condition="'$(QirOutputPath)' != ''">true</QirGeneration>
+    <QsharpDocsGeneration Condition="'$(QsharpDocsOutputPath)' != ''">true</QsharpDocsGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != ''">true</PerfDataGeneration>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
     <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp/</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath>$([MSBuild]::Unescape('$(GeneratedFilesOutputPath)').Replace('\','/'))</GeneratedFilesOutputPath>
     <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)/</GeneratedFilesOutputPath>
-    <!-- output path for generating documentation -->
-    <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs/</QsharpDocsOutputPath>
-    <QsharpDocsOutputPath>$([MSBuild]::Unescape('$(QsharpDocsOutputPath)').Replace('\','/'))</QsharpDocsOutputPath>
-    <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
     <!-- output path for generating qsc config file -->
     <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)config/</QscBuildConfigOutputPath>
     <QscBuildConfigOutputPath>$([MSBuild]::Unescape('$(QscBuildConfigOutputPath)').Replace('\','/'))</QscBuildConfigOutputPath>
     <QscBuildConfigOutputPath Condition="!HasTrailingSlash('$(QscBuildConfigOutputPath)')">$(QscBuildConfigOutputPath)/</QscBuildConfigOutputPath>
+    <!-- output path for generating QIR -->
+    <QirOutputPath Condition="'$(QirOutputPath)' == ''">$(MSBuildProjectDirectory)/qir/</QirOutputPath>
+    <QirOutputPath>$([MSBuild]::Unescape('$(QirOutputPath)').Replace('\','/'))</QirOutputPath>
+    <QirOutputPath Condition="!HasTrailingSlash('$(QirOutputPath)')">$(QirOutputPath)/</QirOutputPath>
+    <!-- output path for generating documentation -->
+    <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(MSBuildProjectDirectory)/docs/</QsharpDocsOutputPath>
+    <QsharpDocsOutputPath>$([MSBuild]::Unescape('$(QsharpDocsOutputPath)').Replace('\','/'))</QsharpDocsOutputPath>
+    <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
+    <!-- output path for generating perf data -->
+    <PerfDataOutputPath Condition="'$(PerfDataOutputPath)' == ''">$(MSBuildProjectDirectory)/perf/</PerfDataOutputPath>
+    <PerfDataOutputPath>$([MSBuild]::Unescape('$(PerfDataOutputPath)').Replace('\','/'))</PerfDataOutputPath>
+    <PerfDataOutputPath Condition="!HasTrailingSlash('$(PerfDataOutputPath)')">$(PerfDataOutputPath)/</PerfDataOutputPath>
   </PropertyGroup>
 
 

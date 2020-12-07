@@ -152,15 +152,15 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // =================================
 
-// Concrete Graph Trims Specializations
+// Concrete Graph Does Not Trim Specializations
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
     operation Main() : Unit {
         Adjoint FooAdj();
         using (q = Qubit()) {
-            (Controlled FooCtl)([q], ());
-            (Controlled Adjoint FooCtlAdj)([q], ());
+            Controlled FooCtl([q], ());
+            Controlled Adjoint FooCtlAdj([q], ());
         }
     }
 

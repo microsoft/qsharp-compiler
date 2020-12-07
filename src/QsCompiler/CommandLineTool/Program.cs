@@ -67,6 +67,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public const int PLUGIN_EXECUTION_ERRORS = -10;
 
         /// <summary>
+        /// Return code indicating that executing a target-specific compilation step failed.
+        /// </summary>
+        public const int TARGETING_ERRORS = -11;
+
+        /// <summary>
+        /// Return code indicating that monomorphizing the compilation failed.
+        /// </summary>
+        public const int MONOMORPHIZATION_ERRORS = -12;
+
+        /// <summary>
+        /// Return code indicating that generating QIR for the built compilation failed.
+        /// </summary>
+        public const int QIR_GENERATION_ERRORS = -13;
+
+        /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
         public const int UNEXPECTED_ERROR = -1000;
@@ -77,10 +92,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.Validation == CompilationLoader.Status.Failed ? COMPILATION_ERRORS :
             loaded.FunctorSupport == CompilationLoader.Status.Failed ? FUNCTOR_GENERATION_ERRORS :
             loaded.PreEvaluation == CompilationLoader.Status.Failed ? PREEVALUATION_ERRORS :
+            loaded.AllLoadedRewriteSteps == CompilationLoader.Status.Failed ? PLUGIN_EXECUTION_ERRORS :
+            loaded.Monomorphization == CompilationLoader.Status.Failed ? MONOMORPHIZATION_ERRORS :
+            loaded.TargetSpecificReplacements == CompilationLoader.Status.Failed ? TARGETING_ERRORS :
+            loaded.TargetSpecificCompilation == CompilationLoader.Status.Failed ? TARGETING_ERRORS :
+            loaded.TargetInstructionInference == CompilationLoader.Status.Failed ? TARGETING_ERRORS :
+            loaded.QirGeneration == CompilationLoader.Status.Failed ? QIR_GENERATION_ERRORS :
             loaded.Documentation == CompilationLoader.Status.Failed ? DOC_GENERATION_ERRORS :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? BINARY_GENERATION_ERRORS :
             loaded.DllGeneration == CompilationLoader.Status.Failed ? DLL_GENERATION_ERRORS :
-            loaded.AllLoadedRewriteSteps == CompilationLoader.Status.Failed ? PLUGIN_EXECUTION_ERRORS :
             loaded.Success ? SUCCESS : UNEXPECTED_ERROR;
     }
 

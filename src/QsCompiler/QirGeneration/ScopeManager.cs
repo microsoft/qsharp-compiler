@@ -1,9 +1,14 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Collections.Generic;
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
-namespace Microsoft.Quantum.QsCompiler.QirGenerator
+namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
     /// This class is used to track reference counts that must be decremented before leaving the current scope.
@@ -35,14 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             this.sharedState = ctx;
         }
 
-        /// <summary>
-        /// Opens a new ref counting scope.
-        /// The new scope is a child of the current scope (it is pushed on to the scope stack).
-        /// </summary>
-        public void OpenScope()
-        {
-            this.releaseStack.Push(new List<(Value, string)>());
-        }
+        // private helpers
 
         /// <summary>
         /// Gets the name of the unreference runtime function for a given Q# type.
@@ -57,36 +55,36 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             {
                 if (isQubit)
                 {
-                    return "qubit_release_array";
+                    return RuntimeLibrary.QubitReleaseArray;
                 }
                 else
                 {
-                    return "array_unreference";
+                    return RuntimeLibrary.ArrayUnreference;
                 }
             }
             else if (t.Resolution.IsQubit)
             {
-                return "qubit_release";
+                return RuntimeLibrary.QubitRelease;
             }
             else if (t.Resolution.IsResult)
             {
-                return "result_unreference";
+                return RuntimeLibrary.ResultUnreference;
             }
             else if (t.Resolution.IsString)
             {
-                return "string_unreference";
+                return RuntimeLibrary.StringUnreference;
             }
             else if (t.Resolution.IsBigInt)
             {
-                return "bigint_unreference";
+                return RuntimeLibrary.BigintUnreference;
             }
             else if (t.Resolution.IsTupleType)
             {
-                return "tuple_unreference";
+                return RuntimeLibrary.TupleUnreference;
             }
             else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
             {
-                return "callable_unreference";
+                return RuntimeLibrary.CallableUnreference;
             }
             else
             {
@@ -95,15 +93,112 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
+        /// Gets the name of the unreference runtime function for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
+        /// decrement the reference count</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? GetReleaseFunctionForType(ITypeRef t, bool isQubit)
+        {
+            if (t == this.sharedState.Types.Array)
+            {
+                if (isQubit)
+                {
+                    return RuntimeLibrary.QubitReleaseArray;
+                }
+                else
+                {
+                    return RuntimeLibrary.ArrayUnreference;
+                }
+            }
+            else if (t == this.sharedState.Types.Qubit)
+            {
+                return RuntimeLibrary.QubitRelease;
+            }
+            else if (t == this.sharedState.Types.Result)
+            {
+                return RuntimeLibrary.ResultUnreference;
+            }
+            else if (t == this.sharedState.Types.String)
+            {
+                return RuntimeLibrary.StringUnreference;
+            }
+            else if (t == this.sharedState.Types.BigInt)
+            {
+                return RuntimeLibrary.BigintUnreference;
+            }
+            else if (t == this.sharedState.Types.Tuple || this.sharedState.Types.IsTupleType(t))
+            {
+                return RuntimeLibrary.TupleUnreference;
+            }
+            else if (t == this.sharedState.Types.Callable)
+            {
+                return RuntimeLibrary.CallableUnreference;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Generates the releases (unreference calls) for a single scope in the stack.
+        /// </summary>
+        /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
+        /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
+        private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
+        {
+            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
+            {
+                IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
+                // special case for tuples
+                if (releaseFunc == RuntimeLibrary.TupleUnreference)
+                {
+                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.Tuple);
+                    builder.Call(func, untypedTuple);
+                }
+                else
+                {
+                    builder.Call(func, valueToRelease);
+                }
+            }
+        }
+
+        // public methods
+
+        /// <summary>
+        /// Resets the manager by emptying the scope stack.
+        /// </summary>
+        public void Reset()
+        {
+            this.releaseStack.Clear();
+            this.releaseStack.Push(new List<(Value, string)>());
+        }
+
+        /// <summary>
+        /// Opens a new ref counting scope.
+        /// The new scope is a child of the current scope (it is pushed on to the scope stack).
+        /// </summary>
+        public void OpenScope()
+        {
+            this.releaseStack.Push(new List<(Value, string)>());
+        }
+
+        /// <summary>
         /// Adds a value to the current topmost scope.
         /// </summary>
         /// <param name="valueToRelease">The Value to be released</param>
-        /// <param name="valueType">The Q# type of the value; note that this doesn't have to
-        /// be precise, it just needs to be correct enough to determine the correct unreference
-        /// runtime function</param>
-        public void AddValue(Value valueToRelease, ResolvedType valueType)
+        /// <param name="valueType">
+        /// Optional parameter with the Q# type of the value;
+        /// If no parameter is given, then the release function will be determined
+        /// based on the NativeType of the value to release.
+        /// </param>
+        public void AddValue(Value valueToRelease, ResolvedType? valueType = null)
         {
-            var releaser = this.GetReleaseFunctionForType(valueType, false);
+            var releaser = valueType == null
+                ? this.GetReleaseFunctionForType(valueToRelease.NativeType, false)
+                : this.GetReleaseFunctionForType(valueType, false);
             if (releaser != null)
             {
                 this.releaseStack.Peek().Add((valueToRelease, releaser));
@@ -126,15 +221,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         }
 
         /// <summary>
-        /// Resets the manager by emptying the scope stack.
-        /// </summary>
-        public void Reset()
-        {
-            this.releaseStack.Clear();
-            this.releaseStack.Push(new List<(Value, string)>());
-        }
-
-        /// <summary>
         /// Removes a pending Value from those to be unreferenced.
         /// This is necessary, for example, for values that are returned to the caller.
         /// </summary>
@@ -144,29 +230,6 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
             foreach (var level in this.releaseStack)
             {
                 level.RemoveAll(item => item.Item1 == valueToRemove);
-            }
-        }
-
-        /// <summary>
-        /// Generates the releases (unreference calls) for a single scope in the stack.
-        /// </summary>
-        /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
-        /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
-        private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
-        {
-            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
-            {
-                IrFunction func = this.sharedState.GetRuntimeFunction(releaseFunc);
-                // special case for tuples
-                if (releaseFunc == "tuple_unreference")
-                {
-                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.QirTuplePointer);
-                    builder.Call(func, untypedTuple);
-                }
-                else
-                {
-                    builder.Call(func, valueToRelease);
-                }
             }
         }
 

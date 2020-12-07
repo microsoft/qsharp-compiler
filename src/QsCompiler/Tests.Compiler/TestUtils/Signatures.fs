@@ -71,7 +71,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let mutable callableSigs =
         checkedNamespaces
         |> Seq.map (fun checkedNs -> getNs checkedNs)
-        |> SyntaxExtensions.Callables
+        |> SyntaxTreeExtensions.Callables
         |> Seq.map (fun call -> (call.FullName, StripPositionInfo.Apply call.Signature.ArgumentType, StripPositionInfo.Apply call.Signature.ReturnType))
 
     let doesCallMatchSig call signature =
@@ -149,10 +149,18 @@ let public MonomorphizationSignatures =
             GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit"
             GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit"
 
+            GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit"
             GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit"
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit"
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit"
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit"
+            GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit"
+            GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit"
 
             GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int"
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int"
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int"
         |])
         (_DefaultTypes, [| (*Test Case 4*)
             MonomorphizationNs, "Test4", [||], "Unit"

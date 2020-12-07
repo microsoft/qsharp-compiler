@@ -1,24 +1,25 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
-namespace Microsoft.Quantum.QsCompiler.QirGenerator
+namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
     /// A simple class to manage a library of runtime functions.
-    /// This class tries to avoid clutter by only generating declarations for functions that are actually
-    /// called.
-    /// Functions that are defined but never used will not have an declaration generated.
+    /// Delays generating declarations for functions until they are needed.
+    /// Declarations for functions that are added but never queried will not be generated.
     /// </summary>
-    internal class FunctionLibrary : IEnumerable<KeyValuePair<string, IrFunction>>
+    public class FunctionLibrary : IEnumerable<KeyValuePair<string, IrFunction>>
     {
         private readonly BitcodeModule module;
         private readonly Dictionary<string, IFunctionType> runtimeFunctions = new Dictionary<string, IFunctionType>();
-        private readonly Dictionary<string, IrFunction> usedRuntimeFunctions =
-            new Dictionary<string, IrFunction>();
+        private readonly Dictionary<string, IrFunction> usedRuntimeFunctions = new Dictionary<string, IrFunction>();
         private readonly Func<string, string> nameMapper;
 
         /// <summary>
@@ -53,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <param name="name">The simple, unmangled name of the function</param>
         /// <param name="returnType">The return type of the function</param>
         /// <param name="argTypes">The types of the function's fixed arguments, as an array</param>
-        public void AddVarargsFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
+        public void AddVarArgsFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
         {
             this.runtimeFunctions[name] = this.module.Context.GetFunctionType(returnType, argTypes, true);
         }
@@ -64,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// </summary>
         /// <param name="name">The simple, unmangled name of the function</param>
         /// <returns>The object that represents the function</returns>
-        public IrFunction GetFunction(string name)
+        public IrFunction GetOrCreateFunction(string name)
         {
             var mappedName = this.nameMapper(name);
             var func = this.module.TryGetFunction(mappedName, out var fct) ?
@@ -115,17 +116,17 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         /// <summary>
         /// Gets an enumerator through the runtime functions in this library that have
         /// actually been used.
-        /// The enumerator returns KeyValuePairs with the base name of the function as 
+        /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
         /// <returns>The enumerator</returns>
-        public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() => 
+        public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() =>
             new LibEnumerator(this.usedRuntimeFunctions);
 
         /// <summary>
         /// Gets an enumerator through the runtime functions in this library that have
         /// actually been used.
-        /// The enumerator returns KeyValuePairs with the base name of the function as 
+        /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
         /// <returns>The enumerator</returns>

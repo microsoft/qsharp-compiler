@@ -3,65 +3,24 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.QirTests
 
-open System
 open System.IO
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
-open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Xunit
-
-let private pathRoot = 
-    Path.GetPathRoot(Directory.GetCurrentDirectory())
-
-let private parentDir = 
-    Path.GetDirectoryName(Directory.GetCurrentDirectory())
+open System.Reflection
 
 let private testOne expected args = 
     let result = Program.Main args
     Assert.Equal(expected, result)
 
-let private testInput expected args =
-    [
-        [|"diagnose"|]
-        [|"build"; "-o"; "outputFolder"|]
-    ] 
-    |> List.iter (fun v -> Array.append v args |> testOne expected) 
-
-let private testSnippet expected args = 
-    [
-        [|"diagnose"|]
-        [|"build"|]
-    ] 
-    |> List.iter (fun v -> Array.append v args |> testOne expected) 
-
 let private clearOutput name =
     File.WriteAllText(name, "Test did not run to completion")
 
-let private checkOutput name =
+let private checkAltOutput name actualText =
     let expectedText = ("TestCases","QirTests",name) |> Path.Combine |> File.ReadAllText
-    let actualText = name |> File.ReadAllText
     Assert.Contains(expectedText, actualText)
 
-let private qirTest target name =
+let private qirMultiTest target name snippets =
     clearOutput (name+".ll")
-    [|
-        "build"
-        "-o"
-        "outputFolder"
-        "--proj"
-        name
-        "--input"
-        ("TestCases","QirTests",name+".qs") |> Path.Combine
-        ("TestCases","QirTests","QirCore.qs") |> Path.Combine
-        (if target then ("TestCases","QirTests","QirTarget.qs") |> Path.Combine else "")
-        "--qir"
-        "--verbosity" 
-        "Diagnostic"
-    |]
-    |> testOne ReturnCode.SUCCESS
-    checkOutput (name+".ll")
-
-let private qirExeTest target name =
     [|
         "build"
         "-o"
@@ -74,11 +33,17 @@ let private qirExeTest target name =
         ("TestCases","QirTests","QirCore.qs") |> Path.Combine
         (if target then ("TestCases","QirTests","QirTarget.qs") |> Path.Combine else "")
         "--qir"
+        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         "--verbosity" 
         "Diagnostic"
     |]
     |> testOne ReturnCode.SUCCESS
-    checkOutput (name+".ll")
+    let fullText = (name+".ll") |> File.ReadAllText
+    snippets |> List.map (fun s -> checkAltOutput (s+".ll") fullText)
+
+let private qirTest target name =
+    qirMultiTest target name [name]
+
 
 [<Fact>]
 let ``QIR using`` () =
@@ -137,8 +102,16 @@ let ``QIR bigints`` () =
     qirTest false "TestBigInts"
 
 [<Fact>]
+let ``QIR controlled partial applications`` () =
+    qirMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"]
+
+[<Fact>]
 let ``QIR entry points`` () =
-    qirExeTest false "TestEntryPoint"
+    qirTest false "TestEntryPoint"
+
+[<Fact>]
+let ``QIR partial applications`` () =
+    qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"]
 
 [<Fact>]
 let ``QIR paulis`` () =

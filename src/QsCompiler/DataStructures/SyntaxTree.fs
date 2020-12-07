@@ -138,6 +138,8 @@ type UserDefinedType = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsNullable<Range>
 }
+    with
+    member this.GetFullName () = {Namespace = this.Namespace; Name = this.Name}
 
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
@@ -710,6 +712,10 @@ type QsCallable = {
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSourceFile file = {this with SourceFile = file}
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsIntrinsic = this.Signature.Information.InferredInformation.IsIntrinsic
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsSelfAdjoint = this.Signature.Information.InferredInformation.IsSelfAdjoint
 
 
 /// used to represent the named and anonymous items in a user defined type

@@ -8,14 +8,12 @@ using System.IO;
 using System.Linq;
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 using Compilation = Microsoft.Quantum.QsCompiler.CompilationBuilder.CompilationUnitManager.Compilation;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler

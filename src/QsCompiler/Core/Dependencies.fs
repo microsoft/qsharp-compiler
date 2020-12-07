@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -53,6 +52,11 @@ type BuiltIn = {
         | Value tId -> tId.Namespace = BuiltIn.Deprecated.FullName.Namespace && tId.Name = BuiltIn.Deprecated.FullName.Name
         | Null -> false
 
+    /// Returns true if the given attribute indicates that the corresponding callable should be inlined.
+    static member MarksInlining (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace = BuiltIn.Inline.FullName.Namespace && tId.Name = BuiltIn.Inline.FullName.Name
+        | Null -> false
+
     /// Returns true if the given attribute marks the corresponding declaration as unit test.
     static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace = BuiltIn.Test.FullName.Namespace && tId.Name = BuiltIn.Test.FullName.Name
@@ -64,8 +68,8 @@ type BuiltIn = {
         | Null -> false
 
     /// Returns true if the given attribute defines a code identifying an instruction within the quantum instruction set that matches this callable.
-    static member DefinesQISCode (att : QsDeclarationAttribute) = att.TypeId |> function
-        | Value tId -> tId.Namespace = BuiltIn.Intrinsic.FullName.Namespace && tId.Name = BuiltIn.Intrinsic.FullName.Name
+    static member DefinesTargetInstruction (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace = BuiltIn.TargetInstruction.FullName.Namespace && tId.Name = BuiltIn.TargetInstruction.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
@@ -120,6 +124,18 @@ type BuiltIn = {
         Kind = Attribute
     }
 
+    static member Inline = {
+        FullName = {Name = "Inline"; Namespace = BuiltIn.CoreNamespace}
+        Kind = Attribute
+    }
+
+    // dependencies in Microsoft.Quantum.Targeting
+
+    static member TargetInstruction = {
+        FullName = {Name = "TargetInstruction"; Namespace = BuiltIn.TargetingNamespace}
+        Kind = Attribute
+    }
+
     static member RequiresCapability = {
         FullName = {Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace}
         Kind = Attribute
@@ -142,18 +158,6 @@ type BuiltIn = {
     static member NoOp = {
         FullName = {Name = "NoOp"; Namespace = BuiltIn.CanonNamespace}
         Kind = Operation (TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false)
-    }
-
-    // dependencies in Microsoft.Quantum.QsCompiler.QirGenerator
-
-    static member Intrinsic = {
-        FullName = {Name = "Intrinsic"; Namespace = BuiltIn.CoreNamespace}
-        Kind = Attribute
-    }
-
-    static member Inline = {
-        FullName = {Name = "Inline"; Namespace = BuiltIn.CoreNamespace}
-        Kind = Attribute
     }
 
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions

@@ -3,7 +3,7 @@
 
 [<AutoOpen>]
 [<System.Runtime.CompilerServices.Extension>]
-module Microsoft.Quantum.QsCompiler.SyntaxExtensions
+module Microsoft.Quantum.QsCompiler.SyntaxTreeExtensions
 
 open System
 open System.Collections.Generic
@@ -406,6 +406,15 @@ let Callables (syntaxTree : IEnumerable<QsNamespace>) =
     | QsCallable c -> Some c
     | _ -> None))
 
+[<Extension>]
+let Attributes (syntaxTree : IEnumerable<QsNamespace>) = 
+    let marksAttribute (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace = BuiltIn.Attribute.FullName.Namespace && tId.Name = BuiltIn.Attribute.FullName.Name
+        | Null -> false
+    syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.choose (function
+    | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
+    | _ -> None))
+    
 [<Extension>]
 let Specializations (syntaxTree : IEnumerable<QsNamespace>) =
     syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.collect (function

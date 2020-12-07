@@ -3,7 +3,7 @@
 This file contains directions for using the pre-release version of the QIR
 code generation.
 This code is still in flux and will change frequently.
-In particular, there are many usability features that are missing.
+In particular, some features are still missing.
 
 See [this list, below](#to-dos) for some specific open issues and work items.
 
@@ -24,14 +24,14 @@ Build the QsCompiler solution locally.
 From the repository's root directory, you can run the following:
 
 ```bash
-dotnet run --project src/QsCompiler/CommandLineTool/ build --qir s --input <input-file> examples/QIR/QirCore.qs examples/QIR/QirTarget.qs --proj <output-file>
+dotnet run --project src/QsCompiler/CommandLineTool/ build --qir QIR s --input <input-file> examples/QIR/QirCore.qs examples/QIR/QirTarget.qs --proj <output-file>
 ```
 
 Note that if the Q# file you're compiling contains an operation with the `@EntryPoint` attribute,
 you will need to add a `--build-exe` switch to the command:
 
 ```bash
-dotnet run --project src/QsCompiler/CommandLineTool/ build --qir s --build-exe --input <input-file> examples/QIR/QirCore.qs examples/QIR/QirTarget.qs --proj <output-file>
+dotnet run --project src/QsCompiler/CommandLineTool/ build --qir QIR s --build-exe --input <input-file> examples/QIR/QirCore.qs examples/QIR/QirTarget.qs --proj <output-file>
 ```
 
 Alternatively, you can go to the build output directory and run the Q# compiler executable
@@ -41,7 +41,7 @@ and the Q# compiler is `qsc.exe`.
 In this case, the command line is just:
 
 ```bash
-./qsc.exe build --qir s --input <input-file> <root-dir>/examples/QIR/QirCore.qs <root-dir>/examples/QIR/QirTarget.qs --proj <output-file>
+./qsc.exe build --qir QIR s --input <input-file> <root-dir>/examples/QIR/QirCore.qs <root-dir>/examples/QIR/QirTarget.qs --proj <output-file>
 ```
 
 Again, you will need the `--build-exe` switch if you have an entry point defined.
@@ -57,19 +57,19 @@ the exception and stack trace will appear in the LLVM file.
 If the Q# compilation and LLVM generation succeeded, but the generated LLVM did not validate,
 then the LLVM validation status will appear in the log file.
 
-### Entrypoints
+### Entry Points
 
 If you have a Q# operation with the `@EntryPoint` attribute, the QIR generator
-will create an additional C-callable wrapper function for the entrypoint.
+will create an additional C-callable wrapper function for the entry point.
 The name of this wrapper is the same as the full, namespace-qualified name
-of the entrypoint, with periods replaced by underscores.
+of the entry point, with periods replaced by underscores.
 
-The entrypoint wrapper performs some translation between QIR types and standard
+The entry point wrapper performs some translation between QIR types and standard
 C types.
 In particular, a QIR array parameter will be replaced in the input signature by
 two parameters, an i64 array count and a pointer to the element type.
 
-The entrypoint wrapper function gets tagged with an LLVM "EntryPoint" attribute.
+The entry point wrapper function gets tagged with an LLVM "EntryPoint" attribute.
 Note that this is a custom attribute, rather than metadata, so that passes should
 not drop it.
 

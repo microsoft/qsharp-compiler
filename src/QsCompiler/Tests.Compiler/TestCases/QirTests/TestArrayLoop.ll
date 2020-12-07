@@ -2,15 +2,15 @@ define { %TupleHeader, i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayL
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, i64, i64 }* getelementptr ({ %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, i64, i64 }*
-  %2 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i32 0, i32 1
+  %2 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i64 0, i32 1
   store i64 0, i64* %2
-  %3 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i32 0, i32 2
+  %3 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i64 0, i32 2
   store i64 0, i64* %3
-  %4 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i32 0, i32 1
+  %4 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i64 0, i32 1
   %5 = load i64, i64* %4
   %x = alloca i64
   store i64 %5, i64* %x
-  %6 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i32 0, i32 2
+  %6 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %1, i64 0, i32 2
   %7 = load i64, i64* %6
   %y = alloca i64
   store i64 %7, i64* %y
@@ -32,9 +32,9 @@ body__1:                                          ; preds = %header__1
   %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %iter__1)
   %13 = bitcast i8* %12 to { %TupleHeader, i64, i64 }**
   %z = load { %TupleHeader, i64, i64 }*, { %TupleHeader, i64, i64 }** %13
-  %14 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %z, i32 0, i32 1
+  %14 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %z, i64 0, i32 1
   %j = load i64, i64* %14
-  %15 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %z, i32 0, i32 2
+  %15 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %z, i64 0, i32 2
   %k = load i64, i64* %15
   %16 = load i64, i64* %x
   %17 = add i64 %16, %j
@@ -52,10 +52,10 @@ exit__1:                                          ; preds = %header__1
   %21 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, i64, i64 }* getelementptr ({ %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* null, i32 1) to i64))
   %22 = bitcast %TupleHeader* %21 to { %TupleHeader, i64, i64 }*
   %23 = load i64, i64* %x
-  %24 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %22, i32 0, i32 1
+  %24 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %22, i64 0, i32 1
   store i64 %23, i64* %24
   %25 = load i64, i64* %y
-  %26 = getelementptr inbounds { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %22, i32 0, i32 2
+  %26 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %22, i64 0, i32 2
   store i64 %25, i64* %26
   %27 = bitcast { %TupleHeader, i64, i64 }* %1 to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %27)

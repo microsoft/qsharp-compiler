@@ -1,7 +1,10 @@
-﻿using Microsoft.Quantum.QsCompiler.SyntaxTree;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.QirGenerator
+namespace Microsoft.Quantum.QsCompiler.QIR
 {
     internal class QirExpressionTransformation : ExpressionTransformation<GenerationContext>
     {
@@ -20,6 +23,8 @@ namespace Microsoft.Quantum.QsCompiler.QirGenerator
         public QirExpressionTransformation(GenerationContext sharedState, TransformationOptions options) : base(sharedState, options)
         {
         }
+
+        // public overrides
 
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {

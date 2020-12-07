@@ -21,10 +21,10 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
-    <Content Include="TestCases\QirTests\QirCore.qs">
+    <Content Include="..\..\..\examples\QIR\QirCore.qs" Link="TestCases\QirTests\QirCore.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\QirTarget.qs">
+    <Content Include="..\..\..\examples\QIR\QirTarget.qs" Link="TestCases\QirTests\QirTarget.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestArrayLoop.ll">
@@ -51,6 +51,15 @@
     <Content Include="TestCases\QirTests\TestBools.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestControlled1.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestControlled2.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestControlled.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestDeconstruct.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -73,6 +82,21 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestIntegers.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials1.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials2.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials3.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials4.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestPaulis.ll">
@@ -314,7 +338,8 @@
     <Compile Include="AccessModifierTests.fs" />
     <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="QirTests.fs" />
-  </ItemGroup>
+  
+</ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
