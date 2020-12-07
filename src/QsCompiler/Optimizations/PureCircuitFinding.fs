@@ -14,20 +14,21 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
-type PureCircuitFinder private (_private_ : string) =
+type PureCircuitFinder private (_private_: string) =
     inherit TransformationBase()
 
     member val internal DistinctQubitFinder = None with get, set
 
-    new (callables) as this = 
-        new PureCircuitFinder("_private_") then
+    new(callables) as this =
+        new PureCircuitFinder("_private_")
+        then
             this.Namespaces <- new PureCircuitFinderNamespaces(this)
             this.Statements <- new PureCircuitFinderStatements(this, callables)
             this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
             this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for PureCircuitFinder
-and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 
+and private PureCircuitFinderNamespaces(parent: PureCircuitFinder) =
     inherit Core.NamespaceTransformation(parent)
 
     override __.OnCallableDeclaration c =
@@ -37,7 +38,7 @@ and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) =
         base.OnCallableDeclaration c
 
 /// private helper class for PureCircuitFinder
-and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables : ImmutableDictionary<_,_>) = 
+and private PureCircuitFinderStatements(parent: PureCircuitFinder, callables: ImmutableDictionary<_, _>) =
     inherit Core.StatementTransformation(parent)
 
     /// Returns whether an expression is an operation call
@@ -56,26 +57,24 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
 
         let finishCircuit () =
             if circuit.Length <> 0 then
-                let newCircuit = optimizeExprList callables parent.DistinctQubitFinder.Value.DistinctNames circuit
+                let newCircuit =
+                    optimizeExprList callables parent.DistinctQubitFinder.Value.DistinctNames circuit
                 (*if newCircuit <> circuit then
                     printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                     printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
                     printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
                     printfn ""*)
-                newStatements <- newStatements.AddRange (Seq.map (QsExpressionStatement >> wrapStmt) newCircuit)
+                newStatements <- newStatements.AddRange(Seq.map (QsExpressionStatement >> wrapStmt) newCircuit)
+
                 circuit <- ImmutableArray.Empty
 
         for stmt in scope.Statements do
             match stmt.Statement with
-            | QsExpressionStatement expr when isOperation expr ->
-                circuit <- circuit.Add expr
+            | QsExpressionStatement expr when isOperation expr -> circuit <- circuit.Add expr
             | _ ->
-                finishCircuit()
-                newStatements <- newStatements.Add (this.OnStatement stmt)
-        finishCircuit()
+                finishCircuit ()
+                newStatements <- newStatements.Add(this.OnStatement stmt)
 
-        QsScope.New (newStatements, scope.KnownSymbols)
+        finishCircuit ()
 
-
-
-
+        QsScope.New(newStatements, scope.KnownSymbols)

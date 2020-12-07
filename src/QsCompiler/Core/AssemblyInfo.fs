@@ -5,6 +5,7 @@ namespace QsCompiler.AssemblyInfo
 
 open System.Runtime.CompilerServices
 
-[<assembly: InternalsVisibleTo("Tests.Microsoft.Quantum.QsCompiler" + SigningConstants.PUBLIC_KEY)>]
+[<assembly:InternalsVisibleTo("Tests.Microsoft.Quantum.QsCompiler"
+                              + SigningConstants.PUBLIC_KEY)>]
 
 do ()

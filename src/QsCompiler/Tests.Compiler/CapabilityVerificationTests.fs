@@ -13,25 +13,30 @@ open Xunit
 let private compile capability =
     CompilerTests.Compile
         ("TestCases",
-         ["CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs"],
-         references = [File.ReadAllLines("ReferenceTargets.txt").[1]],
+         [ "CapabilityTests/Verification.qs"
+           "CapabilityTests/Inference.qs" ],
+         references = [ File.ReadAllLines("ReferenceTargets.txt").[1] ],
          capability = capability)
 
 /// The FullComputation capability tester.
 let private fullComputation = compile FullComputation |> CompilerTests
 
 /// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> CompilerTests
+let private basicQuantumFunctionality =
+    compile BasicQuantumFunctionality |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
+let private basicMeasurementFeedback =
+    compile BasicMeasurementFeedback |> CompilerTests
 
 /// The qualified name for the test case name.
-let internal testName name = { Namespace = "Microsoft.Quantum.Testing.Capability"; Name = name }
+let internal testName name =
+    { Namespace = "Microsoft.Quantum.Testing.Capability"
+      Name = name }
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
-let private expect (tester : CompilerTests) errorCodes name =
-    tester.VerifyDiagnostics (testName name, Seq.map Error errorCodes)
+let private expect (tester: CompilerTests) errorCodes name =
+    tester.VerifyDiagnostics(testName name, Seq.map Error errorCodes)
 
 /// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
 /// BasicQuantumFunctionality, and no errors in FullComputation.
@@ -66,39 +71,44 @@ let private simpleTests =
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
     List.iter (expect fullComputation []) simpleTests
-    "SetReusedName" |> expect fullComputation [ErrorCode.LocalVariableAlreadyExists]
-    [ "ResultTuple"
-      "ResultArray" ]
-    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
+
+    "SetReusedName"
+    |> expect fullComputation [ ErrorCode.LocalVariableAlreadyExists ]
+
+    [ "ResultTuple"; "ResultArray" ]
+    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
 
 let ``BasicQuantumFunctionality allows callables without Result comparison`` () =
-    [ "NoOp"
-      "OverrideBqfToBmf" ]
+    [ "NoOp"; "OverrideBqfToBmf" ]
     |> List.iter (expect basicQuantumFunctionality [])
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts all Result comparison`` () =
-    simpleTests |> List.iter (expect basicQuantumFunctionality [ErrorCode.UnsupportedResultComparison])
-    "SetReusedName" |> expect basicQuantumFunctionality
-        [ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison]
-    [ "ResultTuple"
-      "ResultArray" ]
-    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
+    simpleTests
+    |> List.iter (expect basicQuantumFunctionality [ ErrorCode.UnsupportedResultComparison ])
+
+    "SetReusedName"
+    |> expect
+        basicQuantumFunctionality
+           [ ErrorCode.LocalVariableAlreadyExists
+             ErrorCode.UnsupportedResultComparison ]
+
+    [ "ResultTuple"; "ResultArray" ]
+    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts Result comparison in functions`` () =
-    [ "ResultAsBool"
-      "ResultAsBoolNeq" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
-    [ "ResultTuple"
-      "ResultArray" ]
-    |> List.iter (expect fullComputation [ErrorCode.InvalidTypeInEqualityComparison])
+    [ "ResultAsBool"; "ResultAsBoolNeq" ]
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
+
+    [ "ResultTuple"; "ResultArray" ]
+    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-if Result comparison in operations`` () =
     [ "ResultAsBoolOp"
       "ResultAsBoolNeqOp" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts return from Result if`` () =
@@ -106,7 +116,9 @@ let ``BasicMeasurementFeedback restricts return from Result if`` () =
       "ResultAsBoolOpReturnIfNested"
       "ResultAsBoolNeqOpReturnIf"
       "NestedResultIfReturn" ]
-    |> List.iter (expect basicMeasurementFeedback <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
+    |> List.iter
+        (expect basicMeasurementFeedback
+         <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows local mutable set from Result if`` () =
@@ -117,33 +129,33 @@ let ``BasicMeasurementFeedback restricts non-local mutable set from Result if`` 
     [ "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
       "SetTuple" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
+
     "SetReusedName"
-    |> expect basicMeasurementFeedback
-        (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
+    |> expect
+        basicMeasurementFeedback
+           (ErrorCode.LocalVariableAlreadyExists
+            :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result elif`` () =
-    [ "ElifSet"
-      "ElifElifSet" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
+    [ "ElifSet"; "ElifElifSet" ]
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result else`` () =
     [ "ResultAsBoolOpElseSet"
       "ElifElseSet" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.SetInResultConditionedBlock])
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts empty Result if function`` () =
-    [ "EmptyIf"
-      "EmptyIfNeq" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.ResultComparisonNotInOperationIf])
+    [ "EmptyIf"; "EmptyIfNeq" ]
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows empty Result if operation`` () =
-    [ "EmptyIfOp"
-      "EmptyIfNeqOp" ]
+    [ "EmptyIfOp"; "EmptyIfNeqOp" ]
     |> List.iter (expect basicMeasurementFeedback [])
 
 [<Fact>]
@@ -167,20 +179,21 @@ let ``FullComputation allows all library calls and references`` () =
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts library calls and references`` () =
-    [ "CallLibraryBqf"
-      "CallLibraryBmf" ]
+    [ "CallLibraryBqf"; "CallLibraryBmf" ]
     |> List.iter (expect basicMeasurementFeedback [])
+
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
-    |> List.iter (expect basicMeasurementFeedback [ErrorCode.UnsupportedCapability])
+    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.UnsupportedCapability ])
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
     [ "CallLibraryBqf"
       "ReferenceLibraryBqf" ]
     |> List.iter (expect basicQuantumFunctionality [])
+
     [ "CallLibraryBmf"
       "ReferenceLibraryBmf"
       "CallLibraryFull"
       "ReferenceLibraryFull" ]
-    |> List.iter (expect basicQuantumFunctionality [ErrorCode.UnsupportedCapability])
+    |> List.iter (expect basicQuantumFunctionality [ ErrorCode.UnsupportedCapability ])

@@ -15,29 +15,56 @@ open Xunit
 /// Given a string of valid Q# code, outputs the AST and the callables dictionary
 let private buildCompilation code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
-    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
-    let file = CompilationUnitManager.InitializeFileManager(fileId, code)
-    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
-    let mutable compilation = compilationUnit.Build().BuiltCompilation  // will wait for any current tasks to finish
-    CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore
+
+    let compilationUnit =
+        new CompilationUnitManager(fun ex -> failwith ex.Message)
+
+    let file =
+        CompilationUnitManager.InitializeFileManager(fileId, code)
+
+    // spawns a task that modifies the current compilation
+    compilationUnit.AddOrUpdateSourceFileAsync file
+    |> ignore
+
+    // will wait for any current tasks to finish
+    let mutable compilation = compilationUnit.Build().BuiltCompilation
+
+    CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation)
+    |> ignore
+
     compilation
 
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable compilation = buildCompilation code
     compilation <- PreEvaluation.All compilation
-    String.Join(Environment.NewLine, compilation.Namespaces |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
+
+    String.Join
+        (Environment.NewLine,
+         compilation.Namespaces
+         |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =
-    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
+    let code =
+        Path.Combine(Path.GetFullPath ".", path + "_input.qs")
+        |> File.ReadAllText
+
     let optimized = optimize code
-    (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized) |> File.WriteAllText
+
+    (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized)
+    |> File.WriteAllText
 
 /// Asserts that the result of optimizing the _input file matches the result in the _output file
 let private assertOptimization path =
-    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
-    let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
+    let code =
+        Path.Combine(Path.GetFullPath ".", path + "_input.qs")
+        |> File.ReadAllText
+
+    let expected =
+        Path.Combine(Path.GetFullPath ".", path + "_output.txt")
+        |> File.ReadAllText
+
     let optimized = optimize code
     // I remove any \r characters to prevent potential OS compatibility issues
     Assert.Equal(expected.Replace("\r", ""), optimized.Replace("\r", ""))
@@ -57,7 +84,7 @@ let ``function evaluation`` () =
     assertOptimization "TestCases/OptimizerTests/FunctionEval"
 
 [<Fact>]
-let ``inlining`` () =
+let inlining () =
     // createTestCase "TestCases/OptimizerTests/Inlining"
     assertOptimization "TestCases/OptimizerTests/Inlining"
 
@@ -67,7 +94,7 @@ let ``loop unrolling`` () =
     assertOptimization "TestCases/OptimizerTests/LoopUnrolling"
 
 [<Fact>]
-let ``miscellaneous`` () =
+let miscellaneous () =
     // createTestCase "TestCases/OptimizerTests/Miscellaneous"
     assertOptimization "TestCases/OptimizerTests/Miscellaneous"
 
@@ -82,7 +109,7 @@ let ``partial evaluation`` () =
     assertOptimization "TestCases/OptimizerTests/PartialEval"
 
 [<Fact>]
-let ``reordering`` () =
+let reordering () =
     // createTestCase "TestCases/OptimizerTests/Reordering"
     assertOptimization "TestCases/OptimizerTests/Reordering"
 

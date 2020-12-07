@@ -11,10 +11,11 @@ open Xunit
 open Xunit.Abstractions
 open Microsoft.VisualStudio.LanguageServer.Protocol
 
-type CompilationLoaderTests (output:ITestOutputHelper) =
+type CompilationLoaderTests(output: ITestOutputHelper) =
 
     /// The path to the Q# file that contains the test cases.
-    let testFile = Path.Combine ("TestCases", "CompilationLoader.qs")
+    let testFile =
+        Path.Combine("TestCases", "CompilationLoader.qs")
 
     /// <summary>
     /// A map where each key is a test case name, and each value is the source code of the test case.
@@ -27,25 +28,38 @@ type CompilationLoaderTests (output:ITestOutputHelper) =
         File.ReadAllText testFile
         |> fun text -> Environment.NewLine + "// ---" |> text.Split
         |> Seq.map (fun case ->
-            let parts = case.Split (Environment.NewLine, 2)
-            parts.[0].Trim (), parts.[1])
+            let parts = case.Split(Environment.NewLine, 2)
+            parts.[0].Trim(), parts.[1])
         |> Map.ofSeq
 
     /// <summary>
     /// Compiles a snippet of Q# source code.
     /// </summary>
     let compileQSharp source =
-        use compilationManager = new CompilationUnitManager ()
-        let fileManager uri content = CompilationUnitManager.InitializeFileManager (uri, content)
+        use compilationManager = new CompilationUnitManager()
+
+        let fileManager uri content =
+            CompilationUnitManager.InitializeFileManager(uri, content)
 
         // Create and add files to the compilation.
-        let corePath = Path.GetFullPath(Path.Combine ("TestCases", "LinkingTests", "Core.qs"))
-        fileManager (new Uri(corePath)) (File.ReadAllText corePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
-        let sourceUri = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-        fileManager sourceUri source |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
-        let compilation = compilationManager.Build ()
+        let corePath =
+            Path.GetFullPath(Path.Combine("TestCases", "LinkingTests", "Core.qs"))
+
+        fileManager (new Uri(corePath)) (File.ReadAllText corePath)
+        |> compilationManager.AddOrUpdateSourceFileAsync
+        |> ignore
+
+        let sourceUri =
+            new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+
+        fileManager sourceUri source
+        |> compilationManager.AddOrUpdateSourceFileAsync
+        |> ignore
+
+        let compilation = compilationManager.Build()
+
         let errors =
-            compilation.Diagnostics ()
+            compilation.Diagnostics()
             |> Seq.filter (fun diagnostic -> diagnostic.Severity = DiagnosticSeverity.Error)
 
         Assert.Empty errors
@@ -56,11 +70,18 @@ type CompilationLoaderTests (output:ITestOutputHelper) =
     /// </summary>
     let verifyBinaryWriteRead compilation =
         use stream = new MemoryStream()
-        let writeSuccessful = CompilationLoader.WriteBinary(compilation, stream)
+
+        let writeSuccessful =
+            CompilationLoader.WriteBinary(compilation, stream)
+
         let mutable readSuccessful = false
+
         if writeSuccessful then
             stream.Position <- 0L
-            let mutable qsCompilation = Unchecked.defaultof<SyntaxTree.QsCompilation>
+
+            let mutable qsCompilation =
+                Unchecked.defaultof<SyntaxTree.QsCompilation>
+
             readSuccessful <- CompilationLoader.ReadBinary(stream, &qsCompilation)
 
         (writeSuccessful, readSuccessful)
