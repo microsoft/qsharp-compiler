@@ -310,10 +310,10 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
-                this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
+                this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
                 this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
@@ -349,6 +349,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// that is executed before invoking further rewrite and/or generation steps.
         /// </summary>
         public Status Validation => this.compilationStatus.Validation;
+
+        /// <summary>
+        /// Indicates whether any target-specific compilation steps executed successfully.
+        /// This includes the step to convert control flow statements when needed.
+        /// </summary>
+        public Status TargetSpecificCompilation => this.compilationStatus.ConvertClassicalControl;
 
         /// <summary>
         /// Indicates whether target specific implementations for functions and operations
@@ -675,7 +681,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            if (this.config.QirOutputFolder != null)
+            if (this.config.QirOutputFolder != null && this.compilationStatus.TargetInstructionInference == Status.Succeeded)
             {
                 var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
                 var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
