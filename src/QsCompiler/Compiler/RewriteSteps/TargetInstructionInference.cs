@@ -67,9 +67,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            // TODO: VALIDATE THAT TARGETINSTRUCTION ATTRIBUTE CAN ONLY BE ADDED TO AN INTRINSIC CALLABLE THAT HAS ONLY A BODY
-            // TODO: FOR NAMEING CONSISTENCY WE MAY WANT TO REDIRECT EVEN THINGS THAT ONLY HAVE A SINGLE BODY...
-
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(compilation);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
             if (!allAttributesAdded)
@@ -85,10 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         }
 
         /// <inheritdoc/>
-        public bool PostconditionVerification(QsCompilation compilation)
-        {
-            // TODO: We should do some checks here
-            return true;
-        }
+        public bool PostconditionVerification(QsCompilation compilation) =>
+            throw new NotImplementedException();
     }
 }
