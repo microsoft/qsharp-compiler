@@ -48,9 +48,9 @@
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <!-- create the necessary directories -->
-    <MakeDir Condition="$(QirGeneration) && '$(QirOutputPath)' != ''" Directories="$(QirOutputPath)" />
-    <MakeDir Condition="$(QsharpDocsGeneration) && '$(QsharpDocsOutputPath)' != ''" Directories="$(QsharpDocsOutputPath)" />
-    <MakeDir Condition="$(PerfDataGeneration) && && '$(PerfDataOutputPath)' != ''" Directories="$(PerfDataOutputPath)" />
+    <MakeDir Condition="$(QirGeneration) And '$(QirOutputPath)' != ''" Directories="$(QirOutputPath)" />
+    <MakeDir Condition="$(QsharpDocsGeneration) And '$(QsharpDocsOutputPath)' != ''" Directories="$(QsharpDocsOutputPath)" />
+    <MakeDir Condition="$(PerfDataGeneration) And '$(PerfDataOutputPath)' != ''" Directories="$(PerfDataOutputPath)" />
     <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
     <PropertyGroup>
       <_VerbosityFlag Condition="'$(QscVerbosity)' != ''">-v $(QscVerbosity)</_VerbosityFlag>
