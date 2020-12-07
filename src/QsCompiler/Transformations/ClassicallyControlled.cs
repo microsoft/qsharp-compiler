@@ -172,22 +172,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (condition.Expression is ExpressionKind.NOT notCondition)
                     {
-                        var newConditionalBlock = conditionStatement.Default;
-                        if (newConditionalBlock.IsNull)
+                        if (conditionStatement.Default.IsValue)
+                        {
+                            return (true, new QsConditionalStatement(
+                                ImmutableArray.Create(Tuple.Create(notCondition.Item, conditionStatement.Default.Item)),
+                                QsNullable<QsPositionedBlock>.NewValue(block)));
+                        }
+                        else
                         {
                             var emptyScope = new QsScope(
                                 ImmutableArray<QsStatement>.Empty,
                                 LocalDeclarations.Empty);
-                            newConditionalBlock = QsNullable<QsPositionedBlock>.NewValue(
-                                new QsPositionedBlock(
+                            var newConditionalBlock = new QsPositionedBlock(
                                     emptyScope,
                                     QsNullable<QsLocation>.Null,
-                                    QsComments.Empty));
+                                    QsComments.Empty);
+                            return (true, new QsConditionalStatement(
+                                ImmutableArray.Create(Tuple.Create(notCondition.Item, newConditionalBlock)),
+                                QsNullable<QsPositionedBlock>.NewValue(block)));
                         }
-
-                        return (true, new QsConditionalStatement(
-                            ImmutableArray.Create(Tuple.Create(notCondition.Item, newConditionalBlock.Item)),
-                            QsNullable<QsPositionedBlock>.NewValue(block)));
                     }
                     else
                     {
