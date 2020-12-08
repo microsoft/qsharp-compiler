@@ -20,8 +20,7 @@ type BuiltInKind =
 
 
 type BuiltIn =
-    {
-      /// contains the fully qualified name of the built-in
+    { /// contains the fully qualified name of the built-in
       FullName: QsQualifiedName
       /// contains the specific kind of built-in this is, as well as information specific to that kind
       Kind: BuiltInKind }
