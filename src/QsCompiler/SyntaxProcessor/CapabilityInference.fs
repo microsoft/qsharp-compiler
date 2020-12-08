@@ -214,10 +214,12 @@ let private globalReferences scope =
     transformation.Statements.OnScope scope |> ignore
     references
 
-/// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
-/// the context's supported runtime capabilities.
-let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNullable) =
-    let reason (header : SpecializationDeclarationHeader) (diagnostic : QsCompilerDiagnostic) =
+/// Returns diagnostic reasons for why a global callable reference is not supported.
+let private referenceReasons context
+                             (name : QsQualifiedName)
+                             (range : _ QsNullable)
+                             (header : SpecializationDeclarationHeader, impl) =
+    let reason (header : SpecializationDeclarationHeader) diagnostic =
         match diagnostic.Diagnostic with
         | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
         | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
@@ -235,22 +237,27 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
                     diagnostic.Arguments
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning (code, args))
 
-    let reasons (header : SpecializationDeclarationHeader, impl) =
-        match impl with
-        | Provided (_, scope) ->
-            scopePatterns scope
-            |> Seq.map (locationOffset header.Location |> addOffset)
-            |> Seq.choose (patternDiagnostic context)
-            |> Seq.choose (reason header)
-        | _ -> Seq.empty
+    match impl with
+    | Provided (_, scope) ->
+        scopePatterns scope
+        |> Seq.map (locationOffset header.Location |> addOffset)
+        |> Seq.choose (patternDiagnostic context)
+        |> Seq.choose (reason header)
+    | _ -> Seq.empty
 
+/// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
+/// the context's supported runtime capabilities.
+let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
         let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
         if context.Capability.Implies capability
         then Seq.empty
         else
-            let reasons = context.Globals.ImportedSpecializations name |> Seq.collect reasons
+            let reasons =
+                context.Globals.ImportedSpecializations name
+                |> Seq.collect (referenceReasons context name range)
+
             let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
             let diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error
             reasons |> Seq.append (Seq.singleton diagnostic)
