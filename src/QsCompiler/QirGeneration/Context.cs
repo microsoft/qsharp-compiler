@@ -1036,15 +1036,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        try
-                        {
-                            funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
-                        }
-                        catch (NullReferenceException)
-                        {
-                            Console.WriteLine($"null ref exception for {kind} of {callable.FullName}");
-                            throw;
-                        }
+                        funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
                     }
                 }
 
