@@ -220,7 +220,11 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
     let reason (header : SpecializationDeclarationHeader) (diagnostic : QsCompilerDiagnostic) =
         let warning =
             WarningCode.UnsupportedCallableReason,
-            [ name.Name; header.Source.CodePath; string diagnostic.Range.Start; string diagnostic.Diagnostic ]
+            [ name.Name
+              header.Source.CodePath
+              string (diagnostic.Range.Start.Line + 1)
+              string (diagnostic.Range.Start.Column + 1)
+              string diagnostic.Diagnostic ]
         range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning warning
 
     let reasons (header : SpecializationDeclarationHeader, impl) =
