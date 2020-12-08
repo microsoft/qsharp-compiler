@@ -436,7 +436,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private void BuildPartialApplication(TypedExpression method, TypedExpression arg)
         {
-            // FIXME: I SUSPECT THIS ONE IS WRONG HERE
             RebuildItem BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<(Value, ResolvedType)> capturedValues)
             {
                 // We need argType because _'s -- missing expressions -- have MissingType, rather than the actual type.
@@ -1557,7 +1556,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 string name = local.Item;
                 this.SharedState.PushNamedValue(name);
             }
-            else if (sym is Identifier.GlobalCallable globalCallable) // FIXME: WHAT IF IT IS A TYPE CONSTRUCTOR??
+            else if (sym is Identifier.GlobalCallable globalCallable)
             {
                 if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {
@@ -2337,6 +2336,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnUnwrapApplication(TypedExpression ex)
         {
+            // Since we simply represent user defined types as tuples,
+            // we don't need to do anything unless the tuples contains a single item,
+            // in which case we need to remove the tuple wrapping.
             if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt
                 && this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
                 && !udtDecl.Type.Resolution.IsTupleType)

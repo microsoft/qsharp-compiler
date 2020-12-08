@@ -28,8 +28,9 @@ namespace Microsoft.Quantum.Testing.QIR
         using (q = Qubit()) {
             Apply(CNOT(_, q)); 
             Apply(_SWAP(_, q));
-            // Apply(_Choose(q, (_, q))); FIXME: THIS DOESN'T WORK BECAUSE PARTIAL APPLICATION ARGS MAPPING IS WRONG
-            // Apply(_Choose(_,(q,q)));     SAME HERE
+            // TODO: there is currently a bug in the partial application mapping
+            // Apply(_Choose(q, (_, q))); 
+            // Apply(_Choose(_,(q,q)));
         }
     }
 }

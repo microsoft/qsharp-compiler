@@ -858,7 +858,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple) // UDT FAILING HERE - UNRELATED TO WRAPPER GEN
+        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
         {
             IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
             {
@@ -882,12 +882,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec, argTuple); // FIXME: CURRENT FUNCTION HERE IS NULL
-            if (this.CurrentFunction == null)
-            {
-                throw new Exception("null here");
-            }
-
+            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
@@ -1040,19 +1035,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var f = this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature);
                         funcs[index] = f;
                     }
-                    //else if (callable.IsIntrinsic)
-                    //{
-                    //    if (!this.TryGetWrapper(callable, kind, out var wrapper))
-                    //    {
-                    //        throw new InvalidOperationException("wrapper not found");
-                    //    }
-                    //    funcs[index] = Constant.NullValueFor(wrapper.NativeType);
-                    //
-                    //    //var nativeType = SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var att && att.IsValue
-                    //    //    ? this.quantumInstructionSet.GetOrCreateFunction(att.Item).NativeType
-                    //    //    : throw new InvalidOperationException("intrinsic callable without a target instruction attribute"); // TODO: PUT INTO PRECONDITION
-                    //    //funcs[index] = Constant.NullValueFor(nativeType);
-                    //}
                     else
                     {
                         funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
@@ -1159,7 +1141,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // Start with 1 because the 0 element of the LLVM structures is the tuple header
                     for (int i = 1; i <= itemCount; i++)
                     {
-                        // TODO: COMPLETE THE IMPLEMENTATION
+                        // TODO: complete implementation
                     }
                 }
                 else if (!resultType.Resolution.IsUnitType)
@@ -1170,7 +1152,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         outputTuple,
                         new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(item) });
 
-                    // TODO: MAKE A COMMON HELPER FUNCTION FOR UDT UNWRAPPING...
                     // if the returned value is a udt with a single item then we need to unwrap it first
                     if (resultType.Resolution is QsResolvedTypeKind.UserDefinedType udt
                         && this.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
