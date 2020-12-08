@@ -23,19 +23,10 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     let ExecuteOnQuantumSimulator cName =
         let exitCode, ex = ref -101, ref null
-
-        let out, err =
-            ref (new StringBuilder()), ref (new StringBuilder())
-
-        let exe =
-            File.ReadAllLines("ReferenceTargets.txt").First()
-
-        let args =
-            sprintf "\"%s\" %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
-
-        let ranToEnd =
-            ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
-
+        let out, err = ref (new StringBuilder()), ref (new StringBuilder())
+        let exe = File.ReadAllLines("ReferenceTargets.txt").First()
+        let args = sprintf "\"%s\" %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
+        let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
         Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)

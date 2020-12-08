@@ -16,8 +16,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitive
 let characteristicsAnnotation =
     let rec characteristicsExpression =
         parse {
-            let infixOp =
-                operator qsSetUnion.op "" <|> operator qsSetIntersection.op ""
+            let infixOp = operator qsSetUnion.op "" <|> operator qsSetIntersection.op ""
 
             let expTerm =
                 pcollect [ brackets (lTuple, rTuple) characteristicsExpression
@@ -31,8 +30,7 @@ let characteristicsAnnotation =
 
 /// Parses types where the top-level type is not an array type.
 let rec nonArrayType =
-    let typeParameter =
-        pchar '\'' >>. expectedId TypeParameter (term symbol)
+    let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
 
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
@@ -43,8 +41,7 @@ let rec nonArrayType =
              <|> attempt (inOutType ?>> characteristicsAnnotation)
              <|> inOutType)
 
-    let functionType =
-        brackets (lTuple, rTuple) (qsType >>. fctArrow >>. qsType)
+    let functionType = brackets (lTuple, rTuple) (qsType >>. fctArrow >>. qsType)
 
     let keywordType =
         [ qsBigInt

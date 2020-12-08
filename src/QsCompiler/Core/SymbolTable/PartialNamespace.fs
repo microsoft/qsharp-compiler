@@ -42,25 +42,20 @@ type private PartialNamespace private (name: string,
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
     let AssociatedDocumentation = documentation.ToList()
     /// list of namespaces open or aliased within this namespace and file
-    let OpenNamespaces =
-        openNS.ToDictionary(keySelector, valueSelector)
+    let OpenNamespaces = openNS.ToDictionary(keySelector, valueSelector)
     /// dictionary of types declared within this namespace and file
     /// the key is the name of the type
-    let TypeDeclarations =
-        typeDecl.ToDictionary(keySelector, valueSelector)
+    let TypeDeclarations = typeDecl.ToDictionary(keySelector, valueSelector)
     /// dictionary of callables declared within this namespace and file
     /// includes functions, operations, *and* (auto-generated) type constructors
     /// the key is the name of the callable
-    let CallableDeclarations =
-        callableDecl.ToDictionary(keySelector, valueSelector)
+    let CallableDeclarations = callableDecl.ToDictionary(keySelector, valueSelector)
     /// dictionary of callable specializations declared within this namespace and file
     /// -> note that all specializations that are declared in a namespace *have* to extend a declarations in the same namespace,
     /// -> however, they may be declared in a source file (or even compilation unit) that is different from the one of the original declaration
     /// the key is the name of the callable, and the key to the returned map is the specialization kind (body, adjoint, controlled, or controlled adjoint)
     let CallableSpecializations =
-        let specs =
-            specializations |> Seq.map (fun entry -> entry.Key, (entry.Value.ToList()))
-
+        let specs = specializations |> Seq.map (fun entry -> entry.Key, (entry.Value.ToList()))
         specs.ToDictionary(fst, snd)
 
     /// constructor taking the name of the namespace as well as the name of the file it is declared in as arguments
@@ -83,24 +78,20 @@ type private PartialNamespace private (name: string,
     /// name of the source file this (part of) the namespace if declared in
     member this.Source = source
     /// contains all documentation associated with this namespace within this source file
-    member this.Documentation =
-        AssociatedDocumentation.ToImmutableArray()
+    member this.Documentation = AssociatedDocumentation.ToImmutableArray()
     /// namespaces open or aliased within this part of the namespace - this includes the namespace itself
     member this.ImportedNamespaces = OpenNamespaces.ToImmutableDictionary()
 
     /// types defined within this (part of) the namespace
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
-    member internal this.DefinedTypes =
-        TypeDeclarations.Select(fun item -> item.Key, item.Value)
+    member internal this.DefinedTypes = TypeDeclarations.Select(fun item -> item.Key, item.Value)
     /// callables defined within this (part of) the namespace (includes auto-generated type constructors)
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
-    member internal this.DefinedCallables =
-        CallableDeclarations.Select(fun item -> item.Key, item.Value)
+    member internal this.DefinedCallables = CallableDeclarations.Select(fun item -> item.Key, item.Value)
 
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
-        let shortNames =
-            this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
+        let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
 
         shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
 
@@ -284,7 +275,6 @@ type private PartialNamespace private (name: string,
                 { signature with
                       Resolved = resolvedSignature
                       ResolvedAttributes = resAttributes }
-
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
@@ -300,9 +290,7 @@ type private PartialNamespace private (name: string,
             |> Array.collect (fun index ->
                 let kind, spec = specs.[index]
                 let resAttr, attErrs = getResAttributes this.Source spec
-
-                let res, errs =
-                    computeResolution this.Source (kind, spec)
+                let res, errs = computeResolution this.Source (kind, spec)
 
                 specs.[index] <- (kind,
                                   { spec with

@@ -34,8 +34,7 @@ let private verifyNamespace (context: SyntaxTokenContext) =
 /// Indicates that the fragment is to be excluded from compilation if the direct parent is not a namespace declaration.
 /// Returns an array with suitable diagnostics.
 let private verifyDeclaration (context: SyntaxTokenContext) =
-    let errMsg =
-        false, [| (ErrorCode.NotWithinNamespace |> Error, context.Range) |]
+    let errMsg = false, [| (ErrorCode.NotWithinNamespace |> Error, context.Range) |]
 
     let isNamespace =
         function
@@ -137,8 +136,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
         // empty fragments can be excluded from the compilation
         ApplyOrDefaultTo (false, [||]) context.Self
 
-    let errMsg =
-        false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
+    let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
     let isCallable =
         function
@@ -189,8 +187,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         // empty fragments can be excluded from the compilation
         ApplyOrDefaultTo (false, [||]) context.Self
 
-    let notWithinSpecialization =
-        false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
+    let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
     let rec isStatementScope =
         function

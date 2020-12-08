@@ -53,9 +53,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
     let countReferences namespaces (name: QsQualifiedName) =
-        let references =
-            IdentifierReferences(name, defaultOffset)
-
+        let references = IdentifierReferences(name, defaultOffset)
         Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
 
         let declaration =
@@ -81,9 +79,7 @@ type LinkingTests(output: ITestOutputHelper) =
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     static member private ReadAndChunkSourceFile fileName =
-        let sourceInput =
-            Path.Combine("TestCases", "LinkingTests", fileName) |> File.ReadAllText
-
+        let sourceInput = Path.Combine("TestCases", "LinkingTests", fileName) |> File.ReadAllText
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
@@ -127,18 +123,13 @@ type LinkingTests(output: ITestOutputHelper) =
         compilation
 
     member private this.BuildReference(source: string, content) =
-        let comp =
-            this.BuildContent(new CompilationUnitManager(), content)
-
+        let comp = this.BuildContent(new CompilationUnitManager(), content)
         Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
     member private this.CompileMonomorphization input =
-        let compilationDataStructures =
-            this.BuildContent(compilationManager, input)
-
-        let monomorphicCompilation =
-            Monomorphize.Apply compilationDataStructures.BuiltCompilation
+        let compilationDataStructures = this.BuildContent(compilationManager, input)
+        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation
@@ -146,19 +137,13 @@ type LinkingTests(output: ITestOutputHelper) =
         monomorphicCompilation
 
     member private this.CompileIntrinsicResolution source environment =
-        let envDS =
-            this.BuildContent(compilationManager, environment)
-
-        let sourceDS =
-            this.BuildContent(compilationManager, source)
-
+        let envDS = this.BuildContent(compilationManager, environment)
+        let sourceDS = this.BuildContent(compilationManager, source)
         ReplaceWithTargetIntrinsics.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
     member private this.RunIntrinsicResolutionTest testNumber =
 
-        let srcChunks =
-            LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
-
+        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
         srcChunks.Length >= 2 * testNumber |> Assert.True
         let chunckNumber = 2 * (testNumber - 1)
 
@@ -171,8 +156,7 @@ type LinkingTests(output: ITestOutputHelper) =
             result
 
         (*Find the overridden operation in the appropriate namespace*)
-        let targetCallName =
-            QsQualifiedName.New(Signatures.IntrinsicResolutionNs, "Override")
+        let targetCallName = QsQualifiedName.New(Signatures.IntrinsicResolutionNs, "Override")
 
         let targetCallable =
             result.Namespaces
@@ -195,9 +179,7 @@ type LinkingTests(output: ITestOutputHelper) =
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
     /// been renamed across the compilation unit.
     member private this.RunInternalRenamingTest num renamed notRenamed =
-        let chunks =
-            LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
-
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let manager = new CompilationUnitManager()
 
         let addOrUpdateSourceFile filePath =
@@ -207,18 +189,14 @@ type LinkingTests(output: ITestOutputHelper) =
 
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
-        let sourceCompilation =
-            this.BuildContent(manager, chunks.[num - 1])
+        let sourceCompilation = this.BuildContent(manager, chunks.[num - 1])
 
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
             |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNs)
 
-        let references =
-            createReferences [ "InternalRenaming.dll", namespaces ]
-
-        let referenceCompilation =
-            this.BuildContent(manager, "", references)
+        let references = createReferences [ "InternalRenaming.dll", namespaces ]
+        let referenceCompilation = this.BuildContent(manager, "", references)
 
         let countAll namespaces names =
             names |> Seq.map (countReferences namespaces) |> Seq.sum
@@ -226,13 +204,9 @@ type LinkingTests(output: ITestOutputHelper) =
         let beforeCount =
             countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
 
-        let afterCountOriginal =
-            countAll referenceCompilation.BuiltCompilation.Namespaces renamed
-
+        let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
         let decorator = new NameDecorator("QsRef")
-
-        let newNames =
-            renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
+        let newNames = renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
 
         let afterCount =
             countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
@@ -242,9 +216,7 @@ type LinkingTests(output: ITestOutputHelper) =
         Assert.Equal(beforeCount, afterCount)
 
     member private this.RunMonomorphizationAccessModifierTest testNumber =
-        let source =
-            (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[testNumber]
-
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[testNumber]
         let compilation = this.CompileMonomorphization source
 
         let generated =
@@ -300,9 +272,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Trait("Category", "Monomorphization")>]
     member this.``Monomorphization Basic Implementation``() =
 
-        let filePath =
-            Path.Combine("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
-
+        let filePath = Path.Combine("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
         let fileId = (new Uri(filePath))
 
         getManager fileId (File.ReadAllText filePath)
@@ -371,13 +341,9 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category", "Monomorphization")>]
     member this.``Monomorphization Type Parameter Resolutions``() =
-        let source =
-            (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[12]
-
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[12]
         let compilation = this.CompileMonomorphization source
-
-        let callables =
-            compilation.Namespaces |> GlobalCallableResolutions
+        let callables = compilation.Namespaces |> GlobalCallableResolutions
 
         Assert.Contains(BuiltIn.Length.FullName, callables.Keys)
         Assert.Contains(BuiltIn.RangeReverse.FullName, callables.Keys)
@@ -410,14 +376,9 @@ type LinkingTests(output: ITestOutputHelper) =
                 elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
                     gotIndexRange <- true
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
-
-
-
             | _ -> ()
 
-        let walker =
-            TypedExpressionWalker(Action<_> onExpr, ())
-
+        let walker = TypedExpressionWalker(Action<_> onExpr, ())
         walker.Transformation.OnCompilation compilation |> ignore
 
         Assert.True(gotLength)
@@ -459,9 +420,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``Fail on multiple entry points``() =
 
-        let entryPoints =
-            LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
-
+        let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
         Assert.True(entryPoints.Length > 1)
 
         let fileId = getTempFile ()
@@ -486,8 +445,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``Entry point argument name verification``() =
 
-        let tests =
-            LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
+        let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
 
         this.CompileAndVerify compilationManager tests.[0] [ Error ErrorCode.DuplicateEntryPointArgumentName ]
         this.CompileAndVerify compilationManager tests.[1] [ Error ErrorCode.DuplicateEntryPointArgumentName ]
@@ -521,8 +479,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``Entry point return type restriction for quantum processors``() =
 
-        let tests =
-            LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
+        let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
 
         let compilationManager =
             new CompilationUnitManager(Action<_>(fun ex -> failwith ex.Message),
@@ -662,11 +619,8 @@ type LinkingTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Group internal specializations by source file``() =
-        let chunks =
-            LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
-
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let manager = new CompilationUnitManager()
-
         let sourceCompilation = this.BuildContent(manager, chunks.[7])
 
         let namespaces =
@@ -677,21 +631,14 @@ type LinkingTests(output: ITestOutputHelper) =
             createReferences [ "InternalRenaming1.dll", namespaces
                                "InternalRenaming2.dll", namespaces ]
 
-        let referenceCompilation =
-            this.BuildContent(manager, "", references)
-
-        let callables =
-            GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
-
+        let referenceCompilation = this.BuildContent(manager, "", references)
+        let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
         let decorator = new NameDecorator("QsRef")
 
         for idx = 0 to references.Declarations.Count - 1 do
-            let name =
-                decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
-
+            let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
             Assert.Equal(4, specializations.Length)
-
             Assert.True(specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
 
 
@@ -700,25 +647,18 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let checkInvalidCombination (conflicts: ImmutableDictionary<_, _>) sources =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
-
-            let trees =
-                sources |> Seq.map this.BuildReference |> Seq.toArray
+            let trees = sources |> Seq.map this.BuildReference |> Seq.toArray
 
             let onError _ (args: _ []) =
                 Assert.Equal(2, args.Length)
                 Assert.True(conflicts.ContainsKey(args.[0]))
                 Assert.Equal(conflicts.[args.[0]], args.[1])
 
-            let success =
-                References.CombineSyntaxTrees(&combined, 0, new Action<_, _>(onError), trees)
-
+            let success = References.CombineSyntaxTrees(&combined, 0, new Action<_, _>(onError), trees)
             Assert.False(success, "combined conflicting syntax trees")
 
         let source = sprintf "Reference%i.dll"
-
-        let chunks =
-            LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
-
+        let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
         let buildDict (args: _ seq) = args.ToImmutableDictionary(fst, snd)
 
         let expectedErrs =
@@ -772,9 +712,7 @@ type LinkingTests(output: ITestOutputHelper) =
             let onError _ _ =
                 Assert.False(true, "diagnostics generated upon combining syntax trees")
 
-            let success =
-                References.CombineSyntaxTrees(&combined, 0, new Action<_, _>(onError), trees)
-
+            let success = References.CombineSyntaxTrees(&combined, 0, new Action<_, _>(onError), trees)
             Assert.True(success, "failed to combine syntax trees")
 
             let decorator = new NameDecorator("QsRef")
@@ -818,16 +756,11 @@ type LinkingTests(output: ITestOutputHelper) =
                 AssertSource(sDecl.Parent, sDecl.SourceFile, None)
                 sDecl
 
-            let checker =
-                new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
-
+            let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
             checker.OnCompilation(QsCompilation.New(combined, ImmutableArray<QsQualifiedName>.Empty)) |> ignore
 
         let source = sprintf "Reference%i.dll"
-
-        let chunks =
-            LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
-
+        let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
         let fullName (ns, name) = { Namespace = ns; Name = name }
         let buildDict (args: _ seq) = args.ToImmutableDictionary(fst, snd)
 

@@ -76,12 +76,8 @@ and private SyntaxCounterExpressionKinds(parent: SyntaxCounter) =
 
 let private buildSyntaxTree code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
-
-    let compilationUnit =
-        new CompilationUnitManager(fun ex -> failwith ex.Message)
-
-    let file =
-        CompilationUnitManager.InitializeFileManager(fileId, code)
+    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
+    let file = CompilationUnitManager.InitializeFileManager(fileId, code)
 
     // spawns a task that modifies the current compilation
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
@@ -103,9 +99,7 @@ let ``basic walk`` () =
         |> File.ReadAllText
         |> buildSyntaxTree
 
-    let walker =
-        new SyntaxCounter(TransformationOptions.NoRebuild)
-
+    let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
     compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
@@ -138,18 +132,14 @@ let ``basic transformation`` () =
 [<Fact>]
 let ``attaching attributes to callables`` () =
     let WithinNamespace nsName (c: QsNamespaceElement) = c.GetFullName().Namespace = nsName
-
-    let attGenNs =
-        "Microsoft.Quantum.Testing.AttributeGeneration"
-
+    let attGenNs = "Microsoft.Quantum.Testing.AttributeGeneration"
     let predicate = QsCallable >> WithinNamespace attGenNs
 
     let sources =
         [ Path.Combine(Path.GetFullPath ".", "TestCases", "LinkingTests", "Core.qs")
           Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs") ]
 
-    let compilation =
-        sources |> Seq.map File.ReadAllText |> String.Concat |> buildSyntaxTree
+    let compilation = sources |> Seq.map File.ReadAllText |> String.Concat |> buildSyntaxTree
 
     let testAttribute =
         AttributeUtils.BuildAttribute(BuiltIn.Test.FullName, AttributeUtils.StringArgument "QuantumSimulator")
@@ -175,28 +165,16 @@ let ``attaching attributes to callables`` () =
 
         callable
 
-    let transformed =
-        AttributeUtils.AddToCallables(compilation, testAttribute, predicate)
-
-    let checker =
-        new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
-
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, predicate)
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
-    let transformed =
-        AttributeUtils.AddToCallables(compilation, testAttribute, null)
-
-    let checker =
-        new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
-
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, null)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
-    let transformed =
-        AttributeUtils.AddToCallables(compilation, testAttribute)
-
-    let checker =
-        new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
-
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
     let transformed =
@@ -205,17 +183,11 @@ let ``attaching attributes to callables`` () =
              struct (testAttribute, new Func<_, _>(predicate)),
              struct (testAttribute, new Func<_, _>(predicate)))
 
-    let checker =
-        new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
-
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
     checker.OnCompilation transformed |> ignore
 
-    let transformed =
-        AttributeUtils.AddToCallables(compilation, testAttribute, testAttribute)
-
-    let checker =
-        new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
-
+    let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, testAttribute)
+    let checker = new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
     checker.OnCompilation transformed |> ignore
 
 
@@ -247,20 +219,14 @@ let ``generation of open statements`` () =
 
         [ "Arithmetic"; "Math" ] |> List.map directive
 
-    let openDirectives =
-        openExplicit @ openAbbrevs |> ImmutableArray.ToImmutableArray
-
-    let imports =
-        ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
-
+    let openDirectives = openExplicit @ openAbbrevs |> ImmutableArray.ToImmutableArray
+    let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
     let codeOutput = ref null
 
     SyntaxTreeToQsharp.Apply(codeOutput, compilation.Namespaces, struct (source, imports))
     |> Assert.True
 
-    let lines =
-        Utils.SplitLines(codeOutput.Value.Single().[ns.Name])
-
+    let lines = Utils.SplitLines(codeOutput.Value.Single().[ns.Name])
     Assert.Equal(13, lines.Count())
 
     Assert.Equal("open Microsoft.Quantum.Canon;", lines.[2].Trim())

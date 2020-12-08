@@ -50,9 +50,7 @@ type LocalDeclarations with
         LocalDeclarations.New(this.Variables.Concat other.Variables)
 
     member this.AsVariableLookup() =
-        let localVars =
-            this.Variables |> Seq.map (fun decl -> decl.VariableName, decl)
-
+        let localVars = this.Variables |> Seq.map (fun decl -> decl.VariableName, decl)
         new ReadOnlyDictionary<_, _>(localVars.ToDictionary(fst, snd))
 
 type InferredCallableInformation with
@@ -191,9 +189,7 @@ type QsCallable with
 
     static member NewFunction = QsCallable.New QsCallableKind.Function
     static member NewOperation = QsCallable.New QsCallableKind.Operation
-
-    static member NewTypeConstructor =
-        QsCallable.New QsCallableKind.TypeConstructor
+    static member NewTypeConstructor = QsCallable.New QsCallableKind.TypeConstructor
 
 type QsCustomType with
     static member New (source, location) (name, attributes, modifiers, items, underlyingType, documentation, comments)

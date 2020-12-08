@@ -57,7 +57,5 @@ let ``type hash tests`` () =
       (toTuple [ Int; Bool ], toTuple [ Bool; String ], false)
       (toTuple [ Int; Bool ], toTuple [ Int; Bool ], true) ]
     |> Seq.iter (fun (left, right, expected) ->
-        let ok =
-            (expected = ((thash left) = (thash right)))
-
+        let ok = (expected = ((thash left) = (thash right)))
         Assert.True ok)

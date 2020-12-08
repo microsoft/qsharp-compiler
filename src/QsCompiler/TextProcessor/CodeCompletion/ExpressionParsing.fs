@@ -40,8 +40,7 @@ let private keywordLiteral =
     |> pcollect
 
 /// Parses a functor literal.
-let private functor =
-    expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
+let private functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
 
 /// Parses an expression.
 let rec expression =

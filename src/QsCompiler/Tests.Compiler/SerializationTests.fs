@@ -75,17 +75,13 @@ module SerializationTests =
                 .ToImmutableArray())
 
     let intIntTypeItems =
-        let intItem =
-            Int |> ResolvedType.New |> Anonymous |> QsTupleItem
-
+        let intItem = Int |> ResolvedType.New |> Anonymous |> QsTupleItem
         [ intItem; intItem ].ToImmutableArray() |> QsTuple
 
     let qualifiedName ns name = { Namespace = ns; Name = name }
 
     let udt name =
-        let range =
-            Range.Create (Position.Create 4 9) (Position.Create 4 9) |> Value
-
+        let range = Range.Create (Position.Create 4 9) (Position.Create 4 9) |> Value
         let fullName = qualifiedName "Microsoft.Quantum" name
 
         { Namespace = fullName.Namespace
@@ -100,10 +96,7 @@ module SerializationTests =
     let ``specialization declaration serialization`` () =
         let testOne (decl: SpecializationDeclarationHeader) =
             let json = decl.ToJson()
-
-            let built, header =
-                SpecializationDeclarationHeader.FromJson json
-
+            let built, header = SpecializationDeclarationHeader.FromJson json
             Assert.True(built)
             Assert.Equal(decl, header)
 
@@ -285,24 +278,17 @@ module SerializationTests =
 
     [<Fact>]
     let ``attribute reader`` () =
-        let dllUri =
-            Assembly.GetExecutingAssembly().Location |> Uri
-
+        let dllUri = Assembly.GetExecutingAssembly().Location |> Uri
         let dllId = CompilationUnitManager.GetFileId dllUri
         let mutable attrs = null
-
-        let loadedFromResource =
-            AssemblyLoader.LoadReferencedAssembly(dllUri, &attrs, false)
+        let loadedFromResource = AssemblyLoader.LoadReferencedAssembly(dllUri, &attrs, false)
 
         Assert.False
             (loadedFromResource,
              "loading should indicate failure when headers are loaded based on attributes rather than resources")
 
-        let callables =
-            attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
-
-        let types =
-            attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
+        let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
+        let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
 
         let specs =
             attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList

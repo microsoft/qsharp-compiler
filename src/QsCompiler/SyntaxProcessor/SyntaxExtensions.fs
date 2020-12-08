@@ -27,9 +27,7 @@ let rec private collectWith collector (exs: 'a seq, ts: QsType seq): QsSymbol li
             yield collector item ]
         |> List.unzip3
 
-    let fromTs =
-        ts |> Seq.collect TypeNameSymbols |> Seq.toList
-
+    let fromTs = ts |> Seq.collect TypeNameSymbols |> Seq.toList
     varFromExs |> List.concat, (fromTs :: tsFromExs) |> List.concat, bsFromExs |> List.concat
 
 and private TypeNameSymbols (t: QsType) =
@@ -114,8 +112,7 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
     | QsExpressionKind.InvalidExpr -> [], [], [ item ]
 
 let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
-    let combinedRange =
-        QsNullable.Map2 Range.Span sym.Range ex.Range
+    let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
 
     let id =
         { Expression = QsExpressionKind.Identifier(sym, Null)
@@ -165,8 +162,7 @@ let private SymbolsInArgumentTuple (declName, argTuple) =
     ([], types, [])
 
 let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSignature) =
-    let symDecl, (vars, types, exs) =
-        SymbolsInArgumentTuple(name, signature.Argument)
+    let symDecl, (vars, types, exs) = SymbolsInArgumentTuple(name, signature.Argument)
 
     let typeParams =
         let build (sym: QsSymbol) =
@@ -306,9 +302,7 @@ let private AsDocComment (doc: string seq) =
     if doc = null then
         null
     elif doc.Any() then
-        let minAmountOfLeadingWS =
-            doc |> Seq.map (fun line -> line.Length - line.TrimStart().Length) |> Seq.min
-
+        let minAmountOfLeadingWS = doc |> Seq.map (fun line -> line.Length - line.TrimStart().Length) |> Seq.min
         new DocComment(doc |> Seq.map (fun line -> line.Substring(minAmountOfLeadingWS).TrimEnd()))
     else
         new DocComment(doc)
@@ -329,18 +323,14 @@ let public PrintSummary (doc: string seq) markdown =
     let docComment = AsDocComment doc
 
     if docComment <> null then
-        let info =
-            if markdown then docComment.FullSummary else docComment.ShortSummary
-
+        let info = if markdown then docComment.FullSummary else docComment.ShortSummary
         if String.IsNullOrWhiteSpace info then "" else sprintf "%s%s%s" newLine newLine info
     else
         ""
 
 let private namespaceDocumentation (docs: ILookup<_, ImmutableArray<_>>, markdown) =
     // FIXME: currently all documentation for a namespace is simply given in concatenated form here
-    let allDoc =
-        docs.SelectMany(fun entry -> entry.SelectMany(fun d -> d.AsEnumerable())) // the key is the source file
-
+    let allDoc = docs.SelectMany(fun entry -> entry.SelectMany(fun d -> d.AsEnumerable())) // the key is the source file
     PrintSummary allDoc markdown
 
 /// Adds a string describing the modifiers in front of the string describing a kind of declaration.
@@ -375,9 +365,7 @@ let private TypeString = new TName()
 let private TypeName = TypeString.Apply
 
 let private CharacteristicsAnnotation (ex, format) =
-    let charEx =
-        SyntaxTreeToQsharp.CharacteristicsExpression ex
-
+    let charEx = SyntaxTreeToQsharp.CharacteristicsExpression ex
     if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
 [<Extension>]
@@ -385,17 +373,10 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
     let udtInfo udt =
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
-            let kind =
-                showModifiers "user-defined type" decl.Modifiers |> toUpperFirst
-
+            let kind = showModifiers "user-defined type" decl.Modifiers |> toUpperFirst
             let name = decl.QualifiedName.Name |> withNewLine
-
-            let ns =
-                sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-
-            let info =
-                sprintf "Underlying type: %s" (TypeName decl.Type)
-
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
+            let info = sprintf "Underlying type: %s" (TypeName decl.Type)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "%s %s%s%s%s" kind name ns info doc
         | None, Some sym -> sprintf "Type %s" sym
@@ -445,8 +426,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
         | QsTypeKind.MissingType -> QsTypeKind.MissingType |> ResolvedType.New |> TypeName
         | QsTypeKind.InvalidType -> QsTypeKind.InvalidType |> ResolvedType.New |> TypeName
 
-    let doc =
-        PrintSummary qsType.Documentation markdown
+    let doc = PrintSummary qsType.Documentation markdown
 
     match qsType.Type with
     | QsTypeKind.UserDefinedType udt -> udtInfo udt
@@ -478,8 +458,7 @@ let public PrintSignature (header: CallableDeclarationHeader) =
              ImmutableArray.Empty,
              QsComments.Empty)
 
-    let signature =
-        SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(TypeName))
+    let signature = SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(TypeName))
 
     let annotation =
         CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
@@ -495,14 +474,9 @@ let public VariableInfo (symbolTable: NamespaceManager)
                         =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, _ ->
-        let kind =
-            showModifiers (printCallableKind decl.Kind) decl.Modifiers |> toUpperFirst
-
+        let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers |> toUpperFirst
         let nameAndSignature = PrintSignature decl |> withNewLine
-
-        let ns =
-            sprintf "Namespace: %s" decl.QualifiedName.Namespace
-
+        let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace
         let doc = PrintSummary decl.Documentation markdown
         sprintf "%s %s%s%s" kind nameAndSignature ns doc
     | None, Some sym ->
@@ -510,10 +484,7 @@ let public VariableInfo (symbolTable: NamespaceManager)
 
         if localVars.ContainsKey sym then
             let decl = localVars.[sym]
-
-            let kind =
-                if decl.InferredInformation.IsMutable then "Mutable" else "Immutable"
-
+            let kind = if decl.InferredInformation.IsMutable then "Mutable" else "Immutable"
             sprintf "%s variable %s%sType: %s" kind sym newLine (TypeName decl.Type)
         else
             symbolTable.Documentation().TryGetValue(sym)
@@ -532,49 +503,33 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
     | QsSymbolKind.Symbol name ->
         match locals.AsVariableLookup().TryGetValue name with // needs to be before querying callables
         | true, decl ->
-            let kind =
-                if decl.InferredInformation.IsMutable then "a mutable" else "an immutable"
-
+            let kind = if decl.InferredInformation.IsMutable then "a mutable" else "an immutable"
             let name = name |> withNewLine
             let info = sprintf "Type: %s" (TypeName decl.Type)
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
             match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
             | Some decl, _ ->
-                let kind =
-                    showModifiers "user-defined type" decl.Modifiers
-
+                let kind = showModifiers "user-defined type" decl.Modifiers
                 let name = decl.QualifiedName.Name |> withNewLine
-
-                let ns =
-                    sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-
-                let info =
-                    sprintf "Underlying type: %s" (decl.Type |> TypeName)
-
+                let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
+                let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
                 let doc = PrintSummary decl.Documentation markdown
                 sprintf "Declaration of %s %s%s%s%s" kind name ns info doc
             | None, _ ->
                 match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
                 | Some decl, _ ->
-                    let kind =
-                        showModifiers (printCallableKind decl.Kind) decl.Modifiers
-
+                    let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers
                     let name = decl.QualifiedName.Name |> withNewLine
-
-                    let ns =
-                        sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
+                    let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
 
                     let input =
                         sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
 
-                    let output =
-                        sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
+                    let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
 
                     let functorSupport characteristics =
-                        let charEx =
-                            SyntaxTreeToQsharp.CharacteristicsExpression characteristics
-
+                        let charEx = SyntaxTreeToQsharp.CharacteristicsExpression characteristics
                         if String.IsNullOrWhiteSpace charEx then "(None)" else charEx
 
                     let fs =
@@ -628,12 +583,8 @@ let public LocalVariable (locals: LocalDeclarations) (qsSym: QsSymbol) =
     | QsSymbolKind.Symbol sym ->
         match locals.AsVariableLookup().TryGetValue sym with
         | true, decl ->
-            let noPositionInfoException =
-                ArgumentException "no position information available for local variable"
-
-            let position =
-                decl.Position.ValueOrApply(fun () -> noPositionInfoException |> raise)
-
+            let noPositionInfoException = ArgumentException "no position information available for local variable"
+            let position = decl.Position.ValueOrApply(fun () -> noPositionInfoException |> raise)
             (sym, position, decl.Range) |> Value
         | false, _ -> Null
     | _ -> Null

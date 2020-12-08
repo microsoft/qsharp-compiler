@@ -30,9 +30,7 @@ type Namespace private (name,
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
-    let Parts =
-        parts.ToDictionary((fun item -> item.Key), (fun item -> item.Value))
-
+    let Parts = parts.ToDictionary((fun item -> item.Key), (fun item -> item.Value))
     let mutable TypesDefinedInAllSourcesCache = null
     let mutable CallablesDefinedInAllSourcesCache = null
 
@@ -472,8 +470,7 @@ type Namespace private (name,
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias, aliasRange) =
-        let alias =
-            if String.IsNullOrWhiteSpace alias then null else alias.Trim()
+        let alias = if String.IsNullOrWhiteSpace alias then null else alias.Trim()
 
         let aliasIsSameAs str =
             (str = null && alias = null) || (str <> null && alias <> null && str = alias)
@@ -580,10 +577,7 @@ type Namespace private (name,
             match Parts.TryGetValue declSource with
             | true, partial ->
                 let _, cDecl = partial.GetCallable cName
-
-                let unitReturn =
-                    cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
-
+                let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
             | false, _ ->
                 let cDecl =

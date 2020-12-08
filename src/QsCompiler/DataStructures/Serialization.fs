@@ -37,8 +37,7 @@ type RangeConverter() =
     inherit JsonConverter<Range>()
 
     override this.ReadJson(reader, _, _, _, serializer) =
-        let start, end' =
-            serializer.Deserialize<RangePosition * RangePosition> reader
+        let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
         // For backwards compatibility, convert the serialized one-based positions to zero-based positions.
         Range.Create
             (Position.Create (start.Line - 1) (start.Column - 1))
@@ -60,8 +59,7 @@ type RangeConverter() =
 type QsNullableLocationConverter(?ignoreSerializationException) =
     inherit JsonConverter<QsNullable<QsLocation>>()
 
-    let ignoreSerializationException =
-        defaultArg ignoreSerializationException false
+    let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     override this.ReadJson(reader: JsonReader,
                            objectType: Type,
@@ -71,9 +69,7 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
         try
             if reader.ValueType <> typeof<String> || (string) reader.Value <> "Null" then
                 let token = JObject.Load(reader)
-
-                let loc =
-                    serializer.Deserialize<QsLocation>(token.CreateReader())
+                let loc = serializer.Deserialize<QsLocation>(token.CreateReader())
 
                 if Object.ReferenceEquals(loc.Offset, null) || Object.ReferenceEquals(loc.Range, null) then
                     match serializer.Deserialize<QsNullable<JToken>>(token.CreateReader()) with
@@ -94,8 +90,7 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
 type ResolvedTypeConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedType>()
 
-    let ignoreSerializationException =
-        defaultArg ignoreSerializationException false
+    let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid type if the deserialization fails and ignoreSerializationException was set to true upon initialization
     override this.ReadJson(reader: JsonReader,
@@ -125,8 +120,7 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
 type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedCharacteristics>()
 
-    let ignoreSerializationException =
-        defaultArg ignoreSerializationException false
+    let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid expression if the deserialization fails and ignoreSerializationException was set to true upon initialization
     override this.ReadJson(reader: JsonReader,
@@ -192,8 +186,7 @@ type QsNamespaceConverter() =
                            existingValue: QsNamespace,
                            hasExistingValue: bool,
                            serializer: JsonSerializer) =
-        let (nsName, elements) =
-            serializer.Deserialize<string * IEnumerable<QsNamespaceElement>>(reader)
+        let (nsName, elements) = serializer.Deserialize<string * IEnumerable<QsNamespaceElement>>(reader)
 
         { Name = nsName
           Elements = elements.ToImmutableArray()

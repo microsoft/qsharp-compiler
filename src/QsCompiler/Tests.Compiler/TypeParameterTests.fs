@@ -17,8 +17,7 @@ open Xunit
 
 type TypeParameterTests() =
 
-    let TypeParameterNS =
-        "Microsoft.Quantum.Testing.TypeParameter"
+    let TypeParameterNS = "Microsoft.Quantum.Testing.TypeParameter"
 
     let qualifiedName name =
         (TypeParameterNS, name) |> QsQualifiedName.New
@@ -61,19 +60,14 @@ type TypeParameterTests() =
         combination.IsValid
 
     let AssertCombinedResolution expected resolutions =
-        let success =
-            CheckCombinedResolution expected resolutions
-
+        let success = CheckCombinedResolution expected resolutions
         Assert.True(success, "Combining type resolutions was not successful.")
 
     let AssertCombinedResolutionFailure expected resolutions =
-        let success =
-            CheckCombinedResolution expected resolutions
-
+        let success = CheckCombinedResolution expected resolutions
         Assert.False(success, "Combining type resolutions should have failed.")
 
-    let compilationManager =
-        new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message))
+    let compilationManager = new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message))
 
     let getTempFile () =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))
@@ -83,9 +77,7 @@ type TypeParameterTests() =
             (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     let ReadAndChunkSourceFile fileName =
-        let sourceInput =
-            Path.Combine("TestCases", fileName) |> File.ReadAllText
-
+        let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
     let BuildContent content =
@@ -106,17 +98,10 @@ type TypeParameterTests() =
         compilationDataStructures
 
     let CompileTypeParameterTest testNumber =
-        let srcChunks =
-            ReadAndChunkSourceFile "TypeParameter.qs"
-
+        let srcChunks = ReadAndChunkSourceFile "TypeParameter.qs"
         srcChunks.Length >= testNumber |> Assert.True
-
-        let compilationDataStructures =
-            BuildContent <| srcChunks.[testNumber - 1]
-
-        let processedCompilation =
-            compilationDataStructures.BuiltCompilation
-
+        let compilationDataStructures = BuildContent <| srcChunks.[testNumber - 1]
+        let processedCompilation = compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
         processedCompilation
 
@@ -128,8 +113,7 @@ type TypeParameterTests() =
         |> (fun x -> x.Value)
 
     let GetMainExpression (compilation: QsCompilation) =
-        let mainCallable =
-            GetCallableWithName compilation TypeParameterNS "Main"
+        let mainCallable = GetCallableWithName compilation TypeParameterNS "Main"
 
         let body =
             mainCallable.Specializations
@@ -335,13 +319,8 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Direct Resolution to Native``() =
-
-        let given =
-            [| ResolutionFromParam [ (FooA, FooA |> TypeParameter) ] |]
-
-        let expected =
-            ResolutionFromParam [ (FooA, FooA |> TypeParameter) ]
-
+        let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter) ] |]
+        let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter) ]
         AssertCombinedResolution expected given
 
     [<Fact>]
@@ -364,12 +343,8 @@ type TypeParameterTests() =
     [<Trait("Category", "Type Resolution")>]
     member this.``Direct Resolution Constrains Native``() =
 
-        let given =
-            [| ResolutionFromParam [ (FooA, FooB |> TypeParameter) ] |]
-
-        let expected =
-            ResolutionFromParam [ (FooA, FooB |> TypeParameter) ]
-
+        let given = [| ResolutionFromParam [ (FooA, FooB |> TypeParameter) ] |]
+        let expected = ResolutionFromParam [ (FooA, FooB |> TypeParameter) ]
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
@@ -426,8 +401,7 @@ type TypeParameterTests() =
         let given =
             [| ResolutionFromParam [ (FooA, [ FooB |> TypeParameter; Int ] |> MakeTupleType) ] |]
 
-        let expected =
-            ResolutionFromParam [ (FooA, [ FooB |> TypeParameter; Int ] |> MakeTupleType) ]
+        let expected = ResolutionFromParam [ (FooA, [ FooB |> TypeParameter; Int ] |> MakeTupleType) ]
 
         AssertCombinedResolutionFailure expected given
 
@@ -437,20 +411,15 @@ type TypeParameterTests() =
         let given =
             [| ResolutionFromParam [ (FooA, [ FooA |> TypeParameter; Int ] |> MakeTupleType) ] |]
 
-        let expected =
-            ResolutionFromParam [ (FooA, [ FooA |> TypeParameter; Int ] |> MakeTupleType) ]
+        let expected = ResolutionFromParam [ (FooA, [ FooA |> TypeParameter; Int ] |> MakeTupleType) ]
 
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Constricting Array Nested Self Resolution``() =
-        let given =
-            [| ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ] |]
-
-        let expected =
-            ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ]
-
+        let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ] |]
+        let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ]
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
@@ -498,9 +467,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Identifier Resolution``() =
-        let expression =
-            CompileTypeParameterTest 1 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 1 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -514,9 +481,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Adjoint Application Resolution``() =
-        let expression =
-            CompileTypeParameterTest 2 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 2 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -530,9 +495,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Controlled Application Resolution``() =
-        let expression =
-            CompileTypeParameterTest 3 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 3 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -546,9 +509,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Partial Application Resolution``() =
-        let expression =
-            CompileTypeParameterTest 4 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 4 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -562,9 +523,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Sub-call Resolution``() =
-        let expression =
-            CompileTypeParameterTest 5 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 5 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam []
@@ -574,9 +533,7 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Argument Sub-call Resolution``() =
-        let expression =
-            CompileTypeParameterTest 6 |> GetMainExpression
-
+        let expression = CompileTypeParameterTest 6 |> GetMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 

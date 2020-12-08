@@ -56,8 +56,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                 |> Seq.collect (fun (l, r) ->
                     match l, r.Resolution with
                     | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
-                        let elemI =
-                            fun i -> Identifier(LocalVariable(sprintf "__qsItem%d__%s__" i name), Null)
+                        let elemI = fun i -> Identifier(LocalVariable(sprintf "__qsItem%d__%s__" i name), Null)
 
                         let expr =
                             Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
@@ -65,9 +64,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                             |> ValueArray
                             |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
-                        let newStmt =
-                            QsVariableDeclaration(QsBinding.New QsBindingKind.ImmutableBinding (l, expr))
-
+                        let newStmt = QsVariableDeclaration(QsBinding.New QsBindingKind.ImmutableBinding (l, expr))
                         newStatements <- wrapStmt newStmt :: newStatements
 
                         Seq.init (safeCastInt64 num) (fun i ->
@@ -85,8 +82,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
 
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
             | _ ->
-                let lhs =
-                    List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
+                let lhs = List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
 
                 let rhs =
                     List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New

@@ -259,9 +259,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         let defaultLoc = Null, Range.Zero // dummy location for the purpose of returning the necessary information as local variable declaration
 
         let invalid =
-            let properties =
-                (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
-
+            let properties = (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
         let buildCallable kind fullName (decl: ResolvedSignature) attributes =
@@ -282,9 +280,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
             let argType, returnType =
                 decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
 
-            let idType =
-                kind ((argType, returnType), decl.Information) |> ResolvedType.New
-
+            let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
         let addDiagnosticForSymbol code args =
@@ -334,8 +330,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it.
     /// Returns the resolved type, *including* its range information if applicable.
     member internal this.ResolveType addDiagnostic (qsType: QsType) =
-        let resolved, errs =
-            GlobalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType
+        let resolved, errs = GlobalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType
 
         for err in errs do
             addDiagnostic err

@@ -52,8 +52,5 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
 
     override this.OnScope scope =
         let parentSymbols = scope.KnownSymbols
-
-        let statements =
-            scope.Statements |> Seq.map this.OnStatement |> List.ofSeq |> reorderStatements
-
+        let statements = scope.Statements |> Seq.map this.OnStatement |> List.ofSeq |> reorderStatements
         QsScope.New(statements, parentSymbols)

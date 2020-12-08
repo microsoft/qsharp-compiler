@@ -180,8 +180,7 @@ let rec private singleAdditionalArg mismatchErr (qsSym: QsSymbol) =
     | sym -> sym |> singleAndOmitted |> nameAndRange false
 
 
-let private StripRangeInfo =
-    StripPositionInfo.Default.Namespaces.OnArgumentTuple
+let private StripRangeInfo = StripPositionInfo.Default.Namespaces.OnArgumentTuple
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding body specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -204,9 +203,7 @@ let public BuildArgumentAdjoint (this: QsTuple<LocalVariableDeclaration<QsLocalS
 /// Returns the argument tuple for the specialization, as well as an array of diagnostics.
 [<Extension>]
 let public BuildArgumentControlled (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol, pos) =
-    let ctrlQs, diagnostics =
-        arg |> singleAdditionalArg (ErrorCode.ControlledGenArgMismatch, [])
-
+    let ctrlQs, diagnostics = arg |> singleAdditionalArg (ErrorCode.ControlledGenArgMismatch, [])
     SyntaxGenerator.WithControlQubits this pos ctrlQs |> StripRangeInfo, diagnostics
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding controlled adjoint specialization,
@@ -214,9 +211,7 @@ let public BuildArgumentControlled (this: QsTuple<LocalVariableDeclaration<QsLoc
 /// Returns the argument tuple for the specialization, as well as an array of diagnostics.
 [<Extension>]
 let public BuildArgumentControlledAdjoint (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol, pos) =
-    let ctrlQs, diagnostics =
-        arg |> singleAdditionalArg (ErrorCode.ControlledAdjointGenArgMismatch, [])
-
+    let ctrlQs, diagnostics = arg |> singleAdditionalArg (ErrorCode.ControlledAdjointGenArgMismatch, [])
     SyntaxGenerator.WithControlQubits this pos ctrlQs |> StripRangeInfo, diagnostics
 
 
@@ -229,9 +224,7 @@ let public ValidDeclarations (this: ImmutableArray<LocalVariableDeclaration<QsLo
         d.VariableName
         |> function
         | ValidName name ->
-            let mut, qDep =
-                d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
-
+            let mut, qDep = d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
             Some(LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))
         | _ -> None
 

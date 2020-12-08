@@ -30,11 +30,8 @@ type TypeTransformationBase(options: TransformationOptions) =
     abstract OnCallableInformation: CallableInformation -> CallableInformation
 
     default this.OnCallableInformation opInfo =
-        let characteristics =
-            this.OnCharacteristicsExpression opInfo.Characteristics
-
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation
-
         CallableInformation.New |> Node.BuildOr opInfo (characteristics, inferred)
 
 
@@ -61,9 +58,7 @@ type TypeTransformationBase(options: TransformationOptions) =
     abstract OnOperation: (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
 
     default this.OnOperation((it, ot), info) =
-        let transformed =
-            (this.OnType it, this.OnType ot), this.OnCallableInformation info
-
+        let transformed = (this.OnType it, this.OnType ot), this.OnCallableInformation info
         ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
     abstract OnFunction: ResolvedType * ResolvedType -> ExpressionType
@@ -76,9 +71,7 @@ type TypeTransformationBase(options: TransformationOptions) =
     abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType
 
     default this.OnTupleType ts =
-        let transformed =
-            ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
-
+        let transformed = ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
         ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
     abstract OnArrayType: ResolvedType -> ExpressionType

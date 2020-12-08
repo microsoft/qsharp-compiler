@@ -90,9 +90,7 @@ type private InliningInfo =
         maybe {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
-
-            let body =
-                ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
+            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
 
             let returnType =
                 ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
@@ -133,10 +131,7 @@ and private CallableInliningNamespaces(parent: CallableInlining) =
 
     override __.OnCallableDeclaration c =
         let renamerVal = VariableRenaming()
-
-        let c =
-            renamerVal.Namespaces.OnCallableDeclaration c
-
+        let c = renamerVal.Namespaces.OnCallableDeclaration c
         parent.CurrentCallable <- Some c
         parent.Renamer <- Some renamerVal
         base.OnCallableDeclaration c
@@ -185,8 +180,7 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
             // TODO - support multiple Controlled functors
             do! check (cannotReachCallable ii.body ii.callable.FullName || isLiteral callables ii.arg)
 
-            let newBinding =
-                QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
+            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
 
             let newStatements =
                 ii.body.Statements.Insert(0, newBinding |> QsVariableDeclaration |> wrapStmt)
@@ -222,9 +216,7 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
                 | QsReturnStatement ex -> Some ex
                 | _ -> None
 
-            let newStatements =
-                newStatements.RemoveAt(newStatements.Length - 1)
-
+            let newStatements = newStatements.RemoveAt(newStatements.Length - 1)
             return newStatements, returnExpr
         }
 

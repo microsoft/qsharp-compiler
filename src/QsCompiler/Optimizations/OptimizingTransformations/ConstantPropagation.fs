@@ -90,11 +90,8 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
             |> List.ofSeq
             |> takeWhilePlus1 (fun (c, _) -> c <> Null)
 
-        let newDefault =
-            cbListEnd |> Option.map (snd >> Value) |? stm.Default
-
-        let cbList =
-            cbList |> List.map (fun (c, b) -> this.OnPositionedBlock(c, b))
+        let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
+        let cbList = cbList |> List.map (fun (c, b) -> this.OnPositionedBlock(c, b))
 
         let newDefault =
             match newDefault with
@@ -106,10 +103,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         | [], Null -> QsScope.New([], LocalDeclarations.New []) |> newScopeStatement
         | _ ->
             let invalidCondition () = failwith "missing condition"
-
-            let cases =
-                cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
-
+            let cases = cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
             QsConditionalStatement.New(cases, newDefault) |> QsConditionalStatement
 
     override this.OnQubitScope(stm: QsQubitScope) =
@@ -124,8 +118,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
                 let arrayIden =
                     Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
-                let elemI =
-                    fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
+                let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
 
                 let expr =
                     Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)

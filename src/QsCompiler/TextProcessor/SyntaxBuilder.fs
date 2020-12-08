@@ -41,12 +41,8 @@ let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>): Parser<'
 /// Skips ahead until the given target parser succeeds, or the end of the stream is reached.
 /// Anything processed by the nonBreakingPieces parser will be skipped as a block.
 let skipPiecesUntil nonBreakingPieces target =
-    let pieceDelimiter =
-        (attempt target >>% ()) <|> (nonBreakingPieces >>% ())
-
-    let grabCode =
-        manyCharsTill anyChar (followedBy pieceDelimiter <|> eof)
-
+    let pieceDelimiter = (attempt target >>% ()) <|> (nonBreakingPieces >>% ())
+    let grabCode = manyCharsTill anyChar (followedBy pieceDelimiter <|> eof)
     sepBy grabCode (notFollowedBy target >>. nonBreakingPieces) >>% ()
 
 
@@ -59,20 +55,16 @@ let private wordContainedIn (strings: ImmutableHashSet<_>) =
     let inStrings w =
         if strings.Contains w then preturn w else fail ""
 
-    let keywordLike =
-        manyChars (asciiLetter <|> digit) .>> nextCharSatisfiesNot isSymbolContinuation
+    let keywordLike = manyChars (asciiLetter <|> digit) .>> nextCharSatisfiesNot isSymbolContinuation
 
     term (keywordLike >>= inStrings) |>> snd
 
 /// parses any QsFragmentHeader and return unit
-let internal qsFragmentHeader =
-    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
+let internal qsFragmentHeader = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
 /// parses any QsLanguageKeyword and return unit
-let internal qsLanguageKeyword =
-    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
+let internal qsLanguageKeyword = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
 /// parses any QsReservedKeyword and return unit
-let internal qsReservedKeyword =
-    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.ReservedKeywords
+let internal qsReservedKeyword = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.ReservedKeywords
 
 /// adds the given diagnostic to the user state
 let internal pushDiagnostic newDiagnostic =
@@ -141,12 +133,8 @@ let private contentDefinedBrackets core (lbracket, rbracket) (lbracketErr, rbrac
         .>>. core
         >>= fun (err, res) -> pushDiagnostic err >>% res
 
-    let missingRight =
-        getEmptyRange |>> QsCompilerDiagnostic.NewError rbracketErr >>= pushDiagnostic
-
-    let leftAndCore =
-        attempt (bracket lbracket >>. core) <|> missingLeftAndCore
-
+    let missingRight = getEmptyRange |>> QsCompilerDiagnostic.NewError rbracketErr >>= pushDiagnostic
+    let leftAndCore = attempt (bracket lbracket >>. core) <|> missingLeftAndCore
     let closingRight = attempt rbracket >>% () <|> missingRight // rbracket only, to get correct position info upon applying term
     attempt (leftAndCore .>> closingRight)
 
@@ -171,9 +159,7 @@ let private bracketDefinedContent core (lbracket, rbracket) =
         attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
 
     let rec findMatching stream =
-        let recur =
-            nextLbracket >>. bracket lbracket >>. findMatching .>> bracket rbracket
-
+        let recur = nextLbracket >>. bracket lbracket >>. findMatching .>> bracket rbracket
         stream |> (many recur >>. nextRbracket)
 
     let processCore =
@@ -204,14 +190,11 @@ let internal curlyBrackets core =
 /// Fails without consuming input if neither a string with or without interpolation can be successfully parsed.
 /// IMPORTANT: Parses *precicely* the string literal and does *not* handle whitespace!
 let internal getStringContent interpolArg =
-    let notPrecededBySlash =
-        previousCharSatisfiesNot (fun c -> c.Equals '\\')
-
+    let notPrecededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
     let delimiter = pstring "\""
 
     let interpolatedString =
-        let interpolCharSnippet =
-            manySatisfy (fun c -> c <> '\\' && c <> '"' && c <> '{')
+        let interpolCharSnippet = manySatisfy (fun c -> c <> '\\' && c <> '"' && c <> '{')
 
         let escapedChar =
             pstring "\\"
@@ -222,14 +205,9 @@ let internal getStringContent interpolArg =
                  | 't' -> "\t"
                  | c -> string c)
 
-        let nonInterpol =
-            (stringsSepBy interpolCharSnippet escapedChar)
-
-        let interpol =
-            (lCurly, rCurly) |> bracketDefinedContent interpolArg
-
-        let content =
-            nonInterpol .>>. many (interpol .>>. nonInterpol)
+        let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
+        let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg
+        let content = nonInterpol .>>. many (interpol .>>. nonInterpol)
 
         (between (pchar '$' >>. delimiter) delimiter content)
         |>> fun (h, items) ->
@@ -240,8 +218,7 @@ let internal getStringContent interpolArg =
                 str, items |> List.map fst
 
     let nonInterpolatedString =
-        let normalCharSnippet =
-            manySatisfy (fun c -> c <> '\\' && c <> '"')
+        let normalCharSnippet = manySatisfy (fun c -> c <> '\\' && c <> '"')
 
         let escapedChar =
             pstring "\\"
@@ -252,9 +229,7 @@ let internal getStringContent interpolArg =
                  | 't' -> "\t"
                  | c -> string c)
 
-        let content =
-            (stringsSepBy normalCharSnippet escapedChar)
-
+        let content = (stringsSepBy normalCharSnippet escapedChar)
         (between delimiter delimiter content) |>> fun str -> (str, [])
 
     attempt interpolatedString <|> attempt nonInterpolatedString
@@ -286,8 +261,7 @@ let internal advanceTo target =
 /// NOTE: This routine is only suitable for processing short streams,
 /// since it will advance all the way to the end of the stream (and backtrack) if it does not find the breakingDelimiter!
 let leftRecursionByInfix breakingDelimiter before after = // before and after breaking delimiter
-    let advanceToInfix =
-        advanceTo (breakingDelimiter >>% () <|> eof) >>. followedBy breakingDelimiter
+    let advanceToInfix = advanceTo (breakingDelimiter >>% () <|> eof) >>. followedBy breakingDelimiter
 
     getCharStreamState
     >>= fun state ->
@@ -317,15 +291,9 @@ let internal skipInvalidUntil p =
 /// while generating an error with the given errCode, and returning the given fallback.
 let internal expected body errCode missingCode fallback continuation =
     let invalid =
-        let nextExpected =
-            (attempt continuation >>% ()) <|> (qsFragmentHeader >>% ())
-
-        let invalid =
-            buildError (skipInvalidUntil nextExpected) errCode
-
-        let missing =
-            buildError (followedByCode nextExpected) missingCode
-
+        let nextExpected = (attempt continuation >>% ()) <|> (qsFragmentHeader >>% ())
+        let invalid = buildError (skipInvalidUntil nextExpected) errCode
+        let missing = buildError (followedByCode nextExpected) missingCode
         (attempt missing <|> invalid) >>% fallback
 
     attempt body <|> invalid
@@ -341,9 +309,7 @@ let internal checkForInvalid nextExpected errCode =
 /// Generates an ExcessContinuation error for the skipped piece if it is non-empty.
 /// Returns the content generated by the given parser.
 let internal withExcessContinuation nextExpected orig =
-    let consumeExcess =
-        buildError (skipInvalidUntil nextExpected) ErrorCode.ExcessContinuation >>% ()
-
+    let consumeExcess = buildError (skipInvalidUntil nextExpected) ErrorCode.ExcessContinuation >>% ()
     orig .>> (followedBy nextExpected <|> consumeExcess)
 
 /// Tries to apply the comma parser and optionally returns its content.
@@ -364,23 +330,16 @@ let internal warnOnComma =
 /// Generates am ExcessComma warning if the there is no validItem following the last comma, but the given delimiter succeeds.
 let internal commaSep1 validItem errCode missingCode fallback delimiter =
     let delimiter = (delimiter >>% ()) <|> (comma >>% ())
-
-    let item =
-        expected validItem errCode missingCode fallback delimiter
-
-    let invalidLast =
-        checkForInvalid delimiter errCode >>% fallback
-
-    let piece =
-        (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
+    let item = expected validItem errCode missingCode fallback delimiter
+    let invalidLast = checkForInvalid delimiter errCode >>% fallback
+    let piece = (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
 
     sepBy1 (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece) .>> warnOnComma
     |>> fun x -> x.ToImmutableArray()
 
 /// parser succeeds without consuming input or changing the parser state if the next char is a comma,
 /// a right tuple bracket, or if we are at the end of the input stream
-let internal isTupleContinuation =
-    followedBy (comma <|> rTuple <|> (eof >>% ""))
+let internal isTupleContinuation = followedBy (comma <|> rTuple <|> (eof >>% ""))
 
 /// Builds a nested non-empty tuple using bundle from a list of comma separated validSingle items.
 /// Uses commaSep1 to generate suitable errors for missing or invalid items, replacing them with fallback if needed.
@@ -428,14 +387,9 @@ let internal symbolNameLike errCode =
         |> getRange
 
     let whenValid ((name: string, range), isBeforeDot) =
-        let reservedUnderscorePattern =
-            name.Contains "__" || (isBeforeDot && name.EndsWith "_")
-
+        let reservedUnderscorePattern = name.Contains "__" || (isBeforeDot && name.EndsWith "_")
         let isReserved = InternalUse.CsKeywords.Contains
-
-        let isCsKeyword =
-            SyntaxFacts.IsKeywordKind << SyntaxFacts.GetKeywordKind
-
+        let isCsKeyword = SyntaxFacts.IsKeywordKind << SyntaxFacts.GetKeywordKind
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
 
         if reservedUnderscorePattern then
@@ -448,15 +402,11 @@ let internal symbolNameLike errCode =
             preturn name |>> Some
 
     let invalid =
-        let invalidName =
-            pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
-
+        let invalidName = pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
         buildError (getRange invalidName |>> snd) errCode >>% None
 
     let validSymbolName =
-        let checkFollowedByDot =
-            nextCharSatisfies ((=) '.') >>% true <|>% false
-
+        let checkFollowedByDot = nextCharSatisfies ((=) '.') >>% true <|>% false
         (ident .>>. checkFollowedByDot) >>= whenValid
 
     notFollowedBy qsReservedKeyword >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
@@ -489,9 +439,7 @@ let internal asQualifiedSymbol ((path, sym), range: Range) =
         |> function
         | [ sym ] -> (Symbol sym, range) |> QsSymbol.New
         | parts ->
-            let (ns, sym) =
-                (String.concat "." parts.[0..parts.Length - 2]), parts.[parts.Length - 1]
-
+            let (ns, sym) = (String.concat "." parts.[0..parts.Length - 2]), parts.[parts.Length - 1]
             (QualifiedSymbol(ns, sym), range) |> QsSymbol.New
 
 /// Handles permissive parsing of a qualified symbol:
@@ -501,10 +449,7 @@ let internal asQualifiedSymbol ((path, sym), range: Range) =
 /// Returned the parsed strings as a QsSymbol of kind QualifiedSymbol otherwise.
 let internal multiSegmentSymbol errCode =
     let singleDot = pchar '.' .>>? notFollowedBy (pchar '.')
-
-    let pathSegment =
-        symbolNameLike ErrorCode.InvalidPathSegment .>>? followedBy singleDot
-
+    let pathSegment = symbolNameLike ErrorCode.InvalidPathSegment .>>? followedBy singleDot
     let localIdentifier = symbolNameLike errCode
 
     let expectedIdentifier =
@@ -521,8 +466,7 @@ let internal multiSegmentSymbol errCode =
 /// and returns None in that case. Returns the parsed type parameter name without the preceding tick as string otherwise.
 /// IMPORTANT: this routines handles the name *only* and does *not* handle whitespace!
 /// In order to guarantee correct whitespace management, the name needs to be parsed within as a term.
-let internal typeParameterNameLike =
-    pchar '\'' >>? symbolNameLike ErrorCode.InvalidTypeParameterName
+let internal typeParameterNameLike = pchar '\'' >>? symbolNameLike ErrorCode.InvalidTypeParameterName
 
 /// Handles permissive parsing of a Q# type parameter name:
 /// Uses typeParameterNameLike to generate suitable errors if the current symbol-like text is not a valid type parameter name in Q#
@@ -562,8 +506,7 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
         |> List.exists (fun other ->
             diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
 
-    let filteredExcessCont =
-        excessCont |> List.filter (not << hasOverlap)
+    let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
 
     let rangeWithinFragment (range: Range) =
         Range.Create (min endPos range.Start) (min endPos range.End)
@@ -596,8 +539,7 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
                   Text = text }
 
     let buildDiagnostic (errPos, (text, range: Range)) =
-        let errPos =
-            if range.End < errPos then range.End else errPos
+        let errPos = if range.End < errPos then range.End else errPos
 
         QsCompilerDiagnostic.NewError invalid.ErrorCode (Range.Create errPos range.End) |> pushDiagnostic
         >>. preturn (invalid, (text, range))
@@ -609,12 +551,10 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
 
         getRange fragmentEnd |> runOnSubstream state
 
-    let continuation =
-        (continuation >>% ()) <|> (qsFragmentHeader >>% ())
+    let continuation = (continuation >>% ()) <|> (qsFragmentHeader >>% ())
 
     let validBody state headerResult =
-        let processExcessCode =
-            buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation >>% ()
+        let processExcessCode = buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation >>% ()
 
         (body .>>? followedBy (continuation <|> eof)) <|> (body .>> processExcessCode)
         |>> fragmentKind headerResult

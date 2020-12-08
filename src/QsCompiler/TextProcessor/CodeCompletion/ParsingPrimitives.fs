@@ -33,18 +33,13 @@ let rec private toErrorMessageList (replies: Reply<'a> list) =
 /// The parser state after running this parser is the state after running the first parser in the sequence that
 /// succeeds.
 let pcollect ps stream =
-    let replies =
-        ps |> Seq.map (fun p -> (p, lookAhead p stream)) |> Seq.toList
-
-    let successes =
-        replies |> List.filter (fun (_, reply) -> reply.Status = Ok)
+    let replies = ps |> Seq.map (fun p -> (p, lookAhead p stream)) |> Seq.toList
+    let successes = replies |> List.filter (fun (_, reply) -> reply.Status = Ok)
 
     if List.isEmpty successes then
         Reply(Error, toErrorMessageList (List.map snd replies))
     else
-        let results =
-            successes |> List.map snd |> List.collect (fun reply -> reply.Result)
-
+        let results = successes |> List.map snd |> List.collect (fun reply -> reply.Result)
         let p = List.head successes |> fst
         (p >>% results) stream
 
@@ -55,8 +50,7 @@ let (<|>@) p1 p2 = pcollect [ p1; p2 ]
 let eot = pchar '\u0004'
 
 /// Parses EOT (or checks if EOT was the last character consumed), followed by EOF.
-let eotEof =
-    previousCharSatisfies ((=) '\u0004') <|> (eot >>% ()) .>> eof
+let eotEof = previousCharSatisfies ((=) '\u0004') <|> (eot >>% ()) .>> eof
 
 /// Parses a symbol. Includes reserved keywords if the keyword is followed immediately by EOT without any whitespace
 /// (i.e., a possibly incomplete symbol that happens to start with a keyword). Does not consume whitespace.
@@ -72,14 +66,12 @@ let symbol =
 let operator (op: string) notAfter =
     // For operators that start with letters (e.g., "w/"), group the letters together with the first operator character
     // to avoid a conflict with keyword or symbol parsers.
-    let numLetters =
-        Seq.length (Seq.takeWhile Char.IsLetter op)
+    let numLetters = Seq.length (Seq.takeWhile Char.IsLetter op)
 
     let charByChar p c =
         p ?>> ((eot >>% ()) <|> (pchar c >>% ()))
 
-    let p =
-        Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
+    let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
 
     attempt (p ?>> nextCharSatisfiesNot (fun c -> Seq.contains c notAfter)) >>. (emptySpace >>% ())
     >>% []
@@ -138,8 +130,7 @@ let optR p =
 ///
 /// This is useful if it is ambiguous whether the last item belongs to `p` or the parser that comes after `manyR`.
 let manyR p shouldBacktrack stream =
-    let last =
-        (many1 (getCharStreamState .>>. attempt p) |>> List.last) stream
+    let last = (many1 (getCharStreamState .>>. attempt p) |>> List.last) stream
 
     if last.Status <> Ok then
         Reply []
@@ -205,7 +196,5 @@ let unitValue: Parser<CompletionKind list, QsCompilerDiagnostic list> =
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let createExpressionParser prefixOp infixOp postfixOp expTerm =
-    let termBundle =
-        manyR prefixOp symbol @>> expTerm ?>> manyLast postfixOp
-
+    let termBundle = manyR prefixOp symbol @>> expTerm ?>> manyLast postfixOp
     termBundle @>> manyLast (infixOp ?>> termBundle)

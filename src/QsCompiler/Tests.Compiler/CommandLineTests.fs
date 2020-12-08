@@ -12,11 +12,9 @@ open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
 
 
-let private pathRoot =
-    Path.GetPathRoot(Directory.GetCurrentDirectory())
+let private pathRoot = Path.GetPathRoot(Directory.GetCurrentDirectory())
 
-let private parentDir =
-    Path.GetDirectoryName(Directory.GetCurrentDirectory())
+let private parentDir = Path.GetDirectoryName(Directory.GetCurrentDirectory())
 
 let private testOne expected args =
     let result = Program.Main args
@@ -127,8 +125,7 @@ let ``diagnose outputs`` () =
 
 [<Fact>]
 let ``options from response files`` () =
-    let configFile =
-        ("TestCases", "qsc-config.txt") |> Path.Combine
+    let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
 
     let configArgs =
         [| "-i"
@@ -151,11 +148,8 @@ let ``options from response files`` () =
 
 [<Fact>]
 let ``execute rewrite steps only if validation passes`` () =
-    let source1 =
-        ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
-
-    let source2 =
-        ("TestCases", "AttributeGeneration.qs") |> Path.Combine
+    let source1 = ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
+    let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine
 
     let config =
         CompilationLoader.Configuration
@@ -185,221 +179,123 @@ let ``execute rewrite steps only if validation passes`` () =
 
 [<Fact>]
 let ``find path relative`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to outputfolder`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine(pathRoot, "foo", "bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(pathRoot, "foo", "bar", "alpha", "beta", "c", "test-path.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(pathRoot, "foo", "bar", "alpha", "beta", "c", "test-path.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to relative outputfolder`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine("..", "foo", "bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(parentDir, "foo", "bar", "alpha", "beta", "c", "test-path.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(parentDir, "foo", "bar", "alpha", "beta", "c", "test-path.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path absolute`` () =
-    let fileName =
-        Path.Combine(pathRoot, "alpha", "beta", "c", "test-path.qs")
-
+    let fileName = Path.Combine(pathRoot, "alpha", "beta", "c", "test-path.qs")
     let fullPath = Path.GetFullPath fileName
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
     let expected = Path.GetFullPath "test-path.g.cs"
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path absolute to outputfolder`` () =
-    let fullPath =
-        Path.Combine(pathRoot, "alpha", "beta", "c", "test-path.qs")
-
+    let fullPath = Path.Combine(pathRoot, "alpha", "beta", "c", "test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine(pathRoot, "foo", "bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(pathRoot, "foo", "bar", "test-path.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(pathRoot, "foo", "bar", "test-path.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to here`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.qs")
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(Path.GetFullPath "alpha", "beta", "c", "test-path.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative with spaces`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to outputfolder with spaces`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine(pathRoot, "foo", "some bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
 
     let expected =
         Path.GetFullPath(Path.Combine(pathRoot, "foo", "some bar", "alpha", "some beta", "c", "test 00.g.cs"))
 
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
 
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to relative outputfolder with spaces`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 00.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine("..", "some foo", "bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
 
     let expected =
         Path.Combine(parentDir, "some foo", "bar", "alpha", "some beta", "c", "test 00.g.cs")
 
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
 
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path absolute with spaces`` () =
-    let fullPath =
-        Path.Combine(pathRoot, "alpha", "some beta", "c", "test 02.qs")
-
+    let fullPath = Path.Combine(pathRoot, "alpha", "some beta", "c", "test 02.qs")
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
     let expected = Path.GetFullPath "test 02.g.cs"
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path absolute to outputfolder with spaces`` () =
-    let fullPath =
-        Path.Combine(pathRoot, "alpha", "some beta", "c", "test 02.qs")
-
+    let fullPath = Path.Combine(pathRoot, "alpha", "some beta", "c", "test 02.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine(pathRoot, "foo", "some bar")
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(pathRoot, "foo", "some bar", "test 02.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(pathRoot, "foo", "some bar", "test 02.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to here with spaces`` () =
-    let fullPath =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 03.qs")
-
+    let fullPath = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 03.qs")
     let options = new BuildCompilation.BuildOptions()
-
-    let id =
-        CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 03.g.cs")
-
-    let actual =
-        CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
+    let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
+    let expected = Path.Combine(Path.GetFullPath "alpha", "some beta", "c", "test 03.g.cs")
+    let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)

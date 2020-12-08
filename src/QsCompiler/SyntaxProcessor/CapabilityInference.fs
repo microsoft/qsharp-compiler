@@ -58,8 +58,7 @@ let private patternCapability inOperation =
     | SetInResultConditionedBlock _ -> FullComputation
 
 /// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
-let private joinCapabilities =
-    Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
 /// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
 /// level.
@@ -185,13 +184,8 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray()
-
-    let transformation =
-        SyntaxTreeTransformation TransformationOptions.NoRebuild
-
-    let location =
-        StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
-
+    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
+    let location = StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
     transformation.Statements <- location
 
     transformation.StatementKinds <-
@@ -223,13 +217,8 @@ let private scopePatterns scope =
 /// the start of the specialization.
 let private globalReferences scope =
     let mutable references = []
-
-    let transformation =
-        SyntaxTreeTransformation TransformationOptions.NoRebuild
-
-    let location =
-        StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
-
+    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
+    let location = StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
     transformation.Statements <- location
 
     transformation.Expressions <-
@@ -237,8 +226,7 @@ let private globalReferences scope =
             override this.OnTypedExpression expression =
                 match expression.Expression with
                 | Identifier (GlobalCallable name, _) ->
-                    let range =
-                        QsNullable.Map2 (+) location.Offset expression.Range
+                    let range = QsNullable.Map2 (+) location.Offset expression.Range
 
                     references <- (name, range) :: references
                 | _ -> ()
@@ -301,8 +289,7 @@ let private isDeclaredInSourceFile (callable: QsCallable) = callable.SourceFile.
 let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
-        let offset =
-            spec.Location |> QsNullable<_>.Map(fun location -> location.Offset)
+        let offset = spec.Location |> QsNullable<_>.Map(fun location -> location.Offset)
 
         scopePatterns scope
         |> Seq.map (addOffset offset >> patternCapability inOperation)
@@ -397,20 +384,15 @@ let private toAttribute capability =
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
 /// callable.
 let InferCapabilities compilation =
-    let callables =
-        GlobalCallableResolutions compilation.Namespaces
-
+    let callables = GlobalCallableResolutions compilation.Namespaces
     let graph = CallGraph compilation
     let transformation = SyntaxTreeTransformation()
-
-    let callableCapability =
-        callableDependentCapability (callables, graph)
+    let callableCapability = callableDependentCapability (callables, graph)
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability =
-                    BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
+                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
 
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute

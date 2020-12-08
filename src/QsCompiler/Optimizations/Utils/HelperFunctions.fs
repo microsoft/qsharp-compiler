@@ -321,8 +321,7 @@ let internal safeCastBigInt (i: BigInteger): int =
 
 /// Creates a new scope statement wrapping the given block
 let internal newScopeStatement (block: QsScope): QsStatementKind =
-    let posBlock =
-        QsPositionedBlock.New QsComments.Empty Null block
+    let posBlock = QsPositionedBlock.New QsComments.Empty Null block
 
     QsConditionalStatement.New(Seq.singleton (wrapExpr Bool (BoolLiteral true), posBlock), Null)
     |> QsConditionalStatement

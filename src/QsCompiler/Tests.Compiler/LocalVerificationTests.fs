@@ -21,9 +21,7 @@ type LocalVerificationTests() =
                                  Path.Combine("LinkingTests", "Core.qs") ]))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns =
-            "Microsoft.Quantum.Testing.LocalVerification"
-
+        let ns = "Microsoft.Quantum.Testing.LocalVerification"
         this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
 
 

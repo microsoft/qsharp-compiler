@@ -84,14 +84,10 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 | true, code -> Some code
                 | false, _ -> None)
 
-        let codeMismatch =
-            expected.ToImmutableHashSet().SymmetricExcept got
-
+        let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
         let gotLookup = got.ToLookup(new Func<_, _>(id))
         let expectedLookup = expected.ToLookup(new Func<_, _>(id))
-
-        let nrMismatch =
-            gotLookup.Where(fun g -> g.Count() <> expectedLookup.[g.Key].Count())
+        let nrMismatch = gotLookup.Where(fun g -> g.Count() <> expectedLookup.[g.Key].Count())
 
         Assert.False
             (codeMismatch.Any() || nrMismatch.Any(),

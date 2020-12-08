@@ -16,12 +16,10 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
 // processing transformation characteristics
 
 /// returns a characteristics expression representing invalid characteristics
-let private invalidCharacteristics =
-    (InvalidSetExpr, Null) |> Characteristics.New
+let private invalidCharacteristics = (InvalidSetExpr, Null) |> Characteristics.New
 
 /// operator precedence parser for characteristics expressions
-let private characteristicsExpression =
-    new OperatorPrecedenceParser<Characteristics, _, _>()
+let private characteristicsExpression = new OperatorPrecedenceParser<Characteristics, _, _>()
 
 /// For a characteristics expression of the given kind that is built from a left and right hand expression with the given ranges,
 /// builds the corresponding expression with its range set to the combined range.
@@ -54,8 +52,7 @@ characteristicsExpression.AddOperator
 /// Parses for an arbitrary characteristics expression.
 /// Fails on all reserved keywords except the ones denoting predefined sets of operation characteristics.
 /// Raises an UnknownSetName error for any word-like expression that is not a know set, returning an invalid expression.
-let private characteristics =
-    characteristicsExpression.ExpressionParser
+let private characteristics = characteristicsExpression.ExpressionParser
 
 /// Given a continuation (parser), attempts to parse an arbitrary characteristics expression,
 /// returning the parsed expression, or an expression representing an invalid characteristics if the parsing fails.
@@ -78,13 +75,10 @@ characteristicsExpression.TermParser <-
             IdentifierOptions(isAsciiIdStart = isSymbolContinuation, isAsciiIdContinue = isSymbolContinuation)
             |> identifier
 
-        let anyWord =
-            buildError (term identifier |>> snd) ErrorCode.UnknownSetName
-
+        let anyWord = buildError (term identifier |>> snd) ErrorCode.UnknownSetName
         notFollowedBy qsReservedKeyword >>. anyWord // check for reserved keyword is needed here!
 
-    let tupledSetExpr =
-        tupleBrackets (expectedCharacteristics eof |> withExcessContinuation eof)
+    let tupledSetExpr = tupleBrackets (expectedCharacteristics eof |> withExcessContinuation eof)
 
     choice [ tupledSetExpr |>> fst
              qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable)
@@ -111,9 +105,7 @@ let internal expectedQsType continuation =
 
 /// returns a parser for the Q# Unit type that raises a warning upon using deprecated syntax
 let private unitType =
-    let deprecated =
-        buildWarning (tupleBrackets emptySpace |>> snd) WarningCode.DeprecatedUnitType
-
+    let deprecated = buildWarning (tupleBrackets emptySpace |>> snd) WarningCode.DeprecatedUnitType
     (qsUnit.parse <|> deprecated) |>> fun range -> (UnitType, range) |> QsType.New
 
 /// Parses a Q# atomic type - i.e. non-array, non-tuple, and not function or operation types.
@@ -186,18 +178,12 @@ let private operationType =
         | _ -> fail "not a functor support annotation"
     // the actual type parsing:
     let inAndOutputType =
-        let continuation =
-            isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
-
+        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
     let opTypeWith characteristics =
-        let withInnerBrackets =
-            optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
-
-        let withoutInnerBrackets =
-            optTupleBrackets (inAndOutputType .>>. characteristics)
-
+        let withInnerBrackets = optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
+        let withoutInnerBrackets = optTupleBrackets (inAndOutputType .>>. characteristics)
         withInnerBrackets <|> withoutInnerBrackets
 
     let deprecatedCharacteristics =
@@ -220,9 +206,7 @@ let private operationType =
 /// Parses a Q# function type raising the corresponding missing bracket errors if the outer tuple brackets are missing.
 /// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
 let private functionType =
-    let core =
-        leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation)
-
+    let core = leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation)
     optTupleBrackets core |>> asType Function
 
 /// Parses a Q# tuple type, raising an Missing- or InvalidTypeDeclaration error for missing or invalid items.
@@ -251,9 +235,7 @@ let internal typeParser tupleType =
             match item with
             | [] -> t
             | (_, range) :: tail ->
-                let arrType =
-                    combine (ArrayType t) (t.Range, Value range)
-
+                let arrType = combine (ArrayType t) (t.Range, Value range)
                 applyArrays (arrType, tail)
 
         p .>>. many (arrayBrackets emptySpace) |>> applyArrays

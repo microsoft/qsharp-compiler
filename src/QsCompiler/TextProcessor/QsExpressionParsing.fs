@@ -37,12 +37,10 @@ let private buildCombinedExpr kind (lRange, rRange) =
           Range = Null }
 
 /// operator precedence parser for Q# expressions
-let private qsExpression =
-    new OperatorPrecedenceParser<QsExpression, _, _>()
+let private qsExpression = new OperatorPrecedenceParser<QsExpression, _, _>()
 /// operator precedence parser for Q# call arguments
 /// processing all expressions handled by the Q# expression parser as well as omitted arguments
-let private qsArgument =
-    new OperatorPrecedenceParser<QsExpression, _, _>()
+let private qsArgument = new OperatorPrecedenceParser<QsExpression, _, _>()
 
 let private applyUnary operator _ (ex: QsExpression) =
     (operator ex, ex.Range) |> QsExpression.New // todo: not entirely correct range info, but for now will do
@@ -60,9 +58,7 @@ let private deprecatedOp warning (parsedOp: string) =
             // value here should never be 0 or less (just a precaution)
             if value < parsedOp.Length then 0 else value - parsedOp.Length
 
-        let precedingPos =
-            Position.Create pos.Line (minusOldOpLength pos.Column)
-
+        let precedingPos = Position.Create pos.Line (minusOldOpLength pos.Column)
         Range.Create precedingPos pos
 
     buildWarning (getPosition |>> precedingRange) warning
@@ -195,8 +191,7 @@ for op in qsExpression.Operators do
 
 /// Parses a postfix modifer (unwrap operator) as term and returns its range,
 /// i.e. fails without consuming input if there is no postfix modifier to parse.
-let private postFixModifier =
-    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
+let private postFixModifier = term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers,
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -217,12 +212,8 @@ let private withModifiers modifiableExpr =
         | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
 
     let functorApplication =
-        let adjointApplication =
-            qsAdjointFunctor.parse .>>. preturn AdjointApplication
-
-        let controlledApplication =
-            qsControlledFunctor.parse .>>. preturn ControlledApplication
-
+        let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
+        let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
 
     attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
@@ -295,8 +286,7 @@ let internal numericLiteral =
             let trimmed = nl.String.TrimStart '+'
             if format = 10 || format = 0 then trimmed else trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
 
-        let isInt =
-            nl.IsInteger && format <> 0 && nl.SuffixLength = 0 // any format is fine here
+        let isInt = nl.IsInteger && format <> 0 && nl.SuffixLength = 0 // any format is fine here
 
         let isBigInt =
             nl.IsInteger
@@ -304,17 +294,14 @@ let internal numericLiteral =
             && nl.SuffixLength = 1
             && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
 
-        let isDouble =
-            not nl.IsInteger && format = 10 && nl.SuffixLength = 0
+        let isDouble = not nl.IsInteger && format = 10 && nl.SuffixLength = 0
 
         let returnWithRange kind = preturn (kind, range)
 
         let baseToHex (baseint: int, str) =
             // first pad 0's so that length is multiple of 4, so we can match from left rather than right
             let nZeroPad = (4 - String.length str % 4) % 4 // if str.Length is already multiple of 4 then we don't pad
-
-            let paddedStr =
-                str.PadLeft(nZeroPad + String.length str, '0')
+            let paddedStr = str.PadLeft(nZeroPad + String.length str, '0')
             // now match from left
             paddedStr
             |> Seq.chunkBySize 4
@@ -348,8 +335,7 @@ let internal numericLiteral =
                     BigInteger.Parse(nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then
                 try
-                    let doubleValue =
-                        System.Convert.ToDouble(nl.String, CultureInfo.InvariantCulture)
+                    let doubleValue = System.Convert.ToDouble(nl.String, CultureInfo.InvariantCulture)
 
                     if System.Double.IsInfinity doubleValue then
                         buildError (preturn range) ErrorCode.DoubleOverflow
@@ -419,8 +405,7 @@ let private identifier =
 
         withinAngleBrackets typeArgs <|> (withinAngleBrackets emptySpace >>% ImmutableArray.Empty)
 
-    let identifierName =
-        multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol
+    let identifierName = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol
 
     identifierName .>>. opt (attempt typeArgs)
     |>> fun (sym, tArgs) ->
@@ -453,8 +438,7 @@ let private bracketDefinedCommaSepExpr (lbracket, rbracket) = // used for arrays
         bracket lbracket >>. expr
         .>> (buildError (term invalidSeparator |>> snd) ErrorCode.ExpectingComma >>% unknownExpr)
 
-    let grabRest =
-        advanceTo (eof >>% "" <|> rbracket) .>> opt (bracket rbracket)
+    let grabRest = advanceTo (eof >>% "" <|> rbracket) .>> opt (bracket rbracket)
 
     attempt (upToSeparator .>> grabRest)
 
@@ -467,8 +451,7 @@ let private bracketDefinedCommaSepExpr (lbracket, rbracket) = // used for arrays
 /// Q# arity-1 tuples support modifications, since they are equivalent to their content -
 /// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
 let private tupledItem item =
-    let invalid =
-        checkForInvalid isTupleContinuation ErrorCode.InvalidExpression >>% unknownExpr // fails if isTupleContinuation succeeds
+    let invalid = checkForInvalid isTupleContinuation ErrorCode.InvalidExpression >>% unknownExpr // fails if isTupleContinuation succeeds
 
     let expectedItem =
         expected item ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr isTupleContinuation
@@ -540,9 +523,7 @@ let private itemAccessExpr =
         function
         | [] -> ex
         | (range: Range) :: tail ->
-            let ex =
-                (UnwrapApplication(ex), range) |> QsExpression.New
-
+            let ex = (UnwrapApplication(ex), range) |> QsExpression.New
             applyPostfixModifiers ex tail
 
     let rec applyAccessors (ex: QsExpression, item) =
@@ -553,14 +534,10 @@ let private itemAccessExpr =
         match item with
         | [] -> ex
         | (ArrayItemAccessor (idx, range), postfixMod) :: tail ->
-            let arrItemEx =
-                buildCombinedExpr (ArrayItem(ex, idx)) (ex.Range, Value range)
-
+            let arrItemEx = buildCombinedExpr (ArrayItem(ex, idx)) (ex.Range, Value range)
             recur (arrItemEx, postfixMod) tail
         | (NamedItemAccessor sym, postfixMod) :: tail ->
-            let namedItemEx =
-                buildCombinedExpr (NamedItem(ex, sym)) (ex.Range, sym.Range)
-
+            let namedItemEx = buildCombinedExpr (NamedItem(ex, sym)) (ex.Range, sym.Range)
             recur (namedItemEx, postfixMod) tail
 
     let accessor =
@@ -572,14 +549,11 @@ let private itemAccessExpr =
         let fullyOpenRange =
             openRange |>> snd .>>? followedBy eof
             |>> fun range ->
-                    let lhs, rhs =
-                        missingEx range.Start, missingEx range.End
-
+                    let lhs, rhs = missingEx range.Start, missingEx range.End
                     buildCombinedExpr (RangeLiteral(lhs, rhs)) (lhs.Range, rhs.Range)
 
         let closedOrHalfOpenRange =
-            let skipToTailingRangeOrEnd =
-                followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
+            let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
 
             let slicingExpr state =
                 (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
@@ -609,8 +583,7 @@ let private itemAccessExpr =
                     | _ -> missingEx range.End |> combineWith core |> applyPost
                 | None -> core |> applyPost
 
-        let arrayItemAccess =
-            arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
+        let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
         let namedItemAccess =
             term (pstring qsNamedItemCombinator.op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol

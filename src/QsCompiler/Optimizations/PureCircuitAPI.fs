@@ -155,9 +155,7 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
                 | _ -> return! None
             | Identifier (GlobalCallable name, _) ->
                 let! cc, argVal = toExpression (cc, arg)
-
-                let info =
-                    (cc.callables.[name]).Signature.Information
+                let info = (cc.callables.[name]).Signature.Information
 
                 return
                     cc,
@@ -238,8 +236,7 @@ let private fromGateCall (cc: CircuitContext) (gc: GateCall): TypedExpression =
     let methodType =
         TypeKind.Operation((arg.ResolvedType, ResolvedType.New UnitType), CallableInformation.NoInformation)
 
-    let mutable method =
-        wrapExpr methodType (Identifier(GlobalCallable gc.gate, Null))
+    let mutable method = wrapExpr methodType (Identifier(GlobalCallable gc.gate, Null))
 
     if gc.adjoint
     then method <- wrapExpr methodType (AdjointApplication method)

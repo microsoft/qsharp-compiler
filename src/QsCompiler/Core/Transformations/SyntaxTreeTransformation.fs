@@ -13,23 +13,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) =
 
-    let mutable _Types =
-        new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
-
-    let mutable _ExpressionKinds =
-        new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
-
-    let mutable _Expressions =
-        new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_)
-
-    let mutable _StatementKinds =
-        new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_)
-
-    let mutable _Statements =
-        new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
-
-    let mutable _Namespaces =
-        new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Expressions = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _StatementKinds = new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Statements = new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Namespaces = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member this.Types
@@ -303,23 +292,12 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
 
 type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
 
-    let mutable _Types =
-        new TypeTransformation(TransformationOptions.Default, _internal_)
-
-    let mutable _ExpressionKinds =
-        new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
-
-    let mutable _Expressions =
-        new ExpressionTransformation(TransformationOptions.Default, _internal_)
-
-    let mutable _StatementKinds =
-        new StatementKindTransformation(TransformationOptions.Default, _internal_)
-
-    let mutable _Statements =
-        new StatementTransformation(TransformationOptions.Default, _internal_)
-
-    let mutable _Namespaces =
-        new NamespaceTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Types = new TypeTransformation(TransformationOptions.Default, _internal_)
+    let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Expressions = new ExpressionTransformation(TransformationOptions.Default, _internal_)
+    let mutable _StatementKinds = new StatementKindTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Statements = new StatementTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Namespaces = new NamespaceTransformation(TransformationOptions.Default, _internal_)
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member this.Types

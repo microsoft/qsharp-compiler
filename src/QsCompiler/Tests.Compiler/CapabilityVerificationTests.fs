@@ -22,12 +22,10 @@ let private compile capability =
 let private fullComputation = compile FullComputation |> CompilerTests
 
 /// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality =
-    compile BasicQuantumFunctionality |> CompilerTests
+let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback =
-    compile BasicMeasurementFeedback |> CompilerTests
+let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =

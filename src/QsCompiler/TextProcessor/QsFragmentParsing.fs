@@ -23,8 +23,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 // utils used for fragment construction
 
 /// parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid symbol name
-let private localIdentifier =
-    symbolLike ErrorCode.InvalidIdentifierName // i.e. not a qualified name
+let private localIdentifier = symbolLike ErrorCode.InvalidIdentifierName // i.e. not a qualified name
 
 /// parses a Q# type annotation (colon followed by a Q# type) using expectedQsType to generate suitable errors if the parsing fails
 let private typeAnnotation continuation = colon >>. expectedQsType continuation
@@ -33,12 +32,10 @@ let private typeAnnotation continuation = colon >>. expectedQsType continuation
 let private invalidSymbol = (InvalidSymbol, Null) |> QsSymbol.New
 
 /// returns a QsTupleItem representing an invalid argument declaration (i.e. syntax error on parsing)
-let private invalidArgTupleItem =
-    (invalidSymbol, invalidType) |> QsTupleItem
+let private invalidArgTupleItem = (invalidSymbol, invalidType) |> QsTupleItem
 
 /// returns a QsInitializer representing an invalid initializer expression (i.e. syntax error on parsing)
-let private invalidInitializer =
-    (InvalidInitializer, Null) |> QsInitializer.New
+let private invalidInitializer = (InvalidInitializer, Null) |> QsInitializer.New
 
 /// returns a QsFunctorGenerator representing an invalid functor generator (i.e. syntax error on parsing)
 let private unknownGenerator =
@@ -69,9 +66,7 @@ let private expectedIdentifierDeclaration continuation =
 let internal namespaceName = // internal for testing purposes
     let asNamespaceName ((path, sym: string option), range: Range) =
         let names = path @ [ sym ]
-
-        let namespaceStr =
-            names |> List.choose id |> String.concat "."
+        let namespaceStr = names |> List.choose id |> String.concat "."
 
         if names |> List.contains None then
             (None, range) |> preturn
@@ -112,9 +107,7 @@ let private expectedCondition continuation =
 /// Checks for an array of symbols within the symbol tuple, raising an InvalidAssignmentToExpression error for such symbol arrays.
 let private symbolBinding connector connectorErr expectedRhs = // used for mutable and immutable bindings, and allocationScope headers (using and borrowing)
     let validContinuation = connector >>% () <|> isTupleContinuation
-
-    let validSymbol =
-        (discardedSymbol <|> localIdentifier) .>>? followedBy validContinuation // discarded needs to be first
+    let validSymbol = (discardedSymbol <|> localIdentifier) .>>? followedBy validContinuation // discarded needs to be first
 
     let invalid =
         let symbolArray =
@@ -132,8 +125,7 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
             invalidSymbol
             connector
 
-    let expectedConnector =
-        expected (connector >>% ()) connectorErr connectorErr () (preturn ())
+    let expectedConnector = expected (connector >>% ()) connectorErr connectorErr () (preturn ())
 
     symbolTuple .>> expectedConnector .>>. expectedRhs
 
@@ -162,8 +154,7 @@ let private allocationScope =
         |>> fun (r1, ex) -> (r1, (SingleQubitAllocation, ex.Range))
         |>> combineRangeAndBuild
 
-    let validInitializer =
-        attempt qAlloc <|> attempt qRegisterAlloc
+    let validInitializer = attempt qAlloc <|> attempt qRegisterAlloc
 
     let buildInitializerTuple (items, range: Range) =
         (QubitTupleAllocation items, range) |> QsInitializer.New
@@ -181,9 +172,7 @@ let private allocationScope =
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
 let private modifiers =
-    let accessModifier =
-        (qsInternal.parse >>% Internal) <|>% DefaultAccess
-
+    let accessModifier = (qsInternal.parse >>% Internal) <|>% DefaultAccess
     accessModifier |>> fun access -> { Access = access }
 
 /// Parses a Q# operation or function signature.
@@ -200,8 +189,7 @@ let private signature =
             let invalidName =
                 symbolNameLike ErrorCode.InvalidTypeParameterName .>> opt (pchar '\'') |> term |>> snd
 
-            let invalid =
-                buildError invalidName ErrorCode.InvalidTypeParameterName >>% None
+            let invalid = buildError invalidName ErrorCode.InvalidTypeParameterName >>% None
 
             term (typeParameterNameLike <|> invalid)
             |>> function
@@ -217,14 +205,12 @@ let private signature =
                     invalidSymbol
                     eof
 
-            let noTypeParams =
-                angleBrackets emptySpace >>% () <|> notFollowedBy lAngle // allow (optional) empty angle brackets
+            let noTypeParams = angleBrackets emptySpace >>% () <|> notFollowedBy lAngle // allow (optional) empty angle brackets
 
             noTypeParams >>% ImmutableArray.Empty <|> (angleBrackets typeParams |>> fst)
 
         let invalidList =
-            let buildErr =
-                QsCompilerDiagnostic.NewError ErrorCode.InvalidTypeParameterList
+            let buildErr = QsCompilerDiagnostic.NewError ErrorCode.InvalidTypeParameterList
 
             getRange (angleBrackets (advanceTo eof)) |>> snd |>> buildErr >>= pushDiagnostic
             >>% ImmutableArray.Empty
@@ -258,8 +244,7 @@ let private signature =
 
         unitValue >>% QsTuple ImmutableArray.Empty <|> argTuple
 
-    let symbolDeclaration =
-        expectedIdentifierDeclaration (lAngle <|> lTuple)
+    let symbolDeclaration = expectedIdentifierDeclaration (lAngle <|> lTuple)
 
     let returnTypeAnnotation =
         expected
@@ -337,9 +322,7 @@ let private openDirective =
     let invalid = OpenDirective(invalidSymbol, Null)
 
     let nsNameAndAlias =
-        let aliasOption =
-            (importedAs.parse >>. expectedNamespaceName eof |>> Value) <|>% Null
-
+        let aliasOption = (importedAs.parse >>. expectedNamespaceName eof |>> Value) <|>% Null
         expectedNamespaceName importedAs.parse .>>. aliasOption
 
     buildFragment importDirectiveHeader.parse nsNameAndAlias invalid (fun _ -> OpenDirective) eof
@@ -351,27 +334,17 @@ let private namespaceDeclaration =
 
 /// Uses buildFragment to parse a Q# DeclarationAttribute as QsFragment.
 let private attributeAnnotation =
-    let invalid =
-        DeclarationAttribute(invalidSymbol, unknownExpr)
-
-    let attributeId =
-        multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol
+    let invalid = DeclarationAttribute(invalidSymbol, unknownExpr)
+    let attributeId = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol
 
     let expectedArgs =
-        let invalidErr, missingErr =
-            ErrorCode.InvalidAttributeArgument, ErrorCode.MissingAttributeArgument
-
-        let args =
-            unitValue <|> buildTuple expr buildTupleExpr invalidErr missingErr unknownExpr
-
+        let invalidErr, missingErr = ErrorCode.InvalidAttributeArgument, ErrorCode.MissingAttributeArgument
+        let args = unitValue <|> buildTuple expr buildTupleExpr invalidErr missingErr unknownExpr
         expected args invalidErr missingErr unknownExpr attributeIntro
 
     let expectedAttribute =
         let invalidAttribute = (invalidSymbol, unknownExpr)
-
-        let invalidErr, missingErr =
-            ErrorCode.InvalidAttributeIdentifier, ErrorCode.MissingAttributeIdentifier
-
+        let invalidErr, missingErr = ErrorCode.InvalidAttributeIdentifier, ErrorCode.MissingAttributeIdentifier
         expected (attributeId .>>. expectedArgs) invalidErr missingErr invalidAttribute attributeIntro
 
     buildFragment attributeIntro expectedAttribute invalid (fun _ -> DeclarationAttribute) attributeIntro
@@ -396,8 +369,7 @@ let private controlledDeclaration =
 
 /// Uses buildFragment to parse a Q# ControlledAdjointDeclaration as QsFragment.
 let private controlledAdjointDeclaration =
-    let invalid =
-        ControlledAdjointDeclaration unknownGenerator
+    let invalid = ControlledAdjointDeclaration unknownGenerator
 
     buildFragment (attempt ctrlAdjDeclHeader.parse) functorGenDirective invalid (fun _ -> ControlledAdjointDeclaration)
         eof
@@ -420,8 +392,7 @@ let private functionDeclaration =
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 let private udtDeclaration =
-    let invalid =
-        TypeDefinition({ Access = DefaultAccess }, invalidSymbol, invalidArgTupleItem)
+    let invalid = TypeDefinition({ Access = DefaultAccess }, invalidSymbol, invalidArgTupleItem)
 
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t =
@@ -441,11 +412,8 @@ let private udtDeclaration =
             expectedItemName .>>. typeAnnotation isTupleContinuation |>> QsTupleItem
 
         let udtTupleItem =
-            let typeTuple =
-                tupleType .>>? followedBy (arrayBrackets emptySpace) // *only* process tuple types as part of arrays!
-
-            let tupleItem =
-                attempt namedItem <|> (typeParser typeTuple |>> asAnonymousItem) // namedItem needs to be first, and we can't be permissive for tuple types!
+            let typeTuple = tupleType .>>? followedBy (arrayBrackets emptySpace) // *only* process tuple types as part of arrays!
+            let tupleItem = attempt namedItem <|> (typeParser typeTuple |>> asAnonymousItem) // namedItem needs to be first, and we can't be permissive for tuple types!
 
             buildTupleItem
                 tupleItem
@@ -455,13 +423,11 @@ let private udtDeclaration =
                 invalidArgTupleItem
                 eof
 
-        let invalidNamedSingle =
-            followedBy namedItem >>. optTupleBrackets namedItem |>> fst
+        let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
 
         invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item
 
-    let declBody =
-        expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
+    let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
 
     buildFragment (modifiers .>> typeDeclHeader.parse |> attempt) declBody invalid (fun mods (symbol, underlyingType) ->
         TypeDefinition(mods, symbol, underlyingType)) eof
@@ -482,16 +448,14 @@ let private failStatement =
 
 /// Uses buildFragment to parse a Q# immutable binding (i.e. let-statement) as QsFragment.
 let private letStatement =
-    let invalid =
-        ImmutableBinding(invalidSymbol, unknownExpr)
+    let invalid = ImmutableBinding(invalidSymbol, unknownExpr)
 
     buildFragment qsImmutableBinding.parse (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment)
         invalid (fun _ -> ImmutableBinding) eof
 
 /// Uses buildFragment to parse a Q# mutable binding (i.e. mutable-statement) as QsFragment.
 let private mutableStatement =
-    let invalid =
-        MutableBinding(invalidSymbol, unknownExpr)
+    let invalid = MutableBinding(invalidSymbol, unknownExpr)
 
     buildFragment qsMutableBinding.parse (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment) invalid (fun _ ->
         MutableBinding) eof
@@ -502,9 +466,7 @@ let private setStatement =
     let applyAndReassignOp =
         let updateAndReassign id =
             let update = pstring qsCopyAndUpdateOp.cont |> term
-
-            let updateExpr =
-                expectedExpr update .>> update .>>. expectedExpr eof
+            let updateExpr = expectedExpr update .>> update .>>. expectedExpr eof
 
             expected
                 updateExpr
@@ -541,8 +503,7 @@ let private setStatement =
             | Symbol _ -> (Identifier(sym, Null), sym.Range) |> QsExpression.New |> preturn
             | _ -> fail "symbol is not a local identifier"
 
-        let validItem =
-            (missingExpr <|> (localIdentifier >>= asIdentifier)) .>> followedBy continuation // missingExpr needs to be first
+        let validItem = (missingExpr <|> (localIdentifier >>= asIdentifier)) .>> followedBy continuation // missingExpr needs to be first
 
         let exprError (ex: QsExpression) =
             ex.Range
@@ -564,8 +525,7 @@ let private setStatement =
 
             buildError (arrItem |>> toRange) ErrorCode.UpdateOfArrayItemExpr >>% unknownExpr
 
-        let nonTupleExpr =
-            notFollowedBy continuation >>. expr >>= exprError >>% unknownExpr
+        let nonTupleExpr = notFollowedBy continuation >>. expr >>= exprError >>% unknownExpr
 
         choice [ attempt validItem
                  attempt errorOnArrayItem
@@ -577,11 +537,8 @@ let private setStatement =
         identifierExpr applyAndReassignOp .>>. applyAndReassignOp >>= applyOperator
 
     let symbolUpdate =
-        let continuation =
-            isTupleContinuation >>% "" <|> equal <|> lTuple // need lTuple here to make sure tuples are not parsed as expressions!
-
-        let invalidErr, missingErr =
-            ErrorCode.InvalidIdentifierExprInUpdate, ErrorCode.MissingIdentifierExprInUpdate
+        let continuation = isTupleContinuation >>% "" <|> equal <|> lTuple // need lTuple here to make sure tuples are not parsed as expressions!
+        let invalidErr, missingErr = ErrorCode.InvalidIdentifierExprInUpdate, ErrorCode.MissingIdentifierExprInUpdate
 
         let symbolTuple =
             buildTupleItem (identifierExpr continuation) buildTupleExpr invalidErr missingErr unknownExpr equal
@@ -606,8 +563,7 @@ let private elifClause =
     buildFragment qsElif.parse (expectedCondition eof) invalid (fun _ -> ElifClause) eof
 
 /// Uses buildFragment to parse a Q# else clause as QsFragment.
-let private elseClause =
-    buildFragment qsElse.parse (preturn "") ElseClause (fun _ _ -> ElseClause) eof
+let private elseClause = buildFragment qsElse.parse (preturn "") ElseClause (fun _ _ -> ElseClause) eof
 
 
 /// Uses buildFragment to parse a Q# for-statement intro (for-statement without the body) as QsFragment.
@@ -617,19 +573,14 @@ let private forHeader =
     let loopVariableBinding =
         expectedExpr rTuple |> symbolBinding qsRangeIter.parse ErrorCode.ExpectingIteratorItemAssignment
 
-    let forBody =
-        optTupleBrackets loopVariableBinding |>> fst
-
+    let forBody = optTupleBrackets loopVariableBinding |>> fst
     buildFragment qsFor.parse forBody invalid (fun _ -> ForLoopIntro) eof
 
 
 /// Uses buildFragment to parse a Q# while-statement intro (while-statement without the body) as QsFragment.
 let private whileHeader =
     let invalid = WhileLoopIntro unknownExpr
-
-    let whileBody =
-        optTupleBrackets (expectedExpr isTupleContinuation) |>> fst
-
+    let whileBody = optTupleBrackets (expectedExpr isTupleContinuation) |>> fst
     buildFragment qsWhile.parse whileBody invalid (fun _ -> WhileLoopIntro) eof
 
 
@@ -640,9 +591,7 @@ let private repeatHeader =
 /// Uses buildFragment to parse a Q# until success clause as QsFragment.
 let private untilSuccess =
     let invalid = UntilSuccess(unknownExpr, false)
-
-    let optionalFixup =
-        qsRUSfixup.parse >>% true <|> preturn false
+    let optionalFixup = qsRUSfixup.parse >>% true <|> preturn false
 
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid (fun _ -> UntilSuccess)
         eof
@@ -659,16 +608,12 @@ let private applyHeader =
 
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.
 let private usingHeader =
-    let invalid =
-        UsingBlockIntro(invalidSymbol, invalidInitializer)
-
+    let invalid = UsingBlockIntro(invalidSymbol, invalidInitializer)
     buildFragment qsUsing.parse allocationScope invalid (fun _ -> UsingBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# borrowing block intro as QsFragment.
 let private borrowingHeader =
-    let invalid =
-        BorrowingBlockIntro(invalidSymbol, invalidInitializer)
-
+    let invalid = BorrowingBlockIntro(invalidSymbol, invalidInitializer)
     buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
 /// Always builds an invalid fragment after parsing the given fragment header.
@@ -714,8 +659,7 @@ do let implementedHeaders =
     (List.map (fun (keyword, _) -> keyword.id) fragments)
         .ToImmutableHashSet()
 
-   let existingHeaders =
-       Keywords.FragmentHeaders.ToImmutableHashSet()
+   let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
 
    if (implementedHeaders.SymmetricExcept existingHeaders)
        .Count
@@ -742,9 +686,7 @@ let private expressionStatement =
             |> preturn
             >>= pushDiagnostic
 
-        let anyExpr =
-            getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
-
+        let anyExpr = getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
         attempt callLikeExpr |>> ExpressionStatement <|> anyExpr
 
     buildFragment (lookAhead valid) valid invalid (fun _ -> id) eof // let's limit this to call like expressions

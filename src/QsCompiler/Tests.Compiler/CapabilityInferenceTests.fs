@@ -22,12 +22,8 @@ let private callables =
 
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =
-    let fullName =
-        CapabilityVerificationTests.testName name
-
-    let actual =
-        BuiltIn.TryGetRequiredCapability callables.[fullName].Attributes
-
+    let fullName = CapabilityVerificationTests.testName name
+    let actual = BuiltIn.TryGetRequiredCapability callables.[fullName].Attributes
     Assert.Equal(Value capability, actual)
 
 [<Fact>]

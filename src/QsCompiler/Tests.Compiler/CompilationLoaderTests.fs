@@ -14,8 +14,7 @@ open Microsoft.VisualStudio.LanguageServer.Protocol
 type CompilationLoaderTests(output: ITestOutputHelper) =
 
     /// The path to the Q# file that contains the test cases.
-    let testFile =
-        Path.Combine("TestCases", "CompilationLoader.qs")
+    let testFile = Path.Combine("TestCases", "CompilationLoader.qs")
 
     /// <summary>
     /// A map where each key is a test case name, and each value is the source code of the test case.
@@ -42,16 +41,13 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
             CompilationUnitManager.InitializeFileManager(uri, content)
 
         // Create and add files to the compilation.
-        let corePath =
-            Path.GetFullPath(Path.Combine("TestCases", "LinkingTests", "Core.qs"))
+        let corePath = Path.GetFullPath(Path.Combine("TestCases", "LinkingTests", "Core.qs"))
 
         fileManager (new Uri(corePath)) (File.ReadAllText corePath)
         |> compilationManager.AddOrUpdateSourceFileAsync
         |> ignore
 
-        let sourceUri =
-            new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-
+        let sourceUri = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
         fileManager sourceUri source |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
 
         let compilation = compilationManager.Build()
@@ -68,18 +64,12 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
     /// </summary>
     let verifyBinaryWriteRead compilation =
         use stream = new MemoryStream()
-
-        let writeSuccessful =
-            CompilationLoader.WriteBinary(compilation, stream)
-
+        let writeSuccessful = CompilationLoader.WriteBinary(compilation, stream)
         let mutable readSuccessful = false
 
         if writeSuccessful then
             stream.Position <- 0L
-
-            let mutable qsCompilation =
-                Unchecked.defaultof<SyntaxTree.QsCompilation>
-
+            let mutable qsCompilation = Unchecked.defaultof<SyntaxTree.QsCompilation>
             readSuccessful <- CompilationLoader.ReadBinary(stream, &qsCompilation)
 
         (writeSuccessful, readSuccessful)

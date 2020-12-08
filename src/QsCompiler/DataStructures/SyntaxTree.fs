@@ -283,11 +283,8 @@ type InferredCallableInformation =
 
     /// Determines the information that was inferred for all given items.
     static member Common(infos: InferredCallableInformation seq) =
-        let allAreIntrinsic =
-            infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
-
-        let allAreSelfAdjoint =
-            infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
+        let allAreIntrinsic = infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
+        let allAreSelfAdjoint = infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
 
         { IsIntrinsic = allAreIntrinsic
           IsSelfAdjoint = allAreSelfAdjoint }
@@ -360,8 +357,7 @@ type ResolvedType =
     /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
     /// replaces the type parameters in the given type with their resolutions.
     static member ResolveTypeParameters (resolutions: ImmutableDictionary<_, _>) (t: ResolvedType) =
-        let inner =
-            ResolvedType.ResolveTypeParameters resolutions
+        let inner = ResolvedType.ResolveTypeParameters resolutions
 
         if resolutions.IsEmpty then
             t
@@ -457,8 +453,7 @@ type ResolvedInitializer =
     /// Replaces an arity-1 tuple by its item type.
     /// Throws an ArgumentException if the given type kind is an empty tuple.
     static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
-        let qArrayT =
-            Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
+        let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
         let buildTupleType is =
             TupleType

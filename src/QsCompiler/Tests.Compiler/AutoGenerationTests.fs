@@ -15,9 +15,7 @@ type FunctorAutoGenTests() =
     inherit CompilerTests(CompilerTests.Compile("TestCases", [ "General.qs"; "FunctorGeneration.qs" ]))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns =
-            "Microsoft.Quantum.Testing.FunctorGeneration"
-
+        let ns = "Microsoft.Quantum.Testing.FunctorGeneration"
         this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
 
 

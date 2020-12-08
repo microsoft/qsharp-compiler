@@ -62,8 +62,7 @@ type internal MutationChecker private (_private_) =
     member val MutatedVariables: Set<string> = Set.empty with get, set
 
     /// Contains the set of variables that this code doesn't declare but does mutate.
-    member this.ExternalMutations =
-        this.MutatedVariables - this.DeclaredVariables
+    member this.ExternalMutations = this.MutatedVariables - this.DeclaredVariables
 
     internal new() as this =
         new MutationChecker("_private_")

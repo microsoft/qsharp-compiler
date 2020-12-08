@@ -36,8 +36,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     new(options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
         then
-            let expressionTransformation =
-                new ExpressionTransformationBase(options)
+            let expressionTransformation = new ExpressionTransformationBase(options)
 
             let statementTransformation =
                 new StatementTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
@@ -80,14 +79,9 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
                                 -> QsNullable<TypedExpression> * QsPositionedBlock
 
     default this.OnPositionedBlock(intro: QsNullable<TypedExpression>, block: QsPositionedBlock) =
-        let location =
-            this.Statements.OnLocation block.Location
-
+        let location = this.Statements.OnLocation block.Location
         let comments = block.Comments
-
-        let expr =
-            intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
-
+        let expr = intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
         let body = this.Statements.OnScope block.Body
 
         let PositionedBlock (expr, body, location, comments) =
@@ -101,9 +95,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnVariableDeclaration: QsBinding<TypedExpression> -> QsStatementKind
 
     default this.OnVariableDeclaration stm =
-        let rhs =
-            this.Expressions.OnTypedExpression stm.Rhs
-
+        let rhs = this.Expressions.OnTypedExpression stm.Rhs
         let lhs = this.OnSymbolTuple stm.Lhs
 
         QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind
@@ -112,11 +104,8 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnValueUpdate: QsValueUpdate -> QsStatementKind
 
     default this.OnValueUpdate stm =
-        let rhs =
-            this.Expressions.OnTypedExpression stm.Rhs
-
-        let lhs =
-            this.Expressions.OnTypedExpression stm.Lhs
+        let rhs = this.Expressions.OnTypedExpression stm.Rhs
+        let lhs = this.Expressions.OnTypedExpression stm.Lhs
 
         QsValueUpdate << QsValueUpdate.New |> Node.BuildOr EmptyStatement (lhs, rhs)
 
@@ -145,14 +134,9 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnForStatement: QsForStatement -> QsStatementKind
 
     default this.OnForStatement stm =
-        let iterVals =
-            this.Expressions.OnTypedExpression stm.IterationValues
-
+        let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
-
-        let loopVarType =
-            this.Expressions.Types.OnType(snd stm.LoopItem)
-
+        let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
         QsForStatement << QsForStatement.New
@@ -161,21 +145,15 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnWhileStatement: QsWhileStatement -> QsStatementKind
 
     default this.OnWhileStatement stm =
-        let condition =
-            this.Expressions.OnTypedExpression stm.Condition
-
+        let condition = this.Expressions.OnTypedExpression stm.Condition
         let body = this.Statements.OnScope stm.Body
-
         QsWhileStatement << QsWhileStatement.New |> Node.BuildOr EmptyStatement (condition, body)
 
     abstract OnRepeatStatement: QsRepeatStatement -> QsStatementKind
 
     default this.OnRepeatStatement stm =
-        let repeatBlock =
-            this.OnPositionedBlock(Null, stm.RepeatBlock) |> snd
-
-        let successCondition, fixupBlock =
-            this.OnPositionedBlock(Value stm.SuccessCondition, stm.FixupBlock)
+        let repeatBlock = this.OnPositionedBlock(Null, stm.RepeatBlock) |> snd
+        let successCondition, fixupBlock = this.OnPositionedBlock(Value stm.SuccessCondition, stm.FixupBlock)
 
         let invalidCondition () =
             failwith "missing success condition in repeat-statement"
@@ -186,12 +164,8 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnConjugation: QsConjugation -> QsStatementKind
 
     default this.OnConjugation stm =
-        let outer =
-            this.OnPositionedBlock(Null, stm.OuterTransformation) |> snd
-
-        let inner =
-            this.OnPositionedBlock(Null, stm.InnerTransformation) |> snd
-
+        let outer = this.OnPositionedBlock(Null, stm.OuterTransformation) |> snd
+        let inner = this.OnPositionedBlock(Null, stm.InnerTransformation) |> snd
         QsConjugation << QsConjugation.New |> Node.BuildOr EmptyStatement (outer, inner)
 
     abstract OnExpressionStatement: TypedExpression -> QsStatementKind
@@ -296,8 +270,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     new(options: TransformationOptions) as this =
         new StatementTransformationBase(options, "_internal_")
         then
-            let expressionTransformation =
-                new ExpressionTransformationBase(options)
+            let expressionTransformation = new ExpressionTransformationBase(options)
 
             let statementTransformation =
                 new StatementKindTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
@@ -329,14 +302,10 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
             let loc = local.Position, local.Range
             let name = this.OnVariableName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type
-
-            let info =
-                this.Expressions.OnExpressionInformation local.InferredInformation
-
+            let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
 
-        let variableDeclarations =
-            decl.Variables |> Seq.map onLocalVariableDeclaration
+        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration
 
         if options.Rebuild then
             LocalDeclarations.New(variableDeclarations |> ImmutableArray.CreateRange)
@@ -354,13 +323,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
         else
             let location = this.OnLocation stm.Location
             let comments = stm.Comments
-
-            let kind =
-                this.StatementKinds.OnStatementKind stm.Statement
-
-            let varDecl =
-                this.OnLocalDeclarations stm.SymbolDeclarations
-
+            let kind = this.StatementKinds.OnStatementKind stm.Statement
+            let varDecl = this.OnLocalDeclarations stm.SymbolDeclarations
             QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 
     abstract OnScope: QsScope -> QsScope
@@ -369,11 +333,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
         if not options.Enable then
             scope
         else
-            let parentSymbols =
-                this.OnLocalDeclarations scope.KnownSymbols
-
-            let statements =
-                scope.Statements |> Seq.map this.OnStatement
+            let parentSymbols = this.OnLocalDeclarations scope.KnownSymbols
+            let statements = scope.Statements |> Seq.map this.OnStatement
 
             if options.Rebuild then
                 QsScope.New(statements |> ImmutableArray.CreateRange, parentSymbols)

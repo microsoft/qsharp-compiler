@@ -99,18 +99,14 @@ let toOpType it ot s = Operation((it, ot), s) |> toType
 
 let toCharacteristicsExpr k = { Characteristics = k; Range = Null }
 
-let adjSet =
-    SimpleSet Adjointable |> toCharacteristicsExpr
+let adjSet = SimpleSet Adjointable |> toCharacteristicsExpr
 
-let ctlSet =
-    SimpleSet Controllable |> toCharacteristicsExpr
+let ctlSet = SimpleSet Controllable |> toCharacteristicsExpr
 
-let adjCtlSet =
-    Union(adjSet, ctlSet) |> toCharacteristicsExpr
+let adjCtlSet = Union(adjSet, ctlSet) |> toCharacteristicsExpr
 
 let matchDiagnostics expected (actual: QsCompilerDiagnostic list) =
-    let diags =
-        actual |> List.map (fun d -> d.Diagnostic)
+    let diags = actual |> List.map (fun d -> d.Diagnostic)
 
     ((diags |> List.length) = (expected |> List.length))
     && (diags |> List.forall (fun d -> expected |> List.contains d))
@@ -348,12 +344,8 @@ let rec matchExpression e1 e2 =
 let testOne parser (str, succExp, resExp, diagsExp) =
     let succ, diags, res = parse_string_diags_res parser str
     let succOk = succ = succExp
-
-    let resOk =
-        (not succ) || (res |> Option.contains resExp)
-
-    let errsOk =
-        (not succ) || (matchDiagnostics diagsExp diags)
+    let resOk = (not succ) || (res |> Option.contains resExp)
+    let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
 
     Assert.True
         (succOk && resOk && errsOk,
@@ -367,16 +359,10 @@ let testOne parser (str, succExp, resExp, diagsExp) =
               else sprintf "expected errors %A but received %A" diagsExp diags))
 
 let testExpr (str, succExp, resExp, diagsExp) =
-    let succ, diags, res =
-        parse_string_diags_res ExpressionParsing.expr str
-
+    let succ, diags, res = parse_string_diags_res ExpressionParsing.expr str
     let succOk = succ = succExp
-
-    let resOk =
-        (not succ) || (res |> Option.exists (matchExpression resExp))
-
-    let errsOk =
-        (not succ) || (matchDiagnostics diagsExp diags)
+    let resOk = (not succ) || (res |> Option.exists (matchExpression resExp))
+    let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
 
     Assert.True
         (succOk && resOk && errsOk,

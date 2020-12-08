@@ -27,10 +27,7 @@ type BuiltIn =
       Kind: BuiltInKind }
 
     static member CanonNamespace = "Microsoft.Quantum.Canon"
-
-    static member ClassicallyControlledNamespace =
-        "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
-
+    static member ClassicallyControlledNamespace = "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
     static member CoreNamespace = "Microsoft.Quantum.Core"
     static member DiagnosticsNamespace = "Microsoft.Quantum.Diagnostics"
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
@@ -38,8 +35,7 @@ type BuiltIn =
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
-    static member NamespacesToAutoOpen =
-        ImmutableHashSet.Create(BuiltIn.CoreNamespace)
+    static member NamespacesToAutoOpen = ImmutableHashSet.Create(BuiltIn.CoreNamespace)
 
     /// Returns the set of callables that rewrite steps take dependencies on.
     /// These should be non-Generic callables only.
@@ -105,8 +101,7 @@ type BuiltIn =
                 items.[0].Expression |> extractString |> QsNullable<_>.Bind RuntimeCapability.TryParse
             | _ -> Null
 
-        let capabilities =
-            attributes |> QsNullable<_>.Choose capability
+        let capabilities = attributes |> QsNullable<_>.Choose capability
 
         if Seq.isEmpty capabilities
         then Null

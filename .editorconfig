@@ -57,3 +57,4 @@ dotnet_diagnostic.SA1649.severity = none        # File name should match first t
 
 [*.fs]
 fsharp_max_infix_operator_expression = 100
+fsharp_max_value_binding_width = 80

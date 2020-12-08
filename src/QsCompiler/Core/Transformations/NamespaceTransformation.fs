@@ -63,24 +63,16 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     default this.OnTypeItems tItem =
         match tItem with
         | QsTuple items as original ->
-            let transformed =
-                items |> Seq.map this.OnTypeItems |> ImmutableArray.CreateRange
-
+            let transformed = items |> Seq.map this.OnTypeItems |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem (Anonymous itemType) as original ->
-            let t =
-                this.Statements.Expressions.Types.OnType itemType
-
+            let t = this.Statements.Expressions.Types.OnType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
             let loc = item.Position, item.Range
             let name = this.OnItemName item.VariableName
-
-            let t =
-                this.Statements.Expressions.Types.OnType item.Type
-
-            let info =
-                this.Statements.Expressions.OnExpressionInformation item.InferredInformation
+            let t = this.Statements.Expressions.Types.OnType item.Type
+            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
@@ -97,19 +89,13 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     default this.OnArgumentTuple arg =
         match arg with
         | QsTuple items as original ->
-            let transformed =
-                items |> Seq.map this.OnArgumentTuple |> ImmutableArray.CreateRange
-
+            let transformed = items |> Seq.map this.OnArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem item as original ->
             let loc = item.Position, item.Range
             let name = this.OnArgumentName item.VariableName
-
-            let t =
-                this.Statements.Expressions.Types.OnType item.Type
-
-            let info =
-                this.Statements.Expressions.OnExpressionInformation item.InferredInformation
+            let t = this.Statements.Expressions.Types.OnType item.Type
+            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
             QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
@@ -118,16 +104,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     default this.OnSignature(s: ResolvedSignature) =
         let typeParams = s.TypeParameters
-
-        let argType =
-            this.Statements.Expressions.Types.OnType s.ArgumentType
-
-        let returnType =
-            this.Statements.Expressions.Types.OnType s.ReturnType
-
-        let info =
-            this.Statements.Expressions.Types.OnCallableInformation s.Information
-
+        let argType = this.Statements.Expressions.Types.OnType s.ArgumentType
+        let returnType = this.Statements.Expressions.Types.OnType s.ReturnType
+        let info = this.Statements.Expressions.Types.OnCallableInformation s.Information
         ResolvedSignature.New |> Node.BuildOr s ((argType, returnType), info, typeParams)
 
 
@@ -196,9 +175,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     member private this.OnSpecializationKind(spec: QsSpecialization) =
         let source = this.OnSourceFile spec.SourceFile
         let loc = this.OnLocation spec.Location
-
-        let attributes =
-            spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
+        let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
 
         let typeArgs =
             spec.TypeArguments
@@ -206,10 +183,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
                 .Map(fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
 
         let signature = this.OnSignature spec.Signature
-
-        let impl =
-            this.OnSpecializationImplementation spec.Implementation
-
+        let impl = this.OnSpecializationImplementation spec.Implementation
         let doc = this.OnDocumentation spec.Documentation
         let comments = spec.Comments
 
@@ -245,10 +219,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     member private this.OnCallableKind(c: QsCallable) =
         let source = this.OnSourceFile c.SourceFile
         let loc = this.OnLocation c.Location
-
-        let attributes =
-            c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
-
+        let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
         let argTuple = this.OnArgumentTuple c.ArgumentTuple
 
@@ -286,13 +257,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     default this.OnTypeDeclaration t =
         let source = this.OnSourceFile t.SourceFile
         let loc = this.OnLocation t.Location
-
-        let attributes =
-            t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
-
-        let underlyingType =
-            this.Statements.Expressions.Types.OnType t.Type
-
+        let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
+        let underlyingType = this.Statements.Expressions.Types.OnType t.Type
         let typeItems = this.OnTypeItems t.TypeItems
         let doc = this.OnDocumentation t.Documentation
         let comments = t.Comments
@@ -328,8 +294,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
                     .SelectMany(fun entry -> entry |> Seq.map (fun doc -> entry.Key, this.OnDocumentation doc))
                     .ToLookup(fst, snd)
 
-            let elements =
-                ns.Elements |> Seq.map this.OnNamespaceElement
+            let elements = ns.Elements |> Seq.map this.OnNamespaceElement
 
             if options.Rebuild then
                 QsNamespace.New(name, elements |> ImmutableArray.CreateRange, doc)

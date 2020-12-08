@@ -36,13 +36,8 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
 
     override this.OnForStatement stm =
         let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
-
-        let iterVals =
-            this.Expressions.OnTypedExpression stm.IterationValues
-
-        let loopVarType =
-            this.Expressions.Types.OnType(snd stm.LoopItem)
-
+        let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
+        let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
         maybe {
@@ -58,8 +53,7 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
             let iterRange =
                 iterValsList
                 |> List.map (fun x ->
-                    let variableDecl =
-                        QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
+                    let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
 
                     let innerScope =
                         { stm.Body with
@@ -67,9 +61,7 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
 
                     innerScope |> newScopeStatement |> wrapStmt)
 
-            let outerScope =
-                QsScope.New(iterRange, stm.Body.KnownSymbols)
-
+            let outerScope = QsScope.New(iterRange, stm.Body.KnownSymbols)
             return outerScope |> newScopeStatement |> this.OnStatementKind
         }
         |? (QsForStatement.New((loopVar, loopVarType), iterVals, body) |> QsForStatement)

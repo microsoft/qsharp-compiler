@@ -42,9 +42,7 @@ type PreEvaluation =
             then evaluate tree
             else tree
 
-        let namespaces =
-            arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
-
+        let namespaces = arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
         QsCompilation.New(namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations

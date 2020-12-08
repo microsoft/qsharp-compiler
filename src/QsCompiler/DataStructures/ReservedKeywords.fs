@@ -224,9 +224,7 @@ module InternalUse =
 /// contains the names used for compiler-generated Q# attributes
 /// that do not and should not have a definition in source code
 module GeneratedAttributes =
-    let Namespace =
-        "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
-
+    let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
 /// contains project specific settings specified during Q# compilation
@@ -266,12 +264,8 @@ module AssemblyConstants =
 /// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments =
     let SimulatorOption = ("simulator", "s")
-
-    let ReservedArguments =
-        ImmutableArray.Create(fst SimulatorOption)
-
-    let ReservedArgumentAbbreviations =
-        ImmutableArray.Create(snd SimulatorOption)
+    let ReservedArguments = ImmutableArray.Create(fst SimulatorOption)
+    let ReservedArgumentAbbreviations = ImmutableArray.Create(snd SimulatorOption)
 
     let BuiltInSimulators =
         [ AssemblyConstants.QuantumSimulator

@@ -16,8 +16,7 @@ open System.Globalization
 open TestUtils
 open Xunit
 
-let private rawString =
-    getStringContent (manyChars anyChar) |>> fst
+let private rawString = getStringContent (manyChars anyChar) |>> fst
 
 
 [<Fact>]
@@ -224,10 +223,7 @@ let ``Expression literal tests`` () =
 
     // constants that should raise an error
     let absMinIntMinus1 = uint64 (-minInt) + 1UL
-
-    let minIntMinus1Str =
-        absMinIntMinus1 |> intString |> sprintf "-%s"
-
+    let minIntMinus1Str = absMinIntMinus1 |> intString |> sprintf "-%s"
     let maxIntPlus1 = uint64 (maxInt) + 1UL
     let maxIntPlus2 = uint64 (maxInt) + 2UL
     let doublePrecBound = "1.79769313486232E+308" // what shows up as out of range in C#

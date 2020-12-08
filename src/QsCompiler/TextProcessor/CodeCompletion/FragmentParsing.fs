@@ -29,20 +29,14 @@ let private modifiers = expectedKeyword qsInternal
 let private callableSignature =
     let name = expectedId Declaration (term symbol)
     let typeAnnotation = expected colon ?>> qsType
-
-    let typeParam =
-        expected (pchar '\'') ?>> expectedId Declaration (term symbol)
-
-    let typeParamList =
-        brackets (lAngle, rAngle) (sepByLast typeParam comma)
-
+    let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
+    let typeParamList = brackets (lAngle, rAngle) (sepByLast typeParam comma)
     let argumentTuple = tuple (name ?>> typeAnnotation)
 
     name ?>> (typeParamList <|> (optional eot >>% [])) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
-let private functionDeclaration =
-    optR modifiers @>> expectedKeyword fctDeclHeader ?>> callableSignature
+let private functionDeclaration = optR modifiers @>> expectedKeyword fctDeclHeader ?>> callableSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
@@ -121,26 +115,21 @@ let private returnStatement = expectedKeyword qsReturn ?>> expression
 let private failStatement = expectedKeyword qsFail ?>> expression
 
 /// Parses an if clause.
-let private ifClause =
-    expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
+let private ifClause = expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses an elif clause.
-let private elifClause =
-    expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
+let private elifClause = expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses an else clause.
 let private elseClause = expectedKeyword qsElse
 
 /// Parses a for-block intro.
 let private forHeader =
-    let binding =
-        symbolTuple Declaration ?>> expectedKeyword qsRangeIter ?>> expression
-
+    let binding = symbolTuple Declaration ?>> expectedKeyword qsRangeIter ?>> expression
     expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses a while-block intro.
-let private whileHeader =
-    expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
+let private whileHeader = expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses a repeat-until-success block intro.
 let private repeatHeader = expectedKeyword qsRepeat
@@ -168,22 +157,17 @@ let rec private qubitInitializerTuple =
 
 /// Parses a using-block intro.
 let private usingHeader =
-    let binding =
-        symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses a borrowing-block intro.
 let private borrowingHeader =
-    let binding =
-        symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses an operation specialization declaration.
 let private specializationDeclaration =
-    let argumentTuple =
-        tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
+    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
 
     let generator =
         pcollect [ expectedKeyword autoFunctorGenDirective
@@ -209,12 +193,10 @@ let private callableStatement =
     .>> eotEof
 
 /// Parses a statement in a function.
-let private functionStatement =
-    whileHeader .>> eotEof <|>@ callableStatement
+let private functionStatement = whileHeader .>> eotEof <|>@ callableStatement
 
 /// Parses a statement in a function that follows an if or elif clause in the same scope.
-let private functionStatementFollowingIf =
-    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ functionStatement
+let private functionStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ functionStatement
 
 /// Parses a statement in an operation.
 let private operationStatement =
@@ -226,20 +208,16 @@ let private operationStatement =
     <|>@ callableStatement
 
 /// Parses a statement in an operation that follows an if or elif clause in the same scope.
-let private operationStatementFollowingIf =
-    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationStatement
+let private operationStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation.
-let private operationTopLevel =
-    specializationDeclaration .>> eotEof <|>@ operationStatement
+let private operationTopLevel = specializationDeclaration .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
-let private operationTopLevelFollowingIf =
-    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationTopLevel
+let private operationTopLevelFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationTopLevel
 
 /// Parses a namespace declaration.
-let private namespaceDeclaration =
-    expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
+let private namespaceDeclaration = expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
 
 /// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
 /// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid

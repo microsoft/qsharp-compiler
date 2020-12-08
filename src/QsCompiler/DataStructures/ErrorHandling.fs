@@ -41,17 +41,14 @@ type QsCompilerError = QsCompilerError
 
         /// Generates a string with full information about the given exception, prepending the given header.
         static member private Log(ex: Exception, header) =
-            let outer =
-                sprintf "%s: %s\n" (ex.GetType().Name) ex.Message
+            let outer = sprintf "%s: %s\n" (ex.GetType().Name) ex.Message
 
             let inner =
                 if ex.InnerException = null
                 then ""
                 else sprintf "Inner Exception: %s - %s\n" (ex.InnerException.GetType().Name) ex.InnerException.Message
 
-            let stackTrace =
-                sprintf "Stack trace: \n%s\n" ex.StackTrace
-
+            let stackTrace = sprintf "Stack trace: \n%s\n" ex.StackTrace
             sprintf "%s\n%s%s%s" header outer inner stackTrace
 
         /// Wraps the given action in a try-catch block.

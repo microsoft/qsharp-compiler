@@ -30,8 +30,7 @@ let private ExpressionVerifyWith verification context (expr: QsExpression) =
     let addError code =
         QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
 
-    let typedExpr =
-        expr.Resolve context accumulatedDiagnostics.Add
+    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
 
     let resVerification =
         verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
@@ -53,8 +52,7 @@ let private Verify context =
 /// Helper method that returns a suitable verification method based on VerifyAssignment
 /// that can be passed to ExpressionVerifyWith.
 let private AssignmentVerification expected (context: ScopeContext) errCode =
-    let parent =
-        context.Symbols.Parent, context.Symbols.DefinedTypeParameters
+    let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
 
     let verification addErr (t, e, r) =
         VerifyAssignment expected parent errCode addErr (t, Some e, r)
@@ -119,11 +117,8 @@ let NewFailStatement comments location context expr =
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) expr =
-    let verifyIsReturnType =
-        AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
-
-    let verifiedExpr, _, diagnostics =
-        ExpressionVerifyWith verifyIsReturnType context expr
+    let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
+    let verifiedExpr, _, diagnostics = ExpressionVerifyWith verifyIsReturnType context expr
 
     let autoGenErrs =
         context.Symbols
@@ -223,11 +218,8 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
     let VerifyIsCorrectType =
         AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
 
-    let verifiedRhs, _, rhsErrs =
-        ExpressionVerifyWith VerifyIsCorrectType context rhs
-
-    let localQdep =
-        verifiedRhs.InferredInformation.HasLocalQuantumDependency
+    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith VerifyIsCorrectType context rhs
+    let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency
 
     let rec VerifyMutability =
         function
@@ -279,9 +271,7 @@ let private TryAddDeclaration isMutable
         else
             rhsType, [||]
 
-    let decl =
-        LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
-
+    let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), errs |> Array.append tpErr
 
@@ -301,8 +291,7 @@ let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSy
             | MutableBinding -> true
             | ImmutableBinding -> false
 
-        let localQdep =
-            rhs.InferredInformation.HasLocalQuantumDependency
+        let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
 
         let addDeclaration (name, range) =
             TryAddDeclaration isMutable context.Symbols (name, (Value location.Offset, range), localQdep)
@@ -312,8 +301,7 @@ let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSy
     let autoGenErrs =
         (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
-    let binding =
-        QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
+    let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
 
     binding |> asStatement comments location (LocalDeclarations.New varDeclarations),
     Array.concat [ rhsErrs
@@ -344,12 +332,10 @@ type BlockStatement<'T> = delegate of QsScope -> 'T
 /// as well as a delegate that given a Q# scope returns the built for-statement with the given scope as the body.
 /// NOTE: the declared loop variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
 let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let iterExpr, itemT, iterErrs =
-        VerifyWith VerifyIsIterable context qsExpr
+    let iterExpr, itemT, iterErrs = VerifyWith VerifyIsIterable context qsExpr
 
     let symTuple, _, varErrs =
-        let localQdep =
-            iterExpr.InferredInformation.HasLocalQuantumDependency
+        let localQdep = iterExpr.InferredInformation.HasLocalQuantumDependency
 
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), localQdep)
@@ -372,8 +358,7 @@ let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qs
 /// Verifies the expression is indeed of type Bool, and returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpression) =
-    let cond, _, errs =
-        VerifyWith VerifyIsBoolean context qsExpr
+    let cond, _, errs = VerifyWith VerifyIsBoolean context qsExpr
 
     let whileLoop body =
         QsWhileStatement.New(cond, body) |> QsWhileStatement
@@ -385,8 +370,7 @@ let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpress
 /// Returns an array of all diagnostics generated during resolution and verification,
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context (qsExpr: QsExpression) =
-    let condition, _, errs =
-        VerifyWith VerifyIsBoolean context qsExpr
+    let condition, _, errs = VerifyWith VerifyIsBoolean context qsExpr
 
     let autoGenErrs =
         (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
@@ -405,8 +389,7 @@ let NewIfStatement (ifBlock: TypedExpression * QsPositionedBlock) elifBlocks els
         | Null -> ArgumentException "No location is set for the given if-block." |> raise
         | Value location -> location
 
-    let condBlocks =
-        Seq.append (Seq.singleton ifBlock) elifBlocks
+    let condBlocks = Seq.append (Seq.singleton ifBlock) elifBlocks
 
     QsConditionalStatement.New(condBlocks, elseBlock)
     |> QsConditionalStatement
@@ -489,9 +472,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
 
             QubitRegisterAllocation verifiedNr |> ResolvedInitializer.New, Array.concat [ err; autoGenErrs ]
         | QubitTupleAllocation is ->
-            let items, errs =
-                is |> Seq.map VerifyInitializer |> Seq.toList |> List.unzip
-
+            let items, errs = is |> Seq.map VerifyInitializer |> Seq.toList |> List.unzip
             QubitTupleAllocation(items.ToImmutableArray()) |> ResolvedInitializer.New, Array.concat errs
         | InvalidInitializer -> InvalidInitializer |> ResolvedInitializer.New, [||]
 

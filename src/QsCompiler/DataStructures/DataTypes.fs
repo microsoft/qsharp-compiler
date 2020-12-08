@@ -96,10 +96,7 @@ type Position =
     /// </remarks>
     static member (+)(offset: Position, relative: Position) =
         let line = offset.Line + relative.Line
-
-        let column =
-            if relative.Line = 0 then offset.Column + relative.Column else relative.Column
-
+        let column = if relative.Line = 0 then offset.Column + relative.Column else relative.Column
         Position(line, column)
 
     /// <summary>

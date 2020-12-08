@@ -183,11 +183,9 @@ let bodyDeclHeader = addFragmentHeader Declarations.Body
 /// keyword for a Q# declaration (QsFragmentHeader)
 let adjDeclHeader = addFragmentHeader Declarations.Adjoint
 /// keyword for a Q# declaration (QsFragmentHeader)
-let ctrlDeclHeader =
-    addFragmentHeader Declarations.Controlled
+let ctrlDeclHeader = addFragmentHeader Declarations.Controlled
 /// keyword for a Q# declaration (QsFragmentHeader)
-let ctrlAdjDeclHeader =
-    addFunctorCombination (ctrlDeclHeader, adjDeclHeader)
+let ctrlAdjDeclHeader = addFunctorCombination (ctrlDeclHeader, adjDeclHeader)
 
 /// keyword for a Q# declaration (QsFragmentHeader)
 let opDeclHeader = addFragmentHeader Declarations.Operation
@@ -238,8 +236,7 @@ type QsOperator =
       cont: string
       prec: int
       isLeftAssociative: bool }
-    member internal this.Associativity =
-        if this.isLeftAssociative then Associativity.Left else Associativity.Right
+    member internal this.Associativity = if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =
         { op = str
@@ -277,10 +274,7 @@ let qsMODop = QsOperator.New("%", 35, true)
 let qsDIVop = QsOperator.New("/", 35, true)
 let qsPOWop = QsOperator.New("^", 40, false)
 let qsBNOTop = QsOperator.New("~~~", 45, false)
-
-let qsNOTop =
-    QsOperator.New(notOperator.id, 45, false)
-
+let qsNOTop = QsOperator.New(notOperator.id, 45, false)
 let qsNEGop = QsOperator.New("-", 45, false)
 
 let qsSetUnion = QsOperator.New("+", 10, true)
@@ -294,13 +288,8 @@ let qsSetIntersection = QsOperator.New("*", 20, true)
 // All modifiers bind stronger than the call combinator.
 // The array item combinator binds stronger than all modifiers.
 let qsCallCombinator = QsOperator.New("(", ")", 900, true) // Op()() is fine
-
-let qsAdjointModifier =
-    QsOperator.New(qsAdjointFunctor.id, 950, false)
-
-let qsControlledModifier =
-    QsOperator.New(qsControlledFunctor.id, 951, false)
-
+let qsAdjointModifier = QsOperator.New(qsAdjointFunctor.id, 950, false)
+let qsControlledModifier = QsOperator.New(qsControlledFunctor.id, 951, false)
 let qsUnwrapModifier = QsOperator.New("!", 1000, true)
 let qsArrayAccessCombinator = QsOperator.New("[", "]", 1100, true) // arr[i][j] is fine
 let qsNamedItemCombinator = QsOperator.New("::", 1100, true) // any combination of named and array item acces is fine

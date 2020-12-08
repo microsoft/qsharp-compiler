@@ -15,12 +15,8 @@ open Xunit
 /// Given a string of valid Q# code, outputs the AST and the callables dictionary
 let private buildCompilation code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
-
-    let compilationUnit =
-        new CompilationUnitManager(fun ex -> failwith ex.Message)
-
-    let file =
-        CompilationUnitManager.InitializeFileManager(fileId, code)
+    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
+    let file = CompilationUnitManager.InitializeFileManager(fileId, code)
 
     // spawns a task that modifies the current compilation
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
@@ -41,22 +37,16 @@ let private optimize code =
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =
-    let code =
-        Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
-
+    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
     let optimized = optimize code
-
     (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized) |> File.WriteAllText
 
 /// Asserts that the result of optimizing the _input file matches the result in the _output file
 let private assertOptimization path =
-    let code =
-        Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
-
-    let expected =
-        Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
-
+    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
+    let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
     let optimized = optimize code
+
     // I remove any \r characters to prevent potential OS compatibility issues
     Assert.Equal(expected.Replace("\r", ""), optimized.Replace("\r", ""))
 

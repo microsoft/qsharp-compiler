@@ -44,10 +44,7 @@ let AllPathsReturnValueOrFail body =
         let delayAddingReturns block = // returns all newly detected return statements instead of directly adding them to returnsWithinQubitScope
             let initialReturns = new List<_>(returnsWithinQubitScope)
             checkReturnStatements withinQubitScope block
-
-            let remaining, added =
-                returnsWithinQubitScope |> Seq.toList |> List.partition initialReturns.Contains
-
+            let remaining, added = returnsWithinQubitScope |> Seq.toList |> List.partition initialReturns.Contains
             returnsWithinQubitScope.Clear()
             returnsWithinQubitScope.AddRange remaining
             added
@@ -63,16 +60,12 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsForStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsWhileStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsConjugation statement ->
-                let added =
-                    statement.OuterTransformation.Body |> delayAddingReturns
-
+                let added = statement.OuterTransformation.Body |> delayAddingReturns
                 checkReturnStatements withinQubitScope statement.InnerTransformation.Body
                 returnsWithinQubitScope.AddRange added
                 errorOnCollectedReturns () // returns within any of the two blocks are necessariliy followed by a statement
             | QsStatementKind.QsRepeatStatement statement ->
-                let added =
-                    statement.RepeatBlock.Body |> delayAddingReturns
-
+                let added = statement.RepeatBlock.Body |> delayAddingReturns
                 checkReturnStatements withinQubitScope statement.FixupBlock.Body
                 errorOnCollectedReturns () // returns within the fixup block are necessarily followed by a statement
                 returnsWithinQubitScope.AddRange added
@@ -121,8 +114,7 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsVariableDeclaration _
             | QsStatementKind.EmptyStatement -> true
 
-        let returnOrFailAndAfter =
-            Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
+        let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
 
         if returnOrFailAndAfter.Length <> 0 then
             let unreachable =
@@ -159,11 +151,8 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             ArgumentException "The given type header contains no location information." |> raise)
 
     // for each defined type build a list of all user defined types it contains, and one with all types it is contained in (convenient for sorting later)
-    let containedTypes =
-        List.init definitions.Length (fun _ -> List<int>())
-
-    let containedIn =
-        List.init definitions.Length (fun _ -> List<int>()) // convenient
+    let containedTypes = List.init definitions.Length (fun _ -> List<int>())
+    let containedIn = List.init definitions.Length (fun _ -> List<int>()) // convenient
 
     let updateContainedReferences (rootIndex: int option) (source, udt) =
         match definitions |> Seq.tryFindIndex (fun header -> header.QualifiedName = udt) with

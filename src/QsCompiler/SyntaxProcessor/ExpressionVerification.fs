@@ -27,9 +27,7 @@ type private StripInferredInfoFromType() =
     inherit TypeTransformationBase()
 
     default this.OnCallableInformation opInfo =
-        let characteristics =
-            this.OnCharacteristicsExpression opInfo.Characteristics
-
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New(characteristics, InferredCallableInformation.NoInformation)
 
     override this.OnRangeInformation _ = Null
@@ -45,9 +43,7 @@ type private Variance =
 let private invalid = InvalidType |> ResolvedType.New
 
 let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
-    let inferred =
-        InferredExpressionInformation.New(isMutable = isMutable, quantumDep = dep)
-
+    let inferred = InferredExpressionInformation.New(isMutable = isMutable, quantumDep = dep)
     TypedExpression.New(ex, ImmutableDictionary.Empty, t, inferred, range)
 
 let private missingFunctors (target: ImmutableHashSet<_>, given) =
@@ -101,8 +97,7 @@ let private CommonBaseType addError
         argType, resType
 
     and commonOpType variance ((i1, o1), s1: CallableInformation) ((i2, o2), s2: CallableInformation) =
-        let argType, resType =
-            matchInAndOutputType variance (i1, o1) (i2, o2)
+        let argType, resType = matchInAndOutputType variance (i1, o1) (i2, o2)
 
         let characteristics =
             variance
@@ -118,8 +113,7 @@ let private CommonBaseType addError
                                  .Characteristics
                                  .GetProperties()
                                  .SetEquals(s2.Characteristics.GetProperties()) ->
-                let characteristics =
-                    if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
+                let characteristics = if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
 
                 let inferred =
                     InferredCallableInformation.Common [ s1.InferredInformation
@@ -357,14 +351,12 @@ let private VerifyConcatenation parent addError (lhsType: ResolvedType, lhsRange
 let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsType, rhsRange) =
     // NOTE: this may not be the behavior that we want (right now it does not matter, since we don't support equality
     // comparison for any derived type).
-    let argumentError =
-        ErrorCode.ArgumentMismatchInBinaryOp, [ toString lhsType; toString rhsType ]
+    let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [ toString lhsType; toString rhsType ]
 
     let baseType =
         CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
 
-    let unsupportedError =
-        ErrorCode.InvalidTypeInEqualityComparison, [ toString baseType ]
+    let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [ toString baseType ]
 
     VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange)
     |> ignore
@@ -400,9 +392,7 @@ let private VerifyValueArray parent addError (content, range) =
     | [] -> InvalidType |> ResolvedType.New |> arrayType
     | first :: itemTs ->
         let commonBaseTerrs = new List<ErrorCode * string list>()
-
-        let common =
-            findCommonBaseType commonBaseTerrs first itemTs
+        let common = findCommonBaseType commonBaseTerrs first itemTs
 
         if commonBaseTerrs.Count = 0 then
             common |> arrayType
@@ -435,8 +425,7 @@ let private VerifyArrayItem addError (arrType: ResolvedType, arrRange) (indexTyp
     if (not indexType.isInvalid) && (not indexIsInt) && (not indexIsRange)
     then indexRange |> addError (ErrorCode.InvalidArrayItemIndex, [ indexType |> toString ])
 
-    let ressArrType =
-        VerifyNumberedItemAccess addError (arrType, arrRange)
+    let ressArrType = VerifyNumberedItemAccess addError (arrType, arrRange)
 
     match ressArrType.Resolution with
     | ArrayType baseType when indexIsInt -> baseType
@@ -467,8 +456,7 @@ let private VerifyFunctorApplication functor errCode addError (ex: ResolvedType,
 /// adding an InvalidAdjointApplication error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// Returns the type of the functor application expression.
-let private VerifyAdjointApplication =
-    VerifyFunctorApplication Adjoint (ErrorCode.InvalidAdjointApplication, [])
+let private VerifyAdjointApplication = VerifyFunctorApplication Adjoint (ErrorCode.InvalidAdjointApplication, [])
 
 /// Verifies that the Controlled functor can be applied to an expression of the given type,
 /// adding an InvalidControlledApplication error with the given range using addError otherwise.
@@ -510,11 +498,8 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
         |> QsNullable<_>
             .Map(fun args -> args.ToImmutableArray())
 
-    let resId, typeParams =
-        symbols.ResolveIdentifier addDiagnostic sym
-
-    let identifier, info =
-        Identifier(resId.VariableName, resolvedTargs), resId.InferredInformation
+    let resId, typeParams = symbols.ResolveIdentifier addDiagnostic sym
+    let identifier, info = Identifier(resId.VariableName, resolvedTargs), resId.InferredInformation
 
     // resolve type parameters (if any) with the given type arguments
     // Note: type parameterized objects are never mutable - remember they are not the same as an identifier containing a template...!
@@ -552,8 +537,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
                 | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
                 | ValidName tpName -> Some((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
 
-        let typeParamLookUp =
-            resolutions.ToImmutableDictionary(fst, snd)
+        let typeParamLookUp = resolutions.ToImmutableDictionary(fst, snd)
 
         let exInfo =
             InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
@@ -670,13 +654,8 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
 
     let buildType (tItems: ResolvedType option list) =
         let remaining = tItems |> List.choose id
-
-        let containsInvalid =
-            remaining |> List.exists (fun x -> x.isInvalid)
-
-        let containsMissing =
-            remaining |> List.exists (fun x -> x.isMissing)
-
+        let containsInvalid = remaining |> List.exists (fun x -> x.isInvalid)
+        let containsMissing = remaining |> List.exists (fun x -> x.isMissing)
         QsCompilerError.Verify(not containsMissing, "missing type in remaining input type")
 
         if containsInvalid then
@@ -688,9 +667,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
             | [ t ] -> Some t
             | _ -> TupleType(remaining.ToImmutableArray()) |> ResolvedType.New |> Some
 
-    let lookUp =
-        new List<(QsQualifiedName * string) * (ResolvedType * Range)>()
-
+    let lookUp = new List<(QsQualifiedName * string) * (ResolvedType * Range)>()
     let addTpResolution range (tp, exT) = lookUp.Add(tp, (exT, range))
 
     let rec recur (targetT: ResolvedType, argEx: QsExpression) =
@@ -823,8 +800,7 @@ let private VerifyCallExpr buildCallableType
                         let typeParam =
                             QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
 
-                        let conflicting =
-                            entry |> Seq.filter (fun (t, _) -> typeParam = StripPositionInfo.Apply t)
+                        let conflicting = entry |> Seq.filter (fun (t, _) -> typeParam = StripPositionInfo.Apply t)
 
                         for (_, r) in conflicting do
                             r
@@ -832,13 +808,10 @@ let private VerifyCallExpr buildCallableType
 
                         typeParam
 
-        let tpResolutions =
-            lookUp |> Seq.map (fun entry -> entry.Key, findResolution entry)
-
+        let tpResolutions = lookUp |> Seq.map (fun entry -> entry.Key, findResolution entry)
         tpResolutions.ToImmutableDictionary(fst, snd)
 
-    let remaining, lookUp =
-        (arg, getType) |> IsValidArgument addError expectedArgType
+    let remaining, lookUp = (arg, getType) |> IsValidArgument addError expectedArgType
 
     getTypeParameterResolutions lookUp,
     remaining
@@ -859,8 +832,7 @@ let internal IsTypeParamRecursion (parent, definedTypeParams: ImmutableArray<_>)
 
     ex
     |> Option.exists (fun kind ->
-        let typedEx =
-            AutoGeneratedExpression kind InvalidType false // the expression type is irrelevant
+        let typedEx = AutoGeneratedExpression kind InvalidType false // the expression type is irrelevant
 
         let nonCallSubexpressions =
             typedEx.Extract(function
@@ -880,14 +852,12 @@ let internal IsTypeParamRecursion (parent, definedTypeParams: ImmutableArray<_>)
 /// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
 let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchErr addError (rhsType, rhsEx, rhsRange) =
     // we need to check if the right hand side contains a type parametrized version of the parent callable
-    let directRecursion =
-        IsTypeParamRecursion (parent, definedTypeParams) rhsEx
+    let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx
 
     if directRecursion
     then rhsRange |> addError (ErrorCode.InvalidUseOfTypeParameterizedObject, [])
     // we need to check if all type parameters are consistently resolved
-    let tpResolutions =
-        new List<(QsQualifiedName * string) * ResolvedType>()
+    let tpResolutions = new List<(QsQualifiedName * string) * ResolvedType>()
 
     let addTpResolution (key, exT) =
         // we can ignoring external type parameters,
@@ -895,8 +865,7 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
         // and for a return statement the expected return type cannot contain external type parameters by construction
         if fst key = parent then tpResolutions.Add(key, exT)
 
-    let errCodes =
-        TypeMatchArgument addTpResolution expectedType rhsType
+    let errCodes = TypeMatchArgument addTpResolution expectedType rhsType
 
     if errCodes.Length <> 0 then
         rhsRange
@@ -1024,8 +993,7 @@ type QsExpression with
         /// If the ValueTuple contains only one item, the item is returned instead (i.e. arity-1 tuple expressions are stripped).
         /// Throws an ArgumentException if the given items do not at least contain one element.
         let buildTuple (items: ImmutableArray<_>) =
-            let resolvedItems =
-                (items.Select InnerExpression).ToImmutableArray()
+            let resolvedItems = (items.Select InnerExpression).ToImmutableArray()
 
             let resolvedTypes =
                 (resolvedItems |> Seq.map (fun x -> x.ResolvedType))
@@ -1048,13 +1016,8 @@ type QsExpression with
             let resolvedEx = InnerExpression ex
             VerifyIsInteger addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
             let resolvedBase = symbols.ResolveType addDiagnostic bType
-
-            let arrType =
-                resolvedBase |> StripPositionInfo.Apply |> ArrayType |> ResolvedType.New
-
-            let quantumDep =
-                resolvedEx.InferredInformation.HasLocalQuantumDependency
-
+            let arrType = resolvedBase |> StripPositionInfo.Apply |> ArrayType |> ResolvedType.New
+            let quantumDep = resolvedEx.InferredInformation.HasLocalQuantumDependency
             (NewArray(resolvedBase, resolvedEx), arrType, quantumDep, this.Range) |> ExprWithoutTypeArgs false
 
         /// Resolves and verifies all given items of a value array literal, and returns the corresponding ValueArray as typed expression.
@@ -1069,8 +1032,7 @@ type QsExpression with
                 |> List.map snd
                 |> fun vals -> VerifyValueArray symbols.Parent addError (vals, this.RangeOrDefault)
 
-            let resolvedValues =
-                (positioned |> List.map fst).ToImmutableArray()
+            let resolvedValues = (positioned |> List.map fst).ToImmutableArray()
 
             let localQdependency =
                 resolvedValues |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)
@@ -1122,9 +1084,7 @@ type QsExpression with
             let exType =
                 VerifyUdtWith (symbols.GetItemType itemName) addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
 
-            let localQdependency =
-                resolvedEx.InferredInformation.HasLocalQuantumDependency
-
+            let localQdependency = resolvedEx.InferredInformation.HasLocalQuantumDependency
             (NamedItem(resolvedEx, itemName), exType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
         /// Resolves and verifies the given left hand side, access expression, and right hand side of a copy-and-update expression,
@@ -1141,8 +1101,7 @@ type QsExpression with
                 (CopyAndUpdate(resLhs, resAccEx, resRhs), resLhs.ResolvedType, localQdependency, this.Range)
                 |> ExprWithoutTypeArgs false
 
-            let parent =
-                symbols.Parent, symbols.DefinedTypeParameters
+            let parent = symbols.Parent, symbols.DefinedTypeParameters
 
             match (resLhs.ResolvedType.Resolution, accEx.Expression) with
             | UserDefinedType _, Identifier (sym, Null) ->
@@ -1169,8 +1128,7 @@ type QsExpression with
             | _ -> // by default, assume that the update expression is supposed to be for an array
                 match resolveSlicing resLhs accEx with
                 | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
-                    let expectedRhs =
-                        VerifyNumberedItemAccess addError (resLhs.ResolvedType, lhs.RangeOrDefault)
+                    let expectedRhs = VerifyNumberedItemAccess addError (resLhs.ResolvedType, lhs.RangeOrDefault)
 
                     VerifyAssignment
                         expectedRhs
@@ -1209,8 +1167,7 @@ type QsExpression with
                 lhs.Expression
                 |> function
                 | RangeLiteral (rStart, rStep) ->
-                    let (resStart, resStep) =
-                        (InnerExpression rStart, InnerExpression rStep)
+                    let (resStart, resStep) = (InnerExpression rStart, InnerExpression rStep)
 
                     VerifyAreIntegers
                         addError
@@ -1240,9 +1197,7 @@ type QsExpression with
         /// and returns the corresponding expression built with buildExprKind as typed expression.
         let verifyAndBuildWith buildExprKind verify (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-
-            let exType =
-                verify addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
+            let exType = verify addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
 
             (buildExprKind resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -1250,8 +1205,7 @@ type QsExpression with
         /// Resolves and verifies the given left hand side and right hand side of an arithmetic operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression.
         let buildArithmeticOp buildExprKind (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
             let resolvedType =
                 VerifyArithmeticOp
@@ -1273,8 +1227,7 @@ type QsExpression with
         /// If the resolved type of the given lhs supports concatenation, then the verification is done for a concatenation expression,
         /// and otherwise it is done for an arithmetic expression.
         let buildAddition (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
             let resolvedType =
                 // Note: this relies on the lhs supporting concatenation if and only if all of its base types do,
@@ -1304,8 +1257,7 @@ type QsExpression with
         /// Note: POW can take two integers or two doubles, in which case the result is a double, or it can take a big
         /// integer and an integer, in which case the result is a big integer.
         let buildPower (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
             let resolvedType =
                 if resolvedLhs.ResolvedType.Resolution = BigInt then
@@ -1328,8 +1280,7 @@ type QsExpression with
         /// Resolves and verifies the given left hand side and right hand side of a binary integral operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Int or BigInt, as appropriate.
         let buildIntegralOp buildExprKind (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
             let resolvedType =
                 VerifyIntegralOp
@@ -1348,12 +1299,8 @@ type QsExpression with
         /// Resolves and verifies the given left hand side and right hand side of a shift operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Int or BigInt, as appropriate.
         let buildShiftOp buildExprKind (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
-
-            let resolvedType =
-                VerifyIsIntegral addError (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
-
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
+            let resolvedType = VerifyIsIntegral addError (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
             VerifyIsInteger addError (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
             let localQdependency =
@@ -1366,8 +1313,7 @@ type QsExpression with
         /// Resolves and verifies the given left hand side and right hand side of a binary boolean operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Bool.
         let buildBooleanOpWith verify shortCircuits buildExprKind (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) =
-                (InnerExpression lhs, InnerExpression rhs)
+            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
             if shortCircuits
             then VerifyConditionalExecution addWarning (resolvedRhs, rhs.RangeOrDefault)
@@ -1387,9 +1333,7 @@ type QsExpression with
         /// Resolves and verifies the given condition, left hand side, and right hand side of a conditional expression (if-else-shorthand),
         /// and returns the corresponding conditional expression as typed expression.
         let buildConditional (cond: QsExpression, ifTrue: QsExpression, ifFalse: QsExpression) =
-            let resCond, resIsTrue, resIsFalse =
-                InnerExpression cond, InnerExpression ifTrue, InnerExpression ifFalse
-
+            let resCond, resIsTrue, resIsFalse = InnerExpression cond, InnerExpression ifTrue, InnerExpression ifFalse
             VerifyConditionalExecution addWarning (resIsTrue, ifTrue.RangeOrDefault)
             VerifyConditionalExecution addWarning (resIsFalse, ifFalse.RangeOrDefault)
             VerifyIsBoolean addError (resCond.ResolvedType, cond.RangeOrDefault)
@@ -1432,18 +1376,14 @@ type QsExpression with
             let getType (ex: QsExpression) =
                 (ex.Resolve context (fun _ -> ())).ResolvedType
 
-            let (resolvedMethod, resolvedArg) =
-                (InnerExpression method, InnerExpression arg)
+            let (resolvedMethod, resolvedArg) = (InnerExpression method, InnerExpression arg)
 
             let locQdepClassicalEx =
                 resolvedMethod.InferredInformation.HasLocalQuantumDependency
                 || resolvedArg.InferredInformation.HasLocalQuantumDependency
 
-            let originalExKind =
-                CallLikeExpression(resolvedMethod, resolvedArg)
-
-            let invalidEx =
-                (originalExKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
+            let originalExKind = CallLikeExpression(resolvedMethod, resolvedArg)
+            let invalidEx = (originalExKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
 
             let isDirectRecursion, tArgs =
                 resolvedMethod.Expression
@@ -1461,8 +1401,7 @@ type QsExpression with
                         (expectedArgT, expectedResT)
                         (arg, getType)
 
-                let requiresTypeArgumentResolution =
-                    isDirectRecursion && symbols.DefinedTypeParameters.Length <> 0
+                let requiresTypeArgumentResolution = isDirectRecursion && symbols.DefinedTypeParameters.Length <> 0
 
                 if not requiresTypeArgumentResolution then
                     typeParamResolutions, exType, originalExKind
@@ -1500,16 +1439,14 @@ type QsExpression with
                         |> Seq.map KeyValuePair.Create
                         |> ImmutableDictionary.CreateRange
 
-                    let methodTypeArgs =
-                        tArgs |> Seq.map snd |> ImmutableArray.CreateRange |> Value
+                    let methodTypeArgs = tArgs |> Seq.map snd |> ImmutableArray.CreateRange |> Value
 
                     let typeParamRes =
                         typeParamResolutions
                         |> Seq.filter (fun kv -> fst kv.Key <> symbols.Parent)
                         |> ImmutableDictionary.CreateRange
 
-                    let methodExprKind =
-                        Identifier(GlobalCallable symbols.Parent, methodTypeArgs)
+                    let methodExprKind = Identifier(GlobalCallable symbols.Parent, methodTypeArgs)
 
                     let methodExpr =
                         TypedExpression.New
@@ -1524,8 +1461,7 @@ type QsExpression with
             match resolvedMethod.ResolvedType.Resolution with
             | QsTypeKind.InvalidType -> invalidEx
             | QsTypeKind.Function (argT, resT) ->
-                let typeParamResolutions, exType, exprKind =
-                    (argT, resT) |> callTypeOrPartial QsTypeKind.Function
+                let typeParamResolutions, exType, exprKind = (argT, resT) |> callTypeOrPartial QsTypeKind.Function
 
                 let exInfo =
                     InferredExpressionInformation.New(isMutable = false, quantumDep = locQdepClassicalEx)
@@ -1535,22 +1471,17 @@ type QsExpression with
                 let typeParamResolutions, exType, exprKind =
                     (argT, resT) |> callTypeOrPartial (fun (i, o) -> QsTypeKind.Operation((i, o), characteristics))
 
-                let isPartialApplication =
-                    TypedExpression.IsPartialApplication exprKind
+                let isPartialApplication = TypedExpression.IsPartialApplication exprKind
 
                 if not (isPartialApplication || characteristics.Characteristics.AreInvalid) then // check that the functors necessary for auto-generation are supported
-                    let functors =
-                        characteristics.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
-
-                    let missing =
-                        missingFunctors (symbols.RequiredFunctorSupport, Some functors)
+                    let functors = characteristics.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
+                    let missing = missingFunctors (symbols.RequiredFunctorSupport, Some functors)
 
                     if missing.Length <> 0 then
                         method.RangeOrDefault
                         |> addError (ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ])
 
-                let localQDependency =
-                    if isPartialApplication then locQdepClassicalEx else true
+                let localQDependency = if isPartialApplication then locQdepClassicalEx else true
 
                 let exInfo =
                     InferredExpressionInformation.New(isMutable = false, quantumDep = localQDependency)
