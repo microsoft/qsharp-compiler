@@ -100,16 +100,17 @@ module DeclarationHeader =
 /// </summary>
 [<CLIMutable>]
 [<DataContract>]
-type private TypeDeclarationHeaderSchema =
-    { [<DataMember>] QualifiedName : QsQualifiedName
-      [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
-      [<DataMember>] Modifiers : Modifiers
-      [<DataMember>] SourceFile : string
-      [<DataMember>] Position : DeclarationHeader.Offset
-      [<DataMember>] SymbolRange : DeclarationHeader.Range
-      [<DataMember>] Type : ResolvedType
-      [<DataMember>] TypeItems : QsTuple<QsTypeItem>
-      [<DataMember>] Documentation : ImmutableArray<string> }
+type private TypeDeclarationHeaderSchema = {
+    [<DataMember>] QualifiedName : QsQualifiedName
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] Modifiers : Modifiers
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Position : DeclarationHeader.Offset
+    [<DataMember>] SymbolRange : DeclarationHeader.Range
+    [<DataMember>] Type : ResolvedType
+    [<DataMember>] TypeItems : QsTuple<QsTypeItem>
+    [<DataMember>] Documentation : ImmutableArray<string>
+}
 
 /// to be removed in future releases
 type TypeDeclarationHeader = {
@@ -184,17 +185,18 @@ type TypeDeclarationHeader = {
 /// </summary>
 [<CLIMutable>]
 [<DataContract>]
-type private CallableDeclarationHeaderSchema =
-    { [<DataMember>] Kind : QsCallableKind
-      [<DataMember>] QualifiedName : QsQualifiedName
-      [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
-      [<DataMember>] Modifiers : Modifiers
-      [<DataMember>] SourceFile : string
-      [<DataMember>] Position : DeclarationHeader.Offset
-      [<DataMember>] SymbolRange : DeclarationHeader.Range
-      [<DataMember>] ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-      [<DataMember>] Signature : ResolvedSignature
-      [<DataMember>] Documentation : ImmutableArray<string> }
+type private CallableDeclarationHeaderSchema = {
+    [<DataMember>] Kind : QsCallableKind
+    [<DataMember>] QualifiedName : QsQualifiedName
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] Modifiers : Modifiers
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Position : DeclarationHeader.Offset
+    [<DataMember>] SymbolRange : DeclarationHeader.Range
+    [<DataMember>] ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+    [<DataMember>] Signature : ResolvedSignature
+    [<DataMember>] Documentation : ImmutableArray<string>
+}
 
 /// to be removed in future releases
 type CallableDeclarationHeader = { 
@@ -281,16 +283,17 @@ type CallableDeclarationHeader = {
 /// </summary>
 [<CLIMutable>]
 [<DataContract>]
-type private SpecializationDeclarationHeaderSchema =
-    { [<DataMember>] Kind : QsSpecializationKind
-      [<DataMember>] TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
-      [<DataMember>] Information : CallableInformation
-      [<DataMember>] Parent : QsQualifiedName    
-      [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
-      [<DataMember>] SourceFile : string
-      [<DataMember>] Position : DeclarationHeader.Offset
-      [<DataMember>] HeaderRange : DeclarationHeader.Range
-      [<DataMember>] Documentation : ImmutableArray<string> }
+type private SpecializationDeclarationHeaderSchema = {
+    [<DataMember>] Kind : QsSpecializationKind
+    [<DataMember>] TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
+    [<DataMember>] Information : CallableInformation
+    [<DataMember>] Parent : QsQualifiedName    
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Position : DeclarationHeader.Offset
+    [<DataMember>] HeaderRange : DeclarationHeader.Range
+    [<DataMember>] Documentation : ImmutableArray<string>
+}
 
 /// to be removed in future releases
 type SpecializationDeclarationHeader = {

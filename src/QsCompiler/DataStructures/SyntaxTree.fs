@@ -7,6 +7,7 @@ open System
 open System.Collections.Immutable
 open System.Linq
 open System.Runtime.InteropServices
+open System.Runtime.Serialization
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -657,17 +658,19 @@ type SpecializationImplementation =
 /// <summary>
 /// The schema for <see cref="QsSpecialization"/> that is used with JSON serialization.
 /// </summary>
+[<CLIMutable>]
+[<DataContract>]
 type internal QsSpecializationSchema = {
-    Kind : QsSpecializationKind
-    Parent : QsQualifiedName
-    Attributes : ImmutableArray<QsDeclarationAttribute>
-    SourceFile : string
-    Location : QsNullable<QsLocation>
-    TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
-    Signature : ResolvedSignature
-    Implementation : SpecializationImplementation
-    Documentation : ImmutableArray<string>
-    Comments : QsComments
+    [<DataMember>] Kind : QsSpecializationKind
+    [<DataMember>] Parent : QsQualifiedName
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Location : QsNullable<QsLocation>
+    [<DataMember>] TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
+    [<DataMember>] Signature : ResolvedSignature
+    [<DataMember>] Implementation : SpecializationImplementation
+    [<DataMember>] Documentation : ImmutableArray<string>
+    [<DataMember>] Comments : QsComments
 }
 
 /// For each callable various specialization exist describing how it acts
@@ -712,18 +715,20 @@ type QsSpecialization = {
 /// <summary>
 /// The schema for <see cref="QsCallable"/> that is used with JSON serialization.
 /// </summary>
+[<CLIMutable>]
+[<DataContract>]
 type internal QsCallableSchema = {
-    Kind : QsCallableKind
-    FullName : QsQualifiedName
-    Attributes : ImmutableArray<QsDeclarationAttribute>
-    Modifiers : Modifiers
-    SourceFile : string
-    Location : QsNullable<QsLocation>
-    Signature : ResolvedSignature
-    ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-    Specializations : ImmutableArray<QsSpecialization>
-    Documentation : ImmutableArray<string>
-    Comments : QsComments
+    [<DataMember>] Kind : QsCallableKind
+    [<DataMember>] FullName : QsQualifiedName
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] Modifiers : Modifiers
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Location : QsNullable<QsLocation>
+    [<DataMember>] Signature : ResolvedSignature
+    [<DataMember>] ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+    [<DataMember>] Specializations : ImmutableArray<QsSpecialization>
+    [<DataMember>] Documentation : ImmutableArray<string>
+    [<DataMember>] Comments : QsComments
 }
 
 /// describes a Q# function, operation, or type constructor
@@ -777,16 +782,18 @@ type QsTypeItem =
 /// <summary>
 /// The schema for <see cref="QsCustomType"/> that is used with JSON serialization.
 /// </summary>
+[<CLIMutable>]
+[<DataContract>]
 type internal QsCustomTypeSchema = {
-    FullName : QsQualifiedName
-    Attributes : ImmutableArray<QsDeclarationAttribute>
-    Modifiers : Modifiers
-    SourceFile : string
-    Location : QsNullable<QsLocation>
-    Type : ResolvedType
-    TypeItems : QsTuple<QsTypeItem>
-    Documentation : ImmutableArray<string>
-    Comments : QsComments
+    [<DataMember>] FullName : QsQualifiedName
+    [<DataMember>] Attributes : ImmutableArray<QsDeclarationAttribute>
+    [<DataMember>] Modifiers : Modifiers
+    [<DataMember>] SourceFile : string
+    [<DataMember>] Location : QsNullable<QsLocation>
+    [<DataMember>] Type : ResolvedType
+    [<DataMember>] TypeItems : QsTuple<QsTypeItem>
+    [<DataMember>] Documentation : ImmutableArray<string>
+    [<DataMember>] Comments : QsComments
 }
 
 /// describes a Q# user defined type
