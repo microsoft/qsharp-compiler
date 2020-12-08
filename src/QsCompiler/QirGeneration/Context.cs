@@ -818,7 +818,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Generates the declaration for a QIR function to the current module.
+        /// Adds the declaration for a QIR function to the current module.
         /// Usually <see cref="GenerateFunctionHeader"/> is used, which generates the start of the actual definition.
         /// This method is primarily useful for Q# specializations with external or intrinsic implementations, which get
         /// generated as declarations with no definition.
@@ -858,7 +858,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
+        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple) // UDT FAILING HERE - UNRELATED TO WRAPPER GEN
         {
             IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
             {
@@ -882,7 +882,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
+            this.CurrentFunction = this.RegisterFunction(spec, argTuple); // FIXME: CURRENT FUNCTION HERE IS NULL
+            if (this.CurrentFunction == null)
+            {
+                throw new Exception("null here");
+            }
+
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
@@ -1015,7 +1020,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// If a wrapper for the given callable already exists, returns the corresponding global variable.
         /// If no such wrapper exists, queues the generation of the wrapper and returns the corresponding global variable.
         /// </summary>
-        internal GlobalVariable GetWrapperName(QsCallable callable)
+        internal GlobalVariable GetOrCreateWrapper(QsCallable callable)
         {
             var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
             if (this.wrapperQueue.TryGetValue(key, out (QsCallable, GlobalVariable) item))
@@ -1029,11 +1034,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 for (var index = 0; index < 4; index++)
                 {
                     QsSpecializationKind kind = FunctionArray[index];
-                    if (callable.Specializations.Any(spec => spec.Kind == kind && spec.Implementation.IsProvided))
+                    if (callable.Specializations.Any(spec => spec.Kind == kind &&
+                        (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)))
                     {
                         var f = this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature);
                         funcs[index] = f;
                     }
+                    //else if (callable.IsIntrinsic)
+                    //{
+                    //    if (!this.TryGetWrapper(callable, kind, out var wrapper))
+                    //    {
+                    //        throw new InvalidOperationException("wrapper not found");
+                    //    }
+                    //    funcs[index] = Constant.NullValueFor(wrapper.NativeType);
+                    //
+                    //    //var nativeType = SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var att && att.IsValue
+                    //    //    ? this.quantumInstructionSet.GetOrCreateFunction(att.Item).NativeType
+                    //    //    : throw new InvalidOperationException("intrinsic callable without a target instruction attribute"); // TODO: PUT INTO PRECONDITION
+                    //    //funcs[index] = Constant.NullValueFor(nativeType);
+                    //}
                     else
                     {
                         funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
@@ -1132,7 +1151,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value resultTuplePointer, int item)
             {
-                var resultTupleTypeRef = this.LlvmStructTypeFromQsharpType(resultType);
+                var resultTupleType = this.LlvmStructTypeFromQsharpType(resultType);
                 if (resultType.Resolution is QsResolvedTypeKind.TupleType tupleType)
                 {
                     // Here we'll step through and recurse
@@ -1140,16 +1159,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // Start with 1 because the 0 element of the LLVM structures is the tuple header
                     for (int i = 1; i <= itemCount; i++)
                     {
-                        // TODO: complete the implementation
+                        // TODO: COMPLETE THE IMPLEMENTATION
                     }
                 }
                 else if (!resultType.Resolution.IsUnitType)
                 {
-                    Value structPointer = this.CurrentBuilder.BitCast(resultTuplePointer, resultTupleTypeRef.CreatePointerType());
+                    Value outputTuple = this.CurrentBuilder.BitCast(resultTuplePointer, resultTupleType.CreatePointerType());
                     Value resultPointer = this.CurrentBuilder.GetElementPtr(
-                        resultTupleTypeRef,
-                        structPointer,
+                        resultTupleType,
+                        outputTuple,
                         new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(item) });
+
+                    // TODO: MAKE A COMMON HELPER FUNCTION FOR UDT UNWRAPPING...
+                    // if the returned value is a udt with a single item then we need to unwrap it first
+                    if (resultType.Resolution is QsResolvedTypeKind.UserDefinedType udt
+                        && this.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
+                        && !udtDecl.Type.Resolution.IsTupleType)
+                    {
+                        var tuplePointer = this.CurrentBuilder.BitCast(resultValue, resultTupleType.CreatePointerType());
+                        var itemType = this.LlvmTypeFromQsharpType(udtDecl.Type);
+                        var itemPointer = this.CurrentBuilder.GetElementPtr(
+                             resultTupleType,
+                             tuplePointer,
+                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(1) });
+                        resultValue = this.CurrentBuilder.Load(itemType, itemPointer);
+                    }
+
                     this.CurrentBuilder.Store(resultValue, resultPointer);
                 }
             }
@@ -1190,7 +1225,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var callable = kvp.Value.Item1;
                 foreach (var spec in callable.Specializations)
                 {
-                    if (spec.Implementation.IsProvided && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
+                    if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
+                        && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
                     {
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
                         var argList = GenerateArgTupleDecomposition(callable.ArgumentTuple, argTupleValue, spec.Kind);

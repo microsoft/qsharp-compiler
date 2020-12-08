@@ -11,6 +11,11 @@ namespace Microsoft.Quantum.Testing.QIR
         body intrinsic;
 	}
 
+    @TargetInstruction("choose")
+    operation _Choose(q1 : Qubit, (q2 : Qubit, q3 : Qubit)) : Unit {
+        body intrinsic;
+	}
+
     operation Apply(op : (Qubit => Unit)) : Unit {
         using (q = Qubit()) {
             H(q);
@@ -19,10 +24,12 @@ namespace Microsoft.Quantum.Testing.QIR
     }
 
     @EntryPoint()
-    operation TestUdtArgument () : Unit {
+    operation TestOpArgument () : Unit {
         using (q = Qubit()) {
             Apply(CNOT(_, q)); 
             Apply(_SWAP(_, q));
+            // Apply(_Choose(q, (_, q))); FIXME: THIS DOESN'T WORK BECAUSE PARTIAL APPLICATION ARGS MAPPING IS WRONG
+            // Apply(_Choose(_,(q,q)));     SAME HERE
         }
     }
 }

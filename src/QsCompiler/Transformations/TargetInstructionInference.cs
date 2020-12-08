@@ -129,12 +129,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                             QsQualifiedName GeneratedName(QsSpecializationKind kind)
                             {
                                 var suffix =
-                                    kind.IsQsBody ? "Body" :
+                                    kind.IsQsBody ? "" :
                                     kind.IsQsAdjoint ? "Adj" :
                                     kind.IsQsControlled ? "Ctl" :
                                     kind.IsQsControlledAdjoint ? "CtlAdj" :
                                     kind.ToString();
-                                return new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}__{suffix}");
+                                return new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}{suffix}__");
                             }
 
                             var specializations = callable.Specializations.Select(spec =>

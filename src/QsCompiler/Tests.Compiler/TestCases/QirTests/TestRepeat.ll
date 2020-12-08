@@ -5,10 +5,10 @@ entry:
   br label %repeat__1
 
 repeat__1:                                        ; preds = %continue__1, %entry
-  call void @__quantum__qis__t__body(%Qubit* %q)
-  call void @__quantum__qis__x__body(%Qubit* %q)
-  call void @__quantum__qis__t__adj(%Qubit* %q)
-  call void @__quantum__qis__h__body(%Qubit* %q)
+  call void @__quantum__qis__t__(%Qubit* %q)
+  call void @__quantum__qis__x__(%Qubit* %q)
+  call void @__quantum__qis__tadj__(%Qubit* %q)
+  call void @__quantum__qis__h__(%Qubit* %q)
   br label %until__1
 
 until__1:                                         ; preds = %repeat__1

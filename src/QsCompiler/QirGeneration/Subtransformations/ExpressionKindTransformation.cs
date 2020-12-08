@@ -142,15 +142,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Processes an expression and leave its Value on top of the shared value stack.
-        /// </summary>
-        /// <param name="ex">The expression to process</param>
-        private void ProcessSubexpression(TypedExpression ex)
-        {
-            this.Transformation.Expressions.OnTypedExpression(ex);
-        }
-
-        /// <summary>
         /// Processes an expression and returns its Value.
         /// </summary>
         /// <param name="ex">The expression to process</param>
@@ -307,8 +298,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private Value GetWritableCopy(TypedExpression ex, InstructionBuilder? b = null)
         {
             // Evaluating the input always happens on the current builder
-            this.Transformation.Expressions.OnTypedExpression(ex);
-            var item = this.SharedState.ValueStack.Pop();
+            var item = this.ProcessAndEvaluateSubexpression(ex);
+
             InstructionBuilder builder = b ?? this.SharedState.CurrentBuilder;
             if (this.ItemRequiresCopying(ex))
             {
@@ -357,8 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new ArgumentException("expecting non-tuple value");
                 }
-                this.Transformation.Expressions.OnTypedExpression(fillExpr);
-                var fillValue = this.SharedState.ValueStack.Pop();
+                var fillValue = this.ProcessAndEvaluateSubexpression(fillExpr);
                 FillStructSlot(structType, pointerToStruct, fillValue, position);
             }
 
@@ -431,8 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (destination is QsArgumentTuple.QsTupleItem arg && arg.Item.VariableName is QsLocalSymbol.ValidName varName)
                 {
-                    this.Transformation.Expressions.OnTypedExpression(source);
-                    var value = this.SharedState.ValueStack.Pop();
+                    var value = this.ProcessAndEvaluateSubexpression(source);
                     assignmentQueue.Add((varName.Item, value));
                 }
             }
@@ -447,14 +436,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private void BuildPartialApplication(TypedExpression method, TypedExpression arg)
         {
+            // FIXME: I SUSPECT THIS ONE IS WRONG HERE
             RebuildItem BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<(Value, ResolvedType)> capturedValues)
             {
                 // We need argType because _'s -- missing expressions -- have MissingType, rather than the actual type.
                 if (arg.Expression.IsMissingExpr)
                 {
-                    var rebuild = new InnerArg(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(argType), remainingArgs.Count + 1);
                     remainingArgs.Add(argType);
-                    return rebuild;
+                    return new InnerArg(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(argType), remainingArgs.Count);
                 }
                 else if (arg.Expression is ResolvedExpression.ValueTuple tuple
                     && argType.Resolution is QsResolvedTypeKind.TupleType types)
@@ -466,12 +455,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    // A value we should capture; remember that the first element in the capture tuple is the inner
-                    // callable
-                    var rebuild = new InnerCapture(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(arg.ResolvedType), capturedValues.Count + 2);
+                    // A value we should capture; remember that the first element in the capture tuple is the inner callable
                     var val = this.ProcessAndEvaluateSubexpression(arg);
                     capturedValues.Add((val, argType));
-                    return rebuild;
+                    return new InnerCapture(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(arg.ResolvedType), capturedValues.Count + 1);
                 }
             }
 
@@ -754,10 +741,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnAddition(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -890,10 +875,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnBitwiseAnd(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
+
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
@@ -914,10 +898,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnBitwiseExclusiveOr(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
+
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(lhsValue, rhsValue));
@@ -938,8 +921,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnBitwiseNot(TypedExpression ex)
         {
-            this.ProcessSubexpression(ex);
-            Value exValue = this.SharedState.ValueStack.Pop();
+            Value exValue = this.ProcessAndEvaluateSubexpression(ex);
 
             if (ex.ResolvedType.Resolution.IsInt)
             {
@@ -963,10 +945,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnBitwiseOr(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1407,10 +1387,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnDivision(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
+
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.SDiv(lhsValue, rhsValue));
@@ -1440,11 +1419,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnEquality(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             // The code we generate here is highly dependent on the type of the expression
             if (lhs.ResolvedType.Resolution.IsResult)
@@ -1488,11 +1464,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnExponentiate(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1523,11 +1496,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnGreaterThan(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1554,11 +1524,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnGreaterThanOrEqual(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1594,7 +1561,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {
-                    var wrapper = this.SharedState.GetWrapperName(callable);
+                    var wrapper = this.SharedState.GetOrCreateWrapper(callable);
                     var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                     var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
 
@@ -1622,11 +1589,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnInequality(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             // The code we generate here is highly dependent on the type of the expression
             if (lhs.ResolvedType.Resolution.IsResult)
@@ -1682,10 +1646,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnLeftShift(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
+
             if (lhs.ResolvedType.Resolution.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.ShiftLeft(lhsValue, rhsValue));
@@ -1704,11 +1667,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnLessThan(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1736,11 +1696,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnLessThanOrEqual(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1768,11 +1725,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnLogicalAnd(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsBool)
             {
@@ -1789,8 +1743,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnLogicalNot(TypedExpression ex)
         {
             // Get the Value for the expression
-            this.ProcessSubexpression(ex);
-            Value exValue = this.SharedState.ValueStack.Pop();
+            Value exValue = this.ProcessAndEvaluateSubexpression(ex);
 
             if (ex.ResolvedType.Resolution.IsBool)
             {
@@ -1806,11 +1759,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnLogicalOr(TypedExpression lhs, TypedExpression rhs)
         {
-            // Get the Value for the lhs and rhs
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsBool)
             {
@@ -1826,10 +1776,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnModulo(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1850,10 +1798,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnMultiplication(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -1969,8 +1915,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnNegative(TypedExpression ex)
         {
-            this.ProcessSubexpression(ex);
-            Value exValue = this.SharedState.ValueStack.Pop();
+            Value exValue = this.ProcessAndEvaluateSubexpression(ex);
 
             if (ex.ResolvedType.Resolution.IsInt)
             {
@@ -1997,9 +1942,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // TODO: new multi-dimensional arrays
             var elementSize = this.ComputeSizeForType(elementType);
-
-            this.ProcessSubexpression(idx);
-            var length = this.SharedState.ValueStack.Pop();
+            var length = this.ProcessAndEvaluateSubexpression(idx);
 
             var createFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
             var array = this.SharedState.CurrentBuilder.Call(createFunc, this.SharedState.Context.CreateConstant(elementSize), length);
@@ -2077,10 +2020,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnRightShift(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -2302,10 +2243,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnSubtraction(TypedExpression lhs, TypedExpression rhs)
         {
-            this.ProcessSubexpression(lhs);
-            Value lhsValue = this.SharedState.ValueStack.Pop();
-            this.ProcessSubexpression(rhs);
-            Value rhsValue = this.SharedState.ValueStack.Pop();
+            Value lhsValue = this.ProcessAndEvaluateSubexpression(lhs);
+            Value rhsValue = this.ProcessAndEvaluateSubexpression(rhs);
 
             if (lhs.ResolvedType.Resolution.IsInt)
             {
@@ -2361,8 +2300,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SharedState.Context.CreateConstant(idx));
 
                 // And now fill in the element
-                this.ProcessSubexpression(element);
-                var elementValue = this.SharedState.ValueStack.Pop();
+                var elementValue = this.ProcessAndEvaluateSubexpression(element);
                 var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementPointerTypeRef);
                 this.SharedState.CurrentBuilder.Store(elementValue, elementPointer);
                 idx++;
@@ -2386,12 +2324,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 tuplePointer,
                 ResolvedType.New(QsResolvedTypeKind.NewTupleType(vs.Select(v => v.ResolvedType).ToImmutableArray())));
 
-            // Fill it in, field by field; we want iteri, which is easiest with a simple for loop
+            // Fill it in, field by field
             for (int i = 0; i < vs.Length; i++)
             {
                 var itemValue = this.ProcessAndEvaluateSubexpression(vs[i]);
                 var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
                 this.SharedState.CurrentBuilder.Store(itemValue, itemPointer);
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnUnwrapApplication(TypedExpression ex)
+        {
+            if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt
+                && this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
+                && !udtDecl.Type.Resolution.IsTupleType)
+            {
+                var exValue = this.ProcessAndEvaluateSubexpression(ex);
+                var tupleType = this.SharedState.LlvmStructTypeFromQsharpType(ex.ResolvedType);
+                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(exValue, tupleType.CreatePointerType());
+
+                // we need to access the second item, since the first is the tuple header
+                var itemType = this.SharedState.LlvmTypeFromQsharpType(udtDecl.Type);
+                var itemPointer = this.SharedState.CurrentBuilder.GetElementPtr(
+                     tupleType,
+                     tuplePointer,
+                     new[] { this.SharedState.Context.CreateConstant(0L), this.SharedState.Context.CreateConstant(1) });
+
+                var element = this.SharedState.CurrentBuilder.Load(itemType, itemPointer);
+                this.SharedState.ValueStack.Push(element);
             }
 
             return ResolvedExpression.InvalidExpr;
