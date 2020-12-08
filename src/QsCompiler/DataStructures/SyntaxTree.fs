@@ -591,21 +591,20 @@ and QsStatement = {
 
 type Source =
     { CodePath : string
-      AssemblyPath : string option }
+      AssemblyPath : string QsNullable }
 
 module Source =
     [<CompiledName "AssemblyOrCode">]
-    let assemblyOrCode source = source.AssemblyPath |> Option.defaultValue source.CodePath
+    let assemblyOrCode source = source.AssemblyPath.ValueOr source.CodePath
 
 type Source with
     member source.AssemblyOrCode = Source.assemblyOrCode source
 
-    member source.With
-        ([<Optional; DefaultParameterValue null>] ?codePath,
-         [<Optional; DefaultParameterValue null>] ?assemblyPath) =
+    member source.With([<Optional; DefaultParameterValue null>] ?codePath,
+                       [<Optional; DefaultParameterValue null>] ?assemblyPath) =
         { source with
               CodePath = codePath |> Option.defaultValue source.CodePath
-              AssemblyPath = assemblyPath |> Option.orElse source.AssemblyPath }
+              AssemblyPath = assemblyPath |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyPath }
 
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable

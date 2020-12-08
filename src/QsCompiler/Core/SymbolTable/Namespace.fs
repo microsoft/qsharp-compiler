@@ -171,7 +171,7 @@ type Namespace private
         | false, _ ->
             let referenceType =
                 TypesInReferences.[attName]
-                |> Seq.filter (fun qsType -> qsType.Source.AssemblyPath |> Option.contains source)
+                |> Seq.filter (fun qsType -> qsType.Source.AssemblyPath |> QsNullable.contains source)
                 |> Seq.tryExactlyOne
             match referenceType with
             | Some qsType ->
@@ -288,7 +288,7 @@ type Namespace private
             match partial.TryGetType tName with
             | true, qsType ->
                 if Namespace.IsDeclarationAccessible (true, qsType.Modifiers.Access)
-                then Found ({ CodePath = partial.Source; AssemblyPath = None },
+                then Found ({ CodePath = partial.Source; AssemblyPath = Null },
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
                             qsType.Modifiers.Access)
                 else Inaccessible
@@ -324,7 +324,7 @@ type Namespace private
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
                 if Namespace.IsDeclarationAccessible (true, callable.Modifiers.Access)
-                then Found ({ CodePath = partial.Source; AssemblyPath = None },
+                then Found ({ CodePath = partial.Source; AssemblyPath = Null },
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
                 else Inaccessible
             | false, _ -> NotFound
@@ -495,10 +495,10 @@ type Namespace private
                                | _ -> false
                 | _ -> false
 
-            if Option.isSome declSource.AssemblyPath then
+            if QsNullable.isValue declSource.AssemblyPath then
                 let cDecl =
                     CallablesInReferences.[cName]
-                    |> Seq.filter (fun c -> c.Source.AssemblyPath |> Option.contains source)
+                    |> Seq.filter (fun c -> c.Source.AssemblyPath |> QsNullable.contains source)
                     |> Seq.exactlyOne
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length

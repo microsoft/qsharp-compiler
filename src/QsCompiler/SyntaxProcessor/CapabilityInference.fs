@@ -274,7 +274,7 @@ let private isQsNull = function
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
-let private isDeclaredInSourceFile (callable : QsCallable) = Option.isNone callable.Source.AssemblyPath
+let private isDeclaredInSourceFile (callable : QsCallable) = QsNullable.isNull callable.Source.AssemblyPath
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.

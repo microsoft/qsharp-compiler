@@ -679,7 +679,7 @@ type NamespaceManager
                         Information = gen.Information
                         Parent = parent
                         Attributes = resolution.ResolvedAttributes
-                        Source = { CodePath = source; AssemblyPath = None }
+                        Source = { CodePath = source; AssemblyPath = Null }
                         Position = DeclarationHeader.Offset.Defined resolution.Position
                         HeaderRange = DeclarationHeader.Range.Defined resolution.Range
                         Documentation = resolution.Documentation
@@ -714,7 +714,7 @@ type NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
                         Modifiers = declaration.Modifiers
-                        Source = { CodePath = source; AssemblyPath = None }
+                        Source = { CodePath = source; AssemblyPath = Null }
                         Position = DeclarationHeader.Offset.Defined declaration.Position
                         SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                         Signature = signature
@@ -761,7 +761,7 @@ type NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
                         Modifiers = qsType.Modifiers
-                        Source = { CodePath = source; AssemblyPath = None }
+                        Source = { CodePath = source; AssemblyPath = Null }
                         Position = DeclarationHeader.Offset.Defined qsType.Position
                         SymbolRange = DeclarationHeader.Range.Defined qsType.Range
                         Type = underlyingType
@@ -883,7 +883,7 @@ type NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                Source = { CodePath = source; AssemblyPath = None }
+                Source = { CodePath = source; AssemblyPath = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Signature = resolvedSignature
@@ -973,7 +973,7 @@ type NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                Source = { CodePath = source; AssemblyPath = None }
+                Source = { CodePath = source; AssemblyPath = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Type = underlyingType

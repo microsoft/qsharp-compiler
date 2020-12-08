@@ -61,6 +61,23 @@ module QsNullable =
         | Value a, Value b -> f a b |> Value
         | _ -> Null
 
+    let internal orElse ifNull = function
+        | Null -> ifNull
+        | Value value -> Value value
+
+    [<CompiledName "Contains">]
+    let contains value = function
+        | Null -> false
+        | Value value' -> value = value'
+
+    [<CompiledName "IsNull">]
+    let isNull = function
+        | Null -> true
+        | Value _ -> false
+
+    [<CompiledName "IsValue">]
+    let isValue nullable = isNull nullable |> not
+
 /// A position in a text document.
 type Position = private Position of int * int with
 

@@ -142,7 +142,7 @@ type private QsSpecializationConverter() =
         { Kind = schema.Kind
           Parent = schema.Parent
           Attributes = schema.Attributes
-          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
           Location = schema.Location
           TypeArguments = schema.TypeArguments
           Signature = schema.Signature
@@ -174,7 +174,7 @@ type private QsCallableConverter() =
           FullName = schema.FullName
           Attributes = schema.Attributes
           Modifiers = schema.Modifiers
-          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
           Location = schema.Location
           Signature = schema.Signature
           ArgumentTuple = schema.ArgumentTuple
@@ -206,7 +206,7 @@ type private QsCustomTypeConverter() =
         { FullName = schema.FullName
           Attributes = schema.Attributes
           Modifiers = schema.Modifiers
-          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
           Location = schema.Location
           Type = schema.Type
           TypeItems = schema.TypeItems

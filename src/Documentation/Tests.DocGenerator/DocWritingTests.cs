@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Microsoft.FSharp.Core;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                 new[] { AccessModifier.DefaultAccess, AccessModifier.Internal }
                 .SelectMany(access =>
                 {
-                    var source = new Source("Tests.qs", FSharpOption<string>.None);
+                    var source = new Source("Tests.qs", QsNullable<string>.Null);
                     var unit = ResolvedType.New(QsType.UnitType);
 
                     var signature = new ResolvedSignature(

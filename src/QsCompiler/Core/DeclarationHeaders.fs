@@ -149,7 +149,7 @@ type TypeDeclarationHeader = {
         { QualifiedName = header.QualifiedName
           Attributes = header.Attributes
           Modifiers = header.Modifiers
-          Source = { CodePath = header.SourceFile; AssemblyPath = None }
+          Source = { CodePath = header.SourceFile; AssemblyPath = Null }
           Position = header.Position
           SymbolRange = header.SymbolRange
           Type = header.Type
@@ -238,7 +238,7 @@ type CallableDeclarationHeader = {
           QualifiedName = header.QualifiedName
           Attributes = header.Attributes
           Modifiers = header.Modifiers
-          Source = { CodePath = header.SourceFile; AssemblyPath = None }
+          Source = { CodePath = header.SourceFile; AssemblyPath = Null }
           Position = header.Position
           SymbolRange = header.SymbolRange
           ArgumentTuple = header.ArgumentTuple
@@ -334,7 +334,7 @@ type SpecializationDeclarationHeader = {
           Information = header.Information
           Parent = header.Parent
           Attributes = header.Attributes
-          Source = { CodePath = header.SourceFile; AssemblyPath = None }
+          Source = { CodePath = header.SourceFile; AssemblyPath = Null }
           Position = header.Position
           HeaderRange = header.HeaderRange
           Documentation = header.Documentation }

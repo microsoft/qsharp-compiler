@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
-using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -51,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
-                    syntaxTree.Callables().Where(c => OptionModule.IsNone(c.Source.AssemblyPath)).Select(CallableDeclarationHeader.New),
-                    syntaxTree.Specializations().Where(c => OptionModule.IsNone(c.Source.AssemblyPath)).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
-                    syntaxTree.Types().Where(c => OptionModule.IsNone(c.Source.AssemblyPath)).Select(TypeDeclarationHeader.New))
+                    syntaxTree.Callables().Where(c => c.Source.AssemblyPath.IsNull).Select(CallableDeclarationHeader.New),
+                    syntaxTree.Specializations().Where(c => c.Source.AssemblyPath.IsNull).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
+                    syntaxTree.Types().Where(c => c.Source.AssemblyPath.IsNull).Select(TypeDeclarationHeader.New))
             {
             }
 

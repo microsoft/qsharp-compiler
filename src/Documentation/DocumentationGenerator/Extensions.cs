@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -313,11 +312,9 @@ namespace Microsoft.Quantum.Documentation
                 _ => false,
             };
 
-        internal static bool IsInCompilationUnit(this QsCallable callable) =>
-            OptionModule.IsNone(callable.Source.AssemblyPath);
+        internal static bool IsInCompilationUnit(this QsCallable callable) => callable.Source.AssemblyPath.IsNull;
 
-        internal static bool IsInCompilationUnit(this QsCustomType type) =>
-            OptionModule.IsNone(type.Source.AssemblyPath);
+        internal static bool IsInCompilationUnit(this QsCustomType type) => type.Source.AssemblyPath.IsNull;
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(
