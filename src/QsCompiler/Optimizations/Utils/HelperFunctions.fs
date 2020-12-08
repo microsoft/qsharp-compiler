@@ -279,7 +279,6 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l: list<'A>) =
 /// Returns a sequence of all statements contained directly or indirectly in this scope
 let internal findAllSubStatements (scope: QsScope) =
     let statementKind (s: QsStatement) = s.Statement
-
     scope.Statements |> Seq.collect (fun stm -> stm.ExtractAll(statementKind >> Seq.singleton))
 
 /// Returns the number of return statements in this scope

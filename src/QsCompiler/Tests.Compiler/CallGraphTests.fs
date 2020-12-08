@@ -72,13 +72,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         let file = getManager fileId content
 
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
         let compilationDataStructures = compilationManager.Build()
-
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilationDataStructures.BuiltCompilation
 
         compilationDataStructures
@@ -89,9 +86,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let file = getManager fileId content
 
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
         let compilationDataStructures = compilationManager.Build()
-
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         let expected = Seq.map (fun code -> int code) expectedErrors
@@ -158,7 +153,6 @@ type CallGraphTests(output: ITestOutputHelper) =
         let compilationDataStructures = compilationManagerExe.Build()
         compilationManagerExe.TryRemoveSourceFileAsync(fileId, false) |> ignore
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilationDataStructures.BuiltCompilation
         compilationDataStructures.BuiltCompilation
 
@@ -371,6 +365,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
         let FooInt = makeNode Int
         let FooFunc = makeNode ((ResolvedType.New Int, ResolvedType.New Int) |> QsTypeKind.Function)
+
         AssertInConcreteGraph graph FooInt
         AssertInConcreteGraph graph FooFunc
 

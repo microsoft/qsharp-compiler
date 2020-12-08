@@ -52,7 +52,6 @@ type RangeConverter() =
 
 type QsNullableLocationConverter(?ignoreSerializationException) =
     inherit JsonConverter<QsNullable<QsLocation>>()
-
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     override this.ReadJson(reader: JsonReader,
@@ -83,7 +82,6 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
 
 type ResolvedTypeConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedType>()
-
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid type if the deserialization fails and ignoreSerializationException was set to true upon initialization
@@ -113,7 +111,6 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
 
 type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedCharacteristics>()
-
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid expression if the deserialization fails and ignoreSerializationException was set to true upon initialization

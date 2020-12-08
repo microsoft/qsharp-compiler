@@ -37,13 +37,10 @@ type ClassicalControlTests() =
         let file = getManager fileId content
 
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
         let compilationDataStructures = compilationManager.Build()
-
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilationDataStructures.BuiltCompilation
 
         compilationDataStructures
@@ -96,6 +93,7 @@ type ClassicalControlTests() =
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
         let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
+
         let regexMatch = Regex.Match(input, regex)
 
         if regexMatch.Success
@@ -158,7 +156,6 @@ type ClassicalControlTests() =
 
         let hasCall callable (call: seq<int * string * string>) =
             let (_, lines: string []) = callable
-
             Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
 
         Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
@@ -317,6 +314,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply If Zero Else One``() =
         let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
+
         let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
         let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
@@ -329,6 +327,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply If One Else Zero``() =
         let (targs, args) = CompileClassicalControlTest 9 |> ApplyIfElseTest
+
         let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
         let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
@@ -342,6 +341,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``If Elif``() =
         let result = CompileClassicalControlTest 10
+
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elifOp = { Namespace = "SubOps"; Name = "SubOp2" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp3" }
@@ -389,6 +389,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``And Condition``() =
         let result = CompileClassicalControlTest 11
+
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
 
@@ -435,6 +436,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``Or Condition``() =
         let result = CompileClassicalControlTest 12
+
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
 
@@ -532,6 +534,7 @@ type ClassicalControlTests() =
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
         AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
 
     [<Fact>]
@@ -1317,6 +1320,7 @@ type ClassicalControlTests() =
             GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+
         Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
         let originalContent =
@@ -1372,6 +1376,7 @@ type ClassicalControlTests() =
             IsApplyIfArgMatch args "r" { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
 
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
+
         Assert.True((typeArgs = "Int, Double"), "Bar did not have the correct type arguments")
 
     [<Fact>]
@@ -1489,6 +1494,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with Apply If One Else Zero``() =
         let (targs, args) = CompileClassicalControlTest 32 |> ApplyIfElseTest
+
         let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
         let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
@@ -1501,6 +1507,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with Apply If Zero Else One``() =
         let (targs, args) = CompileClassicalControlTest 33 |> ApplyIfElseTest
+
         let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
         let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 

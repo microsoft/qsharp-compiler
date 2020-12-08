@@ -89,9 +89,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let file = getManager fileId input
         manager.AddOrUpdateSourceFileAsync(file) |> ignore
         let built = manager.Build()
-
         manager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-
         file.FileName, built
 
     member private this.CompileAndVerify (manager: CompilationUnitManager) input (diag: DiagnosticItem seq) =
@@ -109,13 +107,10 @@ type LinkingTests(output: ITestOutputHelper) =
         | None -> ()
 
         let _, compilation = manager |> this.BuildWithSource source
-
         manager.UpdateReferencesAsync(References ImmutableDictionary<_, _>.Empty) |> ignore
 
         let diagnostics = compilation.Diagnostics()
-
         diagnostics |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilation.BuiltCompilation
 
         compilation
@@ -186,7 +181,6 @@ type LinkingTests(output: ITestOutputHelper) =
             |> ignore
 
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
-
         let sourceCompilation = this.BuildContent(manager, chunks.[num - 1])
 
         let namespaces =
@@ -203,6 +197,7 @@ type LinkingTests(output: ITestOutputHelper) =
             countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
 
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
+
         let decorator = new NameDecorator("QsRef")
         let newNames = renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
 
@@ -341,8 +336,8 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Monomorphization Type Parameter Resolutions``() =
         let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[12]
         let compilation = this.CompileMonomorphization source
-        let callables = compilation.Namespaces |> GlobalCallableResolutions
 
+        let callables = compilation.Namespaces |> GlobalCallableResolutions
         Assert.Contains(BuiltIn.Length.FullName, callables.Keys)
         Assert.Contains(BuiltIn.RangeReverse.FullName, callables.Keys)
         Assert.DoesNotContain(BuiltIn.IndexRange.FullName, callables.Keys)
@@ -378,7 +373,6 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let walker = TypedExpressionWalker(Action<_> onExpr, ())
         walker.Transformation.OnCompilation compilation |> ignore
-
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
 
@@ -423,11 +417,8 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let fileId = getTempFile ()
         let file = getManager fileId entryPoints.[0]
-
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
         this.CompileAndVerify compilationManager entryPoints.[1] [ Error ErrorCode.OtherEntryPointExists ]
-
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 
@@ -444,7 +435,6 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Entry point argument name verification``() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
-
         this.CompileAndVerify compilationManager tests.[0] [ Error ErrorCode.DuplicateEntryPointArgumentName ]
         this.CompileAndVerify compilationManager tests.[1] [ Error ErrorCode.DuplicateEntryPointArgumentName ]
         this.CompileAndVerify compilationManager tests.[2] [ Error ErrorCode.DuplicateEntryPointArgumentName ]
@@ -619,6 +609,7 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Group internal specializations by source file``() =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let manager = new CompilationUnitManager()
+
         let sourceCompilation = this.BuildContent(manager, chunks.[7])
 
         let namespaces =
@@ -631,6 +622,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let referenceCompilation = this.BuildContent(manager, "", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
+
         let decorator = new NameDecorator("QsRef")
 
         for idx = 0 to references.Declarations.Count - 1 do

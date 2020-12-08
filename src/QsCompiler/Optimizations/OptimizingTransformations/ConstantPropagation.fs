@@ -87,6 +87,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
             |> takeWhilePlus1 (fun (c, _) -> c <> Null)
 
         let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
+
         let cbList = cbList |> List.map (fun (c, b) -> this.OnPositionedBlock(c, b))
 
         let newDefault =
@@ -126,5 +127,4 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
             | _ -> ())
 
         let body = this.Statements.OnScope stm.Body
-
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope

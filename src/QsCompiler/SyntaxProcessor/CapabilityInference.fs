@@ -114,13 +114,14 @@ let private isResultEquality { TypedExpression.Expression = expression } =
 /// Returns all patterns in the expression, given whether it occurs in an if condition. Ranges are relative to the start
 /// of the statement.
 let private expressionPatterns inCondition (expression: TypedExpression) =
-    expression.ExtractAll(fun expression' ->
+    expression.ExtractAll
+    <| fun expression' ->
         if isResultEquality expression' then
             expression'.Range
             |> if inCondition then ResultEqualityInCondition else ResultEqualityNotInCondition
             |> Seq.singleton
         else
-            Seq.empty)
+            Seq.empty
 
 /// Finds the locations where a mutable variable, which was not declared locally in the given scope, is reassigned.
 /// Returns the name of the variable and the range of the reassignment.
@@ -147,10 +148,11 @@ let private conditionBlocks condBlocks elseBlock =
 /// for the conditions themselves, or the patterns of nested conditional statements.
 let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Default = elseBlock } =
     let returnStatements (statement: QsStatement) =
-        statement.ExtractAll(fun s ->
+        statement.ExtractAll
+        <| fun s ->
             match s.Statement with
             | QsReturnStatement _ -> [ s ]
-            | _ -> [])
+            | _ -> []
 
     let returnPatterns (block: QsPositionedBlock) =
         block.Body.Statements
@@ -222,7 +224,6 @@ let private globalReferences scope =
                 match expression.Expression with
                 | Identifier (GlobalCallable name, _) ->
                     let range = QsNullable.Map2 (+) location.Offset expression.Range
-
                     references <- (name, range) :: references
                 | _ -> ()
 
@@ -314,7 +315,8 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
     let sourceCycles =
         graph.GetCallCycles()
         |> Seq.filter
-            (Seq.exists (fun node -> callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile))
+            (Seq.exists
+             <| fun node -> callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile)
 
     for cycle in sourceCycles do
         let cycleCapability =

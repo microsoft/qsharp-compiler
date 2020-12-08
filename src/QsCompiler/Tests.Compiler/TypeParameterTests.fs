@@ -83,13 +83,10 @@ type TypeParameterTests() =
         let file = getManager fileId content
 
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
         let compilationDataStructures = compilationManager.Build()
-
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilationDataStructures.BuiltCompilation
 
         compilationDataStructures
@@ -316,8 +313,10 @@ type TypeParameterTests() =
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Direct Resolution to Native``() =
+
         let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter) ] |]
         let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter) ]
+
         AssertCombinedResolution expected given
 
     [<Fact>]
@@ -342,6 +341,7 @@ type TypeParameterTests() =
 
         let given = [| ResolutionFromParam [ (FooA, FooB |> TypeParameter) ] |]
         let expected = ResolutionFromParam [ (FooA, FooB |> TypeParameter) ]
+
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
@@ -417,6 +417,7 @@ type TypeParameterTests() =
     member this.``Constricting Array Nested Self Resolution``() =
         let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ] |]
         let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ]
+
         AssertCombinedResolutionFailure expected given
 
     [<Fact>]
@@ -465,6 +466,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Identifier Resolution``() =
         let expression = CompileTypeParameterTest 1 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -479,6 +481,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Adjoint Application Resolution``() =
         let expression = CompileTypeParameterTest 2 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -493,6 +496,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Controlled Application Resolution``() =
         let expression = CompileTypeParameterTest 3 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -507,6 +511,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Partial Application Resolution``() =
         let expression = CompileTypeParameterTest 4 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
@@ -521,6 +526,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Sub-call Resolution``() =
         let expression = CompileTypeParameterTest 5 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
         let expected = ResolutionFromParam []
@@ -531,6 +537,7 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Argument Sub-call Resolution``() =
         let expression = CompileTypeParameterTest 6 |> GetMainExpression
+
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 

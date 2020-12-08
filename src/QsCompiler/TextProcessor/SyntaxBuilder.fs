@@ -56,7 +56,6 @@ let private wordContainedIn (strings: ImmutableHashSet<_>) =
         if strings.Contains w then preturn w else fail ""
 
     let keywordLike = manyChars (asciiLetter <|> digit) .>> nextCharSatisfiesNot isSymbolContinuation
-
     term (keywordLike >>= inStrings) |>> snd
 
 /// parses any QsFragmentHeader and return unit
@@ -212,9 +211,7 @@ let internal getStringContent interpolArg =
         (between (pchar '$' >>. delimiter) delimiter content)
         |>> fun (h, items) ->
                 let mutable str = h
-
                 items |> List.map snd |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
-
                 str, items |> List.map fst
 
     let nonInterpolatedString =
@@ -243,9 +240,9 @@ do stringContentImpl := getStringContent (manyChars anyChar) >>% ()
 let internal advanceTo target =
     let grabAny = manyCharsTill anyChar eof
 
+    // leaving whitespace to the right such that it is possible to advance to whitespace
+    // langle and rangle may occur separately, whereas the left and right part of the listed brackets below may not
     let nonBreakingPieces =
-        // leaving whitespace to the right such that it is possible to advance to whitespace
-        // langle and rangle may occur separately, whereas the left and right part of the listed brackets below may not
         choice [ stringContent >>% ()
                  (lTuple, rTuple) |> bracketDefinedContent grabAny >>% ()
                  (lArray, rArray) |> bracketDefinedContent grabAny >>% ()

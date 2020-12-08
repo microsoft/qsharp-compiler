@@ -287,7 +287,6 @@ module SyntaxGenerator =
         let unitArg =
             let argName = ValidName InternalUse.UnitArgument
             let unitT = UnitType |> ResolvedType.New
-
             LocalVariableDeclaration.New false ((offset, range), argName, unitT, false) |> QsTupleItem // the range is not accurate here, but also irrelevant
 
         match arg with

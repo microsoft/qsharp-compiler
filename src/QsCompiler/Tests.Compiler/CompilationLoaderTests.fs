@@ -49,7 +49,6 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
 
         let sourceUri = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
         fileManager sourceUri source |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
-
         let compilation = compilationManager.Build()
 
         let errors =

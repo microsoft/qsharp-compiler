@@ -1023,7 +1023,6 @@ module SymbolResolution =
                                      (definedSpecs: IEnumerable<_>)
                                      =
         let declCharacteristics = parentSignature.Defined.Characteristics // if we allow to specialize for certain set parameters, then these need to be resolved in parent
-
         let declLocation = { Offset = parentSignature.Position; Range = parentSignature.Range }
 
         let definedSpecs =

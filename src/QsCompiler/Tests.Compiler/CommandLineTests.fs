@@ -255,7 +255,6 @@ let ``find path relative to outputfolder with spaces`` () =
         Path.GetFullPath(Path.Combine(pathRoot, "foo", "some bar", "alpha", "some beta", "c", "test 00.g.cs"))
 
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
     Assert.Equal(expected, actual)
 
 [<Fact>]
@@ -269,7 +268,6 @@ let ``find path relative to relative outputfolder with spaces`` () =
         Path.Combine(parentDir, "some foo", "bar", "alpha", "some beta", "c", "test 00.g.cs")
 
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
-
     Assert.Equal(expected, actual)
 
 [<Fact>]

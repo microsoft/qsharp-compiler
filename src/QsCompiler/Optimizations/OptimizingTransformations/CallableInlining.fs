@@ -27,7 +27,6 @@ type private Functors =
         | true, _ -> QsControlledAdjoint
 
     member this.withAdjoint = { this with adjoint = not this.adjoint }
-
     member this.withControlled = { this with controlled = this.controlled + 1 }
 
 
@@ -215,6 +214,7 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
                 | _ -> None
 
             let newStatements = newStatements.RemoveAt(newStatements.Length - 1)
+
             return newStatements, returnExpr
         }
 

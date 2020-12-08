@@ -78,15 +78,9 @@ let private buildSyntaxTree code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
-
-    // spawns a task that modifies the current compilation
-    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
-
-    // will wait for any current tasks to finish
-    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation
-
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore // spawns a task that modifies the current compilation
+    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
     CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
-
     syntaxTree
 
 
@@ -118,7 +112,6 @@ let ``basic transformation`` () =
         |> buildSyntaxTree
 
     let walker = new SyntaxCounter()
-
     compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
@@ -221,6 +214,7 @@ let ``generation of open statements`` () =
 
     let openDirectives = openExplicit @ openAbbrevs |> ImmutableArray.ToImmutableArray
     let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
+
     let codeOutput = ref null
 
     SyntaxTreeToQsharp.Apply(codeOutput, compilation.Namespaces, struct (source, imports))

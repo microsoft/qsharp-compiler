@@ -42,7 +42,6 @@ type TypeTransformationBase(options: TransformationOptions) =
     default this.OnUserDefinedType udt =
         let ns, name = udt.Namespace, udt.Name
         let range = this.OnRangeInformation udt.Range
-
         ExpressionType.UserDefinedType << UserDefinedType.New |> Node.BuildOr InvalidType (ns, name, range)
 
     abstract OnTypeParameter: QsTypeParameter -> ExpressionType
@@ -65,7 +64,6 @@ type TypeTransformationBase(options: TransformationOptions) =
 
     default this.OnFunction(it, ot) =
         let transformed = this.OnType it, this.OnType ot
-
         ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
     abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType

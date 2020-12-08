@@ -291,7 +291,6 @@ let internal numericLiteral =
             && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
 
         let isDouble = not nl.IsInteger && format = 10 && nl.SuffixLength = 0
-
         let returnWithRange kind = preturn (kind, range)
 
         let baseToHex (baseint: int, str) =
@@ -432,7 +431,6 @@ let private bracketDefinedCommaSepExpr (lbracket, rbracket) = // used for arrays
         .>> (buildError (term invalidSeparator |>> snd) ErrorCode.ExpectingComma >>% unknownExpr)
 
     let grabRest = advanceTo (eof >>% "" <|> rbracket) .>> opt (bracket rbracket)
-
     attempt (upToSeparator .>> grabRest)
 
 /// Parses an arity-1 tuple expression ("parenthesis expression") containing the given tuple item,

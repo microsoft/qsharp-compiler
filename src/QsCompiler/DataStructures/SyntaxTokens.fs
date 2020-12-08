@@ -34,15 +34,11 @@ type QsPauli =
 // Q# symbols
 
 type QsSymbolKind<'Symbol> =
-    // let's make the distinction for things that *have* to be an unqualified symbol
-    | Symbol of string
+    | Symbol of string // let's make the distinction for things that *have* to be an unqualified symbol
     | QualifiedSymbol of string * string
-    // for bindings
-    | SymbolTuple of ImmutableArray<'Symbol>
-    // used for the arguments of the original method omitted upon functor gen declaration
-    | OmittedSymbols
-    // used to allow destructs of the form let (_,a) = ...
-    | MissingSymbol
+    | SymbolTuple of ImmutableArray<'Symbol> // for bindings
+    | OmittedSymbols // used for the arguments of the original method omitted upon functor gen declaration
+    | MissingSymbol // used to allow destructs of the form let (_,a) = ...
     | InvalidSymbol
 
 // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
@@ -57,8 +53,7 @@ type OpProperty =
 
 type CharacteristicsKind<'S> =
     | EmptySet
-    // each set containing a single OpProperty is associated with the corresponding OpProperty
-    | SimpleSet of OpProperty
+    | SimpleSet of OpProperty // each set containing a single OpProperty is associated with the corresponding OpProperty
     | Union of 'S * 'S
     | Intersection of 'S * 'S
     | InvalidSetExpr
@@ -85,10 +80,8 @@ type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> =
     | TypeParameter of 'TParam
     | Operation of ('Type * 'Type) * 'Characteristics
     | Function of 'Type * 'Type
-    // used (only!) upon determining the type of expressions (for MissingExpr)
-    | MissingType
-    // to be used e.g. for parsing errors
-    | InvalidType
+    | MissingType // used (only!) upon determining the type of expressions (for MissingExpr)
+    | InvalidType // to be used e.g. for parsing errors
 
 type QsType =
     { Type: QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>
@@ -100,22 +93,19 @@ type QsType =
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
-    // the immutable array are the (optional) type parameters
-    | Identifier of 'Symbol * QsNullable<ImmutableArray<'Type>>
+    | Identifier of 'Symbol * QsNullable<ImmutableArray<'Type>> // the immutable array are the (optional) type parameters
     | ValueTuple of ImmutableArray<'Expr>
     | IntLiteral of int64
     | BigIntLiteral of BigInteger
     | DoubleLiteral of double
     | BoolLiteral of bool
-    // used for both string and interpolated strings
-    | StringLiteral of string * ImmutableArray<'Expr>
+    | StringLiteral of string * ImmutableArray<'Expr> // used for both string and interpolated strings
     | ResultLiteral of QsResult
     | PauliLiteral of QsPauli
     | RangeLiteral of 'Expr * 'Expr
     | NewArray of 'Type * 'Expr
     | ValueArray of ImmutableArray<'Expr>
-    // used for both array items and array slices
-    | ArrayItem of 'Expr * 'Expr
+    | ArrayItem of 'Expr * 'Expr // used for both array items and array slices
     | NamedItem of 'Expr * 'Symbol
     | NEG of 'Expr
     | NOT of 'Expr
@@ -141,13 +131,11 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | RSHIFT of 'Expr * 'Expr
     | CONDITIONAL of 'Expr * 'Expr * 'Expr
     | CopyAndUpdate of 'Expr * 'Expr * 'Expr
-    // casts an expression of user defined type to its underlying type
-    | UnwrapApplication of 'Expr
+    | UnwrapApplication of 'Expr // casts an expression of user defined type to its underlying type
     | AdjointApplication of 'Expr
     | ControlledApplication of 'Expr
     | CallLikeExpression of 'Expr * 'Expr
-    // for partial application
-    | MissingExpr
+    | MissingExpr // for partial application
     | InvalidExpr
 
 type QsExpression =
@@ -222,20 +210,16 @@ type QsFragmentKind =
     | ExpressionStatement of QsExpression
     | ReturnStatement of QsExpression
     | FailStatement of QsExpression
-    // QsSymbol can be a symbol tuple
-    | ImmutableBinding of QsSymbol * QsExpression
-    // QsSymbol can be a symbol tuple
-    | MutableBinding of QsSymbol * QsExpression
+    | ImmutableBinding of QsSymbol * QsExpression // QsSymbol can be a symbol tuple
+    | MutableBinding of QsSymbol * QsExpression // QsSymbol can be a symbol tuple
     | ValueUpdate of QsExpression * QsExpression
     | IfClause of QsExpression
     | ElifClause of QsExpression
     | ElseClause
-    // QsSymbol can be a symbol tuple
-    | ForLoopIntro of QsSymbol * QsExpression
+    | ForLoopIntro of QsSymbol * QsExpression // QsSymbol can be a symbol tuple
     | WhileLoopIntro of QsExpression
     | RepeatIntro
-    // true if a fixup is included
-    | UntilSuccess of QsExpression * bool
+    | UntilSuccess of QsExpression * bool // true if a fixup is included
     | WithinBlockIntro
     | ApplyBlockIntro
     | UsingBlockIntro of QsSymbol * QsInitializer

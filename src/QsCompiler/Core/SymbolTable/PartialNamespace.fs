@@ -92,7 +92,6 @@ type private PartialNamespace private (name: string,
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
         let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
-
         shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
 
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
@@ -267,6 +266,7 @@ type private PartialNamespace private (name: string,
                 { signature with
                       Resolved = resolvedSignature
                       ResolvedAttributes = resAttributes }
+
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 

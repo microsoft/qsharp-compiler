@@ -106,7 +106,6 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     default this.OnValueUpdate stm =
         let rhs = this.Expressions.OnTypedExpression stm.Rhs
         let lhs = this.Expressions.OnTypedExpression stm.Lhs
-
         QsValueUpdate << QsValueUpdate.New |> Node.BuildOr EmptyStatement (lhs, rhs)
 
     abstract OnConditionalStatement: QsConditionalStatement -> QsStatementKind
@@ -170,21 +169,18 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnExpressionStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
-
         QsExpressionStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract OnReturnStatement: TypedExpression -> QsStatementKind
 
     default this.OnReturnStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
-
         QsReturnStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract OnFailStatement: TypedExpression -> QsStatementKind
 
     default this.OnFailStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
-
         QsFailStatement |> Node.BuildOr EmptyStatement transformed
 
     /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds.
@@ -194,7 +190,6 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
         let lhs = this.OnSymbolTuple stm.Binding.Lhs
         let body = this.Statements.OnScope stm.Body
-
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
     abstract OnAllocateQubits: QsQubitScope -> QsStatementKind

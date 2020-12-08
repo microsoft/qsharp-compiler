@@ -100,9 +100,7 @@ let toOpType it ot s = Operation((it, ot), s) |> toType
 let toCharacteristicsExpr k = { Characteristics = k; Range = Null }
 
 let adjSet = SimpleSet Adjointable |> toCharacteristicsExpr
-
 let ctlSet = SimpleSet Controllable |> toCharacteristicsExpr
-
 let adjCtlSet = Union(adjSet, ctlSet) |> toCharacteristicsExpr
 
 let matchDiagnostics expected (actual: QsCompilerDiagnostic list) =

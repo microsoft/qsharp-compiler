@@ -140,9 +140,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
             | QsRepeatStatement stmt ->
                 while true do
                     do! this.EvaluateScope stmt.RepeatBlock.Body
-
                     let! value = this.EvaluateExpression stmt.SuccessCondition <&> castToBool
-
                     if value then do! Break
                     do! this.EvaluateScope stmt.FixupBlock.Body
             | QsQubitScope _ -> yield CouldNotEvaluate "Cannot allocate qubits in function"
@@ -257,7 +255,6 @@ and private ExpressionKindEvaluator(parent,
             | Identifier (GlobalCallable qualName, _) ->
                 do! check (stmtsLeft > 0 && isLiteral callables arg)
                 let fe = FunctionEvaluator(callables)
-
                 return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)

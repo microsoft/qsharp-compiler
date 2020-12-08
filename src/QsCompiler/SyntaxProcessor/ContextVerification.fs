@@ -57,9 +57,7 @@ let private verifyOpenDirective context =
     | Value (OpenDirective _)
     | Null -> verifyDeclaration context
     | Value InvalidFragment -> false, [||]
-    | _ ->
-        // open directives may only occur at the beginning of a namespace
-        false, [| (ErrorCode.MisplacedOpenDirective |> Error, context.Range) |]
+    | _ -> false, [| (ErrorCode.MisplacedOpenDirective |> Error, context.Range) |] // open directives may only occur at the beginning of a namespace
 
 /// Verifies that the next fragment is either another attribute or a function, operation, or type declaration.
 /// Verifies that the direct parent is a namespace declaration.
@@ -115,8 +113,7 @@ let private checkForInvalidControlledAdjointGenerator _ =
 /// Returns an array with suitable diagnostics
 let private verifySpecialization (context: SyntaxTokenContext) =
     let checkGenerator =
-        // don't invalidate even if the generator is incorrect
-        function
+        function // don't invalidate even if the generator is incorrect
         | BodyDeclaration gen -> true, gen.Generator |> checkForInvalidBodyGenerator gen.RangeOrDefault
         | AdjointDeclaration gen -> true, gen.Generator |> checkForInvalidAdjointGenerator gen.RangeOrDefault
         | ControlledDeclaration gen -> true, gen.Generator |> checkForInvalidControlledGenerator gen.RangeOrDefault
@@ -132,10 +129,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
             false, [| (ErrorCode.ControlledAdjointDeclInFunction |> Error, context.Range) |]
         | decl -> checkGenerator decl
 
-    let NullOr =
-        // empty fragments can be excluded from the compilation
-        ApplyOrDefaultTo (false, [||]) context.Self
-
+    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
     let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
     let isCallable =
@@ -161,16 +155,10 @@ let private verifyStatement (context: SyntaxTokenContext) =
         function
         | UsingBlockIntro _ -> false, [| (ErrorCode.UsingInFunction |> Error, context.Range) |]
         | BorrowingBlockIntro _ -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
-        | RepeatIntro _ ->
-            // NOTE: if repeat is excluded, exlude the UntilSuccess below!
-            true, [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |]
-        | UntilSuccess _ ->
-            // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing
-            true, [||]
-        | WithinBlockIntro _ ->
-            // no need to raise an error - the error comes either from the preceding within or because the latter is missing
-            false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |]
-        | ApplyBlockIntro _ -> false, [||]
+        | RepeatIntro _ -> true, [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
+        | UntilSuccess _ -> true, [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing
+        | WithinBlockIntro _ -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |]
+        | ApplyBlockIntro _ -> false, [||] // no need to raise an error - the error comes either from the preceding within or because the latter is missing 
         | _ -> true, [||]
 
     let checkForNotValidInOperation =
@@ -183,10 +171,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | ReturnStatement _ -> false, [| (ErrorCode.ReturnFromWithinApplyBlock |> Error, context.Range) |]
         | _ -> true, [||]
 
-    let NullOr =
-        // empty fragments can be excluded from the compilation
-        ApplyOrDefaultTo (false, [||]) context.Self
-
+    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
     let rec isStatementScope =

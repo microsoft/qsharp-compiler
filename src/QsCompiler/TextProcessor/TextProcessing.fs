@@ -85,7 +85,6 @@ let ProcessFragments text =
             doProcessing (build frag :: fragments) (startPos + pos, remaining)
         | _ -> // adding a protection against an infinite loop in case someone messes up the fragment processing...
             QsCompilerError.Raise "fragment has been built but no input was consumed"
-
             (BuildUnknown str |> fst |> build) :: fragments |> List.rev
 
     doProcessing [] (initialPos, text)

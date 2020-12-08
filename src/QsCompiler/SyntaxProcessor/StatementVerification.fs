@@ -92,7 +92,6 @@ let private asStatement comments location vars kind =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewExpressionStatement comments location symbols expr =
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsUnit symbols expr
-
     verifiedExpr |> QsExpressionStatement |> asStatement comments location LocalDeclarations.Empty, diagnostics
 
 /// Resolves and verifies the given Q# expression given the resolution context, verifies that the resolved expression is
@@ -232,9 +231,8 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
-
             [| range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, []) |]
-        | _ -> Array.empty // both missing and invalid expressions on the lhs are fine
+        | _ -> [||] // both missing and invalid expressions on the lhs are fine
 
     let refErrs = verifiedLhs |> VerifyMutability
 

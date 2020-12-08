@@ -128,8 +128,8 @@ let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
-    [| (_DefaultTypes,
-        // Test Case 1
+    [| // Test Case 1
+       (_DefaultTypes,
         [| MonomorphizationNs, "Test1", [||], "Unit"
            GenericsNs, "Test1Main", [||], "Unit"
 
@@ -141,16 +141,16 @@ let public MonomorphizationSignatures =
            GenericsNs, "NoArgsGeneric", [||], "Double"
            GenericsNs, "ReturnGeneric", [| "Double"; "String"; "Int" |], "Int"
            GenericsNs, "ReturnGeneric", [| "String"; "Int"; "String" |], "String" |])
+       // Test Case 2
        (_DefaultTypes,
-        // Test Case 2
         [| MonomorphizationNs, "Test2", [||], "Unit"
            GenericsNs, "Test2Main", [||], "Unit"
 
            GenericsNs, "ArrayGeneric", [| "Qubit"; "String" |], "Int"
            GenericsNs, "ArrayGeneric", [| "Qubit"; "Int" |], "Int"
            GenericsNs, "GenericCallsGeneric", [| "Qubit"; "Int" |], "Unit" |])
+       // Test Case 3
        (_DefaultTypes,
-        // Test Case 3
         [| MonomorphizationNs, "Test3", [||], "Unit"
            GenericsNs, "Test3Main", [||], "Unit"
 
@@ -162,8 +162,8 @@ let public MonomorphizationSignatures =
            GenericsNs, "BasicGeneric", [| "String"; "Int" |], "Unit"
 
            GenericsNs, "ArrayGeneric", [| "Qubit"; "Double" |], "Int" |])
+       // Test Case 4
        (_DefaultTypes,
-        // Test Case 4
         [| MonomorphizationNs, "Test4", [||], "Unit"
            GenericsNs, "Test4Main", [||], "Unit"
            GenericsNs, "_GenericCallsSelf", [||], "Unit"
@@ -219,71 +219,67 @@ let private _DefaultWithOperation =
 
 /// Expected callable signatures to be found when running Classical Control tests
 let public ClassicalControlSignatures =
-    [| (_DefaultTypes,
-        // Basic Lift
+    [| // Basic Lift
+       (_DefaultTypes,
         [| ClassicalControlNs, "Foo", [||], "Unit" // The original operation
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |]) // The generated operation
+       // Lift Loops
        (_DefaultTypes,
-        // Lift Loops
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Don't Lift Single Call
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Lift Single Non-Call
        (_DefaultTypes,
-        // Don't Lift Single Call
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Lift Single Non-Call
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Don't Lift Return Statements
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // All-Or-None Lifting
        (_DefaultTypes,
-        // Don't Lift Return Statements
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // All-Or-None Lifting
         [| ClassicalControlNs, "IfInvalid", [||], "Unit"
            ClassicalControlNs, "ElseInvalid", [||], "Unit"
            ClassicalControlNs, "BothInvalid", [||], "Unit" |])
+       // ApplyIfZero And ApplyIfOne
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Apply If Zero Else One
        (_DefaultTypes,
-        // ApplyIfZero And ApplyIfOne
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Apply If Zero Else One
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Apply If One Else Zero
        (_DefaultTypes,
-        // Apply If One Else Zero
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // If Elif
        (_DefaultTypes,
-        // If Elif
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // And Condition
        (_DefaultTypes,
-        // And Condition
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Or Condition
        (_DefaultTypes,
-        // Or Condition
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Don't Lift Functions
        (_DefaultTypes,
-        // Don't Lift Functions
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "SubFunc1", [||], "Unit"
            ClassicalControlNs, "SubFunc2", [||], "Unit"
            ClassicalControlNs, "SubFunc3", [||], "Unit" |])
+       // Lift Self-Contained Mutable
        (_DefaultTypes,
-        // Lift Self-Contained Mutable
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Don't Lift General Mutable
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Generics Support
        (_DefaultTypes,
-        // Don't Lift General Mutable
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Generics Support
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Adjoint Support
        (_DefaultTypes,
-        // Adjoint Support
         [| ClassicalControlNs, "Provided", [||], "Unit"
            ClassicalControlNs, "Self", [||], "Unit"
            ClassicalControlNs, "Invert", [||], "Unit"
@@ -291,15 +287,15 @@ let public ClassicalControlSignatures =
            ClassicalControlNs, "_Provided", [| "Result" |], "Unit"
            ClassicalControlNs, "_Self", [| "Result" |], "Unit"
            ClassicalControlNs, "_Invert", [| "Result" |], "Unit" |])
+       // Controlled Support
        (_DefaultTypes,
-        // Controlled Support
         [| ClassicalControlNs, "Provided", [||], "Unit"
            ClassicalControlNs, "Distribute", [||], "Unit"
            ClassicalControlNs, "_Provided", [| "Result" |], "Unit"
            ClassicalControlNs, "_Provided", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
            ClassicalControlNs, "_Distribute", [| "Result" |], "Unit" |])
+       // Controlled Adjoint Support - Provided
        (_DefaultTypes,
-        // Controlled Adjoint Support - Provided
         [| ClassicalControlNs, "ProvidedBody", [||], "Unit"
            ClassicalControlNs, "ProvidedAdjoint", [||], "Unit"
            ClassicalControlNs, "ProvidedControlled", [||], "Unit"
@@ -320,8 +316,8 @@ let public ClassicalControlSignatures =
            ClassicalControlNs, "_ProvidedAll", [| "Result" |], "Unit"
            ClassicalControlNs, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
            ClassicalControlNs, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit" |])
+       // Controlled Adjoint Support - Distribute
        (_DefaultTypes,
-        // Controlled Adjoint Support - Distribute
         [| ClassicalControlNs, "DistributeBody", [||], "Unit"
            ClassicalControlNs, "DistributeAdjoint", [||], "Unit"
            ClassicalControlNs, "DistributeControlled", [||], "Unit"
@@ -338,8 +334,8 @@ let public ClassicalControlSignatures =
            ClassicalControlNs, "_DistributeAll", [| "Result" |], "Unit"
            ClassicalControlNs, "_DistributeAll", [| "Result" |], "Unit"
            ClassicalControlNs, "_DistributeAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit" |])
+       // Controlled Adjoint Support - Invert
        (_DefaultTypes,
-        // Controlled Adjoint Support - Invert
         [| ClassicalControlNs, "InvertBody", [||], "Unit"
            ClassicalControlNs, "InvertAdjoint", [||], "Unit"
            ClassicalControlNs, "InvertControlled", [||], "Unit"
@@ -356,8 +352,8 @@ let public ClassicalControlSignatures =
            ClassicalControlNs, "_InvertAll", [| "Result" |], "Unit"
            ClassicalControlNs, "_InvertAll", [| "Result" |], "Unit"
            ClassicalControlNs, "_InvertAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit" |])
+       // Controlled Adjoint Support - Self
        (_DefaultTypes,
-        // Controlled Adjoint Support - Self
         [| ClassicalControlNs, "SelfBody", [||], "Unit"
            ClassicalControlNs, "SelfControlled", [||], "Unit"
 
@@ -365,59 +361,56 @@ let public ClassicalControlSignatures =
 
            ClassicalControlNs, "_SelfControlled", [| "Result" |], "Unit"
            ClassicalControlNs, "_SelfControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit" |])
+       // Within Block Support
        (_DefaultTypes,
-        // Within Block Support
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Arguments Partially Resolve Type Parameters
        (_TypeParameterTypes,
-        // Arguments Partially Resolve Type Parameters
         [| ClassicalControlNs, "Bar", [| "Bar.Q"; "Bar.W" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Lift Functor Application
        (_DefaultTypes,
-        // Lift Functor Application
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Lift Partial Application
        (_DefaultTypes,
-        // Lift Partial Application
         [| ClassicalControlNs, "Bar", [| "Int"; "Double" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Lift Array Item Call
        (_DefaultWithOperation,
-        // Lift Array Item Call
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "SubOp1Type[]"; "Result" |], "Unit" |])
+       // Lift One Not Both
        (_DefaultTypes,
-        // Lift One Not Both
         [| ClassicalControlNs, "Foo", [||], "Unit"
            ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Apply Conditionally
        (_DefaultTypes,
-        // Apply Conditionally
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Apply Conditionally With NoOp
        (_DefaultTypes,
-        // Apply Conditionally With NoOp
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Inequality with ApplyConditionally
        (_DefaultTypes,
-        // Inequality with ApplyConditionally
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Inequality with Apply If One Else Zero
        (_DefaultTypes,
-        // Inequality with Apply If One Else Zero
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Inequality with Apply If Zero Else One
        (_DefaultTypes,
-        // Inequality with Apply If Zero Else One
         [| ClassicalControlNs, "Bar", [| "Result" |], "Unit"
            ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Inequality with ApplyIfOne
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Inequality with ApplyIfZero
-        [| ClassicalControlNs, "Foo", [||], "Unit" |])
-       (_DefaultTypes,
-        // Literal on the Left
-        [| ClassicalControlNs, "Foo", [||], "Unit" |]) |]
+       // Inequality with ApplyIfOne
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Inequality with ApplyIfZero
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Literal on the Left
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |]) |]
     |> _MakeSignatures

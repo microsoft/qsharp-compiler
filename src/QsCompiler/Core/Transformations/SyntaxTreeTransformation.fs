@@ -59,7 +59,6 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
             QsCompilation.New(namespaces, compilation.EntryPoints)
         else
             compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
-
             compilation
 
     member this.SharedState = state
@@ -338,7 +337,6 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
             QsCompilation.New(namespaces, compilation.EntryPoints)
         else
             compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
-
             compilation
 
     new(options: TransformationOptions) as this =

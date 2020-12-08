@@ -414,7 +414,6 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     false, errs
         | _ ->
             errs.Add(offset, range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointPlacement, []))
-
             false, errs
 
 
@@ -456,7 +455,6 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             | None, errs -> None, errs
 
         let resolved, msgs = SymbolResolution.ResolveAttribute getAttribute attribute
-
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
     /// <summary>

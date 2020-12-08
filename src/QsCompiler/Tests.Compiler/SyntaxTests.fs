@@ -202,7 +202,7 @@ let ``Symbol name tests`` () =
       ("𝑓", false, "", []) // Mathematical Italic Small F - not supported
       ("Q#", true, "Q", []) // 'Q' followed by '#' - only identifier 'Q' is parsed
       ("notЁ", true, "notЁ", []) // operation 'not' followed by Cyrillic 'Ё' - OK for identifier
-      ("isЖ", true, "isЖ", []) ]
+      ("isЖ", true, "isЖ", []) ] // reserved word 'is' followed by Cyrillic 'Ж' - OK for identifier
     |> List.iter (testOne parser)
 
 

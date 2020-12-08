@@ -126,7 +126,6 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
             connector
 
     let expectedConnector = expected (connector >>% ()) connectorErr connectorErr () (preturn ())
-
     symbolTuple .>> expectedConnector .>>. expectedRhs
 
 /// Parses the assignment of an initializer tuple or single initializer to a symbol tuple or a single symbol.
@@ -202,7 +201,6 @@ let private signature =
                     eof
 
             let noTypeParams = angleBrackets emptySpace >>% () <|> notFollowedBy lAngle // allow (optional) empty angle brackets
-
             noTypeParams >>% ImmutableArray.Empty <|> (angleBrackets typeParams |>> fst)
 
         let invalidList =
@@ -420,7 +418,6 @@ let private udtDeclaration =
                 eof
 
         let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
-
         invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item
 
     let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
@@ -529,7 +526,6 @@ let private setStatement =
 
     let applyAndReassign =
         let applyOperator (sym, p) = preturn sym >>= p
-
         identifierExpr applyAndReassignOp .>>. applyAndReassignOp >>= applyOperator
 
     let symbolUpdate =

@@ -481,8 +481,8 @@ type LocalVariableDeclaration<'Name> =
 
 /// used to attach information about which symbols are declared to each scope and statement
 type LocalDeclarations =
-    // keeping things here as arrays for resource reasons
-    { /// contains all declared variables
+    { // keeping things here as arrays for resource reasons
+      /// contains all declared variables
       Variables: ImmutableArray<LocalVariableDeclaration<string>> }
     member this.IsEmpty = this.Variables.Length = 0
     static member Empty = { Variables = ImmutableArray.Empty }
@@ -597,16 +597,14 @@ and QsStatementKind =
     | QsExpressionStatement of TypedExpression
     | QsReturnStatement of TypedExpression
     | QsFailStatement of TypedExpression
-    // includes both mutable and immutable bindings
-    | QsVariableDeclaration of QsBinding<TypedExpression>
+    | QsVariableDeclaration of QsBinding<TypedExpression> // includes both mutable and immutable bindings
     | QsValueUpdate of QsValueUpdate
     | QsConditionalStatement of QsConditionalStatement
     | QsForStatement of QsForStatement
     | QsWhileStatement of QsWhileStatement
     | QsRepeatStatement of QsRepeatStatement
     | QsConjugation of QsConjugation
-    // includes both using and borrowing scopes
-    | QsQubitScope of QsQubitScope
+    | QsQubitScope of QsQubitScope // includes both using and borrowing scopes
     | EmptyStatement
 
 

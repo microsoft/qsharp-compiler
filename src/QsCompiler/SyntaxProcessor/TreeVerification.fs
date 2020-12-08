@@ -219,7 +219,6 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
     // search the graph defined by contained_types for loops (complexity N^2 with BFS/DFS; -> better option (O(N)): sort topologically)
     // (i.e. reconstruct the ordering in which types would have to be defined if everything needs to be resolved before being used)
     let queue = Queue()
-
     containedIn |> List.iteri (fun i x -> if x.Count = 0 then queue.Enqueue i)
 
     let rec order () =

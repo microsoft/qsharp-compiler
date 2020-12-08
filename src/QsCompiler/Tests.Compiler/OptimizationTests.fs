@@ -17,22 +17,15 @@ let private buildCompilation code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
-
-    // spawns a task that modifies the current compilation
-    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
-
-    // will wait for any current tasks to finish
-    let mutable compilation = compilationUnit.Build().BuiltCompilation
-
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore // spawns a task that modifies the current compilation
+    let mutable compilation = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
     CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore
-
     compilation
 
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable compilation = buildCompilation code
     compilation <- PreEvaluation.All compilation
-
     String.Join(Environment.NewLine, compilation.Namespaces |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
@@ -46,7 +39,6 @@ let private assertOptimization path =
     let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
     let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
     let optimized = optimize code
-
     // I remove any \r characters to prevent potential OS compatibility issues
     Assert.Equal(expected.Replace("\r", ""), optimized.Replace("\r", ""))
 

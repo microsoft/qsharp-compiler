@@ -40,8 +40,7 @@ type CompletionKind =
     /// The completion is a member of the given namespace and has the given kind.
     | Member of string * CompletionKind
     /// The completion is a named item in a user-defined type.
-    // TODO: Add information so completion knows the type being accessed.
-    | NamedItem
+    | NamedItem // TODO: Add information so completion knows the type being accessed.
 
 /// The result of parsing a code fragment for completions.
 type CompletionResult =

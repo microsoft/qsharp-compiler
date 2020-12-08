@@ -180,7 +180,6 @@ let private VerifyIsOneOf asExpected errCode addError (exType: ResolvedType, ran
     | None when exType.isInvalid -> invalid
     | None when exType.isMissing ->
         range |> addError (ErrorCode.ExpressionOfUnknownType, [])
-
         invalid
     | None ->
         range |> addError errCode
@@ -394,7 +393,6 @@ let private VerifyValueArray parent addError (content, range) =
             common |> arrayType
         else
             range |> addError (ErrorCode.MultipleTypesInArray, [])
-
             invalid |> arrayType
 
 /// Verifies that the given resolved type supports numbered item access,
@@ -599,8 +597,7 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
 
     and compareArrayBaseTypes (bt: ResolvedType) (ba: ResolvedType) =
         if ba.isMissing then
-            // empty array on the right hand side is always ok, otherwise arrays are invariant
-            Array.empty
+            [||] // empty array on the right hand side is always ok, otherwise arrays are invariant
         else
             matchTypes Invariant (bt, ba)
             |> onErrorRaiseInstead (ErrorCode.ArrayBaseTypeMismatch, [ ba |> toString; bt |> toString ])
@@ -609,9 +606,7 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
         QsCompilerError.Verify(not exType.isMissing, "expression type is missing")
 
         match targetT.Resolution, exType.Resolution with
-        | QsTypeKind.MissingType, _ ->
-            // the lhs of a set-statement may contain underscores
-            Array.empty
+        | QsTypeKind.MissingType, _ -> [||] // the lhs of a set-statement may contain underscores
         | QsTypeKind.TypeParameter tp, _ ->
             // lhs is a type parameter of the *called* callable!
             addTypeParameterResolution ((tp.Origin, tp.TypeName), exType)
@@ -685,11 +680,9 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         | Tuple ts, Tuple exs when ts.Length = exs.Length -> List.zip ts exs |> List.map recur |> buildType
         | Item t, Tuple _ when not (t: ResolvedType).isTypeParameter ->
             [| (ErrorCode.UnexpectedTupleArgument, [ targetT |> toString ]) |] |> pushErrs
-
             invalid
         | _, _ ->
             TypeMatchArgument (addTpResolution argEx.RangeOrDefault) targetT (resolveInner argEx) |> pushErrs
-
             None
 
     recur (targetType, arg), lookUp.ToLookup(fst, snd)
@@ -735,7 +728,6 @@ let private VerifyCallExpr buildCallableType
             let uniqueResolution (res, r) =
                 if res |> containsMissing then
                     r |> addError (ErrorCode.PartialApplicationOfTypeParameter, [])
-
                     invalid
                 elif fst entry.Key = parent then // resolution of an internal type parameter
                     // Internal type parameters may occur on the lhs
@@ -759,20 +751,17 @@ let private VerifyCallExpr buildCallableType
                         // For any other type parameters, we can resolve them to whatever they resolve to, unless it is a type parameter of another callable.
                         // Then we need to attach these resolutions as type arguments to the identifier (done by the calling method, which builds the expression).
                         // At the end, all type parameters for the parent need to be resolved, and otherwise we need to generate a suitable error.
-                        if (requireIdResolution.Contains(snd entry.Key)) then // explicitly specified type argument that needs to resolve to itself (which it doesn't)
+                        if requireIdResolution.Contains(snd entry.Key) then // explicitly specified type argument that needs to resolve to itself (which it doesn't)
                             r |> addError (ErrorCode.ConstrainsTypeParameter, [ typeParam |> toString ])
-
                             typeParam
                         else // this could be incorporated into the outer matching, but keeping the logic for the direct recursion case together may be more readable
                             match res.Resolution with
                             | TypeParameter tp when tp.Origin <> parent ->
                                 r |> addError (ErrorCode.AmbiguousTypeParameterResolution, [])
-
                                 invalid // todo: it would be nice to eventually lift this restriction
                             | _ -> res |> StripPositionInfo.Apply
                     | _ ->
                         r |> addError (ErrorCode.ConstrainsTypeParameter, [ typeParam |> toString ])
-
                         typeParam
                 else
                     res |> StripPositionInfo.Apply
@@ -1061,7 +1050,6 @@ type QsExpression with
             | Symbol name -> LocalVariable name
             | _ ->
                 sym.RangeOrDefault |> addError (ErrorCode.ExpectingItemName, [])
-
                 InvalidIdentifier
 
         /// Resolves and verifies the given expression and item name of a named item access expression,
@@ -1476,7 +1464,6 @@ type QsExpression with
 
                 if not (context.IsInOperation || isPartialApplication) then
                     method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, [])
-
                     invalidEx
                 else
                     TypedExpression.New(exprKind, typeParamResolutions, exType, exInfo, this.Range)

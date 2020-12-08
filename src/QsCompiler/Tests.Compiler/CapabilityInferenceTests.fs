@@ -85,13 +85,11 @@ let ``Infers single dependency`` () =
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
     expect BasicMeasurementFeedback "CallBmfFullB"
-
     [ "CallBmfFullA"; "CallBmfFullC" ] |> List.iter (expect FullComputation)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
     [ "CallFullA"; "CallFullB" ] |> List.iter (expect FullComputation)
-
     expect BasicMeasurementFeedback "CallFullC"
 
 [<Fact>]

@@ -80,7 +80,6 @@ let rec expression =
                     >>. preturn []
 
                 let code = brackets (lCurly, rCurly) expression
-
                 pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
 
             let uninterpolated =

@@ -29,7 +29,6 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
     let isPureClassical stmt =
         let c = SideEffectChecker()
         c.Statements.OnStatement stmt |> ignore
-
         not c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Returns whether a statement is purely quantum.
@@ -37,7 +36,6 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
     let isPureQuantum stmt =
         let c = SideEffectChecker()
         c.Statements.OnStatement stmt |> ignore
-
         c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements

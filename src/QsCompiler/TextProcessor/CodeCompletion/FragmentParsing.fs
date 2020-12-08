@@ -32,7 +32,6 @@ let private callableSignature =
     let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
     let typeParamList = brackets (lAngle, rAngle) (sepByLast typeParam comma)
     let argumentTuple = tuple (name ?>> typeAnnotation)
-
     name ?>> (typeParamList <|> (optional eot >>% [])) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
@@ -73,7 +72,6 @@ let private namespaceTopLevel =
 let rec private symbolTuple kind =
     parse {
         let declaration = expectedId kind (term symbol)
-
         return! declaration <|> tuple1 (declaration <|> symbolTuple kind)
     }
 

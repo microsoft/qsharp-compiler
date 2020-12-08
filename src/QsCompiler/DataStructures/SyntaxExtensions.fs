@@ -406,7 +406,7 @@ let private TupleItems<'T when 'T :> ITuple> (arg: 'T): 'T list option =
     | :? QsInitializer as arg -> cast arg.TupleItems
     | :? ResolvedInitializer as arg -> cast arg.TupleItems
     // TODO: can be made an ITuple again once empty symbol tuples are no longer valid for functor specialiations...
-    //| :? QsSymbol as arg -> arg.TupleItems |> Option.map (List.map box)
+    // | :? QsSymbol as arg -> arg.TupleItems |> Option.map (List.map box)
     | :? SymbolTuple as arg -> cast arg.TupleItems
     | _ ->
         InvalidOperationException("no extension provided for tuple matching of the given ITuple object")

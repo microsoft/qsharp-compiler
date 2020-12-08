@@ -377,7 +377,6 @@ type Namespace private (name,
 
         seq {
             yield Seq.map resolveReferenceCallable CallablesInReferences.[cName] |> ResolutionResult.AtMostOne
-
             yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne
         }
         |> ResolutionResult.TryFirstBest
