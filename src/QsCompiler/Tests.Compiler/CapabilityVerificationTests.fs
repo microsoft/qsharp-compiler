@@ -175,7 +175,7 @@ let ``BasicMeasurementFeedback restricts library calls and references`` () =
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicMeasurementFeedback
-        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.UnsupportedCallableReason ])
+        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.ResultComparisonNotInOperationIf ])
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
@@ -187,4 +187,4 @@ let ``BasicQuantumFunctionality restricts library calls and references`` () =
       "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicQuantumFunctionality
-        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.UnsupportedCallableReason ])
+        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.UnsupportedResultComparison ])

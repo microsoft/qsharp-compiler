@@ -218,15 +218,22 @@ let private globalReferences scope =
 /// the context's supported runtime capabilities.
 let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNullable) =
     let reason (header : SpecializationDeclarationHeader) (diagnostic : QsCompilerDiagnostic) =
-        let warning =
-            WarningCode.UnsupportedCallableReason,
-            [ name.Name
-              header.Source.CodePath
-              string (diagnostic.Range.Start.Line + 1)
-              string (diagnostic.Range.Start.Column + 1)
-              string diagnostic.Diagnostic
-              context.ProcessorArchitecture ]
-        range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning warning
+        match diagnostic.Diagnostic with
+        | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
+        | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
+        | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
+        | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
+        | Error ErrorCode.UnsupportedCapability -> Some WarningCode.UnsupportedCapability
+        | _ -> None
+        |> Option.map (fun code ->
+            let args =
+                Seq.append
+                    [ name.Name
+                      header.Source.CodePath
+                      string (diagnostic.Range.Start.Line + 1)
+                      string (diagnostic.Range.Start.Column + 1) ]
+                    diagnostic.Arguments
+            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning (code, args))
 
     let reasons (header : SpecializationDeclarationHeader, impl) =
         match impl with
@@ -234,7 +241,7 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
             scopePatterns scope
             |> Seq.map (locationOffset header.Location |> addOffset)
             |> Seq.choose (patternDiagnostic context)
-            |> Seq.map (reason header)
+            |> Seq.choose (reason header)
         | _ -> Seq.empty
 
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with

@@ -337,7 +337,11 @@ type WarningCode =
     | ConditionalEvaluationOfOperationCall = 5002
     | DeprecationWithRedirect = 5003
     | DeprecationWithoutRedirect = 5004
-    | UnsupportedCallableReason = 5028
+    | UnsupportedResultComparison = 5023
+    | ResultComparisonNotInOperationIf = 5024
+    | ReturnInResultConditionedBlock = 5025
+    | SetInResultConditionedBlock = 5026
+    | UnsupportedCapability = 5027
 
     | TypeParameterNotResolvedByArgument = 6001
     | ReturnTypeNotResolvedByArgument = 6002
@@ -740,13 +744,11 @@ type DiagnosticItem =
             | WarningCode.ConditionalEvaluationOfOperationCall    -> "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect                 -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect              -> "{0} has been deprecated."
-            | WarningCode.UnsupportedCallableReason               ->
-                let reason =
-                    match args |> Seq.item 4 with
-                    | "Error ResultComparisonNotInOperationIf" ->
-                        DiagnosticItem.Message (ErrorCode.ResultComparisonNotInOperationIf, [ args |> Seq.item 5 ])
-                    | name -> name
-                "Note {0}: {1}:{2}:{3}: " + reason
+            | WarningCode.UnsupportedResultComparison             -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args |> Seq.skip 4)
+            | WarningCode.ResultComparisonNotInOperationIf        -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4)
+            | WarningCode.ReturnInResultConditionedBlock          -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4)
+            | WarningCode.SetInResultConditionedBlock             -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
+            | WarningCode.UnsupportedCapability                   -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedCapability, args |> Seq.skip 4)
 
             | WarningCode.TypeParameterNotResolvedByArgument      -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument         -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
