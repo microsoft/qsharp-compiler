@@ -22,10 +22,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
     let syntaxTree =
         let mutable compilation = compilation.BuiltCompilation
-
-        CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation)
-        |> ignore // the functor generation is expected to fail for certain cases
-
+        CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore // the functor generation is expected to fail for certain cases
         compilation.Namespaces
 
     let callables = syntaxTree |> GlobalCallableResolutions
@@ -43,16 +40,11 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 (c.Location.ValueOrApply(fun _ -> failwith "missing position information"))
                     .Offset
             else
-                attributes
-                |> Seq.map (fun att -> att.Offset)
-                |> Seq.sort
-                |> Seq.head
+                attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
 
         [ for file in compilation.SourceFiles do
             let containedCallables =
-                callables.Where(fun kv ->
-                    kv.Value.SourceFile = file
-                    && kv.Value.Location <> Null)
+                callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
 
             let locations =
                 containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
@@ -60,8 +52,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 |> Seq.toArray
 
             let mutable containedDiagnostics =
-                compilation.Diagnostics file
-                |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
+                compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
+
             for i = 1 to locations.Length do
                 let key = fst locations.[i - 1]
 
@@ -149,9 +141,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 | Error _ -> None
                 | item -> Some item)
 
-        if other.Any() then
-            NotImplementedException "unknown diagnostics item to verify"
-            |> raise
+        if other.Any()
+        then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
     static member Compile(srcFolder, fileNames, ?references, ?capability) =
@@ -159,8 +150,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         let capability = defaultArg capability FullComputation
 
         let paths =
-            fileNames
-            |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
+            fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
 
         let mutable exceptions = []
 
@@ -180,10 +170,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let compilation = manager.Build()
 
-        if not <| List.isEmpty exceptions then
-            exceptions
-            |> List.rev
-            |> AggregateException
-            |> raise
+        if not <| List.isEmpty exceptions
+        then exceptions |> List.rev |> AggregateException |> raise
 
         compilation

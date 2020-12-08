@@ -23,11 +23,9 @@ type QsCompilerError = QsCompilerError
         /// that allows to easily modify the behavior for such errors.
         [<DoesNotReturn>]
         static member Raise(message, innerException: Exception): unit =
-            if innerException = null then
-                new QsCompilerException(message) |> raise
-            else
-                new QsCompilerException(message, innerException)
-                |> raise
+            if innerException = null
+            then new QsCompilerException(message) |> raise
+            else new QsCompilerException(message, innerException) |> raise
 
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
@@ -62,12 +60,8 @@ type QsCompilerError = QsCompilerError
             try
                 action.Invoke()
             with
-            | :? RuntimeWrappedException as ex ->
-                QsCompilerError.Log(ex, header)
-                |> QsCompilerError.Raise
-            | ex ->
-                QsCompilerError.Log(ex, header)
-                |> QsCompilerError.Raise
+            | :? RuntimeWrappedException as ex -> QsCompilerError.Log(ex, header) |> QsCompilerError.Raise
+            | ex -> QsCompilerError.Log(ex, header) |> QsCompilerError.Raise
 
         /// Wraps the given function in a try-catch block.
         /// Calls QsCompilerError.Raise with a message detailing the any caught exception,
@@ -80,9 +74,5 @@ type QsCompilerError = QsCompilerError
             try
                 func.Invoke()
             with
-            | :? RuntimeWrappedException as ex ->
-                QsCompilerError.Log(ex, header)
-                |> RaiseAndReturnNull
-            | ex ->
-                QsCompilerError.Log(ex, header)
-                |> RaiseAndReturnNull
+            | :? RuntimeWrappedException as ex -> QsCompilerError.Log(ex, header) |> RaiseAndReturnNull
+            | ex -> QsCompilerError.Log(ex, header) |> RaiseAndReturnNull

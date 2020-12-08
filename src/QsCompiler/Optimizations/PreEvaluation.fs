@@ -38,17 +38,12 @@ type PreEvaluation =
             for opt in optimizers do
                 tree <- List.map opt.Namespaces.OnNamespace tree
 
-            if optimizers
-               |> List.exists (fun opt -> opt.CheckChanged()) then
-                evaluate tree
-            else
-                tree
+            if optimizers |> List.exists (fun opt -> opt.CheckChanged())
+            then evaluate tree
+            else tree
 
         let namespaces =
-            arg.Namespaces
-            |> Seq.map StripPositionInfo.Apply
-            |> List.ofSeq
-            |> evaluate
+            arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
 
         QsCompilation.New(namespaces.ToImmutableArray(), arg.EntryPoints)
 

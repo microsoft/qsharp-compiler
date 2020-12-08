@@ -46,20 +46,11 @@ and private TypeNameSymbols (t: QsType) =
     | QsTypeKind.Pauli _ -> [ t ]
     | QsTypeKind.Range _ -> [ t ]
     | QsTypeKind.ArrayType b -> TypeNameSymbols b
-    | QsTypeKind.TupleType items ->
-        ([], items)
-        |> collectWith SymbolsFromExpr
-        |> fun (_, r, _) -> r
+    | QsTypeKind.TupleType items -> ([], items) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
     | QsTypeKind.UserDefinedType _ -> [ t ]
     | QsTypeKind.TypeParameter _ -> [ t ]
-    | QsTypeKind.Operation ((it, ot), _) ->
-        ([], [ it; ot ])
-        |> collectWith SymbolsFromExpr
-        |> fun (_, r, _) -> r
-    | QsTypeKind.Function (it, ot) ->
-        ([], [ it; ot ])
-        |> collectWith SymbolsFromExpr
-        |> fun (_, r, _) -> r
+    | QsTypeKind.Operation ((it, ot), _) -> ([], [ it; ot ]) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
+    | QsTypeKind.Function (it, ot) -> ([], [ it; ot ]) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
     | QsTypeKind.MissingType _ -> []
     | QsTypeKind.InvalidType _ -> []
 
@@ -76,11 +67,7 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
     |> function
     | QsExpressionKind.UnitValue -> [], [], [ item ]
     | QsExpressionKind.Identifier (id, typeArgs) ->
-        [ id ],
-        typeArgs.ValueOr ImmutableArray.Empty
-        |> Seq.collect TypeNameSymbols
-        |> Seq.toList,
-        []
+        [ id ], typeArgs.ValueOr ImmutableArray.Empty |> Seq.collect TypeNameSymbols |> Seq.toList, []
     | QsExpressionKind.CallLikeExpression (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.UnwrapApplication ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.AdjointApplication ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
@@ -121,12 +108,8 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
     | QsExpressionKind.BXOR (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.LSHIFT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.RSHIFT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.CopyAndUpdate (lhs, acc, rhs) ->
-        ([ lhs; rhs; acc ], [])
-        |> collectWith SymbolsFromExpr
-    | QsExpressionKind.CONDITIONAL (cond, case1, case2) ->
-        ([ cond; case1; case2 ], [])
-        |> collectWith SymbolsFromExpr
+    | QsExpressionKind.CopyAndUpdate (lhs, acc, rhs) -> ([ lhs; rhs; acc ], []) |> collectWith SymbolsFromExpr
+    | QsExpressionKind.CONDITIONAL (cond, case1, case2) -> ([ cond; case1; case2 ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.MissingExpr -> [], [], [ item ]
     | QsExpressionKind.InvalidExpr -> [], [], [ item ]
 
@@ -244,10 +227,7 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.FunctionDeclaration (_, n, signature) -> (n, signature) |> SymbolsInCallableDeclaration
     | QsFragmentKind.TypeDefinition (_, sym, t) -> (sym, t) |> SymbolsInArgumentTuple
     | QsFragmentKind.DeclarationAttribute (sym, ex) ->
-        [],
-        ([ AttributeAsCallExpr(sym, ex) ], [])
-        |> collectWith SymbolsFromExpr
-        |> addVariable sym
+        [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
     | QsFragmentKind.NamespaceDeclaration sym -> sym |> SymbolDeclarations, ([], [], [])
     | QsFragmentKind.OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
     | QsFragmentKind.InvalidFragment _ -> [], ([], [], [])
@@ -287,12 +267,9 @@ let public CallExpressions fragmentKind =
     | QsFragmentKind.UntilSuccess (ex, _) -> callExpressions ex
     | QsFragmentKind.UsingBlockIntro (_, init)
     | QsFragmentKind.BorrowingBlockIntro (_, init) ->
-        (ExpressionsInInitializer init
-         |> Seq.collect callExpressions)
+        (ExpressionsInInitializer init |> Seq.collect callExpressions)
             .ToImmutableArray()
-    | QsFragmentKind.DeclarationAttribute (sym, ex) ->
-        AttributeAsCallExpr(sym, ex)
-        |> ImmutableArray.Create
+    | QsFragmentKind.DeclarationAttribute (sym, ex) -> AttributeAsCallExpr(sym, ex) |> ImmutableArray.Create
     | _ -> ImmutableArray.Empty
 
 let private tryResolveWith resolve extract (currentNS, source) =
@@ -330,12 +307,9 @@ let private AsDocComment (doc: string seq) =
         null
     elif doc.Any() then
         let minAmountOfLeadingWS =
-            doc
-            |> Seq.map (fun line -> line.Length - line.TrimStart().Length)
-            |> Seq.min
+            doc |> Seq.map (fun line -> line.Length - line.TrimStart().Length) |> Seq.min
 
-        new DocComment(doc
-                       |> Seq.map (fun line -> line.Substring(minAmountOfLeadingWS).TrimEnd()))
+        new DocComment(doc |> Seq.map (fun line -> line.Substring(minAmountOfLeadingWS).TrimEnd()))
     else
         new DocComment(doc)
 
@@ -409,18 +383,15 @@ let private CharacteristicsAnnotation (ex, format) =
 [<Extension>]
 let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType: QsType) markdown =
     let udtInfo udt =
-        match udt
-              |> globalTypeResolution symbolTable (currentNS, source) with
+        match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
             let kind =
-                showModifiers "user-defined type" decl.Modifiers
-                |> toUpperFirst
+                showModifiers "user-defined type" decl.Modifiers |> toUpperFirst
 
             let name = decl.QualifiedName.Name |> withNewLine
 
             let ns =
-                sprintf "Namespace: %s" decl.QualifiedName.Namespace
-                |> withNewLine
+                sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
 
             let info =
                 sprintf "Underlying type: %s" (TypeName decl.Type)
@@ -441,8 +412,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
 
     let rec typeName tKind =
         let udtName udt =
-            match udt
-                  |> globalTypeResolution symbolTable (currentNS, source) with
+            match udt |> globalTypeResolution symbolTable (currentNS, source) with
             | Some _, Some sym -> sym // hovering over the udt will show its namespace and source
             | _ -> "?"
 
@@ -462,10 +432,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
         | QsTypeKind.Operation ((it, ot), cs) ->
             sprintf "(%s => %s%s)" (it.Type |> typeName) (ot.Type |> typeName) (cs |> characteristics)
         | QsTypeKind.Function (it, ot) -> sprintf "(%s -> %s)" (it.Type |> typeName) (ot.Type |> typeName)
-        | QsTypeKind.UnitType ->
-            QsTypeKind.UnitType
-            |> ResolvedType.New
-            |> TypeName
+        | QsTypeKind.UnitType -> QsTypeKind.UnitType |> ResolvedType.New |> TypeName
         | QsTypeKind.Int -> QsTypeKind.Int |> ResolvedType.New |> TypeName
         | QsTypeKind.BigInt -> QsTypeKind.BigInt |> ResolvedType.New |> TypeName
         | QsTypeKind.Double -> QsTypeKind.Double |> ResolvedType.New |> TypeName
@@ -475,14 +442,8 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
         | QsTypeKind.Result -> QsTypeKind.Result |> ResolvedType.New |> TypeName
         | QsTypeKind.Pauli -> QsTypeKind.Pauli |> ResolvedType.New |> TypeName
         | QsTypeKind.Range -> QsTypeKind.Range |> ResolvedType.New |> TypeName
-        | QsTypeKind.MissingType ->
-            QsTypeKind.MissingType
-            |> ResolvedType.New
-            |> TypeName
-        | QsTypeKind.InvalidType ->
-            QsTypeKind.InvalidType
-            |> ResolvedType.New
-            |> TypeName
+        | QsTypeKind.MissingType -> QsTypeKind.MissingType |> ResolvedType.New |> TypeName
+        | QsTypeKind.InvalidType -> QsTypeKind.InvalidType |> ResolvedType.New |> TypeName
 
     let doc =
         PrintSummary qsType.Documentation markdown
@@ -532,12 +493,10 @@ let public VariableInfo (symbolTable: NamespaceManager)
                         (qsSym: QsSymbol)
                         markdown
                         =
-    match qsSym
-          |> globalCallableResolution symbolTable (currentNS, source) with
+    match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, _ ->
         let kind =
-            showModifiers (printCallableKind decl.Kind) decl.Modifiers
-            |> toUpperFirst
+            showModifiers (printCallableKind decl.Kind) decl.Modifiers |> toUpperFirst
 
         let nameAndSignature = PrintSignature decl |> withNewLine
 
@@ -580,8 +539,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
             let info = sprintf "Type: %s" (TypeName decl.Type)
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
-            match qsSym
-                  |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
+            match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
             | Some decl, _ ->
                 let kind =
                     showModifiers "user-defined type" decl.Modifiers
@@ -589,8 +547,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                 let name = decl.QualifiedName.Name |> withNewLine
 
                 let ns =
-                    sprintf "Namespace: %s" decl.QualifiedName.Namespace
-                    |> withNewLine
+                    sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
 
                 let info =
                     sprintf "Underlying type: %s" (decl.Type |> TypeName)
@@ -598,8 +555,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                 let doc = PrintSummary decl.Documentation markdown
                 sprintf "Declaration of %s %s%s%s%s" kind name ns info doc
             | None, _ ->
-                match qsSym
-                      |> globalCallableResolution symbolTable (currentNS, source) with
+                match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
                 | Some decl, _ ->
                     let kind =
                         showModifiers (printCallableKind decl.Kind) decl.Modifiers
@@ -607,16 +563,13 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                     let name = decl.QualifiedName.Name |> withNewLine
 
                     let ns =
-                        sprintf "Namespace: %s" decl.QualifiedName.Namespace
-                        |> withNewLine
+                        sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
 
                     let input =
-                        sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName)
-                        |> withNewLine
+                        sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
 
                     let output =
-                        sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName)
-                        |> withNewLine
+                        sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
 
                     let functorSupport characteristics =
                         let charEx =
@@ -625,10 +578,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                         if String.IsNullOrWhiteSpace charEx then "(None)" else charEx
 
                     let fs =
-                        sprintf
-                            "Supported functors: %s"
-                            (decl.Signature.Information.Characteristics
-                             |> functorSupport)
+                        sprintf "Supported functors: %s" (decl.Signature.Information.Characteristics |> functorSupport)
 
                     let doc = PrintSummary decl.Documentation markdown
                     sprintf "Declaration of %s %s%s%s%s%s%s" kind name ns input output fs doc
@@ -694,8 +644,7 @@ let public VariableDeclaration (symbolTable: NamespaceManager)
                                (currentNS, source)
                                (qsSym: QsSymbol)
                                =
-    match qsSym
-          |> globalCallableResolution symbolTable (currentNS, source) with
+    match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, Some _ ->
         decl.Location
         |> QsNullable<_>
@@ -709,8 +658,7 @@ let public VariableDeclaration (symbolTable: NamespaceManager)
 let public TypeDeclaration (symbolTable: NamespaceManager) (currentNS, source) (qsType: QsType) =
     match qsType.Type with
     | QsTypeKind.UserDefinedType udt ->
-        match udt
-              |> globalTypeResolution symbolTable (currentNS, source) with
+        match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
             decl.Location
             |> QsNullable<_>
@@ -726,15 +674,13 @@ let public SymbolDeclaration (symbolTable: NamespaceManager)
                              =
     match qsSym.Symbol with // needs to be first
     | QsSymbolKind.Symbol _ ->
-        match qsSym
-              |> globalTypeResolution symbolTable (currentNS, source) with // needs to be first
+        match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be first
         | Some decl, _ ->
             decl.Location
             |> QsNullable<_>
                 .Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
         | None, _ ->
-            match qsSym
-                  |> globalCallableResolution symbolTable (currentNS, source) with
+            match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
             | Some decl, _ ->
                 decl.Location
                 |> QsNullable<_>

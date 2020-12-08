@@ -65,14 +65,11 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     member this.OnCompilation compilation =
         if options.Rebuild then
             let namespaces =
-                compilation.Namespaces
-                |> Seq.map this.Namespaces.OnNamespace
-                |> ImmutableArray.CreateRange
+                compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
 
             QsCompilation.New(namespaces, compilation.EntryPoints)
         else
-            compilation.Namespaces
-            |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
+            compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
 
             compilation
 
@@ -358,14 +355,11 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     member this.OnCompilation compilation =
         if options.Rebuild then
             let namespaces =
-                compilation.Namespaces
-                |> Seq.map this.Namespaces.OnNamespace
-                |> ImmutableArray.CreateRange
+                compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
 
             QsCompilation.New(namespaces, compilation.EntryPoints)
         else
-            compilation.Namespaces
-            |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
+            compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
 
             compilation
 

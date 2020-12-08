@@ -55,9 +55,7 @@ let private addFunctorCombination (word1: QsKeyword, word2: QsKeyword) =
     _FragmentHeaders.Add id |> ignore
 
     { id = id
-      parse =
-          (word1.parse .>> word2.parse)
-          <|> (word2.parse .>> word1.parse) }
+      parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse) }
 
 
 // Qs types

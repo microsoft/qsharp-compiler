@@ -49,10 +49,7 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
             let! iterValsList =
                 match iterVals.Expression with
                 | RangeLiteral _ when isLiteral callables iterVals ->
-                    rangeLiteralToSeq iterVals.Expression
-                    |> Seq.map (IntLiteral >> wrapExpr Int)
-                    |> List.ofSeq
-                    |> Some
+                    rangeLiteralToSeq iterVals.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> List.ofSeq |> Some
                 | ValueArray va -> va |> List.ofSeq |> Some
                 | _ -> None
 
@@ -62,9 +59,7 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
                 iterValsList
                 |> List.map (fun x ->
                     let variableDecl =
-                        QsBinding.New ImmutableBinding (loopVar, x)
-                        |> QsVariableDeclaration
-                        |> wrapStmt
+                        QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
 
                     let innerScope =
                         { stm.Body with
@@ -75,10 +70,6 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
             let outerScope =
                 QsScope.New(iterRange, stm.Body.KnownSymbols)
 
-            return
-                outerScope
-                |> newScopeStatement
-                |> this.OnStatementKind
+            return outerScope |> newScopeStatement |> this.OnStatementKind
         }
-        |? (QsForStatement.New((loopVar, loopVarType), iterVals, body)
-            |> QsForStatement)
+        |? (QsForStatement.New((loopVar, loopVarType), iterVals, body) |> QsForStatement)

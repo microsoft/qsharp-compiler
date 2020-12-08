@@ -16,20 +16,12 @@ let private matches scope previous (text, expected) =
     | Success actual ->
         Assert.True
             (Set.ofList expected = Set.ofSeq actual,
-             String.Format
-                 ("Input:    {0}\n"
-                  + "Expected: {1}\n"
-                  + "Actual:   {2}",
-                  text,
-                  Set.ofList expected,
-                  actual))
+             String.Format("Input:    {0}\n" + "Expected: {1}\n" + "Actual:   {2}", text, Set.ofList expected, actual))
     | Failure message -> raise (Exception message)
 
 let private fails scope previous text =
     match GetCompletionKinds scope previous text with
-    | Success _ ->
-        raise
-        <| Exception(String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
+    | Success _ -> raise <| Exception(String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
     | Failure _ -> ()
 
 let private types =

@@ -85,8 +85,7 @@ type QsType with
                     | false, false -> ","
 
                 [ "# Summary"
-                  "Represents a non-deterministic callable"
-                  + functors
+                  "Represents a non-deterministic callable" + functors
                   "that takes exactly one input argument of the type specified to the left of the arrow"
                   "and returns one output value of the type specified to the right of the arrow."
                   "Side effects and output value may vary from operation call to operation call." ]

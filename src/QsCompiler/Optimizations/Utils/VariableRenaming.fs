@@ -24,9 +24,7 @@ type VariableRenaming private (_private_) =
     /// Throws an ArgumentException if the given variable stack is empty.
     let set (key, value) =
         function
-        | [] ->
-            ArgumentException "No scope to define variables in"
-            |> raise
+        | [] -> ArgumentException "No scope to define variables in" |> raise
         | head :: tail -> Map.add key value head :: tail
 
     /// A regex that matches the original name of a mangled variable name
@@ -115,10 +113,7 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
     override this.OnSymbolTuple syms =
         match syms with
         | VariableName item -> VariableName(parent.GenerateUniqueName item)
-        | VariableNameTuple items ->
-            Seq.map this.OnSymbolTuple items
-            |> ImmutableArray.CreateRange
-            |> VariableNameTuple
+        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem
         | DiscardedItem -> syms
 

@@ -75,8 +75,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         if stm.Kind = ImmutableBinding
         then defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
 
-        QsBinding<TypedExpression>.New stm.Kind (lhs, rhs)
-        |> QsVariableDeclaration
+        QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
     override this.OnConditionalStatement stm =
         let cbList, cbListEnd =
@@ -92,12 +91,10 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
             |> takeWhilePlus1 (fun (c, _) -> c <> Null)
 
         let newDefault =
-            cbListEnd |> Option.map (snd >> Value)
-            |? stm.Default
+            cbListEnd |> Option.map (snd >> Value) |? stm.Default
 
         let cbList =
-            cbList
-            |> List.map (fun (c, b) -> this.OnPositionedBlock(c, b))
+            cbList |> List.map (fun (c, b) -> this.OnPositionedBlock(c, b))
 
         let newDefault =
             match newDefault with
@@ -106,18 +103,14 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
         match cbList, newDefault with
         | [], Value x -> x.Body |> newScopeStatement
-        | [], Null ->
-            QsScope.New([], LocalDeclarations.New [])
-            |> newScopeStatement
+        | [], Null -> QsScope.New([], LocalDeclarations.New []) |> newScopeStatement
         | _ ->
             let invalidCondition () = failwith "missing condition"
 
             let cases =
-                cbList
-                |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
+                cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
 
-            QsConditionalStatement.New(cases, newDefault)
-            |> QsConditionalStatement
+            QsConditionalStatement.New(cases, newDefault) |> QsConditionalStatement
 
     override this.OnQubitScope(stm: QsQubitScope) =
         let kind = stm.Kind
@@ -129,8 +122,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
             match l, r.Resolution with
             | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
                 let arrayIden =
-                    Identifier(LocalVariable name, Null)
-                    |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                    Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
                 let elemI =
                     fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
@@ -146,5 +138,4 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
         let body = this.Statements.OnScope stm.Body
 
-        QsQubitScope.New kind ((lhs, rhs), body)
-        |> QsQubitScope
+        QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope

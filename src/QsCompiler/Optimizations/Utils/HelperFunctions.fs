@@ -71,9 +71,8 @@ let rec private onTuple op constants (names, values): unit =
     match names, values with
     | VariableName name, _ -> op constants (name, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
-        if namesTuple.Length <> valuesTuple.Length then
-            ArgumentException "names and values have different lengths"
-            |> raise
+        if namesTuple.Length <> valuesTuple.Length
+        then ArgumentException "names and values have different lengths" |> raise
 
         for sym, value in Seq.zip namesTuple valuesTuple do
             onTuple op constants (sym, value)
@@ -100,9 +99,8 @@ let rec internal flatten =
 let rec internal jointFlatten =
     function
     | Tuple t1, Tuple t2 ->
-        if t1.Length <> t2.Length then
-            ArgumentException "The lengths of the given tuples do not match"
-            |> raise
+        if t1.Length <> t2.Length
+        then ArgumentException "The lengths of the given tuples do not match" |> raise
 
         Seq.zip t1 t2 |> Seq.collect jointFlatten
     | v1, v2 -> Seq.singleton (v1, v2)
@@ -132,9 +130,7 @@ let rec internal optionListToListOption =
 
 /// Returns the given list without the elements at the given indices
 let rec internal removeIndices idx l =
-    Seq.indexed l
-    |> Seq.filter (fun (i, _) -> not (Seq.contains i idx))
-    |> Seq.map snd
+    Seq.indexed l |> Seq.filter (fun (i, _) -> not (Seq.contains i idx)) |> Seq.map snd
 
 
 /// Converts a QsTuple to a SymbolTuple
@@ -146,10 +142,7 @@ let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbo
         | InvalidName -> InvalidItem
     | QsTuple items when items.Length = 0 -> DiscardedItem
     | QsTuple items when items.Length = 1 -> toSymbolTuple items.[0]
-    | QsTuple items ->
-        Seq.map toSymbolTuple items
-        |> ImmutableArray.CreateRange
-        |> VariableNameTuple
+    | QsTuple items -> Seq.map toSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
 
 /// Matches a TypedExpression as a tuple of identifiers, represented as a SymbolTuple.
 /// If the TypedExpression is not a tuple of identifiers, the pattern does not match.
@@ -203,9 +196,7 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
 /// Returns None if the type doesn't have a default value as an expression.
 let rec internal constructNewArray (bt: TypeKind) (length: int): ExprKind option =
     defaultValue bt
-    |> Option.map (fun x ->
-        ImmutableArray.CreateRange(List.replicate length (wrapExpr bt x))
-        |> ValueArray)
+    |> Option.map (fun x -> ImmutableArray.CreateRange(List.replicate length (wrapExpr bt x)) |> ValueArray)
 
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
@@ -219,9 +210,7 @@ and internal defaultValue (bt: TypeKind): ExprKind option =
     | String -> StringLiteral("", ImmutableArray.Empty) |> Some
     | Pauli -> PauliLiteral PauliI |> Some
     | Result -> ResultLiteral Zero |> Some
-    | Range ->
-        RangeLiteral(wrapExpr Int (IntLiteral 1L), wrapExpr Int (IntLiteral 0L))
-        |> Some
+    | Range -> RangeLiteral(wrapExpr Int (IntLiteral 1L), wrapExpr Int (IntLiteral 0L)) |> Some
     | ArrayType t -> constructNewArray t.Resolution 0
     | _ -> None
 
@@ -294,8 +283,7 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l: list<'A>) =
 let internal findAllSubStatements (scope: QsScope) =
     let statementKind (s: QsStatement) = s.Statement
 
-    scope.Statements
-    |> Seq.collect (fun stm -> stm.ExtractAll(statementKind >> Seq.singleton))
+    scope.Statements |> Seq.collect (fun stm -> stm.ExtractAll(statementKind >> Seq.singleton))
 
 /// Returns the number of return statements in this scope
 let internal countReturnStatements (scope: QsScope): int =
@@ -320,19 +308,15 @@ let rec internal isAllDiscarded =
 
 /// Casts an int64 to an int, throwing an ArgumentException if outside the allowed range
 let internal safeCastInt64 (i: int64): int =
-    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
-        ArgumentException "Integer is too large for 32 bits"
-        |> raise
-    else
-        int i
+    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30)
+    then ArgumentException "Integer is too large for 32 bits" |> raise
+    else int i
 
 /// Casts a BigInteger to an int, throwing an ArgumentException if outside the allowed range
 let internal safeCastBigInt (i: BigInteger): int =
-    if BigInteger.Abs(i) > BigInteger(1 <<< 30) then
-        ArgumentException "Integer is too large for 32 bits"
-        |> raise
-    else
-        int i
+    if BigInteger.Abs(i) > BigInteger(1 <<< 30)
+    then ArgumentException "Integer is too large for 32 bits" |> raise
+    else int i
 
 
 /// Creates a new scope statement wrapping the given block

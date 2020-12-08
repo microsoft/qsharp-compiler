@@ -51,8 +51,7 @@ type BuiltIn =
         att.TypeId
         |> function
         | Value tId ->
-            tId.Namespace = BuiltIn.EntryPoint.FullName.Namespace
-            && tId.Name = BuiltIn.EntryPoint.FullName.Name
+            tId.Namespace = BuiltIn.EntryPoint.FullName.Namespace && tId.Name = BuiltIn.EntryPoint.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute marks the corresponding declaration as deprecated.
@@ -60,17 +59,14 @@ type BuiltIn =
         att.TypeId
         |> function
         | Value tId ->
-            tId.Namespace = BuiltIn.Deprecated.FullName.Namespace
-            && tId.Name = BuiltIn.Deprecated.FullName.Name
+            tId.Namespace = BuiltIn.Deprecated.FullName.Namespace && tId.Name = BuiltIn.Deprecated.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute marks the corresponding declaration as unit test.
     static member MarksTestOperation(att: QsDeclarationAttribute) =
         att.TypeId
         |> function
-        | Value tId ->
-            tId.Namespace = BuiltIn.Test.FullName.Namespace
-            && tId.Name = BuiltIn.Test.FullName.Name
+        | Value tId -> tId.Namespace = BuiltIn.Test.FullName.Namespace && tId.Name = BuiltIn.Test.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
@@ -106,20 +102,15 @@ type BuiltIn =
         let capability attribute =
             match attribute.TypeId, attribute.Argument.Expression with
             | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
-                items.[0].Expression
-                |> extractString
-                |> QsNullable<_>.Bind RuntimeCapability.TryParse
+                items.[0].Expression |> extractString |> QsNullable<_>.Bind RuntimeCapability.TryParse
             | _ -> Null
 
         let capabilities =
             attributes |> QsNullable<_>.Choose capability
 
-        if Seq.isEmpty capabilities then
-            Null
-        else
-            capabilities
-            |> Seq.reduce RuntimeCapability.Combine
-            |> Value
+        if Seq.isEmpty capabilities
+        then Null
+        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
 
     // dependencies in Microsoft.Quantum.Core
 

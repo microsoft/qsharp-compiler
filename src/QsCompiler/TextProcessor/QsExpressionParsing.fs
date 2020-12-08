@@ -151,8 +151,7 @@ qsExpression.AddOperator(PrefixOperator(qsBNOTop.op, emptySpace, qsBNOTop.prec, 
 qsExpression.AddOperator
     (PrefixOperator
         (qsNOTop.op,
-         notFollowedBy (many1Satisfy isSymbolContinuation)
-         >>. emptySpace,
+         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
          qsNOTop.prec,
          true,
          (),
@@ -163,9 +162,7 @@ qsExpression.AddOperator(PrefixOperator(qsNEGop.op, emptySpace, qsNEGop.prec, tr
 qsExpression.AddOperator
     (PrefixOperator
         ("!",
-         "!"
-         |> deprecatedOp WarningCode.DeprecatedNOToperator
-         >>. emptySpace,
+         "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
          qsNOTop.prec,
          true,
          (),
@@ -174,9 +171,7 @@ qsExpression.AddOperator
 qsExpression.AddOperator
     (InfixOperator
         ("||",
-         "||"
-         |> deprecatedOp WarningCode.DeprecatedORoperator
-         >>. emptySpace,
+         "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
          qsORop.prec,
          qsORop.Associativity,
          (),
@@ -185,9 +180,7 @@ qsExpression.AddOperator
 qsExpression.AddOperator
     (InfixOperator
         ("&&",
-         "&&"
-         |> deprecatedOp WarningCode.DeprecatedANDoperator
-         >>. emptySpace,
+         "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
          qsANDop.prec,
          qsANDop.Associativity,
          (),
@@ -203,10 +196,7 @@ for op in qsExpression.Operators do
 /// Parses a postfix modifer (unwrap operator) as term and returns its range,
 /// i.e. fails without consuming input if there is no postfix modifier to parse.
 let private postFixModifier =
-    term
-        (pstring qsUnwrapModifier.op
-         .>> notFollowedBy (pchar '='))
-    |>> snd
+    term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers,
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -218,34 +208,25 @@ let private withModifiers modifiableExpr =
         unwraps
         |> function
         | [] -> core
-        | range :: tail ->
-            buildCombinedExpr (UnwrapApplication core) (core.Range, Value range)
-            |> applyUnwraps tail
+        | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
 
     let rec applyFunctors functors (core: QsExpression) =
         functors
         |> function
         | [] -> core
-        | (range, kind) :: tail ->
-            buildCombinedExpr (kind core) (Value range, core.Range)
-            |> applyFunctors tail
+        | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
 
     let functorApplication =
         let adjointApplication =
-            qsAdjointFunctor.parse
-            .>>. preturn AdjointApplication
+            qsAdjointFunctor.parse .>>. preturn AdjointApplication
 
         let controlledApplication =
-            qsControlledFunctor.parse
-            .>>. preturn ControlledApplication
+            qsControlledFunctor.parse .>>. preturn ControlledApplication
 
         adjointApplication <|> controlledApplication
 
-    attempt (many functorApplication .>>. modifiableExpr)
-    .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
-    |>> fun ((functors, ex), unwraps) ->
-        applyUnwraps unwraps ex
-        |> applyFunctors (List.rev functors)
+    attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
+    |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (List.rev functors)
 
 
 // utils for building expressions
@@ -254,21 +235,17 @@ let private withModifiers modifiableExpr =
 /// Fails on fragment headers, and raises an error for other Q# language keywords returning an invalid expression.
 let private argument =
     let keyword =
-        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression
-        >>% unknownExpr
+        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
 
-    notFollowedBy qsFragmentHeader
-    >>. (keyword <|> qsArgument.ExpressionParser) // keyword *needs* to be first here!
+    notFollowedBy qsFragmentHeader >>. (keyword <|> qsArgument.ExpressionParser) // keyword *needs* to be first here!
 
 /// Parses for an arbitrary Q# expression.
 /// Fails on fragment headers, and raises an error for other Q# language keywords returning an invalid expression.
 let internal expr =
     let keyword =
-        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression
-        >>% unknownExpr
+        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
 
-    notFollowedBy qsFragmentHeader
-    >>. (keyword <|> qsExpression.ExpressionParser) // keyword *needs* to be first here!
+    notFollowedBy qsFragmentHeader >>. (keyword <|> qsExpression.ExpressionParser) // keyword *needs* to be first here!
 
 /// Given a continuation (parser), attempts to parse a Q# expression,
 /// returning the parsed Q# expression, or a Q# expression representing an invalid expression (parsing failure) if the parsing fails.
@@ -289,28 +266,20 @@ let private buildExpression ex (range: Range) = (ex, range) |> QsExpression.New
 
 /// Parses a Q# pauli literal as QsExpression.
 let private pauliLiteral =
-    choice [ qsPauliX.parse
-             |>> buildExpression (PauliX |> PauliLiteral)
-             qsPauliY.parse
-             |>> buildExpression (PauliY |> PauliLiteral)
-             qsPauliZ.parse
-             |>> buildExpression (PauliZ |> PauliLiteral)
-             qsPauliI.parse
-             |>> buildExpression (PauliI |> PauliLiteral) ]
+    choice [ qsPauliX.parse |>> buildExpression (PauliX |> PauliLiteral)
+             qsPauliY.parse |>> buildExpression (PauliY |> PauliLiteral)
+             qsPauliZ.parse |>> buildExpression (PauliZ |> PauliLiteral)
+             qsPauliI.parse |>> buildExpression (PauliI |> PauliLiteral) ]
 
 /// Parses a Q# result literal as QsExpression.
 let private resultLiteral =
-    choice [ qsZero.parse
-             |>> buildExpression (Zero |> ResultLiteral)
-             qsOne.parse
-             |>> buildExpression (One |> ResultLiteral) ]
+    choice [ qsZero.parse |>> buildExpression (Zero |> ResultLiteral)
+             qsOne.parse |>> buildExpression (One |> ResultLiteral) ]
 
 /// Parses a Q# boolean literal as QsExpression.
 let private boolLiteral =
-    choice [ qsTrue.parse
-             |>> buildExpression (true |> BoolLiteral)
-             qsFalse.parse
-             |>> buildExpression (false |> BoolLiteral) ]
+    choice [ qsTrue.parse |>> buildExpression (true |> BoolLiteral)
+             qsFalse.parse |>> buildExpression (false |> BoolLiteral) ]
 
 /// Parses a Q# int or double literal as QsExpression.
 let internal numericLiteral =
@@ -336,9 +305,7 @@ let internal numericLiteral =
             && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
 
         let isDouble =
-            not nl.IsInteger
-            && format = 10
-            && nl.SuffixLength = 0
+            not nl.IsInteger && format = 10 && nl.SuffixLength = 0
 
         let returnWithRange kind = preturn (kind, range)
 
@@ -362,14 +329,9 @@ let internal numericLiteral =
                 let value = System.Convert.ToUInt64(str, format) // convert to uint64 to allow proper handling of Int64.MinValue
 
                 if value = uint64 (-System.Int64.MinValue) then
-                    System.Int64.MinValue
-                    |> IntLiteral
-                    |> preturn
-                    |> asExpression
-                    >>= (NEG >> returnWithRange)
+                    System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
                 elif value > (uint64) System.Int64.MaxValue then // needs to be after the first check above
-                    buildError (preturn range) ErrorCode.IntOverflow
-                    >>. returnWithRange ((int64) value |> IntLiteral)
+                    buildError (preturn range) ErrorCode.IntOverflow >>. returnWithRange ((int64) value |> IntLiteral)
                 else
                     (int64) value |> IntLiteral |> returnWithRange
             elif isBigInt then
@@ -383,9 +345,7 @@ let internal numericLiteral =
                     |> BigIntLiteral
                     |> returnWithRange
                 else
-                    BigInteger.Parse(nl.String, CultureInfo.InvariantCulture)
-                    |> BigIntLiteral
-                    |> returnWithRange
+                    BigInteger.Parse(nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then
                 try
                     let doubleValue =
@@ -430,8 +390,7 @@ let internal numericLiteral =
         // note that on a first pass, all options *need* to be parsed together -> don't split into double and int!!
         attempt (number false) <|> attempt (number true)
 
-    term literal >>= verifyAndBuild
-    |>> fun (exKind, range) -> range |> buildExpression exKind
+    term literal >>= verifyAndBuild |>> fun (exKind, range) -> range |> buildExpression exKind
 
 /// Parses a Q# string literal as QsExpression.
 /// Handles both interpolates and non-interpolated strings.
@@ -454,19 +413,14 @@ let private identifier =
             let typeArg = missingType <|> qsType // missing needs to be first
 
             let typeList =
-                sepBy typeArg (comma .>>? followedBy typeArg)
-                .>> warnOnComma
-                |>> fun x -> x.ToImmutableArray()
+                sepBy typeArg (comma .>>? followedBy typeArg) .>> warnOnComma |>> fun x -> x.ToImmutableArray()
 
             attempt typeList
 
-        withinAngleBrackets typeArgs
-        <|> (withinAngleBrackets emptySpace
-             >>% ImmutableArray.Empty)
+        withinAngleBrackets typeArgs <|> (withinAngleBrackets emptySpace >>% ImmutableArray.Empty)
 
     let identifierName =
-        multiSegmentSymbol ErrorCode.InvalidIdentifierName
-        |>> asQualifiedSymbol
+        multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol
 
     identifierName .>>. opt (attempt typeArgs)
     |>> fun (sym, tArgs) ->
@@ -497,12 +451,10 @@ let private bracketDefinedCommaSepExpr (lbracket, rbracket) = // used for arrays
 
     let upToSeparator =
         bracket lbracket >>. expr
-        .>> (buildError (term invalidSeparator |>> snd) ErrorCode.ExpectingComma
-             >>% unknownExpr)
+        .>> (buildError (term invalidSeparator |>> snd) ErrorCode.ExpectingComma >>% unknownExpr)
 
     let grabRest =
-        advanceTo (eof >>% "" <|> rbracket)
-        .>> opt (bracket rbracket)
+        advanceTo (eof >>% "" <|> rbracket) .>> opt (bracket rbracket)
 
     attempt (upToSeparator .>> grabRest)
 
@@ -516,22 +468,16 @@ let private bracketDefinedCommaSepExpr (lbracket, rbracket) = // used for arrays
 /// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
 let private tupledItem item =
     let invalid =
-        checkForInvalid isTupleContinuation ErrorCode.InvalidExpression
-        >>% unknownExpr // fails if isTupleContinuation succeeds
+        checkForInvalid isTupleContinuation ErrorCode.InvalidExpression >>% unknownExpr // fails if isTupleContinuation succeeds
 
     let expectedItem =
         expected item ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr isTupleContinuation
 
     let content =
-        expectedItem
-        |> withExcessContinuation isTupleContinuation
-        <|> invalid
-        .>> warnOnComma
+        expectedItem |> withExcessContinuation isTupleContinuation <|> invalid .>> warnOnComma
 
     tupleBrackets content
-    |>> (fun (item, range) ->
-        (ImmutableArray.Create item |> ValueTuple, range)
-        |> QsExpression.New)
+    |>> (fun (item, range) -> (ImmutableArray.Create item |> ValueTuple, range) |> QsExpression.New)
     |> withModifiers
 
 /// Given an array of QsExpressions and a tuple with start and end position, builds a Q# ValueTuple as QsExpression.
@@ -542,8 +488,7 @@ let internal buildTupleExpr (items, range: Range) =
 /// Uses buildTuple to generate suitable errors for invalid or missing expressions within the tuple.
 let private valueTuple item = // allows something like (a,(),b)
     let invalid =
-        buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.InvalidValueTuple
-        >>% unknownExpr // used for processing e.g. (,)
+        buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.InvalidValueTuple >>% unknownExpr // used for processing e.g. (,)
 
     let validTuple =
         buildTuple item buildTupleExpr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr
@@ -563,28 +508,22 @@ let private valueArray = // this disallows []
 
         expected items ErrorCode.InvalidValueArray ErrorCode.EmptyValueArray InvalidExpr eof // adapt error message if [] are allowed
 
-    arrayBrackets content |>> QsExpression.New
-    <|> bracketDefinedCommaSepExpr (lArray, rArray)
+    arrayBrackets content |>> QsExpression.New <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
 /// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
     let body =
-        expectedQsType (lArray >>% ())
-        .>>. (arrayBrackets (expectedExpr eof) |>> fst)
-        |>> NewArray
+        expectedQsType (lArray >>% ()) .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
 
     let invalid =
         checkForInvalid
-            (qsFragmentHeader >>% ""
-             <|> (nextCharSatisfies Text.IsWhitespace >>. emptySpace))
+            (qsFragmentHeader >>% "" <|> (nextCharSatisfies Text.IsWhitespace >>. emptySpace))
             ErrorCode.InvalidConstructorExpression
         >>% unknownExpr
 
-    arrayDecl.parse
-    >>. (term body |>> QsExpression.New
-         <|> (term invalid |>> fst))
+    arrayDecl.parse >>. (term body |>> QsExpression.New <|> (term invalid |>> fst))
 
 /// used to temporarily store item accessors for both array item and named item access expressions
 type private ItemAccessor =
@@ -626,8 +565,7 @@ let private itemAccessExpr =
 
     let accessor =
         let missingEx pos =
-            (MissingExpr, Range.Create pos pos)
-            |> QsExpression.New
+            (MissingExpr, Range.Create pos pos) |> QsExpression.New
 
         let openRange = pstring qsOpenRangeOp.op |> term
 
@@ -641,16 +579,12 @@ let private itemAccessExpr =
 
         let closedOrHalfOpenRange =
             let skipToTailingRangeOrEnd =
-                followedBy (opt openRange >>? eof)
-                |> manyCharsTill anyChar
+                followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
 
             let slicingExpr state =
-                (opt openRange .>>. expectedExpr eof
-                 |> runOnSubstream state)
-                .>>. opt openRange
+                (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
 
-            getCharStreamState
-            >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
+            getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
             |>> fun ((pre, core: QsExpression), post) ->
                 let applyPost ex =
                     post
@@ -672,32 +606,24 @@ let private itemAccessExpr =
                     | RangeLiteral (lex, rex) ->
                         buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
                         |> combineWith rex
-                    | _ ->
-                        missingEx range.End
-                        |> combineWith core
-                        |> applyPost
+                    | _ -> missingEx range.End |> combineWith core |> applyPost
                 | None -> core |> applyPost
 
         let arrayItemAccess =
-            arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange)
-            |>> ArrayItemAccessor
+            arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
         let namedItemAccess =
-            term (pstring qsNamedItemCombinator.op)
-            >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
+            term (pstring qsNamedItemCombinator.op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
             |>> NamedItemAccessor
 
-        (arrayItemAccess <|> namedItemAccess)
-        .>>. many postFixModifier
+        (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
 
     let arrItem =
         // ideally, this would also "depend" on callLikeExpression and arrayItemExpr (i.e. try them as an lhs expression)
         // but that requires handling the cyclic dependency ...
-        (identifier <|> tupledItem expr <|> valueArray)
-        .>>. many1 accessor // allowing new Int[1][2] (i.e. array items on the lhs) would just be confusing
+        (identifier <|> tupledItem expr <|> valueArray) .>>. many1 accessor // allowing new Int[1][2] (i.e. array items on the lhs) would just be confusing
 
-    attempt arrItem |>> applyAccessors
-    |> withModifiers
+    attempt arrItem |>> applyAccessors |> withModifiers
 
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value,
@@ -715,8 +641,7 @@ let private argumentTuple =
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
 let internal callLikeExpr =
     // identifier needs to come *after* arrayItemExpr
-    itemAccessExpr <|> identifier <|> tupledItem expr
-    .>>. many1 argumentTuple
+    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple
     |>> List.Cons
     |>> List.reduce (applyBinary CallLikeExpression ())
 

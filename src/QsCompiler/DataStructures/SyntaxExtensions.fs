@@ -88,22 +88,15 @@ type ResolvedType with
     member internal this.WithoutRangeInfo =
         match this.Resolution with
         | QsTypeKind.ArrayType bt -> bt.WithoutRangeInfo |> QsTypeKind.ArrayType
-        | QsTypeKind.Function (it, ot) ->
-            (it.WithoutRangeInfo, ot.WithoutRangeInfo)
-            |> QsTypeKind.Function
+        | QsTypeKind.Function (it, ot) -> (it.WithoutRangeInfo, ot.WithoutRangeInfo) |> QsTypeKind.Function
         | QsTypeKind.Operation ((it, ot), fs) ->
-            ((it.WithoutRangeInfo, ot.WithoutRangeInfo), fs)
-            |> QsTypeKind.Operation
+            ((it.WithoutRangeInfo, ot.WithoutRangeInfo), fs) |> QsTypeKind.Operation
         | QsTypeKind.TupleType ts ->
             (ts |> Seq.map (fun t -> t.WithoutRangeInfo))
                 .ToImmutableArray()
             |> QsTypeKind.TupleType
-        | QsTypeKind.UserDefinedType udt ->
-            { udt with Range = Null }
-            |> QsTypeKind.UserDefinedType
-        | QsTypeKind.TypeParameter tp ->
-            { tp with Range = Null }
-            |> QsTypeKind.TypeParameter
+        | QsTypeKind.UserDefinedType udt -> { udt with Range = Null } |> QsTypeKind.UserDefinedType
+        | QsTypeKind.TypeParameter tp -> { tp with Range = Null } |> QsTypeKind.TypeParameter
         | res -> res
         |> ResolvedType.New
 
@@ -261,9 +254,7 @@ type TypedExpression with
         | ValueTuple items
         | ValueArray items -> upcast items
         | kind when TypedExpression.IsAtomic kind -> Seq.empty
-        | _ ->
-            NotImplementedException "missing implementation for the given expression kind"
-            |> raise
+        | _ -> NotImplementedException "missing implementation for the given expression kind" |> raise
         |> Seq.map recur
         |> folder expr
 
@@ -363,8 +354,7 @@ type QsStatement with
         | EmptyStatement -> Seq.empty
         | QsConditionalStatement s ->
             (Seq.append
-                (s.ConditionalBlocks
-                 |> Seq.collect (fun (_, b) -> b.Body.Statements))
+                (s.ConditionalBlocks |> Seq.collect (fun (_, b) -> b.Body.Statements))
                  (match s.Default with
                   | Null -> Seq.empty
                   | Value v -> upcast v.Body.Statements))
@@ -393,10 +383,7 @@ type QsTuple<'I> with
     member this.ResolveWith getType =
         let rec resolveInner =
             function
-            | QsTuple items ->
-                (items |> Seq.map resolveInner).ToImmutableArray()
-                |> TupleType
-                |> ResolvedType.New
+            | QsTuple items -> (items |> Seq.map resolveInner).ToImmutableArray() |> TupleType |> ResolvedType.New
             | QsTupleItem item -> getType item
 
         match this with
@@ -453,9 +440,7 @@ let (|Missing|_|) arg =
 
 [<Extension>]
 let FilterByOrigin (this: ImmutableDictionary<(QsQualifiedName * string), ResolvedType>) origin =
-    this
-    |> Seq.filter (fun x -> fst x.Key = origin)
-    |> ImmutableDictionary.CreateRange
+    this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange
 
 // look-up for udt and global callables
 

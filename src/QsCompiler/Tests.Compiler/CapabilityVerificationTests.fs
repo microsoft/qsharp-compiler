@@ -71,16 +71,13 @@ let private simpleTests =
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
     List.iter (expect fullComputation []) simpleTests
-
-    "SetReusedName"
-    |> expect fullComputation [ ErrorCode.LocalVariableAlreadyExists ]
+    "SetReusedName" |> expect fullComputation [ ErrorCode.LocalVariableAlreadyExists ]
 
     [ "ResultTuple"; "ResultArray" ]
     |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
 
 let ``BasicQuantumFunctionality allows callables without Result comparison`` () =
-    [ "NoOp"; "OverrideBqfToBmf" ]
-    |> List.iter (expect basicQuantumFunctionality [])
+    [ "NoOp"; "OverrideBqfToBmf" ] |> List.iter (expect basicQuantumFunctionality [])
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts all Result comparison`` () =
@@ -116,9 +113,7 @@ let ``BasicMeasurementFeedback restricts return from Result if`` () =
       "ResultAsBoolOpReturnIfNested"
       "ResultAsBoolNeqOpReturnIf"
       "NestedResultIfReturn" ]
-    |> List.iter
-        (expect basicMeasurementFeedback
-         <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
+    |> List.iter (expect basicMeasurementFeedback <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows local mutable set from Result if`` () =
@@ -134,8 +129,7 @@ let ``BasicMeasurementFeedback restricts non-local mutable set from Result if`` 
     "SetReusedName"
     |> expect
         basicMeasurementFeedback
-           (ErrorCode.LocalVariableAlreadyExists
-            :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
+           (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result elif`` () =
@@ -155,8 +149,7 @@ let ``BasicMeasurementFeedback restricts empty Result if function`` () =
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows empty Result if operation`` () =
-    [ "EmptyIfOp"; "EmptyIfNeqOp" ]
-    |> List.iter (expect basicMeasurementFeedback [])
+    [ "EmptyIfOp"; "EmptyIfNeqOp" ] |> List.iter (expect basicMeasurementFeedback [])
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows operation call from Result if`` () =
@@ -179,8 +172,7 @@ let ``FullComputation allows all library calls and references`` () =
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts library calls and references`` () =
-    [ "CallLibraryBqf"; "CallLibraryBmf" ]
-    |> List.iter (expect basicMeasurementFeedback [])
+    [ "CallLibraryBqf"; "CallLibraryBmf" ] |> List.iter (expect basicMeasurementFeedback [])
 
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]

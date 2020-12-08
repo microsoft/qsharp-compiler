@@ -22,9 +22,7 @@ let private _BaseTypes =
        "Qubit[]", ResolvedType.New Qubit |> ArrayType |]
 
 let private _MakeTypeMap udts =
-    Array.concat [ _BaseTypes; udts ]
-    |> Seq.map (fun (k, v) -> k, ResolvedType.New v)
-    |> dict
+    Array.concat [ _BaseTypes; udts ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
 let private _DefaultTypes = _MakeTypeMap [||]
 
@@ -46,9 +44,7 @@ let private _MakeSig input (typeMap: IDictionary<string, ResolvedType>) =
     (fullName, argType, returnType)
 
 let private _MakeSignatures sigs =
-    sigs
-    |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case)
-    |> Seq.toArray
+    sigs |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case) |> Seq.toArray
 
 let _MakeTypeParam originNs originName paramName =
     originName + "." + paramName,
@@ -66,9 +62,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let getNs targetNs =
         match Seq.tryFind (fun (ns: QsNamespace) -> ns.Name = targetNs) compilation.Namespaces with
         | Some ns -> ns
-        | None ->
-            sprintf "Expected but did not find namespace: %s" targetNs
-            |> failwith
+        | None -> sprintf "Expected but did not find namespace: %s" targetNs |> failwith
 
     let mutable callableSigs =
         checkedNamespaces
@@ -94,9 +88,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         | _ -> args |> SyntaxTreeToQsharp.Default.ToCode
 
     let removeAt i lst =
-        Seq.append
-        <| Seq.take i lst
-        <| Seq.skip (i + 1) lst
+        Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
 
     (*Tests that all target signatures are present*)
     for targetSig in targetSignatures do

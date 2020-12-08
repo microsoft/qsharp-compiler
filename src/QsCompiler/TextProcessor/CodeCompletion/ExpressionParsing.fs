@@ -17,9 +17,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 
 /// Parses a prefix operator.
 let private prefixOp =
-    expectedKeyword notOperator
-    <|> operator qsNEGop.op ""
-    <|> operator qsBNOTop.op ""
+    expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
 
 /// Parses an infix operator.
 let private infixOp =
@@ -43,33 +41,25 @@ let private keywordLiteral =
 
 /// Parses a functor literal.
 let private functor =
-    expectedKeyword qsAdjointFunctor
-    <|>@ expectedKeyword qsControlledFunctor
+    expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
 
 /// Parses an expression.
 let rec expression =
     parse {
         let postfixOp =
             let copyAndUpdate =
-                operator qsCopyAndUpdateOp.op ""
-                >>. (expression <|>@ expectedId NamedItem (term symbol))
+                operator qsCopyAndUpdateOp.op "" >>. (expression <|>@ expectedId NamedItem (term symbol))
                 ?>> expected (operator qsCopyAndUpdateOp.cont "")
                 ?>> expression
 
             let typeParamListOrLessThan =
                 // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
                 // list.
-                operator qsLTop.op "=-"
-                ?>> ((sepByLast qsType comma
-                      ?>> expected (bracket rAngle))
-                     <|>@ expression)
+                operator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
 
             choice [ operator qsUnwrapModifier.op ""
-                     pstring qsOpenRangeOp.op .>> emptySpace
-                     >>. optional eot
-                     >>% []
-                     operator qsNamedItemCombinator.op ""
-                     ?>> expectedId NamedItem (term symbol)
+                     pstring qsOpenRangeOp.op .>> emptySpace >>. optional eot >>% []
+                     operator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
                      copyAndUpdate
                      tuple expression
                      array expression
@@ -78,8 +68,7 @@ let rec expression =
         let newArray =
             expectedKeyword arrayDecl
             ?>> nonArrayType
-            ?>> manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ())
-                @>> array expression
+            ?>> manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>> array expression
 
         let stringLiteral =
             let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
@@ -87,46 +76,33 @@ let rec expression =
 
             let interpolated =
                 let text =
-                    manyChars
-                        (notFollowedBy (unescaped quote <|> unescaped lCurly)
-                         >>. anyChar)
+                    manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar)
                     >>. optional eot
                     >>. preturn []
 
                 let code = brackets (lCurly, rCurly) expression
 
-                pchar '$' >>. expected quote
-                ?>> text
-                ?>> manyLast (code ?>> text)
-                ?>> expected quote
+                pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
 
             let uninterpolated =
                 let text =
-                    manyChars (notFollowedBy (unescaped quote) >>. anyChar)
-                    >>. optional eot
-                    >>. preturn []
+                    manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
 
                 quote >>. text ?>> expected quote
 
             interpolated <|> uninterpolated
 
         let expTerm =
-            pcollect [ operator qsOpenRangeOp.op "" >>. opt expression
-                       |>> Option.defaultValue []
+            pcollect [ operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
                        newArray
                        tuple1 expression
                        array expression
                        keywordLiteral
                        numericLiteral
-                       >>. (previousCharSatisfiesNot Char.IsWhiteSpace
-                            >>. optional eot
-                            >>% []
-                            <|> preturn [])
+                       >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
                        stringLiteral
-                       manyR functor symbol
-                       @>> expectedQualifiedSymbol Callable
-                       expectedId Variable (term symbol)
-                       .>> nextCharSatisfiesNot ((=) '.') ]
+                       manyR functor symbol @>> expectedQualifiedSymbol Callable
+                       expectedId Variable (term symbol) .>> nextCharSatisfiesNot ((=) '.') ]
 
         return! createExpressionParser prefixOp infixOp postfixOp expTerm
     }

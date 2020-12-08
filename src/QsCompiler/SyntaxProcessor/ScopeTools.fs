@@ -57,9 +57,8 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
 
     do
-        if not globals.ContainsResolutions then
-            ArgumentException "the content of the given namespace manager needs to be resolved"
-            |> raise
+        if not globals.ContainsResolutions
+        then ArgumentException "the content of the given namespace manager needs to be resolved" |> raise
 
     /// Contains all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
     /// In particular, contains a "stack" of all local declarations up to this point in each scope,
@@ -164,9 +163,8 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
     /// pops the most recent scope from the stack, thus closing it
     member this.EndScope() =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open"
-            |> raise
+        if pushedScopes.Length = 0
+        then InvalidOperationException "no scope is currently open" |> raise
 
         pushedScopes <- pushedScopes.Tail
 
@@ -179,17 +177,13 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// and returns false as well as an array with diagnostics otherwise.
     /// Throws an InvalidOperationException if no scope is currently open.
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<string>) =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open"
-            |> raise
+        if pushedScopes.Length = 0
+        then InvalidOperationException "no scope is currently open" |> raise
 
-        if (globalTypeWithName (None, decl.VariableName))
-           <> NotFound then
+        if (globalTypeWithName (None, decl.VariableName)) <> NotFound then
             false,
-            [| decl.Range
-               |> QsCompilerDiagnostic.Error(ErrorCode.GlobalTypeAlreadyExists, [ decl.VariableName ]) |]
-        elif (globalCallableWithName (None, decl.VariableName))
-             <> NotFound then
+            [| decl.Range |> QsCompilerDiagnostic.Error(ErrorCode.GlobalTypeAlreadyExists, [ decl.VariableName ]) |]
+        elif (globalCallableWithName (None, decl.VariableName)) <> NotFound then
             false,
             [| decl.Range
                |> QsCompilerDiagnostic.Error(ErrorCode.GlobalCallableAlreadyExists, [ decl.VariableName ]) |]
@@ -211,9 +205,8 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// and returns false as well as an array with diagnostics otherwise.
     /// Throws an InvalidOperationException if no scope is currently open.
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<QsLocalSymbol>) =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open"
-            |> raise
+        if pushedScopes.Length = 0
+        then InvalidOperationException "no scope is currently open" |> raise
 
         match decl.VariableName with
         | InvalidName -> false, [||]
@@ -228,25 +221,21 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// Throws an ArgumentException if no local variable with the given name is visible on the current scope.
     /// Throws an InvalidOperationException if no scope is currently open, or the variable is immutable.
     member internal this.UpdateQuantumDependency varName localQdep =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open"
-            |> raise
+        if pushedScopes.Length = 0
+        then InvalidOperationException "no scope is currently open" |> raise
 
         match localVariableWithName varName with
         | Value dict ->
             let existing = dict.[varName]
 
             if not existing.InferredInformation.IsMutable then
-                InvalidOperationException "cannot update information for immutable variable"
-                |> raise
+                InvalidOperationException "cannot update information for immutable variable" |> raise
             else
                 dict.[varName] <- { existing with
                                         InferredInformation =
                                             { existing.InferredInformation with
                                                   HasLocalQuantumDependency = localQdep } }
-        | Null ->
-            ArgumentException "no local variable with the given name exists on the current scope"
-            |> raise
+        | Null -> ArgumentException "no local variable with the given name exists on the current scope" |> raise
 
     /// returns all *local* declarations on the current scope *and* all parent scopes up to this point
     member this.CurrentDeclarations =
@@ -294,16 +283,12 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
 
             let idType =
-                kind ((argType, returnType), decl.Information)
-                |> ResolvedType.New
+                kind ((argType, returnType), decl.Information) |> ResolvedType.New
 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
         let addDiagnosticForSymbol code args =
-            qsSym.RangeOrDefault
-            |> QsCompilerDiagnostic.Error(code, args)
-            |> addDiagnostic
-
+            qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error(code, args) |> addDiagnostic
             invalid
 
         let resolveGlobal (ns, sym) input =
@@ -336,19 +321,13 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                      decl.Type |> StripPositionInfo.Apply,
                      decl.InferredInformation.HasLocalQuantumDependency)
 
-                properties
-                |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable,
-                ImmutableArray<_>.Empty
-            | Null ->
-                globalCallableWithName (None, sym)
-                |> resolveGlobal (None, sym)
+                properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray<_>.Empty
+            | Null -> globalCallableWithName (None, sym) |> resolveGlobal (None, sym)
 
         match qsSym.Symbol with
         | InvalidSymbol -> invalid
         | Symbol sym -> resolveNative sym
-        | QualifiedSymbol (ns, sym) ->
-            globalCallableWithName (Some ns, sym)
-            |> resolveGlobal (Some ns, sym)
+        | QualifiedSymbol (ns, sym) -> globalCallableWithName (Some ns, sym) |> resolveGlobal (Some ns, sym)
         | _ -> addDiagnosticForSymbol ErrorCode.ExpectingIdentifier []
 
     /// Given a Q# type, resolves it calling the NamespaceManager associated with this symbol tracker.
@@ -459,9 +438,7 @@ type ScopeContext =
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capability = capability
               ProcessorArchitecture = processorArchitecture }
-        | _ ->
-            raise
-            <| ArgumentException "The specialization's parent callable does not exist."
+        | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
 
     /// Returns a new scope context for an expression that is contained within the condition of an if- or
     /// elif-statement.

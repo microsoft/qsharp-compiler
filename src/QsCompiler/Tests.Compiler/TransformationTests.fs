@@ -84,14 +84,12 @@ let private buildSyntaxTree code =
         CompilationUnitManager.InitializeFileManager(fileId, code)
 
     // spawns a task that modifies the current compilation
-    compilationUnit.AddOrUpdateSourceFileAsync file
-    |> ignore
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
 
     // will wait for any current tasks to finish
     let mutable syntaxTree = compilationUnit.Build().BuiltCompilation
 
-    CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree)
-    |> ignore
+    CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
 
     syntaxTree
 
@@ -108,8 +106,7 @@ let ``basic walk`` () =
     let walker =
         new SyntaxCounter(TransformationOptions.NoRebuild)
 
-    compilation.Namespaces
-    |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
+    compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
     Assert.Equal(1, walker.Counter.funCount)
@@ -128,8 +125,7 @@ let ``basic transformation`` () =
 
     let walker = new SyntaxCounter()
 
-    compilation.Namespaces
-    |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
+    compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
     Assert.Equal(1, walker.Counter.funCount)
@@ -153,10 +149,7 @@ let ``attaching attributes to callables`` () =
           Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs") ]
 
     let compilation =
-        sources
-        |> Seq.map File.ReadAllText
-        |> String.Concat
-        |> buildSyntaxTree
+        sources |> Seq.map File.ReadAllText |> String.Concat |> buildSyntaxTree
 
     let testAttribute =
         AttributeUtils.BuildAttribute(BuiltIn.Test.FullName, AttributeUtils.StringArgument "QuantumSimulator")
@@ -166,18 +159,13 @@ let ``attaching attributes to callables`` () =
         spec
 
     let checkType (customType: QsCustomType) =
-        if customType
-           |> QsCustomType
-           |> WithinNamespace attGenNs then
-            Assert.Empty customType.Attributes
+        if customType |> QsCustomType |> WithinNamespace attGenNs
+        then Assert.Empty customType.Attributes
 
         customType
 
     let checkCallable limitedToNs nrAtts (callable: QsCallable) =
-        if limitedToNs = null
-           || callable
-              |> QsCallable
-              |> WithinNamespace limitedToNs then
+        if limitedToNs = null || callable |> QsCallable |> WithinNamespace limitedToNs then
             Assert.Equal(nrAtts, callable.Attributes.Length)
 
             for att in callable.Attributes do
@@ -260,8 +248,7 @@ let ``generation of open statements`` () =
         [ "Arithmetic"; "Math" ] |> List.map directive
 
     let openDirectives =
-        openExplicit @ openAbbrevs
-        |> ImmutableArray.ToImmutableArray
+        openExplicit @ openAbbrevs |> ImmutableArray.ToImmutableArray
 
     let imports =
         ImmutableDictionary.Empty.Add(ns.Name, openDirectives)

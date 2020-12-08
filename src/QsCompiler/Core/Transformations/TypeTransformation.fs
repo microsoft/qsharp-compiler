@@ -35,8 +35,7 @@ type TypeTransformationBase(options: TransformationOptions) =
 
         let inferred = opInfo.InferredInformation
 
-        CallableInformation.New
-        |> Node.BuildOr opInfo (characteristics, inferred)
+        CallableInformation.New |> Node.BuildOr opInfo (characteristics, inferred)
 
 
     // nodes containing subtypes
@@ -47,9 +46,7 @@ type TypeTransformationBase(options: TransformationOptions) =
         let ns, name = udt.Namespace, udt.Name
         let range = this.OnRangeInformation udt.Range
 
-        ExpressionType.UserDefinedType
-        << UserDefinedType.New
-        |> Node.BuildOr InvalidType (ns, name, range)
+        ExpressionType.UserDefinedType << UserDefinedType.New |> Node.BuildOr InvalidType (ns, name, range)
 
     abstract OnTypeParameter: QsTypeParameter -> ExpressionType
 
@@ -58,8 +55,7 @@ type TypeTransformationBase(options: TransformationOptions) =
         let name = tp.TypeName
         let range = this.OnRangeInformation tp.Range
 
-        ExpressionType.TypeParameter
-        << QsTypeParameter.New
+        ExpressionType.TypeParameter << QsTypeParameter.New
         |> Node.BuildOr InvalidType (origin, name, range)
 
     abstract OnOperation: (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
@@ -68,33 +64,27 @@ type TypeTransformationBase(options: TransformationOptions) =
         let transformed =
             (this.OnType it, this.OnType ot), this.OnCallableInformation info
 
-        ExpressionType.Operation
-        |> Node.BuildOr InvalidType transformed
+        ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
     abstract OnFunction: ResolvedType * ResolvedType -> ExpressionType
 
     default this.OnFunction(it, ot) =
         let transformed = this.OnType it, this.OnType ot
 
-        ExpressionType.Function
-        |> Node.BuildOr InvalidType transformed
+        ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
     abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType
 
     default this.OnTupleType ts =
         let transformed =
-            ts
-            |> Seq.map this.OnType
-            |> ImmutableArray.CreateRange
+            ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
 
-        ExpressionType.TupleType
-        |> Node.BuildOr InvalidType transformed
+        ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
     abstract OnArrayType: ResolvedType -> ExpressionType
 
     default this.OnArrayType b =
-        ExpressionType.ArrayType
-        |> Node.BuildOr InvalidType (this.OnType b)
+        ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.OnType b)
 
 
     // leaf nodes

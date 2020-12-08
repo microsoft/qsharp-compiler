@@ -38,10 +38,7 @@ type TypeParameterTests() =
     let BazA = typeParameter "Baz.A"
 
     let MakeTupleType types =
-        types
-        |> Seq.map ResolvedType.New
-        |> ImmutableArray.CreateRange
-        |> TupleType
+        types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
     let MakeArrayType ``type`` = ResolvedType.New ``type`` |> ArrayType
 
@@ -53,10 +50,7 @@ type TypeParameterTests() =
             ImmutableHashSet
                 .CreateRange(res1.Keys).SymmetricExcept res2.Keys
 
-        keysMismatch.Count = 0
-        && res1
-           |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value)
-           |> not
+        keysMismatch.Count = 0 && res1 |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value) |> not
 
     let AssertExpectedResolution expected given =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
@@ -90,8 +84,7 @@ type TypeParameterTests() =
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput =
-            Path.Combine("TestCases", fileName)
-            |> File.ReadAllText
+            Path.Combine("TestCases", fileName) |> File.ReadAllText
 
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
@@ -100,17 +93,13 @@ type TypeParameterTests() =
         let fileId = getTempFile ()
         let file = getManager fileId content
 
-        compilationManager.AddOrUpdateSourceFileAsync(file)
-        |> ignore
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
 
         let compilationDataStructures = compilationManager.Build()
 
-        compilationManager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
-        compilationDataStructures.Diagnostics()
-        |> Seq.exists (fun d -> d.IsError())
-        |> Assert.False
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilationDataStructures.BuiltCompilation
 
@@ -488,11 +477,7 @@ type TypeParameterTests() =
                ResolutionFromParam [ (BarA, FooA |> TypeParameter |> MakeArrayType) ] |]
 
         let expected =
-            ResolutionFromParam [ (BarA,
-                                   FooA
-                                   |> TypeParameter
-                                   |> MakeArrayType
-                                   |> MakeArrayType)
+            ResolutionFromParam [ (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
                                   (FooA, FooA |> TypeParameter |> MakeArrayType) ]
 
         AssertCombinedResolutionFailure expected given

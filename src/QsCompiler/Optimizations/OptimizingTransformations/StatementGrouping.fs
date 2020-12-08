@@ -30,9 +30,7 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
         let c = SideEffectChecker()
         c.Statements.OnStatement stmt |> ignore
 
-        not c.HasQuantum
-        && not c.HasMutation
-        && not c.HasInterrupts
+        not c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Returns whether a statement is purely quantum.
     /// The statement must have no classical side effects, but can have quantum side effects.
@@ -40,9 +38,7 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
         let c = SideEffectChecker()
         c.Statements.OnStatement stmt |> ignore
 
-        c.HasQuantum
-        && not c.HasMutation
-        && not c.HasInterrupts
+        c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements
     let rec reorderStatements =
@@ -58,9 +54,6 @@ and private StatementGroupingStatements(parent: StatementGrouping) =
         let parentSymbols = scope.KnownSymbols
 
         let statements =
-            scope.Statements
-            |> Seq.map this.OnStatement
-            |> List.ofSeq
-            |> reorderStatements
+            scope.Statements |> Seq.map this.OnStatement |> List.ofSeq |> reorderStatements
 
         QsScope.New(statements, parentSymbols)

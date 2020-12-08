@@ -20,16 +20,12 @@ let ``Valid array bracket matching`` () =
       "[[]]"
       "[a [], b sf; [a ; b c;] ]"
       "[a [], b [sf; [a ; b c;]; 4]]" ]
-    |> List.iter (fun str ->
-        FormatCompilation.WithinArrayBrackets.Match str
-        |> VerifyMatch str)
+    |> List.iter (fun str -> FormatCompilation.WithinArrayBrackets.Match str |> VerifyMatch str)
 
 [<Fact>]
 let ``Invalid array bracket matching`` () =
     [ "["; "]"; "some text" ]
-    |> List.iter (fun str ->
-        FormatCompilation.WithinArrayBrackets.Match str
-        |> VerifyNoMatch str)
+    |> List.iter (fun str -> FormatCompilation.WithinArrayBrackets.Match str |> VerifyNoMatch str)
 
 [<Fact>]
 let ``Array bracket matching within text`` () =
@@ -43,9 +39,7 @@ let ``Array bracket matching within text`` () =
       ("[a [], b [sf; [a ; b c;]; 4]", [ "[]"; "[sf; [a ; b c;]; 4]" ])
       ("[a [], b sf; [a ; b c;]; 4]", [ "[a [], b sf; [a ; b c;]; 4]" ])
       ("[a [], b [sf; [a ; b c;]; 4", [ "[]"; "[a ; b c;]" ]) ]
-    |> List.iter (fun (str, exp) ->
-        FormatCompilation.WithinArrayBrackets.Matches str
-        |> VerifyMatches exp)
+    |> List.iter (fun (str, exp) -> FormatCompilation.WithinArrayBrackets.Matches str |> VerifyMatches exp)
 
 [<Fact>]
 let ``Replace array item delimeters`` () =
@@ -59,9 +53,7 @@ let ``Replace array item delimeters`` () =
       ("[a [1;]; b [sf; [a ; b c;]; 4]", "[a [1,]; b [sf, [a , b c,], 4]")
       ("[a [1;]; b sf; [a ; b c;]; 4]", "[a [1,], b sf, [a , b c,], 4]")
       ("[a [1;]; b [sf; [a ; b c;]; 4", "[a [1,]; b [sf; [a , b c,]; 4") ]
-    |> List.iter (fun (str, exp) ->
-        FormatCompilation.UpdateArrayLiterals str
-        |> fun got -> Assert.Equal(exp, got))
+    |> List.iter (fun (str, exp) -> FormatCompilation.UpdateArrayLiterals str |> fun got -> Assert.Equal(exp, got))
 
 
 [<Fact>]

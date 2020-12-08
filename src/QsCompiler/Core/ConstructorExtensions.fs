@@ -51,8 +51,7 @@ type LocalDeclarations with
 
     member this.AsVariableLookup() =
         let localVars =
-            this.Variables
-            |> Seq.map (fun decl -> decl.VariableName, decl)
+            this.Variables |> Seq.map (fun decl -> decl.VariableName, decl)
 
         new ReadOnlyDictionary<_, _>(localVars.ToDictionary(fst, snd))
 

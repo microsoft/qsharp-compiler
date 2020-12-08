@@ -59,14 +59,12 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
 
     let ensureMatchingIndex (l: ImmutableArray<_>) =
         let existing =
-            Seq.indexed l
-            |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some(l, i) else None)
+            Seq.indexed l |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some(l, i) else None)
 
         let newList, index = existing |? (l.Add expr, l.Length)
 
-        if index > (1 <<< 29) then
-            ArgumentException "Trying to create too large of a circuit"
-            |> raise
+        if index > (1 <<< 29)
+        then ArgumentException "Trying to create too large of a circuit" |> raise
 
         newList, index
 
@@ -88,9 +86,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
         function
         | TypeKind.Qubit -> true
         | TypeKind.ArrayType t -> mightContainQubit t.Resolution
-        | TypeKind.TupleType ts ->
-            ts
-            |> Seq.exists (fun t -> mightContainQubit t.Resolution)
+        | TypeKind.TupleType ts -> ts |> Seq.exists (fun t -> mightContainQubit t.Resolution)
         | TypeKind.UserDefinedType u ->
             let qualName =
                 { Namespace = u.Namespace
@@ -207,10 +203,7 @@ let private toCircuit callables distinctNames exprList: (Circuit * CircuitContex
 /// Returns the Q# expression corresponding to the given Expression
 let rec private fromExpression (cc: CircuitContext) (expr: Expression): TypedExpression =
     let buildArray t x =
-        x
-        |> ImmutableArray.CreateRange
-        |> ExprKind.ValueArray
-        |> wrapExpr (ArrayType(ResolvedType.New t))
+        x |> ImmutableArray.CreateRange |> ExprKind.ValueArray |> wrapExpr (ArrayType(ResolvedType.New t))
 
     let rec getType =
         function
@@ -227,10 +220,7 @@ let rec private fromExpression (cc: CircuitContext) (expr: Expression): TypedExp
     | Literal (IntLiteral x) -> ExprKind.IntLiteral x |> wrapExpr Int
     | Literal (DoubleLiteral x) -> ExprKind.DoubleLiteral x |> wrapExpr Double
     | Literal (PauliLiteral x) -> ExprKind.PauliLiteral x |> wrapExpr Pauli
-    | Literal (PauliArray x) ->
-        x
-        |> Seq.map (ExprKind.PauliLiteral >> wrapExpr Pauli)
-        |> buildArray Pauli
+    | Literal (PauliArray x) -> x |> Seq.map (ExprKind.PauliLiteral >> wrapExpr Pauli) |> buildArray Pauli
     | Tuple x ->
         x
         |> Seq.map (fromExpression cc)
@@ -238,10 +228,7 @@ let rec private fromExpression (cc: CircuitContext) (expr: Expression): TypedExp
         |> ExprKind.ValueTuple
         |> wrapExpr (getType expr).Resolution
     | Qubit i -> cc.qubits.[i]
-    | QubitArray x ->
-        x
-        |> Seq.map (fun i -> cc.qubits.[i])
-        |> buildArray TypeKind.Qubit
+    | QubitArray x -> x |> Seq.map (fun i -> cc.qubits.[i]) |> buildArray TypeKind.Qubit
     | UnknownValue i -> cc.unknownValues.[i]
 
 /// Returns the Q# expression correponding to the given gate call
@@ -273,8 +260,7 @@ let private fromGateCall (cc: CircuitContext) (gc: GateCall): TypedExpression =
 
 /// Returns the list of Q# expressions corresponding to the given circuit
 let private fromCircuit (cc: CircuitContext) (circuit: Circuit) =
-    Seq.map (fromGateCall cc) circuit.gates
-    |> ImmutableArray.CreateRange
+    Seq.map (fromGateCall cc) circuit.gates |> ImmutableArray.CreateRange
 
 
 /// Given a pure circuit, performs basic optimizations and returns the new circuit
@@ -287,17 +273,13 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
                                      adjoint = not circuit.gates.[i + 1].adjoint } then
             circuit <-
                 { circuit with
-                      gates =
-                          removeIndices [ i; i + 1 ] circuit.gates
-                          |> ImmutableArray.CreateRange }
+                      gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
         elif circuit.gates.[i] = circuit.gates.[i + 1]
              && circuit.gates.[i]
                  .info.InferredInformation.IsSelfAdjoint then
             circuit <-
                 { circuit with
-                      gates =
-                          removeIndices [ i; i + 1 ] circuit.gates
-                          |> ImmutableArray.CreateRange }
+                      gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
         else
             i <- i + 1
 

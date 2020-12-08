@@ -84,15 +84,11 @@ characteristicsExpression.TermParser <-
         notFollowedBy qsReservedKeyword >>. anyWord // check for reserved keyword is needed here!
 
     let tupledSetExpr =
-        tupleBrackets
-            (expectedCharacteristics eof
-             |> withExcessContinuation eof)
+        tupleBrackets (expectedCharacteristics eof |> withExcessContinuation eof)
 
     choice [ tupledSetExpr |>> fst
-             qsCtlSet.parse
-             |>> buildCharacteristics (SimpleSet Controllable)
-             qsAdjSet.parse
-             |>> buildCharacteristics (SimpleSet Adjointable)
+             qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable)
+             qsAdjSet.parse |>> buildCharacteristics (SimpleSet Adjointable)
              unknownSet >>% invalidCharacteristics ] // needs to be at the end!
 
 
@@ -118,8 +114,7 @@ let private unitType =
     let deprecated =
         buildWarning (tupleBrackets emptySpace |>> snd) WarningCode.DeprecatedUnitType
 
-    (qsUnit.parse <|> deprecated)
-    |>> fun range -> (UnitType, range) |> QsType.New
+    (qsUnit.parse <|> deprecated) |>> fun range -> (UnitType, range) |> QsType.New
 
 /// Parses a Q# atomic type - i.e. non-array, non-tuple, and not function or operation types.
 /// NOTE: does *not* parse Unit, since Unit must be parsed before trying to parse a tuple type, but after operation and function types.
@@ -144,9 +139,7 @@ let private userDefinedType =
     |>> asQualifiedSymbol
     |>> function
     | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
-    | symbol ->
-        (UserDefinedType symbol, symbol.Range)
-        |> QsType.New
+    | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New
 
 
 // composite types
@@ -157,14 +150,10 @@ let private userDefinedType =
 let private operationType =
     // utils for handling deprecated and partially deprecated syntax:
     let quantumFunctor =
-        choice [ (qsControlledFunctor.parse
-                  |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjointFunctor.parse
-                  |>> buildCharacteristics (SimpleSet Adjointable))
-                 (qsCtlSet.parse
-                  |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjSet.parse
-                  |>> buildCharacteristics (SimpleSet Adjointable)) ]
+        choice [ (qsControlledFunctor.parse |>> buildCharacteristics (SimpleSet Controllable))
+                 (qsAdjointFunctor.parse |>> buildCharacteristics (SimpleSet Adjointable))
+                 (qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable))
+                 (qsAdjSet.parse |>> buildCharacteristics (SimpleSet Adjointable)) ]
 
     let functorSupport startPos =
         sepBy1 quantumFunctor (comma >>? followedBy quantumFunctor)
@@ -198,17 +187,13 @@ let private operationType =
     // the actual type parsing:
     let inAndOutputType =
         let continuation =
-            isTupleContinuation
-            <|> followedBy qsCharacteristics.parse
-            <|> followedBy colon
+            isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
 
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
     let opTypeWith characteristics =
         let withInnerBrackets =
-            optTupleBrackets
-                (tupleBrackets inAndOutputType |>> fst
-                 .>>. characteristics)
+            optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
 
         let withoutInnerBrackets =
             optTupleBrackets (inAndOutputType .>>. characteristics)
@@ -219,26 +204,17 @@ let private operationType =
         let colonWithWarning =
             buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
 
-        attempt
-            (colonWithWarning >>. characteristics
-             .>> notFollowedBy (comma >>. quantumFunctor))
-        <|> (qsCharacteristics.parse |>> (fun r -> r.Start)
-             <|> (getPosition .>> colon)
-             >>= functorSupport)
+        attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor))
+        <|> (qsCharacteristics.parse |>> (fun r -> r.Start) <|> (getPosition .>> colon) >>= functorSupport)
 
     let characteristics =
-        qsCharacteristics.parse
-        >>. expectedCharacteristics isTupleContinuation
+        qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
         .>> notFollowedBy (comma >>. quantumFunctor)
 
     let opTypeWithoutCharacteristics =
-        optTupleBrackets
-            (inAndOutputType
-             .>>. preturn ((EmptySet, Null) |> Characteristics.New))
+        optTupleBrackets (inAndOutputType .>>. preturn ((EmptySet, Null) |> Characteristics.New))
 
-    opTypeWith characteristics
-    <|> opTypeWith deprecatedCharacteristics
-    <|> opTypeWithoutCharacteristics
+    opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
     |>> asType Operation // keep this order!
 
 /// Parses a Q# function type raising the corresponding missing bracket errors if the outer tuple brackets are missing.
@@ -280,8 +256,7 @@ let internal typeParser tupleType =
 
                 applyArrays (arrType, tail)
 
-        p .>>. many (arrayBrackets emptySpace)
-        |>> applyArrays
+        p .>>. many (arrayBrackets emptySpace) |>> applyArrays
 
     let nonGenericType = buildArrays nonArrayTypes
     let genericType = buildArrays typeParameterLike

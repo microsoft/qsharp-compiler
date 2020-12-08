@@ -118,22 +118,11 @@ let private verifySpecialization (context: SyntaxTokenContext) =
     let checkGenerator =
         // don't invalidate even if the generator is incorrect
         function
-        | BodyDeclaration gen ->
-            true,
-            gen.Generator
-            |> checkForInvalidBodyGenerator gen.RangeOrDefault
-        | AdjointDeclaration gen ->
-            true,
-            gen.Generator
-            |> checkForInvalidAdjointGenerator gen.RangeOrDefault
-        | ControlledDeclaration gen ->
-            true,
-            gen.Generator
-            |> checkForInvalidControlledGenerator gen.RangeOrDefault
+        | BodyDeclaration gen -> true, gen.Generator |> checkForInvalidBodyGenerator gen.RangeOrDefault
+        | AdjointDeclaration gen -> true, gen.Generator |> checkForInvalidAdjointGenerator gen.RangeOrDefault
+        | ControlledDeclaration gen -> true, gen.Generator |> checkForInvalidControlledGenerator gen.RangeOrDefault
         | ControlledAdjointDeclaration gen ->
-            true,
-            gen.Generator
-            |> checkForInvalidControlledAdjointGenerator gen.RangeOrDefault
+            true, gen.Generator |> checkForInvalidControlledAdjointGenerator gen.RangeOrDefault
         | _ -> ArgumentException "not a specialization" |> raise
 
     let checkForNotValidInFunctionAndGenerator =
@@ -233,9 +222,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
             | Value (InvalidFragment) -> false, [||]
             | _ -> tail |> isStatementScope
 
-    context.Parents
-    |> Array.toList
-    |> isStatementScope
+    context.Parents |> Array.toList |> isStatementScope
 
 /// Verifies that the preceding fragment in the given context is an if- or elif-clause.
 /// Returns an array with suitable diagnostics.
@@ -320,7 +307,4 @@ let VerifySyntaxTokenContext =
         | DeclarationAttribute _ -> verifyDeclarationAttribute context
         | NamespaceDeclaration _ -> verifyNamespace context
         | InvalidFragment _ -> false, [||]
-    |> fun (kind, tuple) ->
-        kind,
-        tuple
-        |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New (x, []) y))
+    |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New (x, []) y))

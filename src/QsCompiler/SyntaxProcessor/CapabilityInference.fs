@@ -65,12 +65,9 @@ let private joinCapabilities =
 /// level.
 let private patternDiagnostic context pattern =
     let error code args (range: _ QsNullable) =
-        if patternCapability context.IsInOperation pattern
-           |> context.Capability.Implies then
-            None
-        else
-            QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero)
-            |> Some
+        if patternCapability context.IsInOperation pattern |> context.Capability.Implies
+        then None
+        else QsCompilerDiagnostic.Error (code, args) (range.ValueOr Range.Zero) |> Some
 
     let unsupported =
         if context.Capability = BasicMeasurementFeedback
@@ -107,8 +104,7 @@ let private isResultEquality { TypedExpression.Expression = expression } =
         | kind -> Some kind
 
     let binaryType lhs rhs =
-        validType lhs.ResolvedType.Resolution
-        |> Option.defaultValue rhs.ResolvedType.Resolution
+        validType lhs.ResolvedType.Resolution |> Option.defaultValue rhs.ResolvedType.Resolution
 
     // This assumes that:
     // - Result has no derived types that support equality comparisons.
@@ -133,16 +129,13 @@ let private expressionPatterns inCondition (expression: TypedExpression) =
 /// Returns the name of the variable and the range of the reassignment.
 let private nonLocalUpdates scope =
     let isKnownSymbol name =
-        scope.KnownSymbols.Variables
-        |> Seq.exists (fun variable -> variable.VariableName = name)
+        scope.KnownSymbols.Variables |> Seq.exists (fun variable -> variable.VariableName = name)
 
     let accumulator = AccumulateIdentifiers()
     accumulator.Statements.OnScope scope |> ignore
 
     accumulator.SharedState.ReassignedVariables
-    |> Seq.collect (fun group ->
-        group
-        |> Seq.map (fun location -> group.Key, location.Offset + location.Range))
+    |> Seq.collect (fun group -> group |> Seq.map (fun location -> group.Key, location.Offset + location.Range))
     |> Seq.filter (fst >> isKnownSymbol)
 
 /// Converts the conditional blocks and an optional else block into a single sequence, where the else block is
@@ -179,8 +172,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         |> Seq.map (fun (name, range) -> SetInResultConditionedBlock(name, Value range))
 
     let foldPatterns (dependsOnResult, diagnostics) (condition: TypedExpression, block: QsPositionedBlock) =
-        if dependsOnResult
-           || condition.Exists isResultEquality then
+        if dependsOnResult || condition.Exists isResultEquality then
             true,
             Seq.concat [ diagnostics
                          returnPatterns block
@@ -188,9 +180,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         else
             false, diagnostics
 
-    conditionBlocks condBlocks elseBlock
-    |> Seq.fold foldPatterns (false, Seq.empty)
-    |> snd
+    conditionBlocks condBlocks elseBlock |> Seq.fold foldPatterns (false, Seq.empty) |> snd
 
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
@@ -207,33 +197,22 @@ let private statementPatterns statement =
     transformation.StatementKinds <-
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnConditionalStatement statement =
-                conditionalStatementPatterns statement
-                |> patterns.AddRange
+                conditionalStatementPatterns statement |> patterns.AddRange
 
                 for condition, block in conditionBlocks statement.ConditionalBlocks statement.Default do
                     let blockOffset = locationOffset block.Location
-
-                    expressionPatterns true condition
-                    |> Seq.map (addOffset blockOffset)
-                    |> patterns.AddRange
-
-                    this.Transformation.Statements.OnScope block.Body
-                    |> ignore
+                    expressionPatterns true condition |> Seq.map (addOffset blockOffset) |> patterns.AddRange
+                    this.Transformation.Statements.OnScope block.Body |> ignore
 
                 QsConditionalStatement statement }
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionPatterns false expression
-                |> Seq.map (addOffset location.Offset)
-                |> patterns.AddRange
-
+                expressionPatterns false expression |> Seq.map (addOffset location.Offset) |> patterns.AddRange
                 expression }
 
-    transformation.Statements.OnStatement statement
-    |> ignore
-
+    transformation.Statements.OnStatement statement |> ignore
     patterns
 
 /// Returns all patterns in the scope. Ranges are relative to the start of the specialization.
@@ -286,17 +265,13 @@ let private referenceDiagnostic context (name, range: _ QsNullable) =
                   string capability
                   context.ProcessorArchitecture ]
 
-            range.ValueOr Range.Zero
-            |> QsCompilerDiagnostic.Error error
-            |> Some
+            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
     | _ -> None
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
 let ScopeDiagnostics context scope =
-    [ globalReferences scope
-      |> Seq.choose (referenceDiagnostic context)
-      scopePatterns scope
-      |> Seq.choose (patternDiagnostic context) ]
+    [ globalReferences scope |> Seq.choose (referenceDiagnostic context)
+      scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
     |> Seq.concat
 
 /// Looks up a key in the dictionary, returning Some value if it is found and None if not.
@@ -327,8 +302,7 @@ let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
         let offset =
-            spec.Location
-            |> QsNullable<_>.Map(fun location -> location.Offset)
+            spec.Location |> QsNullable<_>.Map(fun location -> location.Offset)
 
         scopePatterns scope
         |> Seq.map (addOffset offset >> patternCapability inOperation)
@@ -358,10 +332,7 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
     let sourceCycles =
         graph.GetCallCycles()
         |> Seq.filter
-            (Seq.exists (fun node ->
-                callables
-                |> tryGetValue node.CallableName
-                |> Option.exists isDeclaredInSourceFile))
+            (Seq.exists (fun node -> callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile))
 
     for cycle in sourceCycles do
         let cycleCapability =
@@ -398,9 +369,7 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
         (BuiltIn.TryGetRequiredCapability callable.Attributes)
             .ValueOrApply(fun () ->
                 if isDeclaredInSourceFile callable then
-                    [ initialCapabilities
-                      |> tryGetValue callable.FullName
-                      |> Option.defaultValue RuntimeCapability.Base
+                    [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Base
                       dependentCapability visited callable.FullName ]
                     |> joinCapabilities
                 else
@@ -441,15 +410,10 @@ let InferCapabilities compilation =
         { new NamespaceTransformation(transformation) with
             override this.OnCallableDeclaration callable =
                 let isMissingCapability =
-                    BuiltIn.TryGetRequiredCapability callable.Attributes
-                    |> isQsNull
+                    BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
 
-                if isMissingCapability
-                   && isDeclaredInSourceFile callable then
-                    callableCapability callable
-                    |> toAttribute
-                    |> callable.AddAttribute
-                else
-                    callable }
+                if isMissingCapability && isDeclaredInSourceFile callable
+                then callableCapability callable |> toAttribute |> callable.AddAttribute
+                else callable }
 
     transformation.OnCompilation compilation

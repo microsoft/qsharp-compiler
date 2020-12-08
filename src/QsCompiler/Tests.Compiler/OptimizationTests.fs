@@ -23,14 +23,12 @@ let private buildCompilation code =
         CompilationUnitManager.InitializeFileManager(fileId, code)
 
     // spawns a task that modifies the current compilation
-    compilationUnit.AddOrUpdateSourceFileAsync file
-    |> ignore
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
 
     // will wait for any current tasks to finish
     let mutable compilation = compilationUnit.Build().BuiltCompilation
 
-    CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation)
-    |> ignore
+    CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore
 
     compilation
 
@@ -39,31 +37,24 @@ let private optimize code =
     let mutable compilation = buildCompilation code
     compilation <- PreEvaluation.All compilation
 
-    String.Join
-        (Environment.NewLine,
-         compilation.Namespaces
-         |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
+    String.Join(Environment.NewLine, compilation.Namespaces |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =
     let code =
-        Path.Combine(Path.GetFullPath ".", path + "_input.qs")
-        |> File.ReadAllText
+        Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
 
     let optimized = optimize code
 
-    (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized)
-    |> File.WriteAllText
+    (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized) |> File.WriteAllText
 
 /// Asserts that the result of optimizing the _input file matches the result in the _output file
 let private assertOptimization path =
     let code =
-        Path.Combine(Path.GetFullPath ".", path + "_input.qs")
-        |> File.ReadAllText
+        Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
 
     let expected =
-        Path.Combine(Path.GetFullPath ".", path + "_output.txt")
-        |> File.ReadAllText
+        Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
 
     let optimized = optimize code
     // I remove any \r characters to prevent potential OS compatibility issues

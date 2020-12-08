@@ -183,9 +183,7 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
             do! check (cannotReachCallable ii.body currentCallable.FullName)
             do! check (ii.functors.controlled < 2)
             // TODO - support multiple Controlled functors
-            do! check
-                    (cannotReachCallable ii.body ii.callable.FullName
-                     || isLiteral callables ii.arg)
+            do! check (cannotReachCallable ii.body ii.callable.FullName || isLiteral callables ii.arg)
 
             let newBinding =
                 QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)

@@ -27,9 +27,7 @@ let AllPathsReturnValueOrFail body =
     let addDiagnostic diag (stm: QsStatement) =
         stm.Location
         |> function
-        | Null ->
-            ArgumentException "no location set for the given statement"
-            |> raise
+        | Null -> ArgumentException "no location set for the given statement" |> raise
         | Value loc -> loc.Offset + loc.Range |> diag |> diagnostics.Add
 
     // generate an error for every return within a using or borrowing block that is not executed as the last statement of a particular path
@@ -38,8 +36,7 @@ let AllPathsReturnValueOrFail body =
     let errorOnCollectedReturns () =
         if returnsWithinQubitScope.Any() then
             for stm in returnsWithinQubitScope do
-                stm
-                |> addDiagnostic (QsCompilerDiagnostic.Error(ErrorCode.InvalidReturnWithinAllocationScope, []))
+                stm |> addDiagnostic (QsCompilerDiagnostic.Error(ErrorCode.InvalidReturnWithinAllocationScope, []))
 
             returnsWithinQubitScope.Clear()
 
@@ -49,9 +46,7 @@ let AllPathsReturnValueOrFail body =
             checkReturnStatements withinQubitScope block
 
             let remaining, added =
-                returnsWithinQubitScope
-                |> Seq.toList
-                |> List.partition initialReturns.Contains
+                returnsWithinQubitScope |> Seq.toList |> List.partition initialReturns.Contains
 
             returnsWithinQubitScope.Clear()
             returnsWithinQubitScope.AddRange remaining
@@ -69,8 +64,7 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsWhileStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsConjugation statement ->
                 let added =
-                    statement.OuterTransformation.Body
-                    |> delayAddingReturns
+                    statement.OuterTransformation.Body |> delayAddingReturns
 
                 checkReturnStatements withinQubitScope statement.InnerTransformation.Body
                 returnsWithinQubitScope.AddRange added
@@ -109,25 +103,17 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsWhileStatement _ -> true // same here
             | QsStatementKind.QsQubitScope statement -> checkTermination statement.Body |> not
             | QsStatementKind.QsConjugation statement ->
-                checkTermination statement.OuterTransformation.Body
-                |> not
-                && checkTermination statement.InnerTransformation.Body
-                   |> not
+                checkTermination statement.OuterTransformation.Body |> not
+                && checkTermination statement.InnerTransformation.Body |> not
             | QsStatementKind.QsRepeatStatement statement ->
-                checkTermination statement.FixupBlock.Body
-                |> ignore // only here to give warnings for unreachable code
-
+                checkTermination statement.FixupBlock.Body |> ignore // only here to give warnings for unreachable code
                 checkTermination statement.RepeatBlock.Body |> not
             | QsStatementKind.QsConditionalStatement statement ->
                 let returns =
-                    statement.ConditionalBlocks
-                    |> Seq.map (fun (_, case) -> checkTermination case.Body)
-                    |> Seq.toList
+                    statement.ConditionalBlocks |> Seq.map (fun (_, case) -> checkTermination case.Body) |> Seq.toList
 
                 match statement.Default with
-                | Value block ->
-                    checkTermination block.Body |> not
-                    || returns |> List.contains false
+                | Value block -> checkTermination block.Body |> not || returns |> List.contains false
                 | Null -> true
             | QsStatementKind.QsExpressionStatement _
             | QsStatementKind.QsFailStatement _
@@ -136,8 +122,7 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.EmptyStatement -> true
 
         let returnOrFailAndAfter =
-            Seq.toList
-            <| scope.Statements.SkipWhile isNonTerminatingStatement
+            Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
 
         if returnOrFailAndAfter.Length <> 0 then
             let unreachable =
@@ -148,8 +133,7 @@ let AllPathsReturnValueOrFail body =
                 | _ -> returnOrFailAndAfter.Skip(1)
 
             for statement in unreachable do
-                statement
-                |> addDiagnostic (QsCompilerDiagnostic.Warning(WarningCode.UnreachableCode, []))
+                statement |> addDiagnostic (QsCompilerDiagnostic.Warning(WarningCode.UnreachableCode, []))
 
             true
         else
@@ -172,8 +156,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
 
     let getLocation (header: TypeDeclarationHeader) =
         header.Location.ValueOrApply(fun _ ->
-            ArgumentException "The given type header contains no location information."
-            |> raise)
+            ArgumentException "The given type header contains no location information." |> raise)
 
     // for each defined type build a list of all user defined types it contains, and one with all types it is contained in (convenient for sorting later)
     let containedTypes =
@@ -183,8 +166,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
         List.init definitions.Length (fun _ -> List<int>()) // convenient
 
     let updateContainedReferences (rootIndex: int option) (source, udt) =
-        match definitions
-              |> Seq.tryFindIndex (fun header -> header.QualifiedName = udt) with
+        match definitions |> Seq.tryFindIndex (fun header -> header.QualifiedName = udt) with
         | None -> []
         | Some typeIndex ->
             let header = definitions.[typeIndex]
@@ -200,8 +182,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
                     then containedIn.[typeIndex].Add parent
                 else
                     (source,
-                     (getLocation header).Range
-                     |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))
+                     (getLocation header).Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))
                     |> diagnostics.Add
 
                 []
@@ -224,8 +205,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             let parent =
                 (header.QualifiedName.Namespace,
                  header.QualifiedName.Name,
-                 header.Location
-                 |> QsNullable<_>.Map(fun loc -> loc.Range))
+                 header.Location |> QsNullable<_>.Map(fun loc -> loc.Range))
                 |> UserDefinedType.New
                 |> UserDefinedType
                 |> ResolvedType.New
@@ -251,8 +231,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
     // (i.e. reconstruct the ordering in which types would have to be defined if everything needs to be resolved before being used)
     let queue = Queue()
 
-    containedIn
-    |> List.iteri (fun i x -> if x.Count = 0 then queue.Enqueue i)
+    containedIn |> List.iteri (fun i x -> if x.Count = 0 then queue.Enqueue i)
 
     let rec order () =
         if queue.Count <> 0 then
@@ -267,9 +246,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
     order ()
 
     let remaining =
-        containedIn
-        |> List.mapi (fun i x -> (i, x))
-        |> List.filter (fun x -> (snd x).Count <> 0)
+        containedIn |> List.mapi (fun i x -> (i, x)) |> List.filter (fun x -> (snd x).Count <> 0)
 
     if remaining.Length <> 0 then
         for (udtIndex, _) in remaining do
@@ -277,8 +254,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             let loc = getLocation udt
 
             ((loc.Offset, udt.SourceFile),
-             loc.Range
-             |> QsCompilerDiagnostic.Error(ErrorCode.TypeIsPartOfCyclicDeclaration, []))
+             loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeIsPartOfCyclicDeclaration, []))
             |> diagnostics.Add
 
     diagnostics.ToLookup

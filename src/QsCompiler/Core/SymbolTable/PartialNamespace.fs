@@ -59,8 +59,7 @@ type private PartialNamespace private (name: string,
     /// the key is the name of the callable, and the key to the returned map is the specialization kind (body, adjoint, controlled, or controlled adjoint)
     let CallableSpecializations =
         let specs =
-            specializations
-            |> Seq.map (fun entry -> entry.Key, (entry.Value.ToList()))
+            specializations |> Seq.map (fun entry -> entry.Key, (entry.Value.ToList()))
 
         specs.ToDictionary(fst, snd)
 
@@ -101,8 +100,7 @@ type private PartialNamespace private (name: string,
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
         let shortNames =
-            this.ImportedNamespaces
-            |> Seq.filter (fun kv -> kv.Value <> null)
+            this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
 
         shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
 
@@ -111,9 +109,7 @@ type private PartialNamespace private (name: string,
     member internal this.GetType tName =
         TypeDeclarations.TryGetValue tName
         |> tryToOption
-        |> Option.defaultWith (fun () ->
-            SymbolNotFoundException "A type with the given name was not found."
-            |> raise)
+        |> Option.defaultWith (fun () -> SymbolNotFoundException "A type with the given name was not found." |> raise)
 
     member internal this.ContainsType = TypeDeclarations.ContainsKey
 
@@ -125,8 +121,7 @@ type private PartialNamespace private (name: string,
         CallableDeclarations.TryGetValue cName
         |> tryToOption
         |> Option.defaultWith (fun () ->
-            SymbolNotFoundException "A callable with the given name was not found."
-            |> raise)
+            SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey
 
@@ -171,15 +166,11 @@ type private PartialNamespace private (name: string,
             let constructorArgument =
                 let rec buildItem =
                     function
-                    | QsTuple args ->
-                        (args |> Seq.map buildItem).ToImmutableArray()
-                        |> QsTuple
+                    | QsTuple args -> (args |> Seq.map buildItem).ToImmutableArray() |> QsTuple
                     | QsTupleItem (n, t) -> replaceAnonymous (n, t)
 
                 match typeTuple with
-                | QsTupleItem (n, t) ->
-                    ImmutableArray.Create(replaceAnonymous (n, t))
-                    |> QsTuple
+                | QsTupleItem (n, t) -> ImmutableArray.Create(replaceAnonymous (n, t)) |> QsTuple
                 | QsTuple _ -> buildItem typeTuple
 
             let returnType =
@@ -208,19 +199,13 @@ type private PartialNamespace private (name: string,
 
         let constructorAttr = // we will attach any attribute that likely indicates a deprecation to the type constructor as well
             let validDeprecatedQualification qual =
-                String.IsNullOrWhiteSpace qual
-                || qual = BuiltIn.Deprecated.FullName.Namespace
+                String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace
 
-            if attributes
-               |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then
-                ImmutableArray.Create deprecationWithoutRedirect
-            else
-                ImmutableArray.Empty
+            if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification)
+            then ImmutableArray.Create deprecationWithoutRedirect
+            else ImmutableArray.Empty
 
-        TypeDeclarations.Add
-            (tName,
-             (typeTuple, attributes, modifiers, documentation)
-             |> unresolved location)
+        TypeDeclarations.Add(tName, (typeTuple, attributes, modifiers, documentation) |> unresolved location)
 
         this.AddCallableDeclaration
             location
@@ -239,10 +224,7 @@ type private PartialNamespace private (name: string,
     /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists.
     member this.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation) =
         CallableDeclarations.Add
-            (cName,
-             (kind,
-              (signature, attributes, modifiers, documentation)
-              |> unresolved location))
+            (cName, (kind, (signature, attributes, modifiers, documentation) |> unresolved location))
 
     /// Adds the callable specialization defined by the given kind and generator for the callable of the given name to the dictionary of declared specializations.
     /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange.
@@ -257,9 +239,7 @@ type private PartialNamespace private (name: string,
         // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
         // but all specialized types need to be resolved according to *this* file
         let spec =
-            kind,
-            (generator, attributes, { Access = DefaultAccess }, documentation)
-            |> unresolved location
+            kind, (generator, attributes, { Access = DefaultAccess }, documentation) |> unresolved location
 
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
@@ -273,17 +253,12 @@ type private PartialNamespace private (name: string,
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.RemoveCallableSpecialization (location: QsLocation) cName =
         match CallableDeclarations.TryGetValue cName with
-        | true, (_, decl) when decl.Position = location.Offset
-                               && decl.Range = location.Range -> 0
+        | true, (_, decl) when decl.Position = location.Offset && decl.Range = location.Range -> 0
         | _ ->
             match CallableSpecializations.TryGetValue cName with
             | true, specs ->
-                specs.RemoveAll(fun (_, res) ->
-                    location.Offset = res.Position
-                    && location.Range = res.Range)
-            | false, _ ->
-                SymbolNotFoundException "A callable with the given name was not found."
-                |> raise
+                specs.RemoveAll(fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
+            | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
     /// <summary>
     /// Sets the resolution for the type with the given name to the given type, and replaces the resolved attributes with the given values.
@@ -295,9 +270,7 @@ type private PartialNamespace private (name: string,
             TypeDeclarations.[tName] <- { qsType with
                                               Resolved = resolvedType
                                               ResolvedAttributes = resAttributes }
-        | false, _ ->
-            SymbolNotFoundException "A type with the given name was not found."
-            |> raise
+        | false, _ -> SymbolNotFoundException "A type with the given name was not found." |> raise
 
     /// <summary>
     /// Sets the resolution for the signature of the callable with the given name to the given signature,
@@ -313,9 +286,7 @@ type private PartialNamespace private (name: string,
                       ResolvedAttributes = resAttributes }
 
             CallableDeclarations.[cName] <- (kind, signature')
-        | false, _ ->
-            SymbolNotFoundException "A callable with the given name was not found."
-            |> raise
+        | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
     /// Applies the given functions computing the resolution of attributes and the generation directive
     /// to all defined specializations of the callable with the given name,

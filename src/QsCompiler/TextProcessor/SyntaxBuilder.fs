@@ -36,21 +36,18 @@ let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>): Parser<'
         substream.UserState <- stream.UserState
         substream |> parserAndState
 
-    subparser
-    >>= fun (res, ustate) -> setUserState ustate >>% res
+    subparser >>= fun (res, ustate) -> setUserState ustate >>% res
 
 /// Skips ahead until the given target parser succeeds, or the end of the stream is reached.
 /// Anything processed by the nonBreakingPieces parser will be skipped as a block.
 let skipPiecesUntil nonBreakingPieces target =
     let pieceDelimiter =
-        (attempt target >>% ())
-        <|> (nonBreakingPieces >>% ())
+        (attempt target >>% ()) <|> (nonBreakingPieces >>% ())
 
     let grabCode =
         manyCharsTill anyChar (followedBy pieceDelimiter <|> eof)
 
-    sepBy grabCode (notFollowedBy target >>. nonBreakingPieces)
-    >>% ()
+    sepBy grabCode (notFollowedBy target >>. nonBreakingPieces) >>% ()
 
 
 // some Q# specific utils
@@ -63,23 +60,19 @@ let private wordContainedIn (strings: ImmutableHashSet<_>) =
         if strings.Contains w then preturn w else fail ""
 
     let keywordLike =
-        manyChars (asciiLetter <|> digit)
-        .>> nextCharSatisfiesNot isSymbolContinuation
+        manyChars (asciiLetter <|> digit) .>> nextCharSatisfiesNot isSymbolContinuation
 
     term (keywordLike >>= inStrings) |>> snd
 
 /// parses any QsFragmentHeader and return unit
 let internal qsFragmentHeader =
-    previousCharSatisfiesNot isLetter
-    >>. wordContainedIn Keywords.FragmentHeaders
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
 /// parses any QsLanguageKeyword and return unit
 let internal qsLanguageKeyword =
-    previousCharSatisfiesNot isLetter
-    >>. wordContainedIn Keywords.LanguageKeywords
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
 /// parses any QsReservedKeyword and return unit
 let internal qsReservedKeyword =
-    previousCharSatisfiesNot isLetter
-    >>. wordContainedIn Keywords.ReservedKeywords
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.ReservedKeywords
 
 /// adds the given diagnostic to the user state
 let internal pushDiagnostic newDiagnostic =
@@ -95,22 +88,14 @@ let private clearDiagnostics = updateUserState (fun _ -> [])
 /// Returns the obtained start and end position.
 let internal buildError body errCode =
     body
-    >>= fun range ->
-            preturn range
-            |>> QsCompilerDiagnostic.NewError errCode
-            >>= pushDiagnostic
-            >>% range
+    >>= fun range -> preturn range |>> QsCompilerDiagnostic.NewError errCode >>= pushDiagnostic >>% range
 
 /// Applies the given body parser and
 /// uses the returned start and end position to generate a warning with the given warning code.
 /// Returns the obtained start and end position.
 let internal buildWarning body wrnCode =
     body
-    >>= fun range ->
-            preturn range
-            |>> QsCompilerDiagnostic.NewWarning wrnCode
-            >>= pushDiagnostic
-            >>% range
+    >>= fun range -> preturn range |>> QsCompilerDiagnostic.NewWarning wrnCode >>= pushDiagnostic >>% range
 
 
 // bracket handling and related stuff
@@ -152,19 +137,15 @@ let (private stringContent, private stringContentImpl) = createParserForwardedTo
 /// IMPORTANT: This parser does does *not* handle whitespace and needs to be wrapped into a term parser for proper processing of all whitespace.
 let private contentDefinedBrackets core (lbracket, rbracket) (lbracketErr, rbracketErr) =
     let missingLeftAndCore =
-        getEmptyRange
-        |>> QsCompilerDiagnostic.NewError lbracketErr // only push after core succeeded
+        getEmptyRange |>> QsCompilerDiagnostic.NewError lbracketErr // only push after core succeeded
         .>>. core
         >>= fun (err, res) -> pushDiagnostic err >>% res
 
     let missingRight =
-        getEmptyRange
-        |>> QsCompilerDiagnostic.NewError rbracketErr
-        >>= pushDiagnostic
+        getEmptyRange |>> QsCompilerDiagnostic.NewError rbracketErr >>= pushDiagnostic
 
     let leftAndCore =
-        attempt (bracket lbracket >>. core)
-        <|> missingLeftAndCore
+        attempt (bracket lbracket >>. core) <|> missingLeftAndCore
 
     let closingRight = attempt rbracket >>% () <|> missingRight // rbracket only, to get correct position info upon applying term
     attempt (leftAndCore .>> closingRight)
@@ -184,50 +165,39 @@ let internal optTupleBrackets core =
 /// IMPORTANT: This parser does does *not* handle whitespace and needs to be wrapped into a term parser for proper processing of all whitespace.
 let private bracketDefinedContent core (lbracket, rbracket) =
     let nextRbracket =
-        attempt
-            (skipPiecesUntil stringContent (lbracket <|> rbracket)
-             .>> followedBy rbracket)
+        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy rbracket)
 
     let nextLbracket =
-        attempt
-            (skipPiecesUntil stringContent (lbracket <|> rbracket)
-             .>> followedBy lbracket)
+        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
 
     let rec findMatching stream =
         let recur =
-            nextLbracket >>. bracket lbracket >>. findMatching
-            .>> bracket rbracket
+            nextLbracket >>. bracket lbracket >>. findMatching .>> bracket rbracket
 
         stream |> (many recur >>. nextRbracket)
 
     let processCore =
         getCharStreamState
-        >>= fun state ->
-                findMatching
-                >>. ((core .>> followedBy eof) |> runOnSubstream state)
+        >>= fun state -> findMatching >>. ((core .>> followedBy eof) |> runOnSubstream state)
 
     attempt (bracket lbracket >>. processCore .>> rbracket) // rbracket only so that the position info given by term is accurate
 
 /// Starting with a left tuple bracket, extracts the matching right tuple bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal tupleBrackets core =
-    ((lTuple, rTuple) |> bracketDefinedContent core)
-    |> term
+    ((lTuple, rTuple) |> bracketDefinedContent core) |> term
 /// Starting with a left array bracket, extracts the matching right array bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal arrayBrackets core =
-    ((lArray, rArray) |> bracketDefinedContent core)
-    |> term
+    ((lArray, rArray) |> bracketDefinedContent core) |> term
 /// Starting with a left angle bracket, extracts the matching right angle bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal angleBrackets core =
-    ((lAngle, rAngle) |> bracketDefinedContent core)
-    |> term
+    ((lAngle, rAngle) |> bracketDefinedContent core) |> term
 /// Starting with a left curly bracket, extracts the matching right curly bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal curlyBrackets core =
-    ((lCurly, rCurly) |> bracketDefinedContent core)
-    |> term
+    ((lCurly, rCurly) |> bracketDefinedContent core) |> term
 
 /// Parses a string with or without interpolation. Returns the parsed string.
 /// Parses the interpolation arguments with the given parser.
@@ -256,8 +226,7 @@ let internal getStringContent interpolArg =
             (stringsSepBy interpolCharSnippet escapedChar)
 
         let interpol =
-            (lCurly, rCurly)
-            |> bracketDefinedContent interpolArg
+            (lCurly, rCurly) |> bracketDefinedContent interpolArg
 
         let content =
             nonInterpol .>>. many (interpol .>>. nonInterpol)
@@ -266,9 +235,7 @@ let internal getStringContent interpolArg =
         |>> fun (h, items) ->
                 let mutable str = h
 
-                items
-                |> List.map snd
-                |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
+                items |> List.map snd |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
 
                 str, items |> List.map fst
 
@@ -288,14 +255,11 @@ let internal getStringContent interpolArg =
         let content =
             (stringsSepBy normalCharSnippet escapedChar)
 
-        (between delimiter delimiter content)
-        |>> fun str -> (str, [])
+        (between delimiter delimiter content) |>> fun str -> (str, [])
 
-    attempt interpolatedString
-    <|> attempt nonInterpolatedString
+    attempt interpolatedString <|> attempt nonInterpolatedString
 
-do stringContentImpl
-   := getStringContent (manyChars anyChar) >>% ()
+do stringContentImpl := getStringContent (manyChars anyChar) >>% ()
 
 /// Skips ahead until the given target parser succeeds, or the end of the stream is reached.
 /// Skips strings, tuple brackets (and their content), array brackets (and their content), and curly brackets (and their content) as a block -
@@ -308,12 +272,9 @@ let internal advanceTo target =
         // leaving whitespace to the right such that it is possible to advance to whitespace
         // langle and rangle may occur separately, whereas the left and right part of the listed brackets below may not
         choice [ stringContent >>% ()
-                 (lTuple, rTuple) |> bracketDefinedContent grabAny
-                 >>% ()
-                 (lArray, rArray) |> bracketDefinedContent grabAny
-                 >>% ()
-                 (lCurly, rCurly) |> bracketDefinedContent grabAny
-                 >>% () ]
+                 (lTuple, rTuple) |> bracketDefinedContent grabAny >>% ()
+                 (lArray, rArray) |> bracketDefinedContent grabAny >>% ()
+                 (lCurly, rCurly) |> bracketDefinedContent grabAny >>% () ]
 
     skipPiecesUntil nonBreakingPieces target
 
@@ -326,15 +287,12 @@ let internal advanceTo target =
 /// since it will advance all the way to the end of the stream (and backtrack) if it does not find the breakingDelimiter!
 let leftRecursionByInfix breakingDelimiter before after = // before and after breaking delimiter
     let advanceToInfix =
-        advanceTo (breakingDelimiter >>% () <|> eof)
-        >>. followedBy breakingDelimiter
+        advanceTo (breakingDelimiter >>% () <|> eof) >>. followedBy breakingDelimiter
 
     getCharStreamState
     >>= fun state ->
             attempt
-                (advanceToInfix
-                 >>. (before .>> followedBy eof |> runOnSubstream state)
-                 .>> breakingDelimiter
+                (advanceToInfix >>. (before .>> followedBy eof |> runOnSubstream state) .>> breakingDelimiter
                  .>>. after)
 
 
@@ -345,8 +303,7 @@ let leftRecursionByInfix breakingDelimiter before after = // before and after br
 /// Returns an empty range at the beginning of the skipped whitespace sequence.
 /// Fails without consuming input if the parsing fails.
 let internal followedByCode p =
-    getEmptyRange
-    .>> attempt (manyCharsTill (satisfy Text.IsWhitespace) (followedBy p))
+    getEmptyRange .>> attempt (manyCharsTill (satisfy Text.IsWhitespace) (followedBy p))
 
 /// Advances until the given parser succeeds, or the end of the input stream is reached.
 /// Returns the start and end position of the skipped non-whitespace code.
@@ -361,8 +318,7 @@ let internal skipInvalidUntil p =
 let internal expected body errCode missingCode fallback continuation =
     let invalid =
         let nextExpected =
-            (attempt continuation >>% ())
-            <|> (qsFragmentHeader >>% ())
+            (attempt continuation >>% ()) <|> (qsFragmentHeader >>% ())
 
         let invalid =
             buildError (skipInvalidUntil nextExpected) errCode
@@ -379,25 +335,21 @@ let internal expected body errCode missingCode fallback continuation =
 /// generating an error with the given error code, and returns fallback.
 /// Fails without consuming input if the parsing fails.
 let internal checkForInvalid nextExpected errCode =
-    notFollowedBy nextExpected
-    >>. buildError (skipInvalidUntil nextExpected) errCode
+    notFollowedBy nextExpected >>. buildError (skipInvalidUntil nextExpected) errCode
 
 /// Applied the given parser, and skips ahead until nextExpected succeeds or the end of the input stream is reached.
 /// Generates an ExcessContinuation error for the skipped piece if it is non-empty.
 /// Returns the content generated by the given parser.
 let internal withExcessContinuation nextExpected orig =
     let consumeExcess =
-        buildError (skipInvalidUntil nextExpected) ErrorCode.ExcessContinuation
-        >>% ()
+        buildError (skipInvalidUntil nextExpected) ErrorCode.ExcessContinuation >>% ()
 
-    orig
-    .>> (followedBy nextExpected <|> consumeExcess)
+    orig .>> (followedBy nextExpected <|> consumeExcess)
 
 /// Tries to apply the comma parser and optionally returns its content.
 /// If a comma has been consumed, generates an ExcessComma warning at the current position.
 let internal warnOnComma =
-    getEmptyRange .>> comma
-    |>> QsCompilerDiagnostic.NewWarning WarningCode.ExcessComma
+    getEmptyRange .>> comma |>> QsCompilerDiagnostic.NewWarning WarningCode.ExcessComma
     >>= pushDiagnostic
     |> opt
 
@@ -420,12 +372,9 @@ let internal commaSep1 validItem errCode missingCode fallback delimiter =
         checkForInvalid delimiter errCode >>% fallback
 
     let piece =
-        (item .>>? followedBy comma)
-        <|> attempt validItem
-        <|> invalidLast
+        (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
 
-    sepBy1 (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece)
-    .>> warnOnComma
+    sepBy1 (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece) .>> warnOnComma
     |>> fun x -> x.ToImmutableArray()
 
 /// parser succeeds without consuming input or changing the parser state if the next char is a comma,
@@ -480,36 +429,29 @@ let internal symbolNameLike errCode =
 
     let whenValid ((name: string, range), isBeforeDot) =
         let reservedUnderscorePattern =
-            name.Contains "__"
-            || (isBeforeDot && name.EndsWith "_")
+            name.Contains "__" || (isBeforeDot && name.EndsWith "_")
 
         let isReserved = InternalUse.CsKeywords.Contains
 
         let isCsKeyword =
-            SyntaxFacts.IsKeywordKind
-            << SyntaxFacts.GetKeywordKind
+            SyntaxFacts.IsKeywordKind << SyntaxFacts.GetKeywordKind
 
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
 
         if reservedUnderscorePattern then
-            buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern
-            >>% None
+            buildError (preturn range) ErrorCode.InvalidUseOfUnderscorePattern >>% None
         elif not moreThanUnderscores then
             buildError (preturn range) errCode >>% None
         elif isReserved name || isCsKeyword name then
-            buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword
-            >>% None
+            buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
         else
             preturn name |>> Some
 
     let invalid =
         let invalidName =
-            pchar '\'' |> opt
-            >>. manySatisfy isDigit
-            >>. ident
+            pchar '\'' |> opt >>. manySatisfy isDigit >>. ident
 
-        buildError (getRange invalidName |>> snd) errCode
-        >>% None
+        buildError (getRange invalidName |>> snd) errCode >>% None
 
     let validSymbolName =
         let checkFollowedByDot =
@@ -517,8 +459,7 @@ let internal symbolNameLike errCode =
 
         (ident .>>. checkFollowedByDot) >>= whenValid
 
-    notFollowedBy qsReservedKeyword
-    >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
+    notFollowedBy qsReservedKeyword >>. attempt (validSymbolName <|> invalid) // NOTE: *needs* to fail on reserverd keywords here!
 
 /// Handles permissive parsing of a symbol:
 /// Uses symbolNameLike to generate suitable errors if the current symbol-like text is not a valid symbol in Q#
@@ -562,20 +503,15 @@ let internal multiSegmentSymbol errCode =
     let singleDot = pchar '.' .>>? notFollowedBy (pchar '.')
 
     let pathSegment =
-        symbolNameLike ErrorCode.InvalidPathSegment
-        .>>? followedBy singleDot
+        symbolNameLike ErrorCode.InvalidPathSegment .>>? followedBy singleDot
 
     let localIdentifier = symbolNameLike errCode
 
     let expectedIdentifier =
-        localIdentifier
-        <|> (buildError (term (preturn ()) |>> snd) ErrorCode.MissingIdentifer
-             >>% None)
+        localIdentifier <|> (buildError (term (preturn ()) |>> snd) ErrorCode.MissingIdentifer >>% None)
 
     let qualifiedIdentifer =
-        (sepEndBy1 pathSegment singleDot
-         .>>. expectedIdentifier)
-        <|> (preturn [] .>>. localIdentifier)
+        (sepEndBy1 pathSegment singleDot .>>. expectedIdentifier) <|> (preturn [] .>>. localIdentifier)
 
     term qualifiedIdentifer
 
@@ -586,8 +522,7 @@ let internal multiSegmentSymbol errCode =
 /// IMPORTANT: this routines handles the name *only* and does *not* handle whitespace!
 /// In order to guarantee correct whitespace management, the name needs to be parsed within as a term.
 let internal typeParameterNameLike =
-    pchar '\''
-    >>? symbolNameLike ErrorCode.InvalidTypeParameterName
+    pchar '\'' >>? symbolNameLike ErrorCode.InvalidTypeParameterName
 
 /// Handles permissive parsing of a Q# type parameter name:
 /// Uses typeParameterNameLike to generate suitable errors if the current symbol-like text is not a valid type parameter name in Q#
@@ -596,12 +531,7 @@ let internal typeParameterNameLike =
 let internal typeParameterLike =
     term typeParameterNameLike
     |>> function
-    | Some sym, range ->
-        ((Symbol sym, range)
-         |> QsSymbol.New
-         |> TypeParameter,
-         range)
-        |> QsType.New
+    | Some sym, range -> ((Symbol sym, range) |> QsSymbol.New |> TypeParameter, range) |> QsType.New
     | None, _ -> (InvalidType, Null) |> QsType.New
 
 
@@ -630,8 +560,7 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     let hasOverlap (diagnostic: QsCompilerDiagnostic) =
         remainingErrs
         |> List.exists (fun other ->
-            diagnostic.Range.Start <= other.Range.Start
-            && diagnostic.Range.End >= other.Range.Start)
+            diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
 
     let filteredExcessCont =
         excessCont |> List.filter (not << hasOverlap)
@@ -670,8 +599,7 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
         let errPos =
             if range.End < errPos then range.End else errPos
 
-        QsCompilerDiagnostic.NewError invalid.ErrorCode (Range.Create errPos range.End)
-        |> pushDiagnostic
+        QsCompilerDiagnostic.NewError invalid.ErrorCode (Range.Create errPos range.End) |> pushDiagnostic
         >>. preturn (invalid, (text, range))
 
     let delimiters state =
@@ -682,28 +610,20 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
         getRange fragmentEnd |> runOnSubstream state
 
     let continuation =
-        (continuation >>% ())
-        <|> (qsFragmentHeader >>% ())
+        (continuation >>% ()) <|> (qsFragmentHeader >>% ())
 
     let validBody state headerResult =
         let processExcessCode =
-            buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation
-            >>% ()
+            buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation >>% ()
 
-        (body .>>? followedBy (continuation <|> eof))
-        <|> (body .>> processExcessCode)
+        (body .>>? followedBy (continuation <|> eof)) <|> (body .>> processExcessCode)
         |>> fragmentKind headerResult
         .>>. delimiters state
 
     let invalidBody state =
-        getPosition .>> (advanceTo continuation)
-        .>>. delimiters state
-        >>= buildDiagnostic
+        getPosition .>> (advanceTo continuation) .>>. delimiters state >>= buildDiagnostic
 
     getCharStreamState
     >>= fun state ->
             header
-            >>= fun headerResult ->
-                    (attempt (validBody state headerResult)
-                     <|> invalidBody state)
-                    >>= build
+            >>= fun headerResult -> (attempt (validBody state headerResult) <|> invalidBody state) >>= build

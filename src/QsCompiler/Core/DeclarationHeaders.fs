@@ -54,8 +54,7 @@ module DeclarationHeader =
                                existingValue: Offset,
                                hasExistingValue: bool,
                                serializer: JsonSerializer) =
-            if reader.ValueType <> typeof<String>
-               || (string) reader.Value <> "Undefined" then
+            if reader.ValueType <> typeof<String> || (string) reader.Value <> "Undefined" then
                 let offset = serializer.Deserialize<Position>(reader)
                 if Object.ReferenceEquals(offset, null) then Offset.Undefined else Offset.Defined offset
             else
@@ -74,8 +73,7 @@ module DeclarationHeader =
                                existingValue: Range,
                                hasExistingValue: bool,
                                serializer: JsonSerializer) =
-            if reader.ValueType <> typeof<String>
-               || (string) reader.Value <> "Undefined" then
+            if reader.ValueType <> typeof<String> || (string) reader.Value <> "Undefined" then
                 let range =
                     serializer.Deserialize<DataTypes.Range>(reader)
 
@@ -148,12 +146,8 @@ type TypeDeclarationHeader =
           Attributes = customType.Attributes
           Modifiers = customType.Modifiers
           SourceFile = customType.SourceFile
-          Position =
-              customType.Location
-              |> DeclarationHeader.CreateOffset
-          SymbolRange =
-              customType.Location
-              |> DeclarationHeader.CreateRange
+          Position = customType.Location |> DeclarationHeader.CreateOffset
+          SymbolRange = customType.Location |> DeclarationHeader.CreateRange
           Type = customType.Type
           TypeItems = customType.TypeItems
           Documentation = customType.Documentation }
@@ -163,8 +157,7 @@ type TypeDeclarationHeader =
             DeclarationHeader.FromJson<TypeDeclarationHeader> json
 
         let attributesAreNullOrDefault =
-            Object.ReferenceEquals(header.Attributes, null)
-            || header.Attributes.IsDefault
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
             if attributesAreNullOrDefault then
@@ -178,9 +171,7 @@ type TypeDeclarationHeader =
         else
             false,
             { header with
-                  TypeItems =
-                      ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem)
-                      |> QsTuple }
+                  TypeItems = ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem) |> QsTuple }
 
     member this.ToJson(): string = DeclarationHeader.ToJson this
 
@@ -213,9 +204,7 @@ type CallableDeclarationHeader =
           Attributes = callable.Attributes
           Modifiers = callable.Modifiers
           SourceFile = callable.SourceFile
-          Position =
-              callable.Location
-              |> DeclarationHeader.CreateOffset
+          Position = callable.Location |> DeclarationHeader.CreateOffset
           SymbolRange = callable.Location |> DeclarationHeader.CreateRange
           ArgumentTuple = callable.ArgumentTuple
           Signature = callable.Signature
@@ -228,11 +217,7 @@ type CallableDeclarationHeader =
 
         let rec setInferredInfo =
             function // no need to raise an error if anything needs to be set - the info above is always correct
-            | QsTuple ts ->
-                ts
-                |> Seq.map setInferredInfo
-                |> ImmutableArray.CreateRange
-                |> QsTuple
+            | QsTuple ts -> ts |> Seq.map setInferredInfo |> ImmutableArray.CreateRange |> QsTuple
             | QsTupleItem (decl: LocalVariableDeclaration<_>) -> QsTupleItem { decl with InferredInformation = info }
         // we need to make sure that all fields that could possibly be null after deserializing
         // due to changes of fields over time are initialized to a proper value
@@ -240,8 +225,7 @@ type CallableDeclarationHeader =
             DeclarationHeader.FromJson<CallableDeclarationHeader> json
 
         let attributesAreNullOrDefault =
-            Object.ReferenceEquals(header.Attributes, null)
-            || header.Attributes.IsDefault
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
             if attributesAreNullOrDefault then
@@ -291,12 +275,8 @@ type SpecializationDeclarationHeader =
           Parent = specialization.Parent
           Attributes = specialization.Attributes
           SourceFile = specialization.SourceFile
-          Position =
-              specialization.Location
-              |> DeclarationHeader.CreateOffset
-          HeaderRange =
-              specialization.Location
-              |> DeclarationHeader.CreateRange
+          Position = specialization.Location |> DeclarationHeader.CreateOffset
+          HeaderRange = specialization.Location |> DeclarationHeader.CreateRange
           Documentation = specialization.Documentation }
 
     static member FromJson json =
@@ -312,8 +292,7 @@ type SpecializationDeclarationHeader =
             Object.ReferenceEquals(header.TypeArguments, null)
 
         let attributesAreNullOrDefault =
-            Object.ReferenceEquals(header.Attributes, null)
-            || header.Attributes.IsDefault
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
             if attributesAreNullOrDefault then

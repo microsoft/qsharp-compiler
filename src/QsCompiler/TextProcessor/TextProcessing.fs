@@ -58,13 +58,11 @@ let private BuildUnknown text =
 /// If there is no text remaining returns Null, the position within the (empty) text, as well as an empty string.
 let private NextFragment text =
     let fragment =
-        codeFragment .>> ParsingPrimitives.emptySpace
-        |>> Value
+        codeFragment .>> ParsingPrimitives.emptySpace |>> Value
 
     let next =
         let noMoreFragments =
-            eof >>. getPosition
-            |>> fun pos -> (Null, (pos, ""))
+            eof >>. getPosition |>> fun pos -> (Null, (pos, ""))
 
         noMoreFragments <|> (fragment .>>. remainingText) // noMoreFragments needs to be first here!
 
@@ -96,8 +94,7 @@ let ProcessFragments text =
         | _ -> // adding a protection against an infinite loop in case someone messes up the fragment processing...
             QsCompilerError.Raise "fragment has been built but no input was consumed"
 
-            (BuildUnknown str |> fst |> build) :: fragments
-            |> List.rev
+            (BuildUnknown str |> fst |> build) :: fragments |> List.rev
 
     doProcessing [] (initialPos, text)
 
@@ -147,16 +144,11 @@ let ProcessUpdateOfArrayItemExpr =
         let equalOrWs = spaces >>. equal
 
         let simpleArrIndex =
-            (arrayBrackets nonNewLineChars |>> fst)
-            .>> followedBy equalOrWs
+            (arrayBrackets nonNewLineChars |>> fst) .>> followedBy equalOrWs
 
         let rhsContents = equalOrWs >>. (remainingText |>> snd)
 
-        setStatement >>. arrIdentifier
-        .>>. simpleArrIndex
-        .>>. rhsContents
-        .>>. getPosition
+        setStatement >>. arrIdentifier .>>. simpleArrIndex .>>. rhsContents .>>. getPosition
 
-    parseSimpleUpdateOfArrayItem
-    |>> fun (((ident, idx), rhs), pos4) -> (pos4, ident, idx, rhs)
+    parseSimpleUpdateOfArrayItem |>> fun (((ident, idx), rhs), pos4) -> (pos4, ident, idx, rhs)
     |> ParseUpdateOfArrayItemExpr

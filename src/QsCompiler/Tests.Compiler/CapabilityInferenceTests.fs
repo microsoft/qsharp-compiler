@@ -84,20 +84,17 @@ let ``Allows overriding capabilities with attribute`` () =
 
 [<Fact>]
 let ``Infers single dependency`` () =
-    [ "CallBmfA"; "CallBmfB" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfA"; "CallBmfB" ] |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
     expect BasicMeasurementFeedback "CallBmfFullB"
 
-    [ "CallBmfFullA"; "CallBmfFullC" ]
-    |> List.iter (expect FullComputation)
+    [ "CallBmfFullA"; "CallBmfFullC" ] |> List.iter (expect FullComputation)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
-    [ "CallFullA"; "CallFullB" ]
-    |> List.iter (expect FullComputation)
+    [ "CallFullA"; "CallFullB" ] |> List.iter (expect FullComputation)
 
     expect BasicMeasurementFeedback "CallFullC"
 
@@ -130,5 +127,4 @@ let ``Infers with indirect recursion`` () =
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
-    [ "ReferenceBmfA"; "ReferenceBmfB" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    [ "ReferenceBmfA"; "ReferenceBmfB" ] |> List.iter (expect BasicMeasurementFeedback)

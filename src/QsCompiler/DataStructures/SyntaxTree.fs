@@ -181,14 +181,11 @@ type ResolvedCharacteristics =
         let rec addProperties (current: ResolvedCharacteristics) =
             function
             | head :: tail ->
-                tail
-                |> addProperties { _Characteristics = Union(current, { _Characteristics = SimpleSet head }) }
+                tail |> addProperties { _Characteristics = Union(current, { _Characteristics = SimpleSet head }) }
             | _ -> current
 
         match uniqueProps with
-        | Some (head :: tail) ->
-            tail
-            |> addProperties { _Characteristics = SimpleSet head }
+        | Some (head :: tail) -> tail |> addProperties { _Characteristics = SimpleSet head }
         | _ -> ex
 
     /// Builds a ResolvedCharacteristics based on a compatible characteristics kind, and replaces the (inaccessible) record constructor.
@@ -207,14 +204,10 @@ type ResolvedCharacteristics =
         | Union (s1, s2) when s1 |> isEmpty -> s2
         | Union (s1, s2) when s2 |> isEmpty -> s1
         | Union (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
-        | Union (s1, s2) ->
-            { _Characteristics = Union(s1, s2) }
-            |> ResolvedCharacteristics.Simplify
+        | Union (s1, s2) -> { _Characteristics = Union(s1, s2) } |> ResolvedCharacteristics.Simplify
         | Intersection (s1, s2) when s1 |> isEmpty || s2 |> isEmpty -> { _Characteristics = EmptySet }
         | Intersection (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
-        | Intersection (s1, s2) ->
-            { _Characteristics = Intersection(s1, s2) }
-            |> ResolvedCharacteristics.Simplify
+        | Intersection (s1, s2) -> { _Characteristics = Intersection(s1, s2) } |> ResolvedCharacteristics.Simplify
         | InvalidSetExpr -> { _Characteristics = InvalidSetExpr }
 
     /// Given the resolved characteristics of a set of specializations,
@@ -226,24 +219,17 @@ type ResolvedCharacteristics =
             | [] -> current
             | head :: tail ->
                 // todo: if we support parameterizing over characteristics, we need to replace them in head by their worst-case value
-                tail
-                |> common { _Characteristics = Intersection(current, head) }
+                tail |> common { _Characteristics = Intersection(current, head) }
 
-        if characteristics
-           |> List.exists (fun a -> a._Characteristics = EmptySet) then
+        if characteristics |> List.exists (fun a -> a._Characteristics = EmptySet) then
             { _Characteristics = EmptySet }
-        elif characteristics
-             |> List.exists (fun a -> a.AreInvalid) then
+        elif characteristics |> List.exists (fun a -> a.AreInvalid) then
             { _Characteristics = InvalidSetExpr }
         else
             characteristics
             |> function
-            | [] ->
-                ArgumentException "cannot determine common information for an empty sequence"
-                |> raise
-            | head :: tail ->
-                common head tail
-                |> ResolvedCharacteristics.Simplify
+            | [] -> ArgumentException "cannot determine common information for an empty sequence" |> raise
+            | head :: tail -> common head tail |> ResolvedCharacteristics.Simplify
 
     /// Builds a ResolvedCharacteristics that represents the given transformation properties.
     static member FromProperties props =
@@ -257,9 +243,7 @@ type ResolvedCharacteristics =
 
         match props |> Seq.distinct |> Seq.toList with
         | [] -> EmptySet |> ResolvedCharacteristics.New
-        | head :: tail ->
-            tail
-            |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
+        | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
 
     /// Determines which properties are supported by a callable with the given characteristics and returns them.
     /// Throws an InvalidOperationException if the properties cannot be determined
@@ -268,9 +252,7 @@ type ResolvedCharacteristics =
         ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this
         |> function
         | Some props -> props.ToImmutableHashSet()
-        | None ->
-            InvalidOperationException "properties cannot be determined"
-            |> raise
+        | None -> InvalidOperationException "properties cannot be determined" |> raise
 
     /// Determines which functors are supported by a callable with the given characteristics and returns them as a Value.
     /// Returns Null if the supported functors cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
@@ -302,16 +284,10 @@ type InferredCallableInformation =
     /// Determines the information that was inferred for all given items.
     static member Common(infos: InferredCallableInformation seq) =
         let allAreIntrinsic =
-            infos
-            |> Seq.map (fun info -> info.IsIntrinsic)
-            |> Seq.contains false
-            |> not
+            infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
 
         let allAreSelfAdjoint =
-            infos
-            |> Seq.map (fun info -> info.IsSelfAdjoint)
-            |> Seq.contains false
-            |> not
+            infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
 
         { IsIntrinsic = allAreIntrinsic
           IsSelfAdjoint = allAreSelfAdjoint }
@@ -339,15 +315,10 @@ type CallableInformation =
     /// Throws an ArgumentException if the given sequence is empty.
     static member Common(infos: CallableInformation seq) =
         let commonCharacteristics =
-            infos
-            |> Seq.map (fun info -> info.Characteristics)
-            |> Seq.toList
-            |> ResolvedCharacteristics.Common
+            infos |> Seq.map (fun info -> info.Characteristics) |> Seq.toList |> ResolvedCharacteristics.Common
 
         let inferredForAll =
-            infos
-            |> Seq.map (fun info -> info.InferredInformation)
-            |> InferredCallableInformation.Common
+            infos |> Seq.map (fun info -> info.InferredInformation) |> InferredCallableInformation.Common
 
         { Characteristics = commonCharacteristics
           InferredInformation = inferredForAll }
@@ -379,8 +350,7 @@ type ResolvedType =
                                kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>) =
         match kind with
         | QsTypeKind.TupleType ts when ts.Length = 0 ->
-            ArgumentException "tuple type requires at least one item"
-            |> raise
+            ArgumentException "tuple type requires at least one item" |> raise
         | QsTypeKind.TupleType ts when ts.Length = 1 -> ts.[0]
         | QsTypeKind.UserDefinedType udt when not keepRangeInfo ->
             { _TypeKind = UserDefinedType { udt with Range = Null } }
@@ -404,21 +374,11 @@ type ResolvedType =
                 | true, res -> res
                 | false, _ -> t
             | QsTypeKind.TupleType ts ->
-                ts
-                |> Seq.map inner
-                |> fun x ->
-                    x.ToImmutableArray()
-                    |> TupleType
-                    |> ResolvedType.New
+                ts |> Seq.map inner |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
             | QsTypeKind.ArrayType b -> inner b |> ArrayType |> ResolvedType.New
-            | QsTypeKind.Function (it, ot) ->
-                (inner it, inner ot)
-                |> QsTypeKind.Function
-                |> ResolvedType.New
+            | QsTypeKind.Function (it, ot) -> (inner it, inner ot) |> QsTypeKind.Function |> ResolvedType.New
             | QsTypeKind.Operation ((it, ot), fList) ->
-                ((inner it, inner ot), fList)
-                |> QsTypeKind.Operation
-                |> ResolvedType.New
+                ((inner it, inner ot), fList) |> QsTypeKind.Operation |> ResolvedType.New
             | _ -> t
 
 
@@ -498,10 +458,7 @@ type ResolvedInitializer =
     /// Throws an ArgumentException if the given type kind is an empty tuple.
     static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
         let qArrayT =
-            Qubit
-            |> ResolvedType.New
-            |> ArrayType
-            |> ResolvedType.New
+            Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
         let buildTupleType is =
             TupleType
@@ -511,8 +468,7 @@ type ResolvedInitializer =
 
         match kind with
         | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->
-            ArgumentException "tuple initializer requires at least one item"
-            |> raise
+            ArgumentException "tuple initializer requires at least one item" |> raise
         | QsInitializerKind.QubitTupleAllocation is when is.Length = 1 -> is.[0]
         | QsInitializerKind.QubitTupleAllocation is ->
             { _InitializerKind = kind

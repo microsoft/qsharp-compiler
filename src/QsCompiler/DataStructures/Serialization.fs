@@ -19,8 +19,7 @@ type PositionConverter() =
     inherit JsonConverter<Position>()
 
     override this.ReadJson(reader, _, _, _, serializer) =
-        serializer.Deserialize<int * int> reader
-        ||> Position.Create
+        serializer.Deserialize<int * int> reader ||> Position.Create
 
     override this.WriteJson(writer: JsonWriter, position: Position, serializer: JsonSerializer) =
         serializer.Serialize(writer, (position.Line, position.Column))
@@ -70,15 +69,13 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
                            hasExistingValue: bool,
                            serializer: JsonSerializer) =
         try
-            if reader.ValueType <> typeof<String>
-               || (string) reader.Value <> "Null" then
+            if reader.ValueType <> typeof<String> || (string) reader.Value <> "Null" then
                 let token = JObject.Load(reader)
 
                 let loc =
                     serializer.Deserialize<QsLocation>(token.CreateReader())
 
-                if Object.ReferenceEquals(loc.Offset, null)
-                   || Object.ReferenceEquals(loc.Range, null) then
+                if Object.ReferenceEquals(loc.Offset, null) || Object.ReferenceEquals(loc.Range, null) then
                     match serializer.Deserialize<QsNullable<JToken>>(token.CreateReader()) with
                     | Value loc -> loc.ToObject<QsLocation>() |> Value
                     | Null -> Null
@@ -116,8 +113,7 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
             match resolvedType.Resolution with
             | Operation ((i, o), c) when Object.ReferenceEquals(c, null)
                                          || Object.ReferenceEquals(c.Characteristics, null) ->
-                new JsonSerializationException("failed to deserialize operation characteristics")
-                |> raise
+                new JsonSerializationException("failed to deserialize operation characteristics") |> raise
             | _ -> resolvedType
         with :? JsonSerializationException as ex ->
             if ignoreSerializationException then ResolvedType.New(true, InvalidType) else raise ex

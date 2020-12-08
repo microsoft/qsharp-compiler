@@ -120,8 +120,7 @@ let reservedWords =
       "Zero" ]
 
 let keywords =
-    languageKeywords
-    @ fragmentKeywords @ reservedWords
+    languageKeywords @ fragmentKeywords @ reservedWords
 
 let nonkeywords =
     [ "allocate"

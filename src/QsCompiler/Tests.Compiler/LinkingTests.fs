@@ -34,9 +34,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the internal renaming tests.
     let getTempFile () =
-        Path.GetRandomFileName() + ".qs"
-        |> Path.GetFullPath
-        |> Uri
+        Path.GetRandomFileName() + ".qs" |> Path.GetFullPath |> Uri
 
     let getManager uri content =
         CompilationUnitManager.InitializeFileManager
@@ -65,8 +63,7 @@ type LinkingTests(output: ITestOutputHelper) =
             then 0
             else 1
 
-        references.SharedState.Locations.Count
-        + declaration
+        references.SharedState.Locations.Count + declaration
 
     let getCallablesWithSuffix compilation ns (suffix: string) =
         compilation.Namespaces
@@ -81,14 +78,11 @@ type LinkingTests(output: ITestOutputHelper) =
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 
-        Path.Combine("TestCases", "LinkingTests", "Core.qs")
-        |> Path.GetFullPath
-        |> addOrUpdateSourceFile
+        Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     static member private ReadAndChunkSourceFile fileName =
         let sourceInput =
-            Path.Combine("TestCases", "LinkingTests", fileName)
-            |> File.ReadAllText
+            Path.Combine("TestCases", "LinkingTests", fileName) |> File.ReadAllText
 
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
@@ -102,8 +96,7 @@ type LinkingTests(output: ITestOutputHelper) =
         manager.AddOrUpdateSourceFileAsync(file) |> ignore
         let built = manager.Build()
 
-        manager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        manager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         file.FileName, built
 
@@ -123,14 +116,11 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let _, compilation = manager |> this.BuildWithSource source
 
-        manager.UpdateReferencesAsync(References ImmutableDictionary<_, _>.Empty)
-        |> ignore
+        manager.UpdateReferencesAsync(References ImmutableDictionary<_, _>.Empty) |> ignore
 
         let diagnostics = compilation.Diagnostics()
 
-        diagnostics
-        |> Seq.exists (fun d -> d.IsError())
-        |> Assert.False
+        diagnostics |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilation.BuiltCompilation
 
@@ -140,10 +130,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let comp =
             this.BuildContent(new CompilationUnitManager(), content)
 
-        Assert.Empty
-            (comp.Diagnostics()
-             |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
-
+        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
     member private this.CompileMonomorphization input =
@@ -195,8 +182,7 @@ type LinkingTests(output: ITestOutputHelper) =
             |> Seq.find (fun call -> call.FullName = targetCallName)
 
         (*Check that the operation is not intrinsic*)
-        targetCallable.Specializations.Length > 0
-        |> Assert.True
+        targetCallable.Specializations.Length > 0 |> Assert.True
 
         targetCallable.Specializations
         |> Seq.map (fun spec ->
@@ -219,9 +205,7 @@ type LinkingTests(output: ITestOutputHelper) =
             |> manager.AddOrUpdateSourceFileAsync
             |> ignore
 
-        Path.Combine("TestCases", "LinkingTests", "Core.qs")
-        |> Path.GetFullPath
-        |> addOrUpdateSourceFile
+        Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
         let sourceCompilation =
             this.BuildContent(manager, chunks.[num - 1])
@@ -237,9 +221,7 @@ type LinkingTests(output: ITestOutputHelper) =
             this.BuildContent(manager, "", references)
 
         let countAll namespaces names =
-            names
-            |> Seq.map (countReferences namespaces)
-            |> Seq.sum
+            names |> Seq.map (countReferences namespaces) |> Seq.sum
 
         let beforeCount =
             countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
@@ -250,8 +232,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let decorator = new NameDecorator("QsRef")
 
         let newNames =
-            renamed
-            |> Seq.map (fun name -> decorator.Decorate(name, 0))
+            renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
 
         let afterCount =
             countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
@@ -320,8 +301,7 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Monomorphization Basic Implementation``() =
 
         let filePath =
-            Path.Combine("TestCases", "LinkingTests", "Generics.qs")
-            |> Path.GetFullPath
+            Path.Combine("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
 
         let fileId = (new Uri(filePath))
 
@@ -337,8 +317,7 @@ type LinkingTests(output: ITestOutputHelper) =
                   Signatures.MonomorphizationNs ]
                    (fst testCase)
 
-        compilationManager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 
     [<Fact>]
@@ -398,8 +377,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let compilation = this.CompileMonomorphization source
 
         let callables =
-            compilation.Namespaces
-            |> GlobalCallableResolutions
+            compilation.Namespaces |> GlobalCallableResolutions
 
         Assert.Contains(BuiltIn.Length.FullName, callables.Keys)
         Assert.Contains(BuiltIn.RangeReverse.FullName, callables.Keys)
@@ -422,26 +400,25 @@ type LinkingTests(output: ITestOutputHelper) =
         let onExpr (ex: TypedExpression) =
             match ex.Expression with
             | CallLikeExpression (lhs, _) ->
-                if lhs.Expression
-                   |> isGlobalCallable ((=) BuiltIn.Length.FullName) then
+                if lhs.Expression |> isGlobalCallable ((=) BuiltIn.Length.FullName) then
                     gotLength <- true
                     Assert.Equal(1, ex.TypeArguments.Length)
 
                     let parent, _, resolution = ex.TypeArguments |> Seq.head
                     Assert.Equal(BuiltIn.Length.FullName, parent)
                     Assert.Equal(Int, resolution.Resolution)
-                elif lhs.Expression
-                     |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
+                elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
                     gotIndexRange <- true
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
+
+
 
             | _ -> ()
 
         let walker =
             TypedExpressionWalker(Action<_> onExpr, ())
 
-        walker.Transformation.OnCompilation compilation
-        |> ignore
+        walker.Transformation.OnCompilation compilation |> ignore
 
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
@@ -460,8 +437,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category", "Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Type Mismatch Error``() =
-        Assert.Throws<Exception>(fun _ -> this.RunIntrinsicResolutionTest 3)
-        |> ignore
+        Assert.Throws<Exception>(fun _ -> this.RunIntrinsicResolutionTest 3) |> ignore
 
 
     [<Fact>]
@@ -477,8 +453,7 @@ type LinkingTests(output: ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category", "Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Spec Mismatch Error``() =
-        Assert.Throws<Exception>(fun _ -> this.RunIntrinsicResolutionTest 6)
-        |> ignore
+        Assert.Throws<Exception>(fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
 
 
     [<Fact>]
@@ -492,13 +467,11 @@ type LinkingTests(output: ITestOutputHelper) =
         let fileId = getTempFile ()
         let file = getManager fileId entryPoints.[0]
 
-        compilationManager.AddOrUpdateSourceFileAsync(file)
-        |> ignore
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
 
         this.CompileAndVerify compilationManager entryPoints.[1] [ Error ErrorCode.OtherEntryPointExists ]
 
-        compilationManager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 
     [<Fact>]
@@ -561,9 +534,7 @@ type LinkingTests(output: ITestOutputHelper) =
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 
-        Path.Combine("TestCases", "LinkingTests", "Core.qs")
-        |> Path.GetFullPath
-        |> addOrUpdateSourceFile
+        Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
         this.CompileAndVerify compilationManager tests.[5] []
         this.CompileAndVerify compilationManager tests.[6] []
@@ -721,9 +692,7 @@ type LinkingTests(output: ITestOutputHelper) =
             let specializations = callables.[name].Specializations
             Assert.Equal(4, specializations.Length)
 
-            Assert.True
-                (specializations
-                 |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
+            Assert.True(specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
 
 
     [<Fact>]
@@ -733,9 +702,7 @@ type LinkingTests(output: ITestOutputHelper) =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
 
             let trees =
-                sources
-                |> Seq.map this.BuildReference
-                |> Seq.toArray
+                sources |> Seq.map this.BuildReference |> Seq.toArray
 
             let onError _ (args: _ []) =
                 Assert.Equal(2, args.Length)
@@ -796,13 +763,10 @@ type LinkingTests(output: ITestOutputHelper) =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
 
             let trees =
-                sources
-                |> Seq.map (fun kv -> this.BuildReference(kv.Key, fst kv.Value))
-                |> Seq.toArray
+                sources |> Seq.map (fun kv -> this.BuildReference(kv.Key, fst kv.Value)) |> Seq.toArray
 
             let sourceIndex =
-                (trees
-                 |> Seq.mapi (fun i (struct (x, _)) -> (x, i)))
+                (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i)))
                     .ToImmutableDictionary(fst, snd)
 
             let onError _ _ =
@@ -857,8 +821,7 @@ type LinkingTests(output: ITestOutputHelper) =
             let checker =
                 new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
 
-            checker.OnCompilation(QsCompilation.New(combined, ImmutableArray<QsQualifiedName>.Empty))
-            |> ignore
+            checker.OnCompilation(QsCompilation.New(combined, ImmutableArray<QsQualifiedName>.Empty)) |> ignore
 
         let source = sprintf "Reference%i.dll"
 
@@ -869,12 +832,9 @@ type LinkingTests(output: ITestOutputHelper) =
         let buildDict (args: _ seq) = args.ToImmutableDictionary(fst, snd)
 
         let declInSource1 =
-            new Set<_>([ ("Microsoft.Quantum.Testing.Linking", "BigEndian")
-                         |> fullName
-                         ("Microsoft.Quantum.Testing.Linking", "Foo")
-                         |> fullName
-                         ("Microsoft.Quantum.Testing.Linking", "Bar")
-                         |> fullName ])
+            new Set<_>([ ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
+                         ("Microsoft.Quantum.Testing.Linking", "Foo") |> fullName
+                         ("Microsoft.Quantum.Testing.Linking", "Bar") |> fullName ])
 
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))
@@ -893,12 +853,9 @@ type LinkingTests(output: ITestOutputHelper) =
                          (source 2, (chunks.[4], declInSource1)) ])
 
         let declInSource2 =
-            new Set<_>([ ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian")
-                         |> fullName
-                         ("Microsoft.Quantum.Testing.Linking.Core", "Foo")
-                         |> fullName
-                         ("Microsoft.Quantum.Testing.Linking.Core", "Bar")
-                         |> fullName ])
+            new Set<_>([ ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
+                         ("Microsoft.Quantum.Testing.Linking.Core", "Foo") |> fullName
+                         ("Microsoft.Quantum.Testing.Linking.Core", "Bar") |> fullName ])
 
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))

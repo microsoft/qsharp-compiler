@@ -61,9 +61,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
     let castToBool x: bool =
         match x.Expression with
         | BoolLiteral b -> b
-        | _ ->
-            ArgumentException("Not a BoolLiteral: " + x.Expression.ToString())
-            |> raise
+        | _ -> ArgumentException("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
     member private this.EvaluateExpression expr: Imp<TypedExpression> =
@@ -102,11 +100,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
                 | LocalVarTuple vt ->
                     let! value = this.EvaluateExpression s.Rhs
                     do! setVars callables (vt, value)
-                | _ ->
-                    yield
-                        CouldNotEvaluate
-                            ("Unknown LHS of value update statement: "
-                             + s.Lhs.Expression.ToString())
+                | _ -> yield CouldNotEvaluate("Unknown LHS of value update statement: " + s.Lhs.Expression.ToString())
             | QsConditionalStatement s ->
                 let mutable evalElseCase = true
 
@@ -129,31 +123,25 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
                     imperative {
                         match iterExpr.Expression with
                         | RangeLiteral _ when isLiteral callables iterExpr ->
-                            return
-                                rangeLiteralToSeq iterExpr.Expression
-                                |> Seq.map (IntLiteral >> wrapExpr Int)
+                            return rangeLiteralToSeq iterExpr.Expression |> Seq.map (IntLiteral >> wrapExpr Int)
                         | ValueArray va -> return va :> seq<_>
                         | _ ->
                             yield
                                 CouldNotEvaluate
-                                    ("Unknown IterationValue in for loop: "
-                                     + iterExpr.Expression.ToString())
+                                    ("Unknown IterationValue in for loop: " + iterExpr.Expression.ToString())
                     }
 
                 for loopValue in iterSeq do
                     do! setVars callables (fst stmt.LoopItem, loopValue)
                     do! this.EvaluateScope stmt.Body
             | QsWhileStatement stmt ->
-                while this.EvaluateExpression stmt.Condition
-                      <&> castToBool do
+                while this.EvaluateExpression stmt.Condition <&> castToBool do
                     do! this.EvaluateScope stmt.Body
             | QsRepeatStatement stmt ->
                 while true do
                     do! this.EvaluateScope stmt.RepeatBlock.Body
 
-                    let! value =
-                        this.EvaluateExpression stmt.SuccessCondition
-                        <&> castToBool
+                    let! value = this.EvaluateExpression stmt.SuccessCondition <&> castToBool
 
                     if value then do! Break
                     do! this.EvaluateScope stmt.FixupBlock.Body
@@ -176,13 +164,11 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
     member internal this.EvaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (stmtsLeft: int) =
         let callable = callables.[name]
 
-        if callable.Kind = Operation then
-            ArgumentException "Input is not a function"
-            |> raise
+        if callable.Kind = Operation
+        then ArgumentException "Input is not a function" |> raise
 
-        if callable.Specializations.Length <> 1 then
-            ArgumentException "Functions must have exactly one specialization"
-            |> raise
+        if callable.Specializations.Length <> 1
+        then ArgumentException "Functions must have exactly one specialization" |> raise
 
         let impl =
             (Seq.exactlyOne callable.Specializations)
@@ -274,9 +260,7 @@ and private ExpressionKindEvaluator(parent,
                 do! check (stmtsLeft > 0 && isLiteral callables arg)
                 let fe = FunctionEvaluator(callables)
 
-                return!
-                    fe.EvaluateFunction qualName arg stmtsLeft
-                    |> Option.map (fun x -> x.Expression)
+                return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
                 return this.OnExpressionKind(CallLikeExpression(baseMethod, fillPartialArg (partialArg, arg)))
@@ -343,9 +327,7 @@ and private ExpressionKindEvaluator(parent,
         let idx = this.simplify idx
 
         match idx.Expression with
-        | IntLiteral i ->
-            constructNewArray bt.Resolution (safeCastInt64 i)
-            |? NewArray(bt, idx)
+        | IntLiteral i -> constructNewArray bt.Resolution (safeCastInt64 i) |? NewArray(bt, idx)
         | _ -> NewArray(bt, idx)
 
     override this.OnCopyAndUpdateExpression(lhs, accEx, rhs) =
@@ -357,8 +339,7 @@ and private ExpressionKindEvaluator(parent,
             rangeLiteralToSeq accEx.Expression
             |> Seq.map safeCastInt64
             |> Seq.indexed
-            |> (va
-                |> Seq.fold (fun st (i1, i2) -> st.SetItem(i2, vb.[i1])))
+            |> (va |> Seq.fold (fun st (i1, i2) -> st.SetItem(i2, vb.[i1])))
             |> ValueArray
         // TODO - handle named items in user-defined types
         | _ -> CopyAndUpdate(lhs, accEx, rhs)

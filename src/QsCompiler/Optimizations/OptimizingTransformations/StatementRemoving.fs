@@ -45,14 +45,9 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
         | QsVariableDeclaration { Lhs = lhs }
         | QsValueUpdate { Lhs = LocalVarTuple lhs } when isAllDiscarded lhs && not c.HasQuantum -> Seq.empty
         | QsVariableDeclaration s ->
-            jointFlatten (s.Lhs, s.Rhs)
-            |> Seq.map (QsBinding.New s.Kind >> QsVariableDeclaration)
-        | QsValueUpdate s ->
-            jointFlatten (s.Lhs, s.Rhs)
-            |> Seq.map (QsValueUpdate.New >> QsValueUpdate)
-        | QsQubitScope s when isAllDiscarded s.Binding.Lhs ->
-            s.Body.Statements
-            |> Seq.map (fun x -> x.Statement)
+            jointFlatten (s.Lhs, s.Rhs) |> Seq.map (QsBinding.New s.Kind >> QsVariableDeclaration)
+        | QsValueUpdate s -> jointFlatten (s.Lhs, s.Rhs) |> Seq.map (QsValueUpdate.New >> QsValueUpdate)
+        | QsQubitScope s when isAllDiscarded s.Binding.Lhs -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | QsQubitScope s ->
             let mutable newStatements = []
 
@@ -88,30 +83,19 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                 let newBody =
                     QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
 
-                QsQubitScope.New s.Kind ((lhs, rhs), newBody)
-                |> QsQubitScope
-                |> Seq.singleton
+                QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
             | _ ->
                 let lhs =
-                    List.map fst myList
-                    |> ImmutableArray.CreateRange
-                    |> VariableNameTuple
+                    List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
 
                 let rhs =
-                    List.map snd myList
-                    |> ImmutableArray.CreateRange
-                    |> QubitTupleAllocation
-                    |> ResolvedInitializer.New
+                    List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
 
                 let newBody =
                     QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
 
-                QsQubitScope.New s.Kind ((lhs, rhs), newBody)
-                |> QsQubitScope
-                |> Seq.singleton
-        | ScopeStatement s ->
-            s.Body.Statements
-            |> Seq.map (fun x -> x.Statement)
+                QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
+        | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | _ when not c.HasQuantum
                  && c2.ExternalMutations.IsEmpty
                  && not c.HasInterrupts

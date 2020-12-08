@@ -19,8 +19,7 @@ type private ExpressionKind = QsExpressionKind<TypedExpression, Identifier, Reso
 type ExpressionKindTransformationBase internal (options: TransformationOptions, _internal_) =
 
     let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name)
-        |> raise
+        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
 
     let Node = if options.Rebuild then Fold else Walk
 
@@ -64,13 +63,9 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let tArgs =
             tArgs
             |> QsNullable<_>
-                .Map(fun ts ->
-                    ts
-                    |> Seq.map this.Types.OnType
-                    |> ImmutableArray.CreateRange)
+                .Map(fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
 
-        Identifier
-        |> Node.BuildOr InvalidExpr (sym, tArgs)
+        Identifier |> Node.BuildOr InvalidExpr (sym, tArgs)
 
     abstract OnOperationCall: TypedExpression * TypedExpression -> ExpressionKind
 
@@ -78,8 +73,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let method, arg =
             this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
 
-        CallLikeExpression
-        |> Node.BuildOr InvalidExpr (method, arg)
+        CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnFunctionCall: TypedExpression * TypedExpression -> ExpressionKind
 
@@ -87,8 +81,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let method, arg =
             this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
 
-        CallLikeExpression
-        |> Node.BuildOr InvalidExpr (method, arg)
+        CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnPartialApplication: TypedExpression * TypedExpression -> ExpressionKind
 
@@ -96,8 +89,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let method, arg =
             this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
 
-        CallLikeExpression
-        |> Node.BuildOr InvalidExpr (method, arg)
+        CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnCallLikeExpression: TypedExpression * TypedExpression -> ExpressionKind
 
@@ -119,8 +111,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     default this.OnControlledApplication ex =
         let ex = this.Expressions.OnTypedExpression ex
 
-        ControlledApplication
-        |> Node.BuildOr InvalidExpr ex
+        ControlledApplication |> Node.BuildOr InvalidExpr ex
 
     abstract OnUnwrapApplication: TypedExpression -> ExpressionKind
 
@@ -132,9 +123,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnValueTuple vs =
         let values =
-            vs
-            |> Seq.map this.Expressions.OnTypedExpression
-            |> ImmutableArray.CreateRange
+            vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
 
         ValueTuple |> Node.BuildOr InvalidExpr values
 
@@ -156,9 +145,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnValueArray vs =
         let values =
-            vs
-            |> Seq.map this.Expressions.OnTypedExpression
-            |> ImmutableArray.CreateRange
+            vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
 
         ValueArray |> Node.BuildOr InvalidExpr values
 
@@ -174,9 +161,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnStringLiteral(s, exs) =
         let exs =
-            exs
-            |> Seq.map this.Expressions.OnTypedExpression
-            |> ImmutableArray.CreateRange
+            exs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
 
         StringLiteral |> Node.BuildOr InvalidExpr (s, exs)
 
@@ -186,8 +171,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let lhs, rhs =
             this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
 
-        RangeLiteral
-        |> Node.BuildOr InvalidExpr (lhs, rhs)
+        RangeLiteral |> Node.BuildOr InvalidExpr (lhs, rhs)
 
     abstract OnCopyAndUpdateExpression: TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
 
@@ -197,8 +181,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             this.Expressions.OnTypedExpression accEx,
             this.Expressions.OnTypedExpression rhs
 
-        CopyAndUpdate
-        |> Node.BuildOr InvalidExpr (lhs, accEx, rhs)
+        CopyAndUpdate |> Node.BuildOr InvalidExpr (lhs, accEx, rhs)
 
     abstract OnConditionalExpression: TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
 
@@ -208,8 +191,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             this.Expressions.OnTypedExpression ifTrue,
             this.Expressions.OnTypedExpression ifFalse
 
-        CONDITIONAL
-        |> Node.BuildOr InvalidExpr (cond, ifTrue, ifFalse)
+        CONDITIONAL |> Node.BuildOr InvalidExpr (cond, ifTrue, ifFalse)
 
     abstract OnEquality: TypedExpression * TypedExpression -> ExpressionKind
 
@@ -475,8 +457,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 and ExpressionTransformationBase internal (options: TransformationOptions, _internal_) =
 
     let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name)
-        |> raise
+        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
 
     let Node = if options.Rebuild then Fold else Walk
 
@@ -567,5 +548,4 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
             let inferredInfo =
                 this.OnExpressionInformation ex.InferredInformation
 
-            TypedExpression.New
-            |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
+            TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)

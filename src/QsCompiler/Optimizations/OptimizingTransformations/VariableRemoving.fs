@@ -49,8 +49,6 @@ and private VariableRemovalStatementKinds(parent: VariableRemoval) =
             }
             |? syms
         | VariableNameTuple items ->
-            Seq.map stmtKind.OnSymbolTuple items
-            |> ImmutableArray.CreateRange
-            |> VariableNameTuple
+            Seq.map stmtKind.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem
         | DiscardedItem -> syms

@@ -28,18 +28,15 @@ let private testInput expected args =
     |> List.iter (fun v -> Array.append v args |> testOne expected)
 
 let private testSnippet expected args =
-    [ [| "diagnose" |]; [| "build" |] ]
-    |> List.iter (fun v -> Array.append v args |> testOne expected)
+    [ [| "diagnose" |]; [| "build" |] ] |> List.iter (fun v -> Array.append v args |> testOne expected)
 
 [<Fact>]
 let ``valid snippet`` () =
-    [| "-s"; "let a = 0;"; "-v n" |]
-    |> testSnippet ReturnCode.SUCCESS
+    [| "-s"; "let a = 0;"; "-v n" |] |> testSnippet ReturnCode.SUCCESS
 
 [<Fact>]
 let ``invalid snippet`` () =
-    [| "-s"; "let a = " |]
-    |> testSnippet ReturnCode.COMPILATION_ERRORS
+    [| "-s"; "let a = " |] |> testSnippet ReturnCode.COMPILATION_ERRORS
 
 
 [<Fact>]
@@ -54,8 +51,7 @@ let ``one valid file`` () =
 let ``multiple valid file`` () =
     [| "--input"
        ("TestCases", "General.qs") |> Path.Combine
-       ("TestCases", "LinkingTests", "Core.qs")
-       |> Path.Combine |]
+       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine |]
     |> testInput ReturnCode.SUCCESS
 
 
@@ -69,8 +65,7 @@ let ``one invalid file`` () =
 [<Fact>]
 let ``mixed files`` () =
     [| "-i"
-       ("TestCases", "LinkingTests", "Core.qs")
-       |> Path.Combine
+       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
        ("TestCases", "TypeChecking.qs") |> Path.Combine |]
     |> testInput ReturnCode.COMPILATION_ERRORS
 
@@ -82,8 +77,7 @@ let ``missing file`` () =
     |> testInput ReturnCode.UNRESOLVED_FILES
 
     [| "-i"
-       ("TestCases", "LinkingTests", "Core.qs")
-       |> Path.Combine
+       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
        ("TestCases", "NonExistent.qs") |> Path.Combine |]
     |> testInput ReturnCode.UNRESOLVED_FILES
 
@@ -138,8 +132,7 @@ let ``options from response files`` () =
 
     let configArgs =
         [| "-i"
-           ("TestCases", "LinkingTests", "Core.qs")
-           |> Path.Combine |]
+           ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine |]
 
     File.WriteAllText(configFile, String.Join(" ", configArgs))
 
@@ -159,12 +152,10 @@ let ``options from response files`` () =
 [<Fact>]
 let ``execute rewrite steps only if validation passes`` () =
     let source1 =
-        ("TestCases", "LinkingTests", "Core.qs")
-        |> Path.Combine
+        ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
 
     let source2 =
-        ("TestCases", "AttributeGeneration.qs")
-        |> Path.Combine
+        ("TestCases", "AttributeGeneration.qs") |> Path.Combine
 
     let config =
         CompilationLoader.Configuration

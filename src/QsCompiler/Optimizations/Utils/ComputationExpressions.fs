@@ -109,9 +109,7 @@ type internal ImperativeBuilder() =
             match guard () s1 with
             | Normal (true, s2) -> this.CombineLoopIters (f, this.While(guard, f)) s2
             | Normal (false, s2) -> Normal((), s2)
-            | Break _ ->
-                Exception "Cannot break in condition of while loop"
-                |> raise
+            | Break _ -> Exception "Cannot break in condition of while loop" |> raise
             | Interrupt x -> Interrupt x
 
     member this.While(guard: Unit -> bool, f: Imperative<'a, Unit, 'c>) = this.While(guard >> this.Return, f)

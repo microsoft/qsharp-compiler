@@ -15,8 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type StatementKindTransformationBase internal (options: TransformationOptions, _internal_) =
 
     let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name)
-        |> raise
+        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
 
     let Node = if options.Rebuild then Fold else Walk
 
@@ -68,19 +67,13 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             |> function
             | SingleQubitAllocation -> SingleQubitAllocation
             | QubitRegisterAllocation ex as orig ->
-                QubitRegisterAllocation
-                |> Node.BuildOr orig (this.Expressions.OnTypedExpression ex)
+                QubitRegisterAllocation |> Node.BuildOr orig (this.Expressions.OnTypedExpression ex)
             | QubitTupleAllocation is as orig ->
                 QubitTupleAllocation
-                |> Node.BuildOr
-                    orig
-                       (is
-                        |> Seq.map this.OnQubitInitializer
-                        |> ImmutableArray.CreateRange)
+                |> Node.BuildOr orig (is |> Seq.map this.OnQubitInitializer |> ImmutableArray.CreateRange)
             | InvalidInitializer -> InvalidInitializer
 
-        ResolvedInitializer.New
-        |> Node.BuildOr init transformed
+        ResolvedInitializer.New |> Node.BuildOr init transformed
 
     abstract OnPositionedBlock: QsNullable<TypedExpression>
                                 * QsPositionedBlock
@@ -93,16 +86,14 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         let comments = block.Comments
 
         let expr =
-            intro
-            |> QsNullable<_>.Map this.Expressions.OnTypedExpression
+            intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
 
         let body = this.Statements.OnScope block.Body
 
         let PositionedBlock (expr, body, location, comments) =
             expr, QsPositionedBlock.New comments location body
 
-        PositionedBlock
-        |> Node.BuildOr (intro, block) (expr, body, location, comments)
+        PositionedBlock |> Node.BuildOr (intro, block) (expr, body, location, comments)
 
 
     // statements containing subconstructs or expressions
@@ -115,8 +106,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
         let lhs = this.OnSymbolTuple stm.Lhs
 
-        QsVariableDeclaration
-        << QsBinding<TypedExpression>.New stm.Kind
+        QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind
         |> Node.BuildOr EmptyStatement (lhs, rhs)
 
     abstract OnValueUpdate: QsValueUpdate -> QsStatementKind
@@ -128,8 +118,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         let lhs =
             this.Expressions.OnTypedExpression stm.Lhs
 
-        QsValueUpdate << QsValueUpdate.New
-        |> Node.BuildOr EmptyStatement (lhs, rhs)
+        QsValueUpdate << QsValueUpdate.New |> Node.BuildOr EmptyStatement (lhs, rhs)
 
     abstract OnConditionalStatement: QsConditionalStatement -> QsStatementKind
 
@@ -150,8 +139,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             |> QsNullable<_>
                 .Map(fun b -> this.OnPositionedBlock(Null, b) |> snd)
 
-        QsConditionalStatement
-        << QsConditionalStatement.New
+        QsConditionalStatement << QsConditionalStatement.New
         |> Node.BuildOr EmptyStatement (cases, defaultCase)
 
     abstract OnForStatement: QsForStatement -> QsStatementKind
@@ -178,15 +166,13 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
         let body = this.Statements.OnScope stm.Body
 
-        QsWhileStatement << QsWhileStatement.New
-        |> Node.BuildOr EmptyStatement (condition, body)
+        QsWhileStatement << QsWhileStatement.New |> Node.BuildOr EmptyStatement (condition, body)
 
     abstract OnRepeatStatement: QsRepeatStatement -> QsStatementKind
 
     default this.OnRepeatStatement stm =
         let repeatBlock =
-            this.OnPositionedBlock(Null, stm.RepeatBlock)
-            |> snd
+            this.OnPositionedBlock(Null, stm.RepeatBlock) |> snd
 
         let successCondition, fixupBlock =
             this.OnPositionedBlock(Value stm.SuccessCondition, stm.FixupBlock)
@@ -201,39 +187,33 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnConjugation stm =
         let outer =
-            this.OnPositionedBlock(Null, stm.OuterTransformation)
-            |> snd
+            this.OnPositionedBlock(Null, stm.OuterTransformation) |> snd
 
         let inner =
-            this.OnPositionedBlock(Null, stm.InnerTransformation)
-            |> snd
+            this.OnPositionedBlock(Null, stm.InnerTransformation) |> snd
 
-        QsConjugation << QsConjugation.New
-        |> Node.BuildOr EmptyStatement (outer, inner)
+        QsConjugation << QsConjugation.New |> Node.BuildOr EmptyStatement (outer, inner)
 
     abstract OnExpressionStatement: TypedExpression -> QsStatementKind
 
     default this.OnExpressionStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
 
-        QsExpressionStatement
-        |> Node.BuildOr EmptyStatement transformed
+        QsExpressionStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract OnReturnStatement: TypedExpression -> QsStatementKind
 
     default this.OnReturnStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
 
-        QsReturnStatement
-        |> Node.BuildOr EmptyStatement transformed
+        QsReturnStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract OnFailStatement: TypedExpression -> QsStatementKind
 
     default this.OnFailStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
 
-        QsFailStatement
-        |> Node.BuildOr EmptyStatement transformed
+        QsFailStatement |> Node.BuildOr EmptyStatement transformed
 
     /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds.
     /// It is hence not intended and should never be needed for public use.
@@ -243,8 +223,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         let lhs = this.OnSymbolTuple stm.Binding.Lhs
         let body = this.Statements.OnScope stm.Body
 
-        QsQubitScope << QsQubitScope.New kind
-        |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
+        QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
     abstract OnAllocateQubits: QsQubitScope -> QsStatementKind
     default this.OnAllocateQubits stm = this.OnQubitScopeKind stm
@@ -296,8 +275,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 and StatementTransformationBase internal (options: TransformationOptions, _internal_) =
 
     let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name)
-        |> raise
+        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
 
     let Node = if options.Rebuild then Fold else Walk
 
@@ -358,8 +336,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
 
         let variableDeclarations =
-            decl.Variables
-            |> Seq.map onLocalVariableDeclaration
+            decl.Variables |> Seq.map onLocalVariableDeclaration
 
         if options.Rebuild then
             LocalDeclarations.New(variableDeclarations |> ImmutableArray.CreateRange)
@@ -384,8 +361,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
             let varDecl =
                 this.OnLocalDeclarations stm.SymbolDeclarations
 
-            QsStatement.New comments location
-            |> Node.BuildOr stm (kind, varDecl)
+            QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 
     abstract OnScope: QsScope -> QsScope
 

@@ -141,9 +141,8 @@ type Position =
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the line or column is negative.</exception>
     static member Create line column =
-        if line < 0 || column < 0 then
-            ArgumentOutOfRangeException "Line and column cannot be negative."
-            |> raise
+        if line < 0 || column < 0
+        then ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
 
         Position(line, column)
 
@@ -191,9 +190,8 @@ type Range =
     /// Thrown if <paramref name="start"/> occurs after <paramref name="end"/>.
     /// </exception>
     static member Create start ``end`` =
-        if start > ``end`` then
-            ArgumentException "Range start cannot occur after range end."
-            |> raise
+        if start > ``end``
+        then ArgumentException "Range start cannot occur after range end." |> raise
 
         Range(start, ``end``)
 

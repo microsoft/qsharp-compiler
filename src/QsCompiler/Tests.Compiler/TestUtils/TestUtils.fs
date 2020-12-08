@@ -75,8 +75,7 @@ let toExpr (ex: QsExpressionKind<QsExpression, QsSymbol, QsType>) = { Expression
 let toInt n = IntLiteral(int64 n) |> toExpr
 
 let toBigInt b =
-    BigIntLiteral(System.Numerics.BigInteger.Parse b)
-    |> toExpr
+    BigIntLiteral(System.Numerics.BigInteger.Parse b) |> toExpr
 
 let toSymbol s = { Symbol = Symbol s; Range = Null }
 
@@ -114,13 +113,11 @@ let matchDiagnostics expected (actual: QsCompilerDiagnostic list) =
         actual |> List.map (fun d -> d.Diagnostic)
 
     ((diags |> List.length) = (expected |> List.length))
-    && (diags
-        |> List.forall (fun d -> expected |> List.contains d))
+    && (diags |> List.forall (fun d -> expected |> List.contains d))
 
 let rec matchType (t1: QsType) (t2: QsType) =
     let matchAll (a1: ImmutableArray<QsType>) (a2: ImmutableArray<QsType>) =
-        a1.Length = a2.Length
-        && Seq.forall2 matchType a1 a2
+        a1.Length = a2.Length && Seq.forall2 matchType a1 a2
 
     let rec matchSetExpr (e1: Characteristics) (e2: Characteristics) =
         match e1.Characteristics with
@@ -167,10 +164,7 @@ let rec matchType (t1: QsType) (t2: QsType) =
         | _ -> false
     | Operation ((it1, ot1), s1) ->
         match t2.Type with
-        | Operation ((it2, ot2), s2) ->
-            (matchType it1 it2)
-            && (matchType ot1 ot2)
-            && (matchSetExpr s1 s2)
+        | Operation ((it2, ot2), s2) -> (matchType it1 it2) && (matchType ot1 ot2) && (matchSetExpr s1 s2)
         | _ -> false
     | Function (it1, ot1) ->
         match t2.Type with
@@ -179,8 +173,7 @@ let rec matchType (t1: QsType) (t2: QsType) =
 
 let rec matchExpression e1 e2 =
     let matchAll (a1: ImmutableArray<QsExpression>) (a2: ImmutableArray<QsExpression>) =
-        a1.Length = a2.Length
-        && Seq.forall2 matchExpression a1 a2
+        a1.Length = a2.Length && Seq.forall2 matchExpression a1 a2
 
     let matchTypeArray (t1: QsNullable<ImmutableArray<QsType>>) (t2: QsNullable<ImmutableArray<QsType>>) =
         if t1 <> Null && t2 <> Null
@@ -227,9 +220,7 @@ let rec matchExpression e1 e2 =
         | _ -> false
     | ArrayItem (s1a, s1b) ->
         match ex2 with
-        | ArrayItem (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | ArrayItem (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | NamedItem (u1, a1) ->
         match ex2 with
@@ -249,137 +240,93 @@ let rec matchExpression e1 e2 =
         | _ -> false
     | ADD (s1a, s1b) ->
         match ex2 with
-        | ADD (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | ADD (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | SUB (s1a, s1b) ->
         match ex2 with
-        | SUB (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | SUB (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | MUL (s1a, s1b) ->
         match ex2 with
-        | MUL (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | MUL (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | DIV (s1a, s1b) ->
         match ex2 with
-        | DIV (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | DIV (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | MOD (s1a, s1b) ->
         match ex2 with
-        | MOD (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | MOD (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | POW (s1a, s1b) ->
         match ex2 with
-        | POW (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | POW (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | EQ (s1a, s1b) ->
         match ex2 with
-        | EQ (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | EQ (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | NEQ (s1a, s1b) ->
         match ex2 with
-        | NEQ (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | NEQ (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | LT (s1a, s1b) ->
         match ex2 with
-        | LT (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | LT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | LTE (s1a, s1b) ->
         match ex2 with
-        | LTE (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | LTE (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | GT (s1a, s1b) ->
         match ex2 with
-        | GT (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | GT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | GTE (s1a, s1b) ->
         match ex2 with
-        | GTE (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | GTE (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | AND (s1a, s1b) ->
         match ex2 with
-        | AND (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | AND (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | OR (s1a, s1b) ->
         match ex2 with
-        | OR (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | OR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | BOR (s1a, s1b) ->
         match ex2 with
-        | BOR (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | BOR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | BAND (s1a, s1b) ->
         match ex2 with
-        | BAND (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | BAND (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | BXOR (s1a, s1b) ->
         match ex2 with
-        | BXOR (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | BXOR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | LSHIFT (s1a, s1b) ->
         match ex2 with
-        | LSHIFT (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | LSHIFT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | RSHIFT (s1a, s1b) ->
         match ex2 with
-        | RSHIFT (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | RSHIFT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | RangeLiteral (s1a, s1b) ->
         match ex2 with
-        | RangeLiteral (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | RangeLiteral (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
     | CopyAndUpdate (s1a, s1b, s1c) ->
         match ex2 with
         | CopyAndUpdate (s2a, s2b, s2c) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
-            && (matchExpression s1c s2c)
+            (matchExpression s1a s2a) && (matchExpression s1b s2b) && (matchExpression s1c s2c)
         | _ -> false
     | CONDITIONAL (s1a, s1b, s1c) ->
         match ex2 with
         | CONDITIONAL (s2a, s2b, s2c) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
-            && (matchExpression s1c s2c)
+            (matchExpression s1a s2a) && (matchExpression s1b s2b) && (matchExpression s1c s2c)
         | _ -> false
     | UnwrapApplication s1 ->
         match ex2 with
@@ -395,9 +342,7 @@ let rec matchExpression e1 e2 =
         | _ -> false
     | CallLikeExpression (s1a, s1b) ->
         match ex2 with
-        | CallLikeExpression (s2a, s2b) ->
-            (matchExpression s1a s2a)
-            && (matchExpression s1b s2b)
+        | CallLikeExpression (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
         | _ -> false
 
 let testOne parser (str, succExp, resExp, diagsExp) =
@@ -428,8 +373,7 @@ let testExpr (str, succExp, resExp, diagsExp) =
     let succOk = succ = succExp
 
     let resOk =
-        (not succ)
-        || (res |> Option.exists (matchExpression resExp))
+        (not succ) || (res |> Option.exists (matchExpression resExp))
 
     let errsOk =
         (not succ) || (matchDiagnostics diagsExp diags)

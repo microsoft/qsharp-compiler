@@ -49,9 +49,7 @@ type CallGraphTests(output: ITestOutputHelper) =
             |> compilationManagerExe.AddOrUpdateSourceFileAsync
             |> ignore
 
-        Path.Combine("TestCases", "LinkingTests", "Core.qs")
-        |> Path.GetFullPath
-        |> addOrUpdateSourceFile
+        Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let MakeNode name specKind (paramRes: _ list) =
         let qualifiedName =
@@ -69,8 +67,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput =
-            Path.Combine("TestCases", fileName)
-            |> File.ReadAllText
+            Path.Combine("TestCases", fileName) |> File.ReadAllText
 
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
@@ -79,17 +76,13 @@ type CallGraphTests(output: ITestOutputHelper) =
         let fileId = getTempFile ()
         let file = getManager fileId content
 
-        compilationManager.AddOrUpdateSourceFileAsync(file)
-        |> ignore
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
 
         let compilationDataStructures = compilationManager.Build()
 
-        compilationManager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
-        compilationDataStructures.Diagnostics()
-        |> Seq.exists (fun d -> d.IsError())
-        |> Assert.False
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilationDataStructures.BuiltCompilation
 
@@ -100,13 +93,11 @@ type CallGraphTests(output: ITestOutputHelper) =
         let fileId = getTempFile ()
         let file = getManager fileId content
 
-        compilationManager.AddOrUpdateSourceFileAsync(file)
-        |> ignore
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
 
         let compilationDataStructures = compilationManager.Build()
 
-        compilationManager.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         let expected =
             Seq.map (fun code -> int code) expectedErrors
@@ -150,14 +141,12 @@ type CallGraphTests(output: ITestOutputHelper) =
 
     let CompileCycleDetectionTest testNumber =
         let CallGraph =
-            CompileTest testNumber "CycleDetection.qs"
-            |> CallGraph
+            CompileTest testNumber "CycleDetection.qs" |> CallGraph
 
         CallGraph.GetCallCycles()
 
     let CompileCycleValidationTest testNumber =
-        CompileTest testNumber "CycleValidation.qs"
-        |> ignore
+        CompileTest testNumber "CycleValidation.qs" |> ignore
 
     let CompileInvalidCycleTest testNumber expected =
         let errors =
@@ -182,17 +171,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         let file =
             getManager fileId srcChunks.[testNumber - 1]
 
-        compilationManagerExe.AddOrUpdateSourceFileAsync(file)
-        |> ignore
-
+        compilationManagerExe.AddOrUpdateSourceFileAsync(file) |> ignore
         let compilationDataStructures = compilationManagerExe.Build()
-
-        compilationManagerExe.TryRemoveSourceFileAsync(fileId, false)
-        |> ignore
-
-        compilationDataStructures.Diagnostics()
-        |> Seq.exists (fun d -> d.IsError())
-        |> Assert.False
+        compilationManagerExe.TryRemoveSourceFileAsync(fileId, false) |> ignore
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilationDataStructures.BuiltCompilation
         compilationDataStructures.BuiltCompilation
@@ -205,21 +187,17 @@ type CallGraphTests(output: ITestOutputHelper) =
             false
         else
             let rotate n =
-                lst1
-                |> List.permute (fun index -> (index + n) % size1)
+                lst1 |> List.permute (fun index -> (index + n) % size1)
 
             let rotations = [ 0 .. size1 - 1 ] |> List.map rotate
             List.contains lst2 rotations
 
     let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
         let expected =
-            expectedCycles
-            |> DecorateWithNamespace Signatures.CycleDetectionNS
+            expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
 
         let actual =
-            actualCycles
-            |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList)
-                >> Seq.toList)
+            actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
 
         Assert.True
             (actual.Length = expected.Length,
@@ -256,8 +234,7 @@ type CallGraphTests(output: ITestOutputHelper) =
               Name = name }
 
         let found =
-            givenGraph.Nodes
-            |> Seq.exists (fun x -> x.CallableName = nodeName)
+            givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
 
         Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
@@ -267,8 +244,7 @@ type CallGraphTests(output: ITestOutputHelper) =
               Name = name }
 
         let found =
-            givenGraph.Nodes
-            |> Seq.exists (fun x -> x.CallableName = nodeName)
+            givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
 
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
@@ -309,9 +285,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        [ "Bar"; "Baz" ]
-        |> List.map (AssertNotInGraph graph)
-        |> ignore
+        [ "Bar"; "Baz" ] |> List.map (AssertNotInGraph graph) |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
@@ -440,9 +414,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let FooInt = makeNode Int
 
         let FooFunc =
-            makeNode
-                ((ResolvedType.New Int, ResolvedType.New Int)
-                 |> QsTypeKind.Function)
+            makeNode ((ResolvedType.New Int, ResolvedType.New Int) |> QsTypeKind.Function)
 
         AssertInConcreteGraph graph FooInt
         AssertInConcreteGraph graph FooFunc
@@ -571,16 +543,14 @@ type CallGraphTests(output: ITestOutputHelper) =
     member this.``Simple Cycle``() =
         let result = CompileCycleDetectionTest 2
 
-        [ [ "Foo"; "Bar" ] ]
-        |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar" ] ] |> CheckForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Longer Cycle``() =
         let result = CompileCycleDetectionTest 3
 
-        [ [ "Foo"; "Bar"; "Baz" ] ]
-        |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar"; "Baz" ] ] |> CheckForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
@@ -601,8 +571,7 @@ type CallGraphTests(output: ITestOutputHelper) =
     member this.``Figure-Eight Cycles``() =
         let result = CompileCycleDetectionTest 6
 
-        [ [ "Foo"; "Bar" ]; [ "Foo"; "Baz" ] ]
-        |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar" ]; [ "Foo"; "Baz" ] ] |> CheckForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
