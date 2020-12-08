@@ -634,7 +634,6 @@ type LinkingTests(output: ITestOutputHelper) =
         let referenceCompilation = this.BuildContent(manager, "", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
         let decorator = new NameDecorator("QsRef")
-
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
@@ -706,8 +705,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 sources |> Seq.map (fun kv -> this.BuildReference(kv.Key, fst kv.Value)) |> Seq.toArray
 
             let sourceIndex =
-                (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i)))
-                    .ToImmutableDictionary(fst, snd)
+                (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i))).ToImmutableDictionary(fst, snd)
 
             let onError _ _ =
                 Assert.False(true, "diagnostics generated upon combining syntax trees")

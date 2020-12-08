@@ -195,8 +195,7 @@ module SyntaxGenerator =
 
         let callToLength tpRes =
             let resolutions =
-                (seq { yield (typeParameter.Origin, typeParameter.TypeName, tpRes) })
-                    .ToImmutableArray()
+                (seq { yield (typeParameter.Origin, typeParameter.TypeName, tpRes) }).ToImmutableArray()
 
             { CallNonGeneric(length, ex) with
                   TypeArguments = resolutions }
@@ -294,12 +293,8 @@ module SyntaxGenerator =
             LocalVariableDeclaration.New false ((offset, range), argName, unitT, false) |> QsTupleItem // the range is not accurate here, but also irrelevant
 
         match arg with
-        | QsTuple ts when ts.Length = 0 ->
-            [ ctlQs |> QsTupleItem; unitArg ]
-                .ToImmutableArray()
-        | QsTuple ts when ts.Length = 1 ->
-            [ ctlQs |> QsTupleItem; ts.[0] ]
-                .ToImmutableArray()
+        | QsTuple ts when ts.Length = 0 -> [ ctlQs |> QsTupleItem; unitArg ].ToImmutableArray()
+        | QsTuple ts when ts.Length = 1 -> [ ctlQs |> QsTupleItem; ts.[0] ].ToImmutableArray()
         | QsTuple _ -> [ ctlQs |> QsTupleItem; arg ].ToImmutableArray()
         | _ -> ArgumentException "expecting the given argument tuple to be a QsTuple" |> raise
         |> QsTuple

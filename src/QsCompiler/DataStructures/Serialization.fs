@@ -203,15 +203,11 @@ type DictionaryAsArrayResolver() =
         let isDictionary (t: Type) =
             t = typedefof<IDictionary<_, _>>
             || (t.IsGenericType
-                && t.GetGenericTypeDefinition() = typeof<IDictionary<_, _>>
-                    .GetGenericTypeDefinition())
+                && t.GetGenericTypeDefinition() = typeof<IDictionary<_, _>>.GetGenericTypeDefinition())
 
-        if objectType
-            .GetInterfaces()
-            .Any(new Func<_, _>(isDictionary)) then
-            base.CreateArrayContract(objectType) :> JsonContract
-        else
-            base.CreateContract(objectType)
+        if objectType.GetInterfaces().Any(new Func<_, _>(isDictionary))
+        then base.CreateArrayContract(objectType) :> JsonContract
+        else base.CreateContract(objectType)
 
 
 module Json =

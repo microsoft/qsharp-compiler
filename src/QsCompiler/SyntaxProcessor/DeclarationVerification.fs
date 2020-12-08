@@ -31,9 +31,7 @@ let public AsDeclarationName sym onInvalid =
     | _ -> null
 
 let private NameOnly onInvalid arg =
-    (arg
-     |> QsNullable<_>
-         .Map(fun (sym, _) -> AsDeclarationName sym.Symbol onInvalid)).ValueOr null
+    (arg |> QsNullable<_>.Map(fun (sym, _) -> AsDeclarationName sym.Symbol onInvalid)).ValueOr null
 
 /// If the given fragment kind is a namespace declaration,
 /// returns a tuple with the namespace symbol and null (to make the signature of this routine compatible with the remaining ones) as Value.
@@ -228,8 +226,7 @@ let public ValidDeclarations (this: ImmutableArray<LocalVariableDeclaration<QsLo
             Some(LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))
         | _ -> None
 
-    (this |> Seq.choose withValidName)
-        .ToImmutableArray()
+    (this |> Seq.choose withValidName).ToImmutableArray()
 
 /// For each contained declaration in the given LocalDeclarations object,
 /// applies the given function to its position offset and builds a new declaration with the position offset set to the returned value.

@@ -92,9 +92,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
                 { Namespace = u.Namespace
                   Name = u.Name }
 
-            mightContainQubit
-                (cc.callables.[qualName])
-                    .Signature.ArgumentType.Resolution
+            mightContainQubit (cc.callables.[qualName]).Signature.ArgumentType.Resolution
         | _ -> false
 
     match expr.Expression with
@@ -272,8 +270,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
                 { circuit with
                       gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
         elif circuit.gates.[i] = circuit.gates.[i + 1]
-             && circuit.gates.[i]
-                 .info.InferredInformation.IsSelfAdjoint then
+             && circuit.gates.[i].info.InferredInformation.IsSelfAdjoint then
             circuit <-
                 { circuit with
                       gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }

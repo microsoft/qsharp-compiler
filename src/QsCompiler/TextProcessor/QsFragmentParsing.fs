@@ -655,15 +655,10 @@ let private fragments =
       (qsInternal, buildInvalidFragment qsInternal.parse) ]
 
 // Make sure all of the fragment header keywords are listed above.
-do let implementedHeaders =
-    (List.map (fun (keyword, _) -> keyword.id) fragments)
-        .ToImmutableHashSet()
-
+do let implementedHeaders = (List.map (fun (keyword, _) -> keyword.id) fragments).ToImmutableHashSet()
    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
 
-   if (implementedHeaders.SymmetricExcept existingHeaders)
-       .Count
-      <> 0 then
+   if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then
        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments"
        |> raise
 

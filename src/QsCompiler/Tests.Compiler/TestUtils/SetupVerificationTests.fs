@@ -36,11 +36,9 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 | TypeConstructor -> types.[c.FullName].Attributes
                 | _ -> c.Attributes
 
-            if attributes.Length = 0 then
-                (c.Location.ValueOrApply(fun _ -> failwith "missing position information"))
-                    .Offset
-            else
-                attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
+            if attributes.Length = 0
+            then (c.Location.ValueOrApply(fun _ -> failwith "missing position information")).Offset
+            else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
 
         [ for file in compilation.SourceFiles do
             let containedCallables =
@@ -53,7 +51,6 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
             let mutable containedDiagnostics =
                 compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
-
             for i = 1 to locations.Length do
                 let key = fst locations.[i - 1]
 
@@ -61,12 +58,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                     let withinCurrentDeclaration (d: Diagnostic) =
                         d.Range.Start.ToQSharp() < snd locations.[i]
 
-                    yield
-                        key,
-                        containedDiagnostics
-                            .TakeWhile(withinCurrentDeclaration)
-                            .ToImmutableArray()
-
+                    yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
                     containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
                 else
                     yield key, containedDiagnostics.ToImmutableArray() ]

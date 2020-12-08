@@ -109,10 +109,7 @@ let private CommonBaseType addError
                      InferredCallableInformation.NoInformation)
             | Invariant when s1.Characteristics.AreInvalid
                              || s2.Characteristics.AreInvalid
-                             || s1
-                                 .Characteristics
-                                 .GetProperties()
-                                 .SetEquals(s2.Characteristics.GetProperties()) ->
+                             || s1.Characteristics.GetProperties().SetEquals(s2.Characteristics.GetProperties()) ->
                 let characteristics = if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
 
                 let inferred =
@@ -137,8 +134,7 @@ let private CommonBaseType addError
         | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 ->
             matchTypes Invariant (b1, b2) |> ArrayType |> ResolvedType.New
         | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 when ts1.Length = ts2.Length ->
-            (Seq.zip ts1 ts2 |> Seq.map (matchTypes variance))
-                .ToImmutableArray()
+            (Seq.zip ts1 ts2 |> Seq.map (matchTypes variance)).ToImmutableArray()
             |> TupleType
             |> ResolvedType.New
         | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> t1
@@ -495,8 +491,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
                     |> function
                     | MissingType -> ResolvedType.New MissingType
                     | _ -> symbols.ResolveType addDiagnostic tArg))
-        |> QsNullable<_>
-            .Map(fun args -> args.ToImmutableArray())
+        |> QsNullable<_>.Map(fun args -> args.ToImmutableArray())
 
     let resId, typeParams = symbols.ResolveIdentifier addDiagnostic sym
     let identifier, info = Identifier(resId.VariableName, resolvedTargs), resId.InferredInformation
@@ -883,8 +878,7 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
         tp |> Seq.exists notResolvedToItself
 
     let nonTrivialResolutions =
-        tpResolutions
-            .ToLookup(fst, snd).Where containsNonTrivialResolution
+        tpResolutions.ToLookup(fst, snd).Where containsNonTrivialResolution
         |> Seq.map (fun g ->
             QsTypeParameter.New(fst g.Key, snd g.Key, Null) |> TypeParameter |> ResolvedType.New |> toString)
         |> Seq.toList
@@ -979,9 +973,7 @@ type QsExpression with
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated: IEnumerable<_>) =
-            let resInterpol =
-                (interpolated.Select InnerExpression)
-                    .ToImmutableArray()
+            let resInterpol = (interpolated.Select InnerExpression).ToImmutableArray()
 
             let localQdependency =
                 resInterpol |> Seq.exists (fun r -> r.InferredInformation.HasLocalQuantumDependency)
@@ -994,10 +986,7 @@ type QsExpression with
         /// Throws an ArgumentException if the given items do not at least contain one element.
         let buildTuple (items: ImmutableArray<_>) =
             let resolvedItems = (items.Select InnerExpression).ToImmutableArray()
-
-            let resolvedTypes =
-                (resolvedItems |> Seq.map (fun x -> x.ResolvedType))
-                    .ToImmutableArray()
+            let resolvedTypes = (resolvedItems |> Seq.map (fun x -> x.ResolvedType)).ToImmutableArray()
 
             let localQdependency =
                 resolvedItems |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)

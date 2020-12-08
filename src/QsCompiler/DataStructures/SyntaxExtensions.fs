@@ -89,9 +89,7 @@ type ResolvedType with
         | QsTypeKind.Operation ((it, ot), fs) ->
             ((it.WithoutRangeInfo, ot.WithoutRangeInfo), fs) |> QsTypeKind.Operation
         | QsTypeKind.TupleType ts ->
-            (ts |> Seq.map (fun t -> t.WithoutRangeInfo))
-                .ToImmutableArray()
-            |> QsTypeKind.TupleType
+            (ts |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray() |> QsTypeKind.TupleType
         | QsTypeKind.UserDefinedType udt -> { udt with Range = Null } |> QsTypeKind.UserDefinedType
         | QsTypeKind.TypeParameter tp -> { tp with Range = Null } |> QsTypeKind.TypeParameter
         | res -> res

@@ -138,9 +138,7 @@ type ClassicalControlTests() =
             (false, "", "", "", "")
 
     let IsTypeArgsMatch input targs =
-        Regex
-            .Match(input, sprintf @"^%s$" <| Regex.Escape targs)
-            .Success
+        Regex.Match(input, sprintf @"^%s$" <| Regex.Escape targs).Success
 
     let CheckIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
         let lines = GetLinesFromSpecialization specialization
@@ -567,12 +565,7 @@ type ClassicalControlTests() =
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
-
-        AssertTypeArgsMatch originalTypeParams
-        <| typeArgs
-            .Replace("'", "")
-            .Replace(" ", "")
-            .Split(",")
+        AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
 
     [<Fact>]
     [<Trait("Category", "Functor Support")>]

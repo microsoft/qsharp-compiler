@@ -99,11 +99,7 @@ type CallableSignature with
     static member internal Invalid =
         let invalidType = (InvalidType, Null) |> QsType.New
         let invalidSymbol = (InvalidSymbol, Null) |> QsSymbol.New
-
-        let invalidArg =
-            QsTuple
-                ([ QsTupleItem(invalidSymbol, invalidType) ]
-                    .ToImmutableArray())
+        let invalidArg = QsTuple([ QsTupleItem(invalidSymbol, invalidType) ].ToImmutableArray())
 
         { TypeParameters = ImmutableArray.Empty
           Argument = invalidArg

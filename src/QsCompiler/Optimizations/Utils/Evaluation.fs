@@ -170,9 +170,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
         if callable.Specializations.Length <> 1
         then ArgumentException "Functions must have exactly one specialization" |> raise
 
-        let impl =
-            (Seq.exactlyOne callable.Specializations)
-                .Implementation
+        let impl = (Seq.exactlyOne callable.Specializations).Implementation
 
         match impl with
         | Provided (specArgs, scope) ->
@@ -304,8 +302,7 @@ and private ExpressionKindEvaluator(parent,
                    "Type constructors should have exactly one specialization")
 
               QsCompilerError.Verify
-                  ((callables.[qualName]).Specializations.[0]
-                      .Implementation = Intrinsic,
+                  ((callables.[qualName]).Specializations.[0].Implementation = Intrinsic,
                    "Type constructors should be implicit")
 
               arg.Expression

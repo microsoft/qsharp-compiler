@@ -61,9 +61,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnIdentifier(sym, tArgs) =
         let tArgs =
-            tArgs
-            |> QsNullable<_>
-                .Map(fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
+            tArgs |> QsNullable<_>.Map(fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
 
         Identifier |> Node.BuildOr InvalidExpr (sym, tArgs)
 

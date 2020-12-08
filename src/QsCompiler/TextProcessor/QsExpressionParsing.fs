@@ -305,10 +305,7 @@ let internal numericLiteral =
             // now match from left
             paddedStr
             |> Seq.chunkBySize 4
-            |> Seq.map (fun x ->
-                System
-                    .Convert
-                    .ToInt32(System.String x, baseint).ToString "X")
+            |> Seq.map (fun x -> System.Convert.ToInt32(System.String x, baseint).ToString "X")
             |> System.String.Concat
 
         try

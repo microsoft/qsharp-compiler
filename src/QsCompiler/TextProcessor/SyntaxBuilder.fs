@@ -533,9 +533,7 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
         |>> fun diagnostics ->
                 { Kind = kind
                   Range = range
-                  Diagnostics =
-                      (filterAndAdapt diagnostics range.End)
-                          .ToImmutableArray()
+                  Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
                   Text = text }
 
     let buildDiagnostic (errPos, (text, range: Range)) =

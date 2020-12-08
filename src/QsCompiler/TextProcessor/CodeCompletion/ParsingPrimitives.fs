@@ -136,17 +136,11 @@ let manyR p shouldBacktrack stream =
         Reply []
     else
         let after = (getCharStreamState stream).Result
-
-        let consumedEot =
-            (previousCharSatisfies ((<>) '\u0004') stream)
-                .Status = Ok
-
+        let consumedEot = (previousCharSatisfies ((<>) '\u0004') stream).Status = Ok
         stream.BacktrackTo(fst last.Result)
 
-        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream)
-            .Status = Ok
-           || consumedEot then
-            stream.BacktrackTo after |> ignore
+        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot
+        then stream.BacktrackTo after |> ignore
 
         Reply(snd last.Result)
 

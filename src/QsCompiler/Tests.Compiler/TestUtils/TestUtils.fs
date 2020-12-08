@@ -25,7 +25,6 @@ let VerifyMatch expected (m: Match) =
 
 let VerifyMatches (expected: _ list) (m: MatchCollection) =
     Assert.Equal(expected.Length, m.Count)
-
     for i = 0 to m.Count - 1 do
         Assert.Equal(expected.[i], m.[i].Value)
 

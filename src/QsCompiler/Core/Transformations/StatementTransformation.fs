@@ -124,9 +124,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             |> ImmutableArray.CreateRange
 
         let defaultCase =
-            stm.Default
-            |> QsNullable<_>
-                .Map(fun b -> this.OnPositionedBlock(Null, b) |> snd)
+            stm.Default |> QsNullable<_>.Map(fun b -> this.OnPositionedBlock(Null, b) |> snd)
 
         QsConditionalStatement << QsConditionalStatement.New
         |> Node.BuildOr EmptyStatement (cases, defaultCase)

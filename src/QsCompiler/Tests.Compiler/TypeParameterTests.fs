@@ -45,10 +45,7 @@ type TypeParameterTests() =
         res.ToImmutableDictionary((fun (tp, _) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
     let CheckResolutionMatch (res1: ImmutableDictionary<_, _>) (res2: ImmutableDictionary<_, _>) =
-        let keysMismatch =
-            ImmutableHashSet
-                .CreateRange(res1.Keys).SymmetricExcept res2.Keys
-
+        let keysMismatch = ImmutableHashSet.CreateRange(res1.Keys).SymmetricExcept res2.Keys
         keysMismatch.Count = 0 && res1 |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value) |> not
 
     let AssertExpectedResolution expected given =

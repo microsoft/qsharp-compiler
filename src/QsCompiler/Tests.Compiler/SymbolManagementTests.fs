@@ -38,9 +38,7 @@ let toUdt (qualName: string * string) =
           Range = randomRange () |> Value }
 
 let toTuple (types: _ seq) =
-    TupleType
-        ((types |> Seq.map ResolvedType.New)
-            .ToImmutableArray())
+    TupleType((types |> Seq.map ResolvedType.New).ToImmutableArray())
 
 let thash (rt) =
     NamespaceManager.TypeHash(ResolvedType.New(rt))

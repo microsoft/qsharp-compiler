@@ -275,6 +275,7 @@ type private PartialNamespace private (name: string,
                 { signature with
                       Resolved = resolvedSignature
                       ResolvedAttributes = resAttributes }
+
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
@@ -291,7 +292,6 @@ type private PartialNamespace private (name: string,
                 let kind, spec = specs.[index]
                 let resAttr, attErrs = getResAttributes this.Source spec
                 let res, errs = computeResolution this.Source (kind, spec)
-
                 specs.[index] <- (kind,
                                   { spec with
                                         Resolved = res

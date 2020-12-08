@@ -26,11 +26,7 @@ type ConstantPropagation private (_private_: string) =
         then
             this.Namespaces <- new ConstantPropagationNamespaces(this)
             this.StatementKinds <- new ConstantPropagationStatementKinds(this, callables)
-
-            this.Expressions <-
-                (new ExpressionEvaluator(callables, this.Constants, 1000))
-                    .Expressions
-
+            this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions
             this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for ConstantPropagation

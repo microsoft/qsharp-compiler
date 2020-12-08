@@ -55,10 +55,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             lookup |> Seq.map (fun group -> group.Key)
 
         let namespacesInRefs =
-            (getKeys callables)
-                .Concat(getKeys specializations)
-                .Concat(getKeys types)
-            |> Seq.distinct
+            (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
 
         for nsName in namespacesInRefs do
             namespaces.Add
@@ -761,9 +758,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes)
                     msgs |> Array.map (fun msg -> source, msg)))
 
-        resolutionDiagnostics
-            .Concat(attributeDiagnostics)
-            .ToArray()
+        resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
 
     /// Resolves and caches all attached attributes and specialization generation directives for all callables
     /// declared in all source files of each namespace, inserting inferred specializations if necessary and removing invalid specializations.
@@ -959,9 +954,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 Namespaces.TryGetValue parent.Namespace
                 |> function
                 | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
-                | true, ns ->
-                    ns.SpecializationsInReferencedAssemblies.[parent.Name]
-                        .ToImmutableArray()
+                | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
 
             if imported.Length <> 0 then
                 imported
@@ -1302,8 +1295,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 else
                     Inaccessible
             | None ->
-                match ns
-                    .CallablesDefinedInAllSources().TryGetValue callableName.Name with
+                match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
                 | true, (source, (kind, declaration)) ->
                     if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access) then
                         Found
@@ -1410,8 +1402,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
                 else Inaccessible
             | None ->
-                match ns
-                    .TypesDefinedInAllSources().TryGetValue typeName.Name with
+                match ns.TypesDefinedInAllSources().TryGetValue typeName.Name with
                 | true, (source, declaration) ->
                     if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access)
                     then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
@@ -1571,8 +1562,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 hash (id.Namespace, id.Name, NamespaceManager.ExpressionHash arg)
 
             attributes
-            |> QsNullable<_>
-                .Choose(fun att -> att.TypeId |> QsNullable<_>.Map(getHash att.Argument))
+            |> QsNullable<_>.Choose(fun att -> att.TypeId |> QsNullable<_>.Map(getHash att.Argument))
             |> Seq.toList
 
         let callableHash (kind, (signature, _), specs, attributes: QsDeclarationAttribute seq) =
@@ -1592,8 +1582,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 let genHash (gen: ResolvedGenerator) =
                     let tArgs =
                         gen.TypeArguments
-                        |> QsNullable<_>
-                            .Map(fun tArgs -> tArgs |> Seq.map NamespaceManager.TypeHash |> Seq.toList)
+                        |> QsNullable<_>.Map(fun tArgs -> tArgs |> Seq.map NamespaceManager.TypeHash |> Seq.toList)
 
                     hash (gen.Directive, hash tArgs)
 

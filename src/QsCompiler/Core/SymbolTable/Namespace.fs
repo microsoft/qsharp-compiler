@@ -242,9 +242,7 @@ type Namespace private (name,
             let getInfos (partial: PartialNamespace) =
                 partial.DefinedTypes |> Seq.map (fun (tName, decl) -> tName, (partial.Source, decl))
 
-            TypesDefinedInAllSourcesCache <-
-                (Parts.Values.SelectMany getInfos)
-                    .ToImmutableDictionary(fst, snd)
+            TypesDefinedInAllSourcesCache <- (Parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
 
         TypesDefinedInAllSourcesCache
 
@@ -284,9 +282,7 @@ type Namespace private (name,
             let getInfos (partial: PartialNamespace) =
                 partial.DefinedCallables |> Seq.map (fun (cName, decl) -> cName, (partial.Source, decl))
 
-            CallablesDefinedInAllSourcesCache <-
-                (Parts.Values.SelectMany getInfos)
-                    .ToImmutableDictionary(fst, snd)
+            CallablesDefinedInAllSourcesCache <- (Parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
 
         CallablesDefinedInAllSourcesCache
 
@@ -301,11 +297,9 @@ type Namespace private (name,
         let getSpecializationInPartial (partial: PartialNamespace) =
             partial.GetSpecializations cName |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
 
-        if this.TryFindCallable cName |> ResolutionResult.Exists then
-            (Parts.Values.SelectMany getSpecializationInPartial)
-                .ToImmutableArray()
-        else
-            SymbolNotFoundException "A callable with the given name was not found in a source file." |> raise
+        if this.TryFindCallable cName |> ResolutionResult.Exists
+        then (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
+        else SymbolNotFoundException "A callable with the given name was not found in a source file." |> raise
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and

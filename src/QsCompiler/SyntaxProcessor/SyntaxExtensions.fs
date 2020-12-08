@@ -245,8 +245,7 @@ let public CallExpressions fragmentKind =
         | _ -> Enumerable.Empty()
 
     let callExpressions (ex: QsExpression) =
-        (ex.ExtractAll isCallExpression)
-            .ToImmutableArray()
+        (ex.ExtractAll isCallExpression).ToImmutableArray()
 
     fragmentKind
     |> function
@@ -263,8 +262,7 @@ let public CallExpressions fragmentKind =
     | QsFragmentKind.UntilSuccess (ex, _) -> callExpressions ex
     | QsFragmentKind.UsingBlockIntro (_, init)
     | QsFragmentKind.BorrowingBlockIntro (_, init) ->
-        (ExpressionsInInitializer init |> Seq.collect callExpressions)
-            .ToImmutableArray()
+        (ExpressionsInInitializer init |> Seq.collect callExpressions).ToImmutableArray()
     | QsFragmentKind.DeclarationAttribute (sym, ex) -> AttributeAsCallExpr(sym, ex) |> ImmutableArray.Create
     | _ -> ImmutableArray.Empty
 
@@ -596,24 +594,15 @@ let public VariableDeclaration (symbolTable: NamespaceManager)
                                (qsSym: QsSymbol)
                                =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
-    | Some decl, Some _ ->
-        decl.Location
-        |> QsNullable<_>
-            .Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
-    | _ ->
-        LocalVariable locals qsSym
-        |> QsNullable<_>
-            .Map(fun (_, pos, range) -> source, pos, range)
+    | Some decl, Some _ -> decl.Location |> QsNullable<_>.Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+    | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map(fun (_, pos, range) -> source, pos, range)
 
 [<Extension>]
 let public TypeDeclaration (symbolTable: NamespaceManager) (currentNS, source) (qsType: QsType) =
     match qsType.Type with
     | QsTypeKind.UserDefinedType udt ->
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
-        | Some decl, _ ->
-            decl.Location
-            |> QsNullable<_>
-                .Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+        | Some decl, _ -> decl.Location |> QsNullable<_>.Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
         | _ -> Null
     | _ -> Null
 
@@ -626,18 +615,9 @@ let public SymbolDeclaration (symbolTable: NamespaceManager)
     match qsSym.Symbol with // needs to be first
     | QsSymbolKind.Symbol _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be first
-        | Some decl, _ ->
-            decl.Location
-            |> QsNullable<_>
-                .Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+        | Some decl, _ -> decl.Location |> QsNullable<_>.Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
         | None, _ ->
             match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
-            | Some decl, _ ->
-                decl.Location
-                |> QsNullable<_>
-                    .Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
-            | _ ->
-                LocalVariable locals qsSym
-                |> QsNullable<_>
-                    .Map(fun (_, pos, range) -> source, pos, range)
+            | Some decl, _ -> decl.Location |> QsNullable<_>.Map(fun loc -> decl.SourceFile, loc.Offset, loc.Range)
+            | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map(fun (_, pos, range) -> source, pos, range)
     | _ -> Null

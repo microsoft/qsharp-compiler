@@ -57,10 +57,7 @@ type SpecializationBundleProperties =
     /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
     static member public BundleId(typeArgs: QsNullable<ImmutableArray<ResolvedType>>) =
         typeArgs
-        |> QsNullable<_>
-            .Map(fun args ->
-                (args |> Seq.map (fun t -> t.WithoutRangeInfo))
-                    .ToImmutableArray())
+        |> QsNullable<_>.Map(fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
 
     /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
     /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
@@ -640,11 +637,7 @@ module SymbolResolution =
                 then ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
 
                 let innerExs, errs = aggregateInner vs
-
-                let types =
-                    (innerExs |> Seq.map (fun ex -> ex.ResolvedType))
-                        .ToImmutableArray()
-
+                let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
                 (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range, errs
             | ValueArray vs ->
                 let innerExs, errs = aggregateInner vs
@@ -1086,12 +1079,7 @@ module SymbolResolution =
         let props = ImmutableDictionary.CreateBuilder()
 
         for group in definedSpecs do
-            props.Add
-                (group.Key,
-                 bundleProps
-                     (group,
-                      (group.First() |> snd |> snd)
-                          .Defined.TypeArguments))
+            props.Add(group.Key, bundleProps (group, (group.First() |> snd |> snd).Defined.TypeArguments))
 
         props.ToImmutableDictionary(), errs
 

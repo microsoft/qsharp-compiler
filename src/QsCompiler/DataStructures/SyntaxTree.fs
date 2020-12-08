@@ -264,10 +264,7 @@ type ResolvedCharacteristics =
 
         ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this
         |> function
-        | Some props ->
-            (props |> Seq.choose getFunctor)
-                .ToImmutableHashSet()
-            |> Value
+        | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
         | None -> Null
 
 
@@ -456,10 +453,7 @@ type ResolvedInitializer =
         let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
         let buildTupleType is =
-            TupleType
-                ((is |> Seq.map (fun x -> x._ResolvedType))
-                    .ToImmutableArray())
-            |> ResolvedType.New
+            TupleType((is |> Seq.map (fun x -> x._ResolvedType)).ToImmutableArray()) |> ResolvedType.New
 
         match kind with
         | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->

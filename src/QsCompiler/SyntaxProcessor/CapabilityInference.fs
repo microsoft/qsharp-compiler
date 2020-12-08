@@ -32,9 +32,7 @@ type private Pattern =
     | ResultEqualityNotInCondition of Range QsNullable
 
 /// Returns the offset of a nullable location.
-let private locationOffset =
-    QsNullable<_>
-        .Map(fun (location: QsLocation) -> location.Offset)
+let private locationOffset = QsNullable<_>.Map(fun (location: QsLocation) -> location.Offset)
 
 /// Tracks the most recently seen statement location.
 type private StatementLocationTracker(parent, options) =
@@ -141,8 +139,7 @@ let private nonLocalUpdates scope =
 /// equivalent to "elif (true) { ... }".
 let private conditionBlocks condBlocks elseBlock =
     elseBlock
-    |> QsNullable<_>
-        .Map(fun block -> SyntaxGenerator.BoolLiteral true, block)
+    |> QsNullable<_>.Map(fun block -> SyntaxGenerator.BoolLiteral true, block)
     |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
     |> Seq.append condBlocks
 
@@ -160,9 +157,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         |> Seq.collect returnStatements
         |> Seq.map (fun statement ->
             let range =
-                statement.Location
-                |> QsNullable<_>
-                    .Map(fun location -> location.Offset + location.Range)
+                statement.Location |> QsNullable<_>.Map(fun location -> location.Offset + location.Range)
 
             ReturnInResultConditionedBlock range)
 

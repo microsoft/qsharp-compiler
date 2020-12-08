@@ -184,10 +184,7 @@ module SerializationTests =
           SourceFile = "%%%"
           Position = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
           SymbolRange = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
-          ArgumentTuple =
-              [ varDecl "p" udtPair (25, 26) |> QsTupleItem ]
-                  .ToImmutableArray()
-              |> QsTuple
+          ArgumentTuple = [ varDecl "p" udtPair (25, 26) |> QsTupleItem ].ToImmutableArray() |> QsTuple
           Signature = simpleSignature udtPair UnitType []
           Documentation = ImmutableArray.Empty }
         |> testOne
