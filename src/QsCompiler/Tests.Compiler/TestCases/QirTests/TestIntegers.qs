@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Testing.QIR
         let c = a > b ? a | b;
         let d = c * a - b / 7;
         let e = d >>> 3;
-        let f = d ^ 5;
+        let f = d ^ b;
         let g = (e &&& f) ||| 0xffff;
         return ~~~g;
     }
