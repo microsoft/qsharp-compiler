@@ -182,13 +182,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     ({ Namespace = ns; Name = symName }, symRange.ValueOr Range.Zero)
                     deprecation
 
-            Some
-                ({ Namespace = ns
-                   Name = symName
-                   Range = symRange },
-                 declSource,
-                 access),
-            Array.append errs warnings
+            Some({ Namespace = ns; Name = symName; Range = symRange }, declSource, access), Array.append errs warnings
 
         let error code args =
             None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr Range.Zero) |]
@@ -247,11 +241,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         let processTP (symName, symRange) =
             if tpNames |> Seq.contains symName then
-                TypeParameter
-                    { Origin = parent
-                      TypeName = symName
-                      Range = symRange },
-                [||]
+                TypeParameter { Origin = parent; TypeName = symName; Range = symRange }, [||]
             else
                 InvalidType,
                 [| symRange.ValueOr Range.Zero
@@ -776,10 +766,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 |> Seq.sortBy (fun kv -> kv.Key)
                 |> Seq.collect (fun kvPair ->
                     let source, (kind, signature) = kvPair.Value
-
-                    let parent =
-                        { Namespace = ns.Name
-                          Name = kvPair.Key }
+                    let parent = { Namespace = ns.Name; Name = kvPair.Key }
 
                     // we first need to resolve the type arguments to determine the right sets of specializations to consider
                     let typeArgsResolution specSource =
@@ -899,8 +886,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 .Concat(typeDiagnostics)
                 .ToLookup(fst,
                           (fun (_, (position, diagnostic)) ->
-                              { diagnostic with
-                                    QsCompilerDiagnostic.Range = position + diagnostic.Range }))
+                              { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range }))
         finally
             syncRoot.ExitWriteLock()
 
@@ -1286,25 +1272,15 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
 
-                if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access) then
-                    Found
-                        (buildHeader
-                            { callableName with
-                                  Namespace = ns.Name }
-                             (source, kind, declaration))
-                else
-                    Inaccessible
+                if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access)
+                then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
+                else Inaccessible
             | None ->
                 match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
                 | true, (source, (kind, declaration)) ->
-                    if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access) then
-                        Found
-                            (buildHeader
-                                { callableName with
-                                      Namespace = ns.Name }
-                                 (source, kind, declaration))
-                    else
-                        Inaccessible
+                    if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access)
+                    then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
+                    else Inaccessible
                 | false, _ -> NotFound
 
         syncRoot.EnterReadLock()

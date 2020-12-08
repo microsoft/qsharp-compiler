@@ -197,8 +197,7 @@ module SyntaxGenerator =
             let resolutions =
                 (seq { yield (typeParameter.Origin, typeParameter.TypeName, tpRes) }).ToImmutableArray()
 
-            { CallNonGeneric(length, ex) with
-                  TypeArguments = resolutions }
+            { CallNonGeneric(length, ex) with TypeArguments = resolutions }
 
         match ex.ResolvedType.Resolution with
         | ArrayType b -> callToLength b
@@ -276,8 +275,7 @@ module SyntaxGenerator =
 
     /// Given a resolved signature, returns the corresponding signature for the controlled version.
     let BuildControlled (this: ResolvedSignature) =
-        { this with
-              ArgumentType = this.ArgumentType |> AddControlQubits }
+        { this with ArgumentType = this.ArgumentType |> AddControlQubits }
 
     /// Given an argument tuple of a callable, the name and the range of the control qubits symbol, as well as the position offset for that range,
     /// builds and returns the argument tuple for the controlled specialization.

@@ -87,8 +87,7 @@ type BuiltIn =
     /// the RequiresCapability attribute.
     static member TryGetRequiredCapability attributes =
         let isCapability udt =
-            BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace
-                                                    Name = udt.Name }
+            BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
 
         let extractString =
             function
@@ -110,61 +109,43 @@ type BuiltIn =
     // dependencies in Microsoft.Quantum.Core
 
     static member Length =
-        { FullName =
-              { Name = "Length"
-                Namespace = BuiltIn.CoreNamespace }
+        { FullName = { Name = "Length"; Namespace = BuiltIn.CoreNamespace }
           Kind = Function(TypeParameters = ImmutableArray.Create "T") }
 
     static member RangeReverse =
-        { FullName =
-              { Name = "RangeReverse"
-                Namespace = BuiltIn.CoreNamespace }
+        { FullName = { Name = "RangeReverse"; Namespace = BuiltIn.CoreNamespace }
           Kind = Function(TypeParameters = ImmutableArray.Empty) }
 
     static member Attribute =
-        { FullName =
-              { Name = "Attribute"
-                Namespace = BuiltIn.CoreNamespace }
+        { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }
           Kind = Attribute }
 
     static member EntryPoint =
-        { FullName =
-              { Name = "EntryPoint"
-                Namespace = BuiltIn.CoreNamespace }
+        { FullName = { Name = "EntryPoint"; Namespace = BuiltIn.CoreNamespace }
           Kind = Attribute }
 
     static member Deprecated =
-        { FullName =
-              { Name = "Deprecated"
-                Namespace = BuiltIn.CoreNamespace }
+        { FullName = { Name = "Deprecated"; Namespace = BuiltIn.CoreNamespace }
           Kind = Attribute }
 
     static member RequiresCapability =
-        { FullName =
-              { Name = "RequiresCapability"
-                Namespace = BuiltIn.TargetingNamespace }
+        { FullName = { Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace }
           Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Diagnostics
 
     static member Test =
-        { FullName =
-              { Name = "Test"
-                Namespace = BuiltIn.DiagnosticsNamespace }
+        { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }
           Kind = Attribute }
 
     static member EnableTestingViaName =
-        { FullName =
-              { Name = "EnableTestingViaName"
-                Namespace = BuiltIn.DiagnosticsNamespace }
+        { FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }
           Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Canon
 
     static member NoOp =
-        { FullName =
-              { Name = "NoOp"
-                Namespace = BuiltIn.CanonNamespace }
+        { FullName = { Name = "NoOp"; Namespace = BuiltIn.CanonNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
@@ -199,92 +180,66 @@ type BuiltIn =
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero =
-        { FullName =
-              { Name = "ApplyIfZero"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfZero"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
     static member ApplyIfZeroA =
-        { FullName =
-              { Name = "ApplyIfZeroA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfZeroA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
     static member ApplyIfZeroC =
-        { FullName =
-              { Name = "ApplyIfZeroC"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfZeroC"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
     static member ApplyIfZeroCA =
-        { FullName =
-              { Name = "ApplyIfZeroCA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfZeroCA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfOne =
-        { FullName =
-              { Name = "ApplyIfOne"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfOne"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
     static member ApplyIfOneA =
-        { FullName =
-              { Name = "ApplyIfOneA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfOneA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
     static member ApplyIfOneC =
-        { FullName =
-              { Name = "ApplyIfOneC"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfOneC"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
     static member ApplyIfOneCA =
-        { FullName =
-              { Name = "ApplyIfOneCA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfOneCA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false) }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit), 'T), (('U => Unit), 'U)) => Unit)
     static member ApplyIfElseR =
-        { FullName =
-              { Name = "ApplyIfElseR"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfElseR"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false) }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj), 'T), (('U => Unit is Adj), 'U)) => Unit is Adj)
     static member ApplyIfElseRA =
-        { FullName =
-              { Name = "ApplyIfElseRA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfElseRA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false) }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Ctl), 'T), (('U => Unit is Ctl), 'U)) => Unit is Ctl)
     static member ApplyIfElseRC =
-        { FullName =
-              { Name = "ApplyIfElseRC"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfElseRC"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false) }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj + Ctl), 'T), (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
     static member ApplyIfElseRCA =
-        { FullName =
-              { Name = "ApplyIfElseRCA"
-                Namespace = BuiltIn.ClassicallyControlledNamespace }
+        { FullName = { Name = "ApplyIfElseRCA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
           Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false) }
 
     // dependencies in other namespaces (e.g. things used for code actions)
 
     static member IndexRange =
-        { FullName =
-              { Name = "IndexRange"
-                Namespace = BuiltIn.StandardArrayNamespace }
+        { FullName = { Name = "IndexRange"; Namespace = BuiltIn.StandardArrayNamespace }
           Kind = Function(TypeParameters = ImmutableArray.Create "TElement") }

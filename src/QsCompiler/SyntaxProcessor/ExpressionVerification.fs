@@ -1126,8 +1126,7 @@ type QsExpression with
                         addError
                         (resRhs.ResolvedType, None, rhs.RangeOrDefault)
 
-                    { resRhs with
-                          ResolvedType = expectedRhs }
+                    { resRhs with ResolvedType = expectedRhs }
                 | Some resAccEx -> // indicates either a index or index range to update
                     let expectedRhs =
                         VerifyArrayItem

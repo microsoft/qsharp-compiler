@@ -166,10 +166,7 @@ let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
 /// The returned TypedExpression has no type param / inferred info / range information,
 /// and it should not be used for any code step that requires this information.
 let internal wrapExpr (bt: TypeKind) (expr: ExprKind): TypedExpression =
-    let ii =
-        { IsMutable = false
-          HasLocalQuantumDependency = false }
-
+    let ii = { IsMutable = false; HasLocalQuantumDependency = false }
     TypedExpression.New(expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
 /// Wraps a QsStatementKind in a basic QsStatement

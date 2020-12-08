@@ -35,10 +35,7 @@ type GateCall =
       arg: Expression }
 
 /// A pure quantum circuit with arbitrarily many (non-qubit) parameters
-type Circuit =
-    { numQubits: int
-      numUnknownValues: int
-      gates: ImmutableArray<GateCall> }
+type Circuit = { numQubits: int; numUnknownValues: int; gates: ImmutableArray<GateCall> }
 
 /// Metadata used for constructing circuits.
 /// Currently just stores the variable names corresponding to each qubit reference.
@@ -88,10 +85,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
         | TypeKind.ArrayType t -> mightContainQubit t.Resolution
         | TypeKind.TupleType ts -> ts |> Seq.exists (fun t -> mightContainQubit t.Resolution)
         | TypeKind.UserDefinedType u ->
-            let qualName =
-                { Namespace = u.Namespace
-                  Name = u.Name }
-
+            let qualName = { Namespace = u.Namespace; Name = u.Name }
             mightContainQubit (cc.callables.[qualName]).Signature.ArgumentType.Resolution
         | _ -> false
 
@@ -115,11 +109,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
     | _ when mightContainQubit expr.ResolvedType.Resolution -> None
     | _ ->
         let newUnknownValues, i = ensureMatchingIndex cc.unknownValues
-
-        Some
-            ({ cc with
-                   unknownValues = newUnknownValues },
-             UnknownValue i)
+        Some({ cc with unknownValues = newUnknownValues }, UnknownValue i)
 
 /// Converts a TypedExpression to a GateCall
 let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitContext * GateCall) option =
@@ -128,11 +118,7 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
             match method.Expression with
             | AdjointApplication x ->
                 let! cc, result = helper cc x arg
-
-                return
-                    cc,
-                    { result with
-                          adjoint = not result.adjoint }
+                return cc, { result with adjoint = not result.adjoint }
             | ControlledApplication x ->
                 match arg.Expression with
                 | ExprKind.ValueTuple vt ->
@@ -145,11 +131,7 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
                         | _ -> None
 
                     let! cc, result = helper cc x vt.[1]
-
-                    return
-                        cc,
-                        { result with
-                              controls = controlQubits.AddRange result.controls }
+                    return cc, { result with controls = controlQubits.AddRange result.controls }
                 | _ -> return! None
             | Identifier (GlobalCallable name, _) ->
                 let! cc, argVal = toExpression (cc, arg)
@@ -264,8 +246,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
     let mutable i = 0
 
     while i < circuit.gates.Length - 1 do
-        if circuit.gates.[i] = { circuit.gates.[i + 1] with
-                                     adjoint = not circuit.gates.[i + 1].adjoint } then
+        if circuit.gates.[i] = { circuit.gates.[i + 1] with adjoint = not circuit.gates.[i + 1].adjoint } then
             circuit <-
                 { circuit with
                       gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }

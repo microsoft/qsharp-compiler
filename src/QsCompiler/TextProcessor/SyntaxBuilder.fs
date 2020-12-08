@@ -512,9 +512,7 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
         Range.Create (min endPos range.Start) (min endPos range.End)
 
     filteredExcessCont @ remainingDiagnostics
-    |> List.map (fun diagnostic ->
-        { diagnostic with
-              Range = rangeWithinFragment diagnostic.Range })
+    |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })
 
 /// Constructs a QsCodeFragment.
 ///

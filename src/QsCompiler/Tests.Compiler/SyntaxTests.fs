@@ -361,14 +361,7 @@ let ``Simple comparison expression tests`` () =
 [<Fact>]
 let ``Identifier tests`` () =
     [ ("x", true, toIdentifier "x", [])
-      ("a.b.c",
-       true,
-       toExpr
-           (Identifier
-               ({ Symbol = QualifiedSymbol("a.b", "c")
-                  Range = Null },
-                Null)),
-       []) ]
+      ("a.b.c", true, toExpr (Identifier({ Symbol = QualifiedSymbol("a.b", "c"); Range = Null }, Null)), []) ]
     |> List.iter testExpr
 
 

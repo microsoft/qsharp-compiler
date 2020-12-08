@@ -45,14 +45,8 @@ type RangeConverter() =
 
     override this.WriteJson(writer: JsonWriter, range: Range, serializer: JsonSerializer) =
         // For backwards compatibility, convert the zero-based positions to one-based serialized positions.
-        let start =
-            { Line = range.Start.Line + 1
-              Column = range.Start.Column + 1 }
-
-        let end' =
-            { Line = range.End.Line + 1
-              Column = range.End.Column + 1 }
-
+        let start = { Line = range.Start.Line + 1; Column = range.Start.Column + 1 }
+        let end' = { Line = range.End.Line + 1; Column = range.End.Column + 1 }
         serializer.Serialize(writer, (start, end'))
 
 

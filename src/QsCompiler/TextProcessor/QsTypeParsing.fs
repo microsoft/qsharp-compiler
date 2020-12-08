@@ -27,12 +27,8 @@ let private characteristicsExpression = new OperatorPrecedenceParser<Characteris
 let private buildCombinedExpression kind (lRange, rRange) =
     // *needs* to be invalid if the combined range is Null!
     match QsNullable.Map2 Range.Span lRange rRange with
-    | Value range ->
-        { Characteristics = kind
-          Range = Value range }
-    | Null ->
-        { Characteristics = InvalidSetExpr
-          Range = Null }
+    | Value range -> { Characteristics = kind; Range = Value range }
+    | Null -> { Characteristics = InvalidSetExpr; Range = Null }
 
 let private applyBinary operator _ (left: Characteristics) (right: Characteristics) =
     buildCombinedExpression (operator (left, right)) (left.Range, right.Range)

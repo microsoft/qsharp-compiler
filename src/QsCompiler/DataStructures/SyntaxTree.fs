@@ -274,17 +274,13 @@ type InferredCallableInformation =
       IsSelfAdjoint: bool
       /// indicates whether the callable is intrinsic, i.e. implemented by the target machine
       IsIntrinsic: bool }
-    static member NoInformation =
-        { IsSelfAdjoint = false
-          IsIntrinsic = false }
+    static member NoInformation = { IsSelfAdjoint = false; IsIntrinsic = false }
 
     /// Determines the information that was inferred for all given items.
     static member Common(infos: InferredCallableInformation seq) =
         let allAreIntrinsic = infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
         let allAreSelfAdjoint = infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
-
-        { IsIntrinsic = allAreIntrinsic
-          IsSelfAdjoint = allAreSelfAdjoint }
+        { IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint }
 
 
 /// Contains information associated with a fully resolved operation type.
@@ -459,18 +455,12 @@ type ResolvedInitializer =
         | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->
             ArgumentException "tuple initializer requires at least one item" |> raise
         | QsInitializerKind.QubitTupleAllocation is when is.Length = 1 -> is.[0]
-        | QsInitializerKind.QubitTupleAllocation is ->
-            { _InitializerKind = kind
-              _ResolvedType = buildTupleType is }
-        | QsInitializerKind.QubitRegisterAllocation _ ->
-            { _InitializerKind = kind
-              _ResolvedType = qArrayT }
+        | QsInitializerKind.QubitTupleAllocation is -> { _InitializerKind = kind; _ResolvedType = buildTupleType is }
+        | QsInitializerKind.QubitRegisterAllocation _ -> { _InitializerKind = kind; _ResolvedType = qArrayT }
         | QsInitializerKind.SingleQubitAllocation ->
-            { _InitializerKind = kind
-              _ResolvedType = Qubit |> ResolvedType.New }
+            { _InitializerKind = kind; _ResolvedType = Qubit |> ResolvedType.New }
         | QsInitializerKind.InvalidInitializer ->
-            { _InitializerKind = kind
-              _ResolvedType = InvalidType |> ResolvedType.New }
+            { _InitializerKind = kind; _ResolvedType = InvalidType |> ResolvedType.New }
 
 
 type LocalVariableDeclaration<'Name> =
@@ -708,18 +698,15 @@ type QsSpecialization =
       /// contains comments in the code associated with this specialization
       Comments: QsComments }
     member this.AddAttribute att =
-        { this with
-              Attributes = this.Attributes.Add att }
+        { this with Attributes = this.Attributes.Add att }
 
     member this.AddAttributes(att: _ seq) =
-        { this with
-              Attributes = this.Attributes.AddRange att }
+        { this with Attributes = this.Attributes.AddRange att }
 
     member this.WithImplementation impl = { this with Implementation = impl }
 
     member this.WithParent(getName: Func<_, _>) =
-        { this with
-              Parent = getName.Invoke(this.Parent) }
+        { this with Parent = getName.Invoke(this.Parent) }
 
     member this.WithSourceFile file = { this with SourceFile = file }
 
@@ -757,20 +744,16 @@ type QsCallable =
       /// contains comments in the code associated with this declarations
       Comments: QsComments }
     member this.AddAttribute att =
-        { this with
-              Attributes = this.Attributes.Add att }
+        { this with Attributes = this.Attributes.Add att }
 
     member this.AddAttributes(att: _ seq) =
-        { this with
-              Attributes = this.Attributes.AddRange att }
+        { this with Attributes = this.Attributes.AddRange att }
 
     member this.WithSpecializations(getSpecs: Func<_, _>) =
-        { this with
-              Specializations = getSpecs.Invoke(this.Specializations) }
+        { this with Specializations = getSpecs.Invoke(this.Specializations) }
 
     member this.WithFullName(getName: Func<_, _>) =
-        { this with
-              FullName = getName.Invoke(this.FullName) }
+        { this with FullName = getName.Invoke(this.FullName) }
 
     member this.WithSourceFile file = { this with SourceFile = file }
 
@@ -810,16 +793,13 @@ type QsCustomType =
       /// contains comments in the code associated with this declarations
       Comments: QsComments }
     member this.AddAttribute att =
-        { this with
-              Attributes = this.Attributes.Add att }
+        { this with Attributes = this.Attributes.Add att }
 
     member this.AddAttributes(att: _ seq) =
-        { this with
-              Attributes = this.Attributes.AddRange att }
+        { this with Attributes = this.Attributes.AddRange att }
 
     member this.WithFullName(getName: Func<_, _>) =
-        { this with
-              FullName = getName.Invoke(this.FullName) }
+        { this with FullName = getName.Invoke(this.FullName) }
 
     member this.WithSourceFile file = { this with SourceFile = file }
 
@@ -853,8 +833,7 @@ type QsNamespace =
       /// The key is the name of the source file the documentation has been specified in.
       Documentation: ILookup<string, ImmutableArray<string>> }
     member this.WithElements(getElements: Func<_, _>) =
-        { this with
-              Elements = getElements.Invoke(this.Elements) }
+        { this with Elements = getElements.Invoke(this.Elements) }
 
 /// Describes a compiled Q# library or executable.
 type QsCompilation =

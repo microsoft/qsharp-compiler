@@ -40,9 +40,7 @@ type LinkingTests(output: ITestOutputHelper) =
         CompilationUnitManager.InitializeFileManager
             (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
-    let defaultOffset =
-        { Offset = Position.Zero
-          Range = Range.Zero }
+    let defaultOffset = { Offset = Position.Zero; Range = Range.Zero }
 
     let qualifiedName ns name = { Namespace = ns; Name = name }
 
@@ -634,6 +632,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let referenceCompilation = this.BuildContent(manager, "", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
         let decorator = new NameDecorator("QsRef")
+
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
@@ -720,9 +719,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
                 if name <> null then
                     Assert.Equal<string>(decorator.Decorate(name, srcIdx), fullName.Name)
-
-                    { Namespace = fullName.Namespace
-                      Name = name }
+                    { Namespace = fullName.Namespace; Name = name }
                 else
                     Assert.False(assertUndecorated, sprintf "name %s is not decorated" (fullName.ToString()))
                     fullName

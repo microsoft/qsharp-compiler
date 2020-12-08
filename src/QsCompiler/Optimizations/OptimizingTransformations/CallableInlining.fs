@@ -28,9 +28,7 @@ type private Functors =
 
     member this.withAdjoint = { this with adjoint = not this.adjoint }
 
-    member this.withControlled =
-        { this with
-              controlled = this.controlled + 1 }
+    member this.withControlled = { this with controlled = this.controlled + 1 }
 
 
 /// Stores all the data needed to inline a callable

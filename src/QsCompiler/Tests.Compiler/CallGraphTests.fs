@@ -51,9 +51,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let MakeNode name specKind (paramRes: _ list) =
-        let qualifiedName =
-            { Namespace = Signatures.PopulateCallGraphNS
-              Name = name }
+        let qualifiedName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
 
         let res =
             paramRes.ToImmutableDictionary
@@ -197,10 +195,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
     let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph: CallGraph) =
         let strToNode name =
-            let nodeName =
-                { Namespace = Signatures.PopulateCallGraphNS
-                  Name = name }
-
+            let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
             CallGraphNode(nodeName)
 
         let dependencies = givenGraph.GetDirectDependencies(strToNode nameFrom)
@@ -212,18 +207,12 @@ type CallGraphTests(output: ITestOutputHelper) =
                 (dependencies.Contains(expectedNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
     let AssertInGraph (givenGraph: CallGraph) name =
-        let nodeName =
-            { Namespace = Signatures.PopulateCallGraphNS
-              Name = name }
-
+        let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
     let AssertNotInGraph (givenGraph: CallGraph) name =
-        let nodeName =
-            { Namespace = Signatures.PopulateCallGraphNS
-              Name = name }
-
+        let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
@@ -442,11 +431,7 @@ type CallGraphTests(output: ITestOutputHelper) =
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Call Self-Adjoint Reference``() =
         let compilation = PopulateCallGraphWithExe 15
-
-        let mutable transformed =
-            { Namespaces = ImmutableArray.Empty
-              EntryPoints = ImmutableArray.Empty }
-
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
         Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
         let graph = transformed |> ConcreteCallGraph
 
@@ -477,11 +462,7 @@ type CallGraphTests(output: ITestOutputHelper) =
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Clears Type Param Resolutions After Statements``() =
         let compilation = PopulateCallGraphWithExe 16
-
-        let mutable transformed =
-            { Namespaces = ImmutableArray.Empty
-              EntryPoints = ImmutableArray.Empty }
-
+        let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
         Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
         let graph = transformed |> ConcreteCallGraph
 

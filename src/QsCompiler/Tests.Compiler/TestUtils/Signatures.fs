@@ -48,9 +48,7 @@ let private _MakeSignatures sigs =
 
 let _MakeTypeParam originNs originName paramName =
     originName + "." + paramName,
-    { Origin =
-          { Namespace = originNs
-            Name = originName }
+    { Origin = { Namespace = originNs; Name = originName }
       TypeName = paramName
       Range = Null }
     |> TypeParameter

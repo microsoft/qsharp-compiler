@@ -12,8 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 type QsExpression with
 
     static member New(value, range) =
-        { Expression = value
-          Range = Value range }
+        { Expression = value; Range = Value range }
 
     static member New(value, range) = { Expression = value; Range = range }
 
@@ -23,14 +22,10 @@ type QsSpecializationGenerator with
     // we do not currently process/parse type specializations
 
     static member New(value, range) =
-        { Generator = value
-          TypeArguments = Null
-          Range = Value range }
+        { Generator = value; TypeArguments = Null; Range = Value range }
 
     static member New(value, range) =
-        { Generator = value
-          TypeArguments = Null
-          Range = range }
+        { Generator = value; TypeArguments = Null; Range = range }
 
 
 type QsSymbol with
@@ -43,12 +38,10 @@ type QsSymbol with
 type Characteristics with
 
     static member New(kind, range) =
-        { Characteristics = kind
-          Range = Value range }
+        { Characteristics = kind; Range = Value range }
 
     static member New(kind, range) =
-        { Characteristics = kind
-          Range = range }
+        { Characteristics = kind; Range = range }
 
 
 type QsType with
@@ -61,8 +54,7 @@ type QsType with
 type QsInitializer with
 
     static member New(value, range) =
-        { Initializer = value
-          Range = Value range }
+        { Initializer = value; Range = Value range }
 
     static member New(value, range) = { Initializer = value; Range = range }
 
@@ -71,21 +63,15 @@ type QsCompilerDiagnostic with
 
     /// Builds a diagnostic error for the given code and range, without any associated arguments.
     static member internal NewError code range =
-        { Diagnostic = Error code
-          Arguments = []
-          Range = range }
+        { Diagnostic = Error code; Arguments = []; Range = range }
 
     /// Builds a diagnostic warning for the given code and range, without any associated arguments.
     static member internal NewWarning code range =
-        { Diagnostic = Warning code
-          Arguments = []
-          Range = range }
+        { Diagnostic = Warning code; Arguments = []; Range = range }
 
     /// Builds a diagnostic information for the given code and range, without any associated arguments.
     static member internal NewInfo code range =
-        { Diagnostic = Information code
-          Arguments = []
-          Range = range }
+        { Diagnostic = Information code; Arguments = []; Range = range }
 
 
 type CallableSignature with
@@ -104,9 +90,7 @@ type CallableSignature with
         { TypeParameters = ImmutableArray.Empty
           Argument = invalidArg
           ReturnType = invalidType
-          Characteristics =
-              { Characteristics = InvalidSetExpr
-                Range = Null } }
+          Characteristics = { Characteristics = InvalidSetExpr; Range = Null } }
 
 
 type QsFragment with

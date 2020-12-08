@@ -16,23 +16,18 @@ type QsQualifiedName with
 
 type UserDefinedType with
     static member New(nsName, tName, range) =
-        { Namespace = nsName
-          Name = tName
-          Range = range }
+        { Namespace = nsName; Name = tName; Range = range }
 
 type QsTypeParameter with
     static member New(origin, tName, range) =
-        { Origin = origin
-          TypeName = tName
-          Range = range }
+        { Origin = origin; TypeName = tName; Range = range }
 
 type QsLocation with
     static member New(pos, range) = { Offset = pos; Range = range }
 
 type InferredExpressionInformation with
     static member New(isMutable, quantumDep) =
-        { IsMutable = isMutable
-          HasLocalQuantumDependency = quantumDep }
+        { IsMutable = isMutable; HasLocalQuantumDependency = quantumDep }
 
 type LocalVariableDeclaration<'Name> with
     static member New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
@@ -61,8 +56,7 @@ type InferredCallableInformation with
 
 type CallableInformation with
     static member New(characteristics, inferredInfo) =
-        { Characteristics = characteristics
-          InferredInformation = inferredInfo }
+        { Characteristics = characteristics; InferredInformation = inferredInfo }
 
 type TypedExpression with
     /// Builds and returns a TypedExpression with the given properties.
@@ -88,25 +82,19 @@ type QsComments with
 
 type QsScope with
     static member New(statements: IEnumerable<_>, parentSymbols) =
-        { Statements = statements.ToImmutableArray()
-          KnownSymbols = parentSymbols }
+        { Statements = statements.ToImmutableArray(); KnownSymbols = parentSymbols }
 
 type QsPositionedBlock with
     static member New comments location block =
-        { Body = block
-          Location = location
-          Comments = comments }
+        { Body = block; Location = location; Comments = comments }
 
 type QsConditionalStatement with
     static member New(blocks: IEnumerable<_>, defaultBlock) =
-        { ConditionalBlocks = blocks.ToImmutableArray()
-          Default = defaultBlock }
+        { ConditionalBlocks = blocks.ToImmutableArray(); Default = defaultBlock }
 
 type QsForStatement with
     static member New(loopVar, iterable, body) =
-        { LoopItem = loopVar
-          IterationValues = iterable
-          Body = body }
+        { LoopItem = loopVar; IterationValues = iterable; Body = body }
 
 type QsWhileStatement with
     static member New(condition, body) = { Condition = condition; Body = body }
@@ -119,8 +107,7 @@ type QsRepeatStatement with
 
 type QsConjugation with
     static member New(outer, inner) =
-        { OuterTransformation = outer
-          InnerTransformation = inner }
+        { OuterTransformation = outer; InnerTransformation = inner }
 
 type QsQubitScope with
     static member New kind ((lhs, rhs), body) =
@@ -206,10 +193,7 @@ type QsCustomType with
 
 type QsDeclarationAttribute with
     static member New(typeId, arg, pos, comments) =
-        { TypeId = typeId
-          Argument = arg
-          Offset = pos
-          Comments = comments }
+        { TypeId = typeId; Argument = arg; Offset = pos; Comments = comments }
 
 type QsNamespaceElement with
     static member NewOperation loc =
@@ -226,5 +210,4 @@ type QsNamespace with
 
 type QsCompilation with
     static member New(namespaces, entryPoints) =
-        { Namespaces = namespaces
-          EntryPoints = entryPoints }
+        { Namespaces = namespaces; EntryPoints = entryPoints }

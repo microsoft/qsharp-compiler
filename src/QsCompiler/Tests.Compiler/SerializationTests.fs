@@ -83,11 +83,7 @@ module SerializationTests =
     let udt name =
         let range = Range.Create (Position.Create 4 9) (Position.Create 4 9) |> Value
         let fullName = qualifiedName "Microsoft.Quantum" name
-
-        { Namespace = fullName.Namespace
-          Name = fullName.Name
-          Range = range }
-        |> UserDefinedType
+        { Namespace = fullName.Namespace; Name = fullName.Name; Range = range } |> UserDefinedType
 
     let udtPair = udt "Pair"
 

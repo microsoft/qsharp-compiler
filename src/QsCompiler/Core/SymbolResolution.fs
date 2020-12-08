@@ -405,9 +405,7 @@ module SymbolResolution =
     /// Correspondingly, the item is immutable, has no quantum dependencies,
     /// the position information is set to null, and the range is set to the given one.
     let private DeclarationArgument range (name, t) =
-        let info =
-            { IsMutable = false
-              HasLocalQuantumDependency = false }
+        let info = { IsMutable = false; HasLocalQuantumDependency = false }
 
         { VariableName = name
           Type = t
@@ -500,9 +498,7 @@ module SymbolResolution =
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists(fun item -> item.VariableName = sym) ->
                 Anonymous t, [| range |> QsCompilerDiagnostic.Error(ErrorCode.NamedItemAlreadyExists, [ sym ]) |]
             | QsSymbolKind.Symbol sym ->
-                let info =
-                    { IsMutable = false
-                      HasLocalQuantumDependency = false }
+                let info = { IsMutable = false; HasLocalQuantumDependency = false }
 
                 itemDeclarations.Add
                     { VariableName = sym
@@ -602,9 +598,7 @@ module SymbolResolution =
             { Expression = exKind
               TypeArguments = ImmutableArray.Empty
               ResolvedType = exType |> ResolvedType.New
-              InferredInformation =
-                  { IsMutable = false
-                    HasLocalQuantumDependency = false }
+              InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }
               Range = range }
 
         let invalidExpr range =
@@ -989,8 +983,7 @@ module SymbolResolution =
             let selfGenerator =
                 specKinds.Values |> Seq.exists (fun gen -> gen.Generator = FunctorGenerationDirective SelfInverse)
 
-            { IsSelfAdjoint = selfGenerator
-              IsIntrinsic = intrinsic }
+            { IsSelfAdjoint = selfGenerator; IsIntrinsic = intrinsic }
 
         let ctlAdjRange = annotRange (adjRange <> Null && ctlRange <> Null)
 
@@ -1031,9 +1024,7 @@ module SymbolResolution =
                                      =
         let declCharacteristics = parentSignature.Defined.Characteristics // if we allow to specialize for certain set parameters, then these need to be resolved in parent
 
-        let declLocation =
-            { Offset = parentSignature.Position
-              Range = parentSignature.Range }
+        let declLocation = { Offset = parentSignature.Position; Range = parentSignature.Range }
 
         let definedSpecs =
             definedSpecs.ToLookup(snd >> snd >> (SpecializationBundleProperties.BundleId: Resolution<_, _> -> _), id)
@@ -1071,9 +1062,7 @@ module SymbolResolution =
 
             errs <- (affErrs |> Array.map (fun msg -> source, (parentSignature.Position, msg))) :: errs
 
-            { BundleInfo =
-                  { Characteristics = characteristics
-                    InferredInformation = metadata }
+            { BundleInfo = { Characteristics = characteristics; InferredInformation = metadata }
               DefinedGenerators = gens }
 
         let props = ImmutableDictionary.CreateBuilder()
@@ -1122,9 +1111,6 @@ module SymbolResolution =
         let resolvedGen =
             spec.Resolved
             |> QsNullable<_>
-                .Map(fun resolution ->
-                    { resolution with
-                          Information = bundle.BundleInfo
-                          Directive = dir })
+                .Map(fun resolution -> { resolution with Information = bundle.BundleInfo; Directive = dir })
 
         resolvedGen, err |> Array.map (fun msg -> spec.Position, msg)

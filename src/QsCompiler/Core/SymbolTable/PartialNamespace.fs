@@ -171,20 +171,14 @@ type private PartialNamespace private (name: string,
             { TypeParameters = ImmutableArray.Empty
               Argument = constructorArgument
               ReturnType = returnType
-              Characteristics =
-                  { Characteristics = EmptySet
-                    Range = Null } }
+              Characteristics = { Characteristics = EmptySet; Range = Null } }
 
         // There are a couple of reasons not just blindly attach all attributes associated with the type to the constructor:
         // For one, we would need to make sure that the range information for duplications is stripped such that e.g. rename commands are not executed multiple times.
         // We would furthermore have to adapt the entry point verification logic below, since type constructors are not valid entry points.
         let deprecationWithoutRedirect =
-            { Id =
-                  { Symbol = Symbol BuiltIn.Deprecated.FullName.Name
-                    Range = Null }
-              Argument =
-                  { Expression = StringLiteral("", ImmutableArray.Empty)
-                    Range = Null }
+            { Id = { Symbol = Symbol BuiltIn.Deprecated.FullName.Name; Range = Null }
+              Argument = { Expression = StringLiteral("", ImmutableArray.Empty); Range = Null }
               Position = location.Offset
               Comments = QsComments.Empty }
 
@@ -258,9 +252,7 @@ type private PartialNamespace private (name: string,
     member internal this.SetTypeResolution(tName, resolvedType, resAttributes) =
         match TypeDeclarations.TryGetValue tName with
         | true, qsType ->
-            TypeDeclarations.[tName] <- { qsType with
-                                              Resolved = resolvedType
-                                              ResolvedAttributes = resAttributes }
+            TypeDeclarations.[tName] <- { qsType with Resolved = resolvedType; ResolvedAttributes = resAttributes }
         | false, _ -> SymbolNotFoundException "A type with the given name was not found." |> raise
 
     /// <summary>
@@ -275,7 +267,6 @@ type private PartialNamespace private (name: string,
                 { signature with
                       Resolved = resolvedSignature
                       ResolvedAttributes = resAttributes }
-
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
@@ -292,10 +283,6 @@ type private PartialNamespace private (name: string,
                 let kind, spec = specs.[index]
                 let resAttr, attErrs = getResAttributes this.Source spec
                 let res, errs = computeResolution this.Source (kind, spec)
-                specs.[index] <- (kind,
-                                  { spec with
-                                        Resolved = res
-                                        ResolvedAttributes = resAttr })
-
+                specs.[index] <- (kind, { spec with Resolved = res; ResolvedAttributes = resAttr })
                 errs |> Array.append attErrs)
         | false, _ -> [||]

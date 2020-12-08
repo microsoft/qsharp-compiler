@@ -133,8 +133,7 @@ type TypeDeclarationHeader =
     member this.FromSource source = { this with SourceFile = source }
 
     member this.AddAttribute att =
-        { this with
-              Attributes = this.Attributes.Add att }
+        { this with Attributes = this.Attributes.Add att }
 
     static member New(customType: QsCustomType) =
         { QualifiedName = customType.FullName
@@ -152,11 +151,9 @@ type TypeDeclarationHeader =
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
-            if attributesAreNullOrDefault then
-                { header with
-                      Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+            if attributesAreNullOrDefault
+            then { header with Attributes = ImmutableArray.Empty }
+            else header // no reason to raise an error
 
         if not (Object.ReferenceEquals(header.TypeItems, null)) then
             success, header
@@ -186,8 +183,7 @@ type CallableDeclarationHeader =
     member this.FromSource source = { this with SourceFile = source }
 
     member this.AddAttribute att =
-        { this with
-              Attributes = this.Attributes.Add att }
+        { this with Attributes = this.Attributes.Add att }
 
     static member New(callable: QsCallable) =
         { Kind = callable.Kind
@@ -202,9 +198,7 @@ type CallableDeclarationHeader =
           Documentation = callable.Documentation }
 
     static member FromJson json =
-        let info =
-            { IsMutable = false
-              HasLocalQuantumDependency = false }
+        let info = { IsMutable = false; HasLocalQuantumDependency = false }
 
         let rec setInferredInfo =
             function // no need to raise an error if anything needs to be set - the info above is always correct
@@ -216,23 +210,17 @@ type CallableDeclarationHeader =
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
-            if attributesAreNullOrDefault then
-                { header with
-                      Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+            if attributesAreNullOrDefault
+            then { header with Attributes = ImmutableArray.Empty }
+            else header // no reason to raise an error
 
-        let header =
-            { header with
-                  ArgumentTuple = header.ArgumentTuple |> setInferredInfo }
+        let header = { header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo }
 
         if Object.ReferenceEquals(header.Signature.Information, null)
            || Object.ReferenceEquals(header.Signature.Information.Characteristics, null) then
             false,
             { header with
-                  Signature =
-                      { header.Signature with
-                            Information = CallableInformation.Invalid } }
+                  Signature = { header.Signature with Information = CallableInformation.Invalid } }
         else
             success, header
 
@@ -275,21 +263,15 @@ type SpecializationDeclarationHeader =
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
         let header =
-            if attributesAreNullOrDefault then
-                { header with
-                      Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+            if attributesAreNullOrDefault
+            then { header with Attributes = ImmutableArray.Empty }
+            else header // no reason to raise an error
 
         if not (infoIsNull || typeArgsAreNull) then
             success, header
         else
             let information = if not infoIsNull then header.Information else CallableInformation.Invalid
             let typeArguments = if typeArgsAreNull then Null else header.TypeArguments
-
-            false,
-            { header with
-                  Information = information
-                  TypeArguments = typeArguments }
+            false, { header with Information = information; TypeArguments = typeArguments }
 
     member this.ToJson(): string = DeclarationHeader.ToJson this

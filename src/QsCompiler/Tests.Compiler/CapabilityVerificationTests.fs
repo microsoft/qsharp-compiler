@@ -29,8 +29,7 @@ let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> Compi
 
 /// The qualified name for the test case name.
 let internal testName name =
-    { Namespace = "Microsoft.Quantum.Testing.Capability"
-      Name = name }
+    { Namespace = "Microsoft.Quantum.Testing.Capability"; Name = name }
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
 let private expect (tester: CompilerTests) errorCodes name =

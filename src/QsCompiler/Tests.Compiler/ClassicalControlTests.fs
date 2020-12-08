@@ -317,14 +317,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply If Zero Else One``() =
         let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
-
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
@@ -335,14 +329,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply If One Else Zero``() =
         let (targs, args) = CompileClassicalControlTest 9 |> ApplyIfElseTest
-
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         // The operation arguments should be swapped from the previous test
         IsApplyIfElseArgsMatch args "r" SubOp1 Bar
@@ -354,18 +342,9 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``If Elif``() =
         let result = CompileClassicalControlTest 10
-
-        let ifOp =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
-
-        let elifOp =
-            { Namespace = "SubOps"
-              Name = "SubOp2" }
-
-        let elseOp =
-            { Namespace = "SubOps"
-              Name = "SubOp3" }
+        let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
+        let elifOp = { Namespace = "SubOps"; Name = "SubOp2" }
+        let elseOp = { Namespace = "SubOps"; Name = "SubOp3" }
 
         let original =
             GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -410,14 +389,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``And Condition``() =
         let result = CompileClassicalControlTest 11
-
-        let ifOp =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
-
-        let elseOp =
-            { Namespace = "SubOps"
-              Name = "SubOp2" }
+        let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
+        let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
 
         let original =
             GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -462,14 +435,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``Or Condition``() =
         let result = CompileClassicalControlTest 12
-
-        let ifOp =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
-
-        let elseOp =
-            { Namespace = "SubOps"
-              Name = "SubOp2" }
+        let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
+        let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
 
         let original =
             GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -1402,14 +1369,9 @@ type ClassicalControlTests() =
              sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
 
         let (success, typeArgs, _) =
-            IsApplyIfArgMatch
-                args
-                "r"
-                { Namespace = Signatures.ClassicalControlNs
-                  Name = "Bar" }
+            IsApplyIfArgMatch args "r" { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
 
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
-
         Assert.True((typeArgs = "Int, Double"), "Bar did not have the correct type arguments")
 
     [<Fact>]
@@ -1455,13 +1417,8 @@ type ClassicalControlTests() =
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1490,13 +1447,8 @@ type ClassicalControlTests() =
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let NoOp =
-            { Namespace = "Microsoft.Quantum.Canon"
-              Name = "NoOp" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let NoOp = { Namespace = "Microsoft.Quantum.Canon"; Name = "NoOp" }
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1525,13 +1477,8 @@ type ClassicalControlTests() =
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         IsApplyIfElseArgsMatch args "[r1], [r2]" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
@@ -1542,14 +1489,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with Apply If One Else Zero``() =
         let (targs, args) = CompileClassicalControlTest 32 |> ApplyIfElseTest
-
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         IsApplyIfElseArgsMatch args "r" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
@@ -1560,14 +1501,8 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with Apply If Zero Else One``() =
         let (targs, args) = CompileClassicalControlTest 33 |> ApplyIfElseTest
-
-        let Bar =
-            { Namespace = Signatures.ClassicalControlNs
-              Name = "Bar" }
-
-        let SubOp1 =
-            { Namespace = "SubOps"
-              Name = "SubOp1" }
+        let Bar = { Namespace = Signatures.ClassicalControlNs; Name = "Bar" }
+        let SubOp1 = { Namespace = "SubOps"; Name = "SubOp1" }
 
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))

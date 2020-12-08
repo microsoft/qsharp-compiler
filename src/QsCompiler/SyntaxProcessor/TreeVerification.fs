@@ -249,5 +249,4 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
     diagnostics.ToLookup
         (fst >> snd,
          (fun ((position, _), diagnostic) ->
-             { diagnostic with
-                   QsCompilerDiagnostic.Range = position + diagnostic.Range }))
+             { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range }))

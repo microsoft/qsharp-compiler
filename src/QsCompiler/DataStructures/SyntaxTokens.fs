@@ -46,9 +46,7 @@ type QsSymbolKind<'Symbol> =
     | InvalidSymbol
 
 // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
-type QsSymbol =
-    { Symbol: QsSymbolKind<QsSymbol>
-      Range: QsNullable<Range> }
+type QsSymbol = { Symbol: QsSymbolKind<QsSymbol>; Range: QsNullable<Range> }
 
 
 // Q# types

@@ -477,20 +477,8 @@ let ``Function statement parser tests`` () =
           ("while (Foo() and not Bar() or ", expression)
           ("while (Foo() and not Bar() or false)", []) ]
 
-    testElifElse
-        Function
-        (Value
-            (IfClause
-                { Expression = InvalidExpr
-                  Range = Null }))
-
-    testElifElse
-        Function
-        (Value
-            (ElifClause
-                { Expression = InvalidExpr
-                  Range = Null }))
-
+    testElifElse Function (Value(IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Function (Value(ElifClause { Expression = InvalidExpr; Range = Null }))
     matches Function (Value ElseClause) ("", functionStatement)
 
 [<Fact>]
@@ -566,20 +554,8 @@ let ``Operation statement parser tests`` () =
           ("borrowing ((q, r) = (Qubit(), Qubit()", [])
           ("borrowing ((q, r) = (Qubit(), Qubit())", []) ]
 
-    testElifElse
-        Operation
-        (Value
-            (IfClause
-                { Expression = InvalidExpr
-                  Range = Null }))
-
-    testElifElse
-        Operation
-        (Value
-            (ElifClause
-                { Expression = InvalidExpr
-                  Range = Null }))
-
+    testElifElse Operation (Value(IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Operation (Value(ElifClause { Expression = InvalidExpr; Range = Null }))
     matches Operation (Value ElseClause) ("", operationStatement)
 
     List.iter

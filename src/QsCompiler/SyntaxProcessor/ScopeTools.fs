@@ -233,8 +233,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
             else
                 dict.[varName] <- { existing with
                                         InferredInformation =
-                                            { existing.InferredInformation with
-                                                  HasLocalQuantumDependency = localQdep } }
+                                            { existing.InferredInformation with HasLocalQuantumDependency = localQdep } }
         | Null -> ArgumentException "no local variable with the given name exists on the current scope" |> raise
 
     /// returns all *local* declarations on the current scope *and* all parent scopes up to this point

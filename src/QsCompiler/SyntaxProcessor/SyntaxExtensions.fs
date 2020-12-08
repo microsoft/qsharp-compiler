@@ -113,10 +113,7 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
 
 let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
-
-    let id =
-        { Expression = QsExpressionKind.Identifier(sym, Null)
-          Range = sym.Range }
+    let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
 
     { Expression = QsExpressionKind.CallLikeExpression(id, ex)
       Range = combinedRange }
@@ -166,8 +163,7 @@ let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSig
 
     let typeParams =
         let build (sym: QsSymbol) =
-            { Type = QsTypeKind.TypeParameter sym
-              Range = sym.Range }
+            { Type = QsTypeKind.TypeParameter sym; Range = sym.Range }
 
         [ for param in signature.TypeParameters do
             yield build param ]

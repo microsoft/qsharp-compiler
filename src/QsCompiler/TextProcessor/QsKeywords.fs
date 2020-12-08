@@ -14,9 +14,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself.
-type QsKeyword =
-    { parse: Parser<Range, QsCompilerDiagnostic list>
-      id: string }
+type QsKeyword = { parse: Parser<Range, QsCompilerDiagnostic list>; id: string }
 
 /// contains all Q# keywords that cannot be used as a symbol name
 let private _ReservedKeywords = new HashSet<string>()
@@ -239,16 +237,10 @@ type QsOperator =
     member internal this.Associativity = if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =
-        { op = str
-          cont = null
-          prec = p
-          isLeftAssociative = assoc }
+        { op = str; cont = null; prec = p; isLeftAssociative = assoc }
 
     static member New(str, rstr, p, assoc) =
-        { op = str
-          cont = rstr
-          prec = p
-          isLeftAssociative = assoc }
+        { op = str; cont = rstr; prec = p; isLeftAssociative = assoc }
 
 let qsCopyAndUpdateOp = QsOperator.New("w/", "<-", 1, true) // *needs* to have lowest precedence!
 let qsOpenRangeOp = QsOperator.New("...", 2, true) // only valid as part of certain contextual expressions!

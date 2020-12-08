@@ -29,12 +29,8 @@ let internal unknownExpr = (InvalidExpr, Null) |> QsExpression.New
 let private buildCombinedExpr kind (lRange, rRange) =
     // *needs* to be an invalid expression if the combined range is Null!
     match QsNullable.Map2 Range.Span lRange rRange with
-    | Value range ->
-        { Expression = kind
-          Range = Value range }
-    | Null ->
-        { Expression = InvalidExpr
-          Range = Null }
+    | Value range -> { Expression = kind; Range = Value range }
+    | Null -> { Expression = InvalidExpr; Range = Null }
 
 /// operator precedence parser for Q# expressions
 let private qsExpression = new OperatorPrecedenceParser<QsExpression, _, _>()
