@@ -134,6 +134,99 @@ type TypedExpressionConverter() =
         serializer.Serialize(writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
 
 
+type private QsSpecializationConverter() =
+    inherit JsonConverter<QsSpecialization>()
+
+    override _.ReadJson(reader, _, _, _, serializer) =
+        let schema = serializer.Deserialize<QsSpecializationSchema> reader
+        { Kind = schema.Kind
+          Parent = schema.Parent
+          Attributes = schema.Attributes
+          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Location = schema.Location
+          TypeArguments = schema.TypeArguments
+          Signature = schema.Signature
+          Implementation = schema.Implementation
+          Documentation = schema.Documentation
+          Comments = schema.Comments }
+
+    override _.WriteJson(writer : JsonWriter, value : QsSpecialization, serializer : JsonSerializer) =
+        let schema =
+            { Kind = value.Kind
+              Parent = value.Parent
+              Attributes = value.Attributes
+              SourceFile = value.Source.CodePath
+              Location = value.Location
+              TypeArguments = value.TypeArguments
+              Signature = value.Signature
+              Implementation = value.Implementation
+              Documentation = value.Documentation
+              Comments = value.Comments }
+        serializer.Serialize(writer, schema)
+
+
+type private QsCallableConverter() =
+    inherit JsonConverter<QsCallable>()
+
+    override _.ReadJson(reader, _, _, _, serializer) =
+        let schema = serializer.Deserialize<QsCallableSchema> reader
+        { Kind = schema.Kind
+          FullName = schema.FullName
+          Attributes = schema.Attributes
+          Modifiers = schema.Modifiers
+          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Location = schema.Location
+          Signature = schema.Signature
+          ArgumentTuple = schema.ArgumentTuple
+          Specializations = schema.Specializations
+          Documentation = schema.Documentation
+          Comments = schema.Comments }
+
+    override _.WriteJson(writer : JsonWriter, value : QsCallable, serializer : JsonSerializer) =
+        let schema =
+            { Kind = value.Kind
+              FullName = value.FullName
+              Attributes = value.Attributes
+              Modifiers = value.Modifiers
+              SourceFile = value.Source.CodePath
+              Location = value.Location
+              Signature = value.Signature
+              ArgumentTuple = value.ArgumentTuple
+              Specializations = value.Specializations
+              Documentation = value.Documentation
+              Comments = value.Comments }
+        serializer.Serialize(writer, schema)
+
+
+type private QsCustomTypeConverter() =
+    inherit JsonConverter<QsCustomType>()
+
+    override _.ReadJson(reader, _, _, _, serializer) =
+        let schema = serializer.Deserialize<QsCustomTypeSchema> reader
+        { FullName = schema.FullName
+          Attributes = schema.Attributes
+          Modifiers = schema.Modifiers
+          Source = { CodePath = schema.SourceFile; AssemblyPath = None }
+          Location = schema.Location
+          Type = schema.Type
+          TypeItems = schema.TypeItems
+          Documentation = schema.Documentation
+          Comments = schema.Comments }
+
+    override _.WriteJson(writer : JsonWriter, value : QsCustomType, serializer : JsonSerializer) =
+        let schema =
+            { FullName = value.FullName
+              Attributes = value.Attributes
+              Modifiers = value.Modifiers
+              SourceFile = value.Source.CodePath
+              Location = value.Location
+              Type = value.Type
+              TypeItems = value.TypeItems
+              Documentation = value.Documentation
+              Comments = value.Comments }
+        serializer.Serialize(writer, schema)
+
+
 type QsNamespaceConverter() =
     inherit JsonConverter<QsNamespace>()
 
@@ -167,6 +260,9 @@ module Json =
             new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
             new TypedExpressionConverter()                                      :> JsonConverter
             new ResolvedInitializerConverter()                                  :> JsonConverter
+            new QsSpecializationConverter()                                     :> JsonConverter
+            new QsCallableConverter()                                           :> JsonConverter
+            new QsCustomTypeConverter()                                         :> JsonConverter
             new QsNamespaceConverter()                                          :> JsonConverter
         |]
 
