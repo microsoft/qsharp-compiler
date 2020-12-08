@@ -224,7 +224,8 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
               header.Source.CodePath
               string (diagnostic.Range.Start.Line + 1)
               string (diagnostic.Range.Start.Column + 1)
-              string diagnostic.Diagnostic ]
+              string diagnostic.Diagnostic
+              context.ProcessorArchitecture ]
         range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning warning
 
     let reasons (header : SpecializationDeclarationHeader, impl) =

@@ -744,7 +744,7 @@ type DiagnosticItem =
                 let reason =
                     match args |> Seq.item 4 with
                     | "Error ResultComparisonNotInOperationIf" ->
-                        DiagnosticItem.Message (ErrorCode.ResultComparisonNotInOperationIf, [ "Unspecified" ])
+                        DiagnosticItem.Message (ErrorCode.ResultComparisonNotInOperationIf, [ args |> Seq.item 5 ])
                     | name -> name
                 "Note {0}: {1}:{2}:{3}: " + reason
 
