@@ -418,5 +418,19 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [| // Literal on the Left
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
+        (_DefaultTypes, [| // Simple NOT condition
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Outer NOT condition
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
+        (_DefaultTypes, [| // Nested NOT condition
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
+        (_DefaultTypes, [| // One-sided NOT condition
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
     |]
     |> _MakeSignatures
