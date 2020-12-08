@@ -3,10 +3,10 @@ root = true
 [*]
 indent_style = space
 insert_final_newline = true
+trim_trailing_whitespace = true
 
 [*.cs]
 indent_size = 4
-trim_trailing_whitespace = true
 
 dotnet_style_qualification_for_event = true:suggestion
 dotnet_style_qualification_for_field = true:suggestion
@@ -56,6 +56,8 @@ dotnet_diagnostic.SA1642.severity = none        # Constructor summary documentat
 dotnet_diagnostic.SA1649.severity = none        # File name should match first type name
 
 [*.fs]
+indent_size = 4
+
 fsharp_max_dot_get_expression_width = 100
 fsharp_max_infix_operator_expression = 100
 fsharp_max_record_width = 80
