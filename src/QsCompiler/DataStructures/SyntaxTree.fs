@@ -770,6 +770,9 @@ type QsCallable = {
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
 
+    [<Obsolete "Use Source.AssemblyOrCode.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
+
 
 /// used to represent the named and anonymous items in a user defined type
 type QsTypeItem =
@@ -827,6 +830,9 @@ type QsCustomType = {
     member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
+
+    [<Obsolete "Use Source.AssemblyOrCode.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
 
 
 /// Describes a valid Q# namespace element.
