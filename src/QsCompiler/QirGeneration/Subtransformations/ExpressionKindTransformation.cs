@@ -115,6 +115,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var indices = new Value[] { builder.Context.CreateConstant(0L), builder.Context.CreateConstant(i + 1) };
                     var itemDestPtr = builder.GetElementPtr(this.ItemType, typedTuple, indices);
                     var item = this.Items[i].BuildItem(builder, captureType, capture, parArgsType, parArgs);
+                    if (this.Items[i] is InnerTuple)
+                    {
+                        // if the time is an inner tuple, then we need to cast it to a concrete tuple before storing
+                        item = this.SharedState.CurrentBuilder.BitCast(item, this.Items[i].ItemType.CreatePointerType());
+                    }
                     builder.Store(item, itemDestPtr);
                 }
                 return innerTuple;
@@ -505,7 +510,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ITypeRef captureType, ITypeRef parArgsType, RebuildItem rebuild)
             {
-                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
+                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind); // FIXME: AVOID NAMING CONFLICT HERE...
                 var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
 
                 func.Parameters[0].Name = "capture-tuple";

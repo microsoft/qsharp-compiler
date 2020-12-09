@@ -19,8 +19,34 @@ entry:
   store %Qubit* %q, %Qubit** %10
   %11 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__2, %TupleHeader* %6)
   call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %11)
+  %12 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Callable*, %Qubit*, %Qubit* }* getelementptr ({ %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* null, i32 1) to i64))
+  %13 = bitcast %TupleHeader* %12 to { %TupleHeader, %Callable*, %Qubit*, %Qubit* }*
+  %14 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %13, i64 0, i32 1
+  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Testing__QIR___Choose, %TupleHeader* null)
+  store %Callable* %15, %Callable** %14
+  %16 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %13, i64 0, i32 2
+  store %Qubit* %q, %Qubit** %16
+  %17 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %13, i64 0, i32 3
+  store %Qubit* %q, %Qubit** %17
+  %18 = bitcast %TupleHeader* %8 to { %TupleHeader, %Qubit*, %Qubit* }*
+  %19 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__3, %TupleHeader* %12)
+  call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %19)
+  %20 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Callable*, %Qubit*, %Qubit* }* getelementptr ({ %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* null, i32 1) to i64))
+  %21 = bitcast %TupleHeader* %20 to { %TupleHeader, %Callable*, %Qubit*, %Qubit* }*
+  %22 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %21, i64 0, i32 1
+  %23 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Testing__QIR___Choose, %TupleHeader* null)
+  store %Callable* %23, %Callable** %22
+  %24 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %21, i64 0, i32 2
+  store %Qubit* %q, %Qubit** %24
+  %25 = getelementptr { %TupleHeader, %Callable*, %Qubit*, %Qubit* }, { %TupleHeader, %Callable*, %Qubit*, %Qubit* }* %21, i64 0, i32 3
+  store %Qubit* %q, %Qubit** %25
+  %26 = bitcast %TupleHeader* %8 to { %TupleHeader, %Qubit*, %Qubit* }*
+  %27 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__4, %TupleHeader* %20)
+  call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %27)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
   call void @__quantum__rt__callable_unreference(%Callable* %5)
   call void @__quantum__rt__callable_unreference(%Callable* %11)
+  call void @__quantum__rt__callable_unreference(%Callable* %19)
+  call void @__quantum__rt__callable_unreference(%Callable* %27)
   ret void
 }
