@@ -124,9 +124,14 @@ type TypeDeclarationHeader = {
     TypeItems       : QsTuple<QsTypeItem>
     Documentation   : ImmutableArray<string>
 }
-    with 
+    with
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
+
+    [<JsonIgnore; Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
+
     member this.FromSource source = {this with Source = source}
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
@@ -211,9 +216,14 @@ type CallableDeclarationHeader = {
     Signature       : ResolvedSignature
     Documentation   : ImmutableArray<string>
 }
-    with 
+    with
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
+
+    [<JsonIgnore; Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
+
     member this.FromSource source = {this with Source = source}
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
@@ -307,9 +317,14 @@ type SpecializationDeclarationHeader = {
     HeaderRange     : DeclarationHeader.Range
     Documentation   : ImmutableArray<string>
 }
-    with 
+    with
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.HeaderRange)
+
+    [<JsonIgnore; Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCode this.Source
+
     member this.FromSource source = {this with Source = source}
 
     static member New (specialization : QsSpecialization) = {
