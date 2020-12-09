@@ -431,9 +431,7 @@ let internal asQualifiedSymbol ((path, sym), range: Range) =
     if names |> List.contains None then
         (InvalidSymbol, Null) |> QsSymbol.New
     else
-        names
-        |> List.choose id
-        |> function
+        match names |> List.choose id with
         | [ sym ] -> (Symbol sym, range) |> QsSymbol.New
         | parts ->
             let (ns, sym) = (String.concat "." parts.[0..parts.Length - 2]), parts.[parts.Length - 1]
@@ -485,16 +483,14 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     let excessCont, remainingDiagnostics =
         diagnostics
         |> List.partition (fun x ->
-            x.Diagnostic
-            |> function
+            match x.Diagnostic with
             | Error (ErrorCode.ExcessContinuation) -> true
             | _ -> false)
 
     let remainingErrs =
         remainingDiagnostics
         |> List.filter (fun x ->
-            x.Diagnostic
-            |> function
+            match x.Diagnostic with
             | Error _ -> true
             | _ -> false)
 

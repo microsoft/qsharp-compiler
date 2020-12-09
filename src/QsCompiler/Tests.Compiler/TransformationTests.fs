@@ -195,8 +195,7 @@ let ``generation of open statements`` () =
     let ns = compilation.Namespaces |> Seq.head
 
     let source =
-        ns.Elements.Single()
-        |> function
+        match ns.Elements.Single() with
         | QsCallable callable -> callable.SourceFile
         | QsCustomType t -> t.SourceFile
 

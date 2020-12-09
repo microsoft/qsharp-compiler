@@ -24,8 +24,7 @@ type AttributeAnnotation =
     static member internal NonInterpolatedStringArgument inner =
         function
         | Item arg ->
-            inner arg
-            |> function
+            match inner arg with
             | StringLiteral (str, interpol) when interpol.Length = 0 -> str
             | _ -> null
         | _ -> null
@@ -186,8 +185,7 @@ module SymbolResolution =
 
     /// Returns true if any one of the given unresolved attributes indicates a deprecation.
     let internal IndicatesDeprecation checkQualification attribute =
-        attribute.Id.Symbol
-        |> function
+        match attribute.Id.Symbol with
         | Symbol sym -> sym = BuiltIn.Deprecated.FullName.Name && checkQualification ""
         | QualifiedSymbol (ns, sym) ->
             sym = BuiltIn.Deprecated.FullName.Name
@@ -198,8 +196,7 @@ module SymbolResolution =
     /// returns an array with diagnostics for using a type or callable with the given name at the given range.
     /// Returns an empty array if no redirection was determined, i.e. the given redirection was Null.
     let GenerateDeprecationWarning (fullName: QsQualifiedName, range) redirect =
-        redirect
-        |> function
+        match redirect with
         | Value redirect ->
             let usedName = sprintf "%s.%s" fullName.Namespace fullName.Name
 
@@ -304,9 +301,7 @@ module SymbolResolution =
             elif SyntaxGenerator.FullyQualifiedName.IsMatch target then
                 target
             else
-                target.ToLowerInvariant()
-                |> validTargets.TryGetValue
-                |> function
+                match target.ToLowerInvariant() |> validTargets.TryGetValue with
                 | true, valid -> valid
                 | false, _ -> null
 
@@ -342,8 +337,7 @@ module SymbolResolution =
         // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
         let typeParamsResolvedByArg =
             let getTypeParams (t: ResolvedType) =
-                t.Resolution
-                |> function
+                match t.Resolution with
                 | QsTypeKind.TypeParameter (tp: QsTypeParameter) -> [ tp.TypeName ].AsEnumerable()
                 | _ -> Enumerable.Empty()
 
@@ -444,8 +438,7 @@ module SymbolResolution =
             |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
 
         let resolveArg (sym, range) t =
-            sym
-            |> function
+            match sym with
             | QsSymbolKind.InvalidSymbol -> (InvalidName, t) |> DeclarationArgument range, [||]
             | QsSymbolKind.Symbol sym -> (ValidName sym, t) |> DeclarationArgument range, [||]
             | _ ->
@@ -491,8 +484,7 @@ module SymbolResolution =
         let itemDeclarations = new List<LocalVariableDeclaration<string>>()
 
         let resolveItem (sym, range) t =
-            sym
-            |> function
+            match sym with
             | QsSymbolKind.MissingSymbol
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists(fun item -> item.VariableName = sym) ->
@@ -511,8 +503,7 @@ module SymbolResolution =
             | _ -> Anonymous t, [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
 
         let argTuple, errs =
-            udtTuple
-            |> function
+            match udtTuple with
             | QsTuple items when items.Length = 0 ->
                 ArgumentException "underlying type in type declaration cannot be an empty tuple" |> raise
             | QsTuple _ -> udtTuple |> ResolveArgumentTuple(resolveItem, resolveType)
@@ -547,8 +538,7 @@ module SymbolResolution =
         | ArrayType baseType -> [ baseType ] |> AccumulateInner resolve (buildWith (fun ts -> ArrayType ts.[0]))
         | TupleType items -> items |> AccumulateInner resolve (buildWith TupleType)
         | QsTypeKind.TypeParameter sym ->
-            sym.Symbol
-            |> function
+            match sym.Symbol with
             | Symbol name -> processTypeParameter (name, sym.Range) |> fun (k, errs) -> k |> asResolvedType, errs
             | InvalidSymbol -> invalid, [||]
             | _ -> invalid, [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
@@ -564,8 +554,7 @@ module SymbolResolution =
         | QsTypeKind.Function (arg, res) ->
             [ arg; res ] |> AccumulateInner resolve (buildWith (fun ts -> QsTypeKind.Function(ts.[0], ts.[1])))
         | UserDefinedType name ->
-            name.Symbol
-            |> function
+            match name.Symbol with
             | Symbol sym -> processUDT ((None, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
             | QualifiedSymbol (ns, sym) ->
                 processUDT ((Some ns, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
@@ -682,15 +671,13 @@ module SymbolResolution =
               Comments = attribute.Comments }
 
         let getAttribute (ns, sym) =
-            getAttribute ((ns, sym), attribute.Id.Range)
-            |> function
+            match getAttribute ((ns, sym), attribute.Id.Range) with
             | None, errs -> Null |> buildAttribute, errs |> Array.append argErrs
             | Some (name, argType: ResolvedType), errs ->
                 // we can make the following simple check since / as long as there is no variance behavior
                 // for any of the supported attribute argument types
                 let isError (msg: QsCompilerDiagnostic) =
-                    msg.Diagnostic
-                    |> function
+                    match msg.Diagnostic with
                     | Error _ -> true
                     | _ -> false
 
@@ -777,8 +764,7 @@ module SymbolResolution =
             | _ -> false
 
         let diagnostics =
-            gen.Generator
-            |> function
+            match gen.Generator with
             | QsSpecializationGeneratorKind.Intrinsic
             | QsSpecializationGeneratorKind.AutoGenerated -> [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ ->
@@ -802,13 +788,11 @@ module SymbolResolution =
         if opInfo.IsIntrinsic then
             NeedsToBeIntrinsic(gen, false)
         else
-            gen.Generator
-            |> function
+            match gen.Generator with
             | QsSpecializationGeneratorKind.Intrinsic -> Intrinsic |> Value, [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ -> Null, [||]
             | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
-                dir
-                |> function
+                match dir with
                 | Distribute
                 | SelfInverse
                 | Invert
@@ -829,13 +813,11 @@ module SymbolResolution =
         elif info.IsIntrinsic then
             NeedsToBeIntrinsic(gen, true)
         else
-            gen.Generator
-            |> function
+            match gen.Generator with
             | QsSpecializationGeneratorKind.Intrinsic -> Intrinsic |> Value, [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ -> Null, [||]
             | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
-                dir
-                |> function
+                match dir with
                 | Distribute -> Generated InvalidGenerator |> Value, [||]
                 | SelfInverse
                 | Invert
@@ -853,13 +835,11 @@ module SymbolResolution =
         if info.IsIntrinsic then
             NeedsToBeIntrinsic(gen, false)
         else
-            gen.Generator
-            |> function
+            match gen.Generator with
             | QsSpecializationGeneratorKind.Intrinsic -> Intrinsic |> Value, [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ -> Null, [||]
             | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
-                dir
-                |> function
+                match dir with
                 | SelfInverse
                 | Invert -> Generated InvalidGenerator |> Value, [||]
                 | Distribute
@@ -887,20 +867,17 @@ module SymbolResolution =
         elif info.IsIntrinsic then
             NeedsToBeIntrinsic(gen, true)
         else
-            gen.Generator
-            |> function
+            match gen.Generator with
             | QsSpecializationGeneratorKind.Intrinsic -> Intrinsic |> Value, [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ -> Null, [||]
             | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
-                dir
-                |> function
+                match dir with
                 | Distribute
                 | SelfInverse
                 | Invert
                 | InvalidGenerator -> Generated dir |> Value, [||]
             | QsSpecializationGeneratorKind.AutoGenerated ->
-                (ctlGenKind, adjGenKind)
-                |> function
+                match ctlGenKind, adjGenKind with
                 | UserDefinedImplementation _, FunctorGenerationDirective _
                 | UserDefinedImplementation _, AutoGenerated -> Generated Invert |> Value, [||]
                 | _ -> Generated Distribute |> Value, [||]
@@ -914,8 +891,7 @@ module SymbolResolution =
     let internal ResolveTypeArgument typeResolution (_, spec: Resolution<QsSpecializationGenerator, _>) =
         let resolveGenerator () =
             let typeArgs, tErrs =
-                spec.Defined.TypeArguments
-                |> function
+                match spec.Defined.TypeArguments with
                 | Null -> Null, [||]
                 | Value targs ->
                     let resolved, errs = targs |> Seq.map typeResolution |> Seq.toList |> List.unzip
@@ -1002,8 +978,7 @@ module SymbolResolution =
                                       |> QsCompilerDiagnostic.Warning(WarningCode.MissingBodyDeclaration, []) |] ]
 
         let isError (m: QsCompilerDiagnostic) =
-            m.Diagnostic
-            |> function
+            match m.Diagnostic with
             | Error _ -> true
             | _ -> false
 
@@ -1082,15 +1057,13 @@ module SymbolResolution =
         let bundle: SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
 
         let impl, err =
-            kind
-            |> function
+            match kind with
             | QsBody -> ResolveBodyGeneratorDirective bundle.BundleInfo.InferredInformation spec.Defined
             | QsAdjoint -> ResolveAdjointGeneratorDirective bundle.BundleInfo.InferredInformation spec.Defined
             | QsControlled -> ResolveControlledGeneratorDirective bundle.BundleInfo.InferredInformation spec.Defined
             | QsControlledAdjoint ->
                 let getGenKindOrAuto kind =
-                    bundle.DefinedGenerators.TryGetValue kind
-                    |> function
+                    match bundle.DefinedGenerators.TryGetValue kind with
                     | true, (gen: QsSpecializationGenerator) -> gen.Generator
                     | false, _ -> AutoGenerated // automatically inserted specializations won't be part of the bundle
 
@@ -1102,8 +1075,7 @@ module SymbolResolution =
                     spec.Defined
 
         let dir =
-            impl
-            |> function
+            match impl with
             | Value (Generated dir) -> Value dir
             | _ -> Null
 

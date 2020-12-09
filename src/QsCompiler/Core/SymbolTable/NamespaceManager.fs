@@ -92,8 +92,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             if kv.Value <> null then
                 None
             else
-                Namespaces.TryGetValue kv.Key
-                |> function
+                match Namespaces.TryGetValue kv.Key with
                 | true, ns -> Some ns
                 | false, _ -> None
 
@@ -280,8 +279,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             // verify that the entry point has only a default body specialization
             let hasCharacteristics =
-                signature.Characteristics.Characteristics
-                |> function
+                match signature.Characteristics.Characteristics with
                 | EmptySet
                 | InvalidSetExpr -> false
                 | _ -> true
@@ -343,8 +341,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             if runtimeCapability <> FullComputation then
                 let invalid =
                     signature.ReturnType.ExtractAll(fun t ->
-                        t.Type
-                        |> function
+                        match t.Type with
                         | Result
                         | ArrayType _
                         | TupleType _
@@ -368,8 +365,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 |> Seq.toArray
 
             let nameAndRange (sym: QsSymbol) =
-                sym.Symbol
-                |> function
+                match sym.Symbol with
                 | Symbol name -> Some(asCommandLineArg name, sym.Range)
                 | _ -> None
 
@@ -398,9 +394,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                 false, errs
             else
-                GetEntryPoints()
-                |> Seq.tryHead
-                |> function
+                match GetEntryPoints() |> Seq.tryHead with
                 | None -> isExecutable, errs
                 | Some (epName, epSource) ->
                     let msgArgs =
@@ -442,8 +436,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                 match Namespaces.TryGetValue udt.Namespace with
                 | true, ns ->
-                    ns.TryGetAttributeDeclaredIn declSource (udt.Name, validQualifications)
-                    |> function
+                    match ns.TryGetAttributeDeclaredIn declSource (udt.Name, validQualifications) with
                     | None ->
                         None,
                         [| symRange.ValueOr Range.Zero
@@ -935,8 +928,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         try
             let imported =
-                Namespaces.TryGetValue parent.Namespace
-                |> function
+                match Namespaces.TryGetValue parent.Namespace with
                 | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
                 | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
 
@@ -964,8 +956,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             if not this.ContainsResolutions then notResolvedException |> raise
 
             let defined =
-                Namespaces.TryGetValue parent.Namespace
-                |> function
+                match Namespaces.TryGetValue parent.Namespace with
                 | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
                 | true, ns ->
                     ns.SpecializationsDefinedInAllSources parent.Name
@@ -1489,8 +1480,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
     /// Generates a hash for a resolved type. Does not incorporate any positional information.
     static member internal TypeHash(t: ResolvedType) =
-        t.Resolution
-        |> function
+        match t.Resolution with
         | QsTypeKind.ArrayType b -> hash (0, NamespaceManager.TypeHash b)
         | QsTypeKind.TupleType ts -> hash (1, (ts |> Seq.map NamespaceManager.TypeHash |> Seq.toList))
         | QsTypeKind.UserDefinedType udt -> hash (2, udt.Namespace, udt.Name)
@@ -1507,8 +1497,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
     /// Generates a hash for a typed expression. Does not incorporate any positional information.
     static member internal ExpressionHash(ex: TypedExpression) =
-        ex.Expression
-        |> function
+        match ex.Expression with
         | StringLiteral (s, _) -> hash (6, s)
         | ValueTuple vs -> hash (7, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
         | ValueArray vs -> hash (8, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))

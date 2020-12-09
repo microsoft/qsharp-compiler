@@ -196,14 +196,12 @@ let private postFixModifier = term (pstring qsUnwrapModifier.op .>> notFollowedB
 /// Trailing modifiers are left-associative, and leading modifier are right-associative.
 let private withModifiers modifiableExpr =
     let rec applyUnwraps unwraps (core: QsExpression) =
-        unwraps
-        |> function
+        match unwraps with
         | [] -> core
         | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
 
     let rec applyFunctors functors (core: QsExpression) =
-        functors
-        |> function
+        match functors with
         | [] -> core
         | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
 
@@ -401,13 +399,11 @@ let private identifier =
 
     identifierName .>>. opt (attempt typeArgs)
     |>> fun (sym, tArgs) ->
-            sym.Symbol
-            |> function
+            match sym.Symbol with
             | InvalidSymbol -> unknownExpr
             | _ ->
                 ((sym,
-                  tArgs
-                  |> function
+                  match tArgs with
                   | Some args -> Value args
                   | None -> Null)
                  |> Identifier,
@@ -552,8 +548,7 @@ let private itemAccessExpr =
             getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
             |>> fun ((pre, core: QsExpression), post) ->
                 let applyPost ex =
-                    post
-                    |> function
+                    match post with
                     | None -> ex
                     | Some (_, range) ->
                         buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)

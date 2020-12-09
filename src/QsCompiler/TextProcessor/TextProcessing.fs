@@ -20,8 +20,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 /// Applies the given parser to the given text and returns either the parsing result if the parsing succeeds
 /// or the return value of onError if the parsing fails.
 let private ParseWith parser onError text =
-    runParserOnString parser [] "" text
-    |> function
+    match runParserOnString parser [] "" text with
     | Success (res, _, _) -> res
     | Failure _ -> onError ()
 

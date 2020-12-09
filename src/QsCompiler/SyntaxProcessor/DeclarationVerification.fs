@@ -24,8 +24,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Returns null otherwise.
 [<Extension>]
 let public AsDeclarationName sym onInvalid =
-    sym
-    |> function
+    match sym with
     | Symbol name -> name
     | InvalidSymbol -> onInvalid
     | _ -> null
@@ -219,8 +218,7 @@ let public BuildArgumentControlledAdjoint (this: QsTuple<LocalVariableDeclaratio
 [<Extension>]
 let public ValidDeclarations (this: ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>) =
     let withValidName (d: LocalVariableDeclaration<_>) =
-        d.VariableName
-        |> function
+        match d.VariableName with
         | ValidName name ->
             let mut, qDep = d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
             Some(LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))

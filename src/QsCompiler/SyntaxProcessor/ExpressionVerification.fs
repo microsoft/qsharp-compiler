@@ -86,8 +86,7 @@ let private CommonBaseType addError
 
     let rec matchInAndOutputType variance (i1, o1) (i2, o2) =
         let inputVariance =
-            variance
-            |> function
+            match variance with
             | Covariant -> Contravariant
             | Contravariant -> Covariant
             | Invariant -> Invariant
@@ -100,8 +99,7 @@ let private CommonBaseType addError
         let argType, resType = matchInAndOutputType variance (i1, o1) (i2, o2)
 
         let characteristics =
-            variance
-            |> function
+            match variance with
             | Covariant -> CallableInformation.Common [ s1; s2 ]
             | Contravariant -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
                 CallableInformation.New
@@ -212,8 +210,7 @@ let internal VerifyUdtWith processUdt addError (exType, range) =
     let pushErr err = range |> addError err
 
     let isUdt (t: ResolvedType) =
-        t.Resolution
-        |> function
+        match t.Resolution with
         | QsTypeKind.UserDefinedType udt -> Some(processUdt pushErr udt)
         | _ -> None
 
@@ -400,8 +397,7 @@ let private VerifyValueArray parent addError (content, range) =
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 let internal VerifyNumberedItemAccess addError (exType, range) =
     let expectedArray (t: ResolvedType) =
-        t.Resolution
-        |> function
+        match t.Resolution with
         | ArrayType _ -> Some t
         | _ -> None
 
@@ -434,12 +430,10 @@ let private VerifyArrayItem addError (arrType: ResolvedType, arrRange) (indexTyp
 /// Returns the type of the functor application expression.
 let private VerifyFunctorApplication functor errCode addError (ex: ResolvedType, range) =
     let opSupportingFunctor (t: ResolvedType) =
-        t.Resolution
-        |> function
+        match t.Resolution with
         | QsTypeKind.Operation (_, info) when info.Characteristics.AreInvalid -> Some t
         | QsTypeKind.Operation (_, info) ->
-            info.Characteristics.SupportedFunctors
-            |> function
+            match info.Characteristics.SupportedFunctors with
             | Value functors when functors.Contains functor -> Some t
             | _ -> None
         | _ -> None
@@ -485,8 +479,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
         |> QsNullable<_>
             .Map(fun (args: ImmutableArray<QsType>) ->
                 args.Select(fun tArg ->
-                    tArg.Type
-                    |> function
+                    match tArg.Type with
                     | MissingType -> ResolvedType.New MissingType
                     | _ -> symbols.ResolveType addDiagnostic tArg))
         |> QsNullable<_>.Map(fun args -> args.ToImmutableArray())
@@ -525,8 +518,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
                 if not ta.isMissing
                 then yield (tp, ta |> StripPositionInfo.Apply) ]
             |> List.choose (fun (tp, ta) ->
-                tp
-                |> function
+                match tp with
                 | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
                 | ValidName tpName -> Some((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
 
@@ -572,8 +564,7 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
             else s1.SupportedFunctors.ValueOrApply compilerError, s2.SupportedFunctors.ValueOrApply compilerError
 
         let argVariance, ferrCode, expected =
-            variance
-            |> function
+            match variance with
             | Covariant -> Contravariant, ErrorCode.MissingFunctorSupport, missingFunctors (l1, Some l2)
             | Contravariant -> Covariant, ErrorCode.ExcessFunctorSupport, missingFunctors (l2, Some l1)
             | Invariant ->
@@ -651,8 +642,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         if containsInvalid then
             invalid
         else
-            remaining
-            |> function
+            match remaining with
             | [] -> None
             | [ t ] -> Some t
             | _ -> TupleType(remaining.ToImmutableArray()) |> ResolvedType.New |> Some
@@ -704,13 +694,11 @@ let private VerifyCallExpr buildCallableType
                            (arg, getType)
                            =
     let requireIdResolution =
-        tArgs
-        |> function
+        match tArgs with
         | Some (tArgs: ImmutableArray<ResolvedType>) ->
             new Set<_>(tArgs
                        |> Seq.choose (fun tArg ->
-                           tArg.Resolution
-                           |> function
+                           match tArg.Resolution with
                            | TypeParameter tp when tp.Origin = parent -> Some tp.TypeName
                            | _ -> None))
         | None -> Set.empty
@@ -769,10 +757,7 @@ let private VerifyCallExpr buildCallableType
             match entry |> Seq.distinctBy fst |> Seq.toList with
             | [ (res, r) ] -> uniqueResolution (res, r)
             | _ ->
-                entry
-                |> Seq.distinctBy (fst >> StripInferredInfoFromType)
-                |> Seq.toList
-                |> function
+                match entry |> Seq.distinctBy (fst >> StripInferredInfoFromType) |> Seq.toList with
                 | [ (res, r) ] -> uniqueResolution (res, r)
                 | _ -> // either conflicting with internal type parameter or ambiguous
                     if fst entry.Key <> parent || not <| requireIdResolution.Contains(snd entry.Key) then
@@ -798,8 +783,7 @@ let private VerifyCallExpr buildCallableType
     let remaining, lookUp = (arg, getType) |> IsValidArgument addError expectedArgType
 
     getTypeParameterResolutions lookUp,
-    remaining
-    |> function
+    match remaining with
     | None -> expectedResultType
     | Some remainingArgT when remainingArgT.isInvalid -> invalid
     | Some remainingArgT -> buildCallableType (remainingArgT, expectedResultType) |> ResolvedType.New
@@ -1044,8 +1028,7 @@ type QsExpression with
         /// returns the an identifier that can be used to represent the corresponding item name.
         /// Adds an error if the given symbol is not either invalid or an unqualified symbol.
         let buildItemName (sym: QsSymbol) =
-            sym.Symbol
-            |> function
+            match sym.Symbol with
             | InvalidSymbol -> InvalidIdentifier
             | Symbol name -> LocalVariable name
             | _ ->
@@ -1140,8 +1123,7 @@ type QsExpression with
             VerifyIsInteger addError (resRhs.ResolvedType, rEnd.RangeOrDefault)
 
             let resLhs =
-                lhs.Expression
-                |> function
+                match lhs.Expression with
                 | RangeLiteral (rStart, rStep) ->
                     let (resStart, resStep) = (InnerExpression rStart, InnerExpression rStep)
 
@@ -1362,8 +1344,7 @@ type QsExpression with
             let invalidEx = (originalExKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
 
             let isDirectRecursion, tArgs =
-                resolvedMethod.Expression
-                |> function
+                match resolvedMethod.Expression with
                 | Identifier (GlobalCallable id, tArgs) ->
                     id = symbols.Parent, tArgs |> QsNullable<_>.Fold (fun _ v -> Some v) None
                 | _ -> false, None
@@ -1399,8 +1380,7 @@ type QsExpression with
                         |> Seq.zip symbols.DefinedTypeParameters
                         |> Seq.map (function
                             | tpName, tArg when tArg.isMissing ->
-                                typeParamResolutions.TryGetValue((symbols.Parent, tpName))
-                                |> function
+                                match typeParamResolutions.TryGetValue((symbols.Parent, tpName)) with
                                 | true, res -> (symbols.Parent, tpName), res
                                 | false, _ -> (symbols.Parent, tpName), ResolvedType.New MissingType // important: these need to be filtered out when building the resolutions dictionary
                             | tpName, tArg -> (symbols.Parent, tpName), tArg)

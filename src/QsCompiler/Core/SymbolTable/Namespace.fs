@@ -174,8 +174,7 @@ type Namespace private (name,
     /// <exception cref="InvalidOperationException">The corresponding type has not been resolved.</exception>
     member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications: _ seq) =
         let marksAttribute (t: QsDeclarationAttribute) =
-            t.TypeId
-            |> function
+            match t.TypeId with
             | Value id ->
                 id.Namespace = BuiltIn.Attribute.FullName.Namespace && id.Name = BuiltIn.Attribute.FullName.Name
             | Null -> false
@@ -592,8 +591,7 @@ type Namespace private (name,
                 let qFunctorSupport, nrTypeParams = getRelevantDeclInfo declSource
 
                 let givenNrTypeParams =
-                    generator.TypeArguments
-                    |> function
+                    match generator.TypeArguments with
                     | Value args -> Some args.Length
                     | Null -> None
 
@@ -602,8 +600,7 @@ type Namespace private (name,
                        |> QsCompilerDiagnostic.Error(ErrorCode.TypeSpecializationMismatch, [ nrTypeParams.ToString() ]) |]
                 // verify if a unit return value is required for the given specialization kind
                 elif not qFunctorSupport then
-                    kind
-                    |> function
+                    match kind with
                     | QsBody ->
                         AddAndClearCache()
                         [||]

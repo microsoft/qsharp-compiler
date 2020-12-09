@@ -25,8 +25,7 @@ let AllPathsReturnValueOrFail body =
     let diagnostics = ResizeArray<_>()
 
     let addDiagnostic diag (stm: QsStatement) =
-        stm.Location
-        |> function
+        match stm.Location with
         | Null -> ArgumentException "no location set for the given statement" |> raise
         | Value loc -> loc.Offset + loc.Range |> diag |> diagnostics.Add
 
@@ -118,8 +117,7 @@ let AllPathsReturnValueOrFail body =
 
         if returnOrFailAndAfter.Length <> 0 then
             let unreachable =
-                returnOrFailAndAfter.[0].Statement
-                |> function
+                match returnOrFailAndAfter.[0].Statement with
                 | QsStatementKind.QsRepeatStatement statement ->
                     statement.FixupBlock.Body.Statements.Concat(returnOrFailAndAfter.Skip(1))
                 | _ -> returnOrFailAndAfter.Skip(1)

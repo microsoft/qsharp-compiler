@@ -62,8 +62,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnQubitInitializer init =
         let transformed =
-            init.Resolution
-            |> function
+            match init.Resolution with
             | SingleQubitAllocation -> SingleQubitAllocation
             | QubitRegisterAllocation ex as orig ->
                 QubitRegisterAllocation |> Node.BuildOr orig (this.Expressions.OnTypedExpression ex)
@@ -221,8 +220,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             kind
         else
             let transformed =
-                kind
-                |> function
+                match kind with
                 | QsExpressionStatement ex -> this.OnExpressionStatement ex
                 | QsReturnStatement ex -> this.OnReturnStatement ex
                 | QsFailStatement ex -> this.OnFailStatement ex

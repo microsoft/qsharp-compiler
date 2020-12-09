@@ -40,8 +40,7 @@ let private verifyDeclaration (context: SyntaxTokenContext) =
         function
         | [] -> errMsg
         | parent :: _ ->
-            parent
-            |> function
+            match parent with
             | Value (NamespaceDeclaration _) -> true, [||]
             | Value (InvalidFragment) -> false, [||]
             | _ -> errMsg
@@ -136,8 +135,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
         function
         | [] -> errMsg
         | parent :: _ ->
-            parent
-            |> function
+            match parent with
             | Value (OperationDeclaration _) -> NullOr checkGenerator
             | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunctionAndGenerator
             | Value (InvalidFragment) -> false, [||]
@@ -178,8 +176,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         function
         | [] -> notWithinSpecialization
         | parent :: tail ->
-            parent
-            |> function
+            match parent with
             // (potentially) valid parents for statements
             | Value (ApplyBlockIntro _) -> NullOr checkForNotValidInApply
             | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunction

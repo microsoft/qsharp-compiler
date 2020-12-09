@@ -222,9 +222,7 @@ type ClassicalControlTests() =
         let adjMatch =
             lazy
                 (if hasAdjoint then
-                    call.Specializations
-                    |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
-                    |> function
+                    match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
                     | None -> false
                     | Some x ->
                         match x.Implementation with
@@ -238,9 +236,7 @@ type ClassicalControlTests() =
         let ctlMatch =
             lazy
                 (if hasControlled then
-                    call.Specializations
-                    |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled)
-                    |> function
+                    match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
                     | None -> false
                     | Some x ->
                         match x.Implementation with

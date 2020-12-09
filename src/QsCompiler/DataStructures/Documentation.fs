@@ -20,8 +20,7 @@ type QsType with
 
     member public this.Documentation: ImmutableArray<string> =
         let doc =
-            this.Type
-            |> function
+            match this.Type with
             | QsTypeKind.UnitType ->
                 [ "# Summary"
                   "Represents a singleton type whose only value is \"()\"." ]
@@ -77,8 +76,7 @@ type QsType with
                     supportedFunctors |> Seq.contains Adjoint, supportedFunctors |> Seq.contains Controlled
 
                 let functors =
-                    (adj, ctl)
-                    |> function
+                    match adj, ctl with
                     | true, true -> " supporting both the Adjoint and Controlled functor,"
                     | true, false -> " supporting the Adjoint functor,"
                     | false, true -> " supporting the Controlled functor,"
@@ -108,14 +106,12 @@ type QsType with
 type QsExpression with
     member public this.Documentation =
         let isRange (ex: QsExpression) =
-            ex.Expression
-            |> function
+            match ex.Expression with
             | RangeLiteral _ -> true
             | _ -> false
 
         let doc =
-            this.Expression
-            |> function
+            match this.Expression with
             | QsExpressionKind.UnitValue -> [ "# Summary"; "Unit value." ]
             | QsExpressionKind.IntLiteral _ -> [ "# Summary"; "64-bit integer." ]
             | QsExpressionKind.BigIntLiteral _ ->
@@ -153,8 +149,7 @@ type QsExpression with
                     [ "# Summary"; "Pauli matrix σ\u2083." ]
             | QsExpressionKind.ResultLiteral ex ->
                 let eigval =
-                    ex
-                    |> function
+                    match ex with
                     | Zero -> "+1"
                     | One -> "-1"
 

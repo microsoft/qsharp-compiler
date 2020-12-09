@@ -499,8 +499,7 @@ let private setStatement =
         let validItem = (missingExpr <|> (localIdentifier >>= asIdentifier)) .>> followedBy continuation // missingExpr needs to be first
 
         let exprError (ex: QsExpression) =
-            ex.Range
-            |> function
+            match ex.Range with
             | Value range ->
                 range
                 |> QsCompilerDiagnostic.Error(ErrorCode.InvalidIdentifierExprInUpdate, [])

@@ -29,14 +29,12 @@ module DeclarationHeader =
         | Undefined
 
     let CreateOffset (location: QsNullable<QsLocation>) =
-        location
-        |> function
+        match location with
         | Value loc -> Offset.Defined loc.Offset
         | Null -> Offset.Undefined
 
     let CreateRange (location: QsNullable<QsLocation>) =
-        location
-        |> function
+        match location with
         | Value loc -> Range.Defined loc.Range
         | Null -> Range.Undefined
 

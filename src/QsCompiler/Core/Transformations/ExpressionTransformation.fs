@@ -350,8 +350,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             kind
         else
             let transformed =
-                kind
-                |> function
+                match kind with
                 | Identifier (sym, tArgs) -> this.OnIdentifier(sym, tArgs)
                 | CallLikeExpression (method, arg) -> this.OnCallLikeExpression(method, arg)
                 | AdjointApplication ex -> this.OnAdjointApplication(ex)

@@ -245,8 +245,7 @@ module SyntaxGenerator =
     /// Throws an ArgumentException if the type of the given expression does not support arithmetic.
     let IsNegative (ex: TypedExpression) =
         let kind =
-            ex.ResolvedType.Resolution
-            |> function
+            match ex.ResolvedType.Resolution with
             | Int -> LT(ex, IntLiteral 0L)
             | BigInt -> LT(ex, BigIntLiteral 0)
             | Double -> LT(ex, DoubleLiteral 0.)
@@ -320,8 +319,7 @@ module SyntaxGenerator =
         let getItemName =
             function
             | QsTupleItem (item: LocalVariableDeclaration<QsLocalSymbol>) ->
-                item.VariableName
-                |> function
+                match item.VariableName with
                 | ValidName name -> name
                 | InvalidName -> null
             | _ -> null
@@ -356,8 +354,7 @@ module SyntaxGenerator =
         | QsTypeKind.Operation ((it, ot), opInfo) when opInfo.Characteristics.AreInvalid ->
             ctlOpType ((it, ot), opInfo) |> built
         | QsTypeKind.Operation ((it, ot), opInfo) ->
-            opInfo.Characteristics.SupportedFunctors
-            |> function
+            match opInfo.Characteristics.SupportedFunctors with
             | Value functors when functors.Contains Controlled -> ctlOpType ((it, ot), opInfo) |> built
             | _ -> ArgumentException "given expression does not correspond to a suitable operation" |> raise
         | _ -> ArgumentException "given expression does not correspond to a suitable operation" |> raise
@@ -377,8 +374,7 @@ module SyntaxGenerator =
         | QsTypeKind.InvalidType -> built
         | QsTypeKind.Operation (_, opInfo) when opInfo.Characteristics.AreInvalid -> built
         | QsTypeKind.Operation (_, opInfo) ->
-            opInfo.Characteristics.SupportedFunctors
-            |> function
+            match opInfo.Characteristics.SupportedFunctors with
             | Value functors when functors.Contains Adjoint -> built
             | _ -> ArgumentException "given expression does not correspond to a suitable operation" |> raise
         | _ -> ArgumentException "given expression does not correspond to a suitable operation" |> raise

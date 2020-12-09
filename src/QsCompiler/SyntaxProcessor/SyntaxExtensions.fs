@@ -31,8 +31,7 @@ let rec private collectWith collector (exs: 'a seq, ts: QsType seq): QsSymbol li
     varFromExs |> List.concat, (fromTs :: tsFromExs) |> List.concat, bsFromExs |> List.concat
 
 and private TypeNameSymbols (t: QsType) =
-    t.Type
-    |> function
+    match t.Type with
     | QsTypeKind.UnitType _ -> [ t ]
     | QsTypeKind.Int _ -> [ t ]
     | QsTypeKind.BigInt _ -> [ t ]
@@ -53,16 +52,14 @@ and private TypeNameSymbols (t: QsType) =
     | QsTypeKind.InvalidType _ -> []
 
 and private VariablesInInitializer item =
-    item.Initializer
-    |> function
+    match item.Initializer with
     | QsInitializerKind.SingleQubitAllocation -> [], [], []
     | QsInitializerKind.QubitRegisterAllocation ex -> ex |> SymbolsFromExpr
     | QsInitializerKind.QubitTupleAllocation items -> collectWith VariablesInInitializer (items, [])
     | QsInitializerKind.InvalidInitializer -> [], [], []
 
 and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression list =
-    item.Expression
-    |> function
+    match item.Expression with
     | QsExpressionKind.UnitValue -> [], [], [ item ]
     | QsExpressionKind.Identifier (id, typeArgs) ->
         [ id ], typeArgs.ValueOr ImmutableArray.Empty |> Seq.collect TypeNameSymbols |> Seq.toList, []
@@ -191,8 +188,7 @@ let public SymbolInformation fragmentKind =
     let chooseValues = QsNullable<_>.Choose id >> Seq.toList
     let addVariable var (syms, ts, exs) = var :: syms, ts, exs
 
-    fragmentKind
-    |> function
+    match fragmentKind with
     | QsFragmentKind.ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
@@ -226,8 +222,7 @@ let public SymbolInformation fragmentKind =
     |> SymbolInformation.New
 
 let rec private ExpressionsInInitializer item =
-    item.Initializer
-    |> function
+    match item.Initializer with
     | QsInitializerKind.QubitRegisterAllocation ex -> seq { yield ex }
     | QsInitializerKind.QubitTupleAllocation items -> items |> Seq.collect ExpressionsInInitializer
     | _ -> Seq.empty
@@ -235,16 +230,14 @@ let rec private ExpressionsInInitializer item =
 [<Extension>]
 let public CallExpressions fragmentKind =
     let isCallExpression (ex: QsExpression) =
-        ex.Expression
-        |> function
+        match ex.Expression with
         | CallLikeExpression _ -> seq { yield ex }
         | _ -> Enumerable.Empty()
 
     let callExpressions (ex: QsExpression) =
         (ex.ExtractAll isCallExpression).ToImmutableArray()
 
-    fragmentKind
-    |> function
+    match fragmentKind with
     | QsFragmentKind.ExpressionStatement ex
     | QsFragmentKind.ReturnStatement ex
     | QsFragmentKind.FailStatement ex
@@ -266,15 +259,13 @@ let private tryResolveWith resolve extract (currentNS, source) =
     function
     | QsSymbolKind.Symbol sym ->
         try
-            resolve sym (currentNS, source)
-            |> function
+            match resolve sym (currentNS, source) with
             | Found decl -> Some decl, Some sym
             | _ -> None, Some sym
         with :? ArgumentException -> None, Some sym
     | QsSymbolKind.QualifiedSymbol (ns, sym) ->
         try
-            extract { Namespace = ns; Name = sym } (currentNS, source)
-            |> function
+            match extract { Namespace = ns; Name = sym } (currentNS, source) with
             | Found decl -> Some decl, Some sym
             | _ -> None, None
         with :? ArgumentException -> None, None
@@ -378,8 +369,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
 
     let typeParamName onUnknown (sym: QsSymbol) =
         let name =
-            sym.Symbol
-            |> function
+            match sym.Symbol with
             | Symbol name -> name
             | _ -> null
 
@@ -481,13 +471,11 @@ let public VariableInfo (symbolTable: NamespaceManager)
             let kind = if decl.InferredInformation.IsMutable then "Mutable" else "Immutable"
             sprintf "%s variable %s%sType: %s" kind sym newLine (TypeName decl.Type)
         else
-            symbolTable.Documentation().TryGetValue(sym)
-            |> function
+            match symbolTable.Documentation().TryGetValue(sym) with
             | true, docs -> sprintf "Namespace %s%s" sym (namespaceDocumentation (docs, markdown))
             | false, _ -> sprintf "Variable %s" sym
     | _ ->
-        qsSym.Symbol
-        |> function
+        match qsSym.Symbol with
         | QualifiedSymbol (ns, sym) -> sprintf "%s.%s" ns sym
         | _ -> "Unknown symbol"
 
@@ -542,8 +530,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
 
 [<Extension>]
 let public LiteralInfo (ex: QsExpression) markdown =
-    ex.Expression
-    |> function
+    match ex.Expression with
     | QsExpressionKind.UnitValue -> sprintf "Built-in Unit literal %s" (PrintSummary ex.Documentation markdown)
     | QsExpressionKind.IntLiteral _ -> sprintf "Built-in Int literal %s" (PrintSummary ex.Documentation markdown)
     | QsExpressionKind.BigIntLiteral _ -> sprintf "Built-in BigInt literal %s" (PrintSummary ex.Documentation markdown)

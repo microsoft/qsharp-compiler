@@ -43,31 +43,27 @@ type BuiltIn =
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint(att: QsDeclarationAttribute) =
-        att.TypeId
-        |> function
+        match att.TypeId with
         | Value tId ->
             tId.Namespace = BuiltIn.EntryPoint.FullName.Namespace && tId.Name = BuiltIn.EntryPoint.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute marks the corresponding declaration as deprecated.
     static member MarksDeprecation(att: QsDeclarationAttribute) =
-        att.TypeId
-        |> function
+        match att.TypeId with
         | Value tId ->
             tId.Namespace = BuiltIn.Deprecated.FullName.Namespace && tId.Name = BuiltIn.Deprecated.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute marks the corresponding declaration as unit test.
     static member MarksTestOperation(att: QsDeclarationAttribute) =
-        att.TypeId
-        |> function
+        match att.TypeId with
         | Value tId -> tId.Namespace = BuiltIn.Test.FullName.Namespace && tId.Name = BuiltIn.Test.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
     static member internal DefinesNameForTesting(att: QsDeclarationAttribute) =
-        att.TypeId
-        |> function
+        match att.TypeId with
         | Value tId ->
             tId.Namespace = BuiltIn.EnableTestingViaName.FullName.Namespace
             && tId.Name = BuiltIn.EnableTestingViaName.FullName.Name
@@ -75,8 +71,7 @@ type BuiltIn =
 
     /// Returns true if the given attribute indicates that the type or callable has been loaded via an alternative name for testing purposes.
     static member internal DefinesLoadedViaTestNameInsteadOf(att: QsDeclarationAttribute) =
-        att.TypeId
-        |> function
+        match att.TypeId with
         | Value tId ->
             tId.Namespace = GeneratedAttributes.Namespace
             && tId.Name = GeneratedAttributes.LoadedViaTestNameInsteadOf

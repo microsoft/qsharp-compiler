@@ -59,8 +59,7 @@ type QsNullable<'T> =
 
     /// Converts the given F# Option to a QsNullable.
     static member FromOption opt =
-        opt
-        |> function
+        match opt with
         | Some v -> Value v
         | None -> Null
 

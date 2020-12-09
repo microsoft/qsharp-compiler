@@ -124,8 +124,7 @@ type TypeTransformationBase(options: TransformationOptions) =
             t
         else
             let transformed =
-                t.Resolution
-                |> function
+                match t.Resolution with
                 | ExpressionType.UnitType -> this.OnUnitType()
                 | ExpressionType.Operation ((it, ot), fs) -> this.OnOperation((it, ot), fs)
                 | ExpressionType.Function (it, ot) -> this.OnFunction(it, ot)

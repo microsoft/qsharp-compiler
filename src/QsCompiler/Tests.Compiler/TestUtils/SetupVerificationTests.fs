@@ -31,8 +31,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     let diagnostics =
         let getCallableStart (c: QsCallable) =
             let attributes =
-                c.Kind
-                |> function
+                match c.Kind with
                 | TypeConstructor -> types.[c.FullName].Attributes
                 | _ -> c.Attributes
 
@@ -72,8 +71,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         let got =
             diag.Where(fun d -> d.Severity = severity)
             |> Seq.choose (fun d ->
-                Diagnostics.TryGetCode d.Code
-                |> function
+                match Diagnostics.TryGetCode d.Code with
                 | true, code -> Some code
                 | false, _ -> None)
 

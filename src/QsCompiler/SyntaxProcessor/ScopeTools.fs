@@ -110,8 +110,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// If no namespace is specified, the namespace resolution is done under the assumption that the unqualified name is used within the
     /// source file, namespace, and callable associated with this symbol tracker instance.
     let globalTypeWithName (ns, name) =
-        ns
-        |> function
+        match ns with
         | None -> GlobalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
         | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
 
@@ -120,8 +119,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// If no namespace is specified, the namespace resolution is done under the assumption that the unqualified name is used within the
     /// source file, namespace, and callable associated with this symbol tracker instance.
     let globalCallableWithName (ns, name) =
-        ns
-        |> function
+        match ns with
         | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile)
         | Some nsName ->
             GlobalSymbols().TryGetCallable (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
@@ -289,8 +287,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         let resolveGlobal (ns, sym) input =
             match input with
             | Found (decl: CallableDeclarationHeader) ->
-                decl.Kind
-                |> function
+                match decl.Kind with
                 | QsCallableKind.Operation ->
                     buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
@@ -365,17 +362,13 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         match this.TryGetTypeDeclaration addError udt with
         | Null -> InvalidType |> ResolvedType.New
         | Value decl ->
-            item
-            |> function
+            match item with
             | InvalidIdentifier -> InvalidType |> ResolvedType.New
             | GlobalCallable _ ->
                 addError (ErrorCode.ExpectingItemName, [])
                 InvalidType |> ResolvedType.New
             | LocalVariable name ->
-                decl.TypeItems.Items
-                |> Seq.choose (namedWithName name)
-                |> Seq.toList
-                |> function
+                match decl.TypeItems.Items |> Seq.choose (namedWithName name) |> Seq.toList with
                 | [ itemDecl ] -> itemDecl.Type |> StripPositionInfo.Apply
                 | _ ->
                     addError (ErrorCode.UnknownItemName, [ udt.Name; name ])

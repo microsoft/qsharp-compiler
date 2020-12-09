@@ -173,8 +173,7 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
             | None, errs -> VariableName name, [||], errs
         | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings(syms.[0], exType, exKind)
         | QsSymbolKind.SymbolTuple syms ->
-            exType
-            |> function
+            match exType with
             | Tuple ts when syms.Length = ts.Length ->
                 let (symItems, declarations, errs) =
                     match exKind with
@@ -284,8 +283,7 @@ let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSy
 
     let symTuple, varDeclarations, errs =
         let isMutable =
-            kind
-            |> function
+            match kind with
             | MutableBinding -> true
             | ImmutableBinding -> false
 
@@ -399,8 +397,7 @@ let NewIfStatement (ifBlock: TypedExpression * QsPositionedBlock) elifBlocks els
 /// for the required auto-generation of specializations (specified by the given SymbolTracker).
 let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock, successCondition, fixupBlock) =
     let location =
-        repeatBlock.Location
-        |> function
+        match repeatBlock.Location with
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc
 
@@ -419,8 +416,7 @@ let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock,
 /// Throws an ArgumentException if the given block specifying the outer transformation contains no location information.
 let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
     let location =
-        outer.Location
-        |> function
+        match outer.Location with
         | Null ->
             ArgumentException "no location is set for the given within-block defining the conjugating transformation"
             |> raise
@@ -459,8 +455,7 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
 /// NOTE: the declared variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
 let private NewBindingScope kind comments (location: QsLocation) context (qsSym: QsSymbol, qsInit: QsInitializer) =
     let rec VerifyInitializer (init: QsInitializer) =
-        init.Initializer
-        |> function
+        match init.Initializer with
         | SingleQubitAllocation -> SingleQubitAllocation |> ResolvedInitializer.New, [||]
         | QubitRegisterAllocation nr ->
             let verifiedNr, _, err = VerifyWith VerifyIsInteger context nr

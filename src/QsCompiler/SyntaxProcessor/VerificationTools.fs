@@ -16,8 +16,7 @@ type QsSymbol with
     member internal this.RangeOrDefault =
         let onNull () =
             let isInvalidSym =
-                this.Symbol
-                |> function
+                match this.Symbol with
                 | InvalidSymbol -> true
                 | _ -> false
 
@@ -30,11 +29,9 @@ type QsSpecializationGenerator with
     member internal this.RangeOrDefault =
         let onNull () =
             let isInvalidGen =
-                this.Generator
-                |> function
+                match this.Generator with
                 | FunctorGenerationDirective dir ->
-                    dir
-                    |> function
+                    match dir with
                     | InvalidGenerator -> true
                     | _ -> false
                 | _ -> false
@@ -48,8 +45,7 @@ type QsExpression with
     member internal this.RangeOrDefault =
         let onNull () =
             let isInvalidExpr =
-                this.Expression
-                |> function
+                match this.Expression with
                 | InvalidExpr -> true
                 | _ -> false
 

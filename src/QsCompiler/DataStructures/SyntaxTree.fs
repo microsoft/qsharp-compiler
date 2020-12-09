@@ -143,8 +143,7 @@ type ResolvedCharacteristics =
     static member Empty = EmptySet |> ResolvedCharacteristics.New
 
     member this.AreInvalid =
-        this._Characteristics
-        |> function
+        match this._Characteristics with
         | InvalidSetExpr -> true
         | _ -> false
 
@@ -193,8 +192,7 @@ type ResolvedCharacteristics =
     /// Incorporates all empty sets such that they do not ever occur as part of an encompassing expression.
     static member New kind =
         let isEmpty (ex: ResolvedCharacteristics) =
-            ex._Characteristics
-            |> function
+            match ex._Characteristics with
             | EmptySet -> true
             | _ -> false
 
@@ -226,8 +224,7 @@ type ResolvedCharacteristics =
         elif characteristics |> List.exists (fun a -> a.AreInvalid) then
             { _Characteristics = InvalidSetExpr }
         else
-            characteristics
-            |> function
+            match characteristics with
             | [] -> ArgumentException "cannot determine common information for an empty sequence" |> raise
             | head :: tail -> common head tail |> ResolvedCharacteristics.Simplify
 
@@ -249,8 +246,7 @@ type ResolvedCharacteristics =
     /// Throws an InvalidOperationException if the properties cannot be determined
     /// either because the characteristics expression contains unresolved parameters or is invalid.
     member this.GetProperties() =
-        ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this
-        |> function
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> props.ToImmutableHashSet()
         | None -> InvalidOperationException "properties cannot be determined" |> raise
 
@@ -262,8 +258,7 @@ type ResolvedCharacteristics =
             | Adjointable -> Some Adjoint
             | Controllable -> Some Controlled
 
-        ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this
-        |> function
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
         | None -> Null
 
@@ -355,11 +350,9 @@ type ResolvedType =
         if resolutions.IsEmpty then
             t
         else
-            t.Resolution
-            |> function
+            match t.Resolution with
             | QsTypeKind.TypeParameter tp ->
-                resolutions.TryGetValue((tp.Origin, tp.TypeName))
-                |> function
+                match resolutions.TryGetValue((tp.Origin, tp.TypeName)) with
                 | true, res -> res
                 | false, _ -> t
             | QsTypeKind.TupleType ts ->

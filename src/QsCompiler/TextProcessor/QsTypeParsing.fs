@@ -158,8 +158,7 @@ let private operationType =
                 let characteristics =
                     head :: tail
                     |> List.choose (fun a ->
-                        a.Characteristics
-                        |> function
+                        match a.Characteristics with
                         | SimpleSet Controllable -> Some qsCtlSet.id
                         | SimpleSet Adjointable -> Some qsAdjSet.id
                         | _ -> None)
