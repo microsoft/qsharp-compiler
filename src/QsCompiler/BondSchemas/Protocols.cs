@@ -46,13 +46,35 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         /// <summary>
+        /// Starts the creation of Bond serializers and deserializers.
+        /// </summary>
+        public static void Initialize()
+        {
+            lock (BondSharedDataStructuresLock)
+            {
+                if (simpleBinaryDeserializerInitialization == null)
+                {
+                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                }
+
+                if (simpleBinarySerializerInitialization == null)
+                {
+                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                }
+            }
+        }
+
+        /// <summary>
         /// Starts the creation of a Bond deserializer.
         /// </summary>
         public static void InitializeDeserializer()
         {
             lock (BondSharedDataStructuresLock)
             {
-                simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                if (simpleBinaryDeserializerInitialization == null)
+                {
+                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                }
             }
         }
 
@@ -63,8 +85,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                
-                simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                if (simpleBinarySerializerInitialization == null)
+                {
+                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                }
             }
         }
 
