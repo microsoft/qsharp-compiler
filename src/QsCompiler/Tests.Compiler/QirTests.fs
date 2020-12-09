@@ -7,6 +7,9 @@ open System.IO
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open System.Reflection
+open System.Text.RegularExpressions
+
+let private GUID = new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
 
 let private testOne expected args = 
     let result = Program.Main args
@@ -17,7 +20,7 @@ let private clearOutput name =
 
 let private checkAltOutput name actualText =
     let expectedText = ("TestCases","QirTests",name) |> Path.Combine |> File.ReadAllText
-    Assert.Contains(expectedText, actualText)
+    Assert.Contains(expectedText, GUID.Replace(actualText, "__GUID__"))
 
 let private qirMultiTest target name snippets =
     clearOutput (name+".ll")
