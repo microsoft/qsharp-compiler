@@ -412,5 +412,17 @@ let public ClassicalControlSignatures =
        // Inequality with ApplyIfZero
        (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
        // Literal on the Left
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Simple NOT condition
+       (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+       // Outer NOT condition
+       (_DefaultTypes,
+        [| ClassicalControlNs, "Foo", [||], "Unit"
+           ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // Nested NOT condition
+       (_DefaultTypes,
+        [| ClassicalControlNs, "Foo", [||], "Unit"
+           ClassicalControlNs, "_Foo", [| "Result" |], "Unit" |])
+       // One-sided NOT condition
        (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |]) |]
     |> _MakeSignatures
