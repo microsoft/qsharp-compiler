@@ -97,7 +97,7 @@ type private PartialNamespace private
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.GetType tName =
-        TypeDeclarations.TryGetValue tName |> tryToOption |> Option.defaultWith (fun () ->
+        TypeDeclarations.TryGetValue tName |> tryOption |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A type with the given name was not found." |> raise)
 
     member internal this.ContainsType = TypeDeclarations.ContainsKey
@@ -107,7 +107,7 @@ type private PartialNamespace private
     /// <summary>Gets the callable with the given name from the dictionary of declared callable.</summary>
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.GetCallable cName =
-        CallableDeclarations.TryGetValue cName |> tryToOption |> Option.defaultWith (fun () ->
+        CallableDeclarations.TryGetValue cName |> tryOption |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey

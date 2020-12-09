@@ -100,14 +100,14 @@ type NamespaceManager
     /// The qualifier's namespace or the parent namespace and source file were not found.
     /// </exception>
     let TryResolveQualifier qualifier (nsName, source) =
-        let parentNs () = Namespaces.TryGetValue nsName |> tryToOption |> Option.defaultWith (fun () ->
+        let parentNs () = Namespaces.TryGetValue nsName |> tryOption |> Option.defaultWith (fun () ->
             SymbolNotFoundException "The namespace with the given name was not found." |> raise)
-        let nsAlias = Namespaces.TryGetValue >> tryToOption >> Option.orElseWith (fun () ->
+        let nsAlias = Namespaces.TryGetValue >> tryOption >> Option.orElseWith (fun () ->
             QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
             None)
-        Namespaces.TryGetValue qualifier |> tryToOption |> Option.orElseWith (fun () ->
+        Namespaces.TryGetValue qualifier |> tryOption |> Option.orElseWith (fun () ->
             (parentNs().NamespaceShortNames source).TryGetValue qualifier
-            |> tryToOption
+            |> tryOption
             |> Option.bind nsAlias)
 
     /// <summary>

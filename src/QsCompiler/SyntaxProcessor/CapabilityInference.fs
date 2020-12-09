@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open Microsoft.Quantum.QsCompiler.Utils
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
@@ -269,22 +270,11 @@ let ScopeDiagnostics context scope =
       scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
     |> Seq.concat
 
-/// Looks up a key in the dictionary, returning Some value if it is found and None if not.
-let private tryGetValue key (dict : IReadOnlyDictionary<_, _>) =
-    match dict.TryGetValue key with
-    | true, value -> Some value
-    | false, _ -> None
-
 /// Returns true if the callable is an operation.
 let private isOperation callable =
     match callable.Kind with
     | Operation -> true
     | _ -> false
-
-/// Returns true if the QsNullable is null.
-let private isQsNull = function
-    | Value _ -> false
-    | Null -> true
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
@@ -320,11 +310,11 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
         |> fun items -> items.ToDictionary ((fun item -> item.Key), fun item -> callableSourceCapability item.Value)
     let sourceCycles =
         graph.GetCallCycles () |> Seq.filter (Seq.exists <| fun node ->
-            callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile)
+            callables.TryGetValue node.CallableName |> tryOption |> Option.exists isDeclaredInSourceFile)
     for cycle in sourceCycles do
         let cycleCapability =
             cycle
-            |> Seq.choose (fun node -> callables |> tryGetValue node.CallableName)
+            |> Seq.choose (fun node -> callables.TryGetValue node.CallableName |> tryOption)
             |> Seq.map callableSourceCapability
             |> joinCapabilities
         for node in cycle do
@@ -344,7 +334,7 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
             |> Set.ofSeq
             |> fun names -> Set.difference names visited
         newDependencies
-        |> Seq.choose (fun name -> callables |> tryGetValue name)
+        |> Seq.choose (fun name -> callables.TryGetValue name |> tryOption)
         |> Seq.map (cachedCapability visited)
         |> joinCapabilities
 
@@ -353,7 +343,10 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
         (BuiltIn.TryGetRequiredCapability callable.Attributes).ValueOrApply (fun () ->
             if isDeclaredInSourceFile callable
             then
-                [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Base
+                [ initialCapabilities.TryGetValue callable.FullName
+                  |> tryOption
+                  |> Option.defaultValue RuntimeCapability.Base
+
                   dependentCapability visited callable.FullName ]
                 |> joinCapabilities
             else RuntimeCapability.Base)
@@ -361,7 +354,7 @@ let private callableDependentCapability (callables : IImmutableDictionary<_, _>,
     // Tries to retrieve the capability of the callable from the cache first; otherwise, computes the capability and
     // saves it in the cache.
     and cachedCapability visited (callable : QsCallable) =
-        cache |> tryGetValue callable.FullName |> Option.defaultWith (fun () ->
+        cache.TryGetValue callable.FullName |> tryOption |> Option.defaultWith (fun () ->
             let capability = callableCapability visited callable
             cache.[callable.FullName] <- capability
             capability)
@@ -383,7 +376,7 @@ let InferCapabilities compilation =
     transformation.Namespaces <- {
         new NamespaceTransformation (transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> isQsNull
+                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute
                 else callable

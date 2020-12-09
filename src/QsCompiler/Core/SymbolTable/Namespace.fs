@@ -45,8 +45,8 @@ type Namespace private
         isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Modifiers.Access) false &&
         isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Modifiers.Access) false &&
         Parts.Values.All (fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryToOption >> Option.toList) (fun c -> (snd c).Modifiers.Access) true &&
-            isAvailableWith (partial.TryGetType >> tryToOption >> Option.toList) (fun t -> t.Modifiers.Access) true)
+            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Modifiers.Access) true &&
+            isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Modifiers.Access) true)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
@@ -189,7 +189,7 @@ type Namespace private
     /// </exception>
     member internal this.TypeInSource source tName =
         match Parts.TryGetValue source with
-        | true, partial -> partial.TryGetType tName |> tryToOption |> Option.defaultWith (fun () ->
+        | true, partial -> partial.TryGetType tName |> tryOption |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -222,7 +222,7 @@ type Namespace private
     /// </exception>
     member internal this.CallableInSource source cName =
         match Parts.TryGetValue source with
-        | true, partial -> partial.TryGetCallable cName |> tryToOption |> Option.defaultWith (fun () ->
+        | true, partial -> partial.TryGetCallable cName |> tryOption |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
