@@ -477,10 +477,16 @@ namespace Microsoft.Quantum.QsCompiler
             this.RaiseCompilationTaskStart(null, "OverallCompilation");
 
             // loading the content to compiler
-            BondSchemas.Protocols.Initialize();
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
+
+            // When loading references is done through the generated C# and the syntax tree is not serialized,
+            // Bond protocols are not needed.
+            if (!this.config.LoadReferencesBasedOnGeneratedCsharp && !this.config.SerializeSyntaxTree)
+            {
+                BondSchemas.Protocols.Initialize();
+            }
 
             Status rewriteStepLoading = Status.Succeeded;
             this.externalRewriteSteps = ExternalRewriteStepsManager.Load(this.config, d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d), ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
