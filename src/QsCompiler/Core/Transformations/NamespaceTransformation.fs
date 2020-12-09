@@ -46,8 +46,17 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
+    [<Obsolete "Replaced by OnSource.">]
+    abstract member OnSourceFile : string -> string
+    default this.OnSourceFile file = file
+
     abstract member OnSource : Source -> Source
-    default this.OnSource source = source
+    default this.OnSource source =
+        let file = this.OnSourceFile source.AssemblyOrCode
+
+        if file.EndsWith ".qs"
+        then { source with CodePath = file }
+        else { source with AssemblyPath = Value file }
 
     abstract member OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att 
