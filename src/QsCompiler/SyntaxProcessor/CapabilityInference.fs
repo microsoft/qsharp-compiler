@@ -226,7 +226,7 @@ let private referenceReasons context
         | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
         | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
         | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
-        | Error ErrorCode.UnsupportedCapability -> Some WarningCode.UnsupportedCapability
+        | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
         | _ -> None
         |> Option.map (fun code ->
             let args =
@@ -259,7 +259,10 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
                 context.Globals.ImportedSpecializations name
                 |> Seq.collect (referenceReasons context name range)
 
-            let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
+            let error =
+                ErrorCode.UnsupportedCallableCapability,
+                [ name.Name; string capability; context.ProcessorArchitecture ]
+
             let diagnostic = range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error
             reasons |> Seq.append (Seq.singleton diagnostic)
     | _ -> Seq.empty

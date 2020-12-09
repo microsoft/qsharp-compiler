@@ -171,7 +171,8 @@ type ErrorCode =
     | ResultComparisonNotInOperationIf = 5024
     | ReturnInResultConditionedBlock = 5025
     | SetInResultConditionedBlock = 5026
-    | UnsupportedCapability = 5027
+    | UnsupportedCallableCapability = 5027
+    | [<Obsolete "Renamed to UnsupportedCallableCapability.">] UnsupportedCapability = 5027
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -341,7 +342,7 @@ type WarningCode =
     | ResultComparisonNotInOperationIf = 5024
     | ReturnInResultConditionedBlock = 5025
     | SetInResultConditionedBlock = 5026
-    | UnsupportedCapability = 5027
+    | UnsupportedCallableCapability = 5027
 
     | TypeParameterNotResolvedByArgument = 6001
     | ReturnTypeNotResolvedByArgument = 6002
@@ -578,7 +579,7 @@ type DiagnosticItem =
             | ErrorCode.SetInResultConditionedBlock               ->
                 "The variable \"{0}\" cannot be reassigned here. " +
                 "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
-            | ErrorCode.UnsupportedCapability                     -> "The callable {0} requires the {1} runtime capability, which is not supported by the target {2}."
+            | ErrorCode.UnsupportedCallableCapability             -> "The callable {0} requires the {1} runtime capability, which is not supported by the target {2}."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
@@ -748,7 +749,7 @@ type DiagnosticItem =
             | WarningCode.ResultComparisonNotInOperationIf        -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4)
             | WarningCode.ReturnInResultConditionedBlock          -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4)
             | WarningCode.SetInResultConditionedBlock             -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
-            | WarningCode.UnsupportedCapability                   -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedCapability, args |> Seq.skip 4)
+            | WarningCode.UnsupportedCallableCapability           -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
 
             | WarningCode.TypeParameterNotResolvedByArgument      -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument         -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."

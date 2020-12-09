@@ -179,16 +179,16 @@ let ``BasicMeasurementFeedback restricts library calls and references`` () =
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicMeasurementFeedback
-        [ Error ErrorCode.UnsupportedCapability
+        [ Error ErrorCode.UnsupportedCallableCapability
           Warning WarningCode.ResultComparisonNotInOperationIf
           Warning WarningCode.ReturnInResultConditionedBlock
           Warning WarningCode.SetInResultConditionedBlock ])
 
     "CallLibraryFullWithNestedCall"
     |> expect basicMeasurementFeedback
-        [ Error ErrorCode.UnsupportedCapability
+        [ Error ErrorCode.UnsupportedCallableCapability
           Warning WarningCode.ResultComparisonNotInOperationIf
-          Warning WarningCode.UnsupportedCapability ]
+          Warning WarningCode.UnsupportedCallableCapability ]
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
@@ -199,18 +199,18 @@ let ``BasicQuantumFunctionality restricts library calls and references`` () =
     [ "CallLibraryBmf"
       "ReferenceLibraryBmf" ]
     |> List.iter (expect basicQuantumFunctionality
-        [ Error ErrorCode.UnsupportedCapability
+        [ Error ErrorCode.UnsupportedCallableCapability
           Warning WarningCode.UnsupportedResultComparison ])
 
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicQuantumFunctionality
-        [ Error ErrorCode.UnsupportedCapability
+        [ Error ErrorCode.UnsupportedCallableCapability
           Warning WarningCode.UnsupportedResultComparison
           Warning WarningCode.UnsupportedResultComparison ])
 
     "CallLibraryBmfWithNestedCall"
     |> expect basicQuantumFunctionality
-        [ Error ErrorCode.UnsupportedCapability
+        [ Error ErrorCode.UnsupportedCallableCapability
           Warning WarningCode.UnsupportedResultComparison
-          Warning WarningCode.UnsupportedCapability ]
+          Warning WarningCode.UnsupportedCallableCapability ]
