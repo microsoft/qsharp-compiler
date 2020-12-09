@@ -213,6 +213,10 @@ namespace Microsoft.Quantum.Testing.Capability {
         LibraryBmf(q);
     }
 
+    operation CallLibraryBmfWithNestedCall(q : Qubit) : Unit {
+        LibraryBmfWithNestedCall(q);
+    }
+
     operation ReferenceLibraryBmf() : (Qubit => Unit) {
         let f = LibraryBmf;
         return f;
@@ -220,6 +224,10 @@ namespace Microsoft.Quantum.Testing.Capability {
 
     operation CallLibraryFull(q : Qubit) : Unit {
         LibraryFull(q);
+    }
+
+    operation CallLibraryFullWithNestedCall(q : Qubit) : Unit {
+        LibraryFullWithNestedCall(q);
     }
 
     operation ReferenceLibraryFull() : (Qubit => Unit) {

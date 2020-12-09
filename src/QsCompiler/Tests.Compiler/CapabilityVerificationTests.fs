@@ -162,29 +162,55 @@ let ``FullComputation allows all library calls and references`` () =
     [ "CallLibraryBqf"
       "ReferenceLibraryBqf"
       "CallLibraryBmf"
+      "CallLibraryBmfWithNestedCall"
       "ReferenceLibraryBmf"
       "CallLibraryFull"
+      "CallLibraryFullWithNestedCall"
       "ReferenceLibraryFull" ]
     |> List.iter (expect fullComputation [])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts library calls and references`` () =
     [ "CallLibraryBqf"
-      "CallLibraryBmf" ]
+      "CallLibraryBmf"
+      "CallLibraryBmfWithNestedCall" ]
     |> List.iter (expect basicMeasurementFeedback [])
+
     [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicMeasurementFeedback
-        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.ResultComparisonNotInOperationIf ])
+        [ Error ErrorCode.UnsupportedCapability
+          Warning WarningCode.ResultComparisonNotInOperationIf
+          Warning WarningCode.ReturnInResultConditionedBlock
+          Warning WarningCode.SetInResultConditionedBlock ])
+
+    "CallLibraryFullWithNestedCall"
+    |> expect basicMeasurementFeedback
+        [ Error ErrorCode.UnsupportedCapability
+          Warning WarningCode.ResultComparisonNotInOperationIf
+          Warning WarningCode.UnsupportedCapability ]
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
     [ "CallLibraryBqf"
       "ReferenceLibraryBqf" ]
     |> List.iter (expect basicQuantumFunctionality [])
+
     [ "CallLibraryBmf"
-      "ReferenceLibraryBmf"
-      "CallLibraryFull"
+      "ReferenceLibraryBmf" ]
+    |> List.iter (expect basicQuantumFunctionality
+        [ Error ErrorCode.UnsupportedCapability
+          Warning WarningCode.UnsupportedResultComparison ])
+
+    [ "CallLibraryFull"
       "ReferenceLibraryFull" ]
     |> List.iter (expect basicQuantumFunctionality
-        [ Error ErrorCode.UnsupportedCapability; Warning WarningCode.UnsupportedResultComparison ])
+        [ Error ErrorCode.UnsupportedCapability
+          Warning WarningCode.UnsupportedResultComparison
+          Warning WarningCode.UnsupportedResultComparison ])
+
+    "CallLibraryBmfWithNestedCall"
+    |> expect basicQuantumFunctionality
+        [ Error ErrorCode.UnsupportedCapability
+          Warning WarningCode.UnsupportedResultComparison
+          Warning WarningCode.UnsupportedCapability ]
