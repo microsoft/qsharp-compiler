@@ -589,22 +589,32 @@ and QsStatement = {
 }
 
 
+/// The source files for a syntax tree node.
 type Source =
-    { CodePath : string
+    { /// The path to the original source code file.
+      CodePath : string
+
+      /// The path to the assembly file if the node was loaded from a reference.
       AssemblyPath : string QsNullable }
 
-module Source =
-    [<CompiledName "AssemblyOrCode">]
-    let assemblyOrCode source = source.AssemblyPath.ValueOr source.CodePath
+    /// The assembly file path for this source if one exists, otherwise the code file path.
+    member source.AssemblyOrCode = source.AssemblyPath.ValueOr source.CodePath
 
-type Source with
-    member source.AssemblyOrCode = Source.assemblyOrCode source
-
+    /// <summary>
+    /// Returns a copy of this source with the given <paramref name="codePath"/> or <paramref name="assemblyPath"/> if
+    /// provided.
+    /// </summary>
     member source.With([<Optional; DefaultParameterValue null>] ?codePath,
                        [<Optional; DefaultParameterValue null>] ?assemblyPath) =
         { source with
               CodePath = codePath |> Option.defaultValue source.CodePath
               AssemblyPath = assemblyPath |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyPath }
+
+/// Operations for source files.
+module Source =
+    /// The assembly file path for this source if one exists, otherwise the code file path.
+    [<CompiledName "AssemblyOrCode">]
+    let assemblyOrCode (source : Source) = source.AssemblyOrCode
 
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable
@@ -682,7 +692,8 @@ type QsSpecialization = {
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
     Attributes : ImmutableArray<QsDeclarationAttribute>
-    /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
+    /// The source where the specialization is declared in (not necessarily the same as the one of the callable it
+    /// extends).
     Source : Source
     /// Contains the location information for the declared specialization.
     /// The position offset represents the position in the source file where the specialization is declared,
@@ -707,7 +718,7 @@ type QsSpecialization = {
     member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
     member this.WithSource source = {this with Source = source}
 
-    [<Obsolete "Use Source.AssemblyOrCode.">]
+    [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
 
@@ -740,7 +751,7 @@ type QsCallable = {
     Attributes : ImmutableArray<QsDeclarationAttribute>
     /// Represents the Q# keywords attached to the declaration that modify its behavior.
     Modifiers : Modifiers
-    /// identifier for the file the callable is declared in
+    /// The source where the callable is declared in.
     Source : Source
     /// Contains the location information for the declared callable.
     /// The position offset represents the position in the source file where the callable is declared,
@@ -770,7 +781,7 @@ type QsCallable = {
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
 
-    [<Obsolete "Use Source.AssemblyOrCode.">]
+    [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
 
@@ -806,7 +817,7 @@ type QsCustomType = {
     Attributes : ImmutableArray<QsDeclarationAttribute>
     /// Represents the Q# keywords attached to the declaration that modify its behavior.
     Modifiers : Modifiers
-    /// identifier for the file the type is declared in
+    /// The source where the type is declared in.
     Source : Source
     /// Contains the location information for the declared type.
     /// The position offset represents the position in the source file where the type is declared,
@@ -831,7 +842,7 @@ type QsCustomType = {
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
 
-    [<Obsolete "Use Source.AssemblyOrCode.">]
+    [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
 
