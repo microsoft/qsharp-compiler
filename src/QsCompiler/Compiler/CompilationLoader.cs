@@ -481,11 +481,16 @@ namespace Microsoft.Quantum.QsCompiler
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
 
-            // When loading references is done through the generated C# and the syntax tree is not serialized,
-            // Bond protocols are not needed.
-            if (!this.config.LoadReferencesBasedOnGeneratedCsharp && !this.config.SerializeSyntaxTree)
+            // When loading references is done through the generated C# a Bond deserializer is not needed.
+            if (this.config.LoadReferencesBasedOnGeneratedCsharp)
             {
-                BondSchemas.Protocols.Initialize();
+                BondSchemas.Protocols.InitializeDeserializer();
+            }
+
+            // When the syntax tree is not serialized a Bond serializer is not needed.
+            if (this.config.SerializeSyntaxTree)
+            {
+                BondSchemas.Protocols.InitializeSerializer();
             }
 
             Status rewriteStepLoading = Status.Succeeded;

@@ -46,13 +46,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         /// <summary>
-        /// Starts the creation of Bond serializers and deserializers.
+        /// Starts the creation of a Bond deserializer.
         /// </summary>
-        public static void Initialize()
+        public static void InitializeDeserializer()
         {
             lock (BondSharedDataStructuresLock)
             {
                 simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+            }
+        }
+
+        /// <summary>
+        /// Starts the creation of a Bond serializer.
+        /// </summary>
+        public static void InitializeSerializer()
+        {
+            lock (BondSharedDataStructuresLock)
+            {
+                
                 simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
             }
         }
