@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <BondCodegen Remove="*.bond" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Bond.CSharp" Version="8.2.0" />
   </ItemGroup>
 

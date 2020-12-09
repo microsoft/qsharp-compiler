@@ -22,8 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Verifies that all tokens are ordered according to their range.
-        /// Throws an ArgumentException if this is not the case.
         /// </summary>
+        /// <exception cref="ArgumentException">Not all <paramref name="tokens"/> are ordered according to their range.</exception>
         internal static void VerifyTokenOrdering(IEnumerable<CodeFragment> tokens)
         {
             Position? previousEnding = null;
@@ -221,8 +221,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given file contains any tokens overlapping with the given fragment.
         /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
         /// whereas the range of the given fragment is assumed to be the absolute range.
-        /// Throws an ArgumentOutOfRangeException if the given range is not a valid range within file.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="range"/> is not a valid range within <paramref name="file"/>.</exception>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
             if (!file.ContainsRange(range))
@@ -255,8 +255,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Assuming both the current tokens and the tokens to update are sorted according to their range,
         /// merges the current and updated tokens such that the merged collection is sorted as well.
-        /// Throws a QsCompilerException if the token verification for the merged collection fails.
         /// </summary>
+        /// <exception cref="QsCompilerException">The token verification for the merged collection failed.</exception>
         internal static List<CodeFragment> MergeTokens(IEnumerable<CodeFragment> current, IEnumerable<CodeFragment> updated)
         {
             var merged = new List<CodeFragment>(0);

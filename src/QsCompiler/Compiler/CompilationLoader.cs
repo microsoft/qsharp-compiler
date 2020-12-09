@@ -441,10 +441,21 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation);
 
             // loading the content to compiler
-            BondSchemas.Protocols.Initialize();
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
+
+            // When loading references is done through the generated C# a Bond deserializer is not needed.
+            if (!this.config.LoadReferencesBasedOnGeneratedCsharp)
+            {
+                BondSchemas.Protocols.InitializeDeserializer();
+            }
+
+            // When the syntax tree is not serialized a Bond serializer is not needed.
+            if (this.config.SerializeSyntaxTree)
+            {
+                BondSchemas.Protocols.InitializeSerializer();
+            }
 
             Status rewriteStepLoading = Status.Succeeded;
             this.externalRewriteSteps = ExternalRewriteStepsManager.Load(this.config, d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d), ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
@@ -1098,9 +1109,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder.
         /// Returns the computed absolute path for a file with the specified ending.
         /// If the content for that file is specified, writes that content to disk.
-        /// Throws an ArgumentException if the given file id is incompatible with and id assigned by the Q# compiler.
-        /// Throws the corresponding exception any of the path operations fails or if the writing fails.
+        /// Throws the corresponding exception if any of the path operations fails or if the writing fails.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="fileId"/> is incompatible with an id assigned by the Q# compiler.</exception>
         public static string GeneratedFile(string fileId, string outputFolder, string fileEnding, string? content = null)
         {
             if (!CompilationUnitManager.TryGetUri(fileId, out var file))

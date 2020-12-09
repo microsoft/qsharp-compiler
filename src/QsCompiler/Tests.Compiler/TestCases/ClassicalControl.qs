@@ -1038,3 +1038,72 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Simple NOT condition
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (not (r == Zero)) {
+            SubOp1();
+        }
+        else {
+            SubOp2();
+        }
+    }
+}
+
+// =================================
+
+// Outer NOT condition
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (not (r == Zero or r == One)) {
+            SubOp1();
+        }
+        else {
+            SubOp2();
+        }
+    }
+}
+
+// =================================
+
+// Nested NOT condition
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r == Zero or not (r == One)) {
+            SubOp1();
+        }
+        else {
+            SubOp2();
+        }
+    }
+}
+
+// =================================
+
+// One-Sided NOT condition
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (not (r == One)) {
+            SubOp1();
+        }
+    }
+}
