@@ -1131,33 +1131,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return args;
             }
 
-            void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value resultTuplePointer, int item)
+            // result value contains the return value, and output tuple is the tuple where that value should be stored
+            void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
             {
                 var resultTupleType = this.LlvmStructTypeFromQsharpType(resultType);
+                Value GetOutputItem(int item) =>
+                    this.CurrentBuilder.GetElementPtr(
+                        resultTupleType,
+                        this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType()),
+                        new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(item) });
+
                 if (resultType.Resolution is QsResolvedTypeKind.TupleType tupleType)
                 {
-                    // Here we'll step through and recurse
-                    var itemCount = tupleType.Item.Length;
                     // Start with 1 because the 0 element of the LLVM structures is the tuple header
-                    for (int i = 1; i <= itemCount; i++)
+                    for (int i = 1; i <= tupleType.Item.Length; i++)
                     {
-                        // TODO: complete implementation
+                        var resItem = this.CurrentBuilder.GetElementPtr(
+                             resultTupleType,
+                             resultValue,
+                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(i) });
+                        var itemOutputPointer = GetOutputItem(i);
+
+                        // if the subitem is a tuple we are good
+                        // if it is not then we need to get an output tuple to populate for the recursion to work... -> change recursion?
+                        if (tupleType.Item[i].Resolution.IsTupleType)
+                        {
+                            PopulateResultTuple(tupleType.Item[i], resItem, itemOutputPointer);
+                        }
+                        else
+                        {
+                            this.CurrentBuilder.Store(resItem, itemOutputPointer);
+                        }
                     }
                 }
                 else if (!resultType.Resolution.IsUnitType)
                 {
-                    Value outputTuple = this.CurrentBuilder.BitCast(resultTuplePointer, resultTupleType.CreatePointerType());
-                    Value resultPointer = this.CurrentBuilder.GetElementPtr(
-                        resultTupleType,
-                        outputTuple,
-                        new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(item) });
+                    var tuplePointer = this.CurrentBuilder.BitCast(resultValue, resultTupleType.CreatePointerType());
+                    var outputPointer = GetOutputItem(1);
 
                     // if the returned value is a udt with a single item then we need to unwrap it first
                     if (resultType.Resolution is QsResolvedTypeKind.UserDefinedType udt
                         && this.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
                         && !udtDecl.Type.Resolution.IsTupleType)
                     {
-                        var tuplePointer = this.CurrentBuilder.BitCast(resultValue, resultTupleType.CreatePointerType());
                         var itemType = this.LlvmTypeFromQsharpType(udtDecl.Type);
                         var itemPointer = this.CurrentBuilder.GetElementPtr(
                              resultTupleType,
@@ -1166,7 +1182,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         resultValue = this.CurrentBuilder.Load(itemType, itemPointer);
                     }
 
-                    this.CurrentBuilder.Store(resultValue, resultPointer);
+                    this.CurrentBuilder.Store(resultValue, outputPointer);
                 }
             }
 
@@ -1212,7 +1228,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
                         var argList = GenerateArgTupleDecomposition(callable.ArgumentTuple, argTupleValue, spec.Kind);
                         var result = GenerateBaseMethodCall(callable, spec, argList);
-                        PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2], 1);
+                        PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
                         this.CurrentBuilder.Return();
                     }
                 }
