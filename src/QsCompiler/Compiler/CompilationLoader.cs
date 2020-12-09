@@ -482,7 +482,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.config = options ?? default;
 
             // When loading references is done through the generated C# a Bond deserializer is not needed.
-            if (this.config.LoadReferencesBasedOnGeneratedCsharp)
+            if (!this.config.LoadReferencesBasedOnGeneratedCsharp)
             {
                 BondSchemas.Protocols.InitializeDeserializer();
             }
