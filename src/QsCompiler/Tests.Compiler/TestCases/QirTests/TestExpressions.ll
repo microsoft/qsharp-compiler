@@ -1,4 +1,3 @@
-define void @Microsoft__Quantum__Testing__QIR__TestExpressions__body() #1 {
 entry:
   %0 = call %Callable* @Microsoft__Quantum__Testing__QIR__ReturnGlobalId__body()
   %1 = call %Callable* @Microsoft__Quantum__Testing__QIR__ReturnLocalId__body()
