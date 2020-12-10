@@ -70,8 +70,10 @@ type FunctorAutoGenTests() =
 
         this.Expect
             "AdjointGenDirective7"
-            [ Error ErrorCode.DistributedAdjointGenerator
-              Warning WarningCode.GeneratorDirectiveWillBeIgnored ]
+            [
+                Error ErrorCode.DistributedAdjointGenerator
+                Warning WarningCode.GeneratorDirectiveWillBeIgnored
+            ]
 
         this.Expect "AdjointGenDirective8" []
 
@@ -83,8 +85,10 @@ type FunctorAutoGenTests() =
 
         this.Expect
             "ControlledGenDirective6"
-            [ Error ErrorCode.InvertControlledGenerator
-              Warning WarningCode.GeneratorDirectiveWillBeIgnored ]
+            [
+                Error ErrorCode.InvertControlledGenerator
+                Warning WarningCode.GeneratorDirectiveWillBeIgnored
+            ]
 
         this.Expect "ControlledGenDirective7" [ Warning WarningCode.GeneratorDirectiveWillBeIgnored ]
         this.Expect "ControlledGenDirective8" []
@@ -215,23 +219,31 @@ type FunctorAutoGenTests() =
 
         this.Expect
             "WithInvalidQuantumDependency4"
-            [ Error ErrorCode.QuantumDependencyOutsideExprStatement
-              Error ErrorCode.MissingFunctorForAutoGeneration ]
+            [
+                Error ErrorCode.QuantumDependencyOutsideExprStatement
+                Error ErrorCode.MissingFunctorForAutoGeneration
+            ]
 
         this.Expect
             "WithInvalidQuantumDependency5"
-            [ Error ErrorCode.QuantumDependencyOutsideExprStatement
-              Error ErrorCode.MissingFunctorForAutoGeneration ]
+            [
+                Error ErrorCode.QuantumDependencyOutsideExprStatement
+                Error ErrorCode.MissingFunctorForAutoGeneration
+            ]
 
         this.Expect
             "WithInvalidQuantumDependency6"
-            [ Error ErrorCode.QuantumDependencyOutsideExprStatement
-              Error ErrorCode.MissingFunctorForAutoGeneration ]
+            [
+                Error ErrorCode.QuantumDependencyOutsideExprStatement
+                Error ErrorCode.MissingFunctorForAutoGeneration
+            ]
 
         this.Expect
             "WithInvalidQuantumDependency7"
-            [ Error ErrorCode.QuantumDependencyOutsideExprStatement
-              Error ErrorCode.MissingFunctorForAutoGeneration ]
+            [
+                Error ErrorCode.QuantumDependencyOutsideExprStatement
+                Error ErrorCode.MissingFunctorForAutoGeneration
+            ]
 
         this.Expect "WithoutInvalidQuantumDependency1" []
         this.Expect "WithoutInvalidQuantumDependency2" []

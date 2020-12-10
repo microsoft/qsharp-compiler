@@ -424,9 +424,11 @@ let internal symbolLike errCode =
 /// Returns a QsSymbol corresponding to an invalid symbol if the path contains segments that are None (i.e. invalid).
 let internal asQualifiedSymbol ((path, sym), range: Range) =
     let names =
-        [ for segment in path do
-            yield segment
-          yield sym ]
+        [
+            for segment in path do
+                yield segment
+            yield sym
+        ]
 
     if names |> List.contains None then
         (InvalidSymbol, Null) |> QsSymbol.New
@@ -522,10 +524,12 @@ let internal buildFragment header body (invalid: QsFragmentKind) fragmentKind co
     let build (kind, (text, range)) =
         getUserState .>> clearDiagnostics
         |>> fun diagnostics ->
-                { Kind = kind
-                  Range = range
-                  Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
-                  Text = text }
+                {
+                    Kind = kind
+                    Range = range
+                    Diagnostics = (filterAndAdapt diagnostics range.End).ToImmutableArray()
+                    Text = text
+                }
 
     let buildDiagnostic (errPos, (text, range: Range)) =
         let errPos = if range.End < errPos then range.End else errPos

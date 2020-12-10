@@ -17,10 +17,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 /// used to represent an unresolved attribute attached to a declaration
 type AttributeAnnotation =
-    { Id: QsSymbol
-      Argument: QsExpression
-      Position: Position
-      Comments: QsComments }
+    {
+        Id: QsSymbol
+        Argument: QsExpression
+        Position: Position
+        Comments: QsComments
+    }
     static member internal NonInterpolatedStringArgument inner =
         function
         | Item arg ->
@@ -32,25 +34,34 @@ type AttributeAnnotation =
 
 /// used internally for symbol resolution
 type internal Resolution<'T, 'R> =
-    internal { Position: Position
-               Range: Range
-               Defined: 'T
-               Resolved: QsNullable<'R>
-               DefinedAttributes: ImmutableArray<AttributeAnnotation>
-               ResolvedAttributes: ImmutableArray<QsDeclarationAttribute>
-               Modifiers: Modifiers
-               Documentation: ImmutableArray<string> }
+    internal
+        {
+            Position: Position
+            Range: Range
+            Defined: 'T
+            Resolved: QsNullable<'R>
+            DefinedAttributes: ImmutableArray<AttributeAnnotation>
+            ResolvedAttributes: ImmutableArray<QsDeclarationAttribute>
+            Modifiers: Modifiers
+            Documentation: ImmutableArray<string>
+        }
 
 /// used internally for symbol resolution
 type internal ResolvedGenerator =
-    internal { TypeArguments: QsNullable<ImmutableArray<ResolvedType>>
-               Information: CallableInformation
-               Directive: QsNullable<QsGeneratorDirective> }
+    internal
+        {
+            TypeArguments: QsNullable<ImmutableArray<ResolvedType>>
+            Information: CallableInformation
+            Directive: QsNullable<QsGeneratorDirective>
+        }
 
 /// used to group the relevant sets of specializations (i.e. group them according to type- and set-arguments)
 type SpecializationBundleProperties =
-    internal { BundleInfo: CallableInformation
-               DefinedGenerators: ImmutableDictionary<QsSpecializationKind, QsSpecializationGenerator> }
+    internal
+        {
+            BundleInfo: CallableInformation
+            DefinedGenerators: ImmutableDictionary<QsSpecializationKind, QsSpecializationGenerator>
+        }
 
     /// Given the type- and set-arguments associated with a certain specialization,
     /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
@@ -115,18 +126,20 @@ module internal ResolutionResult =
     /// Otherwise, the whole sequence may be evaluated by calling sort.
     let private Sort results =
         let choosers =
-            [ function
-              | Found value -> Some(Found value)
-              | _ -> None
-              function
-              | Ambiguous namespaces -> Some(Ambiguous namespaces)
-              | _ -> None
-              function
-              | Inaccessible -> Some Inaccessible
-              | _ -> None
-              function
-              | NotFound -> Some NotFound
-              | _ -> None ]
+            [
+                function
+                | Found value -> Some(Found value)
+                | _ -> None
+                function
+                | Ambiguous namespaces -> Some(Ambiguous namespaces)
+                | _ -> None
+                function
+                | Inaccessible -> Some Inaccessible
+                | _ -> None
+                function
+                | NotFound -> Some NotFound
+                | _ -> None
+            ]
 
         choosers |> Seq.map (fun chooser -> Seq.choose chooser results) |> Seq.concat
 
@@ -201,9 +214,13 @@ module SymbolResolution =
             let usedName = sprintf "%s.%s" fullName.Namespace fullName.Name
 
             if String.IsNullOrWhiteSpace redirect then
-                [| range |> QsCompilerDiagnostic.Warning(WarningCode.DeprecationWithoutRedirect, [ usedName ]) |]
+                [|
+                    range |> QsCompilerDiagnostic.Warning(WarningCode.DeprecationWithoutRedirect, [ usedName ])
+                |]
             else
-                [| range |> QsCompilerDiagnostic.Warning(WarningCode.DeprecationWithRedirect, [ usedName; redirect ]) |]
+                [|
+                    range |> QsCompilerDiagnostic.Warning(WarningCode.DeprecationWithRedirect, [ usedName; redirect ])
+                |]
         | Null -> [||]
 
     /// Applies the given getArgument function to the given attributes,
@@ -252,8 +269,10 @@ module SymbolResolution =
         let asQualifiedName (str: string) =
             let pieces = str.Split '.'
 
-            { Namespace = String.Join('.', pieces.Take(pieces.Length - 1))
-              Name = pieces.Last() }
+            {
+                Namespace = String.Join('.', pieces.Take(pieces.Length - 1))
+                Name = pieces.Last()
+            }
 
         if matchQualifiedName.Success
         then Some(matchQualifiedName.Value |> asQualifiedName)
@@ -401,11 +420,13 @@ module SymbolResolution =
     let private DeclarationArgument range (name, t) =
         let info = { IsMutable = false; HasLocalQuantumDependency = false }
 
-        { VariableName = name
-          Type = t
-          InferredInformation = info
-          Position = Null
-          Range = range }
+        {
+            VariableName = name
+            Type = t
+            InferredInformation = info
+            Position = Null
+            Range = range
+        }
 
     /// Give a list with the characteristics of all specializations as well as a routine for type resolution,
     /// fully resolves the given callable signature as well as its argument tuple.
@@ -443,7 +464,9 @@ module SymbolResolution =
             | QsSymbolKind.Symbol sym -> (ValidName sym, t) |> DeclarationArgument range, [||]
             | _ ->
                 (InvalidName, t) |> DeclarationArgument range,
-                [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
+                [|
+                    range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, [])
+                |]
 
         let resolveType =
             let validTpNames =
@@ -469,10 +492,12 @@ module SymbolResolution =
         let callableInfo = CallableInformation.Common specBundleInfos
 
         let resolvedSig =
-            { TypeParameters = resolvedParams
-              ArgumentType = argType
-              ReturnType = returnType
-              Information = callableInfo }
+            {
+                TypeParameters = resolvedParams
+                ArgumentType = argType
+                ReturnType = returnType
+                Information = callableInfo
+            }
 
         (resolvedSig, argTuple), [ inErr; outErr; resErrs; tpErrs ] |> Array.concat
 
@@ -488,19 +513,28 @@ module SymbolResolution =
             | QsSymbolKind.MissingSymbol
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists(fun item -> item.VariableName = sym) ->
-                Anonymous t, [| range |> QsCompilerDiagnostic.Error(ErrorCode.NamedItemAlreadyExists, [ sym ]) |]
+                Anonymous t,
+                [|
+                    range |> QsCompilerDiagnostic.Error(ErrorCode.NamedItemAlreadyExists, [ sym ])
+                |]
             | QsSymbolKind.Symbol sym ->
                 let info = { IsMutable = false; HasLocalQuantumDependency = false }
 
                 itemDeclarations.Add
-                    { VariableName = sym
-                      Type = t
-                      InferredInformation = info
-                      Position = Null
-                      Range = range }
+                    {
+                        VariableName = sym
+                        Type = t
+                        InferredInformation = info
+                        Position = Null
+                        Range = range
+                    }
 
                 (sym, t) |> DeclarationArgument range |> Named, [||]
-            | _ -> Anonymous t, [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
+            | _ ->
+                Anonymous t,
+                [|
+                    range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, [])
+                |]
 
         let argTuple, errs =
             match udtTuple with
@@ -541,11 +575,17 @@ module SymbolResolution =
             match sym.Symbol with
             | Symbol name -> processTypeParameter (name, sym.Range) |> fun (k, errs) -> k |> asResolvedType, errs
             | InvalidSymbol -> invalid, [||]
-            | _ -> invalid, [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
+            | _ ->
+                invalid,
+                [|
+                    range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, [])
+                |]
         | QsTypeKind.Operation ((arg, res), characteristics) ->
             let opInfo =
-                { Characteristics = characteristics |> ResolveCharacteristics
-                  InferredInformation = InferredCallableInformation.NoInformation }
+                {
+                    Characteristics = characteristics |> ResolveCharacteristics
+                    InferredInformation = InferredCallableInformation.NoInformation
+                }
 
             let builder (ts: ImmutableArray<_>) =
                 QsTypeKind.Operation((ts.[0], ts.[1]), opInfo)
@@ -584,11 +624,13 @@ module SymbolResolution =
     /// Throws an ArgumentException if a tuple-valued attribute argument does not contain at least one item.
     let internal ResolveAttribute getAttribute (attribute: AttributeAnnotation) =
         let asTypedExression range (exKind, exType) =
-            { Expression = exKind
-              TypeArguments = ImmutableArray.Empty
-              ResolvedType = exType |> ResolvedType.New
-              InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }
-              Range = range }
+            {
+                Expression = exKind
+                TypeArguments = ImmutableArray.Empty
+                ResolvedType = exType |> ResolvedType.New
+                InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }
+                Range = range
+            }
 
         let invalidExpr range =
             (InvalidExpr, InvalidType) |> asTypedExression range
@@ -665,10 +707,12 @@ module SymbolResolution =
         let resArg, argErrs = ArgExression attribute.Argument
 
         let buildAttribute id =
-            { TypeId = id
-              Argument = resArg
-              Offset = attribute.Position
-              Comments = attribute.Comments }
+            {
+                TypeId = id
+                Argument = resArg
+                Offset = attribute.Position
+                Comments = attribute.Comments
+            }
 
         let getAttribute (ns, sym) =
             match getAttribute ((ns, sym), attribute.Id.Range) with
@@ -704,9 +748,11 @@ module SymbolResolution =
         | OmittedSymbols
         | SymbolTuple _ ->
             Null |> buildAttribute,
-            [| attribute.Id.Range
-               |> orDefault
-               |> QsCompilerDiagnostic.Error(ErrorCode.InvalidAttributeIdentifier, []) |]
+            [|
+                attribute.Id.Range
+                |> orDefault
+                |> QsCompilerDiagnostic.Error(ErrorCode.InvalidAttributeIdentifier, [])
+            |]
 
 
     // private routines for resolving specialization generation directives
@@ -736,7 +782,9 @@ module SymbolResolution =
         | QsSpecializationGeneratorKind.AutoGenerated -> Intrinsic |> Value, [||]
         | QsSpecializationGeneratorKind.UserDefinedImplementation _ ->
             Intrinsic |> Value,
-            [| genRange |> QsCompilerDiagnostic.Error(ErrorCode.UserDefinedImplementationForIntrinsic, []) |]
+            [|
+                genRange |> QsCompilerDiagnostic.Error(ErrorCode.UserDefinedImplementationForIntrinsic, [])
+            |]
         | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
             if isSelfInverse dir then
                 (if allowSelf then Generated SelfInverse else Intrinsic) |> Value, [||]
@@ -744,7 +792,9 @@ module SymbolResolution =
                 Intrinsic |> Value, [||]
             else
                 Intrinsic |> Value,
-                [| genRange |> QsCompilerDiagnostic.Warning(WarningCode.GeneratorDirectiveWillBeIgnored, []) |]
+                [|
+                    genRange |> QsCompilerDiagnostic.Warning(WarningCode.GeneratorDirectiveWillBeIgnored, [])
+                |]
 
     /// Resolves the given specialization generator to a "self" generator directive,
     /// and returns it as Value along with an array of diagnostics.
@@ -768,11 +818,16 @@ module SymbolResolution =
             | QsSpecializationGeneratorKind.Intrinsic
             | QsSpecializationGeneratorKind.AutoGenerated -> [||]
             | QsSpecializationGeneratorKind.UserDefinedImplementation _ ->
-                [| genRange |> QsCompilerDiagnostic.Error(ErrorCode.NonSelfGeneratorForSelfadjoint, []) |]
+                [|
+                    genRange |> QsCompilerDiagnostic.Error(ErrorCode.NonSelfGeneratorForSelfadjoint, [])
+                |]
             | QsSpecializationGeneratorKind.FunctorGenerationDirective dir ->
-                if isSelfInverse dir || isInvalid dir
-                then [||]
-                else [| genRange |> QsCompilerDiagnostic.Error(ErrorCode.NonSelfGeneratorForSelfadjoint, []) |]
+                if isSelfInverse dir || isInvalid dir then
+                    [||]
+                else
+                    [|
+                        genRange |> QsCompilerDiagnostic.Error(ErrorCode.NonSelfGeneratorForSelfadjoint, [])
+                    |]
 
         Generated SelfInverse |> Value, diagnostics
 
@@ -898,9 +953,11 @@ module SymbolResolution =
                     resolved.ToImmutableArray() |> Value, errs |> Array.concat
 
             let resolvedGen =
-                { TypeArguments = typeArgs
-                  Information = CallableInformation.Invalid
-                  Directive = Null }
+                {
+                    TypeArguments = typeArgs
+                    Information = CallableInformation.Invalid
+                    Directive = Null
+                }
 
             Value resolvedGen, tErrs |> Array.map (fun msg -> spec.Position, msg)
 
@@ -974,8 +1031,10 @@ module SymbolResolution =
                                yield generateSpecialization QsBody (declLocation, Null)
 
                                yield
-                                   [| declLocation.Range
-                                      |> QsCompilerDiagnostic.Warning(WarningCode.MissingBodyDeclaration, []) |] ]
+                                   [|
+                                       declLocation.Range
+                                       |> QsCompilerDiagnostic.Warning(WarningCode.MissingBodyDeclaration, [])
+                                   |] ]
 
         let isError (m: QsCompilerDiagnostic) =
             match m.Diagnostic with
@@ -1036,8 +1095,10 @@ module SymbolResolution =
 
             errs <- (affErrs |> Array.map (fun msg -> source, (parentSignature.Position, msg))) :: errs
 
-            { BundleInfo = { Characteristics = characteristics; InferredInformation = metadata }
-              DefinedGenerators = gens }
+            {
+                BundleInfo = { Characteristics = characteristics; InferredInformation = metadata }
+                DefinedGenerators = gens
+            }
 
         let props = ImmutableDictionary.CreateBuilder()
 

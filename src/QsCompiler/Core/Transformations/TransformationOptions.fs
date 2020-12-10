@@ -6,14 +6,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 /// Used to configure the behavior of the default implementations for transformations.
 type TransformationOptions =
-    internal {
-               /// If set to false, disables the transformation at the transformation root,
-               /// meaning the transformation won't recur into leaf nodes or subnodes.
-               Enable: bool
-               /// Indicates whether the transformation modifies any of the nodes.
-               /// If set to true, the nodes will be rebuilt during the transformation.
-               /// Setting this to false constitutes a promise that the return value of all methods will be ignored.
-               Rebuild: bool }
+    internal
+        {
+            /// If set to false, disables the transformation at the transformation root,
+            /// meaning the transformation won't recur into leaf nodes or subnodes.
+            Enable: bool
+            /// Indicates whether the transformation modifies any of the nodes.
+            /// If set to true, the nodes will be rebuilt during the transformation.
+            /// Setting this to false constitutes a promise that the return value of all methods will be ignored.
+            Rebuild: bool
+        }
 
     /// Default transformation setting.
     /// The transformation will recur into leaf and subnodes,
@@ -38,8 +40,10 @@ module internal Utils =
 
     let Fold =
         { new INode with
-            member __.BuildOr _ arg builder = builder arg }
+            member __.BuildOr _ arg builder = builder arg
+        }
 
     let Walk =
         { new INode with
-            member __.BuildOr original _ _ = original }
+            member __.BuildOr original _ _ = original
+        }

@@ -268,9 +268,7 @@ let private VerifyIntegralOp parent addError ((lhsType: ResolvedType), lhsRange)
     let exType =
         CommonBaseType
             addError
-            (ErrorCode.ArgumentMismatchInBinaryOp,
-             [ lhsType |> toString
-               rhsType |> toString ])
+            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
             parent
             (lhsType, lhsRange)
             (rhsType, rhsRange)
@@ -296,9 +294,7 @@ let private VerifyArithmeticOp parent addError (lhsType: ResolvedType, lhsRange)
     let exType =
         CommonBaseType
             addError
-            (ErrorCode.ArgumentMismatchInBinaryOp,
-             [ lhsType |> toString
-               rhsType |> toString ])
+            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
             parent
             (lhsType, lhsRange)
             (rhsType, rhsRange)
@@ -324,9 +320,7 @@ let private VerifyConcatenation parent addError (lhsType: ResolvedType, lhsRange
     let exType =
         CommonBaseType
             addError
-            (ErrorCode.ArgumentMismatchInBinaryOp,
-             [ lhsType |> toString
-               rhsType |> toString ])
+            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
             parent
             (lhsType, lhsRange)
             (rhsType, rhsRange)
@@ -514,9 +508,11 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
         invalidWithoutTargs false
     | GlobalCallable id, Value res ->
         let resolutions =
-            [ for (tp, ta) in res |> Seq.zip typeParams do
-                if not ta.isMissing
-                then yield (tp, ta |> StripPositionInfo.Apply) ]
+            [
+                for (tp, ta) in res |> Seq.zip typeParams do
+                    if not ta.isMissing
+                    then yield (tp, ta |> StripPositionInfo.Apply)
+            ]
             |> List.choose (fun (tp, ta) ->
                 match tp with
                 | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
@@ -538,9 +534,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
 /// IMPORTANT: The consistent (i.e. non-ambiguous and non-constraining) resolution of type parameters is *not* verified by this routine
 /// and needs to be verified in a separate step!
 let internal TypeMatchArgument addTypeParameterResolution targetType argType =
-    let givenAndExpectedType =
-        [ argType |> toString
-          targetType |> toString ]
+    let givenAndExpectedType = [ argType |> toString; targetType |> toString ]
 
     let onErrorRaiseInstead errCode (diag: IEnumerable<_>) =
         if diag.Any() then [| errCode |] else [||]
@@ -606,9 +600,9 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
         | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 -> compareTuple variance ts1 ts2
         | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> [||]
         | QsTypeKind.UserDefinedType _, QsTypeKind.UserDefinedType _ ->
-            [| (ErrorCode.UserDefinedTypeMismatch,
-                [ exType |> toString
-                  targetT |> toString ]) |]
+            [|
+                (ErrorCode.UserDefinedTypeMismatch, [ exType |> toString; targetT |> toString ])
+            |]
         | QsTypeKind.Operation ((i1, o1), l1), QsTypeKind.Operation ((i2, o2), l2) ->
             compareSignature variance ((i1, o1), l1.Characteristics) ((i2, o2), l2.Characteristics)
         | QsTypeKind.Function (i1, o1), QsTypeKind.Function (i2, o2) ->
@@ -661,9 +655,9 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         | _, _ when targetT.isInvalid || targetT.isMissing -> invalid
         | _, Missing -> targetT |> Some
         | Tuple ts, Tuple exs when ts.Length <> exs.Length ->
-            [| (ErrorCode.ArgumentTupleShapeMismatch,
-                [ resolveInner argEx |> toString
-                  targetT |> toString ]) |]
+            [|
+                (ErrorCode.ArgumentTupleShapeMismatch, [ resolveInner argEx |> toString; targetT |> toString ])
+            |]
             |> pushErrs
 
             invalid
@@ -835,12 +829,8 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
 
     let errCodes = TypeMatchArgument addTpResolution expectedType rhsType
 
-    if errCodes.Length <> 0 then
-        rhsRange
-        |> addError
-            (mismatchErr,
-             [ rhsType |> toString
-               expectedType |> toString ])
+    if errCodes.Length <> 0
+    then rhsRange |> addError (mismatchErr, [ rhsType |> toString; expectedType |> toString ])
 
     let containsNonTrivialResolution (tp: IGrouping<_, ResolvedType>) =
         let notResolvedToItself (x: ResolvedType) =
@@ -1009,7 +999,8 @@ type QsExpression with
             match resolveSlicing resolvedArr idx with
             | None ->
                 { resolvedArr with
-                      ResolvedType = VerifyNumberedItemAccess addError (resolvedArr.ResolvedType, arr.RangeOrDefault) }
+                    ResolvedType = VerifyNumberedItemAccess addError (resolvedArr.ResolvedType, arr.RangeOrDefault)
+                }
             | Some resolvedIdx ->
                 let resolvedType =
                     VerifyArrayItem
@@ -1303,8 +1294,7 @@ type QsExpression with
                 CommonBaseType
                     addError
                     (ErrorCode.TypeMismatchInConditional,
-                     [ resIsTrue.ResolvedType |> toString
-                       resIsFalse.ResolvedType |> toString ])
+                     [ resIsTrue.ResolvedType |> toString; resIsFalse.ResolvedType |> toString ])
                     symbols.Parent
                     lhs
                     rhs

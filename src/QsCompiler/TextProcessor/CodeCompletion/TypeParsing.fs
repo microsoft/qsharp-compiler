@@ -44,16 +44,18 @@ let rec nonArrayType =
     let functionType = brackets (lTuple, rTuple) (qsType >>. fctArrow >>. qsType)
 
     let keywordType =
-        [ qsBigInt
-          qsBool
-          qsDouble
-          qsInt
-          qsPauli
-          qsQubit
-          qsRange
-          qsResult
-          qsString
-          qsUnit ]
+        [
+            qsBigInt
+            qsBool
+            qsDouble
+            qsInt
+            qsPauli
+            qsQubit
+            qsRange
+            qsResult
+            qsString
+            qsUnit
+        ]
         |> List.map expectedKeyword
         |> pcollect
 

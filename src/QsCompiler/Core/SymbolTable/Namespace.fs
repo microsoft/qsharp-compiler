@@ -473,14 +473,25 @@ type Namespace private (name,
 
             match imported.TryGetValue openedNS with
             | true, existing when aliasIsSameAs existing && existing = null ->
-                [| nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAleadyOpen, []) |]
+                [|
+                    nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAleadyOpen, [])
+                |]
             | true, existing when aliasIsSameAs existing ->
-                [| nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAliasIsAlreadyDefined, []) |]
+                [|
+                    nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAliasIsAlreadyDefined, [])
+                |]
             | true, existing when existing <> null ->
-                [| nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForNamespaceAlreadyExists, [ existing ]) |]
-            | true, _ -> [| nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForOpenedNamespace, []) |]
+                [|
+                    nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForNamespaceAlreadyExists, [ existing ])
+                |]
+            | true, _ ->
+                [|
+                    nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForOpenedNamespace, [])
+                |]
             | false, _ when alias <> null && imported.ContainsValue alias ->
-                [| aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ]) |]
+                [|
+                    aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
+                |]
             | false, _ ->
                 TypesDefinedInAllSourcesCache <- null
                 CallablesDefinedInAllSourcesCache <- null
@@ -506,8 +517,14 @@ type Namespace private (name,
         | true, _ ->
             match this.TryFindType tName with
             | Found _
-            | Ambiguous _ -> [| tRange |> QsCompilerDiagnostic.Error(ErrorCode.TypeRedefinition, [ tName ]) |]
-            | _ -> [| tRange |> QsCompilerDiagnostic.Error(ErrorCode.TypeConstructorOverlapWithCallable, [ tName ]) |]
+            | Ambiguous _ ->
+                [|
+                    tRange |> QsCompilerDiagnostic.Error(ErrorCode.TypeRedefinition, [ tName ])
+                |]
+            | _ ->
+                [|
+                    tRange |> QsCompilerDiagnostic.Error(ErrorCode.TypeConstructorOverlapWithCallable, [ tName ])
+                |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -530,8 +547,13 @@ type Namespace private (name,
             match this.TryFindType cName with
             | Found _
             | Ambiguous _ ->
-                [| cRange |> QsCompilerDiagnostic.Error(ErrorCode.CallableOverlapWithTypeConstructor, [ cName ]) |]
-            | _ -> [| cRange |> QsCompilerDiagnostic.Error(ErrorCode.CallableRedefinition, [ cName ]) |]
+                [|
+                    cRange |> QsCompilerDiagnostic.Error(ErrorCode.CallableOverlapWithTypeConstructor, [ cName ])
+                |]
+            | _ ->
+                [|
+                    cRange |> QsCompilerDiagnostic.Error(ErrorCode.CallableRedefinition, [ cName ])
+                |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -596,8 +618,10 @@ type Namespace private (name,
                     | Null -> None
 
                 if givenNrTypeParams.IsSome && givenNrTypeParams.Value <> nrTypeParams then
-                    [| location.Range
-                       |> QsCompilerDiagnostic.Error(ErrorCode.TypeSpecializationMismatch, [ nrTypeParams.ToString() ]) |]
+                    [|
+                        location.Range
+                        |> QsCompilerDiagnostic.Error(ErrorCode.TypeSpecializationMismatch, [ nrTypeParams.ToString() ])
+                    |]
                 // verify if a unit return value is required for the given specialization kind
                 elif not qFunctorSupport then
                     match kind with
@@ -605,16 +629,25 @@ type Namespace private (name,
                         AddAndClearCache()
                         [||]
                     | QsAdjoint ->
-                        [| location.Range |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForAdjoint, []) |]
+                        [|
+                            location.Range |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForAdjoint, [])
+                        |]
                     | QsControlled ->
-                        [| location.Range |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForControlled, []) |]
+                        [|
+                            location.Range |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForControlled, [])
+                        |]
                     | QsControlledAdjoint ->
-                        [| location.Range
-                           |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForControlledAdjoint, []) |]
+                        [|
+                            location.Range
+                            |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForControlledAdjoint, [])
+                        |]
                 else
                     AddAndClearCache()
                     [||]
-            | _ -> [| cRange |> QsCompilerDiagnostic.Error(ErrorCode.SpecializationForUnknownCallable, [ cName ]) |]
+            | _ ->
+                [|
+                    cRange |> QsCompilerDiagnostic.Error(ErrorCode.SpecializationForUnknownCallable, [ cName ])
+                |]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>

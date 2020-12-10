@@ -264,9 +264,7 @@ type ClassicalControlTests() =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x |> GetBodyFromCallable)
 
-        [ (0, "SubOps", "SubOp1")
-          (1, "SubOps", "SubOp2")
-          (2, "SubOps", "SubOp3") ]
+        [ (0, "SubOps", "SubOp1"); (1, "SubOps", "SubOp2"); (2, "SubOps", "SubOp3") ]
         |> AssertSpecializationHasCalls generated
 
     [<Fact>]
@@ -301,8 +299,7 @@ type ClassicalControlTests() =
         let originalOp =
             GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
-        [ (1, BuiltIn.ApplyIfZero)
-          (3, BuiltIn.ApplyIfOne) ]
+        [ (1, BuiltIn.ApplyIfZero); (3, BuiltIn.ApplyIfOne) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
         |> AssertSpecializationHasCalls originalOp
 
@@ -569,17 +566,10 @@ type ClassicalControlTests() =
 
         Assert.True(2 = Seq.length _providedOps) // Should already be asserted by the signature check
 
-        let bodyContent =
-            [ (0, "SubOps", "SubOpCA1")
-              (1, "SubOps", "SubOpCA2") ]
-
-        let adjointContent =
-            [ (0, "SubOps", "SubOpCA2")
-              (1, "SubOps", "SubOpCA3") ]
-
+        let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+        let adjointContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
         let orderedGens = IdentifyGeneratedByCalls _providedOps [ bodyContent; adjointContent ]
         let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
         AssertCallSupportsFunctors [] _selfOp
         AssertCallSupportsFunctors [ QsFunctor.Adjoint ] _invertOp
         AssertCallSupportsFunctors [] bodyGen
@@ -614,17 +604,10 @@ type ClassicalControlTests() =
 
         Assert.True(2 = Seq.length _providedOps) // Should already be asserted by the signature check
 
-        let bodyContent =
-            [ (0, "SubOps", "SubOpCA1")
-              (1, "SubOps", "SubOpCA2") ]
-
-        let controlledContent =
-            [ (0, "SubOps", "SubOpCA2")
-              (1, "SubOps", "SubOpCA3") ]
-
+        let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+        let controlledContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
         let orderedGens = IdentifyGeneratedByCalls _providedOps [ bodyContent; controlledContent ]
         let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
         AssertCallSupportsFunctors [ QsFunctor.Controlled ] _distributeOp
         AssertCallSupportsFunctors [] bodyGen
         AssertCallSupportsFunctors [] ctlGen
@@ -657,27 +640,12 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlAdjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlAdjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlAdjContent ]
             let bodyGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                bodyGen
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
             AssertCallSupportsFunctors [] ctlAdjGen
 
         bodyCheck ()
@@ -707,33 +675,15 @@ type ClassicalControlTests() =
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
-            let ctlAdjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
-            let orderedGens =
-                IdentifyGeneratedByCalls
-                    generated
-                    [ bodyContent
-                      ctlContent
-                      ctlAdjContent ]
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
+            let ctlAdjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
+            let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Adjoint ] bodyGen
             AssertCallSupportsFunctors [] ctlGen
             AssertCallSupportsFunctors [] ctlAdjGen
@@ -765,33 +715,15 @@ type ClassicalControlTests() =
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
-            let ctlAdjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
-            let orderedGens =
-                IdentifyGeneratedByCalls
-                    generated
-                    [ bodyContent
-                      adjContent
-                      ctlAdjContent ]
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
+            let ctlAdjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
+            let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; adjContent; ctlAdjContent ]
 
             let bodyGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
             AssertCallSupportsFunctors [] adjGen
             AssertCallSupportsFunctors [] ctlAdjGen
@@ -824,36 +756,18 @@ type ClassicalControlTests() =
 
             Assert.True(4 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
             let ctlAdjContent = [ (2, "SubOps", "SubOpCA3") ]
 
             let orderedGens =
-                IdentifyGeneratedByCalls
-                    generated
-                    [ bodyContent
-                      ctlContent
-                      adjContent
-                      ctlAdjContent ]
+                IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
 
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [] bodyGen
             AssertCallSupportsFunctors [] ctlGen
             AssertCallSupportsFunctors [] adjGen
@@ -888,22 +802,11 @@ type ClassicalControlTests() =
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
             AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                bodyGen
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
         bodyCheck ()
 
@@ -928,27 +831,12 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                bodyGen
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
             AssertCallSupportsFunctors [] ctlGen
 
         controlledCheck ()
@@ -974,22 +862,11 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; adjContent ]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] adjGen
 
@@ -1020,26 +897,12 @@ type ClassicalControlTests() =
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [] bodyGen
             AssertCallSupportsFunctors [] ctlGen
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] adjGen
@@ -1070,22 +933,11 @@ type ClassicalControlTests() =
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
             AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                bodyGen
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
         bodyCheck ()
 
@@ -1110,22 +962,11 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Adjoint ] bodyGen
             AssertCallSupportsFunctors [ QsFunctor.Adjoint ] ctlGen
 
@@ -1152,27 +993,12 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; adjContent ]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                bodyGen
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
             AssertCallSupportsFunctors [] adjGen
 
         adjointCheck ()
@@ -1199,26 +1025,12 @@ type ClassicalControlTests() =
 
             Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
-            let adjContent =
-                [ (0, "SubOps", "SubOpCA2")
-                  (1, "SubOps", "SubOpCA3") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
+            let adjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [] bodyGen
             AssertCallSupportsFunctors [ QsFunctor.Adjoint ] ctlGen
             AssertCallSupportsFunctors [] adjGen
@@ -1249,18 +1061,10 @@ type ClassicalControlTests() =
 
             Assert.True(1 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
             AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
 
         bodyCheck ()
@@ -1286,22 +1090,11 @@ type ClassicalControlTests() =
 
             Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
-            let bodyContent =
-                [ (0, "SubOps", "SubOpCA1")
-                  (1, "SubOps", "SubOpCA2") ]
-
-            let ctlContent =
-                [ (0, "SubOps", "SubOpCA3")
-                  (1, "SubOps", "SubOpCA1") ]
-
+            let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+            let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
-            AssertCallSupportsFunctors
-                [ QsFunctor.Controlled
-                  QsFunctor.Adjoint ]
-                original
-
+            AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [] bodyGen
             AssertCallSupportsFunctors [] ctlGen
 
@@ -1320,17 +1113,10 @@ type ClassicalControlTests() =
         Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
         let originalContent =
-            [ (2, BuiltIn.ApplyIfZeroA)
-              (5, BuiltIn.ApplyIfOne) ]
-            |> Seq.map ExpandBuiltInQualifiedSymbol
+            [ (2, BuiltIn.ApplyIfZeroA); (5, BuiltIn.ApplyIfOne) ] |> Seq.map ExpandBuiltInQualifiedSymbol
 
-        let outerContent =
-            [ (0, "SubOps", "SubOpCA1")
-              (1, "SubOps", "SubOpCA2") ]
-
-        let innerContent =
-            [ (0, "SubOps", "SubOpCA2")
-              (1, "SubOps", "SubOpCA3") ]
+        let outerContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
+        let innerContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
 
         AssertSpecializationHasCalls original originalContent
 

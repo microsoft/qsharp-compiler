@@ -39,29 +39,31 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
             then (c.Location.ValueOrApply(fun _ -> failwith "missing position information")).Offset
             else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
 
-        [ for file in compilation.SourceFiles do
-            let containedCallables =
-                callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
+        [
+            for file in compilation.SourceFiles do
+                let containedCallables =
+                    callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
 
-            let locations =
-                containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
-                |> Seq.sortBy snd
-                |> Seq.toArray
+                let locations =
+                    containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
+                    |> Seq.sortBy snd
+                    |> Seq.toArray
 
-            let mutable containedDiagnostics =
-                compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
+                let mutable containedDiagnostics =
+                    compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
 
-            for i = 1 to locations.Length do
-                let key = fst locations.[i - 1]
+                for i = 1 to locations.Length do
+                    let key = fst locations.[i - 1]
 
-                if i < locations.Length then
-                    let withinCurrentDeclaration (d: Diagnostic) =
-                        d.Range.Start.ToQSharp() < snd locations.[i]
+                    if i < locations.Length then
+                        let withinCurrentDeclaration (d: Diagnostic) =
+                            d.Range.Start.ToQSharp() < snd locations.[i]
 
-                    yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
-                    containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
-                else
-                    yield key, containedDiagnostics.ToImmutableArray() ]
+                        yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
+                        containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
+                    else
+                        yield key, containedDiagnostics.ToImmutableArray()
+        ]
             .ToImmutableDictionary(fst, snd)
 
     let VerifyDiagnosticsOfSeverity severity name (expected: IEnumerable<_>) =

@@ -77,26 +77,32 @@ type QsCompilerDiagnostic with
 type CallableSignature with
 
     static member internal New((typeParams, (argType, returnType)), characteristics) =
-        { TypeParameters = typeParams
-          Argument = argType
-          ReturnType = returnType
-          Characteristics = characteristics }
+        {
+            TypeParameters = typeParams
+            Argument = argType
+            ReturnType = returnType
+            Characteristics = characteristics
+        }
 
     static member internal Invalid =
         let invalidType = (InvalidType, Null) |> QsType.New
         let invalidSymbol = (InvalidSymbol, Null) |> QsSymbol.New
         let invalidArg = QsTuple([ QsTupleItem(invalidSymbol, invalidType) ].ToImmutableArray())
 
-        { TypeParameters = ImmutableArray.Empty
-          Argument = invalidArg
-          ReturnType = invalidType
-          Characteristics = { Characteristics = InvalidSetExpr; Range = Null } }
+        {
+            TypeParameters = ImmutableArray.Empty
+            Argument = invalidArg
+            ReturnType = invalidType
+            Characteristics = { Characteristics = InvalidSetExpr; Range = Null }
+        }
 
 
 type QsFragment with
 
     member this.WithRange range =
-        { Kind = this.Kind
-          Range = range
-          Diagnostics = this.Diagnostics
-          Text = this.Text }
+        {
+            Kind = this.Kind
+            Range = range
+            Diagnostics = this.Diagnostics
+            Text = this.Text
+        }

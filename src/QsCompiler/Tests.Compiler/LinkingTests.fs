@@ -275,10 +275,7 @@ type LinkingTests(output: ITestOutputHelper) =
         for testCase in LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs"
                         |> Seq.zip Signatures.MonomorphizationSignatures do
             this.CompileMonomorphization(snd testCase)
-            |> Signatures.SignatureCheck
-                [ Signatures.GenericsNs
-                  Signatures.MonomorphizationNs ]
-                   (fst testCase)
+            |> Signatures.SignatureCheck [ Signatures.GenericsNs; Signatures.MonomorphizationNs ] (fst testCase)
 
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
@@ -563,9 +560,11 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Rename internal type references``() =
         this.RunInternalRenamingTest
             3
-            [ qualifiedName Signatures.InternalRenamingNs "Foo"
-              qualifiedName Signatures.InternalRenamingNs "Bar"
-              qualifiedName Signatures.InternalRenamingNs "Baz" ]
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName Signatures.InternalRenamingNs "Baz"
+            ]
             []
 
 
@@ -573,9 +572,11 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Rename internal references across namespaces``() =
         this.RunInternalRenamingTest
             4
-            [ qualifiedName Signatures.InternalRenamingNs "Foo"
-              qualifiedName Signatures.InternalRenamingNs "Bar"
-              qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux" ]
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+            ]
             [ qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz" ]
 
 
@@ -583,9 +584,11 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Rename internal qualified references``() =
         this.RunInternalRenamingTest
             5
-            [ qualifiedName Signatures.InternalRenamingNs "Foo"
-              qualifiedName Signatures.InternalRenamingNs "Bar"
-              qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux" ]
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+            ]
             [ qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz" ]
 
 
@@ -656,34 +659,15 @@ type LinkingTests(output: ITestOutputHelper) =
                         ("Microsoft.Quantum.Testing.Linking.Foo", "Reference1.dll, Reference2.dll")
                         ("Microsoft.Quantum.Testing.Linking.Bar", "Reference1.dll, Reference2.dll") ]
 
-        checkInvalidCombination
-            expectedErrs
-            [ (source 1, chunks.[0])
-              (source 2, chunks.[0]) ]
+        checkInvalidCombination expectedErrs [ (source 1, chunks.[0]); (source 2, chunks.[0]) ]
 
         let expectedErrs =
             buildDict [ ("Microsoft.Quantum.Testing.Linking.BigEndian", "Reference1.dll, Reference2.dll") ]
 
-        checkInvalidCombination
-            expectedErrs
-            [ (source 1, chunks.[0])
-              (source 2, chunks.[2]) ]
-
-        checkInvalidCombination
-            expectedErrs
-            [ (source 1, chunks.[0])
-              (source 2, chunks.[3]) ]
-
-        checkInvalidCombination
-            expectedErrs
-            [ (source 1, chunks.[2])
-              (source 2, chunks.[3])
-              (source 3, chunks.[4]) ]
-
-        checkInvalidCombination
-            expectedErrs
-            [ (source 1, chunks.[3])
-              (source 2, chunks.[5]) ]
+        checkInvalidCombination expectedErrs [ (source 1, chunks.[0]); (source 2, chunks.[2]) ]
+        checkInvalidCombination expectedErrs [ (source 1, chunks.[0]); (source 2, chunks.[3]) ]
+        checkInvalidCombination expectedErrs [ (source 1, chunks.[2]); (source 2, chunks.[3]); (source 3, chunks.[4]) ]
+        checkInvalidCombination expectedErrs [ (source 1, chunks.[3]); (source 2, chunks.[5]) ]
 
 
     [<Fact>]
@@ -752,9 +736,11 @@ type LinkingTests(output: ITestOutputHelper) =
         let buildDict (args: _ seq) = args.ToImmutableDictionary(fst, snd)
 
         let declInSource1 =
-            new Set<_>([ ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
-                         ("Microsoft.Quantum.Testing.Linking", "Foo") |> fullName
-                         ("Microsoft.Quantum.Testing.Linking", "Bar") |> fullName ])
+            new Set<_>([
+                ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
+                ("Microsoft.Quantum.Testing.Linking", "Foo") |> fullName
+                ("Microsoft.Quantum.Testing.Linking", "Bar") |> fullName
+            ])
 
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))
@@ -773,9 +759,11 @@ type LinkingTests(output: ITestOutputHelper) =
                          (source 2, (chunks.[4], declInSource1)) ])
 
         let declInSource2 =
-            new Set<_>([ ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
-                         ("Microsoft.Quantum.Testing.Linking.Core", "Foo") |> fullName
-                         ("Microsoft.Quantum.Testing.Linking.Core", "Bar") |> fullName ])
+            new Set<_>([
+                ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
+                ("Microsoft.Quantum.Testing.Linking.Core", "Foo") |> fullName
+                ("Microsoft.Quantum.Testing.Linking.Core", "Bar") |> fullName
+            ])
 
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))

@@ -129,8 +129,10 @@ let ``attaching attributes to callables`` () =
     let predicate = QsCallable >> WithinNamespace attGenNs
 
     let sources =
-        [ Path.Combine(Path.GetFullPath ".", "TestCases", "LinkingTests", "Core.qs")
-          Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs") ]
+        [
+            Path.Combine(Path.GetFullPath ".", "TestCases", "LinkingTests", "Core.qs")
+            Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs")
+        ]
 
     let compilation = sources |> Seq.map File.ReadAllText |> String.Concat |> buildSyntaxTree
 

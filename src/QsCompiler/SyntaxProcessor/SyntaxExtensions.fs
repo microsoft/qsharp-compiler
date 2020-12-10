@@ -23,8 +23,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 let rec private collectWith collector (exs: 'a seq, ts: QsType seq): QsSymbol list * QsType list * QsExpression list =
     let (varFromExs, tsFromExs, bsFromExs) =
-        [ for item in exs do
-            yield collector item ]
+        [
+            for item in exs do
+                yield collector item
+        ]
         |> List.unzip3
 
     let fromTs = ts |> Seq.collect TypeNameSymbols |> Seq.toList
@@ -112,14 +114,18 @@ let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
 
-    { Expression = QsExpressionKind.CallLikeExpression(id, ex)
-      Range = combinedRange }
+    {
+        Expression = QsExpressionKind.CallLikeExpression(id, ex)
+        Range = combinedRange
+    }
 
 let rec private SymbolDeclarations (sym: QsSymbol) =
     match sym.Symbol with
     | SymbolTuple items ->
-        [ for item in items do
-            yield item ]
+        [
+            for item in items do
+                yield item
+        ]
         |> List.collect SymbolDeclarations
     | InvalidSymbol
     | MissingSymbol -> []
@@ -135,17 +141,21 @@ let private SymbolsInArgumentTuple (declName, argTuple) =
         let extracted: (QsSymbol list * QsType list) list = items |> List.map extract
 
         let getSeq select =
-            [ for seq in extracted do
-                for item in select seq do
-                    yield item ]
+            [
+                for seq in extracted do
+                    for item in select seq do
+                        yield item
+            ]
 
         getSeq fst, getSeq snd
 
     let rec extract =
         function
         | QsTuple items ->
-            [ for item in items do
-                yield item ]
+            [
+                for item in items do
+                    yield item
+            ]
             |> recur extract
         | QsTupleItem (sym, t) -> sym |> SymbolDeclarations, t |> TypeNameSymbols
 
@@ -162,8 +172,10 @@ let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSig
         let build (sym: QsSymbol) =
             { Type = QsTypeKind.TypeParameter sym; Range = sym.Range }
 
-        [ for param in signature.TypeParameters do
-            yield build param ]
+        [
+            for param in signature.TypeParameters do
+                yield build param
+        ]
 
     symDecl,
     (vars,
@@ -173,15 +185,19 @@ let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSig
      exs)
 
 type SymbolInformation =
-    { DeclaredSymbols: ImmutableHashSet<QsSymbol>
-      UsedVariables: ImmutableHashSet<QsSymbol>
-      UsedTypes: ImmutableHashSet<QsType>
-      UsedLiterals: ImmutableHashSet<QsExpression> }
+    {
+        DeclaredSymbols: ImmutableHashSet<QsSymbol>
+        UsedVariables: ImmutableHashSet<QsSymbol>
+        UsedTypes: ImmutableHashSet<QsType>
+        UsedLiterals: ImmutableHashSet<QsExpression>
+    }
     static member internal New(decl: QsSymbol list, (vars: QsSymbol list, ts: QsType list, ex: QsExpression list)) =
-        { DeclaredSymbols = decl.ToImmutableHashSet()
-          UsedVariables = vars.ToImmutableHashSet()
-          UsedTypes = ts.ToImmutableHashSet()
-          UsedLiterals = ex.ToImmutableHashSet() }
+        {
+            DeclaredSymbols = decl.ToImmutableHashSet()
+            UsedVariables = vars.ToImmutableHashSet()
+            UsedTypes = ts.ToImmutableHashSet()
+            UsedLiterals = ex.ToImmutableHashSet()
+        }
 
 [<Extension>]
 let public SymbolInformation fragmentKind =
@@ -385,8 +401,10 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
             CharacteristicsAnnotation(QsType.TryResolve ex, sprintf " %s")
 
         let inner (ts: ImmutableArray<QsType>) =
-            [ for t in ts do
-                yield t.Type ]
+            [
+                for t in ts do
+                    yield t.Type
+            ]
             |> List.map typeName
 
         match tKind with

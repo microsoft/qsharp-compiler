@@ -15,8 +15,10 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 /// Represents all the functors applied to an operation call
 type private Functors =
-    { adjoint: bool
-      controlled: int }
+    {
+        adjoint: bool
+        controlled: int
+    }
     static member None = { adjoint = false; controlled = 0 }
 
     member this.toSpecKind =
@@ -32,12 +34,14 @@ type private Functors =
 
 /// Stores all the data needed to inline a callable
 type private InliningInfo =
-    { functors: Functors
-      callable: QsCallable
-      arg: TypedExpression
-      specArgs: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-      body: QsScope
-      returnType: ResolvedType }
+    {
+        functors: Functors
+        callable: QsCallable
+        arg: TypedExpression
+        specArgs: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+        body: QsScope
+        returnType: ResolvedType
+    }
 
     /// Tries to decompose a method expression into the method name and the functors applied.
     /// Assumes the input is zero or more functors applied to a global callable identifier.
@@ -93,12 +97,14 @@ type private InliningInfo =
                 ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
 
             return
-                { functors = functors
-                  callable = callable
-                  arg = arg
-                  specArgs = specArgs
-                  body = body
-                  returnType = returnType }
+                {
+                    functors = functors
+                    callable = callable
+                    arg = arg
+                    specArgs = specArgs
+                    body = body
+                    returnType = returnType
+                }
         }
 
 

@@ -52,8 +52,10 @@ let private addFunctorCombination (word1: QsKeyword, word2: QsKeyword) =
     _LanguageKeywords.Add id |> ignore
     _FragmentHeaders.Add id |> ignore
 
-    { id = id
-      parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse) }
+    {
+        id = id
+        parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse)
+    }
 
 
 // Qs types
@@ -230,10 +232,12 @@ let internal FragmentHeaders = _FragmentHeaders.ToImmutableHashSet()
 // Q# operators
 
 type QsOperator =
-    { op: string
-      cont: string
-      prec: int
-      isLeftAssociative: bool }
+    {
+        op: string
+        cont: string
+        prec: int
+        isLeftAssociative: bool
+    }
     member internal this.Associativity = if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =

@@ -21,8 +21,7 @@ let private testOne expected args =
     Assert.Equal(expected, result)
 
 let private testInput expected args =
-    [ [| "diagnose" |]
-      [| "build"; "-o"; "outputFolder" |] ]
+    [ [| "diagnose" |]; [| "build"; "-o"; "outputFolder" |] ]
     |> List.iter (fun v -> Array.append v args |> testOne expected)
 
 let private testSnippet expected args =
@@ -39,72 +38,68 @@ let ``invalid snippet`` () =
 
 [<Fact>]
 let ``one valid file`` () =
-    [| "-i"
-       ("TestCases", "General.qs") |> Path.Combine
-       "--verbosity"
-       "Diagnostic" |]
+    [|
+        "-i"
+        ("TestCases", "General.qs") |> Path.Combine
+        "--verbosity"
+        "Diagnostic"
+    |]
     |> testInput ReturnCode.SUCCESS
 
 [<Fact>]
 let ``multiple valid file`` () =
-    [| "--input"
-       ("TestCases", "General.qs") |> Path.Combine
-       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine |]
+    [|
+        "--input"
+        ("TestCases", "General.qs") |> Path.Combine
+        ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
+    |]
     |> testInput ReturnCode.SUCCESS
 
 
 [<Fact>]
 let ``one invalid file`` () =
-    [| "-i"
-       ("TestCases", "TypeChecking.qs") |> Path.Combine |]
+    [| "-i"; ("TestCases", "TypeChecking.qs") |> Path.Combine |]
     |> testInput ReturnCode.COMPILATION_ERRORS
 
 
 [<Fact>]
 let ``mixed files`` () =
-    [| "-i"
-       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
-       ("TestCases", "TypeChecking.qs") |> Path.Combine |]
+    [|
+        "-i"
+        ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
+        ("TestCases", "TypeChecking.qs") |> Path.Combine
+    |]
     |> testInput ReturnCode.COMPILATION_ERRORS
 
 
 [<Fact>]
 let ``missing file`` () =
-    [| "-i"
-       ("TestCases", "NonExistent.qs") |> Path.Combine |]
-    |> testInput ReturnCode.UNRESOLVED_FILES
+    [| "-i"; ("TestCases", "NonExistent.qs") |> Path.Combine |] |> testInput ReturnCode.UNRESOLVED_FILES
 
-    [| "-i"
-       ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
-       ("TestCases", "NonExistent.qs") |> Path.Combine |]
+    [|
+        "-i"
+        ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
+        ("TestCases", "NonExistent.qs") |> Path.Combine
+    |]
     |> testInput ReturnCode.UNRESOLVED_FILES
 
 
 [<Fact>]
 let ``invalid argument`` () =
-    [| "-i"
-       ("TestCases", "General.qs") |> Path.Combine
-       "--foo" |]
+    [| "-i"; ("TestCases", "General.qs") |> Path.Combine; "--foo" |]
     |> testInput ReturnCode.INVALID_ARGUMENTS
 
 
 [<Fact>]
 let ``missing verb`` () =
-    let args =
-        [| "-i"
-           ("TestCases", "General.qs") |> Path.Combine |]
-
+    let args = [| "-i"; ("TestCases", "General.qs") |> Path.Combine |]
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
 
 
 [<Fact>]
 let ``invalid verb`` () =
-    let args =
-        [| "foo"
-           "-i"
-           ("TestCases", "General.qs") |> Path.Combine |]
-
+    let args = [| "foo"; "-i"; ("TestCases", "General.qs") |> Path.Combine |]
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
 
@@ -112,12 +107,14 @@ let ``invalid verb`` () =
 [<Fact>]
 let ``diagnose outputs`` () =
     let args =
-        [| "-i"
-           ("TestCases", "General.qs") |> Path.Combine
-           "--tree"
-           "--tokenization"
-           "--text"
-           "--code" |]
+        [|
+            "-i"
+            ("TestCases", "General.qs") |> Path.Combine
+            "--tree"
+            "--tokenization"
+            "--text"
+            "--code"
+        |]
 
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
@@ -126,21 +123,19 @@ let ``diagnose outputs`` () =
 [<Fact>]
 let ``options from response files`` () =
     let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
-
-    let configArgs =
-        [| "-i"
-           ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine |]
-
+    let configArgs = [| "-i"; ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine |]
     File.WriteAllText(configFile, String.Join(" ", configArgs))
 
     let commandLineArgs =
-        [| "build"
-           "-v"
-           "Detailed"
-           "--format"
-           "MsBuild"
-           "--response-files"
-           configFile |]
+        [|
+            "build"
+            "-v"
+            "Detailed"
+            "--format"
+            "MsBuild"
+            "--response-files"
+            configFile
+        |]
 
     let result = Program.Main commandLineArgs
     Assert.Equal(ReturnCode.SUCCESS, result)

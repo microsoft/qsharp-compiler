@@ -27,15 +27,17 @@ let private infixOp =
 
 /// Parses a keyword literal.
 let private keywordLiteral =
-    [ qsPauliX
-      qsPauliY
-      qsPauliZ
-      qsPauliI
-      qsZero
-      qsOne
-      qsTrue
-      qsFalse
-      missingExpr ]
+    [
+        qsPauliX
+        qsPauliY
+        qsPauliZ
+        qsPauliI
+        qsZero
+        qsOne
+        qsTrue
+        qsFalse
+        missingExpr
+    ]
     |> List.map expectedKeyword
     |> pcollect
 

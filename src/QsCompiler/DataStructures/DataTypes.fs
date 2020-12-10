@@ -204,9 +204,11 @@ type Range =
 
 [<Struct>]
 type QsCompilerDiagnostic =
-    { Diagnostic: DiagnosticItem
-      Arguments: IEnumerable<string>
-      Range: Range }
+    {
+        Diagnostic: DiagnosticItem
+        Arguments: IEnumerable<string>
+        Range: Range
+    }
 
     /// builds a new diagnostics error with the give code and range
     static member New (item, args) range =

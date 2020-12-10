@@ -12,11 +12,7 @@ open Xunit
 
 
 type TypeCheckingTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases",
-                               [ "General.qs"
-                                 "TypeChecking.qs"
-                                 "Types.qs" ]))
+    inherit CompilerTests(CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.TypeChecking"
@@ -47,13 +43,17 @@ type TypeCheckingTests() =
 
         this.Expect
             "CommonBaseType2"
-            [ Error ErrorCode.ArgumentMismatchInBinaryOp
-              Error ErrorCode.ArgumentMismatchInBinaryOp ]
+            [
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+            ]
 
         this.Expect
             "CommonBaseType3"
-            [ Error ErrorCode.ArgumentMismatchInBinaryOp
-              Error ErrorCode.ArgumentMismatchInBinaryOp ]
+            [
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+            ]
 
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
@@ -66,8 +66,10 @@ type TypeCheckingTests() =
 
         this.Expect
             "CommonBaseType12"
-            [ Error ErrorCode.ArgumentMismatchInBinaryOp
-              Error ErrorCode.ArgumentMismatchInBinaryOp ]
+            [
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+            ]
 
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
@@ -78,9 +80,11 @@ type TypeCheckingTests() =
 
         this.Expect
             "CommonBaseType19"
-            [ Warning WarningCode.TypeParameterNotResolvedByArgument
-              Warning WarningCode.TypeParameterNotResolvedByArgument
-              Warning WarningCode.ReturnTypeNotResolvedByArgument ]
+            [
+                Warning WarningCode.TypeParameterNotResolvedByArgument
+                Warning WarningCode.TypeParameterNotResolvedByArgument
+                Warning WarningCode.ReturnTypeNotResolvedByArgument
+            ]
 
         this.Expect "CommonBaseType20" [ Error ErrorCode.MultipleTypesInArray ]
         this.Expect "CommonBaseType21" []
@@ -127,23 +131,31 @@ type TypeCheckingTests() =
 
         this.Expect
             "InvalidTypeEquality"
-            [ Error ErrorCode.InvalidUseOfUnderscorePattern
-              Error ErrorCode.InvalidUseOfUnderscorePattern ]
+            [
+                Error ErrorCode.InvalidUseOfUnderscorePattern
+                Error ErrorCode.InvalidUseOfUnderscorePattern
+            ]
 
         this.Expect
             "InvalidTypeInequality"
-            [ Error ErrorCode.InvalidUseOfUnderscorePattern
-              Error ErrorCode.InvalidUseOfUnderscorePattern ]
+            [
+                Error ErrorCode.InvalidUseOfUnderscorePattern
+                Error ErrorCode.InvalidUseOfUnderscorePattern
+            ]
 
         this.Expect
             "NoCommonBaseEquality"
-            [ Error ErrorCode.ArgumentMismatchInBinaryOp
-              Error ErrorCode.ArgumentMismatchInBinaryOp ]
+            [
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+            ]
 
         this.Expect
             "NoCommonBaseInequality"
-            [ Error ErrorCode.ArgumentMismatchInBinaryOp
-              Error ErrorCode.ArgumentMismatchInBinaryOp ]
+            [
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.ArgumentMismatchInBinaryOp
+            ]
 
 
     [<Fact>]
@@ -160,8 +172,10 @@ type TypeCheckingTests() =
 
         this.Expect
             "MatchArgument10"
-            [ Error ErrorCode.AmbiguousTypeParameterResolution
-              Error ErrorCode.AmbiguousTypeParameterResolution ]
+            [
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
 
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
@@ -193,8 +207,7 @@ type TypeCheckingTests() =
 
         this.Expect
             "PartialApplication15"
-            [ Error ErrorCode.ArgumentTypeMismatch
-              Error ErrorCode.ArgumentTypeMismatch ]
+            [ Error ErrorCode.ArgumentTypeMismatch; Error ErrorCode.ArgumentTypeMismatch ]
 
         this.Expect "PartialApplication16" [ Error ErrorCode.ArgumentTypeMismatch ]
         this.Expect "PartialApplication17" []
@@ -225,15 +238,8 @@ type TypeCheckingTests() =
         this.Expect "NamedItems7" []
         this.Expect "NamedItems8" []
 
-        this.Expect
-            "NamedItems9"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "NamedItems10"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "NamedItems9" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "NamedItems10" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
 
         this.Expect "NamedItems11" [ Error ErrorCode.NamedItemAlreadyExists ]
         this.Expect "NamedItems12" [ Error ErrorCode.NamedItemAlreadyExists ]
@@ -255,47 +261,21 @@ type TypeCheckingTests() =
         this.Expect "OpType6" []
         this.Expect "OpType7" []
 
-        this.Expect
-            "OpType8"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
+        this.Expect "OpType8" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "OpType9" [ Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "OpType10"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
+        this.Expect "OpType10" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "OpType11" [ Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "OpType12"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
+        this.Expect "OpType12" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "OpType13" [ Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "OpType14"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "OpType14" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
 
         this.Expect "FctType1" []
         this.Expect "FctType2" []
         this.Expect "FctType3" []
 
-        this.Expect
-            "FctType4"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
+        this.Expect "FctType4" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "FctType5" [ Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "FctType6"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "FctType6" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
 
         this.Expect "FctType7" []
         this.Expect "FctType8" []
@@ -303,23 +283,13 @@ type TypeCheckingTests() =
         this.Expect "ArrayType1" []
         this.Expect "ArrayType2" []
 
-        this.Expect
-            "ArrayType3"
-            [ Error ErrorCode.UnknownType
-              Error ErrorCode.ExcessContinuation ]
+        this.Expect "ArrayType3" [ Error ErrorCode.UnknownType; Error ErrorCode.ExcessContinuation ]
 
         this.Expect "ArrayType4" []
         this.Expect "ArrayType5" []
 
-        this.Expect
-            "ArrayType6"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
-
-        this.Expect
-            "ArrayType7"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "ArrayType6" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "ArrayType7" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
 
         this.Expect "ArrayType8" []
         this.Expect "ArrayType9" []
@@ -330,15 +300,8 @@ type TypeCheckingTests() =
         this.Expect "ArrayType14" []
         this.Expect "ArrayType15" []
 
-        this.Expect
-            "ArrayType16"
-            [ Error ErrorCode.MissingRTupleBracket
-              Error ErrorCode.ExcessContinuation ]
-
-        this.Expect
-            "ArrayType17"
-            [ Error ErrorCode.MissingLTupleBracket
-              Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "ArrayType16" [ Error ErrorCode.MissingRTupleBracket; Error ErrorCode.ExcessContinuation ]
+        this.Expect "ArrayType17" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
 
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []

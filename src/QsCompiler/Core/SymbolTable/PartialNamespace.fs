@@ -29,14 +29,16 @@ type private PartialNamespace private (name: string,
     let valueSelector (item: KeyValuePair<'k, 'v>) = item.Value
 
     let unresolved (location: QsLocation) (definition, attributes, modifiers, doc) =
-        { Defined = definition
-          DefinedAttributes = attributes
-          Resolved = Null
-          ResolvedAttributes = ImmutableArray.Empty
-          Modifiers = modifiers
-          Position = location.Offset
-          Range = location.Range
-          Documentation = doc }
+        {
+            Defined = definition
+            DefinedAttributes = attributes
+            Resolved = Null
+            ResolvedAttributes = ImmutableArray.Empty
+            Modifiers = modifiers
+            Position = location.Offset
+            Range = location.Range
+            Documentation = doc
+        }
 
     /// list containing all documentation for this namespace within this source file
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
@@ -164,22 +166,28 @@ type private PartialNamespace private (name: string,
                 | QsTuple _ -> buildItem typeTuple
 
             let returnType =
-                { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange)
-                  Range = Null }
+                {
+                    Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange)
+                    Range = Null
+                }
 
-            { TypeParameters = ImmutableArray.Empty
-              Argument = constructorArgument
-              ReturnType = returnType
-              Characteristics = { Characteristics = EmptySet; Range = Null } }
+            {
+                TypeParameters = ImmutableArray.Empty
+                Argument = constructorArgument
+                ReturnType = returnType
+                Characteristics = { Characteristics = EmptySet; Range = Null }
+            }
 
         // There are a couple of reasons not just blindly attach all attributes associated with the type to the constructor:
         // For one, we would need to make sure that the range information for duplications is stripped such that e.g. rename commands are not executed multiple times.
         // We would furthermore have to adapt the entry point verification logic below, since type constructors are not valid entry points.
         let deprecationWithoutRedirect =
-            { Id = { Symbol = Symbol BuiltIn.Deprecated.FullName.Name; Range = Null }
-              Argument = { Expression = StringLiteral("", ImmutableArray.Empty); Range = Null }
-              Position = location.Offset
-              Comments = QsComments.Empty }
+            {
+                Id = { Symbol = Symbol BuiltIn.Deprecated.FullName.Name; Range = Null }
+                Argument = { Expression = StringLiteral("", ImmutableArray.Empty); Range = Null }
+                Position = location.Offset
+                Comments = QsComments.Empty
+            }
 
         let constructorAttr = // we will attach any attribute that likely indicates a deprecation to the type constructor as well
             let validDeprecatedQualification qual =
@@ -196,9 +204,11 @@ type private PartialNamespace private (name: string,
             (tName, (TypeConstructor, constructorSignature), constructorAttr, modifiers, ImmutableArray.Empty)
 
         let bodyGen =
-            { TypeArguments = Null
-              Generator = QsSpecializationGeneratorKind.Intrinsic
-              Range = Value location.Range }
+            {
+                TypeArguments = Null
+                Generator = QsSpecializationGeneratorKind.Intrinsic
+                Range = Value location.Range
+            }
 
         this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty)
 
@@ -264,8 +274,9 @@ type private PartialNamespace private (name: string,
         | true, (kind, signature) ->
             let signature' =
                 { signature with
-                      Resolved = resolvedSignature
-                      ResolvedAttributes = resAttributes }
+                    Resolved = resolvedSignature
+                    ResolvedAttributes = resAttributes
+                }
 
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise

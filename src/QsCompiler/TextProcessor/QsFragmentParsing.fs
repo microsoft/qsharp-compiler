@@ -613,37 +613,39 @@ let private buildInvalidFragment header =
 
 /// Fragment header keywords and their corresponding fragment parsers.
 let private fragments =
-    [ (qsImmutableBinding, letStatement)
-      (qsMutableBinding, mutableStatement)
-      (qsValueUpdate, setStatement)
-      (qsReturn, returnStatement)
-      (qsFail, failStatement)
-      (qsIf, ifClause)
-      (qsElif, elifClause)
-      (qsElse, elseClause)
-      (qsFor, forHeader)
-      (qsWhile, whileHeader)
-      (qsRepeat, repeatHeader)
-      (qsUntil, untilSuccess)
-      (qsWithin, withinHeader)
-      (qsApply, applyHeader)
-      (qsUsing, usingHeader)
-      (qsBorrowing, borrowingHeader)
-      (namespaceDeclHeader, namespaceDeclaration)
-      (typeDeclHeader, udtDeclaration)
-      (opDeclHeader, operationDeclaration)
-      (fctDeclHeader, functionDeclaration)
-      (ctrlAdjDeclHeader, controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
-      (adjDeclHeader, adjointDeclaration)
-      (ctrlDeclHeader, controlledDeclaration)
-      (bodyDeclHeader, bodyDeclaration)
-      (importDirectiveHeader, openDirective)
+    [
+        (qsImmutableBinding, letStatement)
+        (qsMutableBinding, mutableStatement)
+        (qsValueUpdate, setStatement)
+        (qsReturn, returnStatement)
+        (qsFail, failStatement)
+        (qsIf, ifClause)
+        (qsElif, elifClause)
+        (qsElse, elseClause)
+        (qsFor, forHeader)
+        (qsWhile, whileHeader)
+        (qsRepeat, repeatHeader)
+        (qsUntil, untilSuccess)
+        (qsWithin, withinHeader)
+        (qsApply, applyHeader)
+        (qsUsing, usingHeader)
+        (qsBorrowing, borrowingHeader)
+        (namespaceDeclHeader, namespaceDeclaration)
+        (typeDeclHeader, udtDeclaration)
+        (opDeclHeader, operationDeclaration)
+        (fctDeclHeader, functionDeclaration)
+        (ctrlAdjDeclHeader, controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
+        (adjDeclHeader, adjointDeclaration)
+        (ctrlDeclHeader, controlledDeclaration)
+        (bodyDeclHeader, bodyDeclaration)
+        (importDirectiveHeader, openDirective)
 
-      // This fragment header does not have its own fragment kind. Instead, it is only parsed as part of another
-      // fragment kind. If this header occurs by itself, without the other header it's a part of, an invalid fragment
-      // should be created. Since it's at the end of the list, we know that all of the other fragment kinds have been
-      // tried first.
-      (qsInternal, buildInvalidFragment qsInternal.parse) ]
+        // This fragment header does not have its own fragment kind. Instead, it is only parsed as part of another
+        // fragment kind. If this header occurs by itself, without the other header it's a part of, an invalid fragment
+        // should be created. Since it's at the end of the list, we know that all of the other fragment kinds have been
+        // tried first.
+        (qsInternal, buildInvalidFragment qsInternal.parse)
+    ]
 
 // Make sure all of the fragment header keywords are listed above.
 do let implementedHeaders = (List.map (fun (keyword, _) -> keyword.id) fragments).ToImmutableHashSet()

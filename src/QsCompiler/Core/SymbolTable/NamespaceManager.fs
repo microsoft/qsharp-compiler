@@ -243,8 +243,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 TypeParameter { Origin = parent; TypeName = symName; Range = symRange }, [||]
             else
                 InvalidType,
-                [| symRange.ValueOr Range.Zero
-                   |> QsCompilerDiagnostic.Error(ErrorCode.UnknownTypeParameterName, [ symName ]) |]
+                [|
+                    symRange.ValueOr Range.Zero
+                    |> QsCompilerDiagnostic.Error(ErrorCode.UnknownTypeParameterName, [ symName ])
+                |]
 
         syncRoot.EnterReadLock()
 
@@ -257,9 +259,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
     let checkUdtAccessibility code (parent, parentAccess) (udt: UserDefinedType, udtAccess) =
-        if parentAccess = DefaultAccess && udtAccess = Internal
-        then [| QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) (udt.Range.ValueOr Range.Zero) |]
-        else [||]
+        if parentAccess = DefaultAccess && udtAccess = Internal then
+            [|
+                QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) (udt.Range.ValueOr Range.Zero)
+            |]
+        else
+            [||]
 
     /// <summary>
     /// Checks whether the given parent and declaration should recognized as an entry point.
@@ -397,9 +402,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 match GetEntryPoints() |> Seq.tryHead with
                 | None -> isExecutable, errs
                 | Some (epName, epSource) ->
-                    let msgArgs =
-                        [ sprintf "%s.%s" epName.Namespace epName.Name
-                          epSource ]
+                    let msgArgs = [ sprintf "%s.%s" epName.Namespace epName.Name; epSource ]
 
                     errs.Add
                         (offset,
@@ -439,8 +442,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     match ns.TryGetAttributeDeclaredIn declSource (udt.Name, validQualifications) with
                     | None ->
                         None,
-                        [| symRange.ValueOr Range.Zero
-                           |> QsCompilerDiagnostic.Error(ErrorCode.NotMarkedAsAttribute, [ fullName ]) |]
+                        [|
+                            symRange.ValueOr Range.Zero
+                            |> QsCompilerDiagnostic.Error(ErrorCode.NotMarkedAsAttribute, [ fullName ])
+                        |]
                     | Some argType -> Some(udt, argType), errs
                 | false, _ ->
                     QsCompilerError.Raise "namespace for defined type not found"
@@ -722,9 +727,11 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     if fullName.ToString() |> (not << nsNames.Contains) then
                         resErrs
                     else
-                        [| qsType.Range
-                           |> QsCompilerDiagnostic.New
-                               (Error ErrorCode.FullNameConflictsWithNamespace, [ fullName.ToString() ]) |]
+                        [|
+                            qsType.Range
+                            |> QsCompilerDiagnostic.New
+                                (Error ErrorCode.FullNameConflictsWithNamespace, [ fullName.ToString() ])
+                        |]
                         |> Array.append resErrs
                     |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes.
@@ -968,15 +975,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                         | Value gen ->
                             Some
                                 (gen.Directive,
-                                 { Kind = kind
-                                   TypeArguments = gen.TypeArguments
-                                   Information = gen.Information
-                                   Parent = parent
-                                   Attributes = resolution.ResolvedAttributes
-                                   SourceFile = source
-                                   Position = DeclarationHeader.Offset.Defined resolution.Position
-                                   HeaderRange = DeclarationHeader.Range.Defined resolution.Range
-                                   Documentation = resolution.Documentation }))
+                                 {
+                                     Kind = kind
+                                     TypeArguments = gen.TypeArguments
+                                     Information = gen.Information
+                                     Parent = parent
+                                     Attributes = resolution.ResolvedAttributes
+                                     SourceFile = source
+                                     Position = DeclarationHeader.Offset.Defined resolution.Position
+                                     HeaderRange = DeclarationHeader.Range.Defined resolution.Range
+                                     Documentation = resolution.Documentation
+                                 }))
 
             defined.ToImmutableArray()
         finally
@@ -1018,16 +1027,18 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                             None
                         | Value (signature, argTuple) ->
                             Some
-                                { Kind = kind
-                                  QualifiedName = { Namespace = ns.Name; Name = cName }
-                                  Attributes = declaration.ResolvedAttributes
-                                  Modifiers = declaration.Modifiers
-                                  SourceFile = source
-                                  Position = DeclarationHeader.Offset.Defined declaration.Position
-                                  SymbolRange = DeclarationHeader.Range.Defined declaration.Range
-                                  Signature = signature
-                                  ArgumentTuple = argTuple
-                                  Documentation = declaration.Documentation }))
+                                {
+                                    Kind = kind
+                                    QualifiedName = { Namespace = ns.Name; Name = cName }
+                                    Attributes = declaration.ResolvedAttributes
+                                    Modifiers = declaration.Modifiers
+                                    SourceFile = source
+                                    Position = DeclarationHeader.Offset.Defined declaration.Position
+                                    SymbolRange = DeclarationHeader.Range.Defined declaration.Range
+                                    Signature = signature
+                                    ArgumentTuple = argTuple
+                                    Documentation = declaration.Documentation
+                                }))
 
             defined.ToImmutableArray()
         finally
@@ -1080,15 +1091,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                             None
                         | Value (underlyingType, items) ->
                             Some
-                                { QualifiedName = { Namespace = ns.Name; Name = tName }
-                                  Attributes = qsType.ResolvedAttributes
-                                  Modifiers = qsType.Modifiers
-                                  SourceFile = source
-                                  Position = DeclarationHeader.Offset.Defined qsType.Position
-                                  SymbolRange = DeclarationHeader.Range.Defined qsType.Range
-                                  Type = underlyingType
-                                  TypeItems = items
-                                  Documentation = qsType.Documentation }))
+                                {
+                                    QualifiedName = { Namespace = ns.Name; Name = tName }
+                                    Attributes = qsType.ResolvedAttributes
+                                    Modifiers = qsType.Modifiers
+                                    SourceFile = source
+                                    Position = DeclarationHeader.Offset.Defined qsType.Position
+                                    SymbolRange = DeclarationHeader.Range.Defined qsType.Range
+                                    Type = underlyingType
+                                    TypeItems = items
+                                    Documentation = qsType.Documentation
+                                }))
 
             defined.ToImmutableArray()
         finally
@@ -1205,10 +1218,14 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 if validAlias && Namespaces.ContainsKey opened then
                     ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
                 elif validAlias then
-                    [| openedRange |> QsCompilerDiagnostic.Error(ErrorCode.UnknownNamespace, [ opened ]) |]
+                    [|
+                        openedRange |> QsCompilerDiagnostic.Error(ErrorCode.UnknownNamespace, [ opened ])
+                    |]
                 else
-                    [| aliasRange.ValueOr openedRange
-                       |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ]) |]
+                    [|
+                        aliasRange.ValueOr openedRange
+                        |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
+                    |]
             | true, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
             | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
         finally
@@ -1235,16 +1252,18 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let resolvedSignature, argTuple = declaration.Resolved.ValueOrApply fallback
 
-            { Kind = kind
-              QualifiedName = fullName
-              Attributes = declaration.ResolvedAttributes
-              Modifiers = declaration.Modifiers
-              SourceFile = source
-              Position = DeclarationHeader.Offset.Defined declaration.Position
-              SymbolRange = DeclarationHeader.Range.Defined declaration.Range
-              Signature = resolvedSignature
-              ArgumentTuple = argTuple
-              Documentation = declaration.Documentation }
+            {
+                Kind = kind
+                QualifiedName = fullName
+                Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
+                SourceFile = source
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range
+                Signature = resolvedSignature
+                ArgumentTuple = argTuple
+                Documentation = declaration.Documentation
+            }
 
         let findInReferences (ns: Namespace) =
             ns.CallablesInReferencedAssemblies.[callableName.Name]
@@ -1339,15 +1358,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
 
-            { QualifiedName = fullName
-              Attributes = declaration.ResolvedAttributes
-              Modifiers = declaration.Modifiers
-              SourceFile = source
-              Position = DeclarationHeader.Offset.Defined declaration.Position
-              SymbolRange = DeclarationHeader.Range.Defined declaration.Range
-              Type = underlyingType
-              TypeItems = items
-              Documentation = declaration.Documentation }
+            {
+                QualifiedName = fullName
+                Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
+                SourceFile = source
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range
+                Type = underlyingType
+                TypeItems = items
+                Documentation = declaration.Documentation
+            }
 
         let findInReferences (ns: Namespace) =
             ns.TypesInReferencedAssemblies.[typeName.Name]

@@ -28,10 +28,12 @@ type PositionConverter() =
 [<CLIMutable>]
 [<DataContract>]
 type private RangePosition =
-    { [<DataMember>]
-      Line: int
-      [<DataMember>]
-      Column: int }
+    {
+        [<DataMember>]
+        Line: int
+        [<DataMember>]
+        Column: int
+    }
 
 type RangeConverter() =
     inherit JsonConverter<Range>()
@@ -158,11 +160,13 @@ type TypedExpressionConverter() =
             serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType> * IEnumerable<QsQualifiedName * string * ResolvedType> * ResolvedType * InferredExpressionInformation * QsNullable<Range>>
                 reader
 
-        { Expression = ex
-          TypeArguments = paramRes.ToImmutableArray()
-          ResolvedType = t
-          InferredInformation = info
-          Range = range }
+        {
+            Expression = ex
+            TypeArguments = paramRes.ToImmutableArray()
+            ResolvedType = t
+            InferredInformation = info
+            Range = range
+        }
 
     override this.WriteJson(writer: JsonWriter, value: TypedExpression, serializer: JsonSerializer) =
         serializer.Serialize
@@ -179,9 +183,11 @@ type QsNamespaceConverter() =
                            serializer: JsonSerializer) =
         let (nsName, elements) = serializer.Deserialize<string * IEnumerable<QsNamespaceElement>>(reader)
 
-        { Name = nsName
-          Elements = elements.ToImmutableArray()
-          Documentation = [].ToLookup(fst, snd) }
+        {
+            Name = nsName
+            Elements = elements.ToImmutableArray()
+            Documentation = [].ToLookup(fst, snd)
+        }
 
     override this.WriteJson(writer: JsonWriter, value: QsNamespace, serializer: JsonSerializer) =
         serializer.Serialize(writer, (value.Name, value.Elements))
@@ -204,14 +210,16 @@ type DictionaryAsArrayResolver() =
 module Json =
 
     let Converters ignoreSerializationException =
-        [| new PositionConverter() :> JsonConverter
-           new RangeConverter() :> JsonConverter
-           new QsNullableLocationConverter(ignoreSerializationException) :> JsonConverter
-           new ResolvedTypeConverter(ignoreSerializationException) :> JsonConverter
-           new ResolvedCharacteristicsConverter(ignoreSerializationException) :> JsonConverter
-           new TypedExpressionConverter() :> JsonConverter
-           new ResolvedInitializerConverter() :> JsonConverter
-           new QsNamespaceConverter() :> JsonConverter |]
+        [|
+            new PositionConverter() :> JsonConverter
+            new RangeConverter() :> JsonConverter
+            new QsNullableLocationConverter(ignoreSerializationException) :> JsonConverter
+            new ResolvedTypeConverter(ignoreSerializationException) :> JsonConverter
+            new ResolvedCharacteristicsConverter(ignoreSerializationException) :> JsonConverter
+            new TypedExpressionConverter() :> JsonConverter
+            new ResolvedInitializerConverter() :> JsonConverter
+            new QsNamespaceConverter() :> JsonConverter
+        |]
 
     /// Creates a serializer using the given converters.
     /// Be aware that this is expensive and repeated creation of a serializer should be avoided.

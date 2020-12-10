@@ -12,8 +12,7 @@ open Xunit
 let private callables =
     CompilerTests.Compile
         ("TestCases",
-         [ "CapabilityTests/Verification.qs"
-           "CapabilityTests/Inference.qs" ],
+         [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
          references = [ (File.ReadAllLines "ReferenceTargets.txt").[1] ])
     |> fun compilation -> compilation.BuiltCompilation
     |> CapabilityInference.InferCapabilities
@@ -28,52 +27,50 @@ let private expect capability name =
 
 [<Fact>]
 let ``Infers BasicQuantumFunctionality by source code`` () =
-    [ "NoOp"
+    [
+        "NoOp"
 
-      // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
-      // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
-      "ResultTuple"
-      "ResultArray" ]
+        // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
+        // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
+        "ResultTuple"
+        "ResultArray"
+    ]
     |> List.iter (expect BasicQuantumFunctionality)
 
 [<Fact>]
 let ``Infers BasicMeasurementFeedback by source code`` () =
-    [ "SetLocal"
-      "EmptyIfOp"
-      "EmptyIfNeqOp"
-      "Reset"
-      "ResetNeq" ]
+    [ "SetLocal"; "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ]
     |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]
 let ``Infers FullComputation by source code`` () =
-    [ "ResultAsBool"
-      "ResultAsBoolNeq"
-      "ResultAsBoolOp"
-      "ResultAsBoolNeqOp"
-      "ResultAsBoolOpReturnIf"
-      "ResultAsBoolNeqOpReturnIf"
-      "ResultAsBoolOpReturnIfNested"
-      "ResultAsBoolOpSetIf"
-      "ResultAsBoolNeqOpSetIf"
-      "ResultAsBoolOpElseSet"
-      "NestedResultIfReturn"
-      "ElifSet"
-      "ElifElifSet"
-      "ElifElseSet"
-      "SetReusedName"
-      "SetTuple"
-      "EmptyIf"
-      "EmptyIfNeq" ]
+    [
+        "ResultAsBool"
+        "ResultAsBoolNeq"
+        "ResultAsBoolOp"
+        "ResultAsBoolNeqOp"
+        "ResultAsBoolOpReturnIf"
+        "ResultAsBoolNeqOpReturnIf"
+        "ResultAsBoolOpReturnIfNested"
+        "ResultAsBoolOpSetIf"
+        "ResultAsBoolNeqOpSetIf"
+        "ResultAsBoolOpElseSet"
+        "NestedResultIfReturn"
+        "ElifSet"
+        "ElifElifSet"
+        "ElifElseSet"
+        "SetReusedName"
+        "SetTuple"
+        "EmptyIf"
+        "EmptyIfNeq"
+    ]
     |> List.iter (expect FullComputation)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
     expect BasicQuantumFunctionality "OverrideBmfToBqf"
 
-    [ "OverrideBqfToBmf"
-      "OverrideFullToBmf"
-      "ExplicitBmf" ]
+    [ "OverrideBqfToBmf"; "OverrideFullToBmf"; "ExplicitBmf" ]
     |> List.iter (expect BasicMeasurementFeedback)
 
     expect FullComputation "OverrideBmfToFull"
@@ -94,17 +91,13 @@ let ``Infers two chained dependencies`` () =
 
 [<Fact>]
 let ``Allows safe override`` () =
-    [ "CallFullOverrideA"
-      "CallFullOverrideB" ]
-    |> List.iter (expect FullComputation)
+    [ "CallFullOverrideA"; "CallFullOverrideB" ] |> List.iter (expect FullComputation)
 
     expect BasicMeasurementFeedback "CallFullOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
-    [ "CallBmfOverrideA"
-      "CallBmfOverrideB" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfOverrideA"; "CallBmfOverrideB" ] |> List.iter (expect BasicMeasurementFeedback)
 
     expect FullComputation "CallBmfOverrideC"
 
@@ -114,9 +107,7 @@ let ``Infers with direction recursion`` () =
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
-    [ "BmfRecursion3A"
-      "BmfRecursion3B"
-      "BmfRecursion3C" ]
+    [ "BmfRecursion3A"; "BmfRecursion3B"; "BmfRecursion3C" ]
     |> List.iter (expect BasicMeasurementFeedback)
 
 [<Fact>]

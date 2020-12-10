@@ -135,8 +135,10 @@ let private verifyIsOmittedOrUnit mismatchErr (arg: QsSymbol) =
     match arg.Symbol with
     | sym when sym |> isOmitted -> [||]
     | SymbolTuple syms when syms.Length = 0 ->
-        [| arg.RangeOrDefault
-           |> QsCompilerDiagnostic.Warning(WarningCode.DeprecatedArgumentForFunctorGenerator, []) |]
+        [|
+            arg.RangeOrDefault
+            |> QsCompilerDiagnostic.Warning(WarningCode.DeprecatedArgumentForFunctorGenerator, [])
+        |]
     | _ -> [| arg.RangeOrDefault |> QsCompilerDiagnostic.Error mismatchErr |]
 
 /// Returns the name and the range of the symbol as Some,
@@ -167,8 +169,10 @@ let rec private singleAdditionalArg mismatchErr (qsSym: QsSymbol) =
         | Some name when not withDeprecatedWarning -> name, [||]
         | Some name ->
             name,
-            [| qsSym.RangeOrDefault
-               |> QsCompilerDiagnostic.Warning(WarningCode.DeprecatedArgumentForFunctorGenerator, []) |]
+            [|
+                qsSym.RangeOrDefault
+                |> QsCompilerDiagnostic.Warning(WarningCode.DeprecatedArgumentForFunctorGenerator, [])
+            |]
         | None -> (InvalidName, qsSym.Range), [| qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error mismatchErr |]
 
     match qsSym.Symbol with

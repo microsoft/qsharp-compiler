@@ -59,8 +59,10 @@ type CharacteristicsKind<'S> =
     | InvalidSetExpr
 
 type Characteristics =
-    { Characteristics: CharacteristicsKind<Characteristics>
-      Range: QsNullable<Range> }
+    {
+        Characteristics: CharacteristicsKind<Characteristics>
+        Range: QsNullable<Range>
+    }
 
 type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> =
     // Note: while templates need to be part of the type system, they cannot be identified at parsing time
@@ -84,8 +86,10 @@ type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> =
     | InvalidType // to be used e.g. for parsing errors
 
 type QsType =
-    { Type: QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>
-      Range: QsNullable<Range> }
+    {
+        Type: QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>
+        Range: QsNullable<Range>
+    }
     interface ITuple
 
 
@@ -139,8 +143,10 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | InvalidExpr
 
 type QsExpression =
-    { Expression: QsExpressionKind<QsExpression, QsSymbol, QsType>
-      Range: QsNullable<Range> }
+    {
+        Expression: QsExpressionKind<QsExpression, QsSymbol, QsType>
+        Range: QsNullable<Range>
+    }
     interface ITuple
 
 
@@ -153,8 +159,10 @@ type QsInitializerKind<'Initializer, 'Expr> =
     | InvalidInitializer
 
 type QsInitializer =
-    { Initializer: QsInitializerKind<QsInitializer, QsExpression>
-      Range: QsNullable<Range> }
+    {
+        Initializer: QsInitializerKind<QsInitializer, QsExpression>
+        Range: QsNullable<Range>
+    }
     interface ITuple
 
 
@@ -173,9 +181,11 @@ type QsSpecializationGeneratorKind<'Symbol> =
     | UserDefinedImplementation of 'Symbol
 
 type QsSpecializationGenerator =
-    { TypeArguments: QsNullable<ImmutableArray<QsType>>
-      Generator: QsSpecializationGeneratorKind<QsSymbol>
-      Range: QsNullable<Range> }
+    {
+        TypeArguments: QsNullable<ImmutableArray<QsType>>
+        Generator: QsSpecializationGeneratorKind<QsSymbol>
+        Range: QsNullable<Range>
+    }
 
 
 // Q# fragments
@@ -185,10 +195,12 @@ type QsTuple<'Item> =
     | QsTuple of ImmutableArray<QsTuple<'Item>>
 
 type CallableSignature =
-    { TypeParameters: ImmutableArray<QsSymbol>
-      Argument: QsTuple<QsSymbol * QsType>
-      ReturnType: QsType
-      Characteristics: Characteristics }
+    {
+        TypeParameters: ImmutableArray<QsSymbol>
+        Argument: QsTuple<QsSymbol * QsType>
+        ReturnType: QsType
+        Characteristics: Characteristics
+    }
 
 /// Defines where a global declaration may be accessed.
 [<Struct>]
@@ -203,8 +215,10 @@ type AccessModifier =
 /// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
 [<Struct>]
 type Modifiers =
-    { /// Defines where a global declaration may be accessed.
-      Access: AccessModifier }
+    {
+        /// Defines where a global declaration may be accessed.
+        Access: AccessModifier
+    }
 
 type QsFragmentKind =
     | ExpressionStatement of QsExpression
@@ -305,7 +319,9 @@ type QsFragmentKind =
 
 
 type QsFragment =
-    { Kind: QsFragmentKind
-      Range: Range
-      Diagnostics: ImmutableArray<QsCompilerDiagnostic>
-      Text: string }
+    {
+        Kind: QsFragmentKind
+        Range: Range
+        Diagnostics: ImmutableArray<QsCompilerDiagnostic>
+        Text: string
+    }

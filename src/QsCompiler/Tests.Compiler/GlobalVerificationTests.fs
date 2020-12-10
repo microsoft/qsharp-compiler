@@ -14,10 +14,12 @@ open Xunit
 type GlobalVerificationTests() =
     inherit CompilerTests(CompilerTests.Compile
                               ("TestCases",
-                               [ "General.qs"
-                                 "GlobalVerification.qs"
-                                 "Types.qs"
-                                 System.IO.Path.Join("LinkingTests", "Core.qs") ]))
+                               [
+                                   "General.qs"
+                                   "GlobalVerification.qs"
+                                   "Types.qs"
+                                   System.IO.Path.Join("LinkingTests", "Core.qs")
+                               ]))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.GlobalVerification"
@@ -35,29 +37,18 @@ type GlobalVerificationTests() =
 
         this.Expect
             "LocalNamespaceShortNames6"
-            [ Error ErrorCode.ArgumentTypeMismatch
-              Error ErrorCode.ArgumentTypeMismatch ]
+            [ Error ErrorCode.ArgumentTypeMismatch; Error ErrorCode.ArgumentTypeMismatch ]
 
         this.Expect "LocalNamespaceShortNames7" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames8" []
         this.Expect "LocalNamespaceShortNames9" []
         this.Expect "LocalNamespaceShortNames10" []
-
-        this.Expect
-            "LocalNamespaceShortNames11"
-            [ Error ErrorCode.UnknownType
-              Error ErrorCode.UnknownIdentifier ]
-
+        this.Expect "LocalNamespaceShortNames11" [ Error ErrorCode.UnknownType; Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames12" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames13" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames14" [ Error ErrorCode.TypeMismatchInReturn ] // todo: could be more descriptive...
         this.Expect "LocalNamespaceShortNames15" []
-
-        this.Expect
-            "LocalNamespaceShortNames16"
-            [ Error ErrorCode.UnknownType
-              Error ErrorCode.UnknownType ]
-
+        this.Expect "LocalNamespaceShortNames16" [ Error ErrorCode.UnknownType; Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames17" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames18" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames19" []
@@ -163,8 +154,10 @@ type GlobalVerificationTests() =
 
         this.Expect
             "AllPathsReturnValue14"
-            [ Error ErrorCode.ReturnFromWithinApplyBlock
-              Error ErrorCode.MissingReturnOrFailStatement ]
+            [
+                Error ErrorCode.ReturnFromWithinApplyBlock
+                Error ErrorCode.MissingReturnOrFailStatement
+            ]
 
         this.Expect "AllPathsFail1" []
         this.Expect "AllPathsFail2" []
@@ -194,13 +187,17 @@ type GlobalVerificationTests() =
 
         this.Expect
             "NotAllPathsReturnValue11"
-            [ Error ErrorCode.MissingReturnOrFailStatement
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.MissingReturnOrFailStatement
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect
             "NotAllPathsReturnValue12"
-            [ Error ErrorCode.MissingReturnOrFailStatement
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.MissingReturnOrFailStatement
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect "NotAllPathsReturnValue13" [ Error ErrorCode.MissingReturnOrFailStatement ]
         this.Expect "NotAllPathsReturnValue14" [ Error ErrorCode.MissingReturnOrFailStatement ]
@@ -234,68 +231,90 @@ type GlobalVerificationTests() =
 
         this.Expect
             "InvalidReturnFromWithinUsing1"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing2"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing3"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing4"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnFromWithinUsing5" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnFromWithinUsing6"
-            [ Error ErrorCode.ReturnStatementWithinAutoInversion
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.ReturnStatementWithinAutoInversion
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect "InvalidReturnFromWithinUsing7" [ Error ErrorCode.ReturnFromWithinApplyBlock ]
 
         this.Expect
             "InvalidReturnFromWithinUsing8"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnFromWithinUsing9" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnFromWithinUsing10"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect "InvalidReturnFromWithinUsing11" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnFromWithinUsing12"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Error ErrorCode.InvalidReturnWithinAllocationScope
-              Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing13"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing14"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinUsing15"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "ReturnFromWithinBorrowing1" []
         this.Expect "ReturnFromWithinBorrowing2" []
@@ -308,48 +327,64 @@ type GlobalVerificationTests() =
 
         this.Expect
             "InvalidReturnFromWithinBorrowing1"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing2"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing3"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing4"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnFromWithinBorrowing5" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing6"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing7"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing8"
-            [ Error ErrorCode.ReturnStatementWithinAutoInversion
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.ReturnStatementWithinAutoInversion
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect "InvalidReturnFromWithinBorrowing9" [ Error ErrorCode.ReturnFromWithinApplyBlock ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing10"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnFromWithinBorrowing11" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
         this.Expect "InvalidReturnFromWithinBorrowing12" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
@@ -357,25 +392,33 @@ type GlobalVerificationTests() =
 
         this.Expect
             "InvalidReturnFromWithinBorrowing14"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Error ErrorCode.InvalidReturnWithinAllocationScope
-              Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing15"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing16"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnFromWithinBorrowing17"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "ValidReturnPlacement1" [ Warning WarningCode.UnreachableCode ]
         this.Expect "ValidReturnPlacement2" [ Warning WarningCode.UnreachableCode ]
@@ -395,48 +438,64 @@ type GlobalVerificationTests() =
 
         this.Expect
             "InvalidReturnPlacement1"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnPlacement2"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnPlacement3"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnPlacement4"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnPlacement5" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
         this.Expect "InvalidReturnPlacement6" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnPlacement7"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnPlacement8" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
 
         this.Expect
             "InvalidReturnPlacement9"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnPlacement10"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect
             "InvalidReturnPlacement11"
-            [ Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
         this.Expect "InvalidReturnPlacement12" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
         this.Expect "InvalidReturnPlacement13" [ Error ErrorCode.InvalidReturnWithinAllocationScope ]
@@ -446,21 +505,27 @@ type GlobalVerificationTests() =
 
         this.Expect
             "InvalidReturnPlacement17"
-            [ Error ErrorCode.ReturnStatementWithinAutoInversion
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.ReturnStatementWithinAutoInversion
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect "InvalidReturnPlacement18" [ Error ErrorCode.ReturnFromWithinApplyBlock ]
 
         this.Expect
             "InvalidReturnPlacement19"
-            [ Error ErrorCode.ReturnStatementWithinAutoInversion
-              Error ErrorCode.InvalidReturnWithinAllocationScope ]
+            [
+                Error ErrorCode.ReturnStatementWithinAutoInversion
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+            ]
 
         this.Expect
             "InvalidReturnPlacement20"
-            [ Error ErrorCode.ReturnStatementWithinAutoInversion
-              Error ErrorCode.InvalidReturnWithinAllocationScope
-              Warning WarningCode.UnreachableCode ]
+            [
+                Error ErrorCode.ReturnStatementWithinAutoInversion
+                Error ErrorCode.InvalidReturnWithinAllocationScope
+                Warning WarningCode.UnreachableCode
+            ]
 
 
     [<Fact>]

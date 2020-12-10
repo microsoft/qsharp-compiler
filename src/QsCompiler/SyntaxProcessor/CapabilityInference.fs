@@ -195,13 +195,15 @@ let private statementPatterns statement =
                     expressionPatterns true condition |> Seq.map (addOffset blockOffset) |> patterns.AddRange
                     this.Transformation.Statements.OnScope block.Body |> ignore
 
-                QsConditionalStatement statement }
+                QsConditionalStatement statement
+        }
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
                 expressionPatterns false expression |> Seq.map (addOffset location.Offset) |> patterns.AddRange
-                expression }
+                expression
+        }
 
     transformation.Statements.OnStatement statement |> ignore
     patterns
@@ -227,7 +229,8 @@ let private globalReferences scope =
                     references <- (name, range) :: references
                 | _ -> ()
 
-                base.OnTypedExpression expression }
+                base.OnTypedExpression expression
+        }
 
     transformation.Statements.OnScope scope |> ignore
     references
@@ -244,18 +247,17 @@ let private referenceDiagnostic context (name, range: _ QsNullable) =
             None
         else
             let error =
-                ErrorCode.UnsupportedCapability,
-                [ name.Name
-                  string capability
-                  context.ProcessorArchitecture ]
+                ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
 
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
     | _ -> None
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
 let ScopeDiagnostics context scope =
-    [ globalReferences scope |> Seq.choose (referenceDiagnostic context)
-      scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
+    [
+        globalReferences scope |> Seq.choose (referenceDiagnostic context)
+        scopePatterns scope |> Seq.choose (patternDiagnostic context)
+    ]
     |> Seq.concat
 
 /// Looks up a key in the dictionary, returning Some value if it is found and None if not.
@@ -353,8 +355,12 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
         (BuiltIn.TryGetRequiredCapability callable.Attributes)
             .ValueOrApply(fun () ->
                 if isDeclaredInSourceFile callable then
-                    [ initialCapabilities |> tryGetValue callable.FullName |> Option.defaultValue RuntimeCapability.Base
-                      dependentCapability visited callable.FullName ]
+                    [
+                        initialCapabilities
+                        |> tryGetValue callable.FullName
+                        |> Option.defaultValue RuntimeCapability.Base
+                        dependentCapability visited callable.FullName
+                    ]
                     |> joinCapabilities
                 else
                     RuntimeCapability.Base)
@@ -393,6 +399,7 @@ let InferCapabilities compilation =
 
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute
-                else callable }
+                else callable
+        }
 
     transformation.OnCompilation compilation

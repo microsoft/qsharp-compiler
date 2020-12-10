@@ -69,7 +69,9 @@ let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (ex: Typ
          && ex.InferredInformation.HasLocalQuantumDependency) then
         [||]
     else
-        [| range |> QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, []) |]
+        [|
+            range |> QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, [])
+        |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// returns an array with containing a diagnostic for the given range with the given error code.
@@ -151,7 +153,9 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
         s,
         d,
         Array.concat [ errs
-                       [| rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.ExpressionOfUnknownType, []) |] ]
+                       [|
+                           rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.ExpressionOfUnknownType, [])
+                       |] ]
 
     let rec GetBindings (sym: QsSymbol, exType: ResolvedType, exKind: QsExpressionKind<_, _, _> option) =
         match sym.Symbol with
@@ -160,13 +164,17 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
         | QsSymbolKind.MissingSymbol when warnOnDiscard ->
             DiscardedItem,
             [||],
-            [| sym.RangeOrDefault |> QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) |]
+            [|
+                sym.RangeOrDefault |> QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, [])
+            |]
         | QsSymbolKind.MissingSymbol -> DiscardedItem, [||], [||]
         | QsSymbolKind.OmittedSymbols
         | QsSymbolKind.QualifiedSymbol _ ->
             InvalidItem,
             [||],
-            [| sym.RangeOrDefault |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) |]
+            [|
+                sym.RangeOrDefault |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, [])
+            |]
         | QsSymbolKind.Symbol name ->
             match tryBuildDeclaration (name, sym.RangeOrDefault) (exType, exKind, rhsRange) with
             | Some decl, errs -> VariableName name, [| decl |], errs
@@ -195,8 +203,10 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
                     if exType.isInvalid then
                         errs
                     else
-                        [| sym.RangeOrDefault
-                           |> QsCompilerDiagnostic.Error(ErrorCode.SymbolTupleShapeMismatch, [ exType |> toString ]) |]
+                        [|
+                            sym.RangeOrDefault
+                            |> QsCompilerDiagnostic.Error(ErrorCode.SymbolTupleShapeMismatch, [ exType |> toString ])
+                        |]
                         :: errs
 
                 symbolTuple symItems, Array.concat declarations, Array.concat errs
@@ -230,7 +240,10 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
-            [| range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, []) |]
+
+            [|
+                range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, [])
+            |]
         | _ -> [||] // both missing and invalid expressions on the lhs are fine
 
     let refErrs = verifiedLhs |> VerifyMutability
@@ -264,7 +277,9 @@ let private TryAddDeclaration isMutable
         if rhsType.isTypeParametrized symbols.Parent
            || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then
             InvalidType |> ResolvedType.New,
-            [| rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidUseOfTypeParameterizedObject, []) |]
+            [|
+                rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidUseOfTypeParameterizedObject, [])
+            |]
         else
             rhsType, [||]
 

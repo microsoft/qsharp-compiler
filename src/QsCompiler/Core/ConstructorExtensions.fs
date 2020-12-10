@@ -31,11 +31,13 @@ type InferredExpressionInformation with
 
 type LocalVariableDeclaration<'Name> with
     static member New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
-        { VariableName = vName
-          Type = t
-          InferredInformation = InferredExpressionInformation.New(isMutable, hasLocalQuantumDependency)
-          Position = pos
-          Range = range }
+        {
+            VariableName = vName
+            Type = t
+            InferredInformation = InferredExpressionInformation.New(isMutable, hasLocalQuantumDependency)
+            Position = pos
+            Range = range
+        }
 
 type LocalDeclarations with
     static member New(variables: IEnumerable<_>) =
@@ -51,8 +53,10 @@ type LocalDeclarations with
 type InferredCallableInformation with
     /// the default values are intrinsic: false, selfAdj: false
     static member New(?intrinsic, ?selfAdj) =
-        { IsIntrinsic = defaultArg intrinsic false
-          IsSelfAdjoint = defaultArg selfAdj false }
+        {
+            IsIntrinsic = defaultArg intrinsic false
+            IsSelfAdjoint = defaultArg selfAdj false
+        }
 
 type CallableInformation with
     static member New(characteristics, inferredInfo) =
@@ -63,11 +67,13 @@ type TypedExpression with
     /// The UnresolvedType of the given expression is set to the given expression type, and
     /// the ResolvedType is set to the type constructed by resolving it using ResolveTypeParameters and the given look-up.
     static member New(expr, typeParamResolutions: ImmutableDictionary<_, _>, exType, exInfo, range) =
-        { Expression = expr
-          TypeArguments = TypedExpression.AsTypeArguments typeParamResolutions
-          ResolvedType = ResolvedType.ResolveTypeParameters typeParamResolutions exType
-          InferredInformation = exInfo
-          Range = range }
+        {
+            Expression = expr
+            TypeArguments = TypedExpression.AsTypeArguments typeParamResolutions
+            ResolvedType = ResolvedType.ResolveTypeParameters typeParamResolutions exType
+            InferredInformation = exInfo
+            Range = range
+        }
 
 type QsBinding<'T> with
     static member New kind (lhs, rhs) = { Kind = kind; Lhs = lhs; Rhs = rhs }
@@ -77,8 +83,10 @@ type QsValueUpdate with
 
 type QsComments with
     static member New(before: IEnumerable<_>, after: IEnumerable<_>) =
-        { OpeningComments = before.ToImmutableArray()
-          ClosingComments = after.ToImmutableArray() }
+        {
+            OpeningComments = before.ToImmutableArray()
+            ClosingComments = after.ToImmutableArray()
+        }
 
 type QsScope with
     static member New(statements: IEnumerable<_>, parentSymbols) =
@@ -101,9 +109,11 @@ type QsWhileStatement with
 
 type QsRepeatStatement with
     static member New(repeatBlock, successCondition, fixupBlock) =
-        { RepeatBlock = repeatBlock
-          SuccessCondition = successCondition
-          FixupBlock = fixupBlock }
+        {
+            RepeatBlock = repeatBlock
+            SuccessCondition = successCondition
+            FixupBlock = fixupBlock
+        }
 
 type QsConjugation with
     static member New(outer, inner) =
@@ -111,39 +121,47 @@ type QsConjugation with
 
 type QsQubitScope with
     static member New kind ((lhs, rhs), body) =
-        { Kind = kind
-          Binding = QsBinding<QsInitializer>.New QsBindingKind.ImmutableBinding (lhs, rhs)
-          Body = body }
+        {
+            Kind = kind
+            Binding = QsBinding<QsInitializer>.New QsBindingKind.ImmutableBinding (lhs, rhs)
+            Body = body
+        }
 
 type QsStatement with
     static member New comments location (kind, symbolDecl) =
-        { Statement = kind
-          SymbolDeclarations = symbolDecl
-          Location = location
-          Comments = comments }
+        {
+            Statement = kind
+            SymbolDeclarations = symbolDecl
+            Location = location
+            Comments = comments
+        }
 
 type ResolvedSignature with
     static member New((argType, returnType), info, typeParams: IEnumerable<_>) =
-        { TypeParameters = typeParams.ToImmutableArray()
-          ArgumentType = argType
-          ReturnType = returnType
-          Information = info }
+        {
+            TypeParameters = typeParams.ToImmutableArray()
+            ArgumentType = argType
+            ReturnType = returnType
+            Information = info
+        }
 
 type QsSpecialization with
     static member New kind
                       (source, location)
                       (parent, attributes, typeArgs, signature, implementation, documentation, comments)
                       =
-        { Kind = kind
-          Parent = parent
-          Attributes = attributes
-          SourceFile = source
-          Location = location
-          TypeArguments = typeArgs
-          Signature = signature
-          Implementation = implementation
-          Documentation = documentation
-          Comments = comments }
+        {
+            Kind = kind
+            Parent = parent
+            Attributes = attributes
+            SourceFile = source
+            Location = location
+            TypeArguments = typeArgs
+            Signature = signature
+            Implementation = implementation
+            Documentation = documentation
+            Comments = comments
+        }
 
     static member NewBody = QsSpecialization.New QsBody
     static member NewAdjoint = QsSpecialization.New QsAdjoint
@@ -162,17 +180,19 @@ type QsCallable with
                        documentation,
                        comments)
                       =
-        { Kind = kind
-          FullName = name
-          Attributes = attributes
-          Modifiers = modifiers
-          SourceFile = source
-          Location = location
-          Signature = signature
-          Specializations = specializations.ToImmutableArray()
-          ArgumentTuple = argTuple
-          Documentation = documentation
-          Comments = comments }
+        {
+            Kind = kind
+            FullName = name
+            Attributes = attributes
+            Modifiers = modifiers
+            SourceFile = source
+            Location = location
+            Signature = signature
+            Specializations = specializations.ToImmutableArray()
+            ArgumentTuple = argTuple
+            Documentation = documentation
+            Comments = comments
+        }
 
     static member NewFunction = QsCallable.New QsCallableKind.Function
     static member NewOperation = QsCallable.New QsCallableKind.Operation
@@ -181,15 +201,17 @@ type QsCallable with
 type QsCustomType with
     static member New (source, location) (name, attributes, modifiers, items, underlyingType, documentation, comments)
                       =
-        { FullName = name
-          Attributes = attributes
-          Modifiers = modifiers
-          SourceFile = source
-          Location = location
-          Type = underlyingType
-          TypeItems = items
-          Documentation = documentation
-          Comments = comments }
+        {
+            FullName = name
+            Attributes = attributes
+            Modifiers = modifiers
+            SourceFile = source
+            Location = location
+            Type = underlyingType
+            TypeItems = items
+            Documentation = documentation
+            Comments = comments
+        }
 
 type QsDeclarationAttribute with
     static member New(typeId, arg, pos, comments) =
@@ -204,9 +226,11 @@ type QsNamespaceElement with
 
 type QsNamespace with
     static member New(name, elements: IEnumerable<_>, documentation) =
-        { Name = name
-          Elements = elements.ToImmutableArray()
-          Documentation = documentation }
+        {
+            Name = name
+            Elements = elements.ToImmutableArray()
+            Documentation = documentation
+        }
 
 type QsCompilation with
     static member New(namespaces, entryPoints) =

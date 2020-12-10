@@ -28,11 +28,13 @@ type Expression =
 
 /// A call to a quantum gate, with the given functors and arguments
 type GateCall =
-    { gate: QsQualifiedName
-      info: CallableInformation
-      adjoint: bool
-      controls: ImmutableArray<int>
-      arg: Expression }
+    {
+        gate: QsQualifiedName
+        info: CallableInformation
+        adjoint: bool
+        controls: ImmutableArray<int>
+        arg: Expression
+    }
 
 /// A pure quantum circuit with arbitrarily many (non-qubit) parameters
 type Circuit = { numQubits: int; numUnknownValues: int; gates: ImmutableArray<GateCall> }
@@ -41,10 +43,12 @@ type Circuit = { numQubits: int; numUnknownValues: int; gates: ImmutableArray<Ga
 /// Currently just stores the variable names corresponding to each qubit reference.
 /// In the future, this will include a map from all symbols to their Q# representation.
 type private CircuitContext =
-    { callables: ImmutableDictionary<QsQualifiedName, QsCallable>
-      distinctNames: Set<string>
-      qubits: ImmutableArray<TypedExpression>
-      unknownValues: ImmutableArray<TypedExpression> }
+    {
+        callables: ImmutableDictionary<QsQualifiedName, QsCallable>
+        distinctNames: Set<string>
+        qubits: ImmutableArray<TypedExpression>
+        unknownValues: ImmutableArray<TypedExpression>
+    }
 
 
 /// Converts a TypedExpression to an Expression
@@ -139,11 +143,13 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
 
                 return
                     cc,
-                    { gate = name
-                      info = info
-                      adjoint = false
-                      controls = ImmutableArray.Empty
-                      arg = argVal }
+                    {
+                        gate = name
+                        info = info
+                        adjoint = false
+                        controls = ImmutableArray.Empty
+                        arg = argVal
+                    }
             | _ -> return! None
         }
 
@@ -157,10 +163,12 @@ let private toCircuit callables distinctNames exprList: (Circuit * CircuitContex
     maybe {
         let ccRef =
             ref
-                { callables = callables
-                  distinctNames = distinctNames
-                  qubits = ImmutableArray.Empty
-                  unknownValues = ImmutableArray.Empty }
+                {
+                    callables = callables
+                    distinctNames = distinctNames
+                    qubits = ImmutableArray.Empty
+                    unknownValues = ImmutableArray.Empty
+                }
 
         let outputRef = ref []
 
@@ -170,9 +178,11 @@ let private toCircuit callables distinctNames exprList: (Circuit * CircuitContex
             outputRef := !outputRef @ [ gate ]
 
         let circuit =
-            { numQubits = (!ccRef).qubits.Length
-              numUnknownValues = (!ccRef).unknownValues.Length
-              gates = ImmutableArray.CreateRange !outputRef }
+            {
+                numQubits = (!ccRef).qubits.Length
+                numUnknownValues = (!ccRef).unknownValues.Length
+                gates = ImmutableArray.CreateRange !outputRef
+            }
 
         return circuit, !ccRef
     }
@@ -249,12 +259,14 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
         if circuit.gates.[i] = { circuit.gates.[i + 1] with adjoint = not circuit.gates.[i + 1].adjoint } then
             circuit <-
                 { circuit with
-                      gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
+                    gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange
+                }
         elif circuit.gates.[i] = circuit.gates.[i + 1]
              && circuit.gates.[i].info.InferredInformation.IsSelfAdjoint then
             circuit <-
                 { circuit with
-                      gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
+                    gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange
+                }
         else
             i <- i + 1
 

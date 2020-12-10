@@ -84,20 +84,16 @@ module DeclarationHeader =
 
 
     let private qsNullableConverters =
-        [| new NullableOffsetConverter() :> JsonConverter
-           new NullableRangeConverter() :> JsonConverter |]
+        [|
+            new NullableOffsetConverter() :> JsonConverter
+            new NullableRangeConverter() :> JsonConverter
+        |]
 
     let private Serializer =
-        [ qsNullableConverters
-          Json.Converters false ]
-        |> Array.concat
-        |> Json.CreateSerializer
+        [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
 
     let private PermissiveSerializer =
-        [ qsNullableConverters
-          Json.Converters true ]
-        |> Array.concat
-        |> Json.CreateSerializer
+        [ qsNullableConverters; Json.Converters true ] |> Array.concat |> Json.CreateSerializer
 
     let internal FromJson<'T> json =
         let deserialize (serializer: JsonSerializer) =
@@ -116,15 +112,17 @@ module DeclarationHeader =
 
 /// to be removed in future releases
 type TypeDeclarationHeader =
-    { QualifiedName: QsQualifiedName
-      Attributes: ImmutableArray<QsDeclarationAttribute>
-      Modifiers: Modifiers
-      SourceFile: string
-      Position: DeclarationHeader.Offset
-      SymbolRange: DeclarationHeader.Range
-      Type: ResolvedType
-      TypeItems: QsTuple<QsTypeItem>
-      Documentation: ImmutableArray<string> }
+    {
+        QualifiedName: QsQualifiedName
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        Modifiers: Modifiers
+        SourceFile: string
+        Position: DeclarationHeader.Offset
+        SymbolRange: DeclarationHeader.Range
+        Type: ResolvedType
+        TypeItems: QsTuple<QsTypeItem>
+        Documentation: ImmutableArray<string>
+    }
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
 
@@ -134,15 +132,17 @@ type TypeDeclarationHeader =
         { this with Attributes = this.Attributes.Add att }
 
     static member New(customType: QsCustomType) =
-        { QualifiedName = customType.FullName
-          Attributes = customType.Attributes
-          Modifiers = customType.Modifiers
-          SourceFile = customType.SourceFile
-          Position = customType.Location |> DeclarationHeader.CreateOffset
-          SymbolRange = customType.Location |> DeclarationHeader.CreateRange
-          Type = customType.Type
-          TypeItems = customType.TypeItems
-          Documentation = customType.Documentation }
+        {
+            QualifiedName = customType.FullName
+            Attributes = customType.Attributes
+            Modifiers = customType.Modifiers
+            SourceFile = customType.SourceFile
+            Position = customType.Location |> DeclarationHeader.CreateOffset
+            SymbolRange = customType.Location |> DeclarationHeader.CreateRange
+            Type = customType.Type
+            TypeItems = customType.TypeItems
+            Documentation = customType.Documentation
+        }
 
     static member FromJson json =
         let (success, header) = DeclarationHeader.FromJson<TypeDeclarationHeader> json
@@ -158,23 +158,26 @@ type TypeDeclarationHeader =
         else
             false,
             { header with
-                  TypeItems = ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem) |> QsTuple }
+                TypeItems = ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem) |> QsTuple
+            }
 
     member this.ToJson(): string = DeclarationHeader.ToJson this
 
 
 /// to be removed in future releases
 type CallableDeclarationHeader =
-    { Kind: QsCallableKind
-      QualifiedName: QsQualifiedName
-      Attributes: ImmutableArray<QsDeclarationAttribute>
-      Modifiers: Modifiers
-      SourceFile: string
-      Position: DeclarationHeader.Offset
-      SymbolRange: DeclarationHeader.Range
-      ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-      Signature: ResolvedSignature
-      Documentation: ImmutableArray<string> }
+    {
+        Kind: QsCallableKind
+        QualifiedName: QsQualifiedName
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        Modifiers: Modifiers
+        SourceFile: string
+        Position: DeclarationHeader.Offset
+        SymbolRange: DeclarationHeader.Range
+        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+        Signature: ResolvedSignature
+        Documentation: ImmutableArray<string>
+    }
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
 
@@ -184,16 +187,18 @@ type CallableDeclarationHeader =
         { this with Attributes = this.Attributes.Add att }
 
     static member New(callable: QsCallable) =
-        { Kind = callable.Kind
-          QualifiedName = callable.FullName
-          Attributes = callable.Attributes
-          Modifiers = callable.Modifiers
-          SourceFile = callable.SourceFile
-          Position = callable.Location |> DeclarationHeader.CreateOffset
-          SymbolRange = callable.Location |> DeclarationHeader.CreateRange
-          ArgumentTuple = callable.ArgumentTuple
-          Signature = callable.Signature
-          Documentation = callable.Documentation }
+        {
+            Kind = callable.Kind
+            QualifiedName = callable.FullName
+            Attributes = callable.Attributes
+            Modifiers = callable.Modifiers
+            SourceFile = callable.SourceFile
+            Position = callable.Location |> DeclarationHeader.CreateOffset
+            SymbolRange = callable.Location |> DeclarationHeader.CreateRange
+            ArgumentTuple = callable.ArgumentTuple
+            Signature = callable.Signature
+            Documentation = callable.Documentation
+        }
 
     static member FromJson json =
         let info = { IsMutable = false; HasLocalQuantumDependency = false }
@@ -218,7 +223,8 @@ type CallableDeclarationHeader =
            || Object.ReferenceEquals(header.Signature.Information.Characteristics, null) then
             false,
             { header with
-                  Signature = { header.Signature with Information = CallableInformation.Invalid } }
+                Signature = { header.Signature with Information = CallableInformation.Invalid }
+            }
         else
             success, header
 
@@ -227,30 +233,34 @@ type CallableDeclarationHeader =
 
 /// to be removed in future releases
 type SpecializationDeclarationHeader =
-    { Kind: QsSpecializationKind
-      TypeArguments: QsNullable<ImmutableArray<ResolvedType>>
-      Information: CallableInformation
-      Parent: QsQualifiedName
-      Attributes: ImmutableArray<QsDeclarationAttribute>
-      SourceFile: string
-      Position: DeclarationHeader.Offset
-      HeaderRange: DeclarationHeader.Range
-      Documentation: ImmutableArray<string> }
+    {
+        Kind: QsSpecializationKind
+        TypeArguments: QsNullable<ImmutableArray<ResolvedType>>
+        Information: CallableInformation
+        Parent: QsQualifiedName
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        SourceFile: string
+        Position: DeclarationHeader.Offset
+        HeaderRange: DeclarationHeader.Range
+        Documentation: ImmutableArray<string>
+    }
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.HeaderRange)
 
     member this.FromSource source = { this with SourceFile = source }
 
     static member New(specialization: QsSpecialization) =
-        { Kind = specialization.Kind
-          TypeArguments = specialization.TypeArguments
-          Information = specialization.Signature.Information
-          Parent = specialization.Parent
-          Attributes = specialization.Attributes
-          SourceFile = specialization.SourceFile
-          Position = specialization.Location |> DeclarationHeader.CreateOffset
-          HeaderRange = specialization.Location |> DeclarationHeader.CreateRange
-          Documentation = specialization.Documentation }
+        {
+            Kind = specialization.Kind
+            TypeArguments = specialization.TypeArguments
+            Information = specialization.Signature.Information
+            Parent = specialization.Parent
+            Attributes = specialization.Attributes
+            SourceFile = specialization.SourceFile
+            Position = specialization.Location |> DeclarationHeader.CreateOffset
+            HeaderRange = specialization.Location |> DeclarationHeader.CreateRange
+            Documentation = specialization.Documentation
+        }
 
     static member FromJson json =
         // we need to make sure that all fields that could possibly be null after deserializing

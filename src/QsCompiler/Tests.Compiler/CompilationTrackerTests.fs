@@ -23,17 +23,7 @@ type MeasureNestedTasksTestCases() as this =
         this.Add([| 1000 |])
         this.Add([| 150; 225 |])
         this.Add([| 1000; 250; 825; 1555 |])
-
-        this.Add
-            ([| 250
-                300
-                400
-                200
-                150
-                750
-                425
-                103
-                900 |])
+        this.Add([| 250; 300; 400; 200; 150; 750; 425; 103; 900 |])
 
 type MeasureDoubleNestedTasksTestCases() as this =
     inherit TheoryData<int [], int []>()

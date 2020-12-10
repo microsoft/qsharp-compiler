@@ -11,11 +11,13 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 
 type SyntaxTokenContext =
-    { Range: Range
-      Self: QsNullable<QsFragmentKind>
-      Previous: QsNullable<QsFragmentKind>
-      Next: QsNullable<QsFragmentKind>
-      Parents: QsNullable<QsFragmentKind> [] }
+    {
+        Range: Range
+        Self: QsNullable<QsFragmentKind>
+        Previous: QsNullable<QsFragmentKind>
+        Next: QsNullable<QsFragmentKind>
+        Parents: QsNullable<QsFragmentKind> []
+    }
 
 let private ApplyOrDefaultTo fallback nullable apply =
     match nullable with
@@ -129,6 +131,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
         | decl -> checkGenerator decl
 
     let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+
     let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
     let isCallable =
@@ -170,6 +173,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | _ -> true, [||]
 
     let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
     let rec isStatementScope =

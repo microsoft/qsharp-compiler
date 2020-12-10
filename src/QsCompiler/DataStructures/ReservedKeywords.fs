@@ -197,25 +197,27 @@ module InternalUse =
 
     /// contains all keywords reserved due to clashes with auto-generated Q# code, or generated C# code
     let CsKeywords =
-        [ "Allocate"
-          "Release"
-          "Borrow"
-          "Return"
+        [
+            "Allocate"
+            "Release"
+            "Borrow"
+            "Return"
 
-          "QVoid"
-          "Int64"
-          "BigInteger"
-          "Boolean"
-          "QArray"
-          "QTuple"
-          "UDTBase"
+            "QVoid"
+            "Int64"
+            "BigInteger"
+            "Boolean"
+            "QArray"
+            "QTuple"
+            "UDTBase"
 
-          "IUnitary"
-          "IAdjointable"
-          "IControllable"
-          "ICallable"
-          "IOperationFactory"
-          "IApplyData" ]
+            "IUnitary"
+            "IAdjointable"
+            "IControllable"
+            "ICallable"
+            "IOperationFactory"
+            "IApplyData"
+        ]
         |> ImmutableHashSet.CreateRange
 
 // TODO: ReservedForFutureUse = ...
@@ -268,9 +270,11 @@ module CommandLineArguments =
     let ReservedArgumentAbbreviations = ImmutableArray.Create(snd SimulatorOption)
 
     let BuiltInSimulators =
-        [ AssemblyConstants.QuantumSimulator
-          AssemblyConstants.ToffoliSimulator
-          AssemblyConstants.ResourcesEstimator ]
+        [
+            AssemblyConstants.QuantumSimulator
+            AssemblyConstants.ToffoliSimulator
+            AssemblyConstants.ResourcesEstimator
+        ]
         |> ImmutableHashSet.CreateRange
 
 

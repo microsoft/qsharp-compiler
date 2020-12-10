@@ -102,8 +102,10 @@ type ExternalRewriteStepsManagerTests() =
         let config =
             new CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
                                                 RewriteStepInstances =
-                                                    [ (stepInstance1 :> IRewriteStep, "")
-                                                      (stepInstance2 :> IRewriteStep, "") ])
+                                                    [
+                                                        (stepInstance1 :> IRewriteStep, "")
+                                                        (stepInstance2 :> IRewriteStep, "")
+                                                    ])
 
         let loadedSteps = GetSteps config
 

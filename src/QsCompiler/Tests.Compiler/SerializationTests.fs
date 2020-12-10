@@ -54,25 +54,26 @@ module SerializationTests =
 
 
     let simpleSignature argType rType props =
-        { TypeParameters = ImmutableArray.Empty
-          ArgumentType = argType |> ResolvedType.New
-          ReturnType = rType |> ResolvedType.New
-          Information =
-              CallableInformation.New
-                  (ResolvedCharacteristics.FromProperties props, InferredCallableInformation.NoInformation) }
+        {
+            TypeParameters = ImmutableArray.Empty
+            ArgumentType = argType |> ResolvedType.New
+            ReturnType = rType |> ResolvedType.New
+            Information =
+                CallableInformation.New
+                    (ResolvedCharacteristics.FromProperties props, InferredCallableInformation.NoInformation)
+        }
 
     let varDecl name t (s, e) =
-        { VariableName = ValidName name
-          Type = t |> ResolvedType.New
-          InferredInformation = InferredExpressionInformation.New(false, false)
-          Position = Null
-          Range = Range.Create (Position.Create 0 s) (Position.Create 0 e) }
+        {
+            VariableName = ValidName name
+            Type = t |> ResolvedType.New
+            InferredInformation = InferredExpressionInformation.New(false, false)
+            Position = Null
+            Range = Range.Create (Position.Create 0 s) (Position.Create 0 e)
+        }
 
     let tupleIntIntType =
-        TupleType
-            ([ Int |> ResolvedType.New
-               Int |> ResolvedType.New ]
-                .ToImmutableArray())
+        TupleType([ Int |> ResolvedType.New; Int |> ResolvedType.New ].ToImmutableArray())
 
     let intIntTypeItems =
         let intItem = Int |> ResolvedType.New |> Anonymous |> QsTupleItem
@@ -98,54 +99,64 @@ module SerializationTests =
 
         let qualifiedName ns name = { Namespace = ns; Name = name }
 
-        { Kind = QsSpecializationKind.QsBody
-          TypeArguments = Null
-          Information = CallableInformation.NoInformation
-          Parent = qualifiedName "Microsoft.Quantum" "emptyFunction"
-          Attributes = ImmutableArray.Empty
-          SourceFile = "%%%"
-          Position = Position.Create 4 43 |> DeclarationHeader.Offset.Defined
-          HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
-          Documentation = ImmutableArray.Empty }
+        {
+            Kind = QsSpecializationKind.QsBody
+            TypeArguments = Null
+            Information = CallableInformation.NoInformation
+            Parent = qualifiedName "Microsoft.Quantum" "emptyFunction"
+            Attributes = ImmutableArray.Empty
+            SourceFile = "%%%"
+            Position = Position.Create 4 43 |> DeclarationHeader.Offset.Defined
+            HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
-        { Kind = QsSpecializationKind.QsBody
-          TypeArguments = Null
-          Information =
-              CallableInformation.New
-                  (ResolvedCharacteristics.FromProperties [ Adjointable
-                                                            Controllable ],
-                   InferredCallableInformation.NoInformation)
-          Parent = qualifiedName "Microsoft.Quantum" "emptyOperation"
-          Attributes = ImmutableArray.Empty
-          SourceFile = "%%%"
-          Position = Position.Create 5 39 |> DeclarationHeader.Offset.Defined
-          HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
-          Documentation = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange }
+        {
+            Kind = QsSpecializationKind.QsBody
+            TypeArguments = Null
+            Information =
+                CallableInformation.New
+                    (ResolvedCharacteristics.FromProperties [ Adjointable
+                                                              Controllable ],
+                     InferredCallableInformation.NoInformation)
+            Parent = qualifiedName "Microsoft.Quantum" "emptyOperation"
+            Attributes = ImmutableArray.Empty
+            SourceFile = "%%%"
+            Position = Position.Create 5 39 |> DeclarationHeader.Offset.Defined
+            HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
+            Documentation = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
+        }
         |> testOne
 
-        { Kind = QsSpecializationKind.QsBody
-          TypeArguments = Null
-          Information =
-              CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
-          Parent = qualifiedName "Microsoft.Quantum" "Pair"
-          Attributes = ImmutableArray.Empty
-          SourceFile = "%%%"
-          Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
-          HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
-          Documentation = ImmutableArray.Empty }
+        {
+            Kind = QsSpecializationKind.QsBody
+            TypeArguments = Null
+            Information =
+                CallableInformation.New
+                    (ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
+            Parent = qualifiedName "Microsoft.Quantum" "Pair"
+            Attributes = ImmutableArray.Empty
+            SourceFile = "%%%"
+            Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
+            HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
-        { Kind = QsSpecializationKind.QsBody
-          TypeArguments = Null
-          Information =
-              CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
-          Parent = qualifiedName "Microsoft.Quantum" "Unused"
-          Attributes = ImmutableArray.Empty
-          SourceFile = "%%%"
-          Position = Position.Create 6 4 |> DeclarationHeader.Offset.Defined
-          HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
-          Documentation = ImmutableArray.Empty }
+        {
+            Kind = QsSpecializationKind.QsBody
+            TypeArguments = Null
+            Information =
+                CallableInformation.New
+                    (ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
+            Parent = qualifiedName "Microsoft.Quantum" "Unused"
+            Attributes = ImmutableArray.Empty
+            SourceFile = "%%%"
+            Position = Position.Create 6 4 |> DeclarationHeader.Offset.Defined
+            HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
 
@@ -157,60 +168,72 @@ module SerializationTests =
             Assert.True(built)
             Assert.Equal(decl, header)
 
-        { Kind = QsCallableKind.TypeConstructor
-          QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
-          ArgumentTuple =
-              [ varDecl "__Item1__" Int (1, 1) |> QsTupleItem
-                varDecl "__Item2__" Int (1, 1) |> QsTupleItem ]
-                  .ToImmutableArray()
-              |> QsTuple
-          Signature = simpleSignature tupleIntIntType udtPair []
-          Documentation = ImmutableArray.Create("type constructor for user defined type") }
+        {
+            Kind = QsCallableKind.TypeConstructor
+            QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            ArgumentTuple =
+                [
+                    varDecl "__Item1__" Int (1, 1) |> QsTupleItem
+                    varDecl "__Item2__" Int (1, 1) |> QsTupleItem
+                ]
+                    .ToImmutableArray()
+                |> QsTuple
+            Signature = simpleSignature tupleIntIntType udtPair []
+            Documentation = ImmutableArray.Create("type constructor for user defined type")
+        }
         |> testOne
 
-        { Kind = QsCallableKind.Function
-          QualifiedName = qualifiedName "Microsoft.Quantum" "emptyFunction"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
-          ArgumentTuple = [ varDecl "p" udtPair (25, 26) |> QsTupleItem ].ToImmutableArray() |> QsTuple
-          Signature = simpleSignature udtPair UnitType []
-          Documentation = ImmutableArray.Empty }
+        {
+            Kind = QsCallableKind.Function
+            QualifiedName = qualifiedName "Microsoft.Quantum" "emptyFunction"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
+            ArgumentTuple = [ varDecl "p" udtPair (25, 26) |> QsTupleItem ].ToImmutableArray() |> QsTuple
+            Signature = simpleSignature udtPair UnitType []
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
-        { Kind = QsCallableKind.Operation
-          QualifiedName = qualifiedName "Microsoft.Quantum" "emptyOperation"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
-          ArgumentTuple = [].ToImmutableArray() |> QsTuple
-          Signature = simpleSignature UnitType UnitType [ Adjointable; Controllable ]
-          Documentation = ImmutableArray.Empty }
+        {
+            Kind = QsCallableKind.Operation
+            QualifiedName = qualifiedName "Microsoft.Quantum" "emptyOperation"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
+            ArgumentTuple = [].ToImmutableArray() |> QsTuple
+            Signature = simpleSignature UnitType UnitType [ Adjointable; Controllable ]
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
-        { Kind = QsCallableKind.TypeConstructor
-          QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
-          ArgumentTuple =
-              [ varDecl "__Item1__" Int (1, 1) |> QsTupleItem
-                varDecl "__Item2__" Int (1, 1) |> QsTupleItem ]
-                  .ToImmutableArray()
-              |> QsTuple
-          Signature = simpleSignature tupleIntIntType (udt "Unused") []
-          Documentation = ImmutableArray.Create("type constructor for user defined type") }
+        {
+            Kind = QsCallableKind.TypeConstructor
+            QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            ArgumentTuple =
+                [
+                    varDecl "__Item1__" Int (1, 1) |> QsTupleItem
+                    varDecl "__Item2__" Int (1, 1) |> QsTupleItem
+                ]
+                    .ToImmutableArray()
+                |> QsTuple
+            Signature = simpleSignature tupleIntIntType (udt "Unused") []
+            Documentation = ImmutableArray.Create("type constructor for user defined type")
+        }
         |> testOne
 
 
@@ -222,26 +245,30 @@ module SerializationTests =
             Assert.True(built)
             Assert.Equal(decl, header)
 
-        { QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
-          Type = tupleIntIntType |> ResolvedType.New
-          TypeItems = intIntTypeItems
-          Documentation = ImmutableArray.Empty }
+        {
+            QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            Type = tupleIntIntType |> ResolvedType.New
+            TypeItems = intIntTypeItems
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
-        { QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
-          Attributes = ImmutableArray.Empty
-          Modifiers = { Access = DefaultAccess }
-          SourceFile = "%%%"
-          Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
-          SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
-          Type = tupleIntIntType |> ResolvedType.New
-          TypeItems = intIntTypeItems
-          Documentation = ImmutableArray.Empty }
+        {
+            QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
+            Attributes = ImmutableArray.Empty
+            Modifiers = { Access = DefaultAccess }
+            SourceFile = "%%%"
+            Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
+            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            Type = tupleIntIntType |> ResolvedType.New
+            TypeItems = intIntTypeItems
+            Documentation = ImmutableArray.Empty
+        }
         |> testOne
 
     [<Literal>]

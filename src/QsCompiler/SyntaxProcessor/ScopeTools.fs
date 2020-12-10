@@ -20,11 +20,13 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope.
 type private TrackedScope =
-    private {
-              /// used to track all local variables defined on this scope, as well as their inferred information
-              LocalVariables: Dictionary<string, LocalVariableDeclaration<string>>
-              /// contains the set of functors that each operation called on this scope needs to support
-              RequiredFunctorSupport: ImmutableHashSet<QsFunctor> }
+    private
+        {
+            /// used to track all local variables defined on this scope, as well as their inferred information
+            LocalVariables: Dictionary<string, LocalVariableDeclaration<string>>
+            /// contains the set of functors that each operation called on this scope needs to support
+            RequiredFunctorSupport: ImmutableHashSet<QsFunctor>
+        }
 
     /// Given all functors that need to be applied to a particular operation call,
     /// combines them into the set of functors that that operation needs to support.
@@ -37,8 +39,10 @@ type private TrackedScope =
                     requiredSupport (Adjoint :: current) tail
                 else
                     requiredSupport
-                        [ for f in current do
-                            if f <> Adjoint then yield f ]
+                        [
+                            for f in current do
+                                if f <> Adjoint then yield f
+                        ]
                         tail
             | Controlled :: tail ->
                 if current |> List.contains Controlled
@@ -148,8 +152,10 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// Otherwise the set of functors to support is determined by the parent scope if a parent scope exist, or empty if no parent scope exists.
     member this.BeginScope functorSupport =
         let scopeToPush =
-            { LocalVariables = new Dictionary<_, _>()
-              RequiredFunctorSupport = if functorSupport = null then this.RequiredFunctorSupport else functorSupport }
+            {
+                LocalVariables = new Dictionary<_, _>()
+                RequiredFunctorSupport = if functorSupport = null then this.RequiredFunctorSupport else functorSupport
+            }
 
         pushedScopes <- scopeToPush :: pushedScopes
 
@@ -180,15 +186,21 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
         if (globalTypeWithName (None, decl.VariableName)) <> NotFound then
             false,
-            [| decl.Range |> QsCompilerDiagnostic.Error(ErrorCode.GlobalTypeAlreadyExists, [ decl.VariableName ]) |]
+            [|
+                decl.Range |> QsCompilerDiagnostic.Error(ErrorCode.GlobalTypeAlreadyExists, [ decl.VariableName ])
+            |]
         elif (globalCallableWithName (None, decl.VariableName)) <> NotFound then
             false,
-            [| decl.Range
-               |> QsCompilerDiagnostic.Error(ErrorCode.GlobalCallableAlreadyExists, [ decl.VariableName ]) |]
+            [|
+                decl.Range
+                |> QsCompilerDiagnostic.Error(ErrorCode.GlobalCallableAlreadyExists, [ decl.VariableName ])
+            |]
         elif (localVariableWithName decl.VariableName) <> Null then
             false,
-            [| decl.Range
-               |> QsCompilerDiagnostic.Error(ErrorCode.LocalVariableAlreadyExists, [ decl.VariableName ]) |]
+            [|
+                decl.Range
+                |> QsCompilerDiagnostic.Error(ErrorCode.LocalVariableAlreadyExists, [ decl.VariableName ])
+            |]
         else
             pushedScopes.Head.LocalVariables.Add(decl.VariableName, decl)
             true, [||]
@@ -230,8 +242,9 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 InvalidOperationException "cannot update information for immutable variable" |> raise
             else
                 dict.[varName] <- { existing with
-                                        InferredInformation =
-                                            { existing.InferredInformation with HasLocalQuantumDependency = localQdep } }
+                                      InferredInformation =
+                                          { existing.InferredInformation with HasLocalQuantumDependency = localQdep }
+                                  }
         | Null -> ArgumentException "no local variable with the given name exists on the current scope" |> raise
 
     /// returns all *local* declarations on the current scope *and* all parent scopes up to this point
@@ -377,28 +390,29 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
     // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
+    {
+        /// The namespace manager for global symbols.
+        Globals: NamespaceManager
 
-    { /// The namespace manager for global symbols.
-      Globals: NamespaceManager
+        /// The symbol tracker for the parent callable.
+        Symbols: SymbolTracker
 
-      /// The symbol tracker for the parent callable.
-      Symbols: SymbolTracker
+        /// True if the parent callable for the current scope is an operation.
+        IsInOperation: bool
 
-      /// True if the parent callable for the current scope is an operation.
-      IsInOperation: bool
+        /// True if the current expression is contained within the condition of an if- or elif-statement.
+        [<Obsolete>]
+        IsInIfCondition: bool
 
-      /// True if the current expression is contained within the condition of an if- or elif-statement.
-      [<Obsolete>]
-      IsInIfCondition: bool
+        /// The return type of the parent callable for the current scope.
+        ReturnType: ResolvedType
 
-      /// The return type of the parent callable for the current scope.
-      ReturnType: ResolvedType
+        /// The runtime capability of the compilation unit.
+        Capability: RuntimeCapability
 
-      /// The runtime capability of the compilation unit.
-      Capability: RuntimeCapability
-
-      /// The name of the processor architecture for the compilation unit.
-      ProcessorArchitecture: string }
+        /// The name of the processor architecture for the compilation unit.
+        ProcessorArchitecture: string
+    }
 
     /// <summary>
     /// Creates a scope context for the specialization.
@@ -418,13 +432,15 @@ type ScopeContext =
                          =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
-            { Globals = nsManager
-              Symbols = SymbolTracker(nsManager, spec.SourceFile, spec.Parent)
-              IsInOperation = declaration.Kind = Operation
-              IsInIfCondition = false
-              ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capability = capability
-              ProcessorArchitecture = processorArchitecture }
+            {
+                Globals = nsManager
+                Symbols = SymbolTracker(nsManager, spec.SourceFile, spec.Parent)
+                IsInOperation = declaration.Kind = Operation
+                IsInIfCondition = false
+                ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
+                Capability = capability
+                ProcessorArchitecture = processorArchitecture
+            }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
 
     /// Returns a new scope context for an expression that is contained within the condition of an if- or

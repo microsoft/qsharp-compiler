@@ -397,8 +397,10 @@ type DiagnosticItem =
             if args = null then
                 [||]
             else
-                [| for arg in args do
-                    yield arg |]
+                [|
+                    for arg in args do
+                        yield arg
+                |]
 
         try
             String.Format(str, args)
