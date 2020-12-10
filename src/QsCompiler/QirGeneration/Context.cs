@@ -1143,25 +1143,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (resultType.Resolution is QsResolvedTypeKind.TupleType tupleType)
                 {
-                    // Start with 1 because the 0 element of the LLVM structures is the tuple header
-                    for (int i = 1; i <= tupleType.Item.Length; i++)
+                    for (int j = 0; j < tupleType.Item.Length; j++)
                     {
-                        var resItem = this.CurrentBuilder.GetElementPtr(
+                        var resItemPointer = this.CurrentBuilder.GetElementPtr(
                              resultTupleType,
                              resultValue,
-                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(i) });
-                        var itemOutputPointer = GetOutputItem(i);
+                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(j + 1) });
+                        var itemOutputPointer = GetOutputItem(j + 1);
 
-                        // if the subitem is a tuple we are good
-                        // if it is not then we need to get an output tuple to populate for the recursion to work... -> change recursion?
-                        if (tupleType.Item[i].Resolution.IsTupleType)
-                        {
-                            PopulateResultTuple(tupleType.Item[i], resItem, itemOutputPointer);
-                        }
-                        else
-                        {
-                            this.CurrentBuilder.Store(resItem, itemOutputPointer);
-                        }
+                        var itemType = this.LlvmTypeFromQsharpType(tupleType.Item[j]);
+                        var resItem = this.CurrentBuilder.Load(itemType, resItemPointer);
+                        this.CurrentBuilder.Store(resItem, itemOutputPointer);
                     }
                 }
                 else if (!resultType.Resolution.IsUnitType)

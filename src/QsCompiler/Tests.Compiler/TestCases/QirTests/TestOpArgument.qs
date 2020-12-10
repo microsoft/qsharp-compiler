@@ -23,6 +23,14 @@ namespace Microsoft.Quantum.Testing.QIR
         }
     }
 
+    function InvokeAndIgnore<'T>(op : (Unit -> 'T)) : Unit {
+        let _ = op();
+    }
+
+    function GetNestedTuple() : (Int, (String, Double)) {
+        return (1, ("", 2.));
+    }
+
     @EntryPoint()
     operation TestOpArgument () : Unit {
         using (q = Qubit()) {
@@ -31,5 +39,6 @@ namespace Microsoft.Quantum.Testing.QIR
             Apply(_Choose(q, (_, q))); 
             Apply(_Choose(_,(q,q)));
         }
+        InvokeAndIgnore(GetNestedTuple);
     }
 }

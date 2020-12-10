@@ -48,5 +48,8 @@ entry:
   call void @__quantum__rt__callable_unreference(%Callable* %11)
   call void @__quantum__rt__callable_unreference(%Callable* %19)
   call void @__quantum__rt__callable_unreference(%Callable* %27)
+  %28 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Testing__QIR__GetNestedTuple, %TupleHeader* null)
+  call void @Microsoft__Quantum__Testing__QIR_____GUID___InvokeAndIgnore__body(%Callable* %28)
+  call void @__quantum__rt__callable_unreference(%Callable* %28)
   ret void
 }
