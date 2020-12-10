@@ -1,4 +1,4 @@
-define %BigInt* @Microsoft__Quantum__Testing__QIR__TestBigInts__(%BigInt* %a, %BigInt* %b) {
+define %BigInt* @Microsoft__Quantum__Testing__QIR__TestBigInts__body(%BigInt* %a, %BigInt* %b) {
 entry:
   %0 = call i1 @__quantum__rt__bigint_greater(%BigInt* %a, %BigInt* %b)
   %c = select i1 %0, %BigInt* %a, %BigInt* %b

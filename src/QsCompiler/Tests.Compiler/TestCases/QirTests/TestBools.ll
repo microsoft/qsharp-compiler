@@ -1,4 +1,4 @@
-define i1 @Microsoft__Quantum__Testing__QIR__TestBools__(i1 %a, i1 %b) {
+define i1 @Microsoft__Quantum__Testing__QIR__TestBools__body(i1 %a, i1 %b) {
 entry:
   %0 = icmp eq i1 %a, %b
   %c = select i1 %0, i1 %a, i1 %b

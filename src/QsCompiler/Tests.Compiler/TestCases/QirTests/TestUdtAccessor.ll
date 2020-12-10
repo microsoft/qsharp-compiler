@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestAccessors__() {
+define i64 @Microsoft__Quantum__Testing__QIR__TestAccessors__body() {
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, i2, i64 }* getelementptr ({ %TupleHeader, i2, i64 }, { %TupleHeader, i2, i64 }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, i2, i64 }*
@@ -7,7 +7,7 @@ entry:
   store i2 %2, i2* %3
   %4 = getelementptr { %TupleHeader, i2, i64 }, { %TupleHeader, i2, i64 }* %1, i64 0, i32 2
   store i64 1, i64* %4
-  %x = call { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__({ %TupleHeader, i2, i64 }* %1, double 2.000000e+00)
+  %x = call { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ %TupleHeader, i2, i64 }* %1, double 2.000000e+00)
   %5 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %x, i64 0, i32 1
   %6 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %5
   %7 = getelementptr { %TupleHeader, i2, i64 }, { %TupleHeader, i2, i64 }* %6, i64 0, i32 2
@@ -17,7 +17,7 @@ entry:
   ret i64 %y
 }
 
-define { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__({ %TupleHeader, i2, i64 }* %arg0, double %arg1) {
+define { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ %TupleHeader, i2, i64 }* %arg0, double %arg1) {
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, { %TupleHeader, i2, i64 }*, double }* getelementptr ({ %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, { %TupleHeader, i2, i64 }*, double }*

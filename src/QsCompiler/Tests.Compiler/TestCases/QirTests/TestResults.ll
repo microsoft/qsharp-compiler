@@ -1,4 +1,4 @@
-define %Result* @Microsoft__Quantum__Testing__QIR__TestResults__(%Result* %a, %Result* %b) {
+define %Result* @Microsoft__Quantum__Testing__QIR__TestResults__body(%Result* %a, %Result* %b) {
 entry:
   %0 = call i1 @__quantum__rt__result_equal(%Result* %a, %Result* %b)
   br i1 %0, label %then0__1, label %test1__1

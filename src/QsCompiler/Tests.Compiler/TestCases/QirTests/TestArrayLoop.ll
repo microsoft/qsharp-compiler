@@ -1,4 +1,4 @@
-define { %TupleHeader, i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__(%Array* %a) {
+define { %TupleHeader, i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__body(%Array* %a) {
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, i64, i64 }* getelementptr ({ %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, i64, i64 }*

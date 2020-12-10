@@ -33,11 +33,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         /// Returns the suffix used to distinguish the generated callables for each functor specialization.
         /// </summary>
         public static string SpecializationSuffix(QsSpecializationKind kind) =>
-            kind.IsQsBody ? "__" :
-            kind.IsQsAdjoint ? "__Adj__" :
-            kind.IsQsControlled ? "__Ctl__" :
-            kind.IsQsControlledAdjoint ? "__CtlAdj__" :
-            $"__{kind}__";
+            kind.IsQsBody ? "__body" :
+            kind.IsQsAdjoint ? "__adj" :
+            kind.IsQsControlled ? "__ctl" :
+            kind.IsQsControlledAdjoint ? "__ctladj" :
+            $"__{kind.ToString().ToLowerInvariant()}";
 
         /// <summary>
         /// Adds a TargetInstruction attribute to each intrinsic callable that doesn't have one,

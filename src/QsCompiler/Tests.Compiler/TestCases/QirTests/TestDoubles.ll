@@ -1,4 +1,4 @@
-define double @Microsoft__Quantum__Testing__QIR__TestDouble__(double %x, double %y) {
+define double @Microsoft__Quantum__Testing__QIR__TestDouble__body(double %x, double %y) {
 entry:
   %0 = fadd double %x, %y
   %a = fsub double %0, 2.000000e+00

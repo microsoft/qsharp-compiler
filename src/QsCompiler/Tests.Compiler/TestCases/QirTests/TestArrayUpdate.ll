@@ -1,4 +1,4 @@
-define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate__(%Array* %y, i64 %a, i64 %b) {
+define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate__body(%Array* %y, i64 %a, i64 %b) {
 entry:
   %x = alloca %Array*
   store %Array* %y, %Array** %x

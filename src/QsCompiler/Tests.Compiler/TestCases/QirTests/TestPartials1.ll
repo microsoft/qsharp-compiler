@@ -1,4 +1,4 @@
-﻿define i1 @Microsoft__Quantum__Testing__QIR__TestPartials__() #0 {
+﻿define i1 @Microsoft__Quantum__Testing__QIR__TestPartials__body() #0 {
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Callable*, double }* getelementptr ({ %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, %Callable*, double }*
