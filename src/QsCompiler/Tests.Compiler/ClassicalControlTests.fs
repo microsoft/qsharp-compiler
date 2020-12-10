@@ -1384,3 +1384,82 @@ type ClassicalControlTests () =
         [(1, BuiltIn.ApplyIfZero)]
         |> Seq.map ExpandBuiltInQualifiedSymbol
         |> AssertSpecializationHasCalls originalOp
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Simple NOT condition`` () =
+        let (_, args) = CompileClassicalControlTest 37 |> ApplyIfElseTest
+
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
+        let SubOp2 = {Namespace = "SubOps"; Name = "SubOp2"}
+
+        IsApplyIfElseArgsMatch args "r" SubOp2 SubOp1
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Outer NOT condition`` () =
+        let result  = CompileClassicalControlTest 38
+
+        let ifOp = {Namespace = "SubOps"; Name = "SubOp1"}
+        let elseOp = {Namespace = "SubOps"; Name = "SubOp2"}
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+
+        let errorMsg = "ApplyIfElse did not have the correct arguments"
+        IsApplyIfElseArgsMatch args "r" elseOp generated.Parent
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
+
+        IsApplyIfElseArgsMatch args "r" ifOp elseOp
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Nested NOT condition`` () =
+        let result  = CompileClassicalControlTest 39
+
+        let ifOp = {Namespace = "SubOps"; Name = "SubOp1"}
+        let elseOp = {Namespace = "SubOps"; Name = "SubOp2"}
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+
+        let errorMsg = "ApplyIfElse did not have the correct arguments"
+        IsApplyIfElseArgsMatch args "r" ifOp generated.Parent
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
+
+        IsApplyIfElseArgsMatch args "r" ifOp elseOp
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``One-sided NOT condition`` () =
+        let (_, args) = CompileClassicalControlTest 40 |> ApplyIfElseTest
+
+        let SubOp1 = {Namespace = "SubOps"; Name = "SubOp1"}
+        let NoOp = {Namespace = "Microsoft.Quantum.Canon"; Name = "NoOp"}
+
+        IsApplyIfElseArgsMatch args "r" SubOp1 NoOp
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
