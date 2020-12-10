@@ -143,3 +143,7 @@ let ``QIR strings`` () =
 [<Fact>]
 let ``QIR scoping`` () =
     qirTest false "TestScoping"
+
+[<Fact>]
+let ``QIR expressions`` () =
+    qirTest false "TestExpressions"
