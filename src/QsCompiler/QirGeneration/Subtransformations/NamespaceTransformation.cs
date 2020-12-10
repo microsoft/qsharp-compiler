@@ -63,20 +63,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return c;
         }
 
-        public override void OnExternalImplementation()
-        {
-            this.SharedState.RegisterFunction(
-                this.context.GetCurrentSpecialization(),
-                this.context.GetCurrentCallable().ArgumentTuple);
-        }
-
-        public override void OnIntrinsicImplementation()
-        {
-            this.SharedState.RegisterFunction(
-                this.context.GetCurrentSpecialization(),
-                this.context.GetCurrentCallable().ArgumentTuple);
-        }
-
         public override Tuple<QsArgumentTuple, QsScope> OnProvidedImplementation(QsArgumentTuple argTuple, QsScope body)
         {
             this.SharedState.StartFunction();

@@ -1565,7 +1565,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {
-                    var wrapper = this.SharedState.GetOrCreateWrapper(callable);
+                    var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
                     var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                     var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
 

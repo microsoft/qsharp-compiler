@@ -98,13 +98,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// The module used for QIR generation.
-        /// Generated wrappers to facilitate interoperability are created in a separate <see cref="InteropModule"/>.
+        /// Generated functions to facilitate interoperability are created in a separate <see cref="InteropModule"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
         public readonly BitcodeModule Module;
 
         /// <summary>
-        /// The module used for constructing function wrappers to facilitate interoperability.
+        /// The module used for constructing functions to facilitate interoperability.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
         public readonly BitcodeModule InteropModule;
@@ -239,7 +239,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             $"{FunctionName(fullName, kind)}__wrapper";
 
         /// <summary>
-        /// Order of specializations in the wrapper array
+        /// Order of specializations in the constant array that contains the fours IrFunctions
+        /// associated with a callable.
         /// </summary>
         public static readonly ImmutableArray<QsSpecializationKind> FunctionArray = ImmutableArray.Create(
             QsSpecializationKind.QsBody,
@@ -352,7 +353,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Finds and registers all of the quantum instructions in the current compilation.
         /// For this purpose, quantum instructions are any operations that have the TargetInstruction attribute.
         /// <br/><br/>
-        /// In addition, interop-compatible wrappers are generated for all of the quantum operations.
+        /// Interop-compatible function declarations for all of the quantum operations can be generated
+        /// upon emission if via the corresponding argument to Emit.
         /// </summary>
         public void RegisterQuantumInstructionSet()
         {
@@ -410,7 +412,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 foreach (var kvp in this.runtimeLibrary)
                 {
-                    this.GenerateInteropWrapper(kvp.Value, kvp.Key);
+                    this.GenerateInterop(kvp.Value, kvp.Key);
                 }
 
                 foreach (var c in this.globalCallables.Values)
@@ -418,7 +420,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (SymbolResolution.TryGetTargetInstructionName(c.Attributes) is var att && att.IsValue)
                     {
                         var func = this.quantumInstructionSet.GetOrCreateFunction(att.Item);
-                        this.GenerateInteropWrapper(func, att.Item);
+                        this.GenerateInterop(func, att.Item);
                     }
                 }
 
@@ -589,13 +591,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Generates a stub implementation for a runtime function or quantum instruction using the specified type mappings for interoperability.
-        /// Note that wrappers go into a separate module from the other QIR code.
+        /// Generates a stub implementation for a runtime function or quantum instruction using the specified type
+        /// mappings for interoperability. Note that the create functions go into a separate module from the other QIR code.
         /// </summary>
         /// <param name="func">The function to generate a stub for</param>
         /// <param name="baseName">The function that the stub should call</param>
         /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
-        private void GenerateInteropWrapper(IrFunction func, string baseName)
+        private void GenerateInterop(IrFunction func, string baseName)
         {
             // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
 
@@ -968,17 +970,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
             var fullName = FunctionName(callableName, kind);
-            foreach (var func in this.Module.Functions)
-            {
-                if (func.Name == fullName)
-                {
-                    function = func;
-                    return true;
-                }
-            }
-
-            function = null;
-            return false;
+            return this.Module.TryGetFunction(fullName, out function);
         }
 
         /// <summary>
@@ -1008,10 +1000,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If a wrapper for the given callable already exists, returns the corresponding global variable.
-        /// If no such wrapper exists, queues the generation of the wrapper and returns the corresponding global variable.
+        /// Tries to get the wrapper function for a Q# specialization.
+        /// If the wrapper function hasn't been generated yet, false is returned.
         /// </summary>
-        internal GlobalVariable GetOrCreateWrapper(QsCallable callable)
+        /// <param name="callable">The callable</param>
+        /// <param name="kind">The specialization kind</param>
+        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
+        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
+        private bool TryGetWrapper(QsCallable callable, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
+        {
+            var fullName = FunctionWrapperName(callable.FullName, kind);
+            return this.Module.TryGetFunction(fullName, out function);
+        }
+
+        /// <summary>
+        /// If a constant array with the four IrFunctions for the given callable already exists,
+        /// returns the corresponding global variable. If no such array exists, creates a constant array
+        /// and instantiates the necessary wrapper functions, queues the generation of their implementations,
+        /// and returns the created global constant.
+        /// The generation of the implementations is queued such that the current context is not modified
+        /// beyond adding the corresponding constant and functions declarations.
+        /// </summary>
+        internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
             var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
             if (this.wrapperQueue.TryGetValue(key, out (QsCallable, GlobalVariable) item))
@@ -1046,29 +1056,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Tries to get the QIR wrapper function for a Q# specialization.
-        /// If the wrapper function hasn't been generated yet, false is returned.
+        /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
+        /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
+        /// For each declared callable, a constant array with four IrFunction values represents the bundle.
+        /// All functions have the same type (accessible via Types.FunctionSignature), namely they take three
+        /// opaque tuples and return void.
+        /// <br/>
+        /// A callable value is then created by specifying the global constant with the bundle as well as the
+        /// capture tuple (which is the first of the three tuples that is passed to a function upon invokation).
+        /// It can be invoked by providing the remaining two tuples; the argument tuple and the output tuple.
+        /// In order to invoke the concrete implementation of a function, the argument tuple first needs to be
+        /// cast to its concrete type and its item need to be assigned to the corresponding variables if need.
+        /// Similarly, the output tuple needs to be populated with the computed value before exiting.
+        /// We create a separate "wrapper" function to do just that; it casts and deconstructs the argument
+        /// tuple, invokes the concrete implementation, and populates the output tuple.
+        /// <br/>
+        /// In cases where it is clear at generation time which concreate implementation needs to be invoked,
+        /// we directly invoke that function. The global constant for the bundle and the wrapper functions
+        /// hence only need to be created when callable values are assigned or passed around. Callables for
+        /// which this is the case are hence accumulated during the sytnax tree transformation, and the
+        /// corresponding wrappers are generated only upon emission by invoking this method.
         /// </summary>
-        /// <param name="callable">The callable</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
-        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
-        private bool TryGetWrapper(QsCallable callable, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
-        {
-            var fullName = FunctionWrapperName(callable.FullName, kind);
-            foreach (var func in this.Module.Functions)
-            {
-                if (func.Name == fullName)
-                {
-                    function = func;
-                    return true;
-                }
-            }
-
-            function = null;
-            return false;
-        }
-
         private void GenerateQueuedWrappers()
         {
             // Generate the code that decomposes the tuple back into the named arguments
@@ -1174,17 +1182,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecialization spec, List<Value> args)
-            {
-                if (this.TryGetFunction(callable.FullName, spec.Kind, out IrFunction? func))
-                {
-                    return this.CurrentBuilder.Call(func, args.ToArray());
-                }
-                else
-                {
-                    return Constant.UndefinedValueFor(this.Types.Tuple);
-                }
-            }
+            Value GenerateBaseMethodCall(QsCallable callable, QsSpecialization spec, List<Value> args) =>
+                this.TryGetFunction(callable.FullName, spec.Kind, out IrFunction? func)
+                    ? this.CurrentBuilder.Call(func, args.ToArray())
+                    : throw new InvalidOperationException($"No function defined for {callable.FullName} {spec}");
 
             bool GenerateWrapperHeader(QsCallable callable, QsSpecialization spec)
             {
