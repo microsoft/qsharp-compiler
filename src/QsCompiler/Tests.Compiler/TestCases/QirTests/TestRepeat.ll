@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestRepeat__body(%Qubit* %q) {
+define i64 @Microsoft__Quantum__Testing__QIR__TestRepeat__(%Qubit* %q) {
 entry:
   %n = alloca i64
   store i64 0, i64* %n
@@ -7,7 +7,7 @@ entry:
 repeat__1:                                        ; preds = %continue__1, %entry
   call void @__quantum__qis__t__(%Qubit* %q)
   call void @__quantum__qis__x__(%Qubit* %q)
-  call void @__quantum__qis__tadj__(%Qubit* %q)
+  call void @__quantum__qis__t__adj__(%Qubit* %q)
   call void @__quantum__qis__h__(%Qubit* %q)
   br label %until__1
 

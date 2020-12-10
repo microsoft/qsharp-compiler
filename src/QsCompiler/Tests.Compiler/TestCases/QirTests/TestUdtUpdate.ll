@@ -1,4 +1,4 @@
-define { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate__body(i64 %a, i64 %b) {
+define { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate__(i64 %a, i64 %b) {
 entry:
   %0 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, double, i64 }* getelementptr ({ %TupleHeader, double, i64 }, { %TupleHeader, double, i64 }* null, i32 1) to i64))
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, double, i64 }*
@@ -6,7 +6,7 @@ entry:
   store double 1.000000e+00, double* %2
   %3 = getelementptr { %TupleHeader, double, i64 }, { %TupleHeader, double, i64 }* %1, i64 0, i32 2
   store i64 %a, i64* %3
-  %4 = call { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__body({ %TupleHeader, double, i64 }* %1, i64 %b)
+  %4 = call { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__({ %TupleHeader, double, i64 }* %1, i64 %b)
   %x = alloca { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*
   store { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
   %5 = load { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x

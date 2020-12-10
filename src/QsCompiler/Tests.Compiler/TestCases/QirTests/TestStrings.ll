@@ -1,4 +1,4 @@
-define %String* @Microsoft__Quantum__Testing__QIR__TestStrings__body(i64 %a, i64 %b) {
+define %String* @Microsoft__Quantum__Testing__QIR__TestStrings__(i64 %a, i64 %b) {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i32 5, [0 x i8] bitcast ([5 x i8] c"a is " to [0 x i8]))
   %1 = call %String* @__quantum__rt__int_to_string(i64 %a)

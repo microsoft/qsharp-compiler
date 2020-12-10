@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestUsing__body() {
+define i64 @Microsoft__Quantum__Testing__QIR__TestUsing__() {
 entry:
   %a = call %Qubit* @__quantum__rt__qubit_allocate()
   %b = call %Array* @__quantum__rt__qubit_allocate_array(i64 3)

@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestDeconstruct__body({ %TupleHeader, i64, { %TupleHeader, i64, i64 }* }* %a) {
+define i64 @Microsoft__Quantum__Testing__QIR__TestDeconstruct__({ %TupleHeader, i64, { %TupleHeader, i64, i64 }* }* %a) {
 entry:
   %0 = getelementptr { %TupleHeader, i64, { %TupleHeader, i64, i64 }* }, { %TupleHeader, i64, { %TupleHeader, i64, i64 }* }* %a, i64 0, i32 1
   %x = load i64, i64* %0

@@ -12,6 +12,7 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
@@ -222,13 +223,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The mangled name for the specialization</returns>
         public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
-            var suffix =
-                kind.IsQsBody ? "body" :
-                kind.IsQsAdjoint ? "adj" :
-                kind.IsQsControlled ? "ctrl" :
-                kind.IsQsControlledAdjoint ? "ctrladj" :
-                throw new NotImplementedException("unknown specialization kind");
-            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}__{suffix}";
+            var suffix = InferTargetInstructions.SpecializationSuffix(kind);
+            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}{suffix}";
         }
 
         /// <summary>

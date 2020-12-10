@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
+define i64 @Microsoft__Quantum__Testing__QIR__TestScoping__(%Array* %a) {
 entry:
   %sum = alloca i64
   store i64 0, i64* %sum

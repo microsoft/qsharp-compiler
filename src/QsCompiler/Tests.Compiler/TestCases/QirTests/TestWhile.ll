@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestWhile__body(i64 %a, i64 %b) {
+define i64 @Microsoft__Quantum__Testing__QIR__TestWhile__(i64 %a, i64 %b) {
 entry:
   %n = alloca i64
   store i64 %a, i64* %n

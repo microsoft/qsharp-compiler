@@ -30,6 +30,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
 
         /// <summary>
+        /// Returns the suffix used to distinguish the generated callables for each functor specialization.
+        /// </summary>
+        public static string SpecializationSuffix(QsSpecializationKind kind) =>
+            kind.IsQsBody ? "__" :
+            kind.IsQsAdjoint ? "__Adj__" :
+            kind.IsQsControlled ? "__Ctl__" :
+            kind.IsQsControlledAdjoint ? "__CtlAdj__" :
+            $"__{kind}__";
+
+        /// <summary>
         /// Adds a TargetInstruction attribute to each intrinsic callable that doesn't have one,
         /// unless the automatically determined target instruction name conflicts with another target instruction name.
         /// The automatically determined name of the target instruction is the lower case version of the unqualified callable name.
@@ -124,16 +134,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                         }
                         else
                         {
-                            QsQualifiedName GeneratedName(QsSpecializationKind kind)
-                            {
-                                var suffix =
-                                    kind.IsQsBody ? "" :
-                                    kind.IsQsAdjoint ? "Adj" :
-                                    kind.IsQsControlled ? "Ctl" :
-                                    kind.IsQsControlledAdjoint ? "CtlAdj" :
-                                    kind.ToString();
-                                return new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}{suffix}__");
-                            }
+                            QsQualifiedName GeneratedName(QsSpecializationKind kind) =>
+                                new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}{SpecializationSuffix(kind)}");
 
                             var specializations = callable.Specializations.Select(spec =>
                             {
