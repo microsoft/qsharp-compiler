@@ -746,11 +746,11 @@ type DiagnosticItem =
             | WarningCode.ConditionalEvaluationOfOperationCall    -> "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect                 -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect              -> "{0} has been deprecated."
-            | WarningCode.UnsupportedResultComparison             -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args |> Seq.skip 4)
-            | WarningCode.ResultComparisonNotInOperationIf        -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4)
-            | WarningCode.ReturnInResultConditionedBlock          -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4)
-            | WarningCode.SetInResultConditionedBlock             -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
-            | WarningCode.UnsupportedCallableCapability           -> "Note {0}: {1}:{2}:{3}: " + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
+            | WarningCode.UnsupportedResultComparison             -> "{0}: " + DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args |> Seq.skip 4) + " [{1}:{2}:{3}]"
+            | WarningCode.ResultComparisonNotInOperationIf        -> "{0}: " + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4) + "[{1}:{2}:{3}]"
+            | WarningCode.ReturnInResultConditionedBlock          -> "{0}: " + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4) + "[{1}:{2}:{3}]"
+            | WarningCode.SetInResultConditionedBlock             -> "{0}: " + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4) + "[{1}:{2}:{3}]"
+            | WarningCode.UnsupportedCallableCapability           -> "{0}: " + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4) + "[{1}:{2}:{3}]"
 
             | WarningCode.TypeParameterNotResolvedByArgument      -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument         -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
