@@ -216,10 +216,10 @@ let private globalReferences scope =
     references
 
 /// Returns diagnostic reasons for why a global callable reference is not supported.
-let private referenceReasons context
-                             (name : QsQualifiedName)
-                             (range : _ QsNullable)
-                             (header : SpecializationDeclarationHeader, impl) =
+let rec private referenceReasons context
+                                 (name : QsQualifiedName)
+                                 (range : _ QsNullable)
+                                 (header : SpecializationDeclarationHeader, impl) =
     let reason (header : SpecializationDeclarationHeader) diagnostic =
         match diagnostic.Diagnostic with
         | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
@@ -240,15 +240,17 @@ let private referenceReasons context
 
     match impl with
     | Provided (_, scope) ->
-        scopePatterns scope
-        |> Seq.map (locationOffset header.Location |> addOffset)
-        |> Seq.choose (patternDiagnostic context)
+        scopeDiagnosticsImpl false context scope
+        |> Seq.map (fun diagnostic ->
+            locationOffset header.Location
+            |> QsNullable<_>.Map (fun offset -> { diagnostic with Range = offset + diagnostic.Range })
+            |> QsNullable.defaultValue diagnostic)
         |> Seq.choose (reason header)
     | _ -> Seq.empty
 
 /// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
 /// the context's supported runtime capabilities.
-let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNullable) =
+and private referenceDiagnostics includeReasons context (name : QsQualifiedName, range : _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
         let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
@@ -256,8 +258,11 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
         then Seq.empty
         else
             let reasons =
-                context.Globals.ImportedSpecializations name
-                |> Seq.collect (referenceReasons context name range)
+                if includeReasons then
+                    context.Globals.ImportedSpecializations name
+                    |> Seq.collect (referenceReasons context name range)
+                else
+                    Seq.empty
 
             let error =
                 ErrorCode.UnsupportedCallableCapability,
@@ -268,10 +273,13 @@ let private referenceDiagnostics context (name : QsQualifiedName, range : _ QsNu
     | _ -> Seq.empty
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
-let ScopeDiagnostics context scope =
-    [ globalReferences scope |> Seq.collect (referenceDiagnostics context)
+and private scopeDiagnosticsImpl includeReasons context scope : QsCompilerDiagnostic seq =
+    [ globalReferences scope |> Seq.collect (referenceDiagnostics includeReasons context)
       scopePatterns scope |> Seq.choose (patternDiagnostic context) ]
     |> Seq.concat
+
+/// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
+let ScopeDiagnostics context scope = scopeDiagnosticsImpl true context scope
 
 /// Returns true if the callable is an operation.
 let private isOperation callable =
