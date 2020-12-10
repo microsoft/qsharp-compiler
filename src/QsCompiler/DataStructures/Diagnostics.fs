@@ -313,7 +313,9 @@ type ErrorCode =
     | PostconditionVerificationFailed = 7113
 
     | CsharpGenerationGeneratedError = 8001
+
     | PublishingPerfResultsFailed = 8101
+    | PerformanceTrackingFailed = 8102
 
 
 type WarningCode =
@@ -855,7 +857,9 @@ type DiagnosticItem =
                 "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
 
             | ErrorCode.CsharpGenerationGeneratedError -> ""
+
             | ErrorCode.PublishingPerfResultsFailed -> "Performance results failed to be published at \"{0}\"."
+            | ErrorCode.PerformanceTrackingFailed -> "Performance tracking failed with error \"{0}\"."
 
             | _ -> ""
 
