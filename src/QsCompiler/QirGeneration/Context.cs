@@ -1083,6 +1083,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Note that we don't want to recurse here!!.
             List<Value> GenerateArgTupleDecomposition(QsArgumentTuple arg, Value value, QsSpecializationKind kind)
             {
+                // Not to be used for Unit!
                 Value BuildLoadForArg(QsArgumentTuple arg, Value value)
                 {
                     ITypeRef argTypeRef = arg is QsArgumentTuple.QsTupleItem item
@@ -1123,7 +1124,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             indices[1] = this.Context.CreateConstant(i + 1);
                             Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
-                            args.Add(BuildLoadForArg(tuple.Item[i], ptr));
+                            args.Add(tuple.Item[i] is QsArgumentTuple.QsTuple vs && vs.Item.Length == 0
+                                ? this.Types.Tuple.GetNullValue()
+                                : BuildLoadForArg(tuple.Item[i], ptr));
                         }
                     }
                 }

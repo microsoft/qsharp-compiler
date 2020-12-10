@@ -3,10 +3,6 @@
 
 namespace Microsoft.Quantum.Testing.QIR {
 
-    // TODO: WRITE A TEST THAT USES THE RETURNED UDT WITH MORE THAN ONE ITME
-    // TODO: TEST UDT AS INNER TUPLE ITEM IN RETURN VALUE
-    // TODO: ADD A TEST FOR AN ARGUMENT WITH MULTIPLE ITEMS
-
     newtype TestType = ((P : Pauli, I : Int), Double);
 
     // This test makes sure that we properly push a value 
@@ -19,9 +15,9 @@ namespace Microsoft.Quantum.Testing.QIR {
         let _ = ReturnOperationCall();
         let _ = ReturnPartialApplication();
         let _ = ReturnUnwrapApplication();
-        //let _ = ReturnAdjointApplication();
-        //let _ = ReturnControlledApplication();
-        //let _ = ReturnTuple();
+        let _ = ReturnAdjointApplication();
+        let _ = ReturnControlledApplication();
+        let _ = ReturnTuple();
         let _ = ReturnArrayItem();
         let _ = ReturnNamedItem();
         let _ = ReturnArray();
@@ -53,7 +49,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         let _ = ReturnInt();
         let _ = ReturnDouble();
         let _ = ReturnBigInt();
-        //let _ = ReturnUnit();
+        let _ = ReturnUnit();
         let _ = ReturnLeftShift();
         let _ = ReturnRightShift();
         let _ = ReturnBXOr();
