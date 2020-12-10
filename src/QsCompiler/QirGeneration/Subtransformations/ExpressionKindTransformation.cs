@@ -510,7 +510,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ITypeRef captureType, ITypeRef parArgsType, RebuildItem rebuild)
             {
-                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind); // FIXME: AVOID NAMING CONFLICT HERE...
+                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
                 var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
 
                 func.Parameters[0].Name = "capture-tuple";
