@@ -553,7 +553,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Release any locally-allocated qubits and dereference allocated values
                 this.SharedState.ScopeMgr.ExitScope();
 
-                this.SharedState.CurrentBuilder.Return(result);
+                if (ex.ResolvedType.Resolution.IsUnitType)
+                {
+                    this.SharedState.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.SharedState.CurrentBuilder.Return(result);
+                }
             }
             else
             {

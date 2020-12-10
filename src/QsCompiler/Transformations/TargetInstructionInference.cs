@@ -89,8 +89,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
 
         /// <summary>
-        /// Creates a separate callable for each intrinsic specialization.
-        /// Leaves any type parameterized callables unmodified.
+        /// Creates a separate callable for each intrinsic specialization,
+        /// and replaces the specialization implementations of the original callable with a call to these.
+        /// Type constructors and generic callables are left unchanged.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// An intrinsic callable contains non-intrinsic specializations
@@ -106,7 +107,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
             var elements = ImmutableArray.CreateBuilder<QsNamespaceElement>();
             foreach (var element in ns.Elements)
             {
-                if (element is QsNamespaceElement.QsCallable c && c.Item.Signature.TypeParameters.Length == 0)
+                if (element is QsNamespaceElement.QsCallable c
+                    && c.Item.Signature.TypeParameters.Length == 0
+                    && !c.Item.Kind.IsTypeConstructor)
                 {
                     if (c.Item.IsIntrinsic)
                     {
@@ -118,11 +121,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                         else if (callable.Specializations.Any(spec => spec.TypeArguments.IsValue))
                         {
                             throw new InvalidOperationException("specialization with type arguments");
-                        }
-                        else if (callable.Specializations.Length == 1)
-                        {
-                            // No need to generate a separate callable for the specialization since there is only one.
-                            elements.Add(element);
                         }
                         else
                         {
@@ -207,7 +205,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                         false),
                                     SyntaxGenerator.ArgumentTupleAsExpression(argTuple));
                                 var statement = new QsStatement(
-                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    QsStatementKind.NewQsReturnStatement(call),
                                     LocalDeclarations.Empty,
                                     QsNullable<QsLocation>.Null,
                                     QsComments.Empty);
