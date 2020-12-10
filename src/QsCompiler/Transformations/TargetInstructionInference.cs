@@ -30,6 +30,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
 
         /// <summary>
+        /// Returns the suffix used to distinguish the generated callables for each functor specialization.
+        /// </summary>
+        public static string SpecializationSuffix(QsSpecializationKind kind) =>
+            kind.IsQsBody ? "__body" :
+            kind.IsQsAdjoint ? "__adj" :
+            kind.IsQsControlled ? "__ctl" :
+            kind.IsQsControlledAdjoint ? "__ctladj" :
+            $"__{kind.ToString().ToLowerInvariant()}";
+
+        /// <summary>
         /// Adds a TargetInstruction attribute to each intrinsic callable that doesn't have one,
         /// unless the automatically determined target instruction name conflicts with another target instruction name.
         /// The automatically determined name of the target instruction is the lower case version of the unqualified callable name.
@@ -89,8 +99,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
 
         /// <summary>
-        /// Creates a separate callable for each intrinsic specialization.
-        /// Leaves any type parameterized callables unmodified.
+        /// Creates a separate callable for each intrinsic specialization,
+        /// and replaces the specialization implementations of the original callable with a call to these.
+        /// Type constructors and generic callables are left unchanged.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// An intrinsic callable contains non-intrinsic specializations
@@ -106,7 +117,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
             var elements = ImmutableArray.CreateBuilder<QsNamespaceElement>();
             foreach (var element in ns.Elements)
             {
-                if (element is QsNamespaceElement.QsCallable c && c.Item.Signature.TypeParameters.Length == 0)
+                if (element is QsNamespaceElement.QsCallable c
+                    && c.Item.Signature.TypeParameters.Length == 0
+                    && !c.Item.Kind.IsTypeConstructor)
                 {
                     if (c.Item.IsIntrinsic)
                     {
@@ -119,23 +132,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                         {
                             throw new InvalidOperationException("specialization with type arguments");
                         }
-                        else if (callable.Specializations.Length == 1)
-                        {
-                            // No need to generate a separate callable for the specialization since there is only one.
-                            elements.Add(element);
-                        }
                         else
                         {
-                            QsQualifiedName GeneratedName(QsSpecializationKind kind)
-                            {
-                                var suffix =
-                                    kind.IsQsBody ? "" :
-                                    kind.IsQsAdjoint ? "Adj" :
-                                    kind.IsQsControlled ? "Ctl" :
-                                    kind.IsQsControlledAdjoint ? "CtlAdj" :
-                                    kind.ToString();
-                                return new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}{suffix}__");
-                            }
+                            QsQualifiedName GeneratedName(QsSpecializationKind kind) =>
+                                new QsQualifiedName(callable.FullName.Namespace, $"{callable.FullName.Name}{SpecializationSuffix(kind)}");
 
                             var specializations = callable.Specializations.Select(spec =>
                             {
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                         false),
                                     SyntaxGenerator.ArgumentTupleAsExpression(argTuple));
                                 var statement = new QsStatement(
-                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    QsStatementKind.NewQsReturnStatement(call),
                                     LocalDeclarations.Empty,
                                     QsNullable<QsLocation>.Null,
                                     QsComments.Empty);

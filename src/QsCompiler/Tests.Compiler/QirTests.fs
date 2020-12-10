@@ -114,7 +114,7 @@ let ``QIR bigints`` () =
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =
-    qirMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"]
+    qirMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"; "TestControlled3"]
 
 [<Fact>]
 let ``QIR entry points`` () =
@@ -122,7 +122,7 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"]
+    qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4"]
 
 [<Fact>]
 let ``QIR paulis`` () =

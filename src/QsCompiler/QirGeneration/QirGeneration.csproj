@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.fsproj" />
+    <ProjectReference Include="..\Transformations\Transformations.csproj" />
   </ItemGroup>
 
   <ItemGroup>
