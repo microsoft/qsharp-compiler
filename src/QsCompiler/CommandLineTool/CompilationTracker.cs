@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -16,8 +17,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     /// </summary>
     public static class CompilationTracker
     {
-        // Private classes and types.
-
         /// <summary>
         /// Represents a task performed by the compiler (eg. source loading, reference loading, syntax tree serialization, etc.).
         /// </summary>
@@ -34,19 +33,34 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public readonly string Name;
 
             /// <summary>
-            /// Contains the UTC datetime when the task started.
+            /// Gets the duration of the task in milliseconds.
             /// </summary>
-            public readonly DateTime UtcStart;
+            public long DurationInMs
+            {
+                get
+                {
+                    if (this.IntervalCount == 0)
+                    {
+                        throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when no interval has been measured");
+                    }
+                    else if (this.IsInProgress())
+                    {
+                        throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when measurement is in progress");
+                    }
+
+                    return this.watch.ElapsedMilliseconds;
+                }
+            }
 
             /// <summary>
-            /// Contains the UTC datetime when the task ended.
+            /// Identifier of the task.
             /// </summary>
-            public DateTime? UtcEnd;
+            public string Id => GenerateKey(this.ParentName, this.Name);
 
             /// <summary>
-            /// Contains the duration of the task in milliseconds.
+            /// Number of intervals (start/stop cycles) measured.
             /// </summary>
-            public long? DurationInMs;
+            public int IntervalCount { get; private set; }
 
             /// <summary>
             /// Stopwatch used to measure the duration of the task.
@@ -68,20 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 this.ParentName = parentName;
                 this.Name = name;
-                this.UtcStart = DateTime.UtcNow;
-                this.UtcEnd = null;
-                this.DurationInMs = null;
-                this.watch = Stopwatch.StartNew();
-            }
-
-            /// <summary>
-            /// Halts the stopwatch of the compilation task and stores its duration.
-            /// </summary>
-            public void End()
-            {
-                this.UtcEnd = DateTime.UtcNow;
-                this.watch.Stop();
-                this.DurationInMs = this.watch.ElapsedMilliseconds;
+                this.watch = new Stopwatch();
             }
 
             /// <summary>
@@ -90,6 +91,33 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool IsInProgress()
             {
                 return this.watch.IsRunning;
+            }
+
+            /// <summary>
+            /// Starts/resumes time accounting for this task.
+            /// </summary>
+            public void Start()
+            {
+                if (this.IsInProgress())
+                {
+                    throw new InvalidOperationException($"Attempt to start task '{this.Id}' when it is already in progress");
+                }
+
+                this.watch.Start();
+            }
+
+            /// <summary>
+            /// Stops/pauses time accounting for this task.
+            /// </summary>
+            public void Stop()
+            {
+                if (!this.IsInProgress())
+                {
+                    throw new InvalidOperationException($"Attempt to stop task '{this.Id}' when it is not in progress");
+                }
+
+                this.watch.Stop();
+                this.IntervalCount++;
             }
         }
 
@@ -116,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
 
                 var propertyName = $"{preparedPrefix}{this.Task.Name}";
-                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs ?? -1);
+                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs);
                 foreach (var entry in this.Children.OrderBy(e => e.Key))
                 {
                     entry.Value.WriteToJson(jsonWriter, propertyName);
@@ -124,50 +152,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
-        /// <summary>
-        /// Represents a warning type detected while tracking compilation events.
-        /// </summary>
-        private enum WarningType
-        {
-            TaskAlreadyExists,
-            TaskDoesNotExist,
-            TaskAlreadyEnded,
-            UknownTaskEventType
-        }
-
-        /// <summary>
-        /// Represents a warning detected while tracking compilation events.
-        /// </summary>
-        private class Warning
-        {
-            public readonly WarningType Type;
-            public readonly DateTime UtcDateTime;
-            public readonly string Key;
-
-            public Warning(WarningType type, string key)
-            {
-                this.UtcDateTime = DateTime.UtcNow;
-                this.Type = type;
-                this.Key = key;
-            }
-        }
-
-        /// <summary>
-        /// Defines a handler for a type of compilation task event.
-        /// </summary>
-        private delegate void CompilationTaskEventTypeHandler(CompilationLoader.CompilationTaskEventArgs eventArgs);
-
-        // Private members.
+        // Public members.
 
         /// <summary>
         /// Represents the file name where the compilation performance data will be stored.
         /// </summary>
-        private const string CompilationPerfDataFileName = "CompilationPerfData.json";
+        public const string CompilationPerfDataFileName = "CompilationPerfData.json";
 
         /// <summary>
-        /// Represents the file name where the compilation performance warnings will be stored.
+        /// Defines a handler for a type of compilation task event.
         /// </summary>
-        private const string CompilationPerfWarningsFileName = "CompilationPerfWarnings.json";
+        private delegate void CompilationTaskEventTypeHandler(string? parentTaskName, string taskName);
+
+        // Private members.
 
         /// <summary>
         /// Provides thread-safe access to the members and methods of this class.
@@ -179,10 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Handlers are assumed to be not null.
         /// Note that thread-safe access to this member is done through the global lock.
         /// </summary>
-        private static readonly IDictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler>
+        private static readonly IDictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler>
         {
-            { CompilationLoader.CompilationTaskEventType.Start, CompilationEventStartHandler },
-            { CompilationLoader.CompilationTaskEventType.End, CompilationEventEndHandler }
+            { CompilationTaskEventType.Start, CompilationEventStartHandler },
+            { CompilationTaskEventType.End, CompilationEventEndHandler }
         };
 
         /// <summary>
@@ -190,12 +187,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Note that thread-safe access to this member is done through the global lock.
         /// </summary>
         private static readonly IDictionary<string, CompilationTask> CompilationTasks = new Dictionary<string, CompilationTask>();
-
-        /// <summary>
-        /// Contains the warnings generated while handling the compiler tasks events.
-        /// Note that thread-safe access to this member is done through the global lock.
-        /// </summary>
-        private static readonly IList<Warning> Warnings = new List<Warning>();
 
         // Private methods.
 
@@ -206,11 +197,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             var compilationTasksForest = new List<CompilationTaskNode>();
             var toFindChildrenNodes = new Queue<CompilationTaskNode>();
-
             lock (GlobalLock)
             {
                 // First add the roots (top-level tasks) of all trees to the forest.
-
                 foreach (var entry in CompilationTasks)
                 {
                     if (entry.Value.ParentName == null)
@@ -222,7 +211,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
 
                 // Iterate through the tasks until all of them have been added to the hierarchy.
-
                 while (toFindChildrenNodes.Count > 0)
                 {
                     var parentNode = toFindChildrenNodes.Dequeue();
@@ -244,58 +232,60 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Handles a compilation task start event.
         /// </summary>
-        private static void CompilationEventStartHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
+        private static void CompilationEventStartHandler(string? parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
-            string key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
-            if (CompilationTasks.ContainsKey(key))
+            string key = CompilationTask.GenerateKey(parentTaskName, taskName);
+            if (!CompilationTasks.TryGetValue(key, out var task))
             {
-                Warnings.Add(new Warning(WarningType.TaskAlreadyExists, key));
-                return;
+                task = new CompilationTask(parentTaskName, taskName);
+                CompilationTasks.Add(key, task);
             }
 
-            CompilationTasks.Add(key, new CompilationTask(eventArgs.ParentTaskName, eventArgs.TaskName));
+            task.Start();
         }
 
         /// <summary>
         /// Handles a compilation task end event.
         /// </summary>
-        private static void CompilationEventEndHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
+        private static void CompilationEventEndHandler(string? parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
-            var key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            var key = CompilationTask.GenerateKey(parentTaskName, taskName);
             if (!CompilationTasks.TryGetValue(key, out var task))
             {
-                Warnings.Add(new Warning(WarningType.TaskDoesNotExist, key));
-                return;
+                throw new InvalidOperationException($"Attempt to stop task '{key}' which does not exist");
             }
 
-            if (!task.IsInProgress())
-            {
-                Warnings.Add(new Warning(WarningType.TaskAlreadyEnded, key));
-                return;
-            }
-
-            task.End();
+            task.Stop();
         }
 
         // Public methods.
 
         /// <summary>
-        /// Handles a compilation task event.
+        /// Clears tracked data.
         /// </summary>
-        public static void OnCompilationTaskEvent(object sender, CompilationLoader.CompilationTaskEventArgs args)
+        public static void ClearData()
         {
             lock (GlobalLock)
             {
-                if (CompilationEventTypeHandlers.TryGetValue(args.Type, out var hanlder))
+                CompilationTasks.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Handles a compilation task event.
+        /// </summary>
+        public static void OnCompilationTaskEvent(CompilationTaskEventType type, string? parentTaskName, string taskName)
+        {
+            lock (GlobalLock)
+            {
+                if (!CompilationEventTypeHandlers.TryGetValue(type, out var handler))
                 {
-                    hanlder(args);
+                    throw new ArgumentException($"No handler for compilation task event type '{type}' exists");
                 }
-                else
-                {
-                    Warnings.Add(new Warning(WarningType.UknownTaskEventType, args.Type.ToString()));
-                }
+
+                handler(parentTaskName, taskName);
             }
         }
 
@@ -325,14 +315,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
                 jsonWriter.WriteEndObject();
                 jsonWriter.Flush();
-            }
-
-            if (Warnings.Count > 0)
-            {
-                using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfWarningsFileName)))
-                {
-                    JsonSerializer.SerializeAsync(file.BaseStream, Warnings).Wait();
-                }
             }
         }
     }
