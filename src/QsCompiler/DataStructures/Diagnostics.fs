@@ -172,6 +172,7 @@ type ErrorCode =
     | ReturnInResultConditionedBlock = 5025
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
+    // TODO: RELEASE 2021-07: Remove ErrorCode.UnsupportedCapability.
     | [<Obsolete "Renamed to UnsupportedCallableCapability.">] UnsupportedCapability = 5027
 
     | CallableRedefinition = 6001

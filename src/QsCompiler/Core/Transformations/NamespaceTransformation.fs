@@ -46,6 +46,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
+    // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
     [<Obsolete "Replaced by OnSource.">]
     abstract member OnSourceFile : string -> string
     default this.OnSourceFile file = file

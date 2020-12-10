@@ -718,6 +718,7 @@ type QsSpecialization = {
     member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
     member this.WithSource source = {this with Source = source}
 
+    // TODO: RELEASE 2021-07: Remove QsSpecialization.SourceFile.
     [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
@@ -781,6 +782,7 @@ type QsCallable = {
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
 
+    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
     [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
@@ -842,6 +844,7 @@ type QsCustomType = {
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
     member this.WithSource source = {this with Source = source}
 
+    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
     [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCode this.Source
 
