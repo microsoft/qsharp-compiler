@@ -28,28 +28,28 @@ type private TrackedScope =
             RequiredFunctorSupport: ImmutableHashSet<QsFunctor>
         }
 
-    /// Given all functors that need to be applied to a particular operation call,
-    /// combines them into the set of functors that that operation needs to support.
-    static member internal CombinedFunctorSupport functors =
-        let rec requiredSupport current =
-            function
-            | [] -> current
-            | Adjoint :: tail ->
-                if not (current |> List.contains Adjoint) then
-                    requiredSupport (Adjoint :: current) tail
-                else
-                    requiredSupport
-                        [
-                            for f in current do
-                                if f <> Adjoint then yield f
-                        ]
-                        tail
-            | Controlled :: tail ->
-                if current |> List.contains Controlled
-                then requiredSupport current tail
-                else requiredSupport (Controlled :: current) tail
+        /// Given all functors that need to be applied to a particular operation call,
+        /// combines them into the set of functors that that operation needs to support.
+        static member internal CombinedFunctorSupport functors =
+            let rec requiredSupport current =
+                function
+                | [] -> current
+                | Adjoint :: tail ->
+                    if not (current |> List.contains Adjoint) then
+                        requiredSupport (Adjoint :: current) tail
+                    else
+                        requiredSupport
+                            [
+                                for f in current do
+                                    if f <> Adjoint then yield f
+                            ]
+                            tail
+                | Controlled :: tail ->
+                    if current |> List.contains Controlled
+                    then requiredSupport current tail
+                    else requiredSupport (Controlled :: current) tail
 
-        requiredSupport [] functors
+            requiredSupport [] functors
 
 
 /// The SymbolTracker class does *not* make a copy of the given NamespaceManager,

@@ -272,13 +272,11 @@ type private PartialNamespace private (name: string,
     member internal this.SetCallableResolution(cName, resolvedSignature, resAttributes) =
         match CallableDeclarations.TryGetValue cName with
         | true, (kind, signature) ->
-            let signature' =
-                { signature with
-                    Resolved = resolvedSignature
-                    ResolvedAttributes = resAttributes
-                }
-
-            CallableDeclarations.[cName] <- (kind, signature')
+            CallableDeclarations.[cName] <- (kind,
+                                             { signature with
+                                                 Resolved = resolvedSignature
+                                                 ResolvedAttributes = resAttributes
+                                             })
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
     /// Applies the given functions computing the resolution of attributes and the generation directive

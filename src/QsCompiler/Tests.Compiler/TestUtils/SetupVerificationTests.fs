@@ -52,7 +52,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 let mutable containedDiagnostics =
                     compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
 
-                for i = 1 to locations.Length do
+                for i in 1 .. locations.Length do
                     let key = fst locations.[i - 1]
 
                     if i < locations.Length then

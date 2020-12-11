@@ -34,11 +34,15 @@ type QsPauli =
 // Q# symbols
 
 type QsSymbolKind<'Symbol> =
-    | Symbol of string // let's make the distinction for things that *have* to be an unqualified symbol
+    /// Let's make the distinction for things that *have* to be an unqualified symbol.
+    | Symbol of string
     | QualifiedSymbol of string * string
-    | SymbolTuple of ImmutableArray<'Symbol> // for bindings
-    | OmittedSymbols // used for the arguments of the original method omitted upon functor gen declaration
-    | MissingSymbol // used to allow destructs of the form let (_,a) = ...
+    /// For bindings.
+    | SymbolTuple of ImmutableArray<'Symbol>
+    /// Used for the arguments of the original method omitted upon functor gen declaration.
+    | OmittedSymbols
+    /// Used to allow destructs of the form let (_,a) = ...
+    | MissingSymbol
     | InvalidSymbol
 
 // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
@@ -97,19 +101,22 @@ type QsType =
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
-    | Identifier of 'Symbol * QsNullable<ImmutableArray<'Type>> // the immutable array are the (optional) type parameters
+    /// The immutable array is the (optional) type parameters.
+    | Identifier of 'Symbol * QsNullable<ImmutableArray<'Type>>
     | ValueTuple of ImmutableArray<'Expr>
     | IntLiteral of int64
     | BigIntLiteral of BigInteger
     | DoubleLiteral of double
     | BoolLiteral of bool
-    | StringLiteral of string * ImmutableArray<'Expr> // used for both string and interpolated strings
+    /// Used for both string and interpolated strings.
+    | StringLiteral of string * ImmutableArray<'Expr>
     | ResultLiteral of QsResult
     | PauliLiteral of QsPauli
     | RangeLiteral of 'Expr * 'Expr
     | NewArray of 'Type * 'Expr
     | ValueArray of ImmutableArray<'Expr>
-    | ArrayItem of 'Expr * 'Expr // used for both array items and array slices
+    /// Used for both array items and array slices.
+    | ArrayItem of 'Expr * 'Expr
     | NamedItem of 'Expr * 'Symbol
     | NEG of 'Expr
     | NOT of 'Expr
@@ -135,11 +142,13 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | RSHIFT of 'Expr * 'Expr
     | CONDITIONAL of 'Expr * 'Expr * 'Expr
     | CopyAndUpdate of 'Expr * 'Expr * 'Expr
-    | UnwrapApplication of 'Expr // casts an expression of user defined type to its underlying type
+    /// Casts an expression of user defined type to its underlying type.
+    | UnwrapApplication of 'Expr
     | AdjointApplication of 'Expr
     | ControlledApplication of 'Expr
     | CallLikeExpression of 'Expr * 'Expr
-    | MissingExpr // for partial application
+    /// For partial application.
+    | MissingExpr
     | InvalidExpr
 
 type QsExpression =

@@ -78,8 +78,10 @@ let private buildSyntaxTree code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
-    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore // spawns a task that modifies the current compilation
-    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
+    // spawns a task that modifies the current compilation
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
+    // will wait for any current tasks to finish
+    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation
     CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
     syntaxTree
 

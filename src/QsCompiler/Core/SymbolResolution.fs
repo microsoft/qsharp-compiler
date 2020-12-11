@@ -63,29 +63,29 @@ type SpecializationBundleProperties =
             DefinedGenerators: ImmutableDictionary<QsSpecializationKind, QsSpecializationGenerator>
         }
 
-    /// Given the type- and set-arguments associated with a certain specialization,
-    /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
-    static member public BundleId(typeArgs: QsNullable<ImmutableArray<ResolvedType>>) =
-        typeArgs
-        |> QsNullable<_>.Map(fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
+        /// Given the type- and set-arguments associated with a certain specialization,
+        /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
+        static member public BundleId(typeArgs: QsNullable<ImmutableArray<ResolvedType>>) =
+            typeArgs
+            |> QsNullable<_>.Map(fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
 
-    /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
-    /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
-    static member internal BundleId(spec: Resolution<_, _>) =
-        match spec.Resolved with
-        | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
-        | Value (gen: ResolvedGenerator) -> SpecializationBundleProperties.BundleId gen.TypeArguments
+        /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
+        /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
+        static member internal BundleId(spec: Resolution<_, _>) =
+            match spec.Resolved with
+            | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
+            | Value (gen: ResolvedGenerator) -> SpecializationBundleProperties.BundleId gen.TypeArguments
 
-    /// Given a function that associates an item of the given array with a particular set of type- and set-arguments,
-    /// as well as a function that associates it with a certain specialization kind,
-    /// returns a dictionary that contains a dictionary mapping the specialization kind to the corresponding item for each set of type arguments.
-    /// The keys for the returned dictionary are the BundleIds for particular sets of type- and characteristics-arguments.
-    static member public Bundle (getTypeArgs: Func<_, _>, getKind: Func<_, QsSpecializationKind>)
-                                (specs: IEnumerable<'T>)
-                                =
-        specs
-            .ToLookup(new Func<_, _>(getTypeArgs.Invoke >> SpecializationBundleProperties.BundleId))
-            .ToDictionary((fun group -> group.Key), (fun group -> group.ToImmutableDictionary(getKind)))
+        /// Given a function that associates an item of the given array with a particular set of type- and set-arguments,
+        /// as well as a function that associates it with a certain specialization kind,
+        /// returns a dictionary that contains a dictionary mapping the specialization kind to the corresponding item for each set of type arguments.
+        /// The keys for the returned dictionary are the BundleIds for particular sets of type- and characteristics-arguments.
+        static member public Bundle (getTypeArgs: Func<_, _>, getKind: Func<_, QsSpecializationKind>)
+                                    (specs: IEnumerable<'T>)
+                                    =
+            specs
+                .ToLookup(new Func<_, _>(getTypeArgs.Invoke >> SpecializationBundleProperties.BundleId))
+                .ToDictionary((fun group -> group.Key), (fun group -> group.ToImmutableDictionary(getKind)))
 
 
 /// Represents the outcome of resolving a symbol.

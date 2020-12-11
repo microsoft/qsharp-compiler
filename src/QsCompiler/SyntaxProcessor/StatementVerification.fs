@@ -234,17 +234,19 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
         | Tuple (exs: TypedExpression list) -> exs |> Seq.collect VerifyMutability |> Seq.toArray
         | Item (ex: TypedExpression) when ex.InferredInformation.IsMutable ->
             match ex.Expression with
-            | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
-            | _ -> ()
-
-            [||]
+            | Identifier (LocalVariable id, Null) ->
+                context.Symbols.UpdateQuantumDependency id localQdep
+                [||]
+            | _ -> [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
 
             [|
                 range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, [])
             |]
-        | _ -> [||] // both missing and invalid expressions on the lhs are fine
+        | _ ->
+            // both missing and invalid expressions on the lhs are fine
+            Array.empty
 
     let refErrs = verifiedLhs |> VerifyMutability
 

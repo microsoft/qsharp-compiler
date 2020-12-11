@@ -45,14 +45,14 @@ let internal isSymbolContinuation c =
     System.Char.IsLetter(c) // Covers Lu, Ll, Lt, Lm, Lo
     || List.contains
         (System.Char.GetUnicodeCategory c)
-        [
-            System.Globalization.UnicodeCategory.LetterNumber // Nl
-            System.Globalization.UnicodeCategory.DecimalDigitNumber // Nd
-            System.Globalization.UnicodeCategory.ConnectorPunctuation // Pc (includes underscore)
-            System.Globalization.UnicodeCategory.NonSpacingMark // Mn
-            System.Globalization.UnicodeCategory.SpacingCombiningMark // Mc
-            System.Globalization.UnicodeCategory.Format // Cf
-        ]
+           [
+               System.Globalization.UnicodeCategory.LetterNumber // Nl
+               System.Globalization.UnicodeCategory.DecimalDigitNumber // Nd
+               System.Globalization.UnicodeCategory.ConnectorPunctuation // Pc (includes underscore)
+               System.Globalization.UnicodeCategory.NonSpacingMark // Mn
+               System.Globalization.UnicodeCategory.SpacingCombiningMark // Mc
+               System.Globalization.UnicodeCategory.Format // Cf
+           ]
 
 /// Returns the current position in the input stream.
 let internal getPosition =

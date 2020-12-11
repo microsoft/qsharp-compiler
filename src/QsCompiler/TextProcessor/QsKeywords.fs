@@ -283,9 +283,16 @@ let qsSetIntersection = QsOperator.New("*", 20, true)
 // The call combinator binds stronger than all operators.
 // All modifiers bind stronger than the call combinator.
 // The array item combinator binds stronger than all modifiers.
-let qsCallCombinator = QsOperator.New("(", ")", 900, true) // Op()() is fine
+
+// Op()() is fine
+let qsCallCombinator = QsOperator.New("(", ")", 900, true)
+
 let qsAdjointModifier = QsOperator.New(qsAdjointFunctor.id, 950, false)
 let qsControlledModifier = QsOperator.New(qsControlledFunctor.id, 951, false)
 let qsUnwrapModifier = QsOperator.New("!", 1000, true)
-let qsArrayAccessCombinator = QsOperator.New("[", "]", 1100, true) // arr[i][j] is fine
-let qsNamedItemCombinator = QsOperator.New("::", 1100, true) // any combination of named and array item acces is fine
+
+// arr[i][j] is fine
+let qsArrayAccessCombinator = QsOperator.New("[", "]", 1100, true)
+
+// any combination of named and array item acces is fine
+let qsNamedItemCombinator = QsOperator.New("::", 1100, true)

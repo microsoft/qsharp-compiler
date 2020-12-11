@@ -156,10 +156,16 @@ let private verifyStatement (context: SyntaxTokenContext) =
         function
         | UsingBlockIntro _ -> false, [| (ErrorCode.UsingInFunction |> Error, context.Range) |]
         | BorrowingBlockIntro _ -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
-        | RepeatIntro _ -> true, [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
-        | UntilSuccess _ -> true, [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing
+        | RepeatIntro _ ->
+            // NOTE: if repeat is excluded, exlude the UntilSuccess below!
+            true, [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |]
+        | UntilSuccess _ ->
+            // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing
+            true, [||]
         | WithinBlockIntro _ -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |]
-        | ApplyBlockIntro _ -> false, [||] // no need to raise an error - the error comes either from the preceding within or because the latter is missing 
+        | ApplyBlockIntro _ ->
+            // no need to raise an error - the error comes either from the preceding within or because the latter is missing
+            false, [||]
         | _ -> true, [||]
 
     let checkForNotValidInOperation =

@@ -17,19 +17,19 @@ type TransformationOptions =
             Rebuild: bool
         }
 
-    /// Default transformation setting.
-    /// The transformation will recur into leaf and subnodes,
-    /// and all nodes will be rebuilt upon transformation.
-    static member Default = { Enable = true; Rebuild = true }
+        /// Default transformation setting.
+        /// The transformation will recur into leaf and subnodes,
+        /// and all nodes will be rebuilt upon transformation.
+        static member Default = { Enable = true; Rebuild = true }
 
-    /// Disables the transformation at the transformation root,
-    /// meaning the transformation won't recur into leaf nodes or subnodes.
-    static member Disabled = { Enable = false; Rebuild = true }
+        /// Disables the transformation at the transformation root,
+        /// meaning the transformation won't recur into leaf nodes or subnodes.
+        static member Disabled = { Enable = false; Rebuild = true }
 
-    /// Indicates that the transformation is used to walk the syntax tree, but does not modify any of the nodes.
-    /// All nodes will be traversed recursively, but the nodes will not be rebuilt.
-    /// Setting this option constitutes a promise that the return value of all methods will be ignored.
-    static member NoRebuild = { Enable = true; Rebuild = false }
+        /// Indicates that the transformation is used to walk the syntax tree, but does not modify any of the nodes.
+        /// All nodes will be traversed recursively, but the nodes will not be rebuilt.
+        /// Setting this option constitutes a promise that the return value of all methods will be ignored.
+        static member NoRebuild = { Enable = true; Rebuild = false }
 
 
 /// Tools for adapting the default implementations for transformations

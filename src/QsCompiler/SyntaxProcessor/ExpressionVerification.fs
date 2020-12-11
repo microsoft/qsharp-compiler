@@ -582,7 +582,8 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
 
     and compareArrayBaseTypes (bt: ResolvedType) (ba: ResolvedType) =
         if ba.isMissing then
-            [||] // empty array on the right hand side is always ok, otherwise arrays are invariant
+            // empty array on the right hand side is always ok, otherwise arrays are invariant
+            Array.empty
         else
             matchTypes Invariant (bt, ba)
             |> onErrorRaiseInstead (ErrorCode.ArrayBaseTypeMismatch, [ ba |> toString; bt |> toString ])
@@ -591,7 +592,9 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
         QsCompilerError.Verify(not exType.isMissing, "expression type is missing")
 
         match targetT.Resolution, exType.Resolution with
-        | QsTypeKind.MissingType, _ -> [||] // the lhs of a set-statement may contain underscores
+        | QsTypeKind.MissingType, _ ->
+            // the lhs of a set-statement may contain underscores
+            Array.empty
         | QsTypeKind.TypeParameter tp, _ ->
             // lhs is a type parameter of the *called* callable!
             addTypeParameterResolution ((tp.Origin, tp.TypeName), exType)

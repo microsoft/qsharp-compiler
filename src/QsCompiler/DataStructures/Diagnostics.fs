@@ -63,7 +63,8 @@ type ErrorCode =
     | InvalidAssignmentToExpression = 3110
     | ExpectingComma = 3111
     | ExpectingAssignment = 3112
-    | ExpectingIteratorItemAssignment = 3113 // meaning expecting "in" keyword
+    /// Expecting "in" keyword.
+    | ExpectingIteratorItemAssignment = 3113
     | UnknownSetName = 3114
     | InvalidOperationCharacteristics = 3115
     | MissingOperationCharacteristics = 3116
@@ -135,7 +136,8 @@ type ErrorCode =
     | MissingPrecedingRepeat = 4103
     | MissingPrecedingWithin = 4104
     | MissingContinuationApply = 4105
-    | ReturnFromWithinApplyBlock = 4106 // temporary restriction
+    /// Temporary restriction.
+    | ReturnFromWithinApplyBlock = 4106
     | DistributedAdjointGenerator = 4107
     | InvalidBodyGenerator = 4108
     | BodyGenArgMismatch = 4109
@@ -191,7 +193,8 @@ type ErrorCode =
     | RequiredUnitReturnForControlledAdjoint = 6017
     | AliasForNamespaceAlreadyExists = 6018
     | AliasForOpenedNamespace = 6019
-    | InvalidNamespaceAliasName = 6020 // i.e. the chosen alias already exists
+    /// I.e., the chosen alias already exists.
+    | InvalidNamespaceAliasName = 6020
     | ConflictInReferences = 6021
     | InaccessibleType = 6022
     | InaccessibleCallable = 6023

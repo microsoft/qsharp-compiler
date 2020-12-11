@@ -366,6 +366,8 @@ type LinkingTests(output: ITestOutputHelper) =
                 elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
                     gotIndexRange <- true
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
+                else
+                    ()
             | _ -> ()
 
         let walker = TypedExpressionWalker(Action<_> onExpr, ())
@@ -625,10 +627,9 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let referenceCompilation = this.BuildContent(manager, "", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
-
         let decorator = new NameDecorator("QsRef")
 
-        for idx = 0 to references.Declarations.Count - 1 do
+        for idx in 0 .. references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
             Assert.Equal(4, specializations.Length)
