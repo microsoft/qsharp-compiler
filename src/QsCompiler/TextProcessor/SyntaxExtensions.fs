@@ -22,10 +22,18 @@ type QsSpecializationGenerator with
     // we do not currently process/parse type specializations
 
     static member New(value, range) =
-        { Generator = value; TypeArguments = Null; Range = Value range }
+        {
+            Generator = value
+            TypeArguments = Null
+            Range = Value range
+        }
 
     static member New(value, range) =
-        { Generator = value; TypeArguments = Null; Range = range }
+        {
+            Generator = value
+            TypeArguments = Null
+            Range = range
+        }
 
 
 type QsSymbol with
@@ -63,15 +71,27 @@ type QsCompilerDiagnostic with
 
     /// Builds a diagnostic error for the given code and range, without any associated arguments.
     static member internal NewError code range =
-        { Diagnostic = Error code; Arguments = []; Range = range }
+        {
+            Diagnostic = Error code
+            Arguments = []
+            Range = range
+        }
 
     /// Builds a diagnostic warning for the given code and range, without any associated arguments.
     static member internal NewWarning code range =
-        { Diagnostic = Warning code; Arguments = []; Range = range }
+        {
+            Diagnostic = Warning code
+            Arguments = []
+            Range = range
+        }
 
     /// Builds a diagnostic information for the given code and range, without any associated arguments.
     static member internal NewInfo code range =
-        { Diagnostic = Information code; Arguments = []; Range = range }
+        {
+            Diagnostic = Information code
+            Arguments = []
+            Range = range
+        }
 
 
 type CallableSignature with

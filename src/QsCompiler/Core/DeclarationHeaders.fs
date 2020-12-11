@@ -156,10 +156,7 @@ type TypeDeclarationHeader =
         if not (Object.ReferenceEquals(header.TypeItems, null)) then
             success, header
         else
-            false,
-            { header with
-                TypeItems = ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem) |> QsTuple
-            }
+            false, { header with TypeItems = ImmutableArray.Create(header.Type |> Anonymous |> QsTupleItem) |> QsTuple }
 
     member this.ToJson(): string = DeclarationHeader.ToJson this
 
@@ -221,10 +218,7 @@ type CallableDeclarationHeader =
 
         if Object.ReferenceEquals(header.Signature.Information, null)
            || Object.ReferenceEquals(header.Signature.Information.Characteristics, null) then
-            false,
-            { header with
-                Signature = { header.Signature with Information = CallableInformation.Invalid }
-            }
+            false, { header with Signature = { header.Signature with Information = CallableInformation.Invalid } }
         else
             success, header
 

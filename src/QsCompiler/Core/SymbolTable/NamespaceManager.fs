@@ -181,7 +181,15 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     ({ Namespace = ns; Name = symName }, symRange.ValueOr Range.Zero)
                     deprecation
 
-            Some({ Namespace = ns; Name = symName; Range = symRange }, declSource, access), Array.append errs warnings
+            Some
+                ({
+                     Namespace = ns
+                     Name = symName
+                     Range = symRange
+                 },
+                 declSource,
+                 access),
+            Array.append errs warnings
 
         let error code args =
             None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr Range.Zero) |]
@@ -240,7 +248,13 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         let processTP (symName, symRange) =
             if tpNames |> Seq.contains symName then
-                TypeParameter { Origin = parent; TypeName = symName; Range = symRange }, [||]
+                TypeParameter
+                    {
+                        Origin = parent
+                        TypeName = symName
+                        Range = symRange
+                    },
+                [||]
             else
                 InvalidType,
                 [|

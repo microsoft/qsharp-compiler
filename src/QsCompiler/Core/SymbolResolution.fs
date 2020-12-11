@@ -268,11 +268,7 @@ module SymbolResolution =
 
         let asQualifiedName (str: string) =
             let pieces = str.Split '.'
-
-            {
-                Namespace = String.Join('.', pieces.Take(pieces.Length - 1))
-                Name = pieces.Last()
-            }
+            { Namespace = String.Join('.', pieces.Take(pieces.Length - 1)); Name = pieces.Last() }
 
         if matchQualifiedName.Success
         then Some(matchQualifiedName.Value |> asQualifiedName)

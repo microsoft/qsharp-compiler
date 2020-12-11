@@ -37,7 +37,12 @@ type GateCall =
     }
 
 /// A pure quantum circuit with arbitrarily many (non-qubit) parameters
-type Circuit = { numQubits: int; numUnknownValues: int; gates: ImmutableArray<GateCall> }
+type Circuit =
+    {
+        numQubits: int
+        numUnknownValues: int
+        gates: ImmutableArray<GateCall>
+    }
 
 /// Metadata used for constructing circuits.
 /// Currently just stores the variable names corresponding to each qubit reference.
@@ -257,16 +262,10 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
 
     while i < circuit.gates.Length - 1 do
         if circuit.gates.[i] = { circuit.gates.[i + 1] with adjoint = not circuit.gates.[i + 1].adjoint } then
-            circuit <-
-                { circuit with
-                    gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange
-                }
+            circuit <- { circuit with gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
         elif circuit.gates.[i] = circuit.gates.[i + 1]
              && circuit.gates.[i].info.InferredInformation.IsSelfAdjoint then
-            circuit <-
-                { circuit with
-                    gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange
-                }
+            circuit <- { circuit with gates = removeIndices [ i; i + 1 ] circuit.gates |> ImmutableArray.CreateRange }
         else
             i <- i + 1
 

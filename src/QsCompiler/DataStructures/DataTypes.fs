@@ -212,7 +212,11 @@ type QsCompilerDiagnostic =
 
     /// builds a new diagnostics error with the give code and range
     static member New (item, args) range =
-        { Diagnostic = item; Arguments = args; Range = range }
+        {
+            Diagnostic = item
+            Arguments = args
+            Range = range
+        }
 
     /// builds a new diagnostics error with the give code and range
     static member Error (code, args) range =

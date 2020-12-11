@@ -62,11 +62,7 @@ type CharacteristicsKind<'S> =
     | Intersection of 'S * 'S
     | InvalidSetExpr
 
-type Characteristics =
-    {
-        Characteristics: CharacteristicsKind<Characteristics>
-        Range: QsNullable<Range>
-    }
+type Characteristics = { Characteristics: CharacteristicsKind<Characteristics>; Range: QsNullable<Range> }
 
 type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> =
     // Note: while templates need to be part of the type system, they cannot be identified at parsing time

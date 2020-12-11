@@ -113,11 +113,7 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
 let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
-
-    {
-        Expression = QsExpressionKind.CallLikeExpression(id, ex)
-        Range = combinedRange
-    }
+    { Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange }
 
 let rec private SymbolDeclarations (sym: QsSymbol) =
     match sym.Symbol with

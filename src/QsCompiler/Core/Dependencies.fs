@@ -117,42 +117,24 @@ type BuiltIn =
         }
 
     static member Attribute =
-        {
-            FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member EntryPoint =
-        {
-            FullName = { Name = "EntryPoint"; Namespace = BuiltIn.CoreNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "EntryPoint"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member Deprecated =
-        {
-            FullName = { Name = "Deprecated"; Namespace = BuiltIn.CoreNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "Deprecated"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member RequiresCapability =
-        {
-            FullName = { Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace }; Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Diagnostics
 
     static member Test =
-        {
-            FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
     static member EnableTestingViaName =
-        {
-            FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }
-            Kind = Attribute
-        }
+        { FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Canon
 
@@ -167,44 +149,28 @@ type BuiltIn =
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)
     static member ApplyConditionally =
         {
-            FullName =
-                {
-                    Name = "ApplyConditionally"
-                    Namespace = BuiltIn.ClassicallyControlledNamespace
-                }
+            FullName = { Name = "ApplyConditionally"; Namespace = BuiltIn.ClassicallyControlledNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false)
         }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj), 'T) , (('U => Unit is Adj), 'U)) => Unit is Adj)
     static member ApplyConditionallyA =
         {
-            FullName =
-                {
-                    Name = "ApplyConditionallyA"
-                    Namespace = BuiltIn.ClassicallyControlledNamespace
-                }
+            FullName = { Name = "ApplyConditionallyA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false)
         }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Ctl), 'T) , (('U => Unit is Ctl), 'U)) => Unit is Ctl)
     static member ApplyConditionallyC =
         {
-            FullName =
-                {
-                    Name = "ApplyConditionallyC"
-                    Namespace = BuiltIn.ClassicallyControlledNamespace
-                }
+            FullName = { Name = "ApplyConditionallyC"; Namespace = BuiltIn.ClassicallyControlledNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false)
         }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj + Ctl), 'T) , (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
     static member ApplyConditionallyCA =
         {
-            FullName =
-                {
-                    Name = "ApplyConditionallyCA"
-                    Namespace = BuiltIn.ClassicallyControlledNamespace
-                }
+            FullName = { Name = "ApplyConditionallyCA"; Namespace = BuiltIn.ClassicallyControlledNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create("T", "U"), IsSelfAdjoint = false)
         }
 

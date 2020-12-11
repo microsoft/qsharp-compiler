@@ -326,10 +326,7 @@ type CallableInformation =
         let inferredForAll =
             infos |> Seq.map (fun info -> info.InferredInformation) |> InferredCallableInformation.Common
 
-        {
-            Characteristics = commonCharacteristics
-            InferredInformation = inferredForAll
-        }
+        { Characteristics = commonCharacteristics; InferredInformation = inferredForAll }
 
 
 /// Fully resolved Q# type.
@@ -535,10 +532,7 @@ type QsComments =
         ClosingComments: ImmutableArray<string>
     }
     static member Empty =
-        {
-            OpeningComments = ImmutableArray.Empty
-            ClosingComments = ImmutableArray.Empty
-        }
+        { OpeningComments = ImmutableArray.Empty; ClosingComments = ImmutableArray.Empty }
 
 
 type QsScope =

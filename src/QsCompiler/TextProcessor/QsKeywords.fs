@@ -51,11 +51,7 @@ let private addFunctorCombination (word1: QsKeyword, word2: QsKeyword) =
     _ReservedKeywords.Add id |> ignore
     _LanguageKeywords.Add id |> ignore
     _FragmentHeaders.Add id |> ignore
-
-    {
-        id = id
-        parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse)
-    }
+    { id = id; parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse) }
 
 
 // Qs types
@@ -241,10 +237,20 @@ type QsOperator =
     member internal this.Associativity = if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =
-        { op = str; cont = null; prec = p; isLeftAssociative = assoc }
+        {
+            op = str
+            cont = null
+            prec = p
+            isLeftAssociative = assoc
+        }
 
     static member New(str, rstr, p, assoc) =
-        { op = str; cont = rstr; prec = p; isLeftAssociative = assoc }
+        {
+            op = str
+            cont = rstr
+            prec = p
+            isLeftAssociative = assoc
+        }
 
 let qsCopyAndUpdateOp = QsOperator.New("w/", "<-", 1, true) // *needs* to have lowest precedence!
 let qsOpenRangeOp = QsOperator.New("...", 2, true) // only valid as part of certain contextual expressions!

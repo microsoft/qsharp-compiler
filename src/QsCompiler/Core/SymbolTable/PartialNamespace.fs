@@ -166,10 +166,7 @@ type private PartialNamespace private (name: string,
                 | QsTuple _ -> buildItem typeTuple
 
             let returnType =
-                {
-                    Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange)
-                    Range = Null
-                }
+                { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange); Range = Null }
 
             {
                 TypeParameters = ImmutableArray.Empty
