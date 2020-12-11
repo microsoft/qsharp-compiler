@@ -326,10 +326,10 @@ module SerializationTests =
 
 
     // These attributes are used to test the AttributeReader.
-    [<assembly:Microsoft.Quantum.Simulation.Core.CallableDeclaration(CALLABLE_1)>]
-    [<assembly:Microsoft.Quantum.Simulation.Core.TypeDeclaration(TYPE_1)>]
-    [<assembly:Microsoft.Quantum.Simulation.Core.CallableDeclaration(CALLABLE_2)>]
-    [<assembly:Microsoft.Quantum.Simulation.Core.SpecializationDeclaration(SPECIALIZATION_1)>]
-    [<assembly:Attributes.CallableDeclaration(CALLABLE_3)>]
-    [<assembly:Attributes.SpecializationDeclaration(SPECIALIZATION_3)>]
+    [<assembly: Microsoft.Quantum.Simulation.Core.CallableDeclaration(CALLABLE_1)>]
+    [<assembly: Microsoft.Quantum.Simulation.Core.TypeDeclaration(TYPE_1)>]
+    [<assembly: Microsoft.Quantum.Simulation.Core.CallableDeclaration(CALLABLE_2)>]
+    [<assembly: Microsoft.Quantum.Simulation.Core.SpecializationDeclaration(SPECIALIZATION_1)>]
+    [<assembly: Attributes.CallableDeclaration(CALLABLE_3)>]
+    [<assembly: Attributes.SpecializationDeclaration(SPECIALIZATION_3)>]
     do ()

@@ -7,8 +7,8 @@ open System.Reflection
 
 #if SIGNED
 // Attributes for delay-signing
-[<assembly:AssemblyKeyFile("..\\..\\..\\build\\267DevDivSNKey2048.snk")>]
-[<assembly:AssemblyDelaySign(true)>]
+[<assembly: AssemblyKeyFile("..\\..\\..\\build\\267DevDivSNKey2048.snk")>]
+[<assembly: AssemblyDelaySign(true)>]
 
 do ()
 #endif
