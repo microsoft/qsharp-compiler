@@ -73,3 +73,6 @@ Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;
 Pop-Location
+
+Write-Host "##[info]Restoring .NET tools..."
+dotnet tool restore
