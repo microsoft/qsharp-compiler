@@ -347,7 +347,6 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 | _ -> Seq.empty
 
             let validateArgAndReturnTypes isArg = validateArgAndReturnTypes (isArg, false)
-
             let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
             let outErrs = signature.ReturnType |> validateArgAndReturnTypes false
             let signatureErrs = inErrs.Concat outErrs
