@@ -31,10 +31,7 @@ let private ExpressionVerifyWith verification context (expr: QsExpression) =
         QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
 
     let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
-
-    let resVerification =
-        verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
-
+    let resVerification = verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
     typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
 
 /// Given a verification function that takes an error logging function as well as an expression type and its range,
@@ -102,10 +99,7 @@ let NewExpressionStatement comments location symbols expr =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsString context expr
-
-    let autoGenErrs =
-        (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-
+    let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
     verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty,
     Array.concat [ diagnostics
                    autoGenErrs ]
@@ -125,9 +119,7 @@ let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) e
         context.Symbols
         |> onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range)
 
-    let statement =
-        verifiedExpr |> QsReturnStatement |> asStatement comments location LocalDeclarations.Empty
-
+    let statement = verifiedExpr |> QsReturnStatement |> asStatement comments location LocalDeclarations.Empty
     statement, Array.append diagnostics autoGenErrs
 
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
@@ -236,7 +228,6 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             match ex.Expression with
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
-
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
@@ -311,9 +302,7 @@ let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSy
 
         VerifyBinding addDeclaration (qsSym, (rhs.ResolvedType, Some rhs.Expression, qsExpr.RangeOrDefault)) false
 
-    let autoGenErrs =
-        (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-
+    let autoGenErrs = (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
     let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
 
     binding |> asStatement comments location (LocalDeclarations.New varDeclarations),
@@ -355,8 +344,7 @@ let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qs
 
         VerifyBinding addDeclaration (qsSym, (itemT, None, qsExpr.RangeOrDefault)) false
 
-    let autoGenErrs =
-        (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
+    let autoGenErrs = (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
     let forLoop body =
         QsForStatement.New((symTuple, itemT), iterExpr, body) |> QsForStatement
@@ -384,9 +372,7 @@ let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpress
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context (qsExpr: QsExpression) =
     let condition, _, errs = VerifyWith VerifyIsBoolean context qsExpr
-
-    let autoGenErrs =
-        (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
+    let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
     let block body =
         condition, QsPositionedBlock.New comments (Value location) body
@@ -418,8 +404,7 @@ let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock,
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc
 
-    let autoGenErrs =
-        symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
+    let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
 
     QsRepeatStatement.New(repeatBlock, successCondition, fixupBlock)
     |> QsRepeatStatement
@@ -476,10 +461,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
         | SingleQubitAllocation -> SingleQubitAllocation |> ResolvedInitializer.New, [||]
         | QubitRegisterAllocation nr ->
             let verifiedNr, _, err = VerifyWith VerifyIsInteger context nr
-
-            let autoGenErrs =
-                (verifiedNr, nr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-
+            let autoGenErrs = (verifiedNr, nr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
             QubitRegisterAllocation verifiedNr |> ResolvedInitializer.New, Array.concat [ err; autoGenErrs ]
         | QubitTupleAllocation is ->
             let items, errs = is |> Seq.map VerifyInitializer |> Seq.toList |> List.unzip
@@ -499,9 +481,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
     let bindingScope body =
         QsQubitScope.New kind ((symTuple, initializer), body) |> QsQubitScope
 
-    let statement =
-        BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty)
-
+    let statement = BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty)
     statement, Array.append initErrs varErrs
 
 /// Resolves, verifies and builds the Q# using-statement at the given location binding the given initializer to the given symbol.

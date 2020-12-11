@@ -219,17 +219,13 @@ let private withModifiers modifiableExpr =
 /// Parses for a Q# call argument.
 /// Fails on fragment headers, and raises an error for other Q# language keywords returning an invalid expression.
 let private argument =
-    let keyword =
-        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
-
+    let keyword = buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
     notFollowedBy qsFragmentHeader >>. (keyword <|> qsArgument.ExpressionParser) // keyword *needs* to be first here!
 
 /// Parses for an arbitrary Q# expression.
 /// Fails on fragment headers, and raises an error for other Q# language keywords returning an invalid expression.
 let internal expr =
-    let keyword =
-        buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
-
+    let keyword = buildError qsLanguageKeyword ErrorCode.InvalidKeywordWithinExpression >>% unknownExpr
     notFollowedBy qsFragmentHeader >>. (keyword <|> qsExpression.ExpressionParser) // keyword *needs* to be first here!
 
 /// Given a continuation (parser), attempts to parse a Q# expression,
@@ -443,8 +439,7 @@ let private tupledItem item =
     let expectedItem =
         expected item ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr isTupleContinuation
 
-    let content =
-        expectedItem |> withExcessContinuation isTupleContinuation <|> invalid .>> warnOnComma
+    let content = expectedItem |> withExcessContinuation isTupleContinuation <|> invalid .>> warnOnComma
 
     tupleBrackets content
     |>> (fun (item, range) -> (ImmutableArray.Create item |> ValueTuple, range) |> QsExpression.New)
@@ -457,11 +452,8 @@ let internal buildTupleExpr (items, range: Range) =
 /// Parses a Q# value tuple as QsExpression using the given item parser to process tuple items.
 /// Uses buildTuple to generate suitable errors for invalid or missing expressions within the tuple.
 let private valueTuple item = // allows something like (a,(),b)
-    let invalid =
-        buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.InvalidValueTuple >>% unknownExpr // used for processing e.g. (,)
-
-    let validTuple =
-        buildTuple item buildTupleExpr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr
+    let invalid = buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.InvalidValueTuple >>% unknownExpr // used for processing e.g. (,)
+    let validTuple = buildTuple item buildTupleExpr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr
 
     tupledItem item
     <|> validTuple
@@ -484,8 +476,7 @@ let private valueArray = // this disallows []
 /// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
-    let body =
-        expectedQsType (lArray >>% ()) .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
+    let body = expectedQsType (lArray >>% ()) .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
 
     let invalid =
         checkForInvalid
@@ -588,9 +579,7 @@ let private itemAccessExpr =
 /// If the parsed argument tuple is not a unit value,
 /// uses buildTuple to generate a MissingArgument error if a tuple item is missing, or an InvalidArgument error for invalid items.
 let private argumentTuple =
-    let tupleArg =
-        buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
-
+    let tupleArg = buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
     unitValue <|> tupleArg
 
 /// Parses a Q# call-like expression as QsExpression.

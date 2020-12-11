@@ -338,10 +338,7 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     // NOTE: this may not be the behavior that we want (right now it does not matter, since we don't support equality
     // comparison for any derived type).
     let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [ toString lhsType; toString rhsType ]
-
-    let baseType =
-        CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
-
+    let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
     let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [ toString baseType ]
 
     VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange)
@@ -519,10 +516,7 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
                 | ValidName tpName -> Some((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
 
         let typeParamLookUp = resolutions.ToImmutableDictionary(fst, snd)
-
-        let exInfo =
-            InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
-
+        let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New(identifier, typeParamLookUp, resId.Type, exInfo, sym.Range)
 
 /// Verifies whether an expression of the given argument type can be used as argument to a method (function, operation, or setter)
@@ -940,9 +934,7 @@ type QsExpression with
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated: IEnumerable<_>) =
             let resInterpol = (interpolated.Select InnerExpression).ToImmutableArray()
-
-            let localQdependency =
-                resInterpol |> Seq.exists (fun r -> r.InferredInformation.HasLocalQuantumDependency)
+            let localQdependency = resInterpol |> Seq.exists (fun r -> r.InferredInformation.HasLocalQuantumDependency)
 
             (StringLiteral(literal, resInterpol), String |> ResolvedType.New, localQdependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -1314,9 +1306,7 @@ type QsExpression with
         /// Determines the underlying type of the user defined type and returns the corresponding UNWRAP expression as typed expression of that type.
         let buildUnwrap (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-
-            let exType =
-                VerifyUdtWith symbols.GetUnderlyingType addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
+            let exType = VerifyUdtWith symbols.GetUnderlyingType addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
 
             (UnwrapApplication resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -1411,10 +1401,7 @@ type QsExpression with
             | QsTypeKind.InvalidType -> invalidEx
             | QsTypeKind.Function (argT, resT) ->
                 let typeParamResolutions, exType, exprKind = (argT, resT) |> callTypeOrPartial QsTypeKind.Function
-
-                let exInfo =
-                    InferredExpressionInformation.New(isMutable = false, quantumDep = locQdepClassicalEx)
-
+                let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = locQdepClassicalEx)
                 TypedExpression.New(exprKind, typeParamResolutions, exType, exInfo, this.Range)
             | QsTypeKind.Operation ((argT, resT), characteristics) ->
                 let typeParamResolutions, exType, exprKind =
@@ -1431,9 +1418,7 @@ type QsExpression with
                         |> addError (ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ])
 
                 let localQDependency = if isPartialApplication then locQdepClassicalEx else true
-
-                let exInfo =
-                    InferredExpressionInformation.New(isMutable = false, quantumDep = localQDependency)
+                let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = localQDependency)
 
                 if not (context.IsInOperation || isPartialApplication) then
                     method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, [])

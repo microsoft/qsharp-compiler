@@ -38,8 +38,7 @@ let private invalidArgTupleItem = (invalidSymbol, invalidType) |> QsTupleItem
 let private invalidInitializer = (InvalidInitializer, Null) |> QsInitializer.New
 
 /// returns a QsFunctorGenerator representing an invalid functor generator (i.e. syntax error on parsing)
-let private unknownGenerator =
-    (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
+let private unknownGenerator = (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
 
 /// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
 let private buildSymbolTuple (items, range: Range) =
@@ -110,8 +109,7 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
     let validSymbol = (discardedSymbol <|> localIdentifier) .>>? followedBy validContinuation // discarded needs to be first
 
     let invalid =
-        let symbolArray =
-            arrayBrackets (sepBy1 validSymbol (comma .>>? followedBy validSymbol) .>> opt comma) |>> snd // let's only specifically detect this particular scenario
+        let symbolArray = arrayBrackets (sepBy1 validSymbol (comma .>>? followedBy validSymbol) .>> opt comma) |>> snd // let's only specifically detect this particular scenario
 
         buildError (symbolArray .>>? followedBy validContinuation) ErrorCode.InvalidAssignmentToExpression
         >>% invalidSymbol
@@ -181,9 +179,7 @@ let private modifiers =
 let private signature =
     let genericParamList =
         let genericParam =
-            let invalidName =
-                symbolNameLike ErrorCode.InvalidTypeParameterName .>> opt (pchar '\'') |> term |>> snd
-
+            let invalidName = symbolNameLike ErrorCode.InvalidTypeParameterName .>> opt (pchar '\'') |> term |>> snd
             let invalid = buildError invalidName ErrorCode.InvalidTypeParameterName >>% None
 
             term (typeParameterNameLike <|> invalid)
@@ -370,16 +366,14 @@ let private controlledAdjointDeclaration =
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 let private operationDeclaration =
-    let invalid =
-        OperationDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
+    let invalid = OperationDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
 
     buildFragment (modifiers .>> opDeclHeader.parse |> attempt) signature invalid (fun mods (symbol, signature) ->
         OperationDeclaration(mods, symbol, signature)) eof
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 let private functionDeclaration =
-    let invalid =
-        FunctionDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
+    let invalid = FunctionDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
 
     buildFragment (modifiers .>> fctDeclHeader.parse |> attempt) signature invalid (fun mods (symbol, signature) ->
         FunctionDeclaration(mods, symbol, signature)) eof
@@ -534,9 +528,7 @@ let private setStatement =
         let symbolTuple =
             buildTupleItem (identifierExpr continuation) buildTupleExpr invalidErr missingErr unknownExpr equal
 
-        let expectedEqual =
-            expected equal ErrorCode.ExpectingAssignment ErrorCode.ExpectingAssignment "" (preturn ())
-
+        let expectedEqual = expected equal ErrorCode.ExpectingAssignment ErrorCode.ExpectingAssignment "" (preturn ())
         symbolTuple .>> expectedEqual .>>. expectedExpr eof
 
     let invalid = ValueUpdate(unknownExpr, unknownExpr)
@@ -576,8 +568,7 @@ let private whileHeader =
 
 
 /// Uses buildFragment to parse a Q# repeat intro as QsFragment.
-let private repeatHeader =
-    buildFragment qsRepeat.parse (preturn "") RepeatIntro (fun _ _ -> RepeatIntro) eof
+let private repeatHeader = buildFragment qsRepeat.parse (preturn "") RepeatIntro (fun _ _ -> RepeatIntro) eof
 
 /// Uses buildFragment to parse a Q# until success clause as QsFragment.
 let private untilSuccess =
@@ -589,12 +580,10 @@ let private untilSuccess =
 
 
 /// Uses buildFragment to parse a Q# within-block intro as QsFragment.
-let private withinHeader =
-    buildFragment qsWithin.parse (preturn "") WithinBlockIntro (fun _ _ -> WithinBlockIntro) eof
+let private withinHeader = buildFragment qsWithin.parse (preturn "") WithinBlockIntro (fun _ _ -> WithinBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# apply block intro as QsFragment.
-let private applyHeader =
-    buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
+let private applyHeader = buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
 
 
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.
@@ -684,7 +673,5 @@ let private expressionStatement =
 /// Parses a Q# code fragment.
 /// Raises a suitable error and returns UnknownStatement as QsFragment if the parsing fails.
 let internal codeFragment =
-    let validFragment =
-        choice (fragments |> List.map snd) <|> attributeAnnotation <|> expressionStatement // the expressionStatement needs to be last
-
+    let validFragment = choice (fragments |> List.map snd) <|> attributeAnnotation <|> expressionStatement // the expressionStatement needs to be last
     attempt validFragment <|> buildInvalidFragment (preturn ())

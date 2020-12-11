@@ -64,9 +64,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
         expr.ResolvedType.Resolution = TypeKind.ArrayType(ResolvedType.New k)
 
     let ensureMatchingIndex (l: ImmutableArray<_>) =
-        let existing =
-            Seq.indexed l |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some(l, i) else None)
-
+        let existing = Seq.indexed l |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some(l, i) else None)
         let newList, index = existing |? (l.Add expr, l.Length)
 
         if index > (1 <<< 29)

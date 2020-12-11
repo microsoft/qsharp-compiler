@@ -57,8 +57,7 @@ and private PureCircuitFinderStatements(parent: PureCircuitFinder, callables: Im
 
         let finishCircuit () =
             if circuit.Length <> 0 then
-                let newCircuit =
-                    optimizeExprList callables parent.DistinctQubitFinder.Value.DistinctNames circuit
+                let newCircuit = optimizeExprList callables parent.DistinctQubitFinder.Value.DistinctNames circuit
                 (*if newCircuit <> circuit then
                     printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                     printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)

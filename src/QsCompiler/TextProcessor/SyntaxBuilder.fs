@@ -151,11 +151,8 @@ let internal optTupleBrackets core =
 /// Fails without consuming input it the parsing fails.
 /// IMPORTANT: This parser does does *not* handle whitespace and needs to be wrapped into a term parser for proper processing of all whitespace.
 let private bracketDefinedContent core (lbracket, rbracket) =
-    let nextRbracket =
-        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy rbracket)
-
-    let nextLbracket =
-        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
+    let nextRbracket = attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy rbracket)
+    let nextLbracket = attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
 
     let rec findMatching stream =
         let recur = nextLbracket >>. bracket lbracket >>. findMatching .>> bracket rbracket
@@ -345,9 +342,7 @@ let internal isTupleContinuation = followedBy (comma <|> rTuple <|> (eof >>% "")
 /// in cases where validSingle or the corresponding tuple parser does not succeed.
 let internal buildTuple validSingle bundle errCode missingCode fallback = // "bracketDefinedContent"
     let rec tuple stream =
-        let inner =
-            commaSep1 (validSingle <|> tuple) errCode missingCode fallback isTupleContinuation // for cases where we have singleton tuples and operators possibly connecting them, single needs to be first!
-
+        let inner = commaSep1 (validSingle <|> tuple) errCode missingCode fallback isTupleContinuation // for cases where we have singleton tuples and operators possibly connecting them, single needs to be first!
         (tupleBrackets inner |>> bundle) stream // don't allow empty tuples -> something like unit must be incorporated in single
 
     tuple

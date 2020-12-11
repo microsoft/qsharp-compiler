@@ -135,13 +135,10 @@ type LinkingTests(output: ITestOutputHelper) =
         ReplaceWithTargetIntrinsics.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
     member private this.RunIntrinsicResolutionTest testNumber =
-
         let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
         srcChunks.Length >= 2 * testNumber |> Assert.True
         let chunckNumber = 2 * (testNumber - 1)
-
-        let result =
-            this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber + 1]
+        let result = this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber + 1]
 
         Signatures.SignatureCheck
             [ Signatures.IntrinsicResolutionNs ]
@@ -193,16 +190,11 @@ type LinkingTests(output: ITestOutputHelper) =
         let countAll namespaces names =
             names |> Seq.map (countReferences namespaces) |> Seq.sum
 
-        let beforeCount =
-            countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
-
+        let beforeCount = countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
-
         let decorator = new NameDecorator("QsRef")
         let newNames = renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
-
-        let afterCount =
-            countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
+        let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
 
         Assert.NotEqual(0, beforeCount)
         Assert.Equal(0, afterCountOriginal)
@@ -627,7 +619,6 @@ type LinkingTests(output: ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
-
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
@@ -675,12 +666,8 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let checkValidCombination (sources: ImmutableDictionary<_, _>) =
             let mutable combined = ImmutableArray<QsNamespace>.Empty
-
-            let trees =
-                sources |> Seq.map (fun kv -> this.BuildReference(kv.Key, fst kv.Value)) |> Seq.toArray
-
-            let sourceIndex =
-                (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i))).ToImmutableDictionary(fst, snd)
+            let trees = sources |> Seq.map (fun kv -> this.BuildReference(kv.Key, fst kv.Value)) |> Seq.toArray
+            let sourceIndex = (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i))).ToImmutableDictionary(fst, snd)
 
             let onError _ _ =
                 Assert.False(true, "diagnostics generated upon combining syntax trees")

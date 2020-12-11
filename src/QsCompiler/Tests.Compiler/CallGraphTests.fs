@@ -170,9 +170,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
     let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
-
-        let actual =
-            actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
+        let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
 
         Assert.True
             (actual.Length = expected.Length,

@@ -48,9 +48,7 @@ type ExternalRewriteStepsManagerTests() =
 
     [<Fact>]
     member this.``Loading Assembly based steps (legacy)``() =
-        let config =
-            new CompilationLoader.Configuration(RewriteSteps = [ (this.GetType().Assembly.Location, "") ])
-
+        let config = new CompilationLoader.Configuration(RewriteSteps = [ (this.GetType().Assembly.Location, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 
@@ -64,19 +62,14 @@ type ExternalRewriteStepsManagerTests() =
 
     [<Fact>]
     member this.``Loading Type based steps``() =
-        let config =
-            new CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ])
-
+        let config = new CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 
     [<Fact>]
     member this.``Loading instance based steps``() =
         let stepInstance = new TestRewriteStep()
-
-        let config =
-            new CompilationLoader.Configuration(RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ])
-
+        let config = new CompilationLoader.Configuration(RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 

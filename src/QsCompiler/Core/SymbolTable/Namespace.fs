@@ -106,11 +106,8 @@ type Namespace private (name,
             |> Seq.concat
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
-        let types =
-            typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Modifiers.Access)
-
-        let callables =
-            callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Modifiers.Access)
+        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Modifiers.Access)
+        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Modifiers.Access)
 
         let specializations =
             specializationsInRefs
@@ -130,9 +127,7 @@ type Namespace private (name,
     /// returns a new Namespace that is an exact (deep) copy of this one
     /// -> any modification of the returned Namespace is not reflected in this one
     member this.Copy() =
-        let partials =
-            Parts |> Seq.map (fun part -> new KeyValuePair<_, _>(part.Key, part.Value.Copy()))
-
+        let partials = Parts |> Seq.map (fun part -> new KeyValuePair<_, _>(part.Key, part.Value.Copy()))
         new Namespace(name, partials, CallablesInReferences, SpecializationsInReferences, TypesInReferences)
 
     /// Returns a lookup that given the name of a source file,
@@ -597,9 +592,7 @@ type Namespace private (name,
                 let cDecl =
                     CallablesInReferences.[cName] |> Seq.filter (fun c -> c.SourceFile = source) |> Seq.exactlyOne
 
-                let unitReturn =
-                    cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
-
+                let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length
 
         match Parts.TryGetValue source with

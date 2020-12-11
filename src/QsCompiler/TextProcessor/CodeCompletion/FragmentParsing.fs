@@ -147,9 +147,7 @@ let private applyHeader = expectedKeyword qsApply
 /// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
 let rec private qubitInitializerTuple =
     parse {
-        let item =
-            expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
-
+        let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
         return! item <|> (tuple1 item <|> qubitInitializerTuple)
     }
 

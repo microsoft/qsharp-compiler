@@ -67,9 +67,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
     member private this.EvaluateExpression expr: Imp<TypedExpression> =
         imperative {
             let! vars, counter = getState
-
-            let result =
-                ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
+            let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
 
             if isLiteral callables result
             then return result

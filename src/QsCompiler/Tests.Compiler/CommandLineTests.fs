@@ -258,10 +258,7 @@ let ``find path relative to relative outputfolder with spaces`` () =
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine("..", "some foo", "bar")
     let id = CompilationUnitManager.GetFileId(new Uri(fullPath))
-
-    let expected =
-        Path.Combine(parentDir, "some foo", "bar", "alpha", "some beta", "c", "test 00.g.cs")
-
+    let expected = Path.Combine(parentDir, "some foo", "bar", "alpha", "some beta", "c", "test 00.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 

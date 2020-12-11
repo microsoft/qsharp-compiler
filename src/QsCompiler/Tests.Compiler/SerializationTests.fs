@@ -72,8 +72,7 @@ module SerializationTests =
             Range = Range.Create (Position.Create 0 s) (Position.Create 0 e)
         }
 
-    let tupleIntIntType =
-        TupleType([ Int |> ResolvedType.New; Int |> ResolvedType.New ].ToImmutableArray())
+    let tupleIntIntType = TupleType([ Int |> ResolvedType.New; Int |> ResolvedType.New ].ToImmutableArray())
 
     let intIntTypeItems =
         let intItem = Int |> ResolvedType.New |> Anonymous |> QsTupleItem
@@ -315,9 +314,7 @@ module SerializationTests =
 
         let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
         let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
-
-        let specs =
-            attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList
+        let specs = attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList
 
         let AssertEqual (expected: string list) (got: _ list) =
             Assert.Equal(expected.Length, got.Length)

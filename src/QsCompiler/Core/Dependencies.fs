@@ -116,8 +116,7 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    static member Attribute =
-        { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
+    static member Attribute = { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member EntryPoint =
         { FullName = { Name = "EntryPoint"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
@@ -130,8 +129,7 @@ type BuiltIn =
 
     // dependencies in Microsoft.Quantum.Diagnostics
 
-    static member Test =
-        { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
+    static member Test = { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
     static member EnableTestingViaName =
         { FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }

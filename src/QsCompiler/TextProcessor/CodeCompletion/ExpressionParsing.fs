@@ -16,8 +16,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 
 
 /// Parses a prefix operator.
-let private prefixOp =
-    expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
+let private prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
 
 /// Parses an infix operator.
 let private infixOp =
@@ -85,9 +84,7 @@ let rec expression =
                 pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
 
             let uninterpolated =
-                let text =
-                    manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
-
+                let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
                 quote >>. text ?>> expected quote
 
             interpolated <|> uninterpolated

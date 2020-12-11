@@ -307,8 +307,7 @@ module SymbolResolution =
         let getTarget (att: QsDeclarationAttribute) =
             if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
 
-        let validTargets =
-            CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let validTargets = CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
 
         let targetName (target: string) =
             if target = null then
@@ -381,8 +380,7 @@ module SymbolResolution =
 
             returnType.Exists isUnresolved
 
-        let returnTypeErr =
-            range |> QsCompilerDiagnostic.Warning(WarningCode.ReturnTypeNotResolvedByArgument, [])
+        let returnTypeErr = range |> QsCompilerDiagnostic.Warning(WarningCode.ReturnTypeNotResolvedByArgument, [])
 
         if unresolvableReturnType
         then returnTypeErr :: excessTypeParamWarn |> List.toArray

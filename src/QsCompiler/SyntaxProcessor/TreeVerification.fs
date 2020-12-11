@@ -231,8 +231,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
 
     order ()
 
-    let remaining =
-        containedIn |> List.mapi (fun i x -> (i, x)) |> List.filter (fun x -> (snd x).Count <> 0)
+    let remaining = containedIn |> List.mapi (fun i x -> (i, x)) |> List.filter (fun x -> (snd x).Count <> 0)
 
     if remaining.Length <> 0 then
         for (udtIndex, _) in remaining do

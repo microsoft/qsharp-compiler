@@ -531,8 +531,7 @@ type QsComments =
         /// comments that occur on (before or on the same line after) the ending of a block statement
         ClosingComments: ImmutableArray<string>
     }
-    static member Empty =
-        { OpeningComments = ImmutableArray.Empty; ClosingComments = ImmutableArray.Empty }
+    static member Empty = { OpeningComments = ImmutableArray.Empty; ClosingComments = ImmutableArray.Empty }
 
 
 type QsScope =

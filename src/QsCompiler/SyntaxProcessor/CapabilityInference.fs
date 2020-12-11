@@ -158,9 +158,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
         block.Body.Statements
         |> Seq.collect returnStatements
         |> Seq.map (fun statement ->
-            let range =
-                statement.Location |> QsNullable<_>.Map(fun location -> location.Offset + location.Range)
-
+            let range = statement.Location |> QsNullable<_>.Map(fun location -> location.Offset + location.Range)
             ReturnInResultConditionedBlock range)
 
     let setPatterns (block: QsPositionedBlock) =
@@ -240,15 +238,12 @@ let private globalReferences scope =
 let private referenceDiagnostic context (name, range: _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability =
-            (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
+        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
 
         if context.Capability.Implies capability then
             None
         else
-            let error =
-                ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
-
+            let error = ErrorCode.UnsupportedCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error error |> Some
     | _ -> None
 
@@ -381,9 +376,7 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
 
 /// Returns the attribute for the inferred runtime capability.
 let private toAttribute capability =
-    let args =
-        AttributeUtils.StringArguments(capability.ToString(), "Inferred automatically by the compiler.")
-
+    let args = AttributeUtils.StringArguments(capability.ToString(), "Inferred automatically by the compiler.")
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each

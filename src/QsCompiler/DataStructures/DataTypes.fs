@@ -107,10 +107,7 @@ type Position =
     /// </exception>
     static member (-)(position: Position, offset: Position) =
         let line = position.Line - offset.Line
-
-        let column =
-            if position.Line = offset.Line then position.Column - offset.Column else position.Column
-
+        let column = if position.Line = offset.Line then position.Column - offset.Column else position.Column
         Position(line, column)
 
     /// Returns true if the positions have the same line and column numbers.

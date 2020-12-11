@@ -89,8 +89,7 @@ module DeclarationHeader =
             new NullableRangeConverter() :> JsonConverter
         |]
 
-    let private Serializer =
-        [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
+    let private Serializer = [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
 
     let private PermissiveSerializer =
         [ qsNullableConverters; Json.Converters true ] |> Array.concat |> Json.CreateSerializer

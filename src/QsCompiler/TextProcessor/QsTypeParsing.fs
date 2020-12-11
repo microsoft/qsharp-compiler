@@ -182,8 +182,7 @@ let private operationType =
         withInnerBrackets <|> withoutInnerBrackets
 
     let deprecatedCharacteristics =
-        let colonWithWarning =
-            buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
+        let colonWithWarning = buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
 
         attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor))
         <|> (qsCharacteristics.parse |>> (fun r -> r.Start) <|> (getPosition .>> colon) >>= functorSupport)

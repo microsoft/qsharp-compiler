@@ -101,12 +101,9 @@ type ClassicalControlTests() =
         else (false, "", "")
 
     let MakeApplicationRegex (opName: QsQualifiedName) =
-        let call =
-            sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
-
+        let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(?\s*([\w\s,\.]*)?\s*\)?"
-
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
     let IsApplyIfArgMatch input resultVar (opName: QsQualifiedName) =
@@ -190,10 +187,7 @@ type ClassicalControlTests() =
         |> (fun x -> x.Value)
 
     let ApplyIfElseTest compilation =
-
-        let original =
-            GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True
@@ -295,9 +289,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``ApplyIfZero And ApplyIfOne``() =
         let result = CompileClassicalControlTest 7
-
-        let originalOp =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfZero); (3, BuiltIn.ApplyIfOne) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -334,13 +326,10 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``If Elif``() =
         let result = CompileClassicalControlTest 10
-
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elifOp = { Namespace = "SubOps"; Name = "SubOp2" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp3" }
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -382,12 +371,9 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``And Condition``() =
         let result = CompileClassicalControlTest 11
-
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -429,12 +415,9 @@ type ClassicalControlTests() =
     [<Trait("Category", "If Structure Reshape")>]
     member this.``Or Condition``() =
         let result = CompileClassicalControlTest 12
-
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -557,9 +540,7 @@ type ClassicalControlTests() =
         |> AssertSpecializationHasCalls(GetBodyFromCallable providedOp)
 
         let _selfOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Self") |> fun x -> x.Value
-
-        let _invertOp =
-            callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert") |> fun x -> x.Value
+        let _invertOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert") |> fun x -> x.Value
 
         let _providedOps =
             callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided") |> Seq.map (fun x -> x.Value)
@@ -596,8 +577,7 @@ type ClassicalControlTests() =
         |> Seq.map ExpandBuiltInQualifiedSymbol
         |> AssertSpecializationHasCalls(GetBodyFromCallable providedOp)
 
-        let _distributeOp =
-            callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
+        let _distributeOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
 
         let _providedOps =
             callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided") |> Seq.map (fun x -> x.Value)
@@ -653,8 +633,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroA) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -693,8 +672,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroC) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -760,9 +738,7 @@ type ClassicalControlTests() =
             let ctlContent = [ (0, "SubOps", "SubOpCA3"); (1, "SubOps", "SubOpCA1") ]
             let adjContent = [ (0, "SubOps", "SubOpCA2"); (1, "SubOps", "SubOpCA3") ]
             let ctlAdjContent = [ (2, "SubOps", "SubOpCA3") ]
-
-            let orderedGens =
-                IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
+            let orderedGens = IdentifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
@@ -788,8 +764,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let bodyCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "DistributeBody") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeBody") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -813,8 +788,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "DistributeControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -844,8 +818,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroC) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -875,8 +848,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let allCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "DistributeAll") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAll") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -944,8 +916,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "InvertControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroA) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -975,8 +946,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -1072,8 +1042,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original =
-                callables |> Seq.find (fun x -> x.Key.Name = "SelfControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero) ]
             |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -1104,10 +1073,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Functor Support")>]
     member this.``Within Block Support``() =
         let result = CompileClassicalControlTest 23
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
 
         Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
@@ -1141,10 +1107,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Generics Support")>]
     member this.``Arguments Partially Resolve Type Parameters``() =
         let result = CompileClassicalControlTest 24
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = GetLinesFromSpecialization original
 
         let (success, _, args) =
@@ -1186,10 +1149,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply Conditionally``() =
         let result = CompileClassicalControlTest 29
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True
@@ -1216,10 +1176,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Apply Conditionally With NoOp``() =
         let result = CompileClassicalControlTest 30
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True
@@ -1246,10 +1203,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with ApplyConditionally``() =
         let result = CompileClassicalControlTest 31
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True
@@ -1302,9 +1256,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with ApplyIfOne``() =
         let result = CompileClassicalControlTest 34
-
-        let originalOp =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfOne) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -1314,9 +1266,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Inequality Condition")>]
     member this.``Inequality with ApplyIfZero``() =
         let result = CompileClassicalControlTest 35
-
-        let originalOp =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfZero) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -1326,9 +1276,7 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Literal on the Left``() =
         let result = CompileClassicalControlTest 36
-
-        let originalOp =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfZero) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
@@ -1349,12 +1297,9 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Outer NOT condition``() =
         let result = CompileClassicalControlTest 38
-
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -1395,12 +1340,9 @@ type ClassicalControlTests() =
     [<Trait("Category", "Condition API Conversion")>]
     member this.``Nested NOT condition``() =
         let result = CompileClassicalControlTest 39
-
         let ifOp = { Namespace = "SubOps"; Name = "SubOp1" }
         let elseOp = { Namespace = "SubOps"; Name = "SubOp2" }
-
-        let original =
-            GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"

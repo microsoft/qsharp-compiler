@@ -78,8 +78,7 @@ type QsType with
                 let supportedFunctors =
                     (characteristics |> QsType.TryResolve).SupportedFunctors.ValueOr ImmutableHashSet.Empty
 
-                let adj, ctl =
-                    supportedFunctors |> Seq.contains Adjoint, supportedFunctors |> Seq.contains Controlled
+                let adj, ctl = supportedFunctors |> Seq.contains Adjoint, supportedFunctors |> Seq.contains Controlled
 
                 let functors =
                     match adj, ctl with

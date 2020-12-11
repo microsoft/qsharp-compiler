@@ -77,9 +77,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
             match myList with
             | [] -> newScopeStatement s.Body |> Seq.singleton
             | [ lhs, rhs ] ->
-                let newBody =
-                    QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
-
+                let newBody = QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
             | _ ->
                 let lhs = List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
@@ -87,9 +85,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                 let rhs =
                     List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
 
-                let newBody =
-                    QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
-
+                let newBody = QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
         | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | _ when not c.HasQuantum

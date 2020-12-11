@@ -60,33 +60,25 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnIdentifier: Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
 
     default this.OnIdentifier(sym, tArgs) =
-        let tArgs =
-            tArgs |> QsNullable<_>.Map(fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
-
+        let tArgs = tArgs |> QsNullable<_>.Map(fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
         Identifier |> Node.BuildOr InvalidExpr (sym, tArgs)
 
     abstract OnOperationCall: TypedExpression * TypedExpression -> ExpressionKind
 
     default this.OnOperationCall(method, arg) =
-        let method, arg =
-            this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
-
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnFunctionCall: TypedExpression * TypedExpression -> ExpressionKind
 
     default this.OnFunctionCall(method, arg) =
-        let method, arg =
-            this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
-
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnPartialApplication: TypedExpression * TypedExpression -> ExpressionKind
 
     default this.OnPartialApplication(method, arg) =
-        let method, arg =
-            this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
-
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
     abstract OnCallLikeExpression: TypedExpression * TypedExpression -> ExpressionKind

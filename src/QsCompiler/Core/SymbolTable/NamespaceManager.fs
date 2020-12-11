@@ -54,8 +54,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let getKeys (lookup: ILookup<_, _>) =
             lookup |> Seq.map (fun group -> group.Key)
 
-        let namespacesInRefs =
-            (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
+        let namespacesInRefs = (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
 
         for nsName in namespacesInRefs do
             namespaces.Add
@@ -349,9 +348,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let validateArgAndReturnTypes isArg = validateArgAndReturnTypes (isArg, false)
 
-            let inErrs =
-                signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
-
+            let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
             let outErrs = signature.ReturnType |> validateArgAndReturnTypes false
             let signatureErrs = inErrs.Concat outErrs
             errs.AddRange signatureErrs
@@ -569,8 +566,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                 // the attribute defines an alternative name for testing purposes
                 elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then
-                    let arg =
-                        att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument(fun ex -> ex.Expression)
+                    let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument(fun ex -> ex.Expression)
 
                     match box decl.Defined with
                     | :? QsSpecializationGenerator ->
@@ -1646,9 +1642,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             let callablesHash =
                 callables |> Seq.map (fun (ns, name, c) -> (ns, name, callableHash c)) |> Seq.toList |> hash
 
-            let typesHash =
-                types |> Seq.map (fun (ns, name, t) -> ns, name, typeHash t) |> Seq.toList |> hash
-
+            let typesHash = types |> Seq.map (fun (ns, name, t) -> ns, name, typeHash t) |> Seq.toList |> hash
             let importsHash = imports |> Seq.toList |> hash
             hash (callablesHash, typesHash), importsHash
         finally

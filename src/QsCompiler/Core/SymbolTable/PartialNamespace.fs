@@ -165,8 +165,7 @@ type private PartialNamespace private (name: string,
                 | QsTupleItem (n, t) -> ImmutableArray.Create(replaceAnonymous (n, t)) |> QsTuple
                 | QsTuple _ -> buildItem typeTuple
 
-            let returnType =
-                { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange); Range = Null }
+            let returnType = { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange); Range = Null }
 
             {
                 TypeParameters = ImmutableArray.Empty
@@ -229,8 +228,7 @@ type private PartialNamespace private (name: string,
                                           =
         // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
         // but all specialized types need to be resolved according to *this* file
-        let spec =
-            kind, (generator, attributes, { Access = DefaultAccess }, documentation) |> unresolved location
+        let spec = kind, (generator, attributes, { Access = DefaultAccess }, documentation) |> unresolved location
 
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
@@ -269,8 +267,7 @@ type private PartialNamespace private (name: string,
     member internal this.SetCallableResolution(cName, resolvedSignature, resAttributes) =
         match CallableDeclarations.TryGetValue cName with
         | true, (kind, signature) ->
-            let signature' =
-                { signature with Resolved = resolvedSignature; ResolvedAttributes = resAttributes }
+            let signature' = { signature with Resolved = resolvedSignature; ResolvedAttributes = resAttributes }
             CallableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 

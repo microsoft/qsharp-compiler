@@ -457,10 +457,7 @@ let public PrintSignature (header: CallableDeclarationHeader) =
              QsComments.Empty)
 
     let signature = SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(TypeName))
-
-    let annotation =
-        CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
-
+    let annotation = CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation
 
 [<Extension>]
@@ -518,10 +515,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                     let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers
                     let name = decl.QualifiedName.Name |> withNewLine
                     let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-
-                    let input =
-                        sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
-
+                    let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
                     let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
 
                     let functorSupport characteristics =

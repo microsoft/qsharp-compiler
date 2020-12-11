@@ -66,5 +66,4 @@ let rec nonArrayType =
              keywordType <|>@ expectedQualifiedSymbol UserDefinedType ]
 
 /// Parses a type.
-and qsType =
-    parse { return! nonArrayType .>> many (brackets (lArray, rArray) (emptySpace >>% [])) }
+and qsType = parse { return! nonArrayType .>> many (brackets (lArray, rArray) (emptySpace >>% [])) }

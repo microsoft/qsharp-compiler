@@ -112,9 +112,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         |> Seq.iter (fun (l, r) ->
             match l, r.Resolution with
             | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
-                let arrayIden =
-                    Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
-
+                let arrayIden = Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
                 let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
 
                 let expr =
