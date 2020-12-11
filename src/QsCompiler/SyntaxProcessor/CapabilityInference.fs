@@ -300,15 +300,9 @@ let private callableSourceCapability callable =
     |> Seq.map (isOperation callable |> specSourceCapability)
     |> joinCapabilities
 
-/// Returns the required capability of the callable based on its capability attribute if one is present. If no attribute
-/// is present and the callable is not defined in a reference, returns the capability based on its source code and
-/// callable dependencies. Otherwise, returns the base capability.
-///
-/// Partially applying the first argument creates a memoized function that caches computed runtime capabilities by
-/// callable name. The memoized function is not thread-safe.
-let private callableDependentCapability (callables: IImmutableDictionary<_, _>, graph: CallGraph) =
-    // A mapping from callable name to runtime capability based on callable source code patterns and cycles the callable
-    // is a member of, but not other dependencies. This is the initial set of capabilities that will be used later.
+/// A mapping from callable name to runtime capability based on callable source code patterns and cycles the callable
+/// is a member of, but not other dependencies.
+let private sourceCycleCapabilities (callables: ImmutableDictionary<_, _>) (graph: CallGraph) =
     let initialCapabilities =
         callables
         |> Seq.filter (fun item -> isDeclaredInSourceFile item.Value)
@@ -317,8 +311,7 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
     let sourceCycles =
         graph.GetCallCycles()
         |> Seq.filter
-            (Seq.exists
-             <| fun node -> callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile)
+            (Seq.exists (fun node -> callables |> tryGetValue node.CallableName |> Option.exists isDeclaredInSourceFile))
 
     for cycle in sourceCycles do
         let cycleCapability =
@@ -331,7 +324,16 @@ let private callableDependentCapability (callables: IImmutableDictionary<_, _>, 
             initialCapabilities.[node.CallableName] <- joinCapabilities [ initialCapabilities.[node.CallableName]
                                                                           cycleCapability ]
 
-    // The memoization cache.
+    initialCapabilities
+
+/// Returns the required capability of the callable based on its capability attribute if one is present. If no attribute
+/// is present and the callable is not defined in a reference, returns the capability based on its source code and
+/// callable dependencies. Otherwise, returns the base capability.
+///
+/// Partially applying the first argument creates a memoized function that caches computed runtime capabilities by
+/// callable name. The memoized function is not thread-safe.
+let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (graph: CallGraph) =
+    let initialCapabilities = sourceCycleCapabilities callables graph
     let cache = Dictionary<_, _>()
 
     // The capability of a callable's dependencies.
@@ -390,7 +392,7 @@ let InferCapabilities compilation =
     let callables = GlobalCallableResolutions compilation.Namespaces
     let graph = CallGraph compilation
     let transformation = SyntaxTreeTransformation()
-    let callableCapability = callableDependentCapability (callables, graph)
+    let callableCapability = callableDependentCapability callables graph
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation) with
