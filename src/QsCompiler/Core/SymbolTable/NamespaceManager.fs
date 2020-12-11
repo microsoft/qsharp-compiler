@@ -401,8 +401,6 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                         (decl.Position,
                          range.ValueOr decl.Range
                          |> QsCompilerDiagnostic.Warning(WarningCode.ReservedEntryPointArgumentName, []))
-                else
-                    ()
 
             simplifiedArgNames |> List.iteri verifyArgument
 

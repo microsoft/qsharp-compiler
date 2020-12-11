@@ -172,7 +172,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
                      (getLocation header).Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))
                     |> diagnostics.Add
 
-                List.empty
+                []
 
     let getTypes location (vtype: ResolvedType) (rootIndex: int option) =
         match vtype.Resolution with
