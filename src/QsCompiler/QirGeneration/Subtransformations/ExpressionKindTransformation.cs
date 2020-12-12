@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (this.Items[i] is InnerTuple)
                     {
                         // if the time is an inner tuple, then we need to cast it to a concrete tuple before storing
-                        item = this.SharedState.CurrentBuilder.BitCast(item, this.Items[i].ItemType.CreatePointerType());
+                        item = builder.BitCast(item, this.Items[i].ItemType.CreatePointerType());
                     }
                     builder.Store(item, itemDestPtr);
                 }
