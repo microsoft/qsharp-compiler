@@ -840,7 +840,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     let errs = specErrs.Concat autoResErrs |> errs.Concat |> Array.concat
 
                     if kind = QsCallableKind.TypeConstructor then
-                        [||]
+                        // don't return diagnostics for type constructors - everything will be captured upon type resolution
+                        Array.empty
                     elif parent.ToString() |> (not << nsNames.Contains) then
                         errs
                     else
