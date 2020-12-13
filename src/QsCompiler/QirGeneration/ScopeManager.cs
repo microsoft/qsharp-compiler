@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using Microsoft.Quantum.QIR;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -46,25 +46,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the name of the unreference runtime function for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
-        /// decrement the reference count</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? GetReleaseFunctionForType(ITypeRef t, bool isQubit)
+        private string? GetReleaseFunctionForType(ITypeRef t)
         {
             if (t == this.sharedState.Types.Array)
             {
-                if (isQubit)
-                {
-                    return RuntimeLibrary.QubitReleaseArray;
-                }
-                else
-                {
-                    return RuntimeLibrary.ArrayUnreference;
-                }
-            }
-            else if (t == this.sharedState.Types.Qubit)
-            {
-                return RuntimeLibrary.QubitRelease;
+                return RuntimeLibrary.ArrayUnreference;
             }
             else if (t == this.sharedState.Types.Result)
             {
@@ -138,46 +125,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Adds a value to the current topmost scope.
         /// </summary>
-        /// <param name="valueToRelease">The Value to be released</param>
-        /// <param name="valueType">
-        /// Optional parameter with the Q# type of the value;
-        /// If no parameter is given, then the release function will be determined
-        /// based on the NativeType of the value to release.
-        /// </param>
-        public void AddValue(Value valueToRelease)
+        /// <param name="value">The Value to be released</param>
+        public void AddValue(Value value)
         {
-            var releaser = this.GetReleaseFunctionForType(valueToRelease.NativeType, false);
+            var releaser = this.GetReleaseFunctionForType(value.NativeType);
             if (releaser != null)
             {
-                this.releaseStack.Peek().Add((valueToRelease, releaser));
+                this.releaseStack.Peek().Add((value, releaser));
             }
         }
 
         /// <summary>
         /// Adds a qubit value to the current topmost scope.
         /// </summary>
-        /// <param name="valueToRelease">The Value to be released</param>
-        /// <param name="valueType">The Q# type of the value, which should be either a Qubit
+        /// <param name="value">The Value to be released</param>
         /// or an array of Qubits.</param>
-        public void AddQubitValue(Value valueToRelease)
+        public void AddQubitAllocation(Value value)
         {
-            var releaser = this.GetReleaseFunctionForType(valueToRelease.NativeType, true);
-            if (releaser != null)
-            {
-                this.releaseStack.Peek().Add((valueToRelease, releaser));
-            }
+            var releaser =
+                value.NativeType == this.sharedState.Types.Array ? RuntimeLibrary.QubitReleaseArray :
+                value.NativeType == this.sharedState.Types.Qubit ? RuntimeLibrary.QubitRelease :
+                throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
+            this.releaseStack.Peek().Add((value, releaser)); // this takes care purely of the deallocation
+            this.AddValue(value); // this takes care of properly unreferencing the created array if necessary
         }
 
         /// <summary>
         /// Removes a pending Value from those to be unreferenced.
         /// This is necessary, for example, for values that are returned to the caller.
         /// </summary>
-        /// <param name="valueToRemove">The Value to remove</param>
-        public void RemovePendingValue(Value valueToRemove)
+        /// <param name="value">The Value to remove</param>
+        public void RemovePendingValue(Value value)
         {
             foreach (var level in this.releaseStack)
             {
-                level.RemoveAll(item => item.Item1 == valueToRemove);
+                level.RemoveAll(item => item.Item1 == value);
             }
         }
 

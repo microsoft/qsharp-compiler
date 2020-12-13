@@ -550,30 +550,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             argValueList.Add(namedValues[mapping.BaseName]);
                         }
                     }
+
+                    Value result = builder.Call(func, argValueList);
+                    foreach (var arrayToRelease in arraysToReleaseList)
+                    {
+                        builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
+                    }
+
                     if (func.ReturnType.IsVoid)
                     {
-                        // A void entry point would be odd, but it isn't illegal
-                        builder.Call(func, argValueList);
-                        foreach (var arrayToRelease in arraysToReleaseList)
-                        {
-                            builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
-                        }
                         builder.Return();
                     }
                     else
                     {
-                        Value result = builder.Call(func, argValueList);
-                        foreach (var arrayToRelease in arraysToReleaseList)
-                        {
-                            builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
-                        }
-
                         if (mappedResultType != func.ReturnType)
                         {
                             result = builder.BitCast(result, mappedResultType);
                         }
                         builder.Return(result);
                     }
+
                     // Mark the function as an entry point
                     epFunc.AddAttributeAtIndex(
                         FunctionAttributeIndex.Function,
@@ -1621,6 +1617,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var func = this.GetOrCreateRuntimeFunction(s);
                 this.CurrentBuilder.Call(func, valToAddref);
             }
+        }
+
+        /// <summary>
+        /// Processes an expression and returns its Value.
+        /// </summary>
+        /// <param name="ex">The expression to process</param>
+        /// <returns>The LLVM Value that represents the result of the expression</returns>
+        internal Value EvaluateSubexpression(TypedExpression ex)
+        {
+            this.Transformation.Expressions.OnTypedExpression(ex);
+            return this.ValueStack.Pop();
         }
 
         #endregion

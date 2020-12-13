@@ -22,8 +22,10 @@ then0__1:                                         ; preds = %entry
   call void @__quantum__rt__array_unreference(%Array* %y)
   call void @__quantum__rt__qubit_release(%Qubit* %a)
   call void @__quantum__rt__qubit_release_array(%Array* %b)
+  call void @__quantum__rt__array_unreference(%Array* %b)
   call void @__quantum__rt__qubit_release(%Qubit* %c)
   call void @__quantum__rt__qubit_release_array(%Array* %d)
+  call void @__quantum__rt__array_unreference(%Array* %d)
   ret i64 5
 
 continue__1:                                      ; preds = %entry
@@ -31,7 +33,9 @@ continue__1:                                      ; preds = %entry
   call void @__quantum__rt__array_unreference(%Array* %y)
   call void @__quantum__rt__qubit_release(%Qubit* %a)
   call void @__quantum__rt__qubit_release_array(%Array* %b)
+  call void @__quantum__rt__array_unreference(%Array* %b)
   call void @__quantum__rt__qubit_release(%Qubit* %c)
   call void @__quantum__rt__qubit_release_array(%Array* %d)
+  call void @__quantum__rt__array_unreference(%Array* %d)
   ret i64 4
 }
