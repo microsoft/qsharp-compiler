@@ -8,6 +8,7 @@ entry:
   %4 = getelementptr { %TupleHeader, %Callable*, i2 }, { %TupleHeader, %Callable*, i2 }* %3, i64 0, i32 1
   %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Testing__QIR__TestType2, %TupleHeader* null)
   store %Callable* %5, %Callable** %4
+  call void @__quantum__rt__callable_reference(%Callable* %5)
   %6 = getelementptr { %TupleHeader, %Callable*, i2 }, { %TupleHeader, %Callable*, i2 }* %3, i64 0, i32 2
   store i2 %1, i2* %6
   %7 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__1, %TupleHeader* %2)
@@ -18,6 +19,7 @@ entry:
   %11 = getelementptr { %TupleHeader, %Callable*, i2, double }, { %TupleHeader, %Callable*, i2, double }* %10, i64 0, i32 1
   %12 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Testing__QIR__TestType3, %TupleHeader* null)
   store %Callable* %12, %Callable** %11
+  call void @__quantum__rt__callable_reference(%Callable* %12)
   %13 = getelementptr { %TupleHeader, %Callable*, i2, double }, { %TupleHeader, %Callable*, i2, double }* %10, i64 0, i32 2
   store i2 %8, i2* %13
   %14 = getelementptr { %TupleHeader, %Callable*, i2, double }, { %TupleHeader, %Callable*, i2, double }* %10, i64 0, i32 3
@@ -31,14 +33,34 @@ entry:
   %20 = load i64, i64* %19
   %21 = getelementptr { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }, { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17, i64 0, i32 1
   store i64 %20, i64* %21
-  %22 = getelementptr { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }, { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17, i64 0, i32 2
-  store { %TupleHeader, i2, i64 }* %udt2, { %TupleHeader, i2, i64 }** %22
+  %22 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
+  call void @__quantum__rt__tuple_reference(%TupleHeader* %22)
+  %23 = getelementptr { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }, { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17, i64 0, i32 2
+  store { %TupleHeader, i2, i64 }* %udt2, { %TupleHeader, i2, i64 }** %23
+  %24 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
+  call void @__quantum__rt__tuple_reference(%TupleHeader* %24)
+  %25 = bitcast { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17 to %TupleHeader*
+  call void @__quantum__rt__tuple_reference(%TupleHeader* %25)
   call void @__quantum__rt__callable_unreference(%Callable* %0)
+  call void @__quantum__rt__callable_unreference(%Callable* %5)
   call void @__quantum__rt__callable_unreference(%Callable* %7)
-  %23 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %23)
+  %26 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %26)
+  call void @__quantum__rt__callable_unreference(%Callable* %12)
   call void @__quantum__rt__callable_unreference(%Callable* %15)
-  %24 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %udt3 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %24)
+  %27 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %udt3 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %27)
+  %28 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %udt3, i64 0, i32 1
+  %29 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %28
+  %30 = bitcast { %TupleHeader, i2, i64 }* %29 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %30)
+  %31 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %31)
+  %32 = bitcast { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %32)
+  %33 = getelementptr { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }, { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17, i64 0, i32 2
+  %34 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %33
+  %35 = bitcast { %TupleHeader, i2, i64 }* %34 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %35)
   ret { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17
 }

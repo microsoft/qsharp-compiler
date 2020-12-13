@@ -57,7 +57,11 @@ exit__1:                                          ; preds = %header__1
   %25 = load i64, i64* %y
   %26 = getelementptr { %TupleHeader, i64, i64 }, { %TupleHeader, i64, i64 }* %22, i64 0, i32 2
   store i64 %25, i64* %26
-  %27 = bitcast { %TupleHeader, i64, i64 }* %1 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %27)
+  %27 = bitcast { %TupleHeader, i64, i64 }* %22 to %TupleHeader*
+  call void @__quantum__rt__tuple_reference(%TupleHeader* %27)
+  %28 = bitcast { %TupleHeader, i64, i64 }* %1 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %28)
+  %29 = bitcast { %TupleHeader, i64, i64 }* %22 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %29)
   ret { %TupleHeader, i64, i64 }* %22
 }

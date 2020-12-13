@@ -10,6 +10,7 @@ entry:
   store %Array* %1, %Array** %x
   call void @__quantum__rt__array_reference(%Array* %1)
   %4 = load %Array*, %Array** %x
+  call void @__quantum__rt__array_reference(%Array* %4)
   call void @__quantum__rt__array_unreference(%Array* %1)
   ret %Array* %4
 }

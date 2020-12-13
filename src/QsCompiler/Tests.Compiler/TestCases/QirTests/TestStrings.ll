@@ -73,10 +73,13 @@ entry:
   %37 = call %String* @__quantum__rt__string_concatenate(%String* %36, %String* %x)
   call void @__quantum__rt__string_unreference(%String* %36)
   call void @__quantum__rt__string_unreference(%String* %x)
+  call void @__quantum__rt__string_reference(%String* %37)
   call void @__quantum__rt__string_unreference(%String* %x)
   call void @__quantum__rt__string_unreference(%String* %y)
   call void @__quantum__rt__string_unreference(%String* %y)
+  call void @__quantum__rt__result_unreference(%Result* %21)
   call void @__quantum__rt__bigint_unreference(%BigInt* %26)
   call void @__quantum__rt__string_unreference(%String* %i)
+  call void @__quantum__rt__string_unreference(%String* %37)
   ret %String* %37
 }

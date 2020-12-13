@@ -257,32 +257,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Returns true if the expression is an item that should be copied for COW safety, false otherwise.
-        /// <br/><br/>
-        /// Specifically, an item requires copying if it is an array or a tuple, and if it is an identifier
-        /// or an element or a slice of an identifier.
-        /// </summary>
-        /// <param name="ex">The expression to test.</param>
-        /// <returns>true if the expression should be copied before use, false otherwise.</returns>
-        private bool ItemRequiresCopying(TypedExpression ex)
-        {
-            if (ex.ResolvedType.Resolution.IsArrayType || ex.ResolvedType.Resolution.IsUserDefinedType
-                || ex.ResolvedType.Resolution.IsTupleType)
-            {
-                return ex.Expression switch
-                {
-                    ResolvedExpression.Identifier _ => true,
-                    ResolvedExpression.ArrayItem arr => this.ItemRequiresCopying(arr.Item1),
-                    _ => false
-                };
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Returns a writable Value for an expression.
         /// If necessary, this will make a copy of the item based on the rules in
         /// <see cref="ItemRequiresCopying(TypedExpression)"/>.
@@ -291,11 +265,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>An LLVM value that is safe to change.</returns>
         private Value GetWritableCopy(TypedExpression ex, InstructionBuilder? b = null)
         {
+            static bool ItemRequiresCopying(TypedExpression ex)
+            {
+                if (ex.ResolvedType.Resolution.IsArrayType
+                    || ex.ResolvedType.Resolution.IsUserDefinedType
+                    || ex.ResolvedType.Resolution.IsTupleType)
+                {
+                    return ex.Expression switch
+                    {
+                        ResolvedExpression.Identifier _ => true,
+                        ResolvedExpression.ArrayItem arr => ItemRequiresCopying(arr.Item1),
+                        _ => false
+                    };
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
             // Evaluating the input always happens on the current builder
             var item = this.SharedState.EvaluateSubexpression(ex);
 
             InstructionBuilder builder = b ?? this.SharedState.CurrentBuilder;
-            if (this.ItemRequiresCopying(ex))
+            if (ItemRequiresCopying(ex))
             {
                 Value copy = ex.ResolvedType.Resolution switch
                 {
@@ -426,6 +419,57 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.SharedState.RegisterName(name, value);
             }
+        }
+
+        private bool FindNamedItem(string name, QsTuple<QsTypeItem> items, List<(int, ITypeRef)> location)
+        {
+            ITypeRef GetTypeItemType(QsTuple<QsTypeItem> item)
+            {
+                switch (item)
+                {
+                    case QsTuple<QsTypeItem>.QsTupleItem leaf:
+                        var leafType = leaf.Item switch
+                        {
+                            QsTypeItem.Anonymous anon => anon.Item,
+                            QsTypeItem.Named named => named.Item.Type,
+                            _ => ResolvedType.New(QsResolvedTypeKind.InvalidType)
+                        };
+                        return this.SharedState.LlvmTypeFromQsharpType(leafType);
+                    case QsTuple<QsTypeItem>.QsTuple list:
+                        var types = list.Item.Select(i => i switch
+                        {
+                            QsTuple<QsTypeItem>.QsTuple l => GetTypeItemType(l),
+                            QsTuple<QsTypeItem>.QsTupleItem l => GetTypeItemType(l),
+                            _ => this.SharedState.Context.TokenType
+                        });
+                        return this.SharedState.Types.CreateConcreteTupleType(types).CreatePointerType();
+                    default:
+                        // This should never happen
+                        return this.SharedState.Context.TokenType;
+                }
+            }
+
+            switch (items)
+            {
+                case QsTuple<QsTypeItem>.QsTupleItem leaf:
+                    if ((leaf.Item is QsTypeItem.Named n) && (n.Item.VariableName == name))
+                    {
+                        return true;
+                    }
+                    break;
+                case QsTuple<QsTypeItem>.QsTuple list:
+                    for (int i = 0; i < list.Item.Length; i++)
+                    {
+                        if (this.FindNamedItem(name, list.Item[i], location))
+                        {
+                            // +1 to skip the tuple header
+                            location.Add((i + 1, GetTypeItemType(items)));
+                            return true;
+                        }
+                    }
+                    break;
+            }
+            return false;
         }
 
         private void BuildPartialApplication(TypedExpression method, TypedExpression arg)
@@ -654,9 +698,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.Context.CreateConstant(0L),
                 this.SharedState.Context.CreateConstant(1)
             });
+
             var innerCallable = this.SharedState.EvaluateSubexpression(method);
             this.SharedState.CurrentBuilder.Store(innerCallable, callablePointer);
-            this.SharedState.ScopeMgr.RemovePendingValue(innerCallable);
+            this.SharedState.ScopeMgr.AddReference(innerCallable);
+
             for (int n = 0; n < caps.Count; n++)
             {
                 var item = this.SharedState.CurrentBuilder.GetElementPtr(capType, capture, new Value[]
@@ -665,7 +711,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SharedState.Context.CreateConstant(n + 2)
                 });
                 this.SharedState.CurrentBuilder.Store(caps[n].Item1, item);
-                this.SharedState.AddReference(caps[n].Item1);
+                this.SharedState.ScopeMgr.AddReference(caps[n].Item1);
             }
 
             // Create the lifted specialization implementation(s)
@@ -719,9 +765,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
             var callableValue = this.SharedState.CurrentBuilder.Call(func, table, cap);
 
-            this.SharedState.ValueStack.Push(callableValue);
-            // We cheat on the type because all that the scope manager cares about is that it's a callable
-            this.SharedState.ScopeMgr.AddValue(callableValue);
+            this.PushValueInScope(callableValue);
         }
 
         // public overrides
@@ -812,7 +856,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // And now fetch the element
                 var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementPointerTypeRef);
                 var element = this.SharedState.CurrentBuilder.Load(elementTypeRef, elementPointer);
-                this.SharedState.ValueStack.Push(element);
+                this.PushValueInScope(element);
+                this.SharedState.ScopeMgr.AddReference(element);
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
@@ -1115,14 +1160,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var result = this.SharedState.CurrentBuilder.Call(func, argList);
-                this.SharedState.ValueStack.Push(result);
-                var resultType = methodType switch
-                {
-                    QsResolvedTypeKind.Function fct => fct.Item2,
-                    QsResolvedTypeKind.Operation op => op.Item1.Item2,
-                    _ => throw new InvalidOperationException("Call to a non-callable value")
-                };
-                this.SharedState.ScopeMgr.AddValue(result);
+                this.PushValueInScope(result);
             }
 
             void CallCallableValue()
@@ -1293,16 +1331,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
+            var copy = this.GetWritableCopy(lhs);
+
             if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType itemType)
             {
-                var array = this.GetWritableCopy(lhs);
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
                     var index = this.SharedState.EvaluateSubexpression(accEx);
                     var value = this.SharedState.EvaluateSubexpression(rhs);
                     var elementType = this.SharedState.LlvmTypeFromQsharpType(itemType.Item);
                     var rawElementPtr = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, index);
+                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), copy, index);
                     var elementPtr = this.SharedState.CurrentBuilder.BitCast(rawElementPtr, elementType.CreatePointerType());
                     this.SharedState.CurrentBuilder.Store(value, elementPtr);
                 }
@@ -1311,7 +1350,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // TODO: handle range updates
                     throw new NotImplementedException("Array slice updates");
                 }
-                this.SharedState.ValueStack.Push(array);
+                this.SharedState.ValueStack.Push(copy);
             }
             else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
             {
@@ -1323,7 +1362,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // The location list is backwards, by design, so we have to reverse it
                     location.Reverse();
-                    var copy = this.GetWritableCopy(lhs);
                     var current = copy;
                     for (int i = 0; i < location.Count; i++)
                     {
@@ -1348,13 +1386,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Tuple));
+                    throw new NotImplementedException("unknown item in copy-and-update expression");
                 }
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
+                throw new NotImplementedException("unknown expression type for copy-and-update expression");
             }
+
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -1537,9 +1576,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
                     var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                     var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
-
-                    this.SharedState.ValueStack.Push(callableValue);
-                    this.SharedState.ScopeMgr.AddValue(callableValue);
+                    this.PushValueInScope(callableValue);
                 }
                 else
                 {
@@ -1793,15 +1830,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
         {
-            var t = ex.ResolvedType;
-            if (t.Resolution is QsResolvedTypeKind.UserDefinedType tt
+            if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt
                 && this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
                 && acc is Identifier.LocalVariable itemName)
             {
                 var location = new List<(int, ITypeRef)>();
                 if (this.FindNamedItem(itemName.Item, udt.TypeItems, location))
                 {
-                    // The location list is backwards, by design, so we have to reverse it
+                    // The location list refers to the location of the named item within the item tuple
+                    // and contains inner items first, so we have to reverse it
                     location.Reverse();
                     var value = this.SharedState.EvaluateSubexpression(ex);
                     for (int i = 0; i < location.Count; i++)
@@ -1811,75 +1848,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             this.SharedState.Context.CreateConstant(0L),
                             this.SharedState.Context.CreateConstant(location[i].Item1)
                         };
-                        var ptr = this.SharedState.CurrentBuilder.GetElementPtr(((IPointerType)location[i].Item2).ElementType, value, indices);
-#pragma warning disable CS0618 // Computing the correct type for ptr here is awkward, so we don't bother
-                        value = this.SharedState.CurrentBuilder.Load(ptr);
-#pragma warning restore CS0618 // Type or member is obsolete
+                        var innerTupleType = ((IPointerType)location[i].Item2).ElementType;
+                        var elementType = ((IStructType)innerTupleType).Members[location[i].Item1];
+                        var ptr = this.SharedState.CurrentBuilder.GetElementPtr(innerTupleType, value, indices);
+                        value = this.SharedState.CurrentBuilder.Load(elementType, ptr);
                     }
-                    this.SharedState.ValueStack.Push(value);
+                    this.SharedState.ScopeMgr.AddReference(value);
+                    this.PushValueInScope(value);
                 }
                 else
                 {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
+                    throw new InvalidOperationException("no item with that name exists");
                 }
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
+                throw new ArgumentException("named item access requires a value of user defined type");
             }
 
             return ResolvedExpression.InvalidExpr;
-        }
-
-        private bool FindNamedItem(string name, QsTuple<QsTypeItem> items, List<(int, ITypeRef)> location)
-        {
-            ITypeRef GetTypeItemType(QsTuple<QsTypeItem> item)
-            {
-                switch (item)
-                {
-                    case QsTuple<QsTypeItem>.QsTupleItem leaf:
-                        var leafType = leaf.Item switch
-                        {
-                            QsTypeItem.Anonymous anon => anon.Item,
-                            QsTypeItem.Named named => named.Item.Type,
-                            _ => ResolvedType.New(QsResolvedTypeKind.InvalidType)
-                        };
-                        return this.SharedState.LlvmTypeFromQsharpType(leafType);
-                    case QsTuple<QsTypeItem>.QsTuple list:
-                        var types = list.Item.Select(i => i switch
-                        {
-                            QsTuple<QsTypeItem>.QsTuple l => GetTypeItemType(l),
-                            QsTuple<QsTypeItem>.QsTupleItem l => GetTypeItemType(l),
-                            _ => this.SharedState.Context.TokenType
-                        });
-                        return this.SharedState.Types.CreateConcreteTupleType(types).CreatePointerType();
-                    default:
-                        // This should never happen
-                        return this.SharedState.Context.TokenType;
-                }
-            }
-
-            switch (items)
-            {
-                case QsTuple<QsTypeItem>.QsTupleItem leaf:
-                    if ((leaf.Item is QsTypeItem.Named n) && (n.Item.VariableName == name))
-                    {
-                        return true;
-                    }
-                    break;
-                case QsTuple<QsTypeItem>.QsTuple list:
-                    for (int i = 0; i < list.Item.Length; i++)
-                    {
-                        if (this.FindNamedItem(name, list.Item[i], location))
-                        {
-                            // +1 to skip the tuple header
-                            location.Add((i + 1, GetTypeItemType(items)));
-                            return true;
-                        }
-                    }
-                    break;
-            }
-            return false;
         }
 
         public override ResolvedExpression OnNegative(TypedExpression ex)
@@ -1982,8 +1969,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
             var value = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
-            this.SharedState.ValueStack.Push(value);
-
+            this.PushValueInScope(value);
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2164,8 +2150,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (exs.IsEmpty)
             {
                 var stringValue = CreateConstantString(str);
-                this.SharedState.ValueStack.Push(stringValue);
-                this.SharedState.ScopeMgr.AddValue(stringValue);
+                this.PushValueInScope(stringValue);
             }
             else
             {
@@ -2203,8 +2188,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
                 current ??= CreateConstantString("");
-                this.SharedState.ValueStack.Push(current);
-                this.SharedState.ScopeMgr.AddValue(current);
+                this.PushValueInScope(current);
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -2239,7 +2223,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnUnitValue()
         {
             this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
-
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2272,11 +2255,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var elementValue = this.SharedState.EvaluateSubexpression(element);
                 var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementPointerTypeRef);
                 this.SharedState.CurrentBuilder.Store(elementValue, elementPointer);
+                this.SharedState.ScopeMgr.AddReference(elementValue);
                 idx++;
             }
 
             this.PushValueInScope(array);
-
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2289,7 +2272,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Allocate the tuple and record it to get released later
             var tuple = this.SharedState.CreateTupleForType(tupleType);
             var concreteTuple = this.SharedState.CurrentBuilder.BitCast(tuple, tupleType.CreatePointerType());
-            this.PushValueInScope(concreteTuple);
 
             // Fill it in, field by field
             for (int i = 0; i < vs.Length; i++)
@@ -2297,8 +2279,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var itemValue = this.SharedState.EvaluateSubexpression(vs[i]);
                 var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, concreteTuple, i + 1);
                 this.SharedState.CurrentBuilder.Store(itemValue, itemPointer);
+                this.SharedState.ScopeMgr.AddReference(itemValue);
             }
 
+            this.PushValueInScope(concreteTuple);
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2324,11 +2308,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                      new[] { this.SharedState.Context.CreateConstant(0L), this.SharedState.Context.CreateConstant(1) });
 
                 var element = this.SharedState.CurrentBuilder.Load(itemType, itemPointer);
-                this.SharedState.ValueStack.Push(element);
+                this.SharedState.ScopeMgr.AddReference(element);
+                this.PushValueInScope(element);
             }
             else
             {
-                this.SharedState.ValueStack.Push(exValue);
+                this.SharedState.ScopeMgr.AddReference(exValue); // FIXME: DOES ADD REFERENCE ALSO NEED TO BE RECURSIVE??
+                this.PushValueInScope(exValue);
             }
 
             return ResolvedExpression.InvalidExpr;

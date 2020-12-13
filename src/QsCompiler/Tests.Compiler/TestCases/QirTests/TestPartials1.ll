@@ -5,6 +5,7 @@ entry:
   %2 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i64 0, i32 1
   %3 = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @Microsoft__Quantum__Intrinsic__Rz, %TupleHeader* null)
   store %Callable* %3, %Callable** %2
+  call void @__quantum__rt__callable_reference(%Callable* %3)
   %4 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %1, i64 0, i32 2
   store double 2.500000e-01, double* %4
   %rotate = call %Callable* @__quantum__rt__callable_create([4 x void (%TupleHeader*, %TupleHeader*, %TupleHeader*)*]* @PartialApplication__1, %TupleHeader* %0)
@@ -42,12 +43,15 @@ body__1:                                          ; preds = %header__1
 
 then0__1:                                         ; preds = %body__1
   call void @__quantum__rt__qubit_release(%Qubit* %qb)
+  call void @__quantum__rt__result_unreference(%Result* %15)
+  call void @__quantum__rt__callable_unreference(%Callable* %3)
   call void @__quantum__rt__callable_unreference(%Callable* %rotate)
   call void @__quantum__rt__callable_unreference(%Callable* %unrotate)
   ret i1 false
 
 continue__1:                                      ; preds = %body__1
   call void @__quantum__rt__qubit_release(%Qubit* %qb)
+  call void @__quantum__rt__result_unreference(%Result* %15)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %continue__1
@@ -55,6 +59,7 @@ exiting__1:                                       ; preds = %continue__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
+  call void @__quantum__rt__callable_unreference(%Callable* %3)
   call void @__quantum__rt__callable_unreference(%Callable* %rotate)
   call void @__quantum__rt__callable_unreference(%Callable* %unrotate)
   ret i1 true

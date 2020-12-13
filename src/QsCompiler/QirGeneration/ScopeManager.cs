@@ -86,19 +86,54 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
         private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
         {
-            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
+            void Release(Value valueToRelease, string releaseFunc)
             {
                 IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
-                // special case for tuples
                 if (releaseFunc == RuntimeLibrary.TupleUnreference)
                 {
                     var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.Tuple);
                     builder.Call(func, untypedTuple);
+
+                    // for tuples we also unreference all inner tuples
+                    var elementType = ((IPointerType)valueToRelease.NativeType).ElementType;
+                    var itemTypes = ((IStructType)elementType).Members;
+                    for (var i = 1; i < itemTypes.Count; ++i)
+                    {
+                        var releaser = this.GetReleaseFunctionForType(itemTypes[i]);
+                        if (releaser != null)
+                        {
+                            var indices = new Value[]
+                            {
+                                this.sharedState.Context.CreateConstant(0L),
+                                this.sharedState.Context.CreateConstant(i)
+                            };
+                            var ptr = builder.GetElementPtr(elementType, valueToRelease, indices);
+                            var item = builder.Load(itemTypes[i], ptr);
+                            Release(item, releaser);
+                        }
+                    }
                 }
                 else
                 {
                     builder.Call(func, valueToRelease);
+
+                    if (releaseFunc == RuntimeLibrary.ArrayUnreference)
+                    {
+                        // TODO:
+                        // We need to generate and pass in a release function that is to be applied to each item
+                    }
+                    else if (releaseFunc == RuntimeLibrary.CallableUnreference)
+                    {
+                        // TODO
+                        // Releasing any captured callable (first item in the capture tuple for a partial application)
+                        // could in principle be done by the runtime, so not sure if we should do something here
+                    }
                 }
+            }
+
+            foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
+            {
+                Release(valueToRelease, releaseFunc);
             }
         }
 
@@ -125,7 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Adds a value to the current topmost scope.
         /// </summary>
-        /// <param name="value">The Value to be released</param>
+        /// <param name="value">The value to be released</param>
         public void AddValue(Value value)
         {
             var releaser = this.GetReleaseFunctionForType(value.NativeType);
@@ -138,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Adds a qubit value to the current topmost scope.
         /// </summary>
-        /// <param name="value">The Value to be released</param>
+        /// <param name="value">The value to be released</param>
         /// or an array of Qubits.</param>
         public void AddQubitAllocation(Value value)
         {
@@ -151,15 +186,47 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Removes a pending Value from those to be unreferenced.
-        /// This is necessary, for example, for values that are returned to the caller.
+        /// Adds a call to a runtime library function to increase the reference count
+        /// for the given value if necessary. The call is generated in the current block.
         /// </summary>
-        /// <param name="value">The Value to remove</param>
-        public void RemovePendingValue(Value value)
+        /// <param name="value">The value which is referenced</param>
+        public void AddReference(Value value)
         {
-            foreach (var level in this.releaseStack)
+            string? s = null;
+            var t = value.NativeType;
+            Value valToAddref = value;
+            if (t.IsPointer)
             {
-                level.RemoveAll(item => item.Item1 == value);
+                if (t == this.sharedState.Types.Array)
+                {
+                    s = RuntimeLibrary.ArrayReference;
+                }
+                else if (t == this.sharedState.Types.Result)
+                {
+                    s = RuntimeLibrary.ResultReference;
+                }
+                else if (t == this.sharedState.Types.String)
+                {
+                    s = RuntimeLibrary.StringReference;
+                }
+                else if (t == this.sharedState.Types.BigInt)
+                {
+                    s = RuntimeLibrary.BigintReference;
+                }
+                else if (this.sharedState.Types.IsTupleType(t))
+                {
+                    s = RuntimeLibrary.TupleReference;
+                    valToAddref = this.sharedState.CurrentBuilder.BitCast(value, this.sharedState.Types.Tuple);
+                }
+                else if (t == this.sharedState.Types.Callable)
+                {
+                    s = RuntimeLibrary.CallableReference;
+                }
+            }
+            if (s != null)
+            {
+                var func = this.sharedState.GetOrCreateRuntimeFunction(s);
+                this.sharedState.CurrentBuilder.Call(func, valToAddref);
             }
         }
 

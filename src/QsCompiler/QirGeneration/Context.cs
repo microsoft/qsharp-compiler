@@ -947,7 +947,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                     // Add a reference to the value, if necessary
-                    this.AddReference(this.CurrentFunction.Parameters[i]);
+                    this.ScopeMgr.AddReference(this.CurrentFunction.Parameters[i]);
                 }
 
                 this.CurrentBuilder.Return(udtTuple);
@@ -1577,46 +1577,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
             throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
-        }
-
-        internal void AddReference(Value v)
-        {
-            string? s = null;
-            var t = v.NativeType;
-            Value valToAddref = v;
-            if (t.IsPointer)
-            {
-                if (t == this.Types.Array)
-                {
-                    s = RuntimeLibrary.ArrayReference;
-                }
-                else if (t == this.Types.Result)
-                {
-                    s = RuntimeLibrary.ResultReference;
-                }
-                else if (t == this.Types.String)
-                {
-                    s = RuntimeLibrary.StringReference;
-                }
-                else if (t == this.Types.BigInt)
-                {
-                    s = RuntimeLibrary.BigintReference;
-                }
-                else if (this.Types.IsTupleType(t))
-                {
-                    s = RuntimeLibrary.TupleReference;
-                    valToAddref = this.CurrentBuilder.BitCast(v, this.Types.Tuple);
-                }
-                else if (t == this.Types.Callable)
-                {
-                    s = RuntimeLibrary.CallableReference;
-                }
-            }
-            if (s != null)
-            {
-                var func = this.GetOrCreateRuntimeFunction(s);
-                this.CurrentBuilder.Call(func, valToAddref);
-            }
         }
 
         /// <summary>

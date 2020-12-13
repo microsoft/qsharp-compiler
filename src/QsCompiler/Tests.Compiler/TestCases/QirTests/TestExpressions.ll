@@ -53,17 +53,35 @@ entry:
   call void @__quantum__rt__callable_unreference(%Callable* %4)
   %48 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %5 to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %48)
+  %49 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %5, i64 0, i32 1
+  %50 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %49
+  %51 = bitcast { %TupleHeader, i2, i64 }* %50 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %51)
   call void @__quantum__rt__callable_unreference(%Callable* %6)
   call void @__quantum__rt__callable_unreference(%Callable* %7)
-  %49 = bitcast { %TupleHeader, i64, { %TupleHeader, %Callable*, %String* }* }* %8 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %49)
+  %52 = bitcast { %TupleHeader, i64, { %TupleHeader, %Callable*, %String* }* }* %8 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %52)
+  %53 = getelementptr { %TupleHeader, i64, { %TupleHeader, %Callable*, %String* }* }, { %TupleHeader, i64, { %TupleHeader, %Callable*, %String* }* }* %8, i64 0, i32 2
+  %54 = load { %TupleHeader, %Callable*, %String* }*, { %TupleHeader, %Callable*, %String* }** %53
+  %55 = bitcast { %TupleHeader, %Callable*, %String* }* %54 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %55)
+  %56 = getelementptr { %TupleHeader, %Callable*, %String* }, { %TupleHeader, %Callable*, %String* }* %54, i64 0, i32 1
+  %57 = load %Callable*, %Callable** %56
+  call void @__quantum__rt__callable_unreference(%Callable* %57)
+  %58 = getelementptr { %TupleHeader, %Callable*, %String* }, { %TupleHeader, %Callable*, %String* }* %54, i64 0, i32 2
+  %59 = load %String*, %String** %58
+  call void @__quantum__rt__string_unreference(%String* %59)
   call void @__quantum__rt__string_unreference(%String* %9)
   call void @__quantum__rt__array_unreference(%Array* %11)
   call void @__quantum__rt__array_unreference(%Array* %12)
   call void @__quantum__rt__string_unreference(%String* %13)
   call void @__quantum__rt__array_unreference(%Array* %15)
-  %50 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %16 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %50)
+  %60 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %16 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %60)
+  %61 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %16, i64 0, i32 1
+  %62 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %61
+  %63 = bitcast { %TupleHeader, i2, i64 }* %62 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %63)
   call void @__quantum__rt__bigint_unreference(%BigInt* %17)
   call void @__quantum__rt__bigint_unreference(%BigInt* %32)
   call void @__quantum__rt__result_unreference(%Result* %35)

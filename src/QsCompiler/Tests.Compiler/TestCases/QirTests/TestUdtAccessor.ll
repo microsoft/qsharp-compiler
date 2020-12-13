@@ -16,6 +16,10 @@ entry:
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %8)
   %9 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %x to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %9)
+  %10 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %x, i64 0, i32 1
+  %11 = load { %TupleHeader, i2, i64 }*, { %TupleHeader, i2, i64 }** %10
+  %12 = bitcast { %TupleHeader, i2, i64 }* %11 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %12)
   ret i64 %y
 }
 

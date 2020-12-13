@@ -525,10 +525,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 Value result = this.SharedState.EvaluateSubexpression(ex);
 
-                // Make sure not to unreference the return value
-                this.SharedState.ScopeMgr.RemovePendingValue(result);
-
-                // Release any locally-allocated qubits and dereference allocated values
+                // Make sure to add a reference to the return value since it will be used by the caller
+                // before we exit the scope and all local values are unreferenced
+                this.SharedState.ScopeMgr.AddReference(result); // FIXEM: WHAT ABOUT INNER ITEMS??
                 this.SharedState.ScopeMgr.ExitScope();
 
                 if (ex.ResolvedType.Resolution.IsUnitType)
@@ -557,7 +556,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var ptr = this.SharedState.GetNamedPointer(symbol);
                 this.SharedState.CurrentBuilder.Store(newValue, ptr);
-                this.SharedState.AddReference(newValue);
+                this.SharedState.ScopeMgr.AddReference(newValue);
+                // TODO: WE SHOULD ALSO UNREFERENCE THE OLD VALUE
             }
 
             // Update a tuple of items from a tuple value.
