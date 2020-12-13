@@ -723,12 +723,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    specializations[index] = Constant.NullValueFor(specializations[0].NativeType);
+                    specializations[index] = Constant.ConstPointerToNullFor(this.SharedState.Types.FunctionSignature.CreatePointerType());
                 }
             }
 
             // Build the array
-            var t = specializations[0].NativeType;
+            var t = this.SharedState.Types.FunctionSignature.CreatePointerType();
             var array = ConstantArray.From(t, specializations);
             var table = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, liftedName);
 

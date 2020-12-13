@@ -1043,11 +1043,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        funcs[index] = Constant.NullValueFor(funcs[0].NativeType);
+                        funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
                     }
                 }
 
-                ITypeRef t = funcs[0].NativeType;
+                ITypeRef t = this.Types.FunctionSignature.CreatePointerType();
                 Constant array = ConstantArray.From(t, funcs);
                 var table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, key);
                 this.wrapperQueue.Add(key, (callable, table));
