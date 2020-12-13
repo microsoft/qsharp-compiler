@@ -299,10 +299,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnFailStatement(TypedExpression ex)
         {
-            // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitScope();
-
             var message = this.SharedState.EvaluateSubexpression(ex);
+
+            // Release any resources (qubits or memory) before we fail.
+            this.SharedState.ScopeMgr.ExitScope(message);
             this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
 
             // Even though this terminates the block execution, we'll still wind up terminating
@@ -524,11 +524,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.SharedState.CurrentInlineLevel == 0)
             {
                 Value result = this.SharedState.EvaluateSubexpression(ex);
-
-                // Make sure to add a reference to the return value since it will be used by the caller
-                // before we exit the scope and all local values are unreferenced
-                this.SharedState.ScopeMgr.AddReference(result); // FIXEM: WHAT ABOUT INNER ITEMS??
-                this.SharedState.ScopeMgr.ExitScope();
+                // The return value and its inner items won't be unreferenced when exiting the scope
+                // since it will be used by the caller
+                this.SharedState.ScopeMgr.ExitScope(returned: result);
 
                 if (ex.ResolvedType.Resolution.IsUnitType)
                 {

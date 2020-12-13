@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Quantum.QIR;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
@@ -84,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="pendingReleases">The list of pending releases that defines a scope</param>
         /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
-        private void GenerateReleasesForLevel(List<(Value, string)> pendingReleases, InstructionBuilder builder)
+        private void GenerateReleasesForLevel(IEnumerable<(Value, string)> pendingReleases, InstructionBuilder builder)
         {
             void Release(Value valueToRelease, string releaseFunc)
             {
@@ -232,40 +233,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Closes the current scope by emitting any pending releases and popping the scope off of the stack.
-        /// Note that if the current basic block is already terminated, presumably by a return,
-        /// the pending releases are not generated.
-        /// The releases are generated in the current block.
+        /// If the current basic block is already terminated, presumably by a return, the pending releases are not generated.
+        /// The releases are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
-        public void CloseScope(bool isTerminated)
+        public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
         {
             var releases = this.releaseStack.Pop();
             // If the current block is already terminated, presumably be a return, don't generate releases
             if (!isTerminated)
             {
-                this.GenerateReleasesForLevel(releases, this.sharedState.CurrentBuilder);
+                this.GenerateReleasesForLevel(releases, builder ?? this.sharedState.CurrentBuilder);
             }
         }
 
         /// <summary>
-        /// Closes the current scope by emitting any pending releases and popping the scope off of the stack.
-        /// The releases are generated unconditionally.
-        /// </summary>
-        /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
-        public void ForceCloseScope(InstructionBuilder builder)
-        {
-            var releases = this.releaseStack.Pop();
-            this.GenerateReleasesForLevel(releases, builder);
-        }
-
-        /// <summary>
         /// Exits the current scope stack by generating all of the pending releases for all open scopes.
+        /// Skips any release function for the returned value.
         /// The releases are generated in the current block.
         /// </summary>
-        public void ExitScope()
+        /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
+        public void ExitScope(Value returned)
         {
-            foreach (var level in this.releaseStack)
+            foreach (var releases in this.releaseStack)
             {
-                this.GenerateReleasesForLevel(level, this.sharedState.CurrentBuilder);
+                this.GenerateReleasesForLevel(releases.Where(value => value.Item1 != returned), this.sharedState.CurrentBuilder);
             }
         }
     }

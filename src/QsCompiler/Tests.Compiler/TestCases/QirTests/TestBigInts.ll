@@ -12,7 +12,6 @@ entry:
   %5 = call %BigInt* @__quantum__rt__bigint_create_i64(i64 65535)
   %g = call %BigInt* @__quantum__rt__bigint_bitor(%BigInt* %4, %BigInt* %5)
   %6 = call %BigInt* @__quantum__rt__bigint_bitnot(%BigInt* %g)
-  call void @__quantum__rt__bigint_reference(%BigInt* %6)
   call void @__quantum__rt__bigint_unreference(%BigInt* %1)
   call void @__quantum__rt__bigint_unreference(%BigInt* %2)
   call void @__quantum__rt__bigint_unreference(%BigInt* %3)
@@ -21,6 +20,5 @@ entry:
   call void @__quantum__rt__bigint_unreference(%BigInt* %4)
   call void @__quantum__rt__bigint_unreference(%BigInt* %5)
   call void @__quantum__rt__bigint_unreference(%BigInt* %g)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %6)
   ret %BigInt* %6
 }

@@ -652,8 +652,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var invoke = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
                 builder.Call(invoke, specToCall, innerArgTuple, func.Parameters[2]);
 
-                this.SharedState.ScopeMgr.ForceCloseScope(builder);
-
+                this.SharedState.ScopeMgr.CloseScope(isTerminated: false, builder);
                 builder.Return();
 
                 return func;
