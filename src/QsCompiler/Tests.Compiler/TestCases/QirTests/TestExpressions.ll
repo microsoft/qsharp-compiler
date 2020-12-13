@@ -62,6 +62,8 @@ entry:
   call void @__quantum__rt__array_unreference(%Array* %12)
   call void @__quantum__rt__string_unreference(%String* %13)
   call void @__quantum__rt__array_unreference(%Array* %15)
+  %50 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %16 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %50)
   call void @__quantum__rt__bigint_unreference(%BigInt* %17)
   call void @__quantum__rt__bigint_unreference(%BigInt* %32)
   call void @__quantum__rt__result_unreference(%Result* %35)

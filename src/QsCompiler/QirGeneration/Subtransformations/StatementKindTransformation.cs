@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (init.Resolution.IsSingleQubitAllocation)
                 {
                     allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                    this.SharedState.ScopeMgr.AddQubitValue(allocation, qubitType);
+                    this.SharedState.ScopeMgr.AddQubitValue(allocation);
                 }
                 else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                 {
@@ -130,9 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var countValue = this.SharedState.ValueStack.Pop();
 
                     allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                    this.SharedState.ScopeMgr.AddQubitValue(
-                        allocation,
-                        ResolvedType.New(QsResolvedTypeKind.NewArrayType(qubitType)));
+                    this.SharedState.ScopeMgr.AddQubitValue(allocation);
                 }
                 else
                 {

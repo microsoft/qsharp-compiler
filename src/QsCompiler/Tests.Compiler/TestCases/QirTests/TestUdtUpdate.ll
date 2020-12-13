@@ -40,5 +40,9 @@ entry:
   %26 = load { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
   %27 = bitcast { %TupleHeader, double, i64 }* %1 to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %27)
+  %28 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %28)
+  %29 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %29)
   ret { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %26
 }

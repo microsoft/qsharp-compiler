@@ -35,6 +35,10 @@ entry:
   store { %TupleHeader, i2, i64 }* %udt2, { %TupleHeader, i2, i64 }** %22
   call void @__quantum__rt__callable_unreference(%Callable* %0)
   call void @__quantum__rt__callable_unreference(%Callable* %7)
+  %23 = bitcast { %TupleHeader, i2, i64 }* %udt2 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %23)
   call void @__quantum__rt__callable_unreference(%Callable* %15)
+  %24 = bitcast { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %udt3 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %24)
   ret { %TupleHeader, i64, { %TupleHeader, i2, i64 }* }* %17
 }

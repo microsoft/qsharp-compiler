@@ -43,56 +43,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Gets the name of the unreference runtime function for a given Q# type.
-        /// </summary>
-        /// <param name="t">The Q# type</param>
-        /// <param name="isQubit">true if the unreference function should deallocate qubits as well as
-        /// decrement the reference count</param>
-        /// <returns>The name of the unreference function for this type</returns>
-        private string? GetReleaseFunctionForType(ResolvedType t, bool isQubit)
-        {
-            if (t.Resolution.IsArrayType)
-            {
-                if (isQubit)
-                {
-                    return RuntimeLibrary.QubitReleaseArray;
-                }
-                else
-                {
-                    return RuntimeLibrary.ArrayUnreference;
-                }
-            }
-            else if (t.Resolution.IsQubit)
-            {
-                return RuntimeLibrary.QubitRelease;
-            }
-            else if (t.Resolution.IsResult)
-            {
-                return RuntimeLibrary.ResultUnreference;
-            }
-            else if (t.Resolution.IsString)
-            {
-                return RuntimeLibrary.StringUnreference;
-            }
-            else if (t.Resolution.IsBigInt)
-            {
-                return RuntimeLibrary.BigintUnreference;
-            }
-            else if (t.Resolution.IsTupleType)
-            {
-                return RuntimeLibrary.TupleUnreference;
-            }
-            else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
-            {
-                return RuntimeLibrary.CallableUnreference;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Gets the name of the unreference runtime function for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
@@ -194,11 +144,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// If no parameter is given, then the release function will be determined
         /// based on the NativeType of the value to release.
         /// </param>
-        public void AddValue(Value valueToRelease, ResolvedType? valueType = null)
+        public void AddValue(Value valueToRelease)
         {
-            var releaser = valueType == null
-                ? this.GetReleaseFunctionForType(valueToRelease.NativeType, false)
-                : this.GetReleaseFunctionForType(valueType, false);
+            var releaser = this.GetReleaseFunctionForType(valueToRelease.NativeType, false);
             if (releaser != null)
             {
                 this.releaseStack.Peek().Add((valueToRelease, releaser));
@@ -211,9 +159,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="valueToRelease">The Value to be released</param>
         /// <param name="valueType">The Q# type of the value, which should be either a Qubit
         /// or an array of Qubits.</param>
-        public void AddQubitValue(Value valueToRelease, ResolvedType valueType)
+        public void AddQubitValue(Value valueToRelease)
         {
-            var releaser = this.GetReleaseFunctionForType(valueType, true);
+            var releaser = this.GetReleaseFunctionForType(valueToRelease.NativeType, true);
             if (releaser != null)
             {
                 this.releaseStack.Peek().Add((valueToRelease, releaser));
