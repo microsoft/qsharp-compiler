@@ -72,7 +72,7 @@ type SpecializationBundleProperties =
         /// <summary>
         /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
         /// </summary>
-        /// Throws an InvalidOperationException if no (partial) resolution is defined for the given specialization.
+        /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
         static member internal BundleId(spec: Resolution<_, _>) =
             match spec.Resolved with
             | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
