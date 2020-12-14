@@ -762,12 +762,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Preps the shared state for a new QIR function.
         /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The current indentation level is not null or there are variables names that are still in scope.
+        /// </exception>
         internal void StartFunction()
         {
-            this.ScopeMgr.Reset();
-            this.namesInScope.Clear();
-            this.CurrentInlineLevel = 0;
+            if (this.namesInScope.Any() || this.CurrentInlineLevel != 0)
+            {
+                throw new InvalidOperationException("Processing of the current function and needs to be properly terminated before starting a new one");
+            }
+
             this.uniqueNameIds.Clear();
+            this.OpenNamingScope();
+            this.ScopeMgr.OpenScope();
         }
 
         /// <summary>
@@ -801,6 +808,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
+            this.CloseNamingScope();
+
             if (this.CurrentBlock.Instructions.Count() == 0 && !HasAPredecessor(this.CurrentBlock))
             {
                 this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
@@ -877,7 +886,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
-            this.OpenNamingScope();
             var innerTuples = new Queue<(string, QsArgumentTuple)>();
             var i = 0;
             foreach (var argName in ArgTupleToNames(argTuple, innerTuples))
@@ -934,8 +942,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.CurrentBuilder.Return(udtTuple);
             }
-
-            this.CloseNamingScope();
         }
 
         /// <summary>

@@ -139,15 +139,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // public methods
 
         /// <summary>
-        /// Resets the manager by emptying the scope stack.
-        /// </summary>
-        public void Reset()
-        {
-            this.releaseStack.Clear();
-            this.releaseStack.Push(new List<(Value, string)>());
-        }
-
-        /// <summary>
         /// Opens a new ref counting scope.
         /// The new scope is a child of the current scope (it is pushed on to the scope stack).
         /// </summary>
@@ -267,6 +258,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exits the current scope stack by generating all of the pending releases for all open scopes.
         /// Skips any release function for the returned value.
         /// The releases are generated in the current block.
+        /// Exiting the current scope does *not* close the scope. 
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
         public void ExitScope(Value returned)
