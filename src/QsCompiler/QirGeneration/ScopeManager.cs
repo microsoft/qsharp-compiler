@@ -27,8 +27,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal class ScopeManager
     {
-        // We keep the name of the release function, rather than the actual IrFunction, so that we don't
-        // generate references to functions that we wind up not actually calling (because the value gets removed).
         private readonly Stack<List<(Value, string)>> releaseStack = new Stack<List<(Value, string)>>();
         private readonly GenerationContext sharedState;
 

@@ -1037,7 +1037,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
                 if (inlinedCallable.Signature.ReturnType.Resolution.IsUnitType)
                 {
-                    this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
+                    this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
                 }
             }
 
@@ -1171,7 +1171,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Value argTuple;
                 if (argType.Resolution.IsUnitType)
                 {
-                    argTuple = this.SharedState.Types.Tuple.GetNullValue();
+                    argTuple = this.SharedState.Constants.UnitValue;
                 }
                 else
                 {
@@ -1188,11 +1188,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Value? resultTuple = null;
                 if (resultResolvedType.Resolution.IsUnitType)
                 {
-                    resultTuple = this.SharedState.Types.Tuple.GetNullValue();
+                    resultTuple = this.SharedState.Constants.UnitValue;
                     this.SharedState.CurrentBuilder.Call(func, this.SharedState.EvaluateSubexpression(method), argTuple, resultTuple);
 
                     // Now push the result. For now we assume it's a scalar.
-                    this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
+                    this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
                 }
                 else
                 {
@@ -1574,7 +1574,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
                     var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
+                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Constants.UnitValue);
                     this.PushValueInScope(callableValue);
                 }
                 else
@@ -2221,7 +2221,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnUnitValue()
         {
-            this.SharedState.ValueStack.Push(this.SharedState.Types.Tuple.GetNullValue());
+            this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
             return ResolvedExpression.InvalidExpr;
         }
 

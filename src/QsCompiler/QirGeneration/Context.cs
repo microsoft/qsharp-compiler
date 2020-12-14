@@ -821,9 +821,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argTuple">The specialization's argument tuple</param>
         internal IrFunction RegisterFunction(QsSpecialization spec, QsArgumentTuple argTuple)
         {
-            // TODO: this won't work for parameter lists with embedded tuples (as opposed to arguments
-            // of tuple type, which should be fine).
-
             IEnumerable<ITypeRef> ArgTupleToTypes(QsArgumentTuple arg)
             {
                 if (arg is QsArgumentTuple.QsTuple tuple)
@@ -876,32 +873,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
+            this.StartFunction();
             this.CurrentFunction = this.RegisterFunction(spec, argTuple);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
-            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
-            var pendingTuples = new Queue<(string, QsArgumentTuple)>();
+            this.OpenNamingScope();
+            var innerTuples = new Queue<(string, QsArgumentTuple)>();
             var i = 0;
-            foreach (var argName in ArgTupleToNames(argTuple, pendingTuples))
+            foreach (var argName in ArgTupleToNames(argTuple, innerTuples))
             {
                 this.CurrentFunction.Parameters[i].Name = argName;
-                this.namesInScope.Peek().Add(argName, (this.CurrentFunction.Parameters[i], false));
+                this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
                 i++;
             }
 
-            // Now break up input tuples
-            while (pendingTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
+            // Now break up inner argument tuples
+            while (innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
                 this.PushNamedValue(tupleArgName);
                 var tupleValue = this.ValueStack.Pop();
                 int idx = 1;
-                foreach (var argName in ArgTupleToNames(tupleArg, pendingTuples))
+                foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
                     var elementPointer = this.GetTupleElementPointer(((IPointerType)tupleValue.NativeType).ElementType, tupleValue, idx);
                     var element = this.CurrentBuilder.Load(((IPointerType)elementPointer.NativeType).ElementType, elementPointer);
-                    this.namesInScope.Peek().Add(argName, (element, false));
+                    this.RegisterName(argName, element, false);
                     idx++;
                 }
             }
@@ -915,7 +913,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void GenerateConstructor(QsCustomType udt)
         {
             var name = FunctionName(udt.FullName, QsSpecializationKind.QsBody);
-
             var args = udt.Type.Resolution switch
             {
                 QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).ToArray(),
@@ -938,20 +935,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var tuple = this.CreateTupleForType(udtTupleType);
-                var udtTuple = this.CurrentBuilder.BitCast(tuple, udtPointerType);
-
+                this.OpenNamingScope();
                 for (int i = 0; i < args.Length; i++)
                 {
-                    this.CurrentFunction.Parameters[i].Name = $"arg{i}";
+                    var argName = $"arg{i}";
+                    this.CurrentFunction.Parameters[i].Name = argName;
+                    this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
+                }
+
+                // create the udt (output value)
+                var tuple = this.CreateTupleForType(udtTupleType);
+                var udtTuple = this.CurrentBuilder.BitCast(tuple, udtPointerType);
+                for (int i = 0; i < args.Length; i++)
+                {
                     var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                     // Add a reference to the value, if necessary
-                    this.ScopeMgr.AddReference(this.CurrentFunction.Parameters[i]);
+                    this.ScopeMgr.AddReference(this.CurrentFunction.Parameters[i]); // FIXME: THIS SHOULD BE HANDLED BY REGISTER NAME AND CLODESCOPE INSTEAD
                 }
-
                 this.CurrentBuilder.Return(udtTuple);
+                this.CloseNamingScope();
             }
+            this.EndFunction();
         }
 
         /// <summary>
@@ -1527,7 +1532,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 value.RegisterName(this.InlinedName(name));
             }
-            this.namesInScope.Peek().Add(name, (value, isMutable));
+            this.namesInScope.Peek().Add(name, (value, isMutable)); // FIXME: WHY IS IT THE INLINED NAME ABOVE BUT NOT HERE?
         }
 
         /// <summary>
