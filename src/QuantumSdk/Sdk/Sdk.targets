@@ -71,25 +71,32 @@
       <!-- For the package ID that gets displayed in documentation, we default
            to the actual package ID if it's set, but allow overriding with
            QsharpDocsPackageId. -->
+      <_NewLine>%0d%0a</_NewLine>
+      <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
+      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
       <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
       <_QscDocsPackageId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageId>
-      <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
-      <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
-      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
-      <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
-      <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
-      <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
-      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
-      <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>ProcessorArchitecture:$(ResolvedProcessorArchitecture) QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
-      <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">$(_NewLine)--build-exe</_QscCommandIsExecutableFlag>
+      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">$(_NewLine)--input$(_NewLineIndent)"@(QsharpCompile->'%(FullPath)', '"$(_NewLineIndent)"')"</_QscCommandInputFlag>
+      <_QscCommandOutputPath>$([System.IO.Path]::GetFullPath('$(GeneratedFilesOutputPath)'))</_QscCommandOutputPath>
+      <_QscCommandOutputPath>$([MSBuild]::Unescape('$(_QscCommandOutputPath)').Replace('\','/'))</_QscCommandOutputPath>
+      <_QscCommandOutputFlag>$(_NewLine)--output$(_NewLineIndent)"$(_QscCommandOutputPath)"</_QscCommandOutputFlag>
+      <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQsharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
+      <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
+      <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
+      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
+      <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
+      <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandAssemblyPropertiesFlag>$(_NewLine)--assembly-properties$(_QscCommandPredefinedAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
+      <_QscCommandAssemblyPropertiesFlag Condition="'$(QscCommandAssemblyProperties)' != ''">$(_QscCommandAssemblyPropertiesFlag)$(_NewLineIndent)$(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
+      <AdditionalQscArguments Condition="'$(AdditionalQscArguments)' != ''">$(_NewLine)$(AdditionalQscArguments)</AdditionalQscArguments>
+      <_QscCommandArgs>$(_QscCommandProjFlag)$(_QscCommandIsExecutableFlag)$(_QscCommandInputFlag)$(_QscCommandOutputFlag)$(_QscCommandReferencesFlag)$(_QscCommandLoadFlag)$(_QscCommandRuntimeFlag)$(_QscCommandTargetDecompositionsFlag)$(_QscPackageLoadFallbackFoldersFlag)$(_QscCommandTestNamesFlag)$(_QscCommandAssemblyPropertiesFlag)$(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
 
