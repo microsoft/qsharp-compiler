@@ -13,34 +13,38 @@ open Xunit
 // Punctuation tests
 [<Fact>]
 let ``Simple punctuation tests`` () =
-    Assert.True (simpleParseString comma ",", "Comma positive")
+    Assert.True(simpleParseString comma ",", "Comma positive")
     Assert.False(simpleParseString comma ";", "Comma negative")
 
-    Assert.True (simpleParseString colon ":", "Colon positive")
+    Assert.True(simpleParseString colon ":", "Colon positive")
     Assert.False(simpleParseString colon ",", "Colon negative")
 
-    Assert.True (simpleParseString equal "=", "Equal positive")
+    Assert.True(simpleParseString equal "=", "Equal positive")
     Assert.False(simpleParseString equal "+", "Equal negative")
 
-    Assert.True (simpleParseString opArrow "=>", "Operation arrow positive")
+    Assert.True(simpleParseString opArrow "=>", "Operation arrow positive")
     Assert.False(simpleParseString opArrow "->", "Operation arrow negative")
 
-    Assert.True (simpleParseString fctArrow "->", "Function arrow positive")
+    Assert.True(simpleParseString fctArrow "->", "Function arrow positive")
     Assert.False(simpleParseString fctArrow "=>", "Function arrow negative")
 
-    Assert.True (simpleParseString unitValue "()", "Unit value positive")
-    Assert.True (simpleParseString unitValue "(   )", "Unit value positive 2")
-    Assert.True (simpleParseString unitValue @"(
-    )", "Unit value positive 3")
+    Assert.True(simpleParseString unitValue "()", "Unit value positive")
+    Assert.True(simpleParseString unitValue "(   )", "Unit value positive 2")
+
+    Assert.True
+        (simpleParseString unitValue @"(
+    )",
+         "Unit value positive 3")
+
     Assert.False(simpleParseString unitValue "unit", "Unit value negative")
 
-    Assert.True (simpleParseString missingExpr "_", "Missing expr positive")
+    Assert.True(simpleParseString missingExpr "_", "Missing expr positive")
     Assert.False(simpleParseString missingExpr "-", "Missing expr negative")
 
-    Assert.True (simpleParseString discardedSymbol "_", "Discarded symbol positive")
+    Assert.True(simpleParseString discardedSymbol "_", "Discarded symbol positive")
     Assert.False(simpleParseString discardedSymbol "-", "Discarded symbol negative")
 
-    Assert.True (simpleParseString omittedSymbols "...", "Omitted symbols positive")
+    Assert.True(simpleParseString omittedSymbols "...", "Omitted symbols positive")
     Assert.False(simpleParseString omittedSymbols "..", "Omitted symbols negative")
 
 [<Fact>]
@@ -56,62 +60,120 @@ let ``Bracket tests`` () =
 
 // Keyword tests
 // These are used for a variety of tests around keywords
-let languageKeywords = [
-                    "Unit";"Int";"BigInt";"Double";"Qubit";"Pauli";"Result";"Range";"Bool";"String";
-                    "auto";"self";"intrinsic";"invert";"distribute";
-                    "fixup";
-                    "in";
-                    ]
-let fragmentKeywords = [
-                    "let";"mutable";"set";
-                    "for";"while";
-                    "repeat";"until";
-                    "within";"apply";
-                    "if";"elif";"else";"return";"fail";
-                    "using";"borrowing";
-                    "namespace";"open";"operation";"function";"newtype";
-                    "body";"adjoint";"controlled";
-                    ]
-let reservedWords = [  
-                    "Adjoint";"Controlled";
-                    "new"; "not"; "and"; "or";
-                    "PauliI"; "PauliX";"PauliY";"PauliZ";"One";"Zero";
-                    ]
+let languageKeywords =
+    [
+        "Unit"
+        "Int"
+        "BigInt"
+        "Double"
+        "Qubit"
+        "Pauli"
+        "Result"
+        "Range"
+        "Bool"
+        "String"
+        "auto"
+        "self"
+        "intrinsic"
+        "invert"
+        "distribute"
+        "fixup"
+        "in"
+    ]
+
+let fragmentKeywords =
+    [
+        "let"
+        "mutable"
+        "set"
+        "for"
+        "while"
+        "repeat"
+        "until"
+        "within"
+        "apply"
+        "if"
+        "elif"
+        "else"
+        "return"
+        "fail"
+        "using"
+        "borrowing"
+        "namespace"
+        "open"
+        "operation"
+        "function"
+        "newtype"
+        "body"
+        "adjoint"
+        "controlled"
+    ]
+
+let reservedWords =
+    [
+        "Adjoint"
+        "Controlled"
+        "new"
+        "not"
+        "and"
+        "or"
+        "PauliI"
+        "PauliX"
+        "PauliY"
+        "PauliZ"
+        "One"
+        "Zero"
+    ]
+
 let keywords = languageKeywords @ fragmentKeywords @ reservedWords
-let nonkeywords = [ "allocate"; "import"; "class"; "member";
-                    "IPauli"; "XPauli";"YPauli";"ZPauli";"one";"zero";
-                    "int";"double";"qubit";"pauli";"result";"range";"bool";"string";
-                    "var";"type";
-                    "Length";"Power";
-                    ]
+
+let nonkeywords =
+    [
+        "allocate"
+        "import"
+        "class"
+        "member"
+        "IPauli"
+        "XPauli"
+        "YPauli"
+        "ZPauli"
+        "one"
+        "zero"
+        "int"
+        "double"
+        "qubit"
+        "pauli"
+        "result"
+        "range"
+        "bool"
+        "string"
+        "var"
+        "type"
+        "Length"
+        "Power"
+    ]
 
 [<Fact>]
 let ``Keyword tests`` () =
-    keywords 
-    |> List.iter (fun k -> Assert.True(Keywords.ReservedKeywords.Contains k,
-                                       "Keyword " + k + " missing"))
+    keywords
+    |> List.iter (fun k -> Assert.True(Keywords.ReservedKeywords.Contains k, "Keyword " + k + " missing"))
 
 [<Fact>]
 let ``Non-keyword tests`` () =
-    nonkeywords 
-    |> List.iter (fun k -> Assert.False(Keywords.ReservedKeywords.Contains k,
-                                       "Incorrect keyword " + k))
+    nonkeywords
+    |> List.iter (fun k -> Assert.False(Keywords.ReservedKeywords.Contains k, "Incorrect keyword " + k))
 
 [<Fact>]
 let ``Reserved keyword parser tests`` () =
     reservedWords
-    |> List.iter (fun k -> Assert.True(parse_string qsReservedKeyword k,
-                                       "Failed to identify keyword " + k))
+    |> List.iter (fun k -> Assert.True(parse_string qsReservedKeyword k, "Failed to identify keyword " + k))
 
 [<Fact>]
 let ``Language keyword parser tests`` () =
     languageKeywords
-    |> List.iter (fun k -> Assert.True(parse_string qsLanguageKeyword k,
-                                       "Failed to identify keyword " + k))
+    |> List.iter (fun k -> Assert.True(parse_string qsLanguageKeyword k, "Failed to identify keyword " + k))
 
 [<Fact>]
 let ``Fragment keyword parser tests`` () =
     fragmentKeywords
-    |> List.iter (fun k -> Assert.True(parse_string qsFragmentHeader k,
-                                       "Failed to identify keyword " + k))
-
+    |> List.iter (fun k -> Assert.True(parse_string qsFragmentHeader k, "Failed to identify keyword " + k))
