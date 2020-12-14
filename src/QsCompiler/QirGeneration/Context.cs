@@ -849,7 +849,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple)
+        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple, bool deconstuctArgument = true)
         {
             IEnumerable<string> ArgTupleToNames(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
             {
@@ -873,7 +873,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.StartFunction();
             this.CurrentFunction = this.RegisterFunction(spec, argTuple);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -889,7 +888,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // Now break up inner argument tuples
-            while (innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
+            while (deconstuctArgument && innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
                 this.PushNamedValue(tupleArgName);
@@ -910,53 +909,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// This routine generates all the code for the constructor, not just the header.
         /// </summary>
         /// <param name="udt">The Q# user-defined type</param>
-        internal void GenerateConstructor(QsCustomType udt)
+        internal void GenerateConstructor(QsSpecialization spec, QsArgumentTuple argTuple)
         {
-            var name = FunctionName(udt.FullName, QsSpecializationKind.QsBody);
-            var args = udt.Type.Resolution switch
-            {
-                QsResolvedTypeKind.TupleType tup => tup.Item.Select(this.LlvmTypeFromQsharpType).ToArray(),
-                _ when udt.Type.Resolution.IsUnitType => Array.Empty<ITypeRef>(),
-                _ => new ITypeRef[] { this.LlvmTypeFromQsharpType(udt.Type) }
-            };
-            var udtTupleType = this.Types.CreateConcreteTupleType(args);
-            var udtPointerType = args.Length > 0 ? udtTupleType.CreatePointerType() : this.Types.Tuple;
-            var signature = this.Context.GetFunctionType(udtPointerType, args);
+            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
 
-            this.StartFunction();
-            this.CurrentFunction = this.Module.CreateFunction(name, signature);
-            this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
-            this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
-
-            // An easy case -- (), a marker UDT
-            if (args.Length == 0)
+            // create the udt (output value)
+            if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                this.CurrentBuilder.Return(udtPointerType.GetNullValue());
+                this.CurrentBuilder.Return(this.Constants.UnitValue);
             }
-            else
+            else if (this.CurrentFunction != null)
             {
-                this.OpenNamingScope();
-                for (int i = 0; i < args.Length; i++)
-                {
-                    var argName = $"arg{i}";
-                    this.CurrentFunction.Parameters[i].Name = argName;
-                    this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
-                }
+                var udtTupleType = this.LlvmStructTypeFromQsharpType(spec.Signature.ArgumentType);
+                var udtTuple = this.CurrentBuilder.BitCast(this.CreateTupleForType(udtTupleType), udtTupleType.CreatePointerType());
 
-                // create the udt (output value)
-                var tuple = this.CreateTupleForType(udtTupleType);
-                var udtTuple = this.CurrentBuilder.BitCast(tuple, udtPointerType);
-                for (int i = 0; i < args.Length; i++)
+                var nrArgs = spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Length : 1;
+                for (int i = 0; i < nrArgs; i++)
                 {
                     var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                     // Add a reference to the value, if necessary
                     this.ScopeMgr.AddReference(this.CurrentFunction.Parameters[i]); // FIXME: THIS SHOULD BE HANDLED BY REGISTER NAME AND CLODESCOPE INSTEAD
                 }
+
                 this.CurrentBuilder.Return(udtTuple);
-                this.CloseNamingScope();
             }
-            this.EndFunction();
+
+            this.CloseNamingScope();
         }
 
         /// <summary>
@@ -1126,7 +1105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             indices[1] = this.Context.CreateConstant(i + 1);
                             Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
                             args.Add(tuple.Item[i] is QsArgumentTuple.QsTuple vs && vs.Item.Length == 0
-                                ? this.Types.Tuple.GetNullValue()
+                                ? this.Constants.UnitValue
                                 : BuildLoadForArg(tuple.Item[i], ptr));
                         }
                     }
@@ -1143,21 +1122,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
             {
                 var resultTupleType = this.LlvmStructTypeFromQsharpType(resultType);
-                Value GetOutputItem(int item) =>
-                    this.CurrentBuilder.GetElementPtr(
-                        resultTupleType,
-                        this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType()),
-                        new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(item) });
-
                 if (resultType.Resolution is QsResolvedTypeKind.TupleType tupleType)
                 {
+                    var concreteOutputTuple = this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType());
                     for (int j = 0; j < tupleType.Item.Length; j++)
                     {
                         var resItemPointer = this.CurrentBuilder.GetElementPtr(
                              resultTupleType,
                              resultValue,
                              new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(j + 1) });
-                        var itemOutputPointer = GetOutputItem(j + 1);
+                        var itemOutputPointer = this.CurrentBuilder.GetElementPtr(
+                            resultTupleType,
+                            concreteOutputTuple,
+                            new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(j + 1) });
 
                         var itemType = this.LlvmTypeFromQsharpType(tupleType.Item[j]);
                         var resItem = this.CurrentBuilder.Load(itemType, resItemPointer);
@@ -1166,22 +1143,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (!resultType.Resolution.IsUnitType)
                 {
-                    var tuplePointer = this.CurrentBuilder.BitCast(resultValue, resultTupleType.CreatePointerType());
-                    var outputPointer = GetOutputItem(1);
-
-                    // if the returned value is a udt with a single item then we need to unwrap it first
-                    if (resultType.Resolution is QsResolvedTypeKind.UserDefinedType udt
-                        && this.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
-                        && !udtDecl.Type.Resolution.IsTupleType)
-                    {
-                        var itemType = this.LlvmTypeFromQsharpType(udtDecl.Type);
-                        var itemPointer = this.CurrentBuilder.GetElementPtr(
-                             resultTupleType,
-                             tuplePointer,
-                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(1) });
-                        resultValue = this.CurrentBuilder.Load(itemType, itemPointer);
-                    }
-
+                    var concreteOutputTuple = this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType());
+                    var outputPointer = this.CurrentBuilder.GetElementPtr(
+                            resultTupleType,
+                            concreteOutputTuple,
+                            new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(1) });
                     this.CurrentBuilder.Store(resultValue, outputPointer);
                 }
             }

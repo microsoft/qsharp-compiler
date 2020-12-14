@@ -2287,7 +2287,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnUnwrapApplication(TypedExpression ex)
         {
-            var exValue = this.SharedState.EvaluateSubexpression(ex);
+            var udtTuplePointer = this.SharedState.EvaluateSubexpression(ex);
 
             // Since we simply represent user defined types as tuples, we don't need to do anything
             // except pushing the value on the value stack unless the tuples contains a single item,
@@ -2296,14 +2296,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 && this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
                 && !udtDecl.Type.Resolution.IsTupleType)
             {
-                var tupleType = this.SharedState.LlvmStructTypeFromQsharpType(ex.ResolvedType);
-                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(exValue, tupleType.CreatePointerType());
-
                 // we need to access the second item, since the first is the tuple header
                 var itemType = this.SharedState.LlvmTypeFromQsharpType(udtDecl.Type);
                 var itemPointer = this.SharedState.CurrentBuilder.GetElementPtr(
-                     tupleType,
-                     tuplePointer,
+                     this.SharedState.Types.CreateConcreteTupleType(itemType),
+                     udtTuplePointer,
                      new[] { this.SharedState.Context.CreateConstant(0L), this.SharedState.Context.CreateConstant(1) });
 
                 var element = this.SharedState.CurrentBuilder.Load(itemType, itemPointer);
@@ -2312,8 +2309,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                this.SharedState.ScopeMgr.AddReference(exValue); // FIXME: DOES ADD REFERENCE ALSO NEED TO BE RECURSIVE??
-                this.PushValueInScope(exValue);
+                this.SharedState.ScopeMgr.AddReference(udtTuplePointer); // FIXME: DOES ADD REFERENCE ALSO NEED TO BE RECURSIVE??
+                this.PushValueInScope(udtTuplePointer);
             }
 
             return ResolvedExpression.InvalidExpr;
