@@ -159,9 +159,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Adds a value to the current topmost scope.
+        /// Adds a value to the current topmost scope,
+        /// and makes sure that the value and all its items are unreferenced when the scope is closed or exited.
         /// </summary>
-        /// <param name="value">The value to be released</param>
+        /// <param name="value">Value that is created within the current scope</param>
         public void AddValue(Value value)
         {
             var releaser = this.GetReleaseFunctionForType(value.NativeType);
@@ -172,7 +173,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Adds a qubit value to the current topmost scope.
+        /// Adds a value constructed as part of a qubit allocation to the current topmost scope.
+        /// Makes sure that all allocated qubits are released when the scope is closed or exited
+        /// and that the value and all its items are unreferenced.
         /// </summary>
         /// <param name="value">The value to be released</param>
         /// or an array of Qubits.</param>
@@ -228,6 +231,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var func = this.sharedState.GetOrCreateRuntimeFunction(s);
                 this.sharedState.CurrentBuilder.Call(func, valToAddref);
+            }
+        }
+
+        /// <summary>
+        /// Given a pointer loads the current value at that location and queues a suitable function
+        /// to unreference that value upon closing or exciting the scope.
+        /// </summary>
+        /// <param name="pointer">Pointer to the value that will no longer be accessible via that pointer</param>
+        public void RemoveReference(Value pointer)
+        {
+            var type = ((IPointerType)pointer.NativeType).ElementType;
+            var releaser = this.GetReleaseFunctionForType(type);
+            if (releaser != null)
+            {
+                var value = this.sharedState.CurrentBuilder.Load(type, pointer);
+                this.releaseStack.Peek().Add((value, releaser));
             }
         }
 

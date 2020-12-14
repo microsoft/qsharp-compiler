@@ -34,23 +34,30 @@ entry:
   %23 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %22
   %24 = getelementptr { %TupleHeader, double, i64 }, { %TupleHeader, double, i64 }* %23, i64 0, i32 2
   store i64 2, i64* %24
+  %25 = load { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
   store { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
-  %25 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7 to %TupleHeader*
-  call void @__quantum__rt__tuple_reference(%TupleHeader* %25)
-  %26 = load { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
-  %27 = bitcast { %TupleHeader, double, i64 }* %1 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %27)
-  %28 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4 to %TupleHeader*
+  %26 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7 to %TupleHeader*
+  call void @__quantum__rt__tuple_reference(%TupleHeader* %26)
+  %27 = load { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }*, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }** %x
+  %28 = bitcast { %TupleHeader, double, i64 }* %1 to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %28)
-  %29 = getelementptr { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4, i64 0, i32 1
-  %30 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %29
-  %31 = bitcast { %TupleHeader, double, i64 }* %30 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %31)
-  %32 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7 to %TupleHeader*
+  %29 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %29)
+  %30 = getelementptr { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %4, i64 0, i32 1
+  %31 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %30
+  %32 = bitcast { %TupleHeader, double, i64 }* %31 to %TupleHeader*
   call void @__quantum__rt__tuple_unreference(%TupleHeader* %32)
-  %33 = getelementptr { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7, i64 0, i32 1
-  %34 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %33
-  %35 = bitcast { %TupleHeader, double, i64 }* %34 to %TupleHeader*
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %35)
-  ret { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %26
+  %33 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %33)
+  %34 = getelementptr { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %7, i64 0, i32 1
+  %35 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %34
+  %36 = bitcast { %TupleHeader, double, i64 }* %35 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %36)
+  %37 = bitcast { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %25 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %37)
+  %38 = getelementptr { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }, { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %25, i64 0, i32 1
+  %39 = load { %TupleHeader, double, i64 }*, { %TupleHeader, double, i64 }** %38
+  %40 = bitcast { %TupleHeader, double, i64 }* %39 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %40)
+  ret { %TupleHeader, { %TupleHeader, double, i64 }*, i64 }* %27
 }

@@ -547,15 +547,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
-            // Given a symbol with an existing binding, update the binding to a bew value and
-            // addref the new value (if it's a ref-counted type).
-            // The old value will get released when the scope is closed or exited.
+            // Given a symbol with an existing binding, calls RemoveReference on the old value,
+            // update the binding to a new value and calls AddReference on the new value.
             void UpdateBinding(string symbol, Value newValue)
             {
-                var ptr = this.SharedState.GetNamedPointer(symbol);
+                Value ptr = this.SharedState.GetNamedPointer(symbol);
+                this.SharedState.ScopeMgr.RemoveReference(ptr);
                 this.SharedState.CurrentBuilder.Store(newValue, ptr);
                 this.SharedState.ScopeMgr.AddReference(newValue);
-                // TODO: WE SHOULD ALSO UNREFERENCE THE OLD VALUE
             }
 
             // Update a tuple of items from a tuple value.
