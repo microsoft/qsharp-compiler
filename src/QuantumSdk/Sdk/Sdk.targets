@@ -73,7 +73,7 @@
            QsharpDocsPackageId. -->
       <_NewLine>%0d%0a</_NewLine>
       <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
-      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
+      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$(PathCompatibleAssemblyName)"</_QscCommandProjFlag>
       <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
       <_QscDocsPackageId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageId>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">$(_NewLine)--build-exe</_QscCommandIsExecutableFlag>
