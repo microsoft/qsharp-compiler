@@ -246,6 +246,7 @@ module AssemblyConstants =
     let ToffoliSimulator = "ToffoliSimulator"
     let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
+    let ConcreteIntrinsicGen = "ConcreteIntrinsicGen"
 
     /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
     /// defined by the SDK.
