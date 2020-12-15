@@ -436,7 +436,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
-        /// <remarks>This must not be invoked through a <see cref="System.Threading.Tasks.Task"/>.</remarks>
+        /// <remarks>This method waits for <see cref="System.Threading.Tasks.Task"/>s to complete and may deadlock if invoked through a <see cref="System.Threading.Tasks.Task"/>.</remarks>
         public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger? logger = null)
         {
             PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation);
