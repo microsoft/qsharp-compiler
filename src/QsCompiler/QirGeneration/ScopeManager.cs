@@ -48,39 +48,120 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
+        /// Gets the name of the reference runtime function for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? GetReferenceFunctionForType(ITypeRef t)
+        {
+            if (t.IsPointer)
+            {
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayReference;
+                }
+                else if (t == this.sharedState.Types.Result)
+                {
+                    return RuntimeLibrary.ResultReference;
+                }
+                else if (t == this.sharedState.Types.String)
+                {
+                    return RuntimeLibrary.StringReference;
+                }
+                else if (t == this.sharedState.Types.BigInt)
+                {
+                    return RuntimeLibrary.BigintReference;
+                }
+                else if (this.sharedState.Types.IsTupleType(t))
+                {
+                    return RuntimeLibrary.TupleReference;
+                }
+                else if (t == this.sharedState.Types.Callable)
+                {
+                    return RuntimeLibrary.CallableReference;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Gets the name of the unreference runtime function for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
         private string? GetReleaseFunctionForType(ITypeRef t)
         {
-            if (t == this.sharedState.Types.Array)
+            if (t.IsPointer)
             {
-                return RuntimeLibrary.ArrayUnreference;
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayUnreference;
+                }
+                else if (t == this.sharedState.Types.Result)
+                {
+                    return RuntimeLibrary.ResultUnreference;
+                }
+                else if (t == this.sharedState.Types.String)
+                {
+                    return RuntimeLibrary.StringUnreference;
+                }
+                else if (t == this.sharedState.Types.BigInt)
+                {
+                    return RuntimeLibrary.BigintUnreference;
+                }
+                else if (this.sharedState.Types.IsTupleType(t))
+                {
+                    return RuntimeLibrary.TupleUnreference;
+                }
+                else if (t == this.sharedState.Types.Callable)
+                {
+                    return RuntimeLibrary.CallableUnreference;
+                }
             }
-            else if (t == this.sharedState.Types.Result)
+            return null;
+        }
+
+        private void ModifyReferences(Value value, Value func, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
+        {
+            if (this.sharedState.Types.IsTupleType(value.NativeType))
             {
-                return RuntimeLibrary.ResultUnreference;
-            }
-            else if (t == this.sharedState.Types.String)
-            {
-                return RuntimeLibrary.StringUnreference;
-            }
-            else if (t == this.sharedState.Types.BigInt)
-            {
-                return RuntimeLibrary.BigintUnreference;
-            }
-            else if (t == this.sharedState.Types.Tuple || this.sharedState.Types.IsTupleType(t))
-            {
-                return RuntimeLibrary.TupleUnreference;
-            }
-            else if (t == this.sharedState.Types.Callable)
-            {
-                return RuntimeLibrary.CallableUnreference;
+                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
+                builder.Call(func, untypedTuple);
+
+                // for tuples we also unreference all inner tuples
+                var elementType = ((IPointerType)value.NativeType).ElementType;
+                var itemTypes = ((IStructType)elementType).Members;
+                for (var i = 1; i < itemTypes.Count; ++i)
+                {
+                    var itemFuncName = getItemFunc(itemTypes[i]);
+                    if (itemFuncName != null)
+                    {
+                        var indices = new Value[]
+                        {
+                                this.sharedState.Context.CreateConstant(0L),
+                                this.sharedState.Context.CreateConstant(i)
+                        };
+                        var ptr = builder.GetElementPtr(elementType, value, indices);
+                        var item = builder.Load(itemTypes[i], ptr);
+                        this.ModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
+                    }
+                }
             }
             else
             {
-                return null;
+                builder.Call(func, value);
+
+                if (value.NativeType == this.sharedState.Types.Array)
+                {
+                    // TODO:
+                    // We need to generate and pass in a release function that is to be applied to each item
+                }
+                else if (value.NativeType == this.sharedState.Types.Callable)
+                {
+                    // TODO
+                    // Releasing any captured callable (first item in the capture tuple for a partial application)
+                    // could in principle be done by the runtime, so not sure if we should do something here
+                }
             }
         }
 
@@ -91,54 +172,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="builder">The InstructionBuilder where the release calls should be generated</param>
         private void GenerateReleasesForLevel(IEnumerable<(Value, string)> pendingReleases, InstructionBuilder builder)
         {
-            void Release(Value valueToRelease, string releaseFunc)
-            {
-                IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
-                if (releaseFunc == RuntimeLibrary.TupleUnreference)
-                {
-                    var untypedTuple = builder.BitCast(valueToRelease, this.sharedState.Types.Tuple);
-                    builder.Call(func, untypedTuple);
-
-                    // for tuples we also unreference all inner tuples
-                    var elementType = ((IPointerType)valueToRelease.NativeType).ElementType;
-                    var itemTypes = ((IStructType)elementType).Members;
-                    for (var i = 1; i < itemTypes.Count; ++i)
-                    {
-                        var releaser = this.GetReleaseFunctionForType(itemTypes[i]);
-                        if (releaser != null)
-                        {
-                            var indices = new Value[]
-                            {
-                                this.sharedState.Context.CreateConstant(0L),
-                                this.sharedState.Context.CreateConstant(i)
-                            };
-                            var ptr = builder.GetElementPtr(elementType, valueToRelease, indices);
-                            var item = builder.Load(itemTypes[i], ptr);
-                            Release(item, releaser);
-                        }
-                    }
-                }
-                else
-                {
-                    builder.Call(func, valueToRelease);
-
-                    if (releaseFunc == RuntimeLibrary.ArrayUnreference)
-                    {
-                        // TODO:
-                        // We need to generate and pass in a release function that is to be applied to each item
-                    }
-                    else if (releaseFunc == RuntimeLibrary.CallableUnreference)
-                    {
-                        // TODO
-                        // Releasing any captured callable (first item in the capture tuple for a partial application)
-                        // could in principle be done by the runtime, so not sure if we should do something here
-                    }
-                }
-            }
-
             foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
             {
-                Release(valueToRelease, releaseFunc);
+                IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
+                this.ModifyReferences(valueToRelease, func, this.GetReleaseFunctionForType, builder);
             }
         }
 
@@ -191,41 +228,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value which is referenced</param>
         public void AddReference(Value value)
         {
-            string? s = null;
-            var t = value.NativeType;
-            Value valToAddref = value;
-            if (t.IsPointer)
+            var referenceFunc = this.GetReferenceFunctionForType(value.NativeType);
+            if (referenceFunc != null)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    s = RuntimeLibrary.ArrayReference;
-                }
-                else if (t == this.sharedState.Types.Result)
-                {
-                    s = RuntimeLibrary.ResultReference;
-                }
-                else if (t == this.sharedState.Types.String)
-                {
-                    s = RuntimeLibrary.StringReference;
-                }
-                else if (t == this.sharedState.Types.BigInt)
-                {
-                    s = RuntimeLibrary.BigintReference;
-                }
-                else if (this.sharedState.Types.IsTupleType(t))
-                {
-                    s = RuntimeLibrary.TupleReference;
-                    valToAddref = this.sharedState.CurrentBuilder.BitCast(value, this.sharedState.Types.Tuple);
-                }
-                else if (t == this.sharedState.Types.Callable)
-                {
-                    s = RuntimeLibrary.CallableReference;
-                }
-            }
-            if (s != null)
-            {
-                var func = this.sharedState.GetOrCreateRuntimeFunction(s);
-                this.sharedState.CurrentBuilder.Call(func, valToAddref);
+                IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(referenceFunc);
+                this.ModifyReferences(value, func, this.GetReferenceFunctionForType, this.sharedState.CurrentBuilder);
             }
         }
 

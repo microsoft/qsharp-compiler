@@ -108,8 +108,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var size = this.SharedState.ComputeSizeForType(this.ItemType, builder);
                 var innerTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                this.SharedState.ScopeMgr.AddValue(innerTuple);
                 var typedTuple = builder.BitCast(innerTuple, this.ItemType.CreatePointerType());
+                this.SharedState.ScopeMgr.AddValue(typedTuple);
                 for (int i = 0; i < this.Items.Length; i++)
                 {
                     var indices = new Value[] { builder.Context.CreateConstant(0L), builder.Context.CreateConstant(i + 1) };
@@ -209,6 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             this.DeepCopyTuple(originalElement, elementType, b),
                         QsResolvedTypeKind.ArrayType _ =>
                             builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy), originalElement),
+                        // FIXME: WHAT ABOUT UDTS?
                         _ => originalElement,
                     };
                     var copyElementPointer = this.SharedState.GetTupleElementPointer(originalTypeRef, typedCopy, i + 1, builder);
@@ -240,6 +241,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return this.DeepCopyTuple(original, udt.Type, b);
                 }
+                // FIXME: this is not correct, also: what about udts of udts?
                 else if (udt.Type.Resolution.IsArrayType)
                 {
                     InstructionBuilder builder = b ?? this.SharedState.CurrentBuilder;
@@ -574,8 +576,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var restTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, typedRestPointer);
                         var size = this.SharedState.ComputeSizeForType(ctlArgsType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                        this.SharedState.ScopeMgr.AddValue(innerArgTuple);
                         var typedNewTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
+                        this.SharedState.ScopeMgr.AddValue(typedNewTuple);
                         var destControlsPointer = builder.GetElementPtr(ctlArgsType, typedNewTuple, new Value[]
                         {
                             this.SharedState.Context.CreateConstant(0L),
@@ -614,8 +616,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var innerArgType = this.SharedState.Types.CreateConcreteTupleType(this.SharedState.Types.Array, restTuple.NativeType);
                         var size = this.SharedState.ComputeSizeForType(innerArgType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                        this.SharedState.ScopeMgr.AddValue(innerArgTuple);
                         var typedNewTuple = builder.BitCast(innerArgTuple, innerArgType.CreatePointerType());
+                        this.SharedState.ScopeMgr.AddValue(typedNewTuple);
                         var destControlsPointer = builder.GetElementPtr(innerArgType, typedNewTuple, new Value[]
                         {
                             this.SharedState.Context.CreateConstant(0L),
@@ -1330,7 +1332,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
-            var copy = this.GetWritableCopy(lhs);
+            var copy = this.GetWritableCopy(lhs); // if a copy is made, registers the copy with the ScopeMgr
 
             if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType itemType)
             {
@@ -2309,7 +2311,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                this.SharedState.ScopeMgr.AddReference(udtTuplePointer); // FIXME: DOES ADD REFERENCE ALSO NEED TO BE RECURSIVE??
+                this.SharedState.ScopeMgr.AddReference(udtTuplePointer);
                 this.PushValueInScope(udtTuplePointer);
             }
 

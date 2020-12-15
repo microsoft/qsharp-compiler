@@ -17,7 +17,8 @@ entry:
   %12 = call %Callable* @__quantum__rt__callable_copy(%Callable* %11)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %12)
   call void @__quantum__rt__callable_invoke(%Callable* %12, %TupleHeader* %2, %TupleHeader* %result-tuple)
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %2)
+  %13 = bitcast { %TupleHeader, double, %Qubit* }* %3 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %13)
   call void @__quantum__rt__callable_unreference(%Callable* %12)
   ret void
 }

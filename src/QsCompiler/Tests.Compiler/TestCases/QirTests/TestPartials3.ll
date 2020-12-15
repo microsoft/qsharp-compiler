@@ -15,6 +15,7 @@ entry:
   %10 = getelementptr { %TupleHeader, %Callable*, double }, { %TupleHeader, %Callable*, double }* %0, i64 0, i32 1
   %11 = load %Callable*, %Callable** %10
   call void @__quantum__rt__callable_invoke(%Callable* %11, %TupleHeader* %2, %TupleHeader* %result-tuple)
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %2)
+  %12 = bitcast { %TupleHeader, double, %Qubit* }* %3 to %TupleHeader*
+  call void @__quantum__rt__tuple_unreference(%TupleHeader* %12)
   ret void
 }
