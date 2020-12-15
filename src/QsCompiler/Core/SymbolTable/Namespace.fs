@@ -193,7 +193,7 @@ type Namespace private (name,
         | false, _ ->
             let referenceType =
                 TypesInReferences.[attName]
-                |> Seq.filter (fun qsType -> qsType.Source.AssemblyPath |> QsNullable.contains source)
+                |> Seq.filter (fun qsType -> qsType.Source.AssemblyFile |> QsNullable.contains source)
                 |> Seq.tryExactlyOne
 
             match referenceType with
@@ -323,7 +323,7 @@ type Namespace private (name,
             | true, qsType ->
                 if Namespace.IsDeclarationAccessible(true, qsType.Modifiers.Access) then
                     Found
-                        ({ CodePath = partial.Source; AssemblyPath = Null },
+                        ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
                          qsType.Modifiers.Access)
                 else
@@ -363,7 +363,7 @@ type Namespace private (name,
             | true, (_, callable) ->
                 if Namespace.IsDeclarationAccessible(true, callable.Modifiers.Access) then
                     Found
-                        ({ CodePath = partial.Source; AssemblyPath = Null },
+                        ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
                 else
                     Inaccessible
@@ -582,16 +582,16 @@ type Namespace private (name,
                     | _ -> false
                 | _ -> false
 
-            if QsNullable.isValue declSource.AssemblyPath then
+            if QsNullable.isValue declSource.AssemblyFile then
                 let cDecl =
                     CallablesInReferences.[cName]
-                    |> Seq.filter (fun c -> c.Source.AssemblyPath |> QsNullable.contains source)
+                    |> Seq.filter (fun c -> c.Source.AssemblyFile |> QsNullable.contains source)
                     |> Seq.exactlyOne
 
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length
             else
-                let _, cDecl = Parts.[declSource.CodePath].GetCallable cName
+                let _, cDecl = Parts.[declSource.CodeFile].GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
 

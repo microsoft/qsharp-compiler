@@ -50,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
-                    syntaxTree.Callables().Where(c => c.Source.AssemblyPath.IsNull).Select(CallableDeclarationHeader.New),
-                    syntaxTree.Specializations().Where(c => c.Source.AssemblyPath.IsNull).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
-                    syntaxTree.Types().Where(c => c.Source.AssemblyPath.IsNull).Select(TypeDeclarationHeader.New))
+                    syntaxTree.Callables().Where(c => c.Source.AssemblyFile.IsNull).Select(CallableDeclarationHeader.New),
+                    syntaxTree.Specializations().Where(c => c.Source.AssemblyFile.IsNull).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
+                    syntaxTree.Types().Where(c => c.Source.AssemblyFile.IsNull).Select(TypeDeclarationHeader.New))
             {
             }
 
@@ -703,7 +703,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
                     Namespace.IsDeclarationAccessible(false, header.Modifiers.Access) ||
-                    specialization.Item1.Source.AssemblyPath.Equals(header.Source.AssemblyPath))
+                    specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
                 .Select(specialization =>
                 {
                     var (specHeader, implementation) = specialization;

@@ -182,7 +182,7 @@ type TypeDeclarationHeader =
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
             Modifiers = header.Modifiers
-            Source = { CodePath = header.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
             Type = header.Type
@@ -213,7 +213,7 @@ type TypeDeclarationHeader =
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
             Modifiers = this.Modifiers
-            SourceFile = this.Source.CodePath
+            SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange
             Type = this.Type
@@ -302,7 +302,7 @@ type CallableDeclarationHeader =
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
             Modifiers = header.Modifiers
-            Source = { CodePath = header.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
             ArgumentTuple = header.ArgumentTuple
@@ -345,7 +345,7 @@ type CallableDeclarationHeader =
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
             Modifiers = this.Modifiers
-            SourceFile = this.Source.CodePath
+            SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange
             ArgumentTuple = this.ArgumentTuple
@@ -429,7 +429,7 @@ type SpecializationDeclarationHeader =
             Information = header.Information
             Parent = header.Parent
             Attributes = header.Attributes
-            Source = { CodePath = header.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             HeaderRange = header.HeaderRange
             Documentation = header.Documentation
@@ -466,7 +466,7 @@ type SpecializationDeclarationHeader =
             Information = this.Information
             Parent = this.Parent
             Attributes = this.Attributes
-            SourceFile = this.Source.CodePath
+            SourceFile = this.Source.CodeFile
             Position = this.Position
             HeaderRange = this.HeaderRange
             Documentation = this.Documentation

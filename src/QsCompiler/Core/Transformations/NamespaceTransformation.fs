@@ -61,8 +61,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let file = Source.assemblyOrCode source |> this.OnSourceFile
 
         if file.EndsWith ".qs"
-        then { source with CodePath = file }
-        else { source with AssemblyPath = Value file }
+        then { source with CodeFile = file }
+        else { source with AssemblyFile = Value file }
 
     abstract OnAttribute: QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att

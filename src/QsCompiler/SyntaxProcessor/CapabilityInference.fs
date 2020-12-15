@@ -253,7 +253,7 @@ let rec private referenceReasons context
                 Seq.append
                     [
                         name.Name
-                        header.Source.CodePath
+                        header.Source.CodeFile
                         string (diagnostic.Range.Start.Line + 1)
                         string (diagnostic.Range.Start.Column + 1)
                     ]
@@ -313,7 +313,7 @@ let private isOperation callable =
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
 let private isDeclaredInSourceFile (callable: QsCallable) =
-    QsNullable.isNull callable.Source.AssemblyPath
+    QsNullable.isNull callable.Source.AssemblyFile
 
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.

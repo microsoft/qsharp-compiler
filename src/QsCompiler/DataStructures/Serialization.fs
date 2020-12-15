@@ -183,7 +183,7 @@ type private QsSpecializationConverter() =
             Kind = schema.Kind
             Parent = schema.Parent
             Attributes = schema.Attributes
-            Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             TypeArguments = schema.TypeArguments
             Signature = schema.Signature
@@ -198,7 +198,7 @@ type private QsSpecializationConverter() =
                 Kind = value.Kind
                 Parent = value.Parent
                 Attributes = value.Attributes
-                SourceFile = value.Source.CodePath
+                SourceFile = value.Source.CodeFile
                 Location = value.Location
                 TypeArguments = value.TypeArguments
                 Signature = value.Signature
@@ -221,7 +221,7 @@ type private QsCallableConverter() =
             FullName = schema.FullName
             Attributes = schema.Attributes
             Modifiers = schema.Modifiers
-            Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Signature = schema.Signature
             ArgumentTuple = schema.ArgumentTuple
@@ -237,7 +237,7 @@ type private QsCallableConverter() =
                 FullName = value.FullName
                 Attributes = value.Attributes
                 Modifiers = value.Modifiers
-                SourceFile = value.Source.CodePath
+                SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Signature = value.Signature
                 ArgumentTuple = value.ArgumentTuple
@@ -259,7 +259,7 @@ type private QsCustomTypeConverter() =
             FullName = schema.FullName
             Attributes = schema.Attributes
             Modifiers = schema.Modifiers
-            Source = { CodePath = schema.SourceFile; AssemblyPath = Null }
+            Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Type = schema.Type
             TypeItems = schema.TypeItems
@@ -273,7 +273,7 @@ type private QsCustomTypeConverter() =
                 FullName = value.FullName
                 Attributes = value.Attributes
                 Modifiers = value.Modifiers
-                SourceFile = value.Source.CodePath
+                SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Type = value.Type
                 TypeItems = value.TypeItems

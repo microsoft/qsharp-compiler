@@ -677,24 +677,24 @@ and QsStatement =
 type Source =
     {
         /// The path to the original source code file.
-        CodePath: string
+        CodeFile: string
 
         /// The path to the assembly file if the node was loaded from a reference.
-        AssemblyPath: string QsNullable
+        AssemblyFile: string QsNullable
     }
 
     /// The assembly file path for this source if one exists, otherwise the code file path.
-    member source.AssemblyOrCode = source.AssemblyPath.ValueOr source.CodePath
+    member source.AssemblyOrCode = source.AssemblyFile.ValueOr source.CodeFile
 
     /// <summary>
-    /// Returns a copy of this source with the given <paramref name="codePath"/> or <paramref name="assemblyPath"/> if
+    /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
     /// provided.
     /// </summary>
-    member source.With([<Optional; DefaultParameterValue null>] ?codePath,
-                       [<Optional; DefaultParameterValue null>] ?assemblyPath) =
+    member source.With([<Optional; DefaultParameterValue null>] ?codeFile,
+                       [<Optional; DefaultParameterValue null>] ?assemblyFile) =
         { source with
-            CodePath = codePath |> Option.defaultValue source.CodePath
-            AssemblyPath = assemblyPath |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyPath
+            CodeFile = codeFile |> Option.defaultValue source.CodeFile
+            AssemblyFile = assemblyFile |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyFile
         }
 
 /// Operations for source files.
