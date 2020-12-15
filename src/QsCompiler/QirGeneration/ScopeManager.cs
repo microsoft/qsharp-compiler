@@ -31,6 +31,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly GenerationContext sharedState;
 
         /// <summary>
+        /// Is true when there are currently no stack frames tracked.
+        /// Stack frames are added and removed by OpenScope and CloseScope respectively. 
+        /// </summary>
+        public bool IsEmpty => !this.releaseStack.Any();
+
+        /// <summary>
         /// Creates a new ref count scope manager.
         /// </summary>
         /// <param name="ctx">The generation context the new manager should be associated with</param>

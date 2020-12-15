@@ -760,14 +760,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #region Function management
 
         /// <summary>
-        /// Preps the shared state for a new QIR function.
+        /// Preps the shared state for a new QIR function by clearing all currently listed unique names,
+        /// opening a new naming scope and a new scope in the scope manager.
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// The current indentation level is not null or there are variables names that are still in scope.
         /// </exception>
         internal void StartFunction()
         {
-            if (this.namesInScope.Any() || this.CurrentInlineLevel != 0)
+            if (this.namesInScope.Any() || this.CurrentInlineLevel != 0 || !this.ScopeMgr.IsEmpty)
             {
                 throw new InvalidOperationException("Processing of the current function and needs to be properly terminated before starting a new one");
             }
@@ -778,10 +779,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block.
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// and closing a naming scope.
         /// </summary>
+        /// <returns>true if the function has been properly ended</returns>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        internal void EndFunction()
+        internal bool EndFunction()
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -818,6 +821,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentBuilder.Return();
             }
+
+            return this.ScopeMgr.IsEmpty && this.CurrentInlineLevel == 0 && !this.namesInScope.Any();
         }
 
         /// <summary>
@@ -924,7 +929,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                this.CurrentBuilder.Return(this.Constants.UnitValue);
+                QirStatementKindTransformation.AddReturn(this, this.Constants.UnitValue, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
@@ -936,11 +941,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
-                    // Add a reference to the value, if necessary
-                    this.ScopeMgr.AddReference(this.CurrentFunction.Parameters[i]); // FIXME: THIS SHOULD BE HANDLED BY REGISTER NAME AND CLODESCOPE INSTEAD
                 }
 
-                this.CurrentBuilder.Return(udtTuple);
+                QirStatementKindTransformation.AddReturn(this, udtTuple, returnsVoid: false);
             }
         }
 
@@ -1504,7 +1507,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 value.RegisterName(this.InlinedName(name));
             }
-            this.namesInScope.Peek().Add(name, (value, isMutable)); // FIXME: WHY IS IT THE INLINED NAME ABOVE BUT NOT HERE?
+            this.namesInScope.Peek().Add(name, (value, isMutable));
         }
 
         /// <summary>

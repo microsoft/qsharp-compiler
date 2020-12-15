@@ -37,6 +37,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
+        // static methods
+
+        // used by the return statement transformation as well as for building constructors
+        internal static void AddReturn(GenerationContext sharedState, Value result, bool returnsVoid)
+        {
+            // If we're not inlining, compute the result, release any pending qubits, and generate a return.
+            // Otherwise, just evaluate the result and leave it on top of the stack.
+            if (sharedState.CurrentInlineLevel == 0)
+            {
+                // The return value and its inner items won't be unreferenced when exiting the scope
+                // since it will be used by the caller
+                sharedState.ScopeMgr.ExitScope(returned: result);
+
+                if (returnsVoid)
+                {
+                    sharedState.CurrentBuilder.Return();
+                }
+                else
+                {
+                    sharedState.CurrentBuilder.Return(result);
+                }
+            }
+            else
+            {
+                sharedState.ValueStack.Push(result);
+            }
+        }
+
         // private helpers
 
         /// <summary>
@@ -519,29 +547,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
-            // If we're not inlining, compute the result, release any pending qubits, and generate a return.
-            // Otherwise, just evaluate the result and leave it on top of the stack.
-            if (this.SharedState.CurrentInlineLevel == 0)
-            {
-                Value result = this.SharedState.EvaluateSubexpression(ex);
-                // The return value and its inner items won't be unreferenced when exiting the scope
-                // since it will be used by the caller
-                this.SharedState.ScopeMgr.ExitScope(returned: result);
-
-                if (ex.ResolvedType.Resolution.IsUnitType)
-                {
-                    this.SharedState.CurrentBuilder.Return();
-                }
-                else
-                {
-                    this.SharedState.CurrentBuilder.Return(result);
-                }
-            }
-            else
-            {
-                this.Transformation.Expressions.OnTypedExpression(ex);
-            }
-
+            Value result = this.SharedState.EvaluateSubexpression(ex);
+            AddReturn(this.SharedState, result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;
         }
 

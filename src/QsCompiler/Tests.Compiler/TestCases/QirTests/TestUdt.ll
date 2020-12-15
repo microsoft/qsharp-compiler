@@ -4,9 +4,7 @@ entry:
   %1 = bitcast %TupleHeader* %0 to { %TupleHeader, { %TupleHeader, i2, i64 }*, double }*
   %2 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %1, i64 0, i32 1
   store { %TupleHeader, i2, i64 }* %arg__1, { %TupleHeader, i2, i64 }** %2
-  %3 = bitcast { %TupleHeader, i2, i64 }* %arg__1 to %TupleHeader*
-  call void @__quantum__rt__tuple_reference(%TupleHeader* %3)
-  %4 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %1, i64 0, i32 2
-  store double %D, double* %4
+  %3 = getelementptr { %TupleHeader, { %TupleHeader, i2, i64 }*, double }, { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %1, i64 0, i32 2
+  store double %D, double* %3
   ret { %TupleHeader, { %TupleHeader, i2, i64 }*, double }* %1
 }
