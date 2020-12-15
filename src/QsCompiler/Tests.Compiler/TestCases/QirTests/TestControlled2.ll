@@ -1,4 +1,4 @@
-﻿define void @Lifted__PartialApplication__1__ctrl__wrapper(%TupleHeader* %capture-tuple, %TupleHeader* %arg-tuple, %TupleHeader* %result-tuple) {
+﻿define void @Lifted__PartialApplication__1__ctl__wrapper(%TupleHeader* %capture-tuple, %TupleHeader* %arg-tuple, %TupleHeader* %result-tuple) {
 entry:
   %0 = bitcast %TupleHeader* %capture-tuple to { %TupleHeader, %Callable*, i64 }*
   %1 = bitcast %TupleHeader* %arg-tuple to { %TupleHeader, %Array*, %Qubit* }*

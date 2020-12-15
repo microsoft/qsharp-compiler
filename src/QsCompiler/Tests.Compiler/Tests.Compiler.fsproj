@@ -57,6 +57,9 @@
     <Content Include="TestCases\QirTests\TestControlled2.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestControlled3.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestControlled.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -78,16 +81,22 @@
     <Content Include="TestCases\QirTests\TestEntryPoint.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestOpArgument.ll">
+    <Content Include="TestCases\QirTests\TestExpressions.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestOpArgument.qs">
+    <Content Include="TestCases\QirTests\TestExpressions.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestIntegers.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestIntegers.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestOpArgument.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestOpArgument.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestPartials1.ll">

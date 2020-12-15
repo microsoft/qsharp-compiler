@@ -23,14 +23,22 @@ namespace Microsoft.Quantum.Testing.QIR
         }
     }
 
+    function InvokeAndIgnore<'T>(op : (Unit -> 'T)) : Unit {
+        let _ = op();
+    }
+
+    function GetNestedTuple() : (Int, (String, Double)) {
+        return (1, ("", 2.));
+    }
+
     @EntryPoint()
     operation TestOpArgument () : Unit {
         using (q = Qubit()) {
             Apply(CNOT(_, q)); 
             Apply(_SWAP(_, q));
-            // TODO: there is currently a bug in the partial application mapping
-            // Apply(_Choose(q, (_, q))); 
-            // Apply(_Choose(_,(q,q)));
+            Apply(_Choose(q, (_, q))); 
+            Apply(_Choose(_,(q,q)));
         }
+        InvokeAndIgnore(GetNestedTuple);
     }
 }

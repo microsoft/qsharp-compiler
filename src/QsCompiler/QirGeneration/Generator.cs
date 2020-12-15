@@ -83,6 +83,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </param>
         /// <param name="overwrite">Whether or not to overwrite a file if it already exists.</param>
         public void Emit(string fileName, bool overwrite = true) =>
-            this.SharedState.Emit(fileName, overwrite: overwrite, generateInteropWrappers: true);
+            this.SharedState.Emit(fileName, overwrite: overwrite);
     }
 }

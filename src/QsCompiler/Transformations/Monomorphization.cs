@@ -42,6 +42,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             var nodes = new ConcreteCallGraph(compilation).Nodes
                 // Remove specialization information so that we only deal with the full callables.
+                // Note: this only works fine if for all nodes in the call graph,
+                // all existing functor specializations and their dependencies are also in the call graph.
                 .Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions))
                 .ToImmutableHashSet();
 
@@ -66,7 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                     // Generate the concrete version of the callable
                     var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getAccessModifiers);
-                    concretizations.Add(concrete.WithFullName(oldName => concreteName));
+                    concretizations.Add(
+                        concrete.WithFullName(oldName => concreteName)
+                        .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray()));
                 }
                 else
                 {

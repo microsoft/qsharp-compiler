@@ -7,6 +7,9 @@ open System.IO
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open System.Reflection
+open System.Text.RegularExpressions
+
+let private GUID = new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
 
 let private testOne expected args = 
     let result = Program.Main args
@@ -17,7 +20,7 @@ let private clearOutput name =
 
 let private checkAltOutput name actualText =
     let expectedText = ("TestCases","QirTests",name) |> Path.Combine |> File.ReadAllText
-    Assert.Contains(expectedText, actualText)
+    Assert.Contains(expectedText, GUID.Replace(actualText, "__GUID__"))
 
 let private qirMultiTest target name snippets =
     clearOutput (name+".ll")
@@ -111,7 +114,7 @@ let ``QIR bigints`` () =
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =
-    qirMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"]
+    qirMultiTest true "TestControlled" ["TestControlled1"; "TestControlled2"; "TestControlled3"]
 
 [<Fact>]
 let ``QIR entry points`` () =
@@ -119,7 +122,7 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"]
+    qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4"]
 
 [<Fact>]
 let ``QIR paulis`` () =
@@ -140,3 +143,7 @@ let ``QIR strings`` () =
 [<Fact>]
 let ``QIR scoping`` () =
     qirTest false "TestScoping"
+
+[<Fact>]
+let ``QIR expressions`` () =
+    qirTest false "TestExpressions"

@@ -115,6 +115,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var indices = new Value[] { builder.Context.CreateConstant(0L), builder.Context.CreateConstant(i + 1) };
                     var itemDestPtr = builder.GetElementPtr(this.ItemType, typedTuple, indices);
                     var item = this.Items[i].BuildItem(builder, captureType, capture, parArgsType, parArgs);
+                    if (this.Items[i] is InnerTuple)
+                    {
+                        // if the time is an inner tuple, then we need to cast it to a concrete tuple before storing
+                        item = builder.BitCast(item, this.Items[i].ItemType.CreatePointerType());
+                    }
                     builder.Store(item, itemDestPtr);
                 }
                 return innerTuple;
@@ -1560,7 +1565,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
                 {
-                    var wrapper = this.SharedState.GetOrCreateWrapper(callable);
+                    var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
                     var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                     var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Types.Tuple.GetNullValue());
 
@@ -2313,21 +2318,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
             // Build the LLVM structure type we need
-            var rest = vs.Select(v => this.SharedState.LlvmTypeFromQsharpType(v.ResolvedType));
-            var tupleType = this.SharedState.Types.CreateConcreteTupleType(rest);
+            var itemTypes = vs.Select(v => this.SharedState.LlvmTypeFromQsharpType(v.ResolvedType));
+            var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
 
             // Allocate the tuple and record it to get released later
-            var tupleHeaderPointer = this.SharedState.CreateTupleForType(tupleType);
-            var tuplePointer = this.SharedState.CurrentBuilder.BitCast(tupleHeaderPointer, tupleType.CreatePointerType());
+            var tuple = this.SharedState.CreateTupleForType(tupleType);
+            var concreteTuple = this.SharedState.CurrentBuilder.BitCast(tuple, tupleType.CreatePointerType());
             this.PushValueInScope(
-                tuplePointer,
+                concreteTuple,
                 ResolvedType.New(QsResolvedTypeKind.NewTupleType(vs.Select(v => v.ResolvedType).ToImmutableArray())));
 
             // Fill it in, field by field
             for (int i = 0; i < vs.Length; i++)
             {
                 var itemValue = this.ProcessAndEvaluateSubexpression(vs[i]);
-                var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
+                var itemPointer = this.SharedState.GetTupleElementPointer(tupleType, concreteTuple, i + 1);
                 this.SharedState.CurrentBuilder.Store(itemValue, itemPointer);
             }
 
@@ -2336,14 +2341,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnUnwrapApplication(TypedExpression ex)
         {
-            // Since we simply represent user defined types as tuples,
-            // we don't need to do anything unless the tuples contains a single item,
+            var exValue = this.ProcessAndEvaluateSubexpression(ex);
+
+            // Since we simply represent user defined types as tuples, we don't need to do anything
+            // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt
                 && this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl)
                 && !udtDecl.Type.Resolution.IsTupleType)
             {
-                var exValue = this.ProcessAndEvaluateSubexpression(ex);
                 var tupleType = this.SharedState.LlvmStructTypeFromQsharpType(ex.ResolvedType);
                 var tuplePointer = this.SharedState.CurrentBuilder.BitCast(exValue, tupleType.CreatePointerType());
 
@@ -2356,6 +2362,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 var element = this.SharedState.CurrentBuilder.Load(itemType, itemPointer);
                 this.SharedState.ValueStack.Push(element);
+            }
+            else
+            {
+                this.SharedState.ValueStack.Push(exValue);
             }
 
             return ResolvedExpression.InvalidExpr;
