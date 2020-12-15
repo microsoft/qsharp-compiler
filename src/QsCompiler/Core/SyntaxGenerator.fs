@@ -304,7 +304,7 @@ module SyntaxGenerator =
     /// combines them to a suitable argument for the controlled version of the originally called operation under the assumption that the argument was correct.
     /// The range information for the built expression is set to Null.
     /// </summary>
-    /// <exception cref="ArgumentException"><paramref name="ctlQs"/> is a valid type but not of type <see cref="T:Qubit[]"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ctlQs"/> is a valid type but not of type Qubit[].</exception>
     let ArgumentWithControlQubits (arg: TypedExpression) (ctlQs: TypedExpression) =
         let isInvalid =
             function

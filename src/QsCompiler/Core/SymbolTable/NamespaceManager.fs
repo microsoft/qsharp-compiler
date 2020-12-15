@@ -239,7 +239,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// </summary>
-    /// <exception cref="NotSupportedException">The <see cref="QsType"/> to resolve contains a <see cref="MissingType"/>.</exception>
+    /// <exception cref="NotSupportedException"><paramref name="qsType"/> contains a <see cref="MissingType"/>.</exception>
     let resolveType (parent: QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT =
             tryResolveTypeName (parent.Namespace, source)
@@ -645,7 +645,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// </summary>
-    /// <exception cref="NotSupportedException">The <see cref="QsType"/> to resolve contains a <see cref="MissingType"/>.</exception>
+    /// <exception cref="NotSupportedException"><paramref name="qsType"/> contains a <see cref="MissingType"/>.</exception>
     member this.ResolveType (parent: QsQualifiedName, tpNames: ImmutableArray<_>, source: string) (qsType: QsType) =
         resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
@@ -661,7 +661,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types.
     /// </summary>
-    /// <exception cref="ArgumentException">The given type tuple is an empty <see cref="QsTuple"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="typeTuple"/> is an empty <see cref="QsTuple"/>.</exception>
     member private this.ResolveTypeDeclaration (fullName: QsQualifiedName, source, modifiers) typeTuple =
         // Currently, type parameters for UDTs are not supported.
         let checkAccessibility =
@@ -690,7 +690,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables.
     /// </summary>
-    /// <exception cref="ArgumentException">The given list of characteristics is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="specBundleCharacteristics"/> is empty.</exception>
     member private this.ResolveCallableSignature (parentKind, parentName: QsQualifiedName, source, access)
                                                  (signature, specBundleCharacteristics)
                                                  =
@@ -1556,7 +1556,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// That hash does not contain any information about the imported namespaces, positional information, or about any documentation.
     /// Returns the generated hash as well as a separate hash providing information about the imported namespaces.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The given source file contains unresolved entries.</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="source"/> contains unresolved entries.</exception>
     member this.HeaderHash source =
         let invalidOperationEx =
             InvalidOperationException "everything needs to be resolved before constructing the HeaderString"

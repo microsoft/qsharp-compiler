@@ -15,7 +15,7 @@
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
     <!-- Enable and treat as error malformed XML doc comment warning (FS3390) -->
     <OtherFlags>--warnon:3390</OtherFlags>
-    <WarningsAsErrors>3390;</WarningsAsErrors>
+    <WarningsAsErrors>3390</WarningsAsErrors>
   </PropertyGroup>
 
   <!--

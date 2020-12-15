@@ -564,7 +564,8 @@ module SymbolResolution =
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is inconsistent with the defined callables.
     /// </summary>
     /// <exception cref="NotSupportedException"><paramref name="qsType"/> contains a <see cref="MissingType"/>.</exception>
-    /// <exception cref="ArgumentException">No namespace with the given name exists, or the given source file is not listed as source of that namespace.</exception>
+    /// <exception cref="ArgumentException">No namespace with the given name exists.</exception>
+    /// <exception cref="ArgumentException">The given source file is not listed as source of that namespace.</exception>
     let rec internal ResolveType (processUDT, processTypeParameter) (qsType: QsType) =
         let resolve = ResolveType(processUDT, processTypeParameter)
         let asResolvedType t = ResolvedType.New(true, t)
