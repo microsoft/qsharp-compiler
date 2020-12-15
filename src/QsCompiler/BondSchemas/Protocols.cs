@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// Deserializes a Q# compilation object from its Bond simple binary representation.
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
-        /// <remarks>This must not be invoked through a <see cref="Task"/>.</remarks>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray)
         {
