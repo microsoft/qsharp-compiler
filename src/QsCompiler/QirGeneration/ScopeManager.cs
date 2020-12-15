@@ -121,7 +121,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return null;
         }
 
-        private void ModifyReferences(Value value, Value func, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
+        /// <summary>
+        /// Applies the given function to the given value, casting the value if necessary,
+        /// and then recurs into contained items and if getItemFunc returns not null, applies the returned function to them.
+        /// </summary>
+        private void RecursivelyModifyReferences(Value value, Value func, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
         {
             if (this.sharedState.Types.IsTupleType(value.NativeType))
             {
@@ -143,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         };
                         var ptr = builder.GetElementPtr(elementType, value, indices);
                         var item = builder.Load(itemTypes[i], ptr);
-                        this.ModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
+                        this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
                 }
             }
@@ -175,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach ((Value valueToRelease, string releaseFunc) in pendingReleases)
             {
                 IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(releaseFunc);
-                this.ModifyReferences(valueToRelease, func, this.GetReleaseFunctionForType, builder);
+                this.RecursivelyModifyReferences(valueToRelease, func, this.GetReleaseFunctionForType, builder);
             }
         }
 
@@ -232,7 +236,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (referenceFunc != null)
             {
                 IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(referenceFunc);
-                this.ModifyReferences(value, func, this.GetReferenceFunctionForType, this.sharedState.CurrentBuilder);
+                this.RecursivelyModifyReferences(value, func, this.GetReferenceFunctionForType, this.sharedState.CurrentBuilder);
             }
         }
 
