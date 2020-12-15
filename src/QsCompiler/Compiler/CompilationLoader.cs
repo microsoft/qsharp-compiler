@@ -211,10 +211,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// If the ProjectName does have an extension ending with "proj", returns the project name without that extension.
             /// Returns null if the project name is null.
             /// </summary>
-            internal string? ProjectNameWithoutExtension =>
+            internal string? ProjectNameWithoutPathOrExtension =>
                 this.ProjectName == null ? null :
                 Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) :
-                this.ProjectName;
+                Path.GetFileName(this.ProjectName);
         }
 
         /// <summary>
@@ -1039,7 +1039,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
 
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
-                    this.config.ProjectNameWithoutExtension ?? Path.GetFileNameWithoutExtension(outputPath),
+                    this.config.ProjectNameWithoutPathOrExtension ?? Path.GetFileNameWithoutExtension(outputPath),
                     syntaxTrees: new[] { csharpTree },
                     references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
