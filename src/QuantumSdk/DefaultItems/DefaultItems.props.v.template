@@ -39,7 +39,7 @@
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe>
     <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe>
     <QscExe>$(DefaultQscExe)</QscExe>
-    <ConcreteIntrinsicGen>false</ConcreteIntrinsicGen>
+    <GenerateConcreteIntrinsic>false</GenerateConcreteIntrinsic>
   </PropertyGroup>
 
 </Project>
