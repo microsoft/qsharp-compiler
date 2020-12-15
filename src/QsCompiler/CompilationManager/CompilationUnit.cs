@@ -36,9 +36,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation?)>? specs = null,
                 IEnumerable<TypeDeclarationHeader>? types = null)
             {
-                this.Types = types?.Select(t => t.FromSource(t.Source.With(assemblyPath: source))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
-                this.Callables = callables?.Select(c => c.FromSource(c.Source.With(assemblyPath: source))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
-                this.Specializations = specs?.Select(s => (s.Item1.FromSource(s.Item1.Source.With(assemblyPath: source)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
+                this.Types = types?.Select(t => t.FromSource(t.Source.With(assemblyFile: source))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
+                this.Callables = callables?.Select(c => c.FromSource(c.Source.With(assemblyFile: source))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
+                this.Specializations = specs?.Select(s => (s.Item1.FromSource(s.Item1.Source.With(assemblyFile: source)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
@@ -247,10 +247,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var (callables, types) = CompilationUnit.RenameInternalDeclarations(
                 loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c => c
-                    .WithSource(c.Source.With(assemblyPath: loaded.Item1))
-                    .WithSpecializations(specs => specs.Select(s => s.WithSource(s.Source.With(assemblyPath: loaded.Item1))).ToImmutableArray()))),
+                    .WithSource(c.Source.With(assemblyFile: loaded.Item1))
+                    .WithSpecializations(specs => specs.Select(s => s.WithSource(s.Source.With(assemblyFile: loaded.Item1))).ToImmutableArray()))),
                 loaded.SelectMany(loaded => loaded.Item2.Types().Select(t => t
-                    .WithSource(t.Source.With(assemblyPath: loaded.Item1)))),
+                    .WithSource(t.Source.With(assemblyFile: loaded.Item1)))),
                 additionalAssemblies: additionalAssemblies);
 
             var conflicting = new List<(string, string)>();
