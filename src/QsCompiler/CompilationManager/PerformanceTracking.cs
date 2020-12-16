@@ -114,7 +114,17 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// Task for a specific rewrite step.
             /// These tasks should be accompanied with details of which rewrite step it is specific to.
             /// </summary>
-            SingleRewriteStep
+            SingleRewriteStep,
+
+            /// <summary>
+            /// Task that loads data directly from a .NET DLL.
+            /// </summary>
+            HeaderAttributesLoading,
+
+            /// <summary>
+            /// Task that creates headers from references.
+            /// </summary>
+            ReferenceHeadersCreation
         }
 
         /// <summary>
@@ -152,7 +162,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.SyntaxTreeSerialization, Task.OutputGeneration },
             { Task.LoadDataFromReferenceToStream, Task.ReferenceLoading },
             { Task.DeserializerInit, Task.ReferenceLoading },
-            { Task.SyntaxTreeDeserialization, Task.ReferenceLoading }
+            { Task.SyntaxTreeDeserialization, Task.ReferenceLoading },
+            { Task.HeaderAttributesLoading, Task.ReferenceLoading },
+            { Task.ReferenceHeadersCreation, Task.ReferenceLoading }
         };
 
         /// <summary>
