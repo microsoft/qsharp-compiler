@@ -48,11 +48,17 @@ namespace Microsoft.Quantum.QsCompiler
             using var assemblyFile = new PEReader(stream);
             if (ignoreDllResources || !FromResource(assemblyFile, out var compilation, onDeserializationException))
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.HeaderAttributesLoading);
                 var attributes = LoadHeaderAttributes(assemblyFile);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.HeaderAttributesLoading);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
                 headers = new References.Headers(id, attributes);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
                 return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
             headers = new References.Headers(id, compilation?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
             return true;
         }
 
@@ -104,7 +110,9 @@ namespace Microsoft.Quantum.QsCompiler
             compilation = null;
             try
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
             {
