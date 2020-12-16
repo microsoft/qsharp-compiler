@@ -72,13 +72,13 @@
            to the actual package ID if it's set, but allow overriding with
            QsharpDocsPackageId. -->
       <_NewLine>%20</_NewLine>
-      <_NewLineIndent>$(_NewLine)</_NewLineIndent>
-      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$(PathCompatibleAssemblyName)"</_QscCommandProjFlag>
+      <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
+      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
       <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
       <_QscDocsPackageId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageId>
       <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">$(_NewLine)--build-exe</_QscCommandIsExecutableFlag>
-      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">$(_NewLine)--input$(_NewLineIndent)"@(QsharpCompile, '"$(_NewLineIndent)"')"</_QscCommandInputFlag>
-      <_QscCommandOutputPath>$(GeneratedFilesOutputPath)</_QscCommandOutputPath>
+      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">$(_NewLine)--input$(_NewLineIndent)"@(QsharpCompile->'%(FullPath)', '"$(_NewLineIndent)"')"</_QscCommandInputFlag>
+      <_QscCommandOutputPath>$([System.IO.Path]::GetFullPath('$(GeneratedFilesOutputPath)'))</_QscCommandOutputPath>
       <_QscCommandOutputPath>$([MSBuild]::Unescape('$(_QscCommandOutputPath)').Replace('\','/'))</_QscCommandOutputPath>
       <_QscCommandOutputFlag>$(_NewLine)--output$(_NewLineIndent)"$(_QscCommandOutputPath)"</_QscCommandOutputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQsharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
