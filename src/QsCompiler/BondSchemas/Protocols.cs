@@ -30,6 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// Deserializes a Q# compilation object from its Bond simple binary representation.
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray)
         {
@@ -48,6 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <summary>
         /// Starts the creation of Bond serializers and deserializers.
         /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void Initialize()
         {
             lock (BondSharedDataStructuresLock)
@@ -67,6 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <summary>
         /// Starts the creation of a Bond deserializer.
         /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void InitializeDeserializer()
         {
             lock (BondSharedDataStructuresLock)
@@ -81,6 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <summary>
         /// Starts the creation of a Bond serializer.
         /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void InitializeSerializer()
         {
             lock (BondSharedDataStructuresLock)
@@ -97,6 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// </summary>
         /// <param name="qsCompilation">Q# compilation object to serialize.</param>
         /// <param name="stream">Stream to write the serialization to.</param>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void SerializeQsCompilationToSimpleBinary(
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
