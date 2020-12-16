@@ -71,7 +71,7 @@
       <!-- For the package ID that gets displayed in documentation, we default
            to the actual package ID if it's set, but allow overriding with
            QsharpDocsPackageId. -->
-      <_NewLine>%0d%0a</_NewLine>
+      <_NewLine>%0D%0A</_NewLine>
       <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
       <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
       <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
@@ -101,11 +101,15 @@
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
 
+    <ItemGroup>
+      <_QscCommandArgsLines Include="$(_QscCommandArgs.Trim().Split($(_NewLine)))"/>
+    </ItemGroup>
+    
     <!-- Only write to the file if there are any changes; this enables incremental build. -->
     <ReadLinesFromFile File="$(_QscCommandArgsFile)" >
       <Output TaskParameter="Lines" ItemName="OldCommandArgs"/>
     </ReadLinesFromFile>
-    <WriteLinesToFile Condition="'@(OldCommandArgs)' != '$(_QscCommandArgs.Trim())'"
+    <WriteLinesToFile Condition="'@(OldCommandArgs)' != '@(_QscCommandArgsLines)'"
       File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/>
     
     <!-- Expose the file as build item. -->
