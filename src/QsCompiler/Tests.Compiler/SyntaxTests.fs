@@ -756,15 +756,34 @@ let ``Modifier tests`` () = // modifiers can only be applied to identifiers, ari
 [<Fact>]
 let ``Function type tests`` () =
     [
-        "(Int -> Int)", Function(toType Int, toType Int) |> toType, []
-        "(Int -> (Int -> Int))", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
-        "((Int -> Int) -> Int)", Function(Function(toType Int, toType Int) |> toType, toType Int) |> toType, []
+        "(Int -> Int)", toTupleType [ Function(toType Int, toType Int) |> toType ], []
+
+        "(Int -> (Int -> Int))",
+        toTupleType [ Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType ],
+        []
+
+        "((Int -> Int) -> Int)",
+        toTupleType [ Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType ],
+        []
+
         "Int -> Int", Function(toType Int, toType Int) |> toType, []
         "Int -> Int -> Int", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
-        "Int -> (Int -> Int)", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
-        "(Int -> Int) -> Int", Function(Function(toType Int, toType Int) |> toType, toType Int) |> toType, []
+
+        "Int -> (Int -> Int)",
+        Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType,
+        []
+
+        "(Int -> Int) -> Int",
+        Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType,
+        []
     ]
     |> List.iter testType
+
+    [
+        "new (Int -> Int)[0]", true, toNewArray (Function(toType Int, toType Int) |> toType) (toInt 0), []
+        "new Int -> Int[0]", false, toExpr InvalidExpr, []
+    ]
+    |> List.iter testExpr
 
 
 [<Fact>]

@@ -171,6 +171,7 @@ let private operationType =
                 |> pushDiagnostic
                 >>. preturn setExpr
         | _ -> fail "not a functor support annotation"
+
     // the actual type parsing:
     let inAndOutputType =
         let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
@@ -197,11 +198,12 @@ let private operationType =
     opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
     |>> asType Operation // keep this order!
 
-/// Parses a Q# function type raising the corresponding missing bracket errors if the outer tuple brackets are missing.
+/// Parses a Q# function type.
+///
 /// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
 let private functionType =
-    let core = leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation)
-    optTupleBrackets core |>> asType Function
+    leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation) |> term
+    |>> asType Function
 
 /// Parses a Q# tuple type, raising an Missing- or InvalidTypeDeclaration error for missing or invalid items.
 /// The tuple must consist of at least one tuple item.

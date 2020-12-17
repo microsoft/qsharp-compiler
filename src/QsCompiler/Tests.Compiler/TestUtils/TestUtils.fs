@@ -95,6 +95,9 @@ let unitType = UnitType |> toType
 
 let qubitType = Qubit |> toType
 
+let internal toTupleType items =
+    ImmutableArray.CreateRange items |> TupleType |> toType
+
 let toOpType it ot s = Operation((it, ot), s) |> toType
 
 let toCharacteristicsExpr k = { Characteristics = k; Range = Null }
