@@ -3,6 +3,16 @@
 
 namespace Microsoft.Quantum.Testing.QIR {
 
+    // TODO: WRITE A TEST THAT USES THE RETURNED UDT WITH MORE THAN ONE ITEM
+    // TODO: TEST UDT AS INNER TUPLE ITEM IN RETURN VALUE
+    // TODO: ADD A TEST FOR AN ARGUMENT WITH MULTIPLE ITEMS
+
+    // FIXME: REFERENCE HANDLING IN UDTUPDATE IS NOT ACCURATE
+    // FIXME: SAME FOR ARRAYUPDATE
+    // FIXME: SAME FOR TESTRESULTS (ref counter for passed in result value is not properly increased?)
+    // FIXME: TAKE A LOOK AT GenerateConstructor AND HOW OTHER FUNCTIONS HANDLE ARGUMENTS...
+    // FIXME: GET RID OF BuildArgTupleType AND BuildArgTupleItemType
+
     newtype TestType = ((P : Pauli, I : Int), Double);
 
     // This test makes sure that we properly push a value 

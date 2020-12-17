@@ -906,7 +906,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (tupleArgName, tupleArg) = tuple;
                 this.PushNamedValue(tupleArgName);
                 var tupleValue = this.ValueStack.Pop();
-                int idx = 1;
+                int idx = 0;
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
                     var elementPointer = this.GetTupleElementPointer(((IPointerType)tupleValue.NativeType).ElementType, tupleValue, idx);
@@ -939,7 +939,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var nrArgs = spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Length : 1;
                 for (int i = 0; i < nrArgs; i++)
                 {
-                    var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i + 1);
+                    var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i);
                     this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
                 }
 
@@ -1104,15 +1104,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
                         // Convert value from Tuple to the proper type
                         Value asStructPointer = this.CurrentBuilder.BitCast(value, tupleTypeRef.CreatePointerType());
-                        var indices = new Value[]
-                        {
-                            this.Context.CreateConstant(0L),
-                            this.Context.CreateConstant(1)
-                        };
                         for (var i = 0; i < tuple.Item.Length; i++)
                         {
-                            indices[1] = this.Context.CreateConstant(i + 1);
-                            Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, indices);
+                            Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, this.PointerIndex(i));
                             args.Add(tuple.Item[i] is QsArgumentTuple.QsTuple vs && vs.Item.Length == 0
                                 ? this.Constants.UnitValue
                                 : BuildLoadForArg(tuple.Item[i], ptr));
@@ -1139,11 +1133,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var resItemPointer = this.CurrentBuilder.GetElementPtr(
                              resultTupleType,
                              resultValue,
-                             new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(j + 1) });
+                             this.PointerIndex(j));
                         var itemOutputPointer = this.CurrentBuilder.GetElementPtr(
                             resultTupleType,
                             concreteOutputTuple,
-                            new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(j + 1) });
+                            this.PointerIndex(j));
 
                         var itemType = this.LlvmTypeFromQsharpType(tupleType.Item[j]);
                         var resItem = this.CurrentBuilder.Load(itemType, resItemPointer);
@@ -1156,7 +1150,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var outputPointer = this.CurrentBuilder.GetElementPtr(
                             resultTupleType,
                             concreteOutputTuple,
-                            new[] { this.Context.CreateConstant(0L), this.Context.CreateConstant(1) });
+                            this.PointerIndex(0));
                     this.CurrentBuilder.Store(resultValue, outputPointer);
                 }
             }
@@ -1242,6 +1236,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Creates a suitable array of values to access the item at a given index for a pointer to a struct. 
+        /// </summary>
+        internal Value[] PointerIndex(int index) => new[]
+        {
+            this.Context.CreateConstant(0L),
+            this.Context.CreateConstant(index)
+        };
+
+        /// <summary>
         /// Returns a pointer to a tuple element.
         /// This is a thin wrapper around the LLVM GEP instruction.
         /// </summary>
@@ -1251,16 +1254,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
         internal Value GetTupleElementPointer(ITypeRef t, Value tuple, int index, InstructionBuilder? b = null)
         {
-            Value[] indices = new Value[]
-            {
-                this.Context.CreateConstant(0L),
-                this.Context.CreateConstant(index)
-            };
             var builder = b ?? this.CurrentBuilder;
             var typedTuple = tuple.NativeType == t.CreatePointerType()
                 ? tuple
                 : builder.BitCast(tuple, t.CreatePointerType());
-            var elementPointer = builder.GetElementPtr(t, typedTuple, indices);
+            var elementPointer = builder.GetElementPtr(t, typedTuple, this.PointerIndex(index));
             return elementPointer;
         }
 

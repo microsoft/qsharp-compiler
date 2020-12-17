@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
-        /// Stack frames are added and removed by OpenScope and CloseScope respectively. 
+        /// Stack frames are added and removed by OpenScope and CloseScope respectively.
         /// </summary>
         public bool IsEmpty => !this.releaseStack.Any();
 
@@ -135,17 +135,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // for tuples we also unreference all inner tuples
                 var elementType = ((IPointerType)value.NativeType).ElementType;
                 var itemTypes = ((IStructType)elementType).Members;
-                for (var i = 1; i < itemTypes.Count; ++i)
+                for (var i = 0; i < itemTypes.Count; ++i)
                 {
                     var itemFuncName = getItemFunc(itemTypes[i]);
                     if (itemFuncName != null)
                     {
-                        var indices = new Value[]
-                        {
-                                this.sharedState.Context.CreateConstant(0L),
-                                this.sharedState.Context.CreateConstant(i)
-                        };
-                        var ptr = builder.GetElementPtr(elementType, value, indices);
+                        var ptr = builder.GetElementPtr(elementType, value, this.sharedState.PointerIndex(i));
                         var item = builder.Load(itemTypes[i], ptr);
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
@@ -275,7 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exits the current scope stack by generating all of the pending releases for all open scopes.
         /// Skips any release function for the returned value.
         /// The releases are generated in the current block.
-        /// Exiting the current scope does *not* close the scope. 
+        /// Exiting the current scope does *not* close the scope.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
         public void ExitScope(Value returned)
