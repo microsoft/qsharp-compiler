@@ -752,15 +752,34 @@ let ``Modifier tests`` () = // modifiers can only be applied to identifiers, ari
     ]
     |> List.iter testExpr
 
-// Note that since we do not currently have the means to support a left-recursive grammar (would require a different approach to parsing),
-// we have to prioritize in order to stick with a non-left-recursive grammar (there are algorithms that translate a left-recursive grammar into a non-left-recursive one,
-// but for practical purposes would require reconstructing the syntax tree of the old grammar from the one built by the new grammar).
-// We prioritize call like expressions over array item expressions,
-// and hence similar syntax patterns for array item expressions as tested above for call-like expressions are currently not processed / do not exist in the language.
+
+[<Fact>]
+let ``Function type tests`` () =
+    [
+        "(Int -> Int)", Function(toType Int, toType Int) |> toType, []
+        "(Int -> (Int -> Int))", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+        "((Int -> Int) -> Int)", Function(Function(toType Int, toType Int) |> toType, toType Int) |> toType, []
+        "Int -> Int", Function(toType Int, toType Int) |> toType, []
+        "Int -> Int -> Int", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+        "Int -> (Int -> Int)", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+        "(Int -> Int) -> Int", Function(Function(toType Int, toType Int) |> toType, toType Int) |> toType, []
+    ]
+    |> List.iter testType
 
 
 [<Fact>]
 let ``Operation type tests`` () =
+    [
+        "(Int => Int)", toOpType (toType Int) (toType Int) emptySet, []
+        "(Int => (Int => Int))", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
+        "((Int => Int) => Int)", toOpType (toOpType (toType Int) (toType Int) emptySet) (toType Int) emptySet, []
+        "Int => Int", toOpType (toType Int) (toType Int) emptySet, []
+        "Int => Int => Int", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
+        "Int => (Int => Int)", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
+        "(Int => Int) => Int", toOpType (toOpType (toType Int) (toType Int) emptySet) (toType Int) emptySet, []
+    ]
+    |> List.iter testType
+
     [
         ("new (Qubit => Unit is Adj)[0]", true, toNewArray (toOpType qubitType unitType adjSet) (toInt 0), [])
         ("new Qubit => Unit is Adj[0]",
