@@ -304,7 +304,7 @@ namespace Microsoft.Quantum.Documentation
                         ResolvedTypeKind.Tags.Qubit => "[Qubit](xref:microsoft.quantum.qsharp.valueliterals#qubit-literals)",
                         ResolvedTypeKind.Tags.Range => "[Range](xref:microsoft.quantum.qsharp.valueliterals#range-literals)",
                         ResolvedTypeKind.Tags.String => "[String](xref:microsoft.quantum.qsharp.valueliterals#string-literals)",
-                        ResolvedTypeKind.Tags.UnitType => "[Unit](xref:microsoft.quantum.qsharp.valueliterals#unit-literal)",
+                        ResolvedTypeKind.Tags.UnitType => "[Unit](xref:microsoft.quantum.qsharp.valueliterals#unit-literals)",
                         ResolvedTypeKind.Tags.InvalidType => "__invalid__",
                         _ => $"__invalid<{type.Resolution.ToString()}>__",
                     },
