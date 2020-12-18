@@ -196,8 +196,7 @@ let private operationType =
         qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
         .>> notFollowedBy (comma >>. quantumFunctor)
 
-    let opTypeWithoutCharacteristics =
-        term (inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null)))
+    let opTypeWithoutCharacteristics = term (inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null)))
 
     opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
     |>> asType Operation // keep this order!
@@ -225,28 +224,22 @@ let internal typeParser tupleType =
                  attempt functionType
                  attempt unitType // needs to come *before* tupleType but *after* function- and operationType ...
                  attempt tupleType
+                 attempt typeParameterLike
                  attempt atomicType
                  attempt userDefinedType ] // needs to be last
 
-    let buildArrays p =
-        let combine kind (lRange, rRange) =
-            match QsNullable.Map2 Range.Span lRange rRange with
-            | Value range -> { Type = kind; Range = Value range }
-            | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
+    let combine kind (lRange, rRange) =
+        match QsNullable.Map2 Range.Span lRange rRange with
+        | Value range -> { Type = kind; Range = Value range }
+        | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
 
-        let rec applyArrays (t: QsType, item) =
-            match item with
-            | [] -> t
-            | (_, range) :: tail ->
-                let arrType = combine (ArrayType t) (t.Range, Value range)
-                applyArrays (arrType, tail)
+    let rec applyArrays (t: QsType, item) =
+        match item with
+        | [] -> t
+        | (_, range) :: tail ->
+            let arrType = combine (ArrayType t) (t.Range, Value range)
+            applyArrays (arrType, tail)
 
-        p .>>. many (arrayBrackets emptySpace) |>> applyArrays
-
-    let nonGenericType = buildArrays nonArrayTypes
-    let genericType = buildArrays typeParameterLike
-
-    (genericType <|> nonGenericType) // generic type needs to come first here
-    .>>? notFollowedBy (fctArrow <|> opArrow) // needed to make the error handling for missing brackets on op and fct types work (left recursion)
+    nonArrayTypes .>>. many (arrayBrackets emptySpace) |>> applyArrays
 
 do qsTypeImpl := typeParser tupleType
