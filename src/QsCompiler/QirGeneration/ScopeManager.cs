@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemFuncName = getItemFunc(itemTypes[i]);
                     if (itemFuncName != null)
                     {
-                        var ptr = builder.GetElementPtr(elementType, value, this.sharedState.PointerIndex(i));
+                        var ptr = this.sharedState.GetTupleElementPointer(elementType, value, i, builder);
                         var item = builder.Load(itemTypes[i], ptr);
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
