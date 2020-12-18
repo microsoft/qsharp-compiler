@@ -242,15 +242,12 @@ let internal typeParser tupleType =
         | Value range -> { Type = kind; Range = Value range }
         | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
 
-    let rec applyArrays (t: QsType, item) =
-        match item with
-        | [] -> t
-        | (_, range) :: tail ->
-            let arrType = combine (ArrayType t) (t.Range, Value range)
-            applyArrays (arrType, tail)
+    let createArray itemType range =
+        combine (ArrayType itemType) (itemType.Range, Value range)
 
     let arrayType atLeastOne itemType =
-        itemType .>>. (if atLeastOne then many1 else many) (arrayBrackets emptySpace) |>> applyArrays
+        itemType .>>. (if atLeastOne then many1 else many) (arrayBrackets emptySpace)
+        |>> fun (itemType, brackets) -> brackets |> Seq.map snd |> Seq.fold createArray itemType
 
     // operation and function signatures need to be processed *first* to make the left recursion work!
     attempt (callableType false)
