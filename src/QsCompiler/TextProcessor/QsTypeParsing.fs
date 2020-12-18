@@ -229,11 +229,11 @@ let internal typeParser tupleType =
 
     let baseType =
         [
-            attempt unitType // needs to come *before* tupleType but *after* function- and operationType ...
-            attempt tupleType
-            attempt typeParameterLike
-            attempt atomicType
-            attempt userDefinedType // needs to be last
+            unitType // needs to come *before* tupleType but *after* function- and operationType ...
+            tupleType
+            typeParameterLike
+            atomicType
+            userDefinedType // needs to be last
         ]
         |> choice
 
