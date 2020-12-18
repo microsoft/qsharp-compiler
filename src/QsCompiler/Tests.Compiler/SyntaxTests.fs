@@ -790,6 +790,18 @@ let ``Function type tests`` () =
         toTupleType [ toType Int
                       Function(toType Int, toType Int) |> toType ],
         []
+
+        "('T => Unit)[] -> Unit",
+        Function(ArrayType(toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet) |> toType, unitType)
+        |> toType,
+        []
+
+        "(('T => Unit)[] -> Unit)",
+        toTupleType [ Function
+                          (ArrayType(toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet) |> toType,
+                           unitType)
+                      |> toType ],
+        []
     ]
     |> List.iter testType
 
