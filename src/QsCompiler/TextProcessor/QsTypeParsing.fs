@@ -219,14 +219,24 @@ let internal tupleType =
 
 /// Parses for an arbitrary Q# type, using the given parser to process tuple types.
 let internal typeParser tupleType =
-    let nonArrayTypes =
-        choice [ attempt operationType // operation and function signatures need to be processed *first* to make the left recursion work!
-                 attempt functionType
-                 attempt unitType // needs to come *before* tupleType but *after* function- and operationType ...
-                 attempt tupleType
-                 attempt typeParameterLike
-                 attempt atomicType
-                 attempt userDefinedType ] // needs to be last
+    let callableType inArray p =
+        if inArray
+        then optTupleBrackets p |>> asType (fun t -> t.Type)
+        else p
+
+    let baseTypes inArray =
+        [
+            // operation and function signatures need to be processed *first* to make the left recursion work!
+            attempt (callableType inArray operationType)
+            attempt (callableType inArray functionType)
+
+            attempt unitType // needs to come *before* tupleType but *after* function- and operationType ...
+            attempt tupleType
+            attempt typeParameterLike
+            attempt atomicType
+            attempt userDefinedType // needs to be last
+        ]
+        |> choice
 
     let combine kind (lRange, rRange) =
         match QsNullable.Map2 Range.Span lRange rRange with
@@ -240,6 +250,8 @@ let internal typeParser tupleType =
             let arrType = combine (ArrayType t) (t.Range, Value range)
             applyArrays (arrType, tail)
 
-    nonArrayTypes .>>. many (arrayBrackets emptySpace) |>> applyArrays
+    let arrayType = baseTypes true .>>. many1 (arrayBrackets emptySpace) |>> applyArrays
+    let nonArrayType = baseTypes false
+    attempt arrayType <|> nonArrayType
 
 do qsTypeImpl := typeParser tupleType
