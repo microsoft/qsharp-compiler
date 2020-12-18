@@ -290,7 +290,7 @@ type TypeCheckingTests() =
         this.Expect "ArrayType14" []
         this.Expect "ArrayType15" []
         this.Expect "ArrayType16" [ Error ErrorCode.MissingRTupleBracket; Error ErrorCode.ExcessContinuation ]
-        this.Expect "ArrayType17" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "ArrayType17" [ Error ErrorCode.ExcessContinuation ]
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []
         this.Expect "ArrayType20" []
