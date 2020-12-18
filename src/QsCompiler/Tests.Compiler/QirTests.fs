@@ -89,6 +89,10 @@ let ``QIR operation argument`` () =
     qirTest true "TestOpArgument"
 
 [<Fact>]
+let ``QIR operation call`` () =
+    qirTest false "TestOpCall"
+
+[<Fact>]
 let ``QIR while loop`` () =
     qirTest false "TestWhile"
     

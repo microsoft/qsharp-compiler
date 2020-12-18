@@ -368,12 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Effectively we need to do a LET* (parallel let) instead of a LET.
             void MapTupleInner(TypedExpression source, QsArgumentTuple destination, List<(string, Value)> assignmentQueue)
             {
-                if (source.Expression.IsUnitValue)
-                {
-                    // Nothing to do, so bail
-                    return;
-                }
-                else if (destination is QsArgumentTuple.QsTuple tuple)
+                if (destination is QsArgumentTuple.QsTuple tuple)
                 {
                     var items = tuple.Item;
                     if (source.Expression is ResolvedExpression.ValueTuple srcItems)
@@ -400,7 +395,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var queue = new List<(string, Value)>();
-            MapTupleInner(s, d, queue);
+            if (!s.Expression.IsUnitValue)
+            {
+                MapTupleInner(s, d, queue);
+            }
             foreach (var (name, value) in queue)
             {
                 this.SharedState.RegisterName(name, value);
@@ -948,7 +946,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : (isControlled ? QsSpecializationKind.QsControlled
                     : QsSpecializationKind.QsBody));
 
-            void CallQuantumInstruction(string instructionName)
+            void CallQuantumInstruction(QsCallable callable, TypedExpression arg, string instructionName)
             {
                 var func = this.SharedState.GetOrCreateQuantumFunction(instructionName);
                 var argArray = (arg.Expression is ResolvedExpression.ValueTuple tuple)
@@ -958,32 +956,61 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ValueStack.Push(result);
             }
 
-            void InlineCalledRoutine(QsCallable inlinedCallable, bool isAdjoint, bool isControlled)
+            void CallCallableValue(TypedExpression method, TypedExpression arg)
             {
-                var inlineKind = GetSpecializationKind(isAdjoint, isControlled);
-                var inlinedSpecialization = inlinedCallable.Specializations.Where(spec => spec.Kind == inlineKind).Single();
-                if (isAdjoint && inlinedSpecialization.Implementation is SpecializationImplementation.Generated gen && gen.Item.IsSelfInverse)
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
+
+                // Build the arg tuple
+                ResolvedType argType = arg.ResolvedType;
+                Value argTuple;
+                if (argType.Resolution.IsUnitType)
                 {
-                    inlinedSpecialization = inlinedCallable.Specializations.Where(spec => spec.Kind == QsSpecializationKind.QsBody).Single();
+                    argTuple = this.SharedState.Constants.UnitValue;
+                }
+                else
+                {
+                    ITypeRef argStructType = this.SharedState.LlvmStructTypeFromQsharpType(argType);
+                    Value argStruct = this.SharedState.CreateTupleForType(argStructType);
+                    this.FillTuple(argStruct, arg);
+                    argTuple = this.SharedState.CurrentBuilder.BitCast(argStruct, this.SharedState.Types.Tuple);
                 }
 
-                this.SharedState.StartInlining();
-                if (inlinedSpecialization.Implementation is SpecializationImplementation.Provided impl)
+                // Allocate the result tuple, if needed
+                ResolvedType resultResolvedType = this.SharedState.ExpressionTypeStack.Peek();
+                ITypeRef? resultStructType = null;
+                Value? resultStruct = null;
+                Value? resultTuple = null;
+                if (resultResolvedType.Resolution.IsUnitType)
                 {
-                    this.MapTuple(arg, impl.Item1);
-                    this.Transformation.Statements.OnScope(impl.Item2);
-                }
-                this.SharedState.StopInlining();
+                    resultTuple = this.SharedState.Constants.UnitValue;
+                    this.SharedState.CurrentBuilder.Call(func, this.SharedState.EvaluateSubexpression(method), argTuple, resultTuple);
 
-                // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
-                if (inlinedCallable.Signature.ReturnType.Resolution.IsUnitType)
-                {
+                    // Now push the result. For now we assume it's a scalar.
                     this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
+                }
+                else
+                {
+                    resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
+                    resultTuple = this.SharedState.CreateTupleForType(resultStructType);
+                    resultStruct = this.SharedState.CurrentBuilder.BitCast(resultTuple, resultStructType.CreatePointerType());
+                    this.SharedState.CurrentBuilder.Call(func, this.SharedState.EvaluateSubexpression(method), argTuple, resultTuple);
+
+                    // Now push the result. For now we assume it's a scalar.
+                    Value resultPointer = this.SharedState.CurrentBuilder.GetElementPtr(resultStructType, resultStruct, this.SharedState.PointerIndex(0));
+                    ITypeRef resultType = this.SharedState.LlvmTypeFromQsharpType(resultResolvedType);
+                    Value result = this.SharedState.CurrentBuilder.Load(resultType, resultPointer);
+                    this.SharedState.ValueStack.Push(result);
                 }
             }
 
-            bool SupportedByRuntime(QsQualifiedName name)
+            // this method currently does not support handling operations (more specifically, it does not handle functors)
+            bool TryBuildRuntimeFunction(QsQualifiedName name, TypedExpression arg)
             {
+                if (method.ResolvedType.Resolution.IsOperation)
+                {
+                    throw new NotImplementedException("expecting a function but got an operation");
+                }
+
                 if (name.Equals(BuiltIn.Length.FullName))
                 {
                     // The argument should be an array
@@ -1045,48 +1072,42 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            Value[] BuildControlledArgList(int controlledCount)
+            TypedExpression BuildArg(TypedExpression arg, int controlledCount)
             {
-                if (!(arg.Expression is ResolvedExpression.ValueTuple tuple) || tuple.Item.Length != 2 || controlledCount < 2)
+                // throws and InvalidOperationException if the remainingArg is not a tuple with two items
+                (TypedExpression, TypedExpression) TupleItems(TypedExpression remainingArg) =>
+                    (remainingArg.Expression is ResolvedExpression.ValueTuple tuple && tuple.Item.Length == 2)
+                    ? (tuple.Item[0], tuple.Item[1])
+                    : throw new InvalidOperationException("control count is inconsistent with the shape of the argument tuple");
+
+                if (controlledCount < 2)
                 {
-                    throw new ArgumentException("control count needs to be larger than 1");
+                    // no need to concatenate the controlled arguments
+                    return arg;
                 }
 
                 // The arglist will be a 2-tuple with the first element an array of qubits and the second element
                 // a 2-tuple containing an array of qubits and another tuple -- possibly with more nesting levels
-                var controlArray = this.SharedState.EvaluateSubexpression(tuple.Item[0]);
-                var arrayType = tuple.Item[0].ResolvedType;
-                var remainingArgs = tuple.Item[1];
+                var (controls, remainingArg) = TupleItems(arg);
                 while (--controlledCount > 0)
                 {
-                    if (!(remainingArgs.Expression is ResolvedExpression.ValueTuple innerTuple) || innerTuple.Item.Length != 2)
-                    {
-                        throw new ArgumentException("control count is inconsistent with the shape of the argument tuple");
-                    }
-
-                    controlArray = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate),
-                        controlArray,
-                        this.SharedState.EvaluateSubexpression(innerTuple.Item[0]));
-                    this.SharedState.ScopeMgr.AddValue(controlArray);
-                    remainingArgs = innerTuple.Item[1];
+                    var (innerControls, innerArg) = TupleItems(remainingArg);
+                    controls = SyntaxGenerator.AddExpressions(controls.ResolvedType.Resolution, controls, innerControls);
+                    remainingArg = innerArg;
                 }
-                return new[] { controlArray, this.SharedState.EvaluateSubexpression(remainingArgs) };
+
+                return SyntaxGenerator.TupleLiteral(new[] { controls, remainingArg });
             }
 
-            void CallGlobal(Identifier.GlobalCallable callable, QsResolvedTypeKind methodType, bool isAdjoint, int controlledCount)
+            void CallGlobal(Identifier.GlobalCallable callable, QsResolvedTypeKind methodType, TypedExpression arg, bool isAdjoint, bool isControlled)
             {
-                var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
+                var kind = GetSpecializationKind(isAdjoint, isControlled);
                 var func = this.SharedState.GetFunctionByName(callable.Item, kind);
 
                 // If the operation has more than one "Controlled" functor applied, we will need to adjust the arg list
                 // and build a single array of control qubits
                 Value[] argList;
-                if (controlledCount > 1)
-                {
-                    argList = BuildControlledArgList(controlledCount);
-                }
-                else if (arg.ResolvedType.Resolution.IsUnitType)
+                if (arg.ResolvedType.Resolution.IsUnitType)
                 {
                     argList = new Value[] { };
                 }
@@ -1103,50 +1124,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.PushValueInScope(result);
             }
 
-            void CallCallableValue()
+            void InlineCalledRoutine(QsCallable inlinedCallable, TypedExpression arg, bool isAdjoint, bool isControlled)
             {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-
-                // Build the arg tuple
-                ResolvedType argType = arg.ResolvedType;
-                Value argTuple;
-                if (argType.Resolution.IsUnitType)
+                var inlineKind = GetSpecializationKind(isAdjoint, isControlled);
+                var inlinedSpecialization = inlinedCallable.Specializations.Where(spec => spec.Kind == inlineKind).Single();
+                if (isAdjoint && inlinedSpecialization.Implementation is SpecializationImplementation.Generated gen && gen.Item.IsSelfInverse)
                 {
-                    argTuple = this.SharedState.Constants.UnitValue;
-                }
-                else
-                {
-                    ITypeRef argStructType = this.SharedState.LlvmStructTypeFromQsharpType(argType);
-                    Value argStruct = this.SharedState.CreateTupleForType(argStructType);
-                    this.FillTuple(argStruct, arg);
-                    argTuple = this.SharedState.CurrentBuilder.BitCast(argStruct, this.SharedState.Types.Tuple);
+                    inlinedSpecialization = inlinedCallable.Specializations
+                        .Where(spec => spec.Kind == (isControlled ? QsSpecializationKind.QsControlled : QsSpecializationKind.QsBody))
+                        .Single();
                 }
 
-                // Allocate the result tuple, if needed
-                ResolvedType resultResolvedType = this.SharedState.ExpressionTypeStack.Peek();
-                ITypeRef? resultStructType = null;
-                Value? resultStruct = null;
-                Value? resultTuple = null;
-                if (resultResolvedType.Resolution.IsUnitType)
+                this.SharedState.StartInlining();
+                if (inlinedSpecialization.Implementation is SpecializationImplementation.Provided impl)
                 {
-                    resultTuple = this.SharedState.Constants.UnitValue;
-                    this.SharedState.CurrentBuilder.Call(func, this.SharedState.EvaluateSubexpression(method), argTuple, resultTuple);
+                    this.MapTuple(arg, impl.Item1);
+                    this.Transformation.Statements.OnScope(impl.Item2);
+                }
+                this.SharedState.StopInlining();
 
-                    // Now push the result. For now we assume it's a scalar.
+                // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
+                if (inlinedCallable.Signature.ReturnType.Resolution.IsUnitType)
+                {
                     this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
-                }
-                else
-                {
-                    resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
-                    resultTuple = this.SharedState.CreateTupleForType(resultStructType);
-                    resultStruct = this.SharedState.CurrentBuilder.BitCast(resultTuple, resultStructType.CreatePointerType());
-                    this.SharedState.CurrentBuilder.Call(func, this.SharedState.EvaluateSubexpression(method), argTuple, resultTuple);
-
-                    // Now push the result. For now we assume it's a scalar.
-                    Value resultPointer = this.SharedState.CurrentBuilder.GetElementPtr(resultStructType, resultStruct, this.SharedState.PointerIndex(0));
-                    ITypeRef resultType = this.SharedState.LlvmTypeFromQsharpType(resultResolvedType);
-                    Value result = this.SharedState.CurrentBuilder.Load(resultType, resultPointer);
-                    this.SharedState.ValueStack.Push(result);
                 }
             }
 
@@ -1161,12 +1161,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Handle the special case of a call to an operation that maps directly to a quantum instruction.
                 // Note that such an operation will never have an Adjoint or Controlled specialization.
-                CallQuantumInstruction(qisCode.Item);
+                CallQuantumInstruction(callable, arg, qisCode.Item);
             }
             else
             {
                 // Resolve Adjoint and Controlled modifiers
                 var (baseMethod, isAdjoint, controlledCount) = ResolveModifiers(method, false, 0);
+                arg = BuildArg(arg, controlledCount);
 
                 // Check for, and handle, inlining
                 if (baseMethod.Expression is ResolvedExpression.Identifier baseId
@@ -1175,17 +1176,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (this.SharedState.TryGetGlobalCallable(baseCallable.Item, out var inlinedCallable)
                         && inlinedCallable.Attributes.Any(BuiltIn.MarksInlining))
                     {
-                        InlineCalledRoutine(inlinedCallable, isAdjoint, controlledCount > 0);
+                        InlineCalledRoutine(inlinedCallable, arg, isAdjoint, controlledCount > 0);
                     }
-                    // SupportedByRuntime pushes the necessary LLVM if it is supported
-                    else if (!SupportedByRuntime(baseCallable.Item))
+                    // TryBuildRuntimeFunction pushes the necessary LLVM if it is supported
+                    else if (method.ResolvedType.Resolution.IsOperation || !TryBuildRuntimeFunction(baseCallable.Item, arg))
                     {
-                        CallGlobal(baseCallable, baseMethod.ResolvedType.Resolution, isAdjoint, controlledCount);
+                        CallGlobal(baseCallable, baseMethod.ResolvedType.Resolution, arg, isAdjoint, controlledCount > 0);
                     }
                 }
                 else
                 {
-                    CallCallableValue();
+                    CallCallableValue(method, arg);
                 }
             }
 
