@@ -132,9 +132,13 @@ let private userDefinedType =
 
 // composite types
 
-/// Parses a Q# operation type raising the corresponding missing parenthesis errors if the outer parenthesis are missing.
-/// Inner parenthesis of the form "((T1 -=> T2) is Adj)" are optional.
-/// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// <summary>
+/// Parses a Q# operation type.
+/// </summary>
+/// <remarks>
+/// Inner parenthesis of the form "((T1 => T2) is Adj)" are optional. Uses leftRecursionByInfix to process the signature
+/// and raise suitable errors.
+/// </remarks>
 let private operationType =
     // utils for handling deprecated and partially deprecated syntax:
     let quantumFunctor =
@@ -198,9 +202,12 @@ let private operationType =
     opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
     |>> asType Operation // keep this order!
 
+/// <summary>
 /// Parses a Q# function type.
-///
-/// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// </summary>
+/// <remarks>
+/// Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// </remarks>
 let private functionType =
     leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation) |> term
     |>> asType Function

@@ -776,6 +776,10 @@ let ``Function type tests`` () =
         "(Int -> Int) -> Int",
         Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType,
         []
+
+        "Unit -> 'a", Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "'a -> Unit", Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
+        "'a -> 'a", Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType) |> toType, []
     ]
     |> List.iter testType
 
@@ -835,6 +839,13 @@ let ``Operation type tests`` () =
 
         "(Qubit => Unit) => Unit is Adj",
         toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType adjSet,
+        []
+
+        "Unit => 'a", toOpType unitType (TypeParameter(toSymbol "a") |> toType) emptySet, []
+        "'a => Unit", toOpType (TypeParameter(toSymbol "a") |> toType) unitType emptySet, []
+
+        "'a => 'a",
+        toOpType (TypeParameter(toSymbol "a") |> toType) (TypeParameter(toSymbol "a") |> toType) emptySet,
         []
     ]
     |> List.iter testType
