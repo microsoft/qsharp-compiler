@@ -789,51 +789,51 @@ let ``Function type tests`` () =
 [<Fact>]
 let ``Operation type tests`` () =
     [
-        "(Int => Int)", toTupleType [ toOpType (toType Int) (toType Int) emptySet ], []
+        "(Qubit => Unit)", toTupleType [ toOpType qubitType unitType emptySet ], []
 
-        "(Int => (Int => Int))",
-        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) emptySet ],
+        "(Qubit => (Qubit => Unit))",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) emptySet ],
         []
 
-        "((Int => Int) => Int)",
-        toTupleType [ toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) emptySet ],
+        "((Qubit => Unit) => Unit)",
+        toTupleType [ toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType emptySet ],
         []
 
-        "Int => Int", toOpType (toType Int) (toType Int) emptySet, []
-        "Int => Int => Int", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
+        "Qubit => Unit", toOpType qubitType unitType emptySet, []
+        "Qubit => Qubit => Unit", toOpType qubitType (toOpType qubitType unitType emptySet) emptySet, []
 
-        "Int => (Int => Int)",
-        toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) emptySet,
+        "Qubit => (Qubit => Unit)",
+        toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) emptySet,
         []
 
-        "(Int => Int) => Int",
-        toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) emptySet,
+        "(Qubit => Unit) => Unit",
+        toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType emptySet,
         []
 
-        "(Int => Int is Adj)", toTupleType [ toOpType (toType Int) (toType Int) adjSet ], []
-        "(Int => Int) is Adj", toTupleType [ toOpType (toType Int) (toType Int) emptySet ], []
+        "(Qubit => Unit is Adj)", toTupleType [ toOpType qubitType unitType adjSet ], []
+        "(Qubit => Unit) is Adj", toTupleType [ toOpType qubitType unitType emptySet ], []
 
-        "(Int => (Int => Int is Adj))",
-        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) adjSet ]) emptySet ],
+        "(Qubit => (Qubit => Unit is Adj))",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType adjSet ]) emptySet ],
         []
 
-        "(Int => (Int => Int) is Adj)",
-        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) adjSet ],
+        "(Qubit => (Qubit => Unit) is Adj)",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) adjSet ],
         []
 
-        "((Int => Int) => Int is Adj)",
-        toTupleType [ toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) adjSet ],
+        "((Qubit => Unit) => Unit is Adj)",
+        toTupleType [ toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType adjSet ],
         []
 
-        "Int => Int is Adj", toOpType (toType Int) (toType Int) adjSet, []
-        "Int => Int => Int is Adj", toOpType (toType Int) (toOpType (toType Int) (toType Int) adjSet) emptySet, []
+        "Qubit => Unit is Adj", toOpType qubitType unitType adjSet, []
+        "Qubit => Qubit => Unit is Adj", toOpType qubitType (toOpType qubitType unitType adjSet) emptySet, []
 
-        "Int => (Int => Int) is Adj",
-        toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) adjSet,
+        "Qubit => (Qubit => Unit) is Adj",
+        toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) adjSet,
         []
 
-        "(Int => Int) => Int is Adj",
-        toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) adjSet,
+        "(Qubit => Unit) => Unit is Adj",
+        toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType adjSet,
         []
     ]
     |> List.iter testType
