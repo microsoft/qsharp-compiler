@@ -366,11 +366,11 @@ let internal testType (str, result, diagnostics) =
 
     Assert.True
         (result' |> Option.exists (matchType result),
-         sprintf "Expected result:\n%A\n\nActual result:\n%A" result result')
+         sprintf "Type: %s\n\nExpected result:\n%A\n\nActual result:\n%A" str result result')
 
     Assert.True
         (matchDiagnostics diagnostics diagnostics',
-         sprintf "Expected diagnostics:\n%A\n\nActual diagnostics:\n%A" diagnostics diagnostics')
+         sprintf "Type: %s\n\nExpected diagnostics:\n%A\n\nActual diagnostics:\n%A" str diagnostics diagnostics')
 
 let testExpr (str, succExp, resExp, diagsExp) =
     let succ, diags, res = parse_string_diags_res ExpressionParsing.expr str

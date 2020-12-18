@@ -789,13 +789,52 @@ let ``Function type tests`` () =
 [<Fact>]
 let ``Operation type tests`` () =
     [
-        "(Int => Int)", toOpType (toType Int) (toType Int) emptySet, []
-        "(Int => (Int => Int))", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
-        "((Int => Int) => Int)", toOpType (toOpType (toType Int) (toType Int) emptySet) (toType Int) emptySet, []
+        "(Int => Int)", toTupleType [ toOpType (toType Int) (toType Int) emptySet ], []
+
+        "(Int => (Int => Int))",
+        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) emptySet ],
+        []
+
+        "((Int => Int) => Int)",
+        toTupleType [ toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) emptySet ],
+        []
+
         "Int => Int", toOpType (toType Int) (toType Int) emptySet, []
         "Int => Int => Int", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
-        "Int => (Int => Int)", toOpType (toType Int) (toOpType (toType Int) (toType Int) emptySet) emptySet, []
-        "(Int => Int) => Int", toOpType (toOpType (toType Int) (toType Int) emptySet) (toType Int) emptySet, []
+
+        "Int => (Int => Int)",
+        toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) emptySet,
+        []
+
+        "(Int => Int) => Int",
+        toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) emptySet,
+        []
+
+        "(Int => Int is Adj)", toTupleType [ toOpType (toType Int) (toType Int) adjSet ], []
+        "(Int => Int) is Adj", toTupleType [ toOpType (toType Int) (toType Int) emptySet ], []
+
+        "(Int => (Int => Int is Adj))",
+        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) adjSet ]) emptySet ],
+        []
+
+        "(Int => (Int => Int) is Adj)",
+        toTupleType [ toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) adjSet ],
+        []
+
+        "((Int => Int) => Int is Adj)",
+        toTupleType [ toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) adjSet ],
+        []
+
+        "Int => Int is Adj", toOpType (toType Int) (toType Int) adjSet, []
+        "Int => Int => Int is Adj", toOpType (toType Int) (toOpType (toType Int) (toType Int) adjSet) emptySet, []
+
+        "Int => (Int => Int) is Adj",
+        toOpType (toType Int) (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) adjSet,
+        []
+
+        "(Int => Int) => Int is Adj",
+        toOpType (toTupleType [ toOpType (toType Int) (toType Int) emptySet ]) (toType Int) adjSet,
+        []
     ]
     |> List.iter testType
 

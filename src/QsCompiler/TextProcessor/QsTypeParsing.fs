@@ -178,8 +178,8 @@ let private operationType =
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
     let opTypeWith characteristics =
-        let withInnerBrackets = optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
-        let withoutInnerBrackets = optTupleBrackets (inAndOutputType .>>. characteristics)
+        let withInnerBrackets = tupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
+        let withoutInnerBrackets = term (inAndOutputType .>>. characteristics)
         withInnerBrackets <|> withoutInnerBrackets
 
     let deprecatedCharacteristics =
@@ -193,7 +193,7 @@ let private operationType =
         .>> notFollowedBy (comma >>. quantumFunctor)
 
     let opTypeWithoutCharacteristics =
-        optTupleBrackets (inAndOutputType .>>. preturn ((EmptySet, Null) |> Characteristics.New))
+        term (inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null)))
 
     opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
     |>> asType Operation // keep this order!
