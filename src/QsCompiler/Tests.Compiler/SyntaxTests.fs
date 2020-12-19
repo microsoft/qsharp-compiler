@@ -896,6 +896,12 @@ let ``Operation type tests`` () =
                       toOpType (toType Int) (toType Int) emptySet ],
         []
 
+        "(Qubit => Unit is Adj)[]", ArrayType(toTupleType [ toOpType qubitType unitType adjSet ]) |> toType, []
+
+        "Qubit => Unit is Adj[]",
+        ArrayType(toOpType qubitType unitType adjSet) |> toType,
+        [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+
         "(Qubit => Unit : Adjoint, Controlled)",
         toTupleType [ toOpType qubitType unitType adjCtlSet ],
         [ Warning WarningCode.DeprecatedOpCharacteristics ]

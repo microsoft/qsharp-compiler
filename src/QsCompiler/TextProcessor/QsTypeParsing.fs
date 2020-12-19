@@ -231,6 +231,21 @@ let internal typeParser tupleType =
         ]
         |> choice
 
+    let validate { Type = kind; Range = range } isArrayItem =
+        let start = (range.ValueOr Range.Zero).Start
+        let end' = (range.ValueOr Range.Zero).End
+
+        match kind with
+        | Operation _ when isArrayItem ->
+            // To avoid confusing syntax like "Qubit => Unit is Adj[]", require operation types to be tupled when used
+            // as an array item type.
+            [
+                QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
+                QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
+            ]
+            |> pushDiagnostics
+        | _ -> preturn ()
+
     let combine kind (lRange, rRange) =
         match QsNullable.Map2 Range.Span lRange rRange with
         | Value range -> { Type = kind; Range = Value range }
@@ -240,6 +255,8 @@ let internal typeParser tupleType =
         combine (ArrayType itemType) (itemType.Range, Value range)
 
     baseType .>>. many (arrayBrackets emptySpace)
-    |>> fun (itemType, brackets) -> brackets |> Seq.map snd |> Seq.fold createArray itemType
+    >>= fun (itemType, brackets) ->
+            validate itemType (List.isEmpty brackets |> not)
+            >>. preturn (brackets |> Seq.map snd |> Seq.fold createArray itemType)
 
 do qsTypeImpl := typeParser tupleType
