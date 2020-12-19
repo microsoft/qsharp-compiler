@@ -949,7 +949,10 @@ let ``Operation type tests`` () =
 
         "new (Qubit => Unit : Adjoint, Controlled)[0]",
         true,
-        toNewArray (toTupleType [ toOpType qubitType unitType emptySet; toType InvalidType ]) (toInt 0),
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType emptySet
+                           toType InvalidType ])
+            (toInt 0),
         [ Error ErrorCode.ExcessContinuation; Error ErrorCode.InvalidType ]
 
         "new Qubit => Unit : Adjoint, Controlled[0]",
@@ -972,7 +975,10 @@ let ``Operation type tests`` () =
 
         "new (Qubit => Unit : Adj, Ctl)[0]",
         true,
-        toNewArray (toTupleType [ toOpType qubitType unitType emptySet; toType InvalidType ]) (toInt 0),
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType emptySet
+                           toType InvalidType ])
+            (toInt 0),
         [ Error ErrorCode.ExcessContinuation; Error ErrorCode.InvalidType ]
 
         "new Qubit => Unit : Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
