@@ -265,9 +265,23 @@ type TypeCheckingTests() =
         this.Expect "OpType13" [ Error ErrorCode.ExcessContinuation ]
         this.Expect "OpType14" [ Error ErrorCode.ExcessContinuation ]
         this.Expect "OpType15" []
-        this.Expect "OpType16" [ Warning WarningCode.DeprecatedOpCharacteristics ]
-        this.Expect "OpType17" [ Warning WarningCode.DeprecatedOpCharacteristics ]
-        this.Expect "OpType18" [ Warning WarningCode.DeprecatedOpCharacteristics ]
+        this.Expect "OpType16" [ Error ErrorCode.InvalidUdtItemNameDeclaration; Error ErrorCode.InvalidType ]
+
+        this.Expect
+            "OpType17"
+            [
+                Error ErrorCode.InvalidUdtItemNameDeclaration
+                Error ErrorCode.InvalidType
+                Error ErrorCode.InvalidUdtItemDeclaration
+            ]
+
+        this.Expect
+            "OpType18"
+            [
+                Error ErrorCode.InvalidUdtItemNameDeclaration
+                Error ErrorCode.InvalidType
+                Error ErrorCode.InvalidUdtItemDeclaration
+            ]
 
         this.Expect "FctType1" []
         this.Expect "FctType2" []
@@ -293,8 +307,8 @@ type TypeCheckingTests() =
         this.Expect "ArrayType13" []
         this.Expect "ArrayType14" []
         this.Expect "ArrayType15" []
-        this.Expect "ArrayType16" [ Error ErrorCode.MissingRTupleBracket; Error ErrorCode.ExcessContinuation ]
-        this.Expect "ArrayType17" [ Error ErrorCode.ExcessContinuation ]
+        this.Expect "ArrayType16" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+        this.Expect "ArrayType17" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []
         this.Expect "ArrayType20" []

@@ -176,18 +176,12 @@ let private operationType =
 
     // the actual type parsing:
     let inAndOutputType =
-        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
+        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
     let opTypeWith characteristics = inAndOutputType .>>. characteristics
     let opTypeWithoutCharacteristics = inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null))
-
-    let deprecatedCharacteristics =
-        let colonWithWarning = buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
-
-        attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor))
-        <|> (qsCharacteristics.parse |>> (fun r -> r.Start) <|> (getPosition .>> colon) >>= functorSupport)
-
+    let deprecatedCharacteristics = qsCharacteristics.parse |>> (fun r -> r.Start) >>= functorSupport
     let characteristics =
         qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
         .>> notFollowedBy (comma >>. quantumFunctor)
