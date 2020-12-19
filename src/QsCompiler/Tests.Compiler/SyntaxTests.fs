@@ -792,13 +792,25 @@ let ``Function type tests`` () =
         []
 
         "('T => Unit)[] -> Unit",
-        Function(ArrayType(toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet) |> toType, unitType)
+        Function
+            (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
+             |> toType,
+             unitType)
+        |> toType,
+        []
+
+        "('T => Unit is Adj)[] -> Unit",
+        Function
+            (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType adjSet ])
+             |> toType,
+             unitType)
         |> toType,
         []
 
         "(('T => Unit)[] -> Unit)",
         toTupleType [ Function
-                          (ArrayType(toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet) |> toType,
+                          (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
+                           |> toType,
                            unitType)
                       |> toType ],
         []
@@ -840,6 +852,10 @@ let ``Operation type tests`` () =
         "(Qubit => Unit is Adj)", toTupleType [ toOpType qubitType unitType adjSet ], []
         "(Qubit => Unit) is Adj", toTupleType [ toOpType qubitType unitType emptySet ], []
 
+        "((Qubit => Unit) is Adj)",
+        toTupleType [ toTupleType [ toOpType qubitType unitType emptySet ] ],
+        [ Error ErrorCode.ExcessContinuation ]
+
         "(Qubit => (Qubit => Unit is Adj))",
         toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType adjSet ]) emptySet ],
         []
@@ -879,6 +895,14 @@ let ``Operation type tests`` () =
         toTupleType [ toType Int
                       toOpType (toType Int) (toType Int) emptySet ],
         []
+
+        "(Qubit => Unit : Adjoint, Controlled)",
+        toTupleType [ toOpType qubitType unitType adjCtlSet ],
+        [ Warning WarningCode.DeprecatedOpCharacteristics ]
+
+        "Qubit => Unit : Adjoint, Controlled",
+        toOpType qubitType unitType adjCtlSet,
+        [ Warning WarningCode.DeprecatedOpCharacteristics ]
     ]
     |> List.iter testType
 

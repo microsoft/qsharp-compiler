@@ -152,9 +152,7 @@ let private operationType =
         >>= function // fail on comma followed by something else than a functor
         | head :: tail ->
             let setExpr =
-                tail
-                |> List.fold (fun acc x ->
-                    buildCombinedExpression (CharacteristicsKind.Union(acc, x)) (acc.Range, x.Range)) head
+                tail |> List.fold (fun acc x -> buildCombinedExpression (Union(acc, x)) (acc.Range, x.Range)) head
 
             match setExpr.Range with
             | Null -> preturn setExpr
@@ -181,10 +179,8 @@ let private operationType =
         let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
-    let opTypeWith characteristics =
-        let withInnerBrackets = tupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
-        let withoutInnerBrackets = term (inAndOutputType .>>. characteristics)
-        withInnerBrackets <|> withoutInnerBrackets
+    let opTypeWith characteristics = inAndOutputType .>>. characteristics
+    let opTypeWithoutCharacteristics = inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null))
 
     let deprecatedCharacteristics =
         let colonWithWarning = buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
@@ -196,10 +192,12 @@ let private operationType =
         qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
         .>> notFollowedBy (comma >>. quantumFunctor)
 
-    let opTypeWithoutCharacteristics = term (inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null)))
-
-    opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
-    |>> asType Operation // keep this order!
+    // keep this order!
+    attempt (opTypeWith characteristics)
+    <|> attempt (opTypeWith deprecatedCharacteristics)
+    <|> opTypeWithoutCharacteristics
+    |> term
+    |>> asType Operation
 
 /// <summary>
 /// Parses a Q# function type.
@@ -219,16 +217,12 @@ let internal tupleType =
 
 /// Parses for an arbitrary Q# type, using the given parser to process tuple types.
 let internal typeParser tupleType =
-    let callableType inArray =
-        [ operationType; functionType ]
-        |> Seq.map (fun p ->
-            if inArray
-            then optTupleBrackets p |>> asType (fun t -> t.Type)
-            else p)
-        |> choice
-
     let baseType =
         [
+            // operation and function signatures need to be processed *first* to make the left recursion work!
+            operationType
+            functionType
+
             unitType // needs to come *before* tupleType but *after* function- and operationType ...
             tupleType
             typeParameterLike
@@ -245,13 +239,7 @@ let internal typeParser tupleType =
     let createArray itemType range =
         combine (ArrayType itemType) (itemType.Range, Value range)
 
-    let arrayType atLeastOne itemType =
-        itemType .>>. (if atLeastOne then many1 else many) (arrayBrackets emptySpace)
-        |>> fun (itemType, brackets) -> brackets |> Seq.map snd |> Seq.fold createArray itemType
-
-    // operation and function signatures need to be processed *first* to make the left recursion work!
-    attempt (callableType false)
-    <|> attempt (callableType true |> arrayType true)
-    <|> arrayType false baseType
+    baseType .>>. many (arrayBrackets emptySpace)
+    |>> fun (itemType, brackets) -> brackets |> Seq.map snd |> Seq.fold createArray itemType
 
 do qsTypeImpl := typeParser tupleType
