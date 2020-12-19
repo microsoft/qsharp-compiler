@@ -392,7 +392,7 @@ module SymbolResolution =
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
     /// using the given routine to resolve the declared item types.
     /// </summary>
-    /// <exception cref="ArgumentException">The given argument is a <see cref="QsTupleItem"/> as opposed to a <see cref="QsTuple"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="arg"/> is a <see cref="QsTupleItem"/> as opposed to a <see cref="QsTuple"/>.</exception>
     let private ResolveArgumentTuple (resolveSymbol, resolveType) arg =
         let resolveArg (qsSym: QsSymbol, symType) =
             let range = qsSym.Range.ValueOr Range.Zero
