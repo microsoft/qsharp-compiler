@@ -3,6 +3,18 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    operation Empty (qs : Qubit[]) : Unit is Adj + Ctl {
+    }
+
+    operation DoNothing (qs : Qubit[]) : Unit is Adj + Ctl {
+        let dummy = 1;
+    }
+
+    function ReturnDoNothing () : (Qubit[] => Unit is Adj + Ctl)
+    {
+        return DoNothing;
+    }
+
     operation X (q : Qubit) : Unit is Adj + Ctl {
         body intrinsic;
     }
@@ -19,9 +31,14 @@ namespace Microsoft.Quantum.Testing.QIR
 
     @EntryPoint()
     operation GetEnergyHydrogenVQE() : Unit {
+
+        let doNothing = ReturnDoNothing();
         using (aux = Qubit())
         {
             CNOT(aux, aux);
+            Empty([aux]);
+            doNothing([aux]);
+            Controlled DoNothing([aux], [aux]);
         }
     }
 }

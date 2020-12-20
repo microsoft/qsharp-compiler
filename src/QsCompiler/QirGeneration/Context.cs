@@ -813,7 +813,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
             this.CloseNamingScope();
 
-            if (this.CurrentBlock.Instructions.Count() == 0 && !HasAPredecessor(this.CurrentBlock))
+            if (this.CurrentBlock.Instructions.Count() == 0
+                && !HasAPredecessor(this.CurrentBlock)
+                && this.CurrentFunction.BasicBlocks.Count > 1)
             {
                 this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
             }
@@ -982,7 +984,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
-                return this.RegisterFunction(spec, callable.ArgumentTuple);
+                var argTuple = spec.Kind == QsSpecializationKind.QsControlled || spec.Kind == QsSpecializationKind.QsControlledAdjoint
+                    ? SyntaxGenerator.WithControlQubits(callable.ArgumentTuple, QsNullable<Position>.Null, QsLocalSymbol.NewValidName(ReservedKeywords.InternalUse.ControlQubitsName), QsNullable<DataTypes.Range>.Null)
+                    : callable.ArgumentTuple;
+                return this.RegisterFunction(spec, argTuple);
             }
             // If we can't find the function at all, it's a problem...
             throw new KeyNotFoundException($"Can't find callable {fullName}");
@@ -1083,19 +1088,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return actualArg;
                 }
 
-                // Controlled specializations have different signatures, so adjust what we have
-                if (kind.IsQsControlled || kind.IsQsControlledAdjoint)
-                {
-                    var ctlArg = new LocalVariableDeclaration<QsLocalSymbol>(
-                        QsLocalSymbol.NewValidName(this.GenerateUniqueName("ctls")),
-                        ResolvedType.New(QsResolvedTypeKind.NewArrayType(ResolvedType.New(QsResolvedTypeKind.Qubit))),
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Position>.Null,
-                        DataTypes.Range.Zero);
-                    var ctlArgs = new QsArgumentTuple[] { QsArgumentTuple.NewQsTupleItem(ctlArg), arg };
-                    arg = QsArgumentTuple.NewQsTuple(ctlArgs.ToImmutableArray());
-                }
-
                 List<Value> args = new List<Value>();
                 if (arg is QsArgumentTuple.QsTuple tuple)
                 {
@@ -1170,7 +1162,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.CurrentFunction.Parameters[2].Name = "result-tuple";
                     this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
                     this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
-                    this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
                     return true;
                 }
                 else
@@ -1187,11 +1178,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
                     {
+                        this.OpenNamingScope();
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
-                        var argList = GenerateArgTupleDecomposition(callable.ArgumentTuple, argTupleValue, spec.Kind);
+                        var argTuple = spec.Kind == QsSpecializationKind.QsControlled || spec.Kind == QsSpecializationKind.QsControlledAdjoint
+                            ? SyntaxGenerator.WithControlQubits(callable.ArgumentTuple, QsNullable<Position>.Null, QsLocalSymbol.NewValidName(ReservedKeywords.InternalUse.ControlQubitsName), QsNullable<DataTypes.Range>.Null)
+                            : callable.ArgumentTuple;
+                        var argList = GenerateArgTupleDecomposition(argTuple, argTupleValue, spec.Kind);
                         var result = GenerateBaseMethodCall(callable, spec, argList);
                         PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
                         this.CurrentBuilder.Return();
+                        this.CloseNamingScope();
                     }
                 }
             }
@@ -1236,7 +1232,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a suitable array of values to access the item at a given index for a pointer to a struct. 
+        /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
         /// </summary>
         internal Value[] PointerIndex(int index) => new[]
         {
