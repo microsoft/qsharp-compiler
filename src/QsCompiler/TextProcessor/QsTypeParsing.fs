@@ -208,6 +208,26 @@ let internal tupleType =
     let buildTupleType (items, range: Range) = (TupleType items, range) |> QsType.New
     buildTuple qsType buildTupleType ErrorCode.InvalidType ErrorCode.MissingType invalidType
 
+/// <summary>
+/// Validates that a parsed Q# type follows additional rules that prevent confusing syntax.
+/// </summary>
+/// <param name="isArrayItem">Whether the given type is part of an array postfix bracket type, "T[]" or "T[n]".</param>
+let internal validateTypeSyntax isArrayItem { Type = kind; Range = range } =
+    let start = (range.ValueOr Range.Zero).Start
+    let end' = (range.ValueOr Range.Zero).End
+
+    match kind with
+    | Function _
+    | Operation _ when isArrayItem ->
+        // To avoid confusing syntax like "new Int -> Int[3]" or "Qubit => Unit is Adj[]", require that function and
+        // operation types are tupled when used as an array item type.
+        [
+            QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
+            QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
+        ]
+        |> pushDiagnostics
+    | _ -> preturn ()
+
 /// Parses for an arbitrary Q# type, using the given parser to process tuple types.
 let internal typeParser tupleType =
     let baseType =
@@ -224,21 +244,6 @@ let internal typeParser tupleType =
         ]
         |> choice
 
-    let validate { Type = kind; Range = range } isArrayItem =
-        let start = (range.ValueOr Range.Zero).Start
-        let end' = (range.ValueOr Range.Zero).End
-
-        match kind with
-        | Operation _ when isArrayItem ->
-            // To avoid confusing syntax like "Qubit => Unit is Adj[]", require operation types to be tupled when used
-            // as an array item type.
-            [
-                QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
-                QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
-            ]
-            |> pushDiagnostics
-        | _ -> preturn ()
-
     let combine kind (lRange, rRange) =
         match QsNullable.Map2 Range.Span lRange rRange with
         | Value range -> { Type = kind; Range = Value range }
@@ -249,7 +254,7 @@ let internal typeParser tupleType =
 
     baseType .>>. many (arrayBrackets emptySpace)
     >>= fun (itemType, brackets) ->
-            validate itemType (List.isEmpty brackets |> not)
-            >>. preturn (brackets |> Seq.map snd |> Seq.fold createArray itemType)
+            validateTypeSyntax (List.isEmpty brackets |> not) itemType
+            >>% (brackets |> Seq.map snd |> Seq.fold createArray itemType)
 
 do qsTypeImpl := typeParser tupleType
