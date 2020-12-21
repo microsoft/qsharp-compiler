@@ -297,57 +297,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        /// <summary>
-        /// Binds the variables in a Q# argument tuple to a Q# expression.
-        /// Arbitrary tuple nesting in the argument tuple is supported.
-        /// <br/><br/>
-        /// This method is used when inlining to create the bindings from the
-        /// argument expression to the argument variables.
-        /// </summary>
-        /// <exception cref="ArgumentException">The given expression is inconsistent with the given argument tuple.</exception>
-        private void MapTuple(TypedExpression s, QsArgumentTuple d)
-        {
-            // We keep a queue of pending assignments and apply them after we've evaluated all of the expressions.
-            // Effectively we need to do a LET* (parallel let) instead of a LET.
-            void MapTupleInner(TypedExpression source, QsArgumentTuple destination, List<(string, Value)> assignmentQueue)
-            {
-                if (destination is QsArgumentTuple.QsTuple tuple)
-                {
-                    var items = tuple.Item;
-                    if (source.Expression is ResolvedExpression.ValueTuple srcItems)
-                    {
-                        foreach (var (ex, ti) in srcItems.Item.Zip(items, (ex, ti) => (ex, ti)))
-                        {
-                            MapTupleInner(ex, ti, assignmentQueue);
-                        }
-                    }
-                    else if (items.Length == 1)
-                    {
-                        MapTupleInner(source, items[0], assignmentQueue);
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Argument values are inconsistent with the given expression");
-                    }
-                }
-                else if (destination is QsArgumentTuple.QsTupleItem arg && arg.Item.VariableName is QsLocalSymbol.ValidName varName)
-                {
-                    var value = this.SharedState.EvaluateSubexpression(source);
-                    assignmentQueue.Add((varName.Item, value));
-                }
-            }
-
-            var queue = new List<(string, Value)>();
-            if (!s.Expression.IsUnitValue)
-            {
-                MapTupleInner(s, d, queue);
-            }
-            foreach (var (name, value) in queue)
-            {
-                this.SharedState.RegisterName(name, value);
-            }
-        }
-
         private bool FindNamedItem(string name, QsTuple<QsTypeItem> items, List<(int, ITypeRef)> location)
         {
             ITypeRef GetTypeItemType(QsTuple<QsTypeItem> item)
@@ -1075,8 +1024,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.StartInlining();
                 if (inlinedSpecialization.Implementation is SpecializationImplementation.Provided impl)
                 {
-                    this.MapTuple(arg, impl.Item1);
+                    if (!inlinedSpecialization.Signature.ArgumentType.Resolution.IsUnitType)
+                    {
+                        var symbolTuple = SyntaxGenerator.ArgumentTupleAsSymbolTuple(impl.Item1);
+                        var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
+                        this.Transformation.StatementKinds.OnVariableDeclaration(binding);
+                    }
                     this.Transformation.Statements.OnScope(impl.Item2);
+                }
+                else
+                {
+                    throw new InvalidOperationException("missing specialization implementation for inlining");
                 }
                 this.SharedState.StopInlining();
 

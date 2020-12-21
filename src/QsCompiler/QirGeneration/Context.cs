@@ -367,9 +367,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var returnType = c.Signature.ReturnType.Resolution.IsUnitType
                         ? this.Context.VoidType
                         : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
-                    var argTypeArray = (c.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType tuple)
-                        ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray()
-                        : new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
+                    var argTypeKind = c.Signature.ArgumentType.Resolution;
+                    var argTypeArray =
+                        argTypeKind is QsResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                        argTypeKind.IsUnitType ? new ITypeRef[0] :
+                        new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
                     this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
                 }
             }

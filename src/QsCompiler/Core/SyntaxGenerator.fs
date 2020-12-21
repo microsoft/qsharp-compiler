@@ -118,8 +118,26 @@ module SyntaxGenerator =
 
     // utils to for building typed expressions and iterable inversions
 
-    /// Given the argument tuple of a callable or a provided specialization declaration, 
-    /// returns the corresponding typed expression. 
+    /// Given the argument tuple of a callable or a provided specialization declaration, returns the corresponding symbol tuple. 
+    /// Throws an ArgumentExecption if the outermost tuple is empty or if it is not a QsTuple, or if an inner tuple is empty. 
+    let ArgumentTupleAsSymbolTuple (argTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) : SymbolTuple =
+        let rec resolveArgTupleItem = function
+            | QsTupleItem (decl : LocalVariableDeclaration<QsLocalSymbol>) -> decl.VariableName |> function 
+                | ValidName varName -> varName |> VariableName
+                | InvalidName -> DiscardedItem
+            | QsTuple elements when elements.Length = 0 -> ArgumentException "argument tuple items cannot be empty tuples" |> raise
+            | QsTuple elements when elements.Length = 1 -> resolveArgTupleItem elements.[0]
+            | QsTuple elements -> buildTuple elements
+        and buildTuple elements = 
+            let items = elements |> Seq.map resolveArgTupleItem |> ImmutableArray.CreateRange
+            items |> VariableNameTuple
+        match argTuple with
+        | QsTuple elements when elements.Length = 0 -> ArgumentException "cannot construct symbol tuple for empty argument tuple" |> raise
+        | QsTuple elements when elements.Length = 1 -> resolveArgTupleItem elements.[0]
+        | QsTuple elements -> buildTuple elements
+        | _ -> ArgumentException "the argument tuple needs to be a QsTuple" |> raise
+
+    /// Given the argument tuple of a callable or a provided specialization declaration, returns the corresponding typed expression. 
     /// Throws an ArgumentExecption if the outermost tuple is not a QsTuple, or if an inner tuple is empty. 
     let ArgumentTupleAsExpression (argTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) =
         let rec resolveArgTupleItem = function
