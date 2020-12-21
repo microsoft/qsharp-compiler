@@ -136,8 +136,7 @@ let private userDefinedType =
 /// Parses a Q# operation type.
 /// </summary>
 /// <remarks>
-/// Inner parenthesis of the form "((T1 => T2) is Adj)" are optional. Uses leftRecursionByInfix to process the signature
-/// and raise suitable errors.
+/// Uses leftRecursionByInfix to process the signature and raise suitable errors.
 /// </remarks>
 let private operationType =
     // utils for handling deprecated and partially deprecated syntax:
