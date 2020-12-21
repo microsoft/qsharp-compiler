@@ -99,9 +99,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
 
         /// <summary>
-        /// Creates a separate callable for each intrinsic specialization,
+        /// Creates a separate callable for each intrinsic specialization if more than one specialization exists,
         /// and replaces the specialization implementations of the original callable with a call to these.
-        /// Type constructors and generic callables are left unchanged.
+        /// Type constructors and generic callables or callables with only one specialization are left unchanged.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// An intrinsic callable contains non-intrinsic specializations
@@ -131,6 +131,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                         else if (callable.Specializations.Any(spec => spec.TypeArguments.IsValue))
                         {
                             throw new InvalidOperationException("specialization with type arguments");
+                        }
+                        else if (callable.Specializations.Length == 1)
+                        {
+                            elements.Add(element);
                         }
                         else
                         {

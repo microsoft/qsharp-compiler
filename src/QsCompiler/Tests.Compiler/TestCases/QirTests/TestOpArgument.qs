@@ -33,11 +33,18 @@ namespace Microsoft.Quantum.Testing.QIR
 
     @EntryPoint()
     operation TestOpArgument () : Unit {
-        using (q = Qubit()) {
-            Apply(CNOT(_, q)); 
-            Apply(_SWAP(_, q));
-            Apply(_Choose(q, (_, q))); 
-            Apply(_Choose(_,(q,q)));
+        using (qs = (Qubit(), Qubit())) {
+
+            let (q1, q2) = qs;
+            let op = _Choose(_, (q1, _));
+
+            _SWAP(qs);
+            Apply(CNOT(_, q1)); 
+            Apply(_SWAP(_, q1));
+            Apply(_Choose(q1, (_, q2))); 
+            Apply(_Choose(_,(q1,q2)));
+            Apply(_Choose(_,qs));
+            op(qs);
         }
         InvokeAndIgnore(GetNestedTuple);
     }

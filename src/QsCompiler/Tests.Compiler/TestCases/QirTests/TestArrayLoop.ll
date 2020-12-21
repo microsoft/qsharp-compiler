@@ -3,8 +3,8 @@ entry:
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
   %1 = bitcast %Tuple* %0 to { i64, i64 }*
   %2 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 0
-  store i64 0, i64* %2
   %3 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
+  store i64 0, i64* %2
   store i64 0, i64* %3
   %4 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 0
   %5 = load i64, i64* %4
@@ -49,15 +49,15 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  %21 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
-  %22 = bitcast %Tuple* %21 to { i64, i64 }*
-  %23 = load i64, i64* %x
-  %24 = getelementptr { i64, i64 }, { i64, i64 }* %22, i64 0, i32 0
-  store i64 %23, i64* %24
-  %25 = load i64, i64* %y
-  %26 = getelementptr { i64, i64 }, { i64, i64 }* %22, i64 0, i32 1
-  store i64 %25, i64* %26
+  %21 = load i64, i64* %x
+  %22 = load i64, i64* %y
+  %23 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %24 = bitcast %Tuple* %23 to { i64, i64 }*
+  %25 = getelementptr { i64, i64 }, { i64, i64 }* %24, i64 0, i32 0
+  %26 = getelementptr { i64, i64 }, { i64, i64 }* %24, i64 0, i32 1
+  store i64 %21, i64* %25
+  store i64 %22, i64* %26
   %27 = bitcast { i64, i64 }* %1 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %27)
-  ret { i64, i64 }* %22
+  ret { i64, i64 }* %24
 }

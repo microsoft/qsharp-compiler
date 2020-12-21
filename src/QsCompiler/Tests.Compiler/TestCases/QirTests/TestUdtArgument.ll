@@ -26,15 +26,15 @@ entry:
   store double 2.000000e+00, double* %14
   %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, %Tuple* %9)
   %udt3 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %15)
-  %16 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, { i2, i64 }* }* getelementptr ({ i64, { i2, i64 }* }, { i64, { i2, i64 }* }* null, i32 1) to i64))
-  %17 = bitcast %Tuple* %16 to { i64, { i2, i64 }* }*
-  %18 = getelementptr { i64 }, { i64 }* %udt1, i64 0, i32 0
-  %19 = load i64, i64* %18
-  %20 = getelementptr { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %17, i64 0, i32 0
-  store i64 %19, i64* %20
-  %21 = bitcast { i2, i64 }* %udt2 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %21)
-  %22 = getelementptr { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %17, i64 0, i32 1
+  %16 = getelementptr { i64 }, { i64 }* %udt1, i64 0, i32 0
+  %17 = load i64, i64* %16
+  %18 = bitcast { i2, i64 }* %udt2 to %Tuple*
+  call void @__quantum__rt__tuple_reference(%Tuple* %18)
+  %19 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, { i2, i64 }* }* getelementptr ({ i64, { i2, i64 }* }, { i64, { i2, i64 }* }* null, i32 1) to i64))
+  %20 = bitcast %Tuple* %19 to { i64, { i2, i64 }* }*
+  %21 = getelementptr { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %20, i64 0, i32 0
+  %22 = getelementptr { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %20, i64 0, i32 1
+  store i64 %17, i64* %21
   store { i2, i64 }* %udt2, { i2, i64 }** %22
   %23 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_reference(%Tuple* %23)
@@ -55,5 +55,5 @@ entry:
   call void @__quantum__rt__tuple_unreference(%Tuple* %29)
   %30 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %30)
-  ret { i64, { i2, i64 }* }* %17
+  ret { i64, { i2, i64 }* }* %20
 }

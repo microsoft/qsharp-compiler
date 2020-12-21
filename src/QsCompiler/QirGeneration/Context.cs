@@ -908,10 +908,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (tupleArgName, tupleArg) = tuple;
                 this.PushNamedValue(tupleArgName);
                 var tupleValue = this.ValueStack.Pop();
+                IStructType tupleType = (IStructType)((IPointerType)tupleValue.NativeType).ElementType;
+
                 int idx = 0;
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
-                    var elementPointer = this.GetTupleElementPointer(((IPointerType)tupleValue.NativeType).ElementType, tupleValue, idx);
+                    var elementPointer = this.GetTupleElementPointer(tupleType, tupleValue, idx);
                     var element = this.CurrentBuilder.Load(((IPointerType)elementPointer.NativeType).ElementType, elementPointer);
                     this.RegisterName(argName, element, false);
                     idx++;
@@ -1147,10 +1149,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecialization spec, List<Value> args) =>
-                this.TryGetFunction(callable.FullName, spec.Kind, out IrFunction? func)
-                    ? this.CurrentBuilder.Call(func, args.ToArray())
-                    : throw new InvalidOperationException($"No function defined for {callable.FullName} {spec}");
+            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, List<Value> args)
+            {
+                if (SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var qisCode && qisCode.IsValue)
+                {
+                    var func = this.GetOrCreateQuantumFunction(qisCode.Item);
+                    return specKind == QsSpecializationKind.QsBody
+                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        : throw new ArgumentException($"non-body specialization for target instruction");
+                }
+                else
+                {
+                    return this.TryGetFunction(callable.FullName, specKind, out IrFunction? func)
+                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        : throw new InvalidOperationException($"No function defined for {callable.FullName} {specKind}");
+                }
+            }
 
             bool GenerateWrapperHeader(QsCallable callable, QsSpecialization spec)
             {
@@ -1184,7 +1198,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             ? SyntaxGenerator.WithControlQubits(callable.ArgumentTuple, QsNullable<Position>.Null, QsLocalSymbol.NewValidName(ReservedKeywords.InternalUse.ControlQubitsName), QsNullable<DataTypes.Range>.Null)
                             : callable.ArgumentTuple;
                         var argList = GenerateArgTupleDecomposition(argTuple, argTupleValue, spec.Kind);
-                        var result = GenerateBaseMethodCall(callable, spec, argList);
+                        var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
                         PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
                         this.CurrentBuilder.Return();
                         this.CloseNamingScope();
@@ -1242,20 +1256,39 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Returns a pointer to a tuple element.
+        /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
         /// This is a thin wrapper around the LLVM GEP instruction.
         /// </summary>
-        /// <param name="t">The type of the tuple structure (not the type of the pointer!).</param>
+        /// <param name="tupleType">The type of the tuple structure.</param>
         /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
         /// <param name="index">The element's index into the tuple. The tuple header is index 0, the first data item is index 1.</param>
         /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
-        internal Value GetTupleElementPointer(ITypeRef t, Value tuple, int index, InstructionBuilder? b = null)
+        internal Value GetTupleElementPointer(IStructType tupleType, Value tuple, int index, InstructionBuilder? b = null)
         {
             var builder = b ?? this.CurrentBuilder;
-            var typedTuple = tuple.NativeType == t.CreatePointerType()
+            var typedTuple = tuple.NativeType == tupleType.CreatePointerType()
                 ? tuple
-                : builder.BitCast(tuple, t.CreatePointerType());
-            var elementPointer = builder.GetElementPtr(t, typedTuple, this.PointerIndex(index));
-            return elementPointer;
+                : builder.BitCast(tuple, tupleType.CreatePointerType());
+            return builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
+        }
+
+        /// <summary>
+        /// Returns an array of pointers to each element in the given tuple.
+        /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
+        /// </summary>
+        /// <param name="tupleType">The type of the tuple structure.</param>
+        /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
+        /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        internal Value[] GetTupleElementPointers(IStructType tupleType, Value tuple, InstructionBuilder? b = null)
+        {
+            InstructionBuilder builder = b ?? this.CurrentBuilder;
+            Value typedTuple = tuple.NativeType == tupleType.CreatePointerType()
+                ? tuple
+                : builder.BitCast(tuple, tupleType.CreatePointerType());
+
+            Value ItemPointer(int index) =>
+                builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
+            return tupleType.Members.Select((_, i) => ItemPointer(i)).ToArray();
         }
 
         /// <summary>
@@ -1363,6 +1396,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var size = this.ComputeSizeForType(t, this.CurrentBuilder);
             var tuple = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction("tuple_create"), size);
             return tuple;
+        }
+
+        /// <summary>
+        /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
+        /// </summary>
+        internal void CreateAndPushTuple(params Value[] vs)
+        {
+            // Build the LLVM structure type we need
+            IStructType tupleType = this.Types.CreateConcreteTupleType(vs.Select(v => v.NativeType));
+
+            // Allocate the tuple, cast it to the concrete type, and make to track if for release
+            Value tuple = this.CreateTupleForType(tupleType);
+            Value concreteTuple = this.CurrentBuilder.BitCast(tuple, tupleType.CreatePointerType());
+            this.ValueStack.Push(concreteTuple);
+            this.ScopeMgr.AddValue(concreteTuple);
+
+            // Fill it in, field by field
+            Value[] itemPointers = this.GetTupleElementPointers(tupleType, concreteTuple);
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                this.CurrentBuilder.Store(vs[i], itemPointers[i]);
+                this.ScopeMgr.AddReference(vs[i]);
+            }
         }
 
         #endregion

@@ -143,53 +143,59 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
             IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
 
-            // Generate the allocation for a single variable
-            void AllocateVariable(string variable, ResolvedInitializer init)
+            Value Allocate(ResolvedInitializer init)
             {
-                Value allocation;
                 if (init.Resolution.IsSingleQubitAllocation)
                 {
-                    allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
+                    Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
                     this.SharedState.ScopeMgr.AddQubitAllocation(allocation);
+                    return allocation;
                 }
                 else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                 {
-                    var countValue = this.SharedState.EvaluateSubexpression(reg.Item);
-                    allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
+                    Value countValue = this.SharedState.EvaluateSubexpression(reg.Item);
+                    Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
                     this.SharedState.ScopeMgr.AddQubitAllocation(allocation);
+                    return allocation;
+                }
+                else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
+                {
+                    var items = inits.Item.Select(Allocate).ToArray();
+                    this.SharedState.CreateAndPushTuple(items);
+                    return this.SharedState.ValueStack.Pop();
                 }
                 else
                 {
                     throw new NotImplementedException("unknown initializer in qubit allocation");
                 }
-                this.SharedState.RegisterName(variable, allocation);
-            }
-
-            // Generate the allocations for a tuple of variables (or embedded tuples)
-            void AllocateTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedInitializer> types)
-            {
-                Contract.Assert(items.Length == types.Length, "Initialization list doesn't match symbols");
-                for (int i = 0; i < items.Length; i++)
-                {
-                    AllocateItem(items[i], types[i]);
-                }
             }
 
             // Generate the allocations for an item, which might be a single variable or might be a tuple
-            void AllocateItem(SymbolTuple item, ResolvedInitializer itemInit)
+            void AllocateAndAssign(SymbolTuple item, ResolvedInitializer itemInit)
             {
                 switch (item)
                 {
                     case SymbolTuple.VariableName v:
-                        AllocateVariable(v.Item, itemInit);
+                        this.SharedState.RegisterName(v.Item, Allocate(itemInit));
                         break;
-                    case SymbolTuple.VariableNameTuple t:
-                        AllocateTuple(t.Item, ((ResolvedInitializerKind.QubitTupleAllocation)itemInit.Resolution).Item);
-                        break;
+                    case SymbolTuple.VariableNameTuple syms:
+                        if (itemInit.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits
+                            && inits.Item.Length == syms.Item.Length)
+                        {
+                            for (int i = 0; i < syms.Item.Length; i++)
+                            {
+                                AllocateAndAssign(syms.Item[i], inits.Item[i]);
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            throw new ArgumentException("shape of symbol tuple does not match initializers");
+                        }
                 }
             }
 
-            AllocateItem(binding.Lhs, binding.Rhs);
+            AllocateAndAssign(binding.Lhs, binding.Rhs);
         }
 
         /// <summary>
@@ -238,19 +244,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // public overrides
 
-        public override QsStatementKind OnAllocateQubits(QsQubitScope stm)
+        public override QsStatementKind OnQubitScope(QsQubitScope stm)
         {
             this.SharedState.ScopeMgr.OpenScope();
             this.ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             return QsStatementKind.EmptyStatement;
-        }
-
-        // We treat borrowing the same as allocating for now.
-        public override QsStatementKind OnBorrowQubits(QsQubitScope stm)
-        {
-            return this.OnAllocateQubits(stm);
         }
 
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
