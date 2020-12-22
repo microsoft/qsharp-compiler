@@ -838,7 +838,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             TypedExpression BuildArg(TypedExpression arg, int controlledCount)
             {
-                // throws and InvalidOperationException if the remainingArg is not a tuple with two items
+                // throws an InvalidOperationException if the remainingArg is not a tuple with two items
                 (TypedExpression, TypedExpression) TupleItems(TypedExpression remainingArg) =>
                     (remainingArg.Expression is ResolvedExpression.ValueTuple tuple && tuple.Item.Length == 2)
                     ? (tuple.Item[0], tuple.Item[1])
