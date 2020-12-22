@@ -504,23 +504,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
-
-            // Figure out the inputs to the resulting callable based on the signature of the partial application expression.
-            var partialArgType = this.SharedState.LlvmStructTypeFromQsharpType(
-                this.SharedState.ExpressionTypeStack.Peek().Resolution switch
-                {
-                    QsResolvedTypeKind.Function paf => paf.Item1,
-                    QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
-                    _ => throw new InvalidOperationException("Partial application of a non-callable value")
-                });
-
-            // Argument type of the callable that is partially applied
-            var innerArgType = method.ResolvedType.Resolution switch
+            ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
                 QsResolvedTypeKind.Function paf => paf.Item1,
                 QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
-                _ => throw new InvalidOperationException("Partial application of a non-callable value")
+                _ => throw new InvalidOperationException("expecting an operation or function type")
             };
+
+            // Figure out the inputs to the resulting callable based on the signature of the partial application expression.
+            var partialArgType = this.SharedState.LlvmStructTypeFromQsharpType(
+                CallableArgumentType(this.SharedState.ExpressionTypeStack.Peek()));
+
+            // Argument type of the callable that is partially applied
+            var innerArgType = CallableArgumentType(method.ResolvedType);
 
             // Figure out the args & signature of the resulting callable
             var captured = new List<(Value, ResolvedType)>();
