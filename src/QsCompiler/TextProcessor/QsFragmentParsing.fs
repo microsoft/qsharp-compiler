@@ -159,7 +159,7 @@ let private allocationScope =
             invalidInitializer
             isTupleContinuation
 
-    deprecatedTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment)
+    deprecatedTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) eof
     |>> fst
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
@@ -555,7 +555,7 @@ let private forHeader =
     let loopVariableBinding =
         expectedExpr rTuple |> symbolBinding qsRangeIter.parse ErrorCode.ExpectingIteratorItemAssignment
 
-    let forBody = deprecatedTupleBrackets loopVariableBinding |>> fst
+    let forBody = deprecatedTupleBrackets loopVariableBinding eof |>> fst
     buildFragment qsFor.parse forBody invalid (fun _ -> ForLoopIntro) eof
 
 

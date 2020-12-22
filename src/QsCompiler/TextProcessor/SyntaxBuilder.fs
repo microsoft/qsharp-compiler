@@ -145,19 +145,6 @@ let internal optTupleBrackets core =
     contentDefinedBrackets core (lTuple, rTuple) (ErrorCode.MissingLTupleBracket, ErrorCode.MissingRTupleBracket)
     |> term
 
-/// <summary>
-/// Parses <paramref name="core"/> with optional tuple brackets around it. Raises a deprecation warning when tuple
-/// brackets are present.
-/// </summary>
-/// <returns>The parsed value and its range.</returns>
-/// <remarks>Fails without consuming input if the parsing fails.</remarks>
-let internal deprecatedTupleBrackets core =
-    let warning (value, range) =
-        QsCompilerDiagnostic.NewWarning WarningCode.DeprecatedTupleBrackets range |> pushDiagnostic
-        >>% (value, range)
-
-    followedBy lTuple >>. (optTupleBrackets core >>= warning) <|> term core
-
 /// Given a lbracket and matching rbracket parser, parses the lbracket then looks for the matching rbracket
 /// (recursively such that potential inner brackets are matched properly as well), and then applies the given core parser
 /// only on the substream between the two matching brackets.
@@ -181,6 +168,25 @@ let private bracketDefinedContent core (lbracket, rbracket) =
 /// Fails without consuming input it the parsing fails.
 let internal tupleBrackets core =
     (lTuple, rTuple) |> bracketDefinedContent core |> term
+
+/// <summary>
+/// Parses <paramref name="core"/> with optional tuple brackets around it. If tuple brackets are present, raises a
+/// deprecation warning when tuple brackets are present and requires that <paramref name="after"/> succeeds without
+/// consuming input.
+/// </summary>
+/// <param name="core">A parser to run with or without tuple brackets around it.</param>
+/// <param name="after">
+/// A parser used to detect when tuple brackets are present. It should succeed without consuming input after the right
+/// tuple bracket is parsed.
+/// </param>
+/// <returns>The parsed value and its range.</returns>
+/// <remarks>Fails without consuming input if parsing fails.</remarks>
+let internal deprecatedTupleBrackets core after =
+    let warning (value, range) =
+        QsCompilerDiagnostic.NewWarning WarningCode.DeprecatedTupleBrackets range |> pushDiagnostic
+        >>% (value, range)
+
+    attempt (tupleBrackets core .>> after) >>= warning <|> term core
 
 /// Starting with a left array bracket, extracts the matching right array bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
