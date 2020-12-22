@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    newtype LittleEndian = Qubit[];
+
     operation Empty (qs : Qubit[]) : Unit is Adj + Ctl {
     }
 
@@ -10,7 +12,7 @@ namespace Microsoft.Quantum.Testing.QIR
         let dummy = 1;
     }
 
-    function ReturnDoNothing () : (Qubit[] => Unit is Adj + Ctl)
+    function ReturnDoNothing (dummy : Int) : (Qubit[] => Unit is Adj + Ctl)
     {
         return DoNothing;
     }
@@ -29,10 +31,14 @@ namespace Microsoft.Quantum.Testing.QIR
         adjoint self;
     }
 
-    @EntryPoint()
-    operation GetEnergyHydrogenVQE() : Unit {
+    function TakesSingleTupleArg(gen : (Int, (Int -> (Qubit[] => Unit is Adj + Ctl)))) 
+    : Unit {
+    }
 
-        let doNothing = ReturnDoNothing();
+    @EntryPoint()
+    operation TestOperationCalls() : Unit {
+
+        let doNothing = ReturnDoNothing(1);
         using (aux = Qubit())
         {
             CNOT(aux, aux);
@@ -40,5 +46,6 @@ namespace Microsoft.Quantum.Testing.QIR
             doNothing([aux]);
             Controlled DoNothing([aux], [aux]);
         }
+        TakesSingleTupleArg(2, ReturnDoNothing);
     }
 }

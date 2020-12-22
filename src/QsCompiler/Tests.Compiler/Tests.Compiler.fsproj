@@ -99,7 +99,10 @@
     <Content Include="TestCases\QirTests\TestOpArgument.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestOpCall.ll">
+    <Content Include="TestCases\QirTests\TestOpCall1.ll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestOpCall2.ll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestOpCall.qs">

@@ -90,7 +90,7 @@ let ``QIR operation argument`` () =
 
 [<Fact>]
 let ``QIR operation call`` () =
-    qirTest false "TestOpCall"
+    qirMultiTest false "TestOpCall" ["TestOpCall1"; "TestOpCall2"]
 
 [<Fact>]
 let ``QIR while loop`` () =

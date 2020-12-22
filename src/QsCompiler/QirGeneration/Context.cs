@@ -837,26 +837,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
         /// <param name="argTuple">The specialization's argument tuple</param>
-        internal IrFunction RegisterFunction(QsSpecialization spec, QsArgumentTuple argTuple)
+        internal IrFunction RegisterFunction(QsSpecialization spec)
         {
-            IEnumerable<ITypeRef> ArgTupleToTypes(QsArgumentTuple arg)
-            {
-                if (arg is QsArgumentTuple.QsTuple tuple)
-                {
-                    return tuple.Item.Select(this.BuildArgItemTupleType).ToArray();
-                }
-                else
-                {
-                    var typeRef = this.BuildArgItemTupleType(arg);
-                    return new ITypeRef[] { typeRef };
-                }
-            }
-
             var name = FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
-            var argTypeRefs = ArgTupleToTypes(argTuple);
+            var argTypeRefs =
+                spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
+                spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
+
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
             return this.Module.CreateFunction(name, signature);
         }
@@ -886,22 +877,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             : this.GenerateUniqueName("arg");
                     }
                 }
+
                 return arg is QsArgumentTuple.QsTuple tuple
                     ? tuple.Item.Select(item => LocalVarName(item))
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
+            this.CurrentFunction = this.RegisterFunction(spec);
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
+            if (spec.Signature.ArgumentType.Resolution.IsUnitType)
+            {
+                return;
+            }
 
             var innerTuples = new Queue<(string, QsArgumentTuple)>();
-            var i = 0;
-            foreach (var argName in ArgTupleToNames(argTuple, innerTuples))
+            var outerArgNames = ArgTupleToNames(argTuple, innerTuples).ToArray();
+
+            // If we have a single named tuple-valued argument, then the items of the tuple
+            // are the arguments to the function and we need to reconstruct the tuple.
+            // The reason for this choice of representation is that relying only on the argument type
+            // rather than the argument tuple for determining the signature of a function is much cleaner.
+            if (outerArgNames.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                this.CurrentFunction.Parameters[i].Name = argName;
-                this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
-                i++;
+                this.CreateAndPushTuple(this.CurrentFunction.Parameters.ToArray());
+                this.RegisterName(outerArgNames[0], this.ValueStack.Pop(), false);
+            }
+            else
+            {
+                var i = 0;
+                foreach (var argName in outerArgNames)
+                {
+                    this.CurrentFunction.Parameters[i].Name = argName;
+                    this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
+                    i++;
+                }
             }
 
             // Now break up inner argument tuples
@@ -988,10 +998,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
-                var argTuple = spec.Kind == QsSpecializationKind.QsControlled || spec.Kind == QsSpecializationKind.QsControlledAdjoint
-                    ? SyntaxGenerator.WithControlQubits(callable.ArgumentTuple, QsNullable<Position>.Null, QsLocalSymbol.NewValidName(ReservedKeywords.InternalUse.ControlQubitsName), QsNullable<DataTypes.Range>.Null)
-                    : callable.ArgumentTuple;
-                return this.RegisterFunction(spec, argTuple);
+                return this.RegisterFunction(spec);
             }
             // If we can't find the function at all, it's a problem...
             throw new KeyNotFoundException($"Can't find callable {fullName}");
@@ -1078,40 +1085,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private void GenerateQueuedWrappers()
         {
             // Generate the code that decomposes the tuple back into the named arguments
-            // Note that we don't want to recurse here!!.
-            List<Value> GenerateArgTupleDecomposition(QsArgumentTuple arg, Value value, QsSpecializationKind kind)
+            // Note that we don't want to recurse here!
+            List<Value> GenerateArgTupleDecomposition(ResolvedType argType, Value value)
             {
-                // Not to be used for Unit!
-                Value BuildLoadForArg(QsArgumentTuple arg, Value value)
+                Value BuildLoadForArg(ResolvedType t, Value value)
                 {
-                    ITypeRef argTypeRef = arg is QsArgumentTuple.QsTupleItem item
-                        ? this.BuildArgItemTupleType(item)
-                        : this.BuildArgTupleType(arg).CreatePointerType();
-                    // value is a pointer to the argument
-                    Value actualArg = this.CurrentBuilder.Load(argTypeRef, value);
-                    return actualArg;
+                    ITypeRef argTypeRef = this.LlvmTypeFromQsharpType(t); // FIXME: WHAT IF WE HAVE A TUPLE HERE; NEED TO CAST THE VALUE??
+                    return this.CurrentBuilder.Load(argTypeRef, value);
                 }
 
                 List<Value> args = new List<Value>();
-                if (arg is QsArgumentTuple.QsTuple tuple)
+                if (argType.Resolution is QsResolvedTypeKind.TupleType ts)
                 {
-                    if (tuple.Item.Length > 0)
+                    IStructType tupleType = (IStructType)((IPointerType)this.LlvmTypeFromQsharpType(argType)).ElementType;
+                    Value[] itemPointers = this.GetTupleElementPointers(tupleType, value);
+                    for (var i = 0; i < itemPointers.Length; i++)
                     {
-                        ITypeRef tupleTypeRef = this.BuildArgTupleType(arg);
-                        // Convert value from Tuple to the proper type
-                        Value asStructPointer = this.CurrentBuilder.BitCast(value, tupleTypeRef.CreatePointerType());
-                        for (var i = 0; i < tuple.Item.Length; i++)
-                        {
-                            Value ptr = this.CurrentBuilder.GetElementPtr(tupleTypeRef, asStructPointer, this.PointerIndex(i));
-                            args.Add(tuple.Item[i] is QsArgumentTuple.QsTuple vs && vs.Item.Length == 0
-                                ? this.Constants.UnitValue
-                                : BuildLoadForArg(tuple.Item[i], ptr));
-                        }
+                        args.Add(ts.Item[i].Resolution.IsUnitType
+                            ? this.Constants.UnitValue
+                            : BuildLoadForArg(ts.Item[i], itemPointers[i]));
                     }
                 }
-                else
+                else if (!argType.Resolution.IsUnitType)
                 {
-                    args.Add(BuildLoadForArg(arg, value));
+                    args.Add(BuildLoadForArg(argType, value));
                 }
 
                 return args;
@@ -1196,10 +1193,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.OpenNamingScope();
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
-                        var argTuple = spec.Kind == QsSpecializationKind.QsControlled || spec.Kind == QsSpecializationKind.QsControlledAdjoint
-                            ? SyntaxGenerator.WithControlQubits(callable.ArgumentTuple, QsNullable<Position>.Null, QsLocalSymbol.NewValidName(ReservedKeywords.InternalUse.ControlQubitsName), QsNullable<DataTypes.Range>.Null)
-                            : callable.ArgumentTuple;
-                        var argList = GenerateArgTupleDecomposition(argTuple, argTupleValue, spec.Kind);
+                        var argList = GenerateArgTupleDecomposition(spec.Signature.ArgumentType, argTupleValue);
                         var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
                         PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
                         this.CurrentBuilder.Return();
@@ -1330,62 +1324,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Tuple and argument tuple creation
-
-        /// <summary>
-        /// Builds the LLVM type that represents a Q# argument tuple as a passed value.
-        /// <br/><br/>
-        /// See also <seealso cref="LlvmTypeFromQsharpType(ResolvedType)"/>.
-        /// </summary>
-        /// <param name="argItem">The Q# argument tuple</param>
-        /// <returns>The LLVM type</returns>
-        private ITypeRef BuildArgItemTupleType(QsArgumentTuple argItem)
-        {
-            switch (argItem)
-            {
-                case QsArgumentTuple.QsTuple tuple:
-                {
-                    var elems = tuple.Item.Select(this.BuildArgItemTupleType);
-                    return this.Types.CreateConcreteTupleType(elems).CreatePointerType();
-                }
-
-                case QsArgumentTuple.QsTupleItem item:
-                {
-                    // Single items get translated to the appropriate LLVM type
-                    return this.LlvmTypeFromQsharpType(item.Item.Type);
-                }
-                default:
-                {
-                    throw new NotImplementedException("Unknown item in argument tuple.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Builds the LLVM type that represents a Q# argument tuple as a structure.
-        /// Note that tupled arguments generate an LLVM structure type.
-        /// <br/><br/>
-        /// See also <seealso cref="LlvmStructTypeFromQsharpType(ResolvedType)"/>.
-        /// </summary>
-        /// <param name="arg">The Q# argument tuple</param>
-        /// <returns>The LLVM type</returns>
-        private ITypeRef BuildArgTupleType(QsArgumentTuple arg)
-        {
-            if (arg is QsArgumentTuple.QsTuple tuple)
-            {
-                return tuple.Item.Length == 0
-                    ? this.Context.VoidType
-                    : this.Types.CreateConcreteTupleType(tuple.Item.Select(this.BuildArgItemTupleType));
-            }
-            else if (arg is QsArgumentTuple.QsTupleItem item)
-            {
-                var itemTypeRef = this.LlvmTypeFromQsharpType(item.Item.Type);
-                return this.Types.CreateConcreteTupleType(itemTypeRef);
-            }
-            else
-            {
-                throw new NotImplementedException("Unknown item in argument tuple.");
-            }
-        }
 
         /// <summary>
         /// Creates a new tuple for an LLVM structure type.
