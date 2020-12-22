@@ -66,12 +66,12 @@ Contributions should follow the code formatting guidelines for this repository.
 
 ### C#
 
-StyleCop is configured for every C# project in this repository.
+[StyleCop](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) is configured for every C# project in this repository.
 Your IDE should warn you if you write code that does not follow the style guide.
 
 ### F#
 
-F# code is automatically formatted using Fantomas.
+F# code is automatically formatted using [Fantomas](https://github.com/fsprojects/fantomas).
 To install the correct version of Fantomas for this repository, run `dotnet tool restore`.
 To format a specific file, run `dotnet tool run fantomas MyFile.fs`.
 To format every file in a folder, run `dotnet tool run fantomas -r MyFolder`.
