@@ -8,6 +8,7 @@ using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -73,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // parArgs.NativeType == this.ItemType may occur if we have an item of user defined type (represented as a tuple)
                 if (this.SharedState.Types.IsTupleType(parArgs.NativeType) && parArgs.NativeType != this.ItemType)
                 {
-                    var parArgsStruct = (IStructType)((IPointerType)parArgs.NativeType).ElementType;
+                    var parArgsStruct = Quantum.QIR.Types.StructFromPointer(parArgs.NativeType);
                     var srcPtr = this.SharedState.GetTupleElementPointer(parArgsStruct, parArgs, this.ArgIndex, builder);
                     var item = builder.Load(this.ItemType, srcPtr);
                     return item;
@@ -302,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        private bool FindNamedItem(string name, QsTuple<QsTypeItem> items, List<(int, ITypeRef)> location)
+        private bool FindNamedItem(string name, QsTuple<QsTypeItem> items, List<(int, IStructType)> location)
         {
             ITypeRef GetTypeItemType(QsTuple<QsTypeItem> item)
             {
@@ -325,8 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         });
                         return this.SharedState.Types.CreateConcreteTupleType(types).CreatePointerType();
                     default:
-                        // This should never happen
-                        return this.SharedState.Context.TokenType;
+                        throw new NotImplementedException("unknown item in argument tuple");
                 }
             }
 
@@ -343,7 +343,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         if (this.FindNamedItem(name, list.Item[i], location))
                         {
-                            location.Add((i, GetTypeItemType(items)));
+                            var tupleStruct = this.SharedState.Types.CreateConcreteTupleType(list.Item.Select(GetTypeItemType));
+                            location.Add((i, tupleStruct));
                             return true;
                         }
                     }
@@ -415,7 +416,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, IStructType captureType, IStructType parArgsType, RebuildItem rebuild)
+            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, IStructType captureType, IStructType parArgsStruct, RebuildItem rebuild)
             {
                 var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
                 var func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
@@ -431,8 +432,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Value innerArgTuple;
                 if (kind == QsSpecializationKind.QsControlled || kind == QsSpecializationKind.QsControlledAdjoint)
                 {
-                    var parArgsStruct = (IStructType)parArgsType;
-
                     // Deal with the extra control qubit arg for controlled and controlled-adjoint
                     // Note that there's a special case if the base specialization only takes a single parameter,
                     // in which case we don't create the sub-tuple.
@@ -442,7 +441,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var ctlArgsPointer = builder.BitCast(func.Parameters[1], ctlArgsType.CreatePointerType());
                         var controlsPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, ctlArgsPointer, 0, builder);
                         var restPointer = this.SharedState.GetTupleElementPointer(ctlArgsType, ctlArgsPointer, 1, builder);
-                        var typedRestPointer = builder.BitCast(restPointer, parArgsType.CreatePointerType());
+                        var typedRestPointer = builder.BitCast(restPointer, parArgsStruct.CreatePointerType());
                         var restTuple = rebuild.BuildItem(builder, captureType, capturePointer, typedRestPointer);
                         var size = this.SharedState.ComputeSizeForType(ctlArgsType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
@@ -486,7 +485,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    var parArgsPointer = builder.BitCast(func.Parameters[1], parArgsType.CreatePointerType());
+                    var parArgsPointer = builder.BitCast(func.Parameters[1], parArgsStruct.CreatePointerType());
                     var typedTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsPointer);
                     innerArgTuple = builder.BitCast(typedTuple, this.SharedState.Types.Tuple);
                 }
@@ -1193,7 +1192,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
             {
-                var location = new List<(int, ITypeRef)>();
+                var location = new List<(int, IStructType)>();
                 if (this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
                     && accEx.Expression is ResolvedExpression.Identifier acc
                     && acc.Item1 is Identifier.LocalVariable loc
@@ -1205,7 +1204,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     for (int i = 0; i < location.Count; i++)
                     {
                         var ptr = this.SharedState.GetTupleElementPointer(
-                            (IStructType)((IPointerType)location[i].Item2).ElementType,
+                            location[i].Item2,
                             current,
                             location[i].Item1);
                         // For the last item on the list, we store; otherwise, we load the next tuple
@@ -1216,7 +1215,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
                         else
                         {
-                            current = this.SharedState.CurrentBuilder.Load(location[i + 1].Item2, ptr);
+                            current = this.SharedState.CurrentBuilder.Load(location[i + 1].Item2.CreatePointerType(), ptr);
                         }
                     }
                     this.SharedState.ValueStack.Push(copy);
@@ -1671,7 +1670,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 && this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
                 && acc is Identifier.LocalVariable itemName)
             {
-                var location = new List<(int, ITypeRef)>();
+                var location = new List<(int, IStructType)>();
                 if (this.FindNamedItem(itemName.Item, udt.TypeItems, location))
                 {
                     // The location list refers to the location of the named item within the item tuple
@@ -1680,7 +1679,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var value = this.SharedState.EvaluateSubexpression(ex);
                     for (int i = 0; i < location.Count; i++)
                     {
-                        var innerTupleType = (IStructType)((IPointerType)location[i].Item2).ElementType;
+                        var innerTupleType = location[i].Item2;
                         var elementType = innerTupleType.Members[location[i].Item1];
                         var ptr = this.SharedState.GetTupleElementPointer(
                             innerTupleType,

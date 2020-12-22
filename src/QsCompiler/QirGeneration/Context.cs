@@ -919,7 +919,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (tupleArgName, tupleArg) = tuple;
                 this.PushNamedValue(tupleArgName);
                 var tupleValue = this.ValueStack.Pop();
-                IStructType tupleType = (IStructType)((IPointerType)tupleValue.NativeType).ElementType;
+                IStructType tupleType = Types.StructFromPointer(tupleValue.NativeType);
 
                 int idx = 0;
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
@@ -1096,7 +1096,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 List<Value> args = new List<Value>();
                 if (argType.Resolution is QsResolvedTypeKind.TupleType ts)
                 {
-                    IStructType tupleType = (IStructType)((IPointerType)this.LlvmTypeFromQsharpType(argType)).ElementType;
+                    IStructType tupleType = Types.StructFromPointer(this.LlvmTypeFromQsharpType(argType));
                     Value[] itemPointers = this.GetTupleElementPointers(tupleType, value);
                     for (var i = 0; i < itemPointers.Length; i++)
                     {
