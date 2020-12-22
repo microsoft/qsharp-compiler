@@ -43,7 +43,6 @@ namespace Microsoft.Quantum.Testing.QIR
     @EntryPoint()
     operation TestOpArgument () : String {
         using (qs = (Qubit(), Qubit())) {
-
             let (q1, q2) = qs;
             let op = _Choose(_, (q1, _));
 
