@@ -69,7 +69,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override Value BuildItem(InstructionBuilder builder, ITypeRef captureType, Value capture, ITypeRef parArgsType, Value parArgs)
             {
-                if (this.SharedState.Types.IsTupleType(parArgs.NativeType))
+                // parArgs.NativeType == this.ItemType may occur if we have an item of user defined type (represented as a tuple)
+                if (this.SharedState.Types.IsTupleType(parArgs.NativeType) && parArgs.NativeType != this.ItemType)
                 {
                     var srcPtr = builder.GetElementPtr(parArgsType, parArgs, this.SharedState.PointerIndex(this.ArgIndex));
                     var item = builder.Load(this.ItemType, srcPtr);
@@ -497,23 +498,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return func;
             }
 
-            // Figure out the inputs to the resulting callable based on the signature of the partial application expression.
-            var paType = this.SharedState.ExpressionTypeStack.Peek();
-            var paArgTuple = paType.Resolution switch
-            {
-                QsResolvedTypeKind.Function paf => paf.Item1,
-                QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
-                _ => throw new InvalidOperationException("Partial application of a non-callable value")
-            };
-            var partialArgType = paArgTuple.Resolution switch
-            {
-                QsResolvedTypeKind.TupleType pat => this.SharedState.Types.CreateConcreteTupleType(
-                    pat.Item.Select(this.SharedState.LlvmTypeFromQsharpType)),
-                _ => this.SharedState.LlvmStructTypeFromQsharpType(paArgTuple)
-            };
+            var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
 
-            // And the inputs to the underlying callable
-            var innerTupleType = method.ResolvedType.Resolution switch
+            // Figure out the inputs to the resulting callable based on the signature of the partial application expression.
+            var partialArgType = this.SharedState.LlvmStructTypeFromQsharpType(
+                this.SharedState.ExpressionTypeStack.Peek().Resolution switch
+                {
+                    QsResolvedTypeKind.Function paf => paf.Item1,
+                    QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
+                    _ => throw new InvalidOperationException("Partial application of a non-callable value")
+                });
+
+            // Argument type of the callable that is partially applied
+            var innerArgType = method.ResolvedType.Resolution switch
             {
                 QsResolvedTypeKind.Function paf => paf.Item1,
                 QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
@@ -521,13 +518,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             };
 
             // Figure out the args & signature of the resulting callable
-            var parArgs = new List<ResolvedType>();
-            var caps = new List<(Value, ResolvedType)>();
-            var rebuild = BuildPartialArgList(innerTupleType, arg, parArgs, caps);
+            var captured = new List<(Value, ResolvedType)>();
+            var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
 
             // Create the capture tuple
             // Note that we set aside the first element of the capture tuple for the inner operation to call
-            var capTypeList = caps.Select(c => c.Item1.NativeType).Prepend(this.SharedState.Types.Callable);
+            var capTypeList = captured.Select(c => c.Item1.NativeType).Prepend(this.SharedState.Types.Callable);
             var capType = this.SharedState.Types.CreateConcreteTupleType(capTypeList);
             var cap = this.SharedState.CreateTupleForType(capType);
             var capture = this.SharedState.CurrentBuilder.BitCast(cap, capType.CreatePointerType());
@@ -537,11 +533,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.CurrentBuilder.Store(innerCallable, callablePointer);
             this.SharedState.ScopeMgr.AddReference(innerCallable);
 
-            for (int n = 0; n < caps.Count; n++)
+            for (int n = 0; n < captured.Count; n++)
             {
                 var item = this.SharedState.CurrentBuilder.GetElementPtr(capType, capture, this.SharedState.PointerIndex(n + 1));
-                this.SharedState.CurrentBuilder.Store(caps[n].Item1, item);
-                this.SharedState.ScopeMgr.AddReference(caps[n].Item1);
+                this.SharedState.CurrentBuilder.Store(captured[n].Item1, item);
+                this.SharedState.ScopeMgr.AddReference(captured[n].Item1);
             }
 
             // Create the lifted specialization implementation(s)
@@ -550,28 +546,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 QsSpecializationKind.QsBody
             };
-            if (method.ResolvedType.Resolution is QsResolvedTypeKind.Operation op)
+            if (method.ResolvedType.Resolution is QsResolvedTypeKind.Operation op
+                && op.Item2.Characteristics.SupportedFunctors.IsValue)
             {
-                if (op.Item2.Characteristics.SupportedFunctors.IsValue)
+                var functors = op.Item2.Characteristics.SupportedFunctors.Item;
+                if (functors.Contains(QsFunctor.Adjoint))
                 {
-                    var functors = op.Item2.Characteristics.SupportedFunctors.Item;
+                    kinds.Add(QsSpecializationKind.QsAdjoint);
+                }
+                if (functors.Contains(QsFunctor.Controlled))
+                {
+                    kinds.Add(QsSpecializationKind.QsControlled);
                     if (functors.Contains(QsFunctor.Adjoint))
                     {
-                        kinds.Add(QsSpecializationKind.QsAdjoint);
-                    }
-                    if (functors.Contains(QsFunctor.Controlled))
-                    {
-                        kinds.Add(QsSpecializationKind.QsControlled);
-                        if (functors.Contains(QsFunctor.Adjoint))
-                        {
-                            kinds.Add(QsSpecializationKind.QsControlledAdjoint);
-                        }
+                        kinds.Add(QsSpecializationKind.QsControlledAdjoint);
                     }
                 }
             }
 
             // Now create our specializations
-            var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
             var specializations = new Constant[4];
             for (var index = 0; index < 4; index++)
             {
