@@ -1388,4 +1388,81 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     @ Test("Some Namespace.Target")
     function InvalidTestAttribute22 () : Unit { }
+
+
+    // Parentheses in statements
+
+    function ParensIf() : Unit {
+        if (1 != 2) { }
+    }
+
+    function NoParensIf() : Unit {
+        if 1 != 2 { }
+    }
+
+    function ParensElif() : Unit {
+        if (2 == 2) {
+        } elif (1 != 2) {
+        }
+    }
+
+    function NoParensElif() : Unit {
+        if 2 == 2 {
+        } elif 1 != 2 {
+        }
+    }
+
+    function ParensFor() : Unit {
+        for (x in [1, 2, 3]) { }
+    }
+
+    function NoParensFor() : Unit {
+        for x in [1, 2, 3] { }
+    }
+
+    function ParensWhile() : Unit {
+        while (1 == 2) { }
+    }
+
+    function NoParensWhile() : Unit {
+        while 1 == 2 { }
+    }
+
+    operation ParensUntil() : Unit {
+        repeat {
+        } until (1 != 2);
+    }
+
+    operation NoParensUntil() : Unit {
+        repeat {
+        } until 1 != 2;
+    }
+    
+    operation ParensUntilFixup() : Unit {
+        repeat {
+        } until (1 != 2) fixup {
+        }
+    }
+
+    operation NoParensUntilFixup() : Unit {
+        repeat {
+        } until 1 != 2 fixup {
+        }
+    }
+
+    operation ParensUsing() : Unit {
+        using (q = Qubit()) { }
+    }
+
+    operation NoParensUsing() : Unit {
+        using q = Qubit() { }
+    }
+
+    operation ParensBorrowing() : Unit {
+        borrowing (q = Qubit()) { }
+    }
+
+    operation NoParensBorrowing() : Unit {
+        borrowing q = Qubit() { }
+    }
 }
