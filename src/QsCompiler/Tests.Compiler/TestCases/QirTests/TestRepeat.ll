@@ -30,10 +30,9 @@ then0__1:                                         ; preds = %fixup__1
   call void @__quantum__rt__result_unreference(%Result* %0)
   call void @__quantum__rt__result_unreference(%Result* %1)
   call void @__quantum__rt__fail(%String* %7)
-  call void @__quantum__rt__string_unreference(%String* %7)
-  br label %continue__1
+  unreachable
 
-continue__1:                                      ; preds = %then0__1, %fixup__1
+continue__1:                                      ; preds = %fixup__1
   br label %repeat__1
 
 rend__1:                                          ; preds = %until__1

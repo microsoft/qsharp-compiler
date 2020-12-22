@@ -332,6 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Release any resources (qubits or memory) before we fail.
             this.SharedState.ScopeMgr.ExitScope(message);
             this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
+            this.SharedState.CurrentBuilder.Unreachable();
 
             // Even though this terminates the block execution, we'll still wind up terminating
             // the containing Q# statement block, and thus the LLVM basic block, so we don't need

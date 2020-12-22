@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Quantum.QIR;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
@@ -820,7 +819,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
             }
-            else if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType == this.Context.VoidType)
+            else if (this.CurrentBlock.Terminator == null)
             {
                 this.CurrentBuilder.Return();
             }
