@@ -7,7 +7,6 @@
 module Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 
 open System.Collections.Immutable
-open System.Linq
 open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -92,10 +91,9 @@ let private expectedNamespaceName continuation =
     expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
 /// Parses the condition e.g. for if, elif and until clauses.
-/// Uses optTupleBrackets to raise the corresponding missing bracket errors if the condition is not within tuple brackets.
 /// Uses expectedExpr to raise suitable errors for a missing or invalid expression.
 let private expectedCondition continuation =
-    optTupleBrackets (expectedExpr (rTuple <|> (continuation >>% ""))) |>> fst
+    expectedExpr (rTuple <|> (continuation >>% ""))
 
 /// Parses for a binding to a symbol tuple or a single symbol when
 /// given a parser for the right hand side of the binding as well as the connector parser that connects the symbols with the right hand side.
@@ -161,7 +159,8 @@ let private allocationScope =
             invalidInitializer
             isTupleContinuation
 
-    optTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) |>> fst
+    deprecatedTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment)
+    |>> fst
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
 let private modifiers =
@@ -556,14 +555,14 @@ let private forHeader =
     let loopVariableBinding =
         expectedExpr rTuple |> symbolBinding qsRangeIter.parse ErrorCode.ExpectingIteratorItemAssignment
 
-    let forBody = optTupleBrackets loopVariableBinding |>> fst
+    let forBody = deprecatedTupleBrackets loopVariableBinding |>> fst
     buildFragment qsFor.parse forBody invalid (fun _ -> ForLoopIntro) eof
 
 
 /// Uses buildFragment to parse a Q# while-statement intro (while-statement without the body) as QsFragment.
 let private whileHeader =
     let invalid = WhileLoopIntro unknownExpr
-    let whileBody = optTupleBrackets (expectedExpr isTupleContinuation) |>> fst
+    let whileBody = expectedExpr isTupleContinuation
     buildFragment qsWhile.parse whileBody invalid (fun _ -> WhileLoopIntro) eof
 
 
