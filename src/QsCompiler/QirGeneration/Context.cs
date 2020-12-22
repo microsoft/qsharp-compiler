@@ -1122,14 +1122,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var concreteOutputTuple = this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType());
                     for (int j = 0; j < tupleType.Item.Length; j++)
                     {
-                        var resItemPointer = this.CurrentBuilder.GetElementPtr(
-                             resultTupleType,
-                             resultValue,
-                             this.PointerIndex(j));
-                        var itemOutputPointer = this.CurrentBuilder.GetElementPtr(
-                            resultTupleType,
-                            concreteOutputTuple,
-                            this.PointerIndex(j));
+                        var resItemPointer = this.GetTupleElementPointer(resultTupleType, resultValue, j);
+                        var itemOutputPointer = this.GetTupleElementPointer(resultTupleType, concreteOutputTuple, j);
 
                         var itemType = this.LlvmTypeFromQsharpType(tupleType.Item[j]);
                         var resItem = this.CurrentBuilder.Load(itemType, resItemPointer);
@@ -1138,11 +1132,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (!resultType.Resolution.IsUnitType)
                 {
-                    var concreteOutputTuple = this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType());
-                    var outputPointer = this.CurrentBuilder.GetElementPtr(
-                            resultTupleType,
-                            concreteOutputTuple,
-                            this.PointerIndex(0));
+                    var outputPointer = this.GetTupleElementPointer(resultTupleType, outputTuple, 0);
                     this.CurrentBuilder.Store(resultValue, outputPointer);
                 }
             }
@@ -1312,6 +1302,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Everything else we let getelementptr compute for us
                 var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
+                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
                 var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
                 var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
                 var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });

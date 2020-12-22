@@ -133,15 +133,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 builder.Call(func, untypedTuple);
 
                 // for tuples we also unreference all inner tuples
-                var elementType = ((IPointerType)value.NativeType).ElementType;
-                var itemTypes = ((IStructType)elementType).Members;
-                for (var i = 0; i < itemTypes.Count; ++i)
+                var elementType = (IStructType)((IPointerType)value.NativeType).ElementType;
+                for (var i = 0; i < elementType.Members.Count; ++i)
                 {
-                    var itemFuncName = getItemFunc(itemTypes[i]);
+                    var itemFuncName = getItemFunc(elementType.Members[i]);
                     if (itemFuncName != null)
                     {
-                        var ptr = builder.GetElementPtr(elementType, value, this.sharedState.PointerIndex(i));
-                        var item = builder.Load(itemTypes[i], ptr);
+                        var ptr = this.sharedState.GetTupleElementPointer(elementType, value, i, builder);
+                        var item = builder.Load(elementType.Members[i], ptr);
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
                 }
