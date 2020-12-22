@@ -815,8 +815,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
             this.CloseNamingScope();
 
-            if (this.CurrentBlock.Instructions.Count() == 0
-                && !HasAPredecessor(this.CurrentBlock)
+            if (!HasAPredecessor(this.CurrentBlock)
                 && this.CurrentFunction.BasicBlocks.Count > 1)
             {
                 this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);

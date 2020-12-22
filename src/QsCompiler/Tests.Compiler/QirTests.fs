@@ -149,5 +149,9 @@ let ``QIR scoping`` () =
     qirTest false "TestScoping"
 
 [<Fact>]
+let ``QIR conditionals`` () =
+    qirTest false "TestConditional"
+
+[<Fact>]
 let ``QIR expressions`` () =
     qirTest false "TestExpressions"
