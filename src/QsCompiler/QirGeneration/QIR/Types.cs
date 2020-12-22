@@ -101,7 +101,6 @@ namespace Microsoft.Quantum.QIR
 
         // private fields
 
-        private readonly IStructType tupleHeader;
         private readonly Context context;
 
         // constructor
@@ -110,14 +109,13 @@ namespace Microsoft.Quantum.QIR
         {
             this.context = context;
 
-            this.tupleHeader = context.CreateStructType(TypeNames.Tuple, false, context.Int32Type, context.Int32Type); // private
             this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
             this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
             this.Qubit = context.CreateStructType(TypeNames.Qubit).CreatePointerType();
             this.String = context.CreateStructType(TypeNames.String).CreatePointerType();
             this.BigInt = context.CreateStructType(TypeNames.BigInt).CreatePointerType();
-            this.Tuple = this.tupleHeader.CreatePointerType();
+            this.Tuple = context.CreateStructType(TypeNames.Tuple).CreatePointerType();
             this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
@@ -139,7 +137,7 @@ namespace Microsoft.Quantum.QIR
         /// always passed as a pointer to that item.
         /// </summary>
         public IStructType CreateConcreteTupleType(IEnumerable<ITypeRef> items) =>
-            this.context.CreateStructType(false, items.Prepend(this.tupleHeader).ToArray());
+            this.context.CreateStructType(false, items.ToArray());
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains the given items.
@@ -147,7 +145,7 @@ namespace Microsoft.Quantum.QIR
         /// and are always passed as a pointer to that item.
         /// </summary>
         public IStructType CreateConcreteTupleType(params ITypeRef[] items) =>
-            this.CreateConcreteTupleType((IEnumerable<ITypeRef>)items);
+            this.context.CreateStructType(false, items);
 
         /// <summary>
         /// Determines whether an LLVM type is a pointer to a tuple.
@@ -156,8 +154,8 @@ namespace Microsoft.Quantum.QIR
         public bool IsTupleType(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
-            && st.Members.Count > 0
-            && st.Members[0] == this.tupleHeader;
+            && st.Name == null
+            && st.Members.Count > 0;
     }
 
     /// <summary>
@@ -179,7 +177,7 @@ namespace Microsoft.Quantum.QIR
         public const string BigInt = "BigInt";
         public const string String = "String";
         public const string Array = "Array";
-        public const string Tuple = "TupleHeader";
+        public const string Tuple = "Tuple";
 
         // There is no separate struct type for Tuple,
         // since within QIR, there is not type distinction between tuples with different item types or number of items.
