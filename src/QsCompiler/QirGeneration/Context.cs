@@ -820,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
             }
-            else if (this.CurrentBlock.Terminator == null)
+            else if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType == this.Context.VoidType)
             {
                 this.CurrentBuilder.Return();
             }

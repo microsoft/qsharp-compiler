@@ -442,12 +442,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var restTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, typedRestPointer);
                         var size = this.SharedState.ComputeSizeForType(ctlArgsType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                        var typedNewTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
-                        this.SharedState.ScopeMgr.AddValue(typedNewTuple);
-                        var destControlsPointer = builder.GetElementPtr(ctlArgsType, typedNewTuple, this.SharedState.PointerIndex(0));
+                        var typedTuple = builder.BitCast(innerArgTuple, ctlArgsType.CreatePointerType());
+                        this.SharedState.ScopeMgr.AddValue(typedTuple);
+                        var destControlsPointer = builder.GetElementPtr(ctlArgsType, typedTuple, this.SharedState.PointerIndex(0));
                         var controls = builder.Load(this.SharedState.Types.Array, controlsPointer);
                         builder.Store(controls, destControlsPointer);
-                        var destArgsPointer = builder.GetElementPtr(ctlArgsType, typedNewTuple, this.SharedState.PointerIndex(1));
+                        var destArgsPointer = builder.GetElementPtr(ctlArgsType, typedTuple, this.SharedState.PointerIndex(1));
                         builder.Store(restTuple, destArgsPointer);
                     }
                     else if (parArgsStruct.Members.Count == 1)
@@ -466,12 +466,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var innerArgType = this.SharedState.Types.CreateConcreteTupleType(this.SharedState.Types.Array, restTuple.NativeType);
                         var size = this.SharedState.ComputeSizeForType(innerArgType, builder);
                         innerArgTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                        var typedNewTuple = builder.BitCast(innerArgTuple, innerArgType.CreatePointerType());
-                        this.SharedState.ScopeMgr.AddValue(typedNewTuple);
-                        var destControlsPointer = builder.GetElementPtr(innerArgType, typedNewTuple, this.SharedState.PointerIndex(0));
+                        var typedTuple = builder.BitCast(innerArgTuple, innerArgType.CreatePointerType());
+                        this.SharedState.ScopeMgr.AddValue(typedTuple);
+                        var destControlsPointer = builder.GetElementPtr(innerArgType, typedTuple, this.SharedState.PointerIndex(0));
                         var controls = builder.Load(this.SharedState.Types.Array, controlsPointer);
                         builder.Store(controls, destControlsPointer);
-                        var destArgsPointer = builder.GetElementPtr(innerArgType, typedNewTuple, this.SharedState.PointerIndex(1));
+                        var destArgsPointer = builder.GetElementPtr(innerArgType, typedTuple, this.SharedState.PointerIndex(1));
                         builder.Store(restTuple, destArgsPointer);
                     }
                     else
@@ -482,7 +482,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else
                 {
                     var parArgsPointer = builder.BitCast(func.Parameters[1], parArgsType.CreatePointerType());
-                    innerArgTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, parArgsPointer);
+                    var typedTuple = rebuild.BuildItem(builder, captureType, capturePointer, parArgsType, parArgsPointer);
+                    innerArgTuple = builder.BitCast(typedTuple, this.SharedState.Types.Tuple);
                 }
 
                 var innerCallablePtr = builder.GetElementPtr(captureType, capturePointer, this.SharedState.PointerIndex(0));
