@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.Testing.QIR
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Targeting;
 
+    @TargetInstruction("message")
     function Message() : String {
         body intrinsic;
     }
