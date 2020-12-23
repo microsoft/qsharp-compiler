@@ -221,9 +221,11 @@ type ResolvedCharacteristics =
             | Intersection (s1, s2) -> { _Characteristics = Intersection(s1, s2) } |> ResolvedCharacteristics.Simplify
             | InvalidSetExpr -> { _Characteristics = InvalidSetExpr }
 
+        /// <summary>
         /// Given the resolved characteristics of a set of specializations,
         /// determines and returns the minimal characteristics of any one of the specializations.
-        /// Throws an ArgumentException if the given list is empty.
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="characteristics"/> is empty.</exception>
         static member internal Common(characteristics: ResolvedCharacteristics list) =
             let rec common current =
                 function
@@ -255,9 +257,12 @@ type ResolvedCharacteristics =
             | [] -> EmptySet |> ResolvedCharacteristics.New
             | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
 
+        /// <summary>
         /// Determines which properties are supported by a callable with the given characteristics and returns them.
-        /// Throws an InvalidOperationException if the properties cannot be determined
-        /// either because the characteristics expression contains unresolved parameters or is invalid.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
+        /// </exception>
         member this.GetProperties() =
             match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
             | Some props -> props.ToImmutableHashSet()
@@ -315,10 +320,12 @@ type CallableInformation =
             InferredInformation = InferredCallableInformation.NoInformation
         }
 
+    /// <summary>
     /// Given a sequence of CallableInformation items,
     /// determines the common characteristics as well as the information that was inferred for all given items.
     /// Any positive property (either from characteristics, or from inferred information) in the returned CallableInformation holds true for any one of the given items.
-    /// Throws an ArgumentException if the given sequence is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="infos"/> is empty.</exception>
     static member Common(infos: CallableInformation seq) =
         let commonCharacteristics =
             infos |> Seq.map (fun info -> info.Characteristics) |> Seq.toList |> ResolvedCharacteristics.Common
@@ -348,9 +355,11 @@ type ResolvedType =
         /// By construction never contains any arity-0 or arity-1 tuple types.
         member this.Resolution = this._TypeKind
 
+        /// <summary>
         /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
         /// Replaces an arity-1 tuple by its item type.
-        /// Throws an ArgumentException if the given type kind is an empty tuple.
+        /// </summary>
+        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
         static member New kind = ResolvedType.New(false, kind)
 
         static member internal New(keepRangeInfo,
@@ -464,9 +473,11 @@ type ResolvedInitializer =
         /// the fully resolved Q# type of the initializer.
         member this.Type = this._ResolvedType
 
+        /// <summary>
         /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
         /// Replaces an arity-1 tuple by its item type.
-        /// Throws an ArgumentException if the given type kind is an empty tuple.
+        /// </summary>
+        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
         static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
             let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
