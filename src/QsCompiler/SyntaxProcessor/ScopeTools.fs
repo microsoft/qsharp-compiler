@@ -237,7 +237,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// Updates the quantum dependency of the local variable with the given name.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="varName"/> is not visible in the current scope.</exception>
-    /// <exception cref="InvalidOperationException">No scope is currently open.
+    /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     /// <exception cref="InvalidOperationException"><paramref name="varName"/> is immutable.</exception>
     member internal this.UpdateQuantumDependency varName localQdep =
         if pushedScopes.Length = 0
