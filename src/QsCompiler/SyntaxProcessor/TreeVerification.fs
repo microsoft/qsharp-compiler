@@ -17,10 +17,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 // routines for verifying statement blocks
 
+/// <summary>
 /// Returns a boolean indicating whether all code paths within the given scope contain a return or fail statement,
 /// as well as an array with diagnostics that require a scope-wise verification.
 /// Such diagnostics include in particular warnings for all statement that will never be executed, and errors for misplaced returns statements
-/// Throws an ArgumentException if the statements contain no location information.
+/// </summary>
+/// <exception cref="ArgumentException">The statements contain no location information.</exception>
 let AllPathsReturnValueOrFail body =
     let diagnostics = ResizeArray<_>()
 
@@ -135,12 +137,14 @@ let AllPathsReturnValueOrFail body =
 
 // routines for checking user defined types for cycles
 
+/// <summary>
 /// Given an immutable array of all defined types with their underlying resolved type,
 /// as well as their location (the file they are declared in and the position where the declaration starts),
 /// verifies that the defined types do not have circular dependencies.
 /// Ignores any usage of a user defined type that is not listed in the given array of types.
 /// Returns a lookup that contains the generated diagnostics and their positions for each file.
-/// Throws an ArgumentException if the location for a generated diagnostic cannot be determined.
+/// </summary>
+/// <exception cref="ArgumentException">The location for a generated diagnostic cannot be determined.</exception>
 let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeader>) =
     let diagnostics = List<_>()
 
