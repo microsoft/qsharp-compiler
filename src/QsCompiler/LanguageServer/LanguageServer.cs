@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -123,8 +124,45 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task NotifyClientAsync(string method, object args) =>
             this.rpc.NotifyWithParameterObjectAsync(method, args);  // no need to wait for completion
 
+        internal Task<T> InvokeAsync<T>(string method, object args) =>
+           this.rpc.InvokeWithParameterObjectAsync<T>(method, args);
+
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
+
+        internal async void CheckDotNetSdkVersion()
+        {
+            var installedVersionsOfDotNetSdk = DotNetSdkHelper.GetInstalledVersionsOfDotNetSdks();
+            if (installedVersionsOfDotNetSdk == null)
+            {
+                this.LogToWindow("Unable to detect .NET SDK versions", MessageType.Error);
+            }
+            else
+            {
+                if (!installedVersionsOfDotNetSdk.DotNetSdk31Installed
+                    && !installedVersionsOfDotNetSdk.DotNetSdk5Installed)
+                {
+                    const string dotnetSdkUrl = "https://dotnet.microsoft.com/download/dotnet-core/";
+                    this.LogToWindow($".NET Core SDK 3.1 or greater not found. Quantum Development Kit Extension requires .NET Core SDK version 3.1 or greater ({dotnetSdkUrl}).", MessageType.Error);
+                    var downloadAction = new MessageActionItem { Title = "Download" };
+                    var cancelAction = new MessageActionItem { Title = "No, thanks" };
+                    var selectedAction = await this.ShowDialogInWindowAsync(
+                        "Quantum Development Kit Extension requires either .NET Core SDK version 3.1 or greater. Please install the latest .NET Core SDK and restart Visual Studio.",
+                        MessageType.Error,
+                        new[] { downloadAction, cancelAction });
+                    if (selectedAction != null
+                        && selectedAction.Title == downloadAction.Title)
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = dotnetSdkUrl,
+                            UseShellExecute = true,
+                            CreateNoWindow = true,
+                        });
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// does not actually do anything unless the corresponding flag is defined upon compilation
