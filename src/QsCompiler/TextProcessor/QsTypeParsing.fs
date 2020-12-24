@@ -135,9 +135,7 @@ let private userDefinedType =
 /// <summary>
 /// Parses a Q# operation type.
 /// </summary>
-/// <remarks>
-/// Uses leftRecursionByInfix to process the signature and raise suitable errors.
-/// </remarks>
+/// <remarks>Uses leftRecursionByInfix to process the signature and raise suitable errors.</remarks>
 let private operationType =
     // utils for handling deprecated and partially deprecated syntax:
     let quantumFunctor =
@@ -178,17 +176,14 @@ let private operationType =
         let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
-    let opTypeWith characteristics = inAndOutputType .>>. characteristics
-    let opTypeWithoutCharacteristics = inAndOutputType .>>. preturn (Characteristics.New(EmptySet, Null))
-    let deprecatedCharacteristics = qsCharacteristics.parse |>> (fun r -> r.Start) >>= functorSupport
     let characteristics =
         qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
         .>> notFollowedBy (comma >>. quantumFunctor)
 
-    // keep this order!
-    attempt (opTypeWith characteristics)
-    <|> attempt (opTypeWith deprecatedCharacteristics)
-    <|> opTypeWithoutCharacteristics
+    let deprecatedCharacteristics = qsCharacteristics.parse |>> (fun r -> r.Start) >>= functorSupport
+
+    inAndOutputType
+    .>>. (attempt characteristics <|> deprecatedCharacteristics <|>% Characteristics.New(EmptySet, Null))
     |> term
     |>> asType Operation
 
