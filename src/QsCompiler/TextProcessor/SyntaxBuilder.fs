@@ -170,9 +170,8 @@ let internal tupleBrackets core =
     (lTuple, rTuple) |> bracketDefinedContent core |> term
 
 /// <summary>
-/// Parses <paramref name="core"/> with optional tuple brackets around it. If tuple brackets are present, raises a
-/// deprecation warning when tuple brackets are present and requires that <paramref name="after"/> succeeds without
-/// consuming input.
+/// Parses <paramref name="core"/> with optional tuple brackets around it. If tuple brackets are present, requires that
+/// <paramref name="after"/> succeeds without consuming input, then raises a deprecation warning.
 /// </summary>
 /// <param name="core">A parser to run with or without tuple brackets around it.</param>
 /// <param name="after">
