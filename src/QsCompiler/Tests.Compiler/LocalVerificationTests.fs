@@ -511,3 +511,23 @@ type LocalVerificationTests() =
         this.Expect "InvalidTestAttribute20" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute21" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute22" [ Error ErrorCode.InvalidExecutionTargetForTest ]
+
+
+    [<Fact>]
+    member this.``Parentheses in statements``() =
+        this.Expect "ParensIf" []
+        this.Expect "NoParensIf" []
+        this.Expect "ParensElif" []
+        this.Expect "NoParensElif" []
+        this.Expect "ParensFor" [ Warning WarningCode.DeprecatedTupleBrackets ]
+        this.Expect "NoParensFor" []
+        this.Expect "ParensWhile" []
+        this.Expect "NoParensWhile" []
+        this.Expect "ParensUntil" []
+        this.Expect "NoParensUntil" []
+        this.Expect "ParensUntilFixup" []
+        this.Expect "NoParensUntilFixup" []
+        this.Expect "ParensUsing" [ Warning WarningCode.DeprecatedTupleBrackets ]
+        this.Expect "NoParensUsing" []
+        this.Expect "ParensBorrowing" [ Warning WarningCode.DeprecatedTupleBrackets ]
+        this.Expect "NoParensBorrowing" []
