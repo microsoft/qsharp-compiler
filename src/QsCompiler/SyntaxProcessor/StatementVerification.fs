@@ -379,9 +379,11 @@ let NewConditionalBlock comments location context (qsExpr: QsExpression) =
 
     new BlockStatement<_>(block), Array.concat [ errs; autoGenErrs ]
 
+/// <summary>
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.
-/// Throws an ArgumentException if the given if-block contains no location information.
+/// </summary>
+/// <exception cref="ArgumentException"><paramref name="ifBlock"/> contains no location information.</exception>
 let NewIfStatement (ifBlock: TypedExpression * QsPositionedBlock) elifBlocks elseBlock =
     let location =
         match (snd ifBlock).Location with
@@ -411,11 +413,13 @@ let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock,
     |> asStatement QsComments.Empty location LocalDeclarations.Empty,
     autoGenErrs
 
+/// <summary>
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V),
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U),
 /// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U.
 /// Returns an array with diagnostics and the corresponding statement offset for all invalid variable reassignments in the apply-block.
-/// Throws an ArgumentException if the given block specifying the outer transformation contains no location information.
+/// </summary>
+/// <exception cref="ArgumentException"><paramref name="outer"/> contains no location information.</exception>
 let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
     let location =
         match outer.Location with

@@ -20,8 +20,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type VariableRenaming private (_private_) =
     inherit SyntaxTreeTransformation()
 
+    /// <summary>
     /// Returns a copy of the given variable stack with the given key set to the given value.
-    /// Throws an ArgumentException if the given variable stack is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given variable stack is empty.</exception>
     let set (key, value) =
         function
         | [] -> ArgumentException "No scope to define variables in" |> raise
@@ -45,8 +47,10 @@ type VariableRenaming private (_private_) =
     /// Returns a copy of the given variable stack inside of a new scope
     member internal this.EnterScope map = Map.empty :: map
 
+    /// <summary>
     /// Returns a copy of the given variable stack outside of the current scope.
-    /// Throws an ArgumentException if the given variable stack is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given variable stack is empty.</exception>
     member internal this.ExitScope = List.tail
 
 
