@@ -896,7 +896,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // rather than the argument tuple for determining the signature of a function is much cleaner.
             if (outerArgNames.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                this.CreateAndPushTuple(this.CurrentFunction.Parameters.ToArray());
+                this.CreateAndPushTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
                 this.RegisterName(outerArgNames[0], this.ValueStack.Pop(), false);
             }
             else
@@ -1317,33 +1317,37 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The new tuple is created using the current builder.
         /// </summary>
         /// <param name="t">The LLVM structure type for the tuple</param>
+        /// <param name="b">The builder to use to create the tuple</param>
         /// <returns>A value containing the pointer to the new tuple</returns>
-        internal Value CreateTupleForType(ITypeRef t)
+        internal Value CreateTupleForType(ITypeRef t, InstructionBuilder? b = null)
         {
-            var size = this.ComputeSizeForType(t, this.CurrentBuilder);
-            var tuple = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction("tuple_create"), size);
+            var builder = b ?? this.CurrentBuilder;
+            var size = this.ComputeSizeForType(t, builder);
+            var tuple = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
             return tuple;
         }
 
         /// <summary>
         /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
         /// </summary>
-        internal void CreateAndPushTuple(params Value[] vs)
+        /// <param name="builder">The builder to use to create the tuple</param>
+        /// <param name="vs">The tuple elements</param>
+        internal void CreateAndPushTuple(InstructionBuilder builder, params Value[] vs)
         {
             // Build the LLVM structure type we need
             IStructType tupleType = this.Types.CreateConcreteTupleType(vs.Select(v => v.NativeType));
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
-            Value tuple = this.CreateTupleForType(tupleType);
-            Value concreteTuple = this.CurrentBuilder.BitCast(tuple, tupleType.CreatePointerType());
+            Value tuple = this.CreateTupleForType(tupleType, builder);
+            Value concreteTuple = builder.BitCast(tuple, tupleType.CreatePointerType());
             this.ValueStack.Push(concreteTuple);
             this.ScopeMgr.AddValue(concreteTuple);
 
             // Fill it in, field by field
-            Value[] itemPointers = this.GetTupleElementPointers(tupleType, concreteTuple);
+            Value[] itemPointers = this.GetTupleElementPointers(tupleType, concreteTuple, builder);
             for (var i = 0; i < itemPointers.Length; ++i)
             {
-                this.CurrentBuilder.Store(vs[i], itemPointers[i]);
+                builder.Store(vs[i], itemPointers[i]);
                 this.ScopeMgr.AddReference(vs[i]);
             }
         }

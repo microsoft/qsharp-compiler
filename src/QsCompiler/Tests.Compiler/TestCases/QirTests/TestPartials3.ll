@@ -10,10 +10,10 @@ entry:
   store { i64, double }* %6, { i64, double }** %4
   %7 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 1
   store { %String*, %Qubit* }* %1, { %String*, %Qubit* }** %7
-  %8 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
-  %9 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
-  %10 = load %Callable*, %Callable** %9
-  call void @__quantum__rt__callable_invoke(%Callable* %10, %Tuple* %8, %Tuple* %result-tuple)
+  %8 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
+  %9 = load %Callable*, %Callable** %8
+  %10 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
+  call void @__quantum__rt__callable_invoke(%Callable* %9, %Tuple* %10, %Tuple* %result-tuple)
   %11 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %11)
   %12 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 0

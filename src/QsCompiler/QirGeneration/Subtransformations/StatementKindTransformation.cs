@@ -161,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                 {
                     var items = inits.Item.Select(Allocate).ToArray();
-                    this.SharedState.CreateAndPushTuple(items);
+                    this.SharedState.CreateAndPushTuple(this.SharedState.CurrentBuilder, items);
                     return this.SharedState.ValueStack.Pop();
                 }
                 else

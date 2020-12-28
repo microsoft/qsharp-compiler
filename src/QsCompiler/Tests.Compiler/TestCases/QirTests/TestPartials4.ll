@@ -10,12 +10,12 @@ entry:
   store { i64, double }* %6, { i64, double }** %4
   %7 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 1
   store { %String*, %Qubit* }* %1, { %String*, %Qubit* }** %7
-  %8 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
-  %9 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
-  %10 = load %Callable*, %Callable** %9
-  %11 = call %Callable* @__quantum__rt__callable_copy(%Callable* %10)
-  call void @__quantum__rt__callable_make_adjoint(%Callable* %11)
-  call void @__quantum__rt__callable_invoke(%Callable* %11, %Tuple* %8, %Tuple* %result-tuple)
+  %8 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
+  %9 = load %Callable*, %Callable** %8
+  %10 = call %Callable* @__quantum__rt__callable_copy(%Callable* %9)
+  call void @__quantum__rt__callable_make_adjoint(%Callable* %10)
+  %11 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
+  call void @__quantum__rt__callable_invoke(%Callable* %10, %Tuple* %11, %Tuple* %result-tuple)
   %12 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %12)
   %13 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 0
@@ -29,7 +29,7 @@ entry:
   %19 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %17, i64 0, i32 0
   %20 = load %String*, %String** %19
   call void @__quantum__rt__string_unreference(%String* %20)
-  call void @__quantum__rt__callable_unreference(%Callable* %11)
+  call void @__quantum__rt__callable_unreference(%Callable* %10)
   ret void
 }
 
@@ -59,40 +59,41 @@ entry:
   %17 = load %Callable*, %Callable** %16
   %18 = call %Callable* @__quantum__rt__callable_copy(%Callable* %17)
   call void @__quantum__rt__callable_make_controlled(%Callable* %18)
-  call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
-  %19 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %19)
-  %20 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 0
-  %21 = load { i64, double }*, { i64, double }** %20
-  %22 = bitcast { i64, double }* %21 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %22)
-  %23 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 1
-  %24 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %23
-  %25 = bitcast { %String*, %Qubit* }* %24 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %25)
-  %26 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %24, i64 0, i32 0
-  %27 = load %String*, %String** %26
-  call void @__quantum__rt__string_unreference(%String* %27)
-  %28 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %28)
-  %29 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 0
-  %30 = load %Array*, %Array** %29
-  call void @__quantum__rt__array_unreference(%Array* %30)
-  %31 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 1
-  %32 = load { { i64, double }*, { %String*, %Qubit* }* }*, { { i64, double }*, { %String*, %Qubit* }* }** %31
-  %33 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %32 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %33)
-  %34 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %32, i64 0, i32 0
-  %35 = load { i64, double }*, { i64, double }** %34
-  %36 = bitcast { i64, double }* %35 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %36)
-  %37 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %32, i64 0, i32 1
-  %38 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %37
-  %39 = bitcast { %String*, %Qubit* }* %38 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %39)
-  %40 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %38, i64 0, i32 0
-  %41 = load %String*, %String** %40
-  call void @__quantum__rt__string_unreference(%String* %41)
+  %19 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
+  call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %19, %Tuple* %result-tuple)
+  %20 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %7 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %20)
+  %21 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 0
+  %22 = load { i64, double }*, { i64, double }** %21
+  %23 = bitcast { i64, double }* %22 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %23)
+  %24 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 1
+  %25 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %24
+  %26 = bitcast { %String*, %Qubit* }* %25 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %26)
+  %27 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %25, i64 0, i32 0
+  %28 = load %String*, %String** %27
+  call void @__quantum__rt__string_unreference(%String* %28)
+  %29 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %29)
+  %30 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 0
+  %31 = load %Array*, %Array** %30
+  call void @__quantum__rt__array_unreference(%Array* %31)
+  %32 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 1
+  %33 = load { { i64, double }*, { %String*, %Qubit* }* }*, { { i64, double }*, { %String*, %Qubit* }* }** %32
+  %34 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %33 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %34)
+  %35 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %33, i64 0, i32 0
+  %36 = load { i64, double }*, { i64, double }** %35
+  %37 = bitcast { i64, double }* %36 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %37)
+  %38 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %33, i64 0, i32 1
+  %39 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %38
+  %40 = bitcast { %String*, %Qubit* }* %39 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %40)
+  %41 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %39, i64 0, i32 0
+  %42 = load %String*, %String** %41
+  call void @__quantum__rt__string_unreference(%String* %42)
   call void @__quantum__rt__callable_unreference(%Callable* %18)
   ret void
 }
@@ -124,40 +125,41 @@ entry:
   %18 = call %Callable* @__quantum__rt__callable_copy(%Callable* %17)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %18)
   call void @__quantum__rt__callable_make_controlled(%Callable* %18)
-  call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
-  %19 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %19)
-  %20 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 0
-  %21 = load { i64, double }*, { i64, double }** %20
-  %22 = bitcast { i64, double }* %21 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %22)
-  %23 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 1
-  %24 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %23
-  %25 = bitcast { %String*, %Qubit* }* %24 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %25)
-  %26 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %24, i64 0, i32 0
-  %27 = load %String*, %String** %26
-  call void @__quantum__rt__string_unreference(%String* %27)
-  %28 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %28)
-  %29 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 0
-  %30 = load %Array*, %Array** %29
-  call void @__quantum__rt__array_unreference(%Array* %30)
-  %31 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 1
-  %32 = load { { i64, double }*, { %String*, %Qubit* }* }*, { { i64, double }*, { %String*, %Qubit* }* }** %31
-  %33 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %32 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %33)
-  %34 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %32, i64 0, i32 0
-  %35 = load { i64, double }*, { i64, double }** %34
-  %36 = bitcast { i64, double }* %35 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %36)
-  %37 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %32, i64 0, i32 1
-  %38 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %37
-  %39 = bitcast { %String*, %Qubit* }* %38 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %39)
-  %40 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %38, i64 0, i32 0
-  %41 = load %String*, %String** %40
-  call void @__quantum__rt__string_unreference(%String* %41)
+  %19 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
+  call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %19, %Tuple* %result-tuple)
+  %20 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %7 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %20)
+  %21 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 0
+  %22 = load { i64, double }*, { i64, double }** %21
+  %23 = bitcast { i64, double }* %22 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %23)
+  %24 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %7, i64 0, i32 1
+  %25 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %24
+  %26 = bitcast { %String*, %Qubit* }* %25 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %26)
+  %27 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %25, i64 0, i32 0
+  %28 = load %String*, %String** %27
+  call void @__quantum__rt__string_unreference(%String* %28)
+  %29 = bitcast { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %29)
+  %30 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 0
+  %31 = load %Array*, %Array** %30
+  call void @__quantum__rt__array_unreference(%Array* %31)
+  %32 = getelementptr { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }, { %Array*, { { i64, double }*, { %String*, %Qubit* }* }* }* %13, i64 0, i32 1
+  %33 = load { { i64, double }*, { %String*, %Qubit* }* }*, { { i64, double }*, { %String*, %Qubit* }* }** %32
+  %34 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %33 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %34)
+  %35 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %33, i64 0, i32 0
+  %36 = load { i64, double }*, { i64, double }** %35
+  %37 = bitcast { i64, double }* %36 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %37)
+  %38 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %33, i64 0, i32 1
+  %39 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %38
+  %40 = bitcast { %String*, %Qubit* }* %39 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %40)
+  %41 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %39, i64 0, i32 0
+  %42 = load %String*, %String** %41
+  call void @__quantum__rt__string_unreference(%String* %42)
   call void @__quantum__rt__callable_unreference(%Callable* %18)
   ret void
 }
