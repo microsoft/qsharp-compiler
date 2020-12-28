@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (t == this.sharedState.Types.BigInt)
                 {
-                    return RuntimeLibrary.BigintReference;
+                    return RuntimeLibrary.BigIntReference;
                 }
                 else if (this.sharedState.Types.IsTupleType(t))
                 {
@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (t == this.sharedState.Types.BigInt)
                 {
-                    return RuntimeLibrary.BigintUnreference;
+                    return RuntimeLibrary.BigIntUnreference;
                 }
                 else if (this.sharedState.Types.IsTupleType(t))
                 {
