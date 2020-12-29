@@ -91,14 +91,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class InnerTuple : PartialApplicationArgument
         {
-            public readonly IStructType ItemType;
             public readonly ResolvedType TupleType;
             public readonly ImmutableArray<PartialApplicationArgument> Items;
 
-            public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, IStructType itemType, IEnumerable<PartialApplicationArgument>? items)
+            public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, IEnumerable<PartialApplicationArgument>? items)
             : base(sharedState)
             {
-                this.ItemType = itemType;
                 this.TupleType = tupleType;
                 this.Items = items?.ToImmutableArray() ?? ImmutableArray<PartialApplicationArgument>.Empty;
             }
@@ -335,14 +333,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (arg.Expression.IsMissingExpr)
                 {
                     remainingArgs.Add(argType);
-                    return new InnerArg(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(argType), remainingArgs.Count - 1);
+                    var itemType = this.SharedState.LlvmTypeFromQsharpType(argType);
+                    return new InnerArg(this.SharedState, itemType, remainingArgs.Count - 1);
                 }
                 else if (arg.Expression is ResolvedExpression.ValueTuple tuple
                     && argType.Resolution is QsResolvedTypeKind.TupleType types)
                 {
-                    var itemType = this.SharedState.CreateConcreteTupleType(types.Item);
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
-                    return new InnerTuple(this.SharedState, argType, itemType, items);
+                    return new InnerTuple(this.SharedState, argType, items);
                 }
                 else
                 {
@@ -1306,8 +1304,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (sym is Identifier.LocalVariable local)
             {
-                string name = local.Item;
-                this.SharedState.PushNamedValue(name);
+                var value = this.SharedState.GetNamedValue(local.Item);
+                this.SharedState.ValueStack.Push(value);
             }
             else if (sym is Identifier.GlobalCallable globalCallable)
             {

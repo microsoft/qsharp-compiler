@@ -915,8 +915,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             while (deconstuctArgument && innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
-                this.PushNamedValue(tupleArgName);
-                var tupleValue = this.ValueStack.Pop();
+                var tupleValue = this.GetNamedValue(tupleArgName);
                 IStructType tupleType = Types.StructFromPointer(tupleValue.NativeType);
 
                 int idx = 0;
@@ -1073,29 +1072,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Generate the code that decomposes the tuple back into the named arguments
             // Note that we don't want to recurse here!
-            List<Value> GenerateArgTupleDecomposition(ResolvedType argType, Value value)
+            List<Value> GenerateArgTupleDecomposition(ResolvedType type, Value value)
             {
-                Value BuildLoadForArg(ResolvedType t, Value value)
-                {
-                    ITypeRef argTypeRef = this.LlvmTypeFromQsharpType(t); // FIXME: WHAT IF WE HAVE A TUPLE HERE; NEED TO CAST THE VALUE??
-                    return this.CurrentBuilder.Load(argTypeRef, value);
-                }
-
+                var argType = this.LlvmTypeFromQsharpType(type);
                 List<Value> args = new List<Value>();
-                if (argType.Resolution is QsResolvedTypeKind.TupleType ts)
+
+                if (type.Resolution is QsResolvedTypeKind.TupleType ts)
                 {
-                    IStructType tupleType = Types.StructFromPointer(this.LlvmTypeFromQsharpType(argType));
-                    Value[] itemPointers = this.GetTupleElementPointers(tupleType, value);
-                    for (var i = 0; i < itemPointers.Length; i++)
-                    {
-                        args.Add(ts.Item[i].Resolution.IsUnitType
-                            ? this.Constants.UnitValue
-                            : BuildLoadForArg(ts.Item[i], itemPointers[i]));
-                    }
+                    IStructType tupleType = Types.StructFromPointer(argType);
+                    args.AddRange(this.GetTupleElements(tupleType, value));
                 }
-                else if (!argType.Resolution.IsUnitType)
+                else if (!type.Resolution.IsUnitType)
                 {
-                    args.Add(BuildLoadForArg(argType, value));
+                    args.Add(this.CurrentBuilder.Load(argType, value));
                 }
 
                 return args;
@@ -1205,18 +1194,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
             resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple
                 ? this.CreateConcreteTupleType(tuple.Item)
-                : this.CreateConcreteTupleType(resolvedType);
+                : this.CreateConcreteTupleType(new[] { resolvedType });
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
         internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
-
-        /// <summary>
-        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
-        /// </summary>
-        internal IStructType CreateConcreteTupleType(params ResolvedType[] items) =>
             this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
 
         /// <summary>
@@ -1267,12 +1250,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
         /// </summary>
-        internal Value[] PointerIndex(int index) => new[]
+        private Value[] PointerIndex(int index) => new[]
         {
             this.Context.CreateConstant(0L),
             this.Context.CreateConstant(index)
         };
 
+        /// <summary>
+        /// Returns a pointer to an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="elementType">The type of the array element.</param>
+        /// <param name="array">The pointer to the array.</param>
+        /// <param name="index">The element's index into the array.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetArrayElementPointer(ITypeRef elementType, Value array, Value index, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1281,6 +1272,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return builder.BitCast(opaqueElementPointer, elementType.CreatePointerType());
         }
 
+        /// <summary>
+        /// Returns an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="elementType">The type of the array element.</param>
+        /// <param name="array">The pointer to the array.</param>
+        /// <param name="index">The element's index into the array.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetArrayElement(ITypeRef elementType, Value array, Value index, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1290,13 +1289,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Returns a pointer to a tuple element.
-        /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
-        /// This is a thin wrapper around the LLVM GEP instruction.
+        /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="tupleType">The type of the tuple structure.</param>
         /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
-        /// <param name="index">The element's index into the tuple. The tuple header is index 0, the first data item is index 1.</param>
-        /// <param name="builder">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        /// <param name="index">The element's index into the tuple.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetTupleElementPointer(IStructType tupleType, Value tuple, int index, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1306,6 +1304,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
         }
 
+        /// <summary>
+        /// Returns a tuple element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="tupleType">The type of the tuple structure.</param>
+        /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
+        /// <param name="index">The element's index into the tuple.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetTupleElement(IStructType tupleType, Value tuple, int index, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1314,12 +1320,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Returns an array of pointers to each element in the given tuple.
-        /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
+        /// Returns an array with all pointers to the tuple elements.
+        /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="tupleType">The type of the tuple structure.</param>
         /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
-        /// <param name="builder">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value[] GetTupleElementPointers(IStructType tupleType, Value tuple, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1332,6 +1338,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return tupleType.Members.Select((_, i) => ItemPointer(i)).ToArray();
         }
 
+        /// <summary>
+        /// Returns an array with all tuple elements.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="tupleType">The type of the tuple structure.</param>
+        /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value[] GetTupleElements(IStructType tupleType, Value tuple, InstructionBuilder? builder = null)
         {
             builder ??= this.CurrentBuilder;
@@ -1525,7 +1538,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Pushes the value of a named variable on the value stack.
+        /// Gets the value of a named variable on the value stack, loading the value if necessary.
         /// The name must have been registered as an alias for the value using
         /// <see cref="RegisterName(string, Value, bool)"/>.
         /// <para>
@@ -1534,18 +1547,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </para>
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
-        internal void PushNamedValue(string name)
+        internal Value GetNamedValue(string name)
         {
             foreach (var dict in this.namesInScope)
             {
                 if (dict.TryGetValue(name, out (Value, bool) item))
                 {
-                    this.ValueStack.Push(
-                        item.Item2 && item.Item1.NativeType is IPointerType ptr
+                    return item.Item2 && item.Item1.NativeType is IPointerType ptr
                         // Mutable, so the value is a pointer; we need to load what it's pointing to
                         ? this.CurrentBuilder.Load(ptr.ElementType, item.Item1)
-                        : item.Item1);
-                    return;
+                        : item.Item1;
                 }
             }
             throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
