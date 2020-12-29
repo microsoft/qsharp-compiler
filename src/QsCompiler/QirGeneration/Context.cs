@@ -1329,6 +1329,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
+        /// The create value is added to the current scope in the scope manager.
         /// </summary>
         /// <param name="builder">The builder to use to create the tuple</param>
         /// <param name="vs">The tuple elements</param>
@@ -1348,7 +1349,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 builder.Store(vs[i], itemPointers[i]);
-                this.ScopeMgr.AddReference(vs[i]);
+                this.ScopeMgr.AddReference(vs[i], builder);
             }
         }
 
