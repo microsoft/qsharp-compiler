@@ -95,8 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsResolvedTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
         {
-            var elementTypes = ts.Select(this.SharedState.LlvmTypeFromQsharpType);
-            this.SharedState.BuiltType = this.SharedState.Types.CreateConcreteTupleType(elementTypes).CreatePointerType();
+            this.SharedState.BuiltType = this.SharedState.CreateConcreteTupleType(ts).CreatePointerType();
             return QsResolvedTypeKind.InvalidType;
         }
 

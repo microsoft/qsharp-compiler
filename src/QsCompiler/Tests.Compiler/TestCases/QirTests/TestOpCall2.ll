@@ -17,8 +17,8 @@ entry:
   call void @__quantum__rt__array_reference(%Array* %5)
   store %Qubit* %target, %Qubit** %9
   %10 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %7, i64 0, i32 0
-  %.__controlQubits__ = load %Array*, %Array** %10
   %11 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %7, i64 0, i32 1
+  %.__controlQubits__ = load %Array*, %Array** %10
   %.q = load %Qubit*, %Qubit** %11
   call void @__quantum__qis__x__ctl(%Array* %.__controlQubits__, %Qubit* %.q)
   call void @__quantum__rt__array_unreference(%Array* %2)

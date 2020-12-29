@@ -100,19 +100,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
                 var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
                 var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
+                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, val);
+
                 for (int i = 0; i < items.Length; i++)
                 {
-                    var item = items[i];
-                    if (item.IsDiscardedItem || item.IsInvalidItem)
+                    if (!items[i].IsDiscardedItem && !items[i].IsInvalidItem)
                     {
-                        // Nothing to do
-                    }
-                    else
-                    {
-                        var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i);
-                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
-                        BindItem(item, itemValue, types[i]);
+                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemPointers[i]);
+                        BindItem(items[i], itemValue, types[i]);
                     }
                 }
             }
@@ -161,8 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                 {
                     var items = inits.Item.Select(Allocate).ToArray();
-                    this.SharedState.CreateAndPushTuple(this.SharedState.CurrentBuilder, items);
-                    return this.SharedState.ValueStack.Pop();
+                    return this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items).TypedPointer;
                 }
                 else
                 {
@@ -570,11 +564,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
                 var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
+                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, val);
                 for (int i = 0; i < items.Length; i++)
                 {
-                    var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i);
-                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
+                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemPointers[i]);
                     UpdateItem(items[i], itemValue);
                 }
             }

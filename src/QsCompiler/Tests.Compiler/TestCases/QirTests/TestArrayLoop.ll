@@ -7,11 +7,11 @@ entry:
   store i64 0, i64* %2
   store i64 0, i64* %3
   %4 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 0
-  %5 = load i64, i64* %4
+  %5 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
+  %6 = load i64, i64* %4
   %x = alloca i64
-  store i64 %5, i64* %x
-  %6 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
-  %7 = load i64, i64* %6
+  store i64 %6, i64* %x
+  %7 = load i64, i64* %5
   %y = alloca i64
   store i64 %7, i64* %y
   %8 = call i64 @__quantum__rt__array_get_length(%Array* %a, i32 0)
@@ -33,8 +33,8 @@ body__1:                                          ; preds = %header__1
   %13 = bitcast i8* %12 to { i64, i64 }**
   %z = load { i64, i64 }*, { i64, i64 }** %13
   %14 = getelementptr { i64, i64 }, { i64, i64 }* %z, i64 0, i32 0
-  %j = load i64, i64* %14
   %15 = getelementptr { i64, i64 }, { i64, i64 }* %z, i64 0, i32 1
+  %j = load i64, i64* %14
   %k = load i64, i64* %15
   %16 = load i64, i64* %x
   %17 = add i64 %16, %j
