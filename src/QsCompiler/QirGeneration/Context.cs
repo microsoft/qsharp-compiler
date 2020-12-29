@@ -1227,34 +1227,40 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Computes the size in bytes of an LLVM type as an LLVM value.
         /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
         /// </summary>
-        /// <param name="t">The LLVM type to compute the size of</param>
-        /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
-        /// <returns>An LLVM value containing the size of the type in bytes</returns>
-        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
+        /// <param name="type">The LLVM type to compute the size of</param>
+        /// <param name="builder">The builder to use to generate the struct size computation, if needed</param>
+        /// <param name="intType">The integer type to return</param>
+        /// <returns>
+        /// An LLVM value of the specified integer type - or i64 if none is specified - containing the size of the type in bytes
+        /// </returns>
+        internal Value ComputeSizeForType(ITypeRef type, InstructionBuilder? builder = null, ITypeRef? intType = null)
         {
-            if (t.IsInteger)
+            builder ??= this.CurrentBuilder;
+            intType ??= this.Context.Int64Type;
+
+            if (type.IsInteger)
             {
-                return this.Context.CreateConstant((long)((t.IntegerBitWidth + 7) / 8));
+                return this.Context.CreateConstant(intType, (type.IntegerBitWidth + 7u) / 8u, false);
             }
-            else if (t.IsDouble)
+            else if (type.IsDouble)
             {
-                return this.Context.CreateConstant(8L);
+                return this.Context.CreateConstant(intType, 8, false);
             }
-            else if (t.IsPointer)
+            else if (type.IsPointer)
             {
                 // We assume 64-bit address space
-                return this.Context.CreateConstant(8L);
+                return this.Context.CreateConstant(intType, 8, false);
             }
             else
             {
                 // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
+                var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
                 // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
-                var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = b.PointerToInt(secondPtr, this.Context.Int64Type);
-                return this.CurrentBuilder.Sub(second, first);
+                var firstPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+                var first = builder.PointerToInt(firstPtr, intType);
+                var secondPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+                var second = builder.PointerToInt(secondPtr, intType);
+                return builder.Sub(second, first);
             }
         }
 

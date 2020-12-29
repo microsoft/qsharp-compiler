@@ -143,26 +143,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Returns the number of bytes required for a value of the given type when stored as an element in an array.
-        /// Note that non-scalar values all wind up as pointers.
-        /// </summary>
-        /// <param name="t">The Q# type of the array elements</param>
-        /// <returns>The number of bytes required per element</returns>
-        private int ComputeSizeForType(ResolvedType t)
-        {
-            // Sizes in bytes
-            // Assumes addresses are 64 bits wide
-            return
-                t.Resolution.IsBool ? 1 :
-                t.Resolution.IsPauli ? 1 :
-                t.Resolution.IsInt ? 8 :
-                t.Resolution.IsDouble ? 16 :
-                t.Resolution.IsRange ? 24 :
-                // Everything else is a pointer...
-                8;
-        }
-
-        /// <summary>
         /// Pushes a value onto the value stack and also adds it to the current ref counting scope.
         /// </summary>
         /// <param name="value">The LLVM value to push</param>
@@ -1687,11 +1667,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression idx)
         {
             // TODO: new multi-dimensional arrays
-            var elementSize = this.ComputeSizeForType(elementType);
+            var elementSize = this.SharedState.ComputeSizeForType(
+                this.SharedState.LlvmTypeFromQsharpType(elementType),
+                intType: this.SharedState.Context.Int32Type);
             var length = this.SharedState.EvaluateSubexpression(idx);
 
             var createFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var array = this.SharedState.CurrentBuilder.Call(createFunc, this.SharedState.Context.CreateConstant(elementSize), length);
+            var array = this.SharedState.CurrentBuilder.Call(createFunc, elementSize, length);
             this.PushValueInScope(array);
 
             return ResolvedExpression.InvalidExpr;
@@ -2019,19 +2001,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueArray(ImmutableArray<TypedExpression> vs)
         {
             // TODO: handle multi-dimensional arrays
-            long length = vs.Length;
-
-            // Get the element type
-            var elementType = vs[0].ResolvedType;
-            var elementTypeRef = this.SharedState.LlvmTypeFromQsharpType(elementType);
-            var elementPointerTypeRef = elementTypeRef.CreatePointerType();
-            var elementSize = this.ComputeSizeForType(elementType);
+            var elementType = this.SharedState.LlvmTypeFromQsharpType(vs[0].ResolvedType);
+            var elementSize = this.SharedState.ComputeSizeForType(elementType, intType: this.SharedState.Context.Int32Type);
+            var length = this.SharedState.Context.CreateConstant((long)vs.Length);
 
             var createFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var array = this.SharedState.CurrentBuilder.Call(
-                createFunc,
-                this.SharedState.Context.CreateConstant(elementSize),
-                this.SharedState.Context.CreateConstant(length));
+            var array = this.SharedState.CurrentBuilder.Call(createFunc, elementSize, length);
 
             long idx = 0;
             foreach (var element in vs)
@@ -2043,7 +2018,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // And now fill in the element
                 var elementValue = this.SharedState.EvaluateSubexpression(element);
-                var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementPointerTypeRef);
+                var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementType.CreatePointerType());
                 this.SharedState.CurrentBuilder.Store(elementValue, elementPointer);
                 this.SharedState.ScopeMgr.AddReference(elementValue);
                 idx++;
