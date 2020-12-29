@@ -468,9 +468,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ScopeMgr.OpenScope();
             if (array != null)
             {
-                var p = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array.Value.Item1, iterationValue);
-                var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, array.Value.Item2.CreatePointerType());
+                var itemPtr = this.SharedState.GetArrayElementPointer(array.Value.Item2, array.Value.Item1, iterationValue);
                 var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
             }

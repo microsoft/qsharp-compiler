@@ -1266,7 +1266,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #endregion
 
-        #region Tuple and argument tuple handling
+        #region Tuple and array handling
 
         /// <summary>
         /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
@@ -1277,6 +1277,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context.CreateConstant(index)
         };
 
+        internal Value GetArrayElementPointer(ITypeRef elementType, Value array, Value index, InstructionBuilder? builder = null)
+        {
+            builder ??= this.CurrentBuilder;
+            var getElementPointer = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
+            var opaqueElementPointer = builder.Call(getElementPointer, array, index);
+            return builder.BitCast(opaqueElementPointer, elementType.CreatePointerType());
+        }
+
         /// <summary>
         /// Returns a pointer to a tuple element.
         /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
@@ -1285,10 +1293,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="tupleType">The type of the tuple structure.</param>
         /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
         /// <param name="index">The element's index into the tuple. The tuple header is index 0, the first data item is index 1.</param>
-        /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
-        internal Value GetTupleElementPointer(IStructType tupleType, Value tuple, int index, InstructionBuilder? b = null)
+        /// <param name="builder">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        internal Value GetTupleElementPointer(IStructType tupleType, Value tuple, int index, InstructionBuilder? builder = null)
         {
-            var builder = b ?? this.CurrentBuilder;
+            builder ??= this.CurrentBuilder;
             var typedTuple = tuple.NativeType == tupleType.CreatePointerType()
                 ? tuple
                 : builder.BitCast(tuple, tupleType.CreatePointerType());
@@ -1301,10 +1309,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="tupleType">The type of the tuple structure.</param>
         /// <param name="tuple">The pointer to the tuple. This will be cast to the proper type if necessary.</param>
-        /// <param name="b">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
-        internal Value[] GetTupleElementPointers(IStructType tupleType, Value tuple, InstructionBuilder? b = null)
+        /// <param name="builder">An optional InstructionBuilder to create these instructions on. The current builder is used as the default.</param>
+        internal Value[] GetTupleElementPointers(IStructType tupleType, Value tuple, InstructionBuilder? builder = null)
         {
-            InstructionBuilder builder = b ?? this.CurrentBuilder;
+            builder ??= this.CurrentBuilder;
             Value typedTuple = tuple.NativeType == tupleType.CreatePointerType()
                 ? tuple
                 : builder.BitCast(tuple, tupleType.CreatePointerType());
@@ -1313,16 +1321,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
             return tupleType.Members.Select((_, i) => ItemPointer(i)).ToArray();
         }
-
-        /// <summary>
-        /// Creates a new tuple for an LLVM structure type.
-        /// The new tuple is created using the given builder or the current builder if no builder is specified.
-        /// </summary>
-        /// <param name="tupleType">The LLVM structure type for the tuple</param>
-        /// <param name="builder">The builder to use to create the tuple</param>
-        /// <returns>A value containing the pointer to the new tuple</returns>
-        internal TupleValue CreateTupleForType(IStructType tupleType, InstructionBuilder? builder = null) =>
-            new TupleValue(tupleType, this, builder);
 
         /// <summary>
         /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
@@ -1336,7 +1334,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IStructType tupleType = this.Types.CreateConcreteTupleType(vs);
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
-            TupleValue tuple = this.CreateTupleForType(tupleType, builder);
+            TupleValue tuple = new TupleValue(tupleType, this, builder);
             this.ScopeMgr.AddValue(tuple.TypedPointer);
 
             // Fill it in, field by field

@@ -600,10 +600,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
         {
-            if (!(arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType elementType))
-            {
-                throw new ArgumentException("expecting expression of type array in array item access");
-            }
+            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType et
+                ? this.SharedState.LlvmTypeFromQsharpType(et.Item)
+                : throw new ArgumentException("expecting expression of type array in array item access");
 
             // TODO: handle multi-dimensional arrays
             var array = this.SharedState.EvaluateSubexpression(arr);
@@ -611,16 +610,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (idx.ResolvedType.Resolution.IsInt)
             {
-                var pointer = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, index);
-
-                // Get the element type
-                var elementTypeRef = this.SharedState.LlvmTypeFromQsharpType(elementType.Item);
-                var elementPointerTypeRef = elementTypeRef.CreatePointerType();
-
-                // And now fetch the element
-                var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementPointerTypeRef);
-                var element = this.SharedState.CurrentBuilder.Load(elementTypeRef, elementPointer);
+                var elementPointer = this.SharedState.GetArrayElementPointer(elementType, array, index);
+                var element = this.SharedState.CurrentBuilder.Load(elementType, elementPointer);
                 this.PushValueInScope(element);
                 this.SharedState.ScopeMgr.AddReference(element);
             }
@@ -894,14 +885,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     Value resultTuple = this.SharedState.Constants.UnitValue;
                     this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple);
-
-                    // Now push the result. For now we assume it's a scalar.
                     this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
                 }
                 else
                 {
                     IStructType resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
-                    TupleValue resultTuple = this.SharedState.CreateTupleForType(resultStructType);
+                    TupleValue resultTuple = new TupleValue(resultStructType, this.SharedState);
                     this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple.OpaquePointer);
 
                     // Now push the result. For now we assume it's a scalar.
@@ -1114,9 +1103,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var index = this.SharedState.EvaluateSubexpression(accEx);
                     var value = this.SharedState.EvaluateSubexpression(rhs);
                     var elementType = this.SharedState.LlvmTypeFromQsharpType(itemType.Item);
-                    var rawElementPtr = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), copy, index);
-                    var elementPtr = this.SharedState.CurrentBuilder.BitCast(rawElementPtr, elementType.CreatePointerType());
+                    var elementPtr = this.SharedState.GetArrayElementPointer(elementType, copy, index);
                     this.SharedState.CurrentBuilder.Store(value, elementPtr);
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
@@ -1667,15 +1654,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression idx)
         {
             // TODO: new multi-dimensional arrays
-            var elementSize = this.SharedState.ComputeSizeForType(
+            var array = new ArrayValue(
+                this.SharedState.EvaluateSubexpression(idx),
                 this.SharedState.LlvmTypeFromQsharpType(elementType),
-                intType: this.SharedState.Context.Int32Type);
-            var length = this.SharedState.EvaluateSubexpression(idx);
+                this.SharedState);
 
-            var createFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var array = this.SharedState.CurrentBuilder.Call(createFunc, elementSize, length);
-            this.PushValueInScope(array);
-
+            this.PushValueInScope(array.OpaquePointer);
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2002,23 +1986,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // TODO: handle multi-dimensional arrays
             var elementType = this.SharedState.LlvmTypeFromQsharpType(vs[0].ResolvedType);
-            var elementSize = this.SharedState.ComputeSizeForType(elementType, intType: this.SharedState.Context.Int32Type);
-            var length = this.SharedState.Context.CreateConstant((long)vs.Length);
-
-            var createFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var array = this.SharedState.CurrentBuilder.Call(createFunc, elementSize, length);
+            var array = new ArrayValue((uint)vs.Length, elementType, this.SharedState).OpaquePointer;
 
             long idx = 0;
             foreach (var element in vs)
             {
-                var pointer = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d),
-                    array,
-                    this.SharedState.Context.CreateConstant(idx));
-
-                // And now fill in the element
+                var index = this.SharedState.Context.CreateConstant(idx);
+                var elementPointer = this.SharedState.GetArrayElementPointer(elementType, array, index);
                 var elementValue = this.SharedState.EvaluateSubexpression(element);
-                var elementPointer = this.SharedState.CurrentBuilder.BitCast(pointer, elementType.CreatePointerType());
                 this.SharedState.CurrentBuilder.Store(elementValue, elementPointer);
                 this.SharedState.ScopeMgr.AddReference(elementValue);
                 idx++;
