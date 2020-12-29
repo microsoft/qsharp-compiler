@@ -33,10 +33,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         /// Returns the suffix used to distinguish the generated callables for each functor specialization.
         /// </summary>
         public static string SpecializationSuffix(QsSpecializationKind kind) =>
-            kind.IsQsBody ? "__body" :
-            kind.IsQsAdjoint ? "__adj" :
-            kind.IsQsControlled ? "__ctl" :
-            kind.IsQsControlledAdjoint ? "__ctladj" :
+            kind.IsQsBody ? "__Body" :
+            kind.IsQsAdjoint ? "__Adj" :
+            kind.IsQsControlled ? "__Ctl" :
+            kind.IsQsControlledAdjoint ? "__CtlAdj" :
             $"__{kind.ToString().ToLowerInvariant()}";
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         /// <summary>
         /// Creates a separate callable for each intrinsic specialization,
         /// and replaces the specialization implementations of the original callable with a call to these.
-        /// Type constructors and generic callables are left unchanged.
+        /// Type constructors and generic callables or callables that already define a target instruction name are left unchanged.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// An intrinsic callable contains non-intrinsic specializations
@@ -131,6 +131,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                         else if (callable.Specializations.Any(spec => spec.TypeArguments.IsValue))
                         {
                             throw new InvalidOperationException("specialization with type arguments");
+                        }
+                        else if (callable.Specializations.Length == 1 && callable.Attributes.Any(BuiltIn.DefinesTargetInstruction))
+                        {
+                            elements.Add(element);
                         }
                         else
                         {

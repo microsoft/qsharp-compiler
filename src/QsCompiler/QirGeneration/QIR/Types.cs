@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Ubiquity.NET.Llvm;
@@ -128,6 +129,15 @@ namespace Microsoft.Quantum.QIR
             this.Bool = context.BoolType;
             this.Pauli = context.GetIntType(2);
         }
+
+        /// <summary>
+        /// Given the type of a pointer to a struct, returns the type of the struct.
+        /// This method thus is the inverse mapping of CreatePointerType.
+        /// Throws an argument exception if the given type is not a pointer to a struct.
+        /// </summary>
+        internal static IStructType StructFromPointer(ITypeRef pointer) =>
+            pointer is IPointerType pt && pt.ElementType is IStructType st ? st :
+            throw new ArgumentException("the given argument is not a pointer to a struct");
 
         // public members
 

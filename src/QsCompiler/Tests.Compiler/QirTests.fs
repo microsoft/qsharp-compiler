@@ -89,6 +89,10 @@ let ``QIR operation argument`` () =
     qirTest true "TestOpArgument"
 
 [<Fact>]
+let ``QIR operation call`` () =
+    qirMultiTest false "TestOpCall" ["TestOpCall1"; "TestOpCall2"]
+
+[<Fact>]
 let ``QIR while loop`` () =
     qirTest false "TestWhile"
     
@@ -125,6 +129,10 @@ let ``QIR partial applications`` () =
     qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4"]
 
 [<Fact>]
+let ``QIR functors`` () =
+    qirTest true "TestFunctors"
+
+[<Fact>]
 let ``QIR paulis`` () =
     qirTest false "TestPaulis"
 
@@ -143,6 +151,10 @@ let ``QIR strings`` () =
 [<Fact>]
 let ``QIR scoping`` () =
     qirTest false "TestScoping"
+
+[<Fact>]
+let ``QIR conditionals`` () =
+    qirTest false "TestConditional"
 
 [<Fact>]
 let ``QIR expressions`` () =
