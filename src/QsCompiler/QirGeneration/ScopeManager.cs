@@ -136,8 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemFuncName = getItemFunc(tupleStruct.Members[i]);
                     if (itemFuncName != null)
                     {
-                        var ptr = this.sharedState.GetTupleElementPointer(tupleStruct, value, i, builder);
-                        var item = builder.Load(tupleStruct.Members[i], ptr);
+                        var item = this.sharedState.GetTupleElement(tupleStruct, value, i, builder);
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
                 }

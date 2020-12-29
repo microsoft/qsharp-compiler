@@ -922,8 +922,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 int idx = 0;
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
-                    var elementPointer = this.GetTupleElementPointer(tupleType, tupleValue, idx);
-                    var element = this.CurrentBuilder.Load(((IPointerType)elementPointer.NativeType).ElementType, elementPointer);
+                    var element = this.GetTupleElement(tupleType, tupleValue, idx);
                     this.RegisterName(argName, element, false);
                     idx++;
                 }
@@ -1111,11 +1110,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var concreteOutputTuple = this.CurrentBuilder.BitCast(outputTuple, resultTupleType.CreatePointerType());
                     for (int j = 0; j < tupleType.Item.Length; j++)
                     {
-                        var resItemPointer = this.GetTupleElementPointer(resultTupleType, resultValue, j);
                         var itemOutputPointer = this.GetTupleElementPointer(resultTupleType, concreteOutputTuple, j);
-
-                        var itemType = this.LlvmTypeFromQsharpType(tupleType.Item[j]);
-                        var resItem = this.CurrentBuilder.Load(itemType, resItemPointer);
+                        var resItem = this.GetTupleElement(resultTupleType, resultValue, j);
                         this.CurrentBuilder.Store(resItem, itemOutputPointer);
                     }
                 }
@@ -1285,6 +1281,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return builder.BitCast(opaqueElementPointer, elementType.CreatePointerType());
         }
 
+        internal Value GetArrayElement(ITypeRef elementType, Value array, Value index, InstructionBuilder? builder = null)
+        {
+            builder ??= this.CurrentBuilder;
+            var elementPtr = this.GetArrayElementPointer(elementType, array, index, builder);
+            return builder.Load(elementType, elementPtr);
+        }
+
         /// <summary>
         /// Returns a pointer to a tuple element.
         /// If the type of the given value is not a pointer to the specified struct type, bitcasts the value.
@@ -1301,6 +1304,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ? tuple
                 : builder.BitCast(tuple, tupleType.CreatePointerType());
             return builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
+        }
+
+        internal Value GetTupleElement(IStructType tupleType, Value tuple, int index, InstructionBuilder? builder = null)
+        {
+            builder ??= this.CurrentBuilder;
+            var elementPtr = this.GetTupleElementPointer(tupleType, tuple, index, builder);
+            return builder.Load(tupleType.Members[index], elementPtr);
         }
 
         /// <summary>
@@ -1320,6 +1330,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value ItemPointer(int index) =>
                 builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
             return tupleType.Members.Select((_, i) => ItemPointer(i)).ToArray();
+        }
+
+        internal Value[] GetTupleElements(IStructType tupleType, Value tuple, InstructionBuilder? builder = null)
+        {
+            builder ??= this.CurrentBuilder;
+            var elementPtrs = this.GetTupleElementPointers(tupleType, tuple, builder);
+            return tupleType.Members.Select((itemType, i) => builder.Load(itemType, elementPtrs[i])).ToArray();
         }
 
         /// <summary>

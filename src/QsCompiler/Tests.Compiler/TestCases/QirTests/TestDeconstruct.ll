@@ -19,8 +19,8 @@ entry:
   %8 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 0
   %9 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 1
   %10 = load i64, i64* %8
-  store i64 %10, i64* %b
   %11 = load i64, i64* %9
+  store i64 %10, i64* %b
   store i64 %11, i64* %c
   %12 = load i64, i64* %b
   %13 = load i64, i64* %c

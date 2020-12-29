@@ -468,8 +468,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ScopeMgr.OpenScope();
             if (array != null)
             {
-                var itemPtr = this.SharedState.GetArrayElementPointer(array.Value.Item2, array.Value.Item1, iterationValue);
-                var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
+                var item = this.SharedState.GetArrayElement(array.Value.Item2, array.Value.Item1, iterationValue);
                 this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
             }
 
@@ -562,11 +561,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
                 var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, val);
-                for (int i = 0; i < items.Length; i++)
+                var tupleItems = this.SharedState.GetTupleElements(tupleType, val);
+                for (int i = 0; i < tupleItems.Length; i++)
                 {
-                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemPointers[i]);
-                    UpdateItem(items[i], itemValue);
+                    UpdateItem(items[i], tupleItems[i]);
                 }
             }
 
