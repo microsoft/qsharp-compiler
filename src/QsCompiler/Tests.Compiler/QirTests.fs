@@ -129,6 +129,10 @@ let ``QIR partial applications`` () =
     qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4"]
 
 [<Fact>]
+let ``QIR functors`` () =
+    qirTest true "TestFunctors"
+
+[<Fact>]
 let ``QIR paulis`` () =
     qirTest false "TestPaulis"
 

@@ -26,11 +26,11 @@ entry:
   %13 = load i64, i64* %c
   %14 = mul i64 %12, %13
   %15 = add i64 %x, %14
-  %16 = bitcast { i64, { i64, i64 }* }* %a to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %16)
-  %17 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
-  %18 = load { i64, i64 }*, { i64, i64 }** %17
-  %19 = bitcast { i64, i64 }* %18 to %Tuple*
+  %16 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
+  %17 = load { i64, i64 }*, { i64, i64 }** %16
+  %18 = bitcast { i64, i64 }* %17 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %18)
+  %19 = bitcast { i64, { i64, i64 }* }* %a to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %19)
   ret i64 %15
 }

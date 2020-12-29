@@ -47,11 +47,11 @@ entry:
   call void @__quantum__rt__tuple_unreference(%Tuple* %25)
   call void @__quantum__rt__callable_unreference(%Callable* %12)
   call void @__quantum__rt__callable_unreference(%Callable* %15)
-  %26 = bitcast { { i2, i64 }*, double }* %udt3 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %26)
-  %27 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %udt3, i64 0, i32 0
-  %28 = load { i2, i64 }*, { i2, i64 }** %27
-  %29 = bitcast { i2, i64 }* %28 to %Tuple*
+  %26 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %udt3, i64 0, i32 0
+  %27 = load { i2, i64 }*, { i2, i64 }** %26
+  %28 = bitcast { i2, i64 }* %27 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %28)
+  %29 = bitcast { { i2, i64 }*, double }* %udt3 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %29)
   %30 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %30)

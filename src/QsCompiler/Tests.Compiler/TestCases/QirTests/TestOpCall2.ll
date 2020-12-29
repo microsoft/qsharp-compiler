@@ -23,10 +23,10 @@ entry:
   call void @__quantum__qis__x__ctl(%Array* %.__controlQubits__, %Qubit* %.q)
   call void @__quantum__rt__array_unreference(%Array* %2)
   call void @__quantum__rt__array_unreference(%Array* %5)
-  %12 = bitcast { %Array*, %Qubit* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %12)
-  %13 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %7, i64 0, i32 0
-  %14 = load %Array*, %Array** %13
-  call void @__quantum__rt__array_unreference(%Array* %14)
+  %12 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %7, i64 0, i32 0
+  %13 = load %Array*, %Array** %12
+  call void @__quantum__rt__array_unreference(%Array* %13)
+  %14 = bitcast { %Array*, %Qubit* }* %7 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %14)
   ret void
 }
