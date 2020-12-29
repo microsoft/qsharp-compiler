@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
@@ -896,8 +897,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // rather than the argument tuple for determining the signature of a function is much cleaner.
             if (outerArgNames.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                this.CreateAndPushTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
-                this.RegisterName(outerArgNames[0], this.ValueStack.Pop(), false);
+                var innerTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
+                this.RegisterName(outerArgNames[0], innerTuple.TypedPointer, false);
             }
             else
             {
@@ -946,7 +947,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (this.CurrentFunction != null)
             {
                 var udtTupleType = this.LlvmStructTypeFromQsharpType(spec.Signature.ArgumentType);
-                var udtTuple = this.CurrentBuilder.BitCast(this.CreateTupleForType(udtTupleType), udtTupleType.CreatePointerType());
+                var udtTuple = this.CreateTupleForType(udtTupleType).TypedPointer;
 
                 var nrArgs = spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Length : 1;
                 for (int i = 0; i < nrArgs; i++)
@@ -1228,6 +1229,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Computes the size in bytes of an LLVM type as an LLVM value.
+        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
+        /// </summary>
+        /// <param name="t">The LLVM type to compute the size of</param>
+        /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
+        /// <returns>An LLVM value containing the size of the type in bytes</returns>
+        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
+        {
+            if (t.IsInteger)
+            {
+                return this.Context.CreateConstant((long)((t.IntegerBitWidth + 7) / 8));
+            }
+            else if (t.IsDouble)
+            {
+                return this.Context.CreateConstant(8L);
+            }
+            else if (t.IsPointer)
+            {
+                // We assume 64-bit address space
+                return this.Context.CreateConstant(8L);
+            }
+            else
+            {
+                // Everything else we let getelementptr compute for us
+                var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
+                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
+                var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
+                var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
+                var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });
+                var second = b.PointerToInt(secondPtr, this.Context.Int64Type);
+                return this.CurrentBuilder.Sub(second, first);
+            }
+        }
+
+        #endregion
+
+        #region Tuple and argument tuple handling
+
+        /// <summary>
         /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
         /// </summary>
         internal Value[] PointerIndex(int index) => new[]
@@ -1274,82 +1314,38 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Computes the size in bytes of an LLVM type as an LLVM value.
-        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
-        /// </summary>
-        /// <param name="t">The LLVM type to compute the size of</param>
-        /// <param name="b">The builder to use to generate the struct size computation, if needed</param>
-        /// <returns>An LLVM value containing the size of the type in bytes</returns>
-        internal Value ComputeSizeForType(ITypeRef t, InstructionBuilder b)
-        {
-            if (t.IsInteger)
-            {
-                return this.Context.CreateConstant((long)((t.IntegerBitWidth + 7) / 8));
-            }
-            else if (t.IsDouble)
-            {
-                return this.Context.CreateConstant(8L);
-            }
-            else if (t.IsPointer)
-            {
-                // We assume 64-bit address space
-                return this.Context.CreateConstant(8L);
-            }
-            else
-            {
-                // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(t.CreatePointerType());
-                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = b.PointerToInt(firstPtr, this.Context.Int64Type);
-                var secondPtr = b.GetElementPtr(t, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = b.PointerToInt(secondPtr, this.Context.Int64Type);
-                return this.CurrentBuilder.Sub(second, first);
-            }
-        }
-
-        #endregion
-
-        #region Tuple and argument tuple creation
-
-        /// <summary>
         /// Creates a new tuple for an LLVM structure type.
         /// The new tuple is created using the current builder.
         /// </summary>
-        /// <param name="t">The LLVM structure type for the tuple</param>
-        /// <param name="b">The builder to use to create the tuple</param>
+        /// <param name="tupleType">The LLVM structure type for the tuple</param>
+        /// <param name="builder">The builder to use to create the tuple</param>
         /// <returns>A value containing the pointer to the new tuple</returns>
-        internal Value CreateTupleForType(ITypeRef t, InstructionBuilder? b = null)
-        {
-            var builder = b ?? this.CurrentBuilder;
-            var size = this.ComputeSizeForType(t, builder);
-            var tuple = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-            return tuple;
-        }
+        internal TupleValue CreateTupleForType(IStructType tupleType, InstructionBuilder? builder = null) =>
+            new TupleValue(tupleType, this, builder);
 
         /// <summary>
         /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
         /// </summary>
         /// <param name="builder">The builder to use to create the tuple</param>
         /// <param name="vs">The tuple elements</param>
-        internal void CreateAndPushTuple(InstructionBuilder builder, params Value[] vs)
+        internal TupleValue CreateTuple(InstructionBuilder builder, params Value[] vs)
         {
             // Build the LLVM structure type we need
             IStructType tupleType = this.Types.CreateConcreteTupleType(vs.Select(v => v.NativeType));
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
-            Value tuple = this.CreateTupleForType(tupleType, builder);
-            Value concreteTuple = builder.BitCast(tuple, tupleType.CreatePointerType());
-            this.ValueStack.Push(concreteTuple);
-            this.ScopeMgr.AddValue(concreteTuple);
+            TupleValue tuple = this.CreateTupleForType(tupleType, builder);
+            this.ScopeMgr.AddValue(tuple.TypedPointer);
 
             // Fill it in, field by field
-            Value[] itemPointers = this.GetTupleElementPointers(tupleType, concreteTuple, builder);
+            Value[] itemPointers = this.GetTupleElementPointers(tupleType, tuple.TypedPointer, builder);
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 builder.Store(vs[i], itemPointers[i]);
                 this.ScopeMgr.AddReference(vs[i]);
             }
+
+            return tuple;
         }
 
         #endregion

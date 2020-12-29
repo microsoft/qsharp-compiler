@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -438,7 +439,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.OpenScope();
                 Value capturePointer = builder.BitCast(func.Parameters[0], captureType.CreatePointerType());
 
-                Value BuildControlledInnerArgument(ITypeRef paArgType)
+                TupleValue BuildControlledInnerArgument(ITypeRef paArgType)
                 {
                     // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
                     // as well as a tuple with the remaining arguments for the partial application.
@@ -452,24 +453,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
                     // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
                     var innerArgs = partialArgs.BuildItem(builder, capturePointer, paArgs);
-                    this.SharedState.CreateAndPushTuple(builder, ctls, innerArgs);
-                    return this.SharedState.ValueStack.Pop();
+                    return this.SharedState.CreateTuple(builder, ctls, innerArgs);
                 }
 
-                Value typedInnerArgsTuple;
+                Value innerArg;
                 if (kind == QsSpecializationKind.QsControlled || kind == QsSpecializationKind.QsControlledAdjoint)
                 {
                     // Deal with the extra control qubit arg for controlled and controlled-adjoint
                     // We special case if the base specialization only takes a single parameter and don't create the sub-tuple in this case.
-                    typedInnerArgsTuple = BuildControlledInnerArgument(
+                    innerArg = BuildControlledInnerArgument(
                         parArgsStruct.Members.Count == 1
                         ? parArgsStruct.Members[0]
-                        : parArgsStruct.CreatePointerType());
+                        : parArgsStruct.CreatePointerType())
+                    .OpaquePointer;
                 }
                 else
                 {
                     var parArgsPointer = builder.BitCast(func.Parameters[1], parArgsStruct.CreatePointerType());
-                    typedInnerArgsTuple = partialArgs.BuildItem(builder, capturePointer, parArgsPointer);
+                    var typedInnerArg = partialArgs.BuildItem(builder, capturePointer, parArgsPointer);
+                    innerArg = this.SharedState.Types.IsTupleType(typedInnerArg.NativeType)
+                        ? builder.BitCast(typedInnerArg, this.SharedState.Types.Tuple)
+                        : this.SharedState.CreateTuple(builder, typedInnerArg).OpaquePointer;
                 }
 
                 var innerCallablePtr = this.SharedState.GetTupleElementPointer(captureType, capturePointer, 0, builder);
@@ -477,8 +481,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Depending on the specialization, we may have to get a different specialization of the callable
                 var specToCall = GetSpecializedInnerCallable(innerCallable, kind, builder);
                 var invoke = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                var innerArgsTuple = builder.BitCast(typedInnerArgsTuple, this.SharedState.Types.Tuple);
-                builder.Call(invoke, specToCall, innerArgsTuple, func.Parameters[2]);
+                builder.Call(invoke, specToCall, innerArg, func.Parameters[2]);
 
                 this.SharedState.ScopeMgr.CloseScope(isTerminated: false, builder);
                 builder.Return();
@@ -508,10 +511,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Create the capture tuple
             // Note that we set aside the first element of the capture tuple for the inner operation to call
             var capTypeList = captured.Select(c => c.Item1.NativeType).Prepend(this.SharedState.Types.Callable);
-            var capType = this.SharedState.Types.CreateConcreteTupleType(capTypeList);
-            var cap = this.SharedState.CreateTupleForType(capType);
-            var capture = this.SharedState.CurrentBuilder.BitCast(cap, capType.CreatePointerType());
-            var callablePointer = this.SharedState.GetTupleElementPointer(capType, capture, 0);
+            IStructType capType = this.SharedState.Types.CreateConcreteTupleType(capTypeList);
+            var capture = this.SharedState.CreateTupleForType(capType);
+            var callablePointer = this.SharedState.GetTupleElementPointer(capType, capture.TypedPointer, 0);
 
             var innerCallable = this.SharedState.EvaluateSubexpression(method);
             this.SharedState.CurrentBuilder.Store(innerCallable, callablePointer);
@@ -519,7 +521,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             for (int n = 0; n < captured.Count; n++)
             {
-                var item = this.SharedState.GetTupleElementPointer(capType, capture, n + 1);
+                var item = this.SharedState.GetTupleElementPointer(capType, capture.TypedPointer, n + 1);
                 this.SharedState.CurrentBuilder.Store(captured[n].Item1, item);
                 this.SharedState.ScopeMgr.AddReference(captured[n].Item1);
             }
@@ -570,7 +572,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Create the callable
             var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var callableValue = this.SharedState.CurrentBuilder.Call(func, table, cap);
+            var callableValue = this.SharedState.CurrentBuilder.Call(func, table, capture.OpaquePointer);
 
             this.PushValueInScope(callableValue);
         }
@@ -924,8 +926,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // If the argument is not already of a type that results in the creation of a tuple,
                     // then we need to create a tuple to store the (single) argument to be able to pass
                     // it to the callable value.
-                    this.SharedState.CreateAndPushTuple(this.SharedState.CurrentBuilder, argValue);
-                    argValue = this.SharedState.ValueStack.Pop();
+                    argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue).TypedPointer;
                 }
                 Value argTuple = this.SharedState.CurrentBuilder.BitCast(argValue, this.SharedState.Types.Tuple);
 
@@ -941,12 +942,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else
                 {
                     IStructType resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
-                    Value resultTuple = this.SharedState.CreateTupleForType(resultStructType);
-                    Value resultStruct = this.SharedState.CurrentBuilder.BitCast(resultTuple, resultStructType.CreatePointerType());
-                    this.SharedState.CurrentBuilder.Call(func, calledValue, argTuple, resultTuple);
+                    TupleValue resultTuple = this.SharedState.CreateTupleForType(resultStructType);
+                    this.SharedState.CurrentBuilder.Call(func, calledValue, argTuple, resultTuple.OpaquePointer);
 
                     // Now push the result. For now we assume it's a scalar.
-                    Value resultPointer = this.SharedState.GetTupleElementPointer(resultStructType, resultStruct, 0);
+                    Value resultPointer = this.SharedState.GetTupleElementPointer(resultStructType, resultTuple.TypedPointer, 0);
                     ITypeRef resultType = this.SharedState.LlvmTypeFromQsharpType(resultResolvedType);
                     Value result = this.SharedState.CurrentBuilder.Load(resultType, resultPointer);
                     this.SharedState.ValueStack.Push(result);
@@ -2079,7 +2079,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
             var items = vs.Select(v => this.SharedState.EvaluateSubexpression(v)).ToArray();
-            this.SharedState.CreateAndPushTuple(this.SharedState.CurrentBuilder, items);
+            var tuple = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items);
+            this.SharedState.ValueStack.Push(tuple.TypedPointer);
             return ResolvedExpression.InvalidExpr;
         }
 
