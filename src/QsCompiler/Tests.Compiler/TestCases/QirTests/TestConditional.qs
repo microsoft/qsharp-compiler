@@ -10,7 +10,6 @@ namespace Microsoft.Quantum.Testing.QIR{
     }
 
     function ReturnInt(arg : CustomTuple) : Int {
-
         if (DrawRandom(arg::Data) < 0) {
             return 1;
         }
