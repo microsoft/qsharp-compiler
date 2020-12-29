@@ -17,30 +17,29 @@ entry:
   %8 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
   store %Array* %3, %Array** %8
   call void @__quantum__rt__array_reference(%Array* %3)
-  %9 = bitcast { %Array* }* %7 to %Tuple*
-  call void @__quantum__rt__callable_invoke(%Callable* %doNothing, %Tuple* %9, %Tuple* null)
-  %10 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %11 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %10, i64 0)
-  %12 = bitcast i8* %11 to %Qubit**
-  store %Qubit* %aux, %Qubit** %12
-  %13 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %14 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %13, i64 0)
-  %15 = bitcast i8* %14 to %Qubit**
-  store %Qubit* %aux, %Qubit** %15
-  call void @Microsoft__Quantum__Testing__QIR__DoNothing__ctl(%Array* %10, %Array* %13)
+  call void @__quantum__rt__callable_invoke(%Callable* %doNothing, %Tuple* %6, %Tuple* null)
+  %9 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %10 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 0)
+  %11 = bitcast i8* %10 to %Qubit**
+  store %Qubit* %aux, %Qubit** %11
+  %12 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %13 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 0)
+  %14 = bitcast i8* %13 to %Qubit**
+  store %Qubit* %aux, %Qubit** %14
+  call void @Microsoft__Quantum__Testing__QIR__DoNothing__ctl(%Array* %9, %Array* %12)
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
   call void @__quantum__rt__array_unreference(%Array* %0)
   call void @__quantum__rt__array_unreference(%Array* %3)
-  %16 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
-  %17 = load %Array*, %Array** %16
-  call void @__quantum__rt__array_unreference(%Array* %17)
-  %18 = bitcast { %Array* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %18)
-  call void @__quantum__rt__array_unreference(%Array* %10)
-  call void @__quantum__rt__array_unreference(%Array* %13)
-  %19 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
-  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %19)
+  %15 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
+  %16 = load %Array*, %Array** %15
+  call void @__quantum__rt__array_unreference(%Array* %16)
+  %17 = bitcast { %Array* }* %7 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %17)
+  call void @__quantum__rt__array_unreference(%Array* %9)
+  call void @__quantum__rt__array_unreference(%Array* %12)
+  %18 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
+  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %18)
   call void @__quantum__rt__callable_unreference(%Callable* %doNothing)
-  call void @__quantum__rt__callable_unreference(%Callable* %19)
+  call void @__quantum__rt__callable_unreference(%Callable* %18)
   ret void
 }

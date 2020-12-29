@@ -9,18 +9,18 @@ entry:
   %5 = bitcast { i64, i64 }* %1 to %Tuple*
   call void @__quantum__rt__tuple_reference(%Tuple* %5)
   %6 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 0
-  %x = load i64, i64* %6
   %7 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
+  %x = load i64, i64* %6
   %y = load { i64, i64 }*, { i64, i64 }** %7
   %b = alloca i64
   store i64 3, i64* %b
   %c = alloca i64
   store i64 5, i64* %c
   %8 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 0
-  %9 = load i64, i64* %8
-  store i64 %9, i64* %b
-  %10 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 1
-  %11 = load i64, i64* %10
+  %9 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 1
+  %10 = load i64, i64* %8
+  %11 = load i64, i64* %9
+  store i64 %10, i64* %b
   store i64 %11, i64* %c
   %12 = load i64, i64* %b
   %13 = load i64, i64* %c
