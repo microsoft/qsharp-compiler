@@ -129,9 +129,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (this.sharedState.Types.IsTupleType(value.NativeType))
             {
-                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
-                builder.Call(func, untypedTuple);
-
                 // for tuples we also unreference all inner tuples
                 var tupleStruct = Types.StructFromPointer(value.NativeType);
                 for (var i = 0; i < tupleStruct.Members.Count; ++i)
@@ -144,11 +141,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
                 }
+
+                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
+                builder.Call(func, untypedTuple);
             }
             else
             {
-                builder.Call(func, value);
-
                 if (value.NativeType == this.sharedState.Types.Array)
                 {
                     // TODO:
@@ -160,6 +158,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // Releasing any captured callable (first item in the capture tuple for a partial application)
                     // could in principle be done by the runtime, so not sure if we should do something here
                 }
+
+                builder.Call(func, value);
             }
         }
 
@@ -221,31 +221,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count
-        /// for the given value if necessary. The call is generated in the current block.
+        /// for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void AddReference(Value value)
+        public void AddReference(Value value, InstructionBuilder? builder = null)
         {
+            builder ??= this.sharedState.CurrentBuilder;
             var referenceFunc = this.GetReferenceFunctionForType(value.NativeType);
             if (referenceFunc != null)
             {
                 IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(referenceFunc);
-                this.RecursivelyModifyReferences(value, func, this.GetReferenceFunctionForType, this.sharedState.CurrentBuilder);
+                this.RecursivelyModifyReferences(value, func, this.GetReferenceFunctionForType, builder);
             }
         }
 
         /// <summary>
         /// Given a pointer loads the current value at that location and queues a suitable function
         /// to unreference that value upon closing or exciting the scope.
+        /// The loads and call are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="pointer">Pointer to the value that will no longer be accessible via that pointer</param>
-        public void RemoveReference(Value pointer)
+        public void RemoveReference(Value pointer, InstructionBuilder? builder = null)
         {
+            builder ??= this.sharedState.CurrentBuilder;
             var type = ((IPointerType)pointer.NativeType).ElementType;
             var releaser = this.GetReleaseFunctionForType(type);
             if (releaser != null)
             {
-                var value = this.sharedState.CurrentBuilder.Load(type, pointer);
+                var value = builder.Load(type, pointer);
                 this.releaseStack.Peek().Add((value, releaser));
             }
         }
@@ -257,26 +261,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
         {
+            builder ??= this.sharedState.CurrentBuilder;
             var releases = this.releaseStack.Pop();
             // If the current block is already terminated, presumably be a return, don't generate releases
             if (!isTerminated)
             {
-                this.GenerateReleasesForLevel(releases, builder ?? this.sharedState.CurrentBuilder);
+                this.GenerateReleasesForLevel(releases, builder);
             }
         }
 
         /// <summary>
         /// Exits the current scope stack by generating all of the pending releases for all open scopes.
         /// Skips any release function for the returned value.
-        /// The releases are generated in the current block.
+        /// The releases are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// Exiting the current scope does *not* close the scope.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
-        public void ExitScope(Value returned)
+        public void ExitScope(Value returned, InstructionBuilder? builder = null)
         {
+            builder ??= this.sharedState.CurrentBuilder;
             foreach (var releases in this.releaseStack)
             {
-                this.GenerateReleasesForLevel(releases.Where(value => value.Item1 != returned), this.sharedState.CurrentBuilder);
+                this.GenerateReleasesForLevel(releases.Where(value => value.Item1 != returned), builder);
             }
         }
     }

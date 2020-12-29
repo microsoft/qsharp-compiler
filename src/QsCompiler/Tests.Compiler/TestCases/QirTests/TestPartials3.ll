@@ -14,18 +14,18 @@ entry:
   %9 = load %Callable*, %Callable** %8
   %10 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
   call void @__quantum__rt__callable_invoke(%Callable* %9, %Tuple* %10, %Tuple* %result-tuple)
-  %11 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %11)
-  %12 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 0
-  %13 = load { i64, double }*, { i64, double }** %12
-  %14 = bitcast { i64, double }* %13 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %14)
-  %15 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 1
-  %16 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %15
-  %17 = bitcast { %String*, %Qubit* }* %16 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %17)
-  %18 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %16, i64 0, i32 0
-  %19 = load %String*, %String** %18
-  call void @__quantum__rt__string_unreference(%String* %19)
+  %11 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 0
+  %12 = load { i64, double }*, { i64, double }** %11
+  %13 = bitcast { i64, double }* %12 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %13)
+  %14 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %3, i64 0, i32 1
+  %15 = load { %String*, %Qubit* }*, { %String*, %Qubit* }** %14
+  %16 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %15, i64 0, i32 0
+  %17 = load %String*, %String** %16
+  call void @__quantum__rt__string_unreference(%String* %17)
+  %18 = bitcast { %String*, %Qubit* }* %15 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %18)
+  %19 = bitcast { { i64, double }*, { %String*, %Qubit* }* }* %3 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %19)
   ret void
 }

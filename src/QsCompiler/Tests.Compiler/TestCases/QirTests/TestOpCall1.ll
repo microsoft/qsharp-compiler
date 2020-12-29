@@ -31,11 +31,11 @@ entry:
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
   call void @__quantum__rt__array_unreference(%Array* %0)
   call void @__quantum__rt__array_unreference(%Array* %3)
-  %16 = bitcast { %Array* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %16)
-  %17 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
-  %18 = load %Array*, %Array** %17
-  call void @__quantum__rt__array_unreference(%Array* %18)
+  %16 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
+  %17 = load %Array*, %Array** %16
+  call void @__quantum__rt__array_unreference(%Array* %17)
+  %18 = bitcast { %Array* }* %7 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %18)
   call void @__quantum__rt__array_unreference(%Array* %10)
   call void @__quantum__rt__array_unreference(%Array* %13)
   %19 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
