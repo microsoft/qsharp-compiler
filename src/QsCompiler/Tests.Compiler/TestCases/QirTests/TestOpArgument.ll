@@ -9,8 +9,8 @@ entry:
   store %Qubit* %0, %Qubit** %3
   store %Qubit* %1, %Qubit** %4
   %5 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 0
-  %q1 = load %Qubit*, %Qubit** %5
   %6 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 1
+  %q1 = load %Qubit*, %Qubit** %5
   %q2 = load %Qubit*, %Qubit** %6
   %7 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %8 = bitcast %Tuple* %7 to { %Callable*, %Qubit* }*
@@ -22,8 +22,8 @@ entry:
   store %Qubit* %q1, %Qubit** %11
   %op = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %7)
   %12 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 0
-  %.control = load %Qubit*, %Qubit** %12
   %13 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 1
+  %.control = load %Qubit*, %Qubit** %12
   %.target = load %Qubit*, %Qubit** %13
   call void @__quantum__qis__cnot__body(%Qubit* %.control, %Qubit* %.target)
   %14 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 0

@@ -595,7 +595,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
         private void GenerateInterop(IrFunction func, string baseName)
         {
-            // TODO: why do we need both GenerateEntryPoint and GenerateInteropWrapper?
+            // TODO: why do we need both GenerateEntryPoint and GenerateInterop?
 
             func = this.InteropModule.CreateFunction(func.Name, func.Signature);
 
@@ -1215,18 +1215,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="resolvedType">The Q# type</param>
         /// <returns>The equivalent QIR structure type</returns>
-        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType)
-        {
-            if (resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple)
-            {
-                var elementTypes = tuple.Item.Select(this.LlvmTypeFromQsharpType);
-                return this.Types.CreateConcreteTupleType(elementTypes);
-            }
-            else
-            {
-                return this.Types.CreateConcreteTupleType(this.LlvmTypeFromQsharpType(resolvedType));
-            }
-        }
+        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
+            resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple
+                ? this.CreateConcreteTupleType(tuple.Item)
+                : this.CreateConcreteTupleType(resolvedType);
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
+        /// </summary>
+        internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
+            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
+        /// </summary>
+        internal IStructType CreateConcreteTupleType(params ResolvedType[] items) =>
+            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.
@@ -1315,7 +1319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Creates a new tuple for an LLVM structure type.
-        /// The new tuple is created using the current builder.
+        /// The new tuple is created using the given builder or the current builder if no builder is specified.
         /// </summary>
         /// <param name="tupleType">The LLVM structure type for the tuple</param>
         /// <param name="builder">The builder to use to create the tuple</param>
@@ -1332,7 +1336,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal TupleValue CreateTuple(InstructionBuilder builder, params Value[] vs)
         {
             // Build the LLVM structure type we need
-            IStructType tupleType = this.Types.CreateConcreteTupleType(vs.Select(v => v.NativeType));
+            IStructType tupleType = this.Types.CreateConcreteTupleType(vs);
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
             TupleValue tuple = this.CreateTupleForType(tupleType, builder);

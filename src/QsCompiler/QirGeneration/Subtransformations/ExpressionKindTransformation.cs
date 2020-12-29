@@ -116,17 +116,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <returns>A fully typed tuple that combines the captured values as well as the arguments to the partial application</returns>
             public override Value BuildItem(InstructionBuilder builder, Value capture, Value parArgs)
             {
-                var size = this.SharedState.ComputeSizeForType(this.ItemType, builder);
-                var innerTuple = builder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate), size);
-                var typedTuple = builder.BitCast(innerTuple, this.ItemType.CreatePointerType());
-                this.SharedState.ScopeMgr.AddValue(typedTuple);
-                for (int i = 0; i < this.Items.Length; i++)
-                {
-                    var itemDestPtr = this.SharedState.GetTupleElementPointer(this.ItemType, typedTuple, i, builder);
-                    var item = this.Items[i].BuildItem(builder, capture, parArgs);
-                    builder.Store(item, itemDestPtr);
-                }
-                return typedTuple;
+                var items = this.Items.Select(item => item.BuildItem(builder, capture, parArgs)).ToArray();
+                var tuple = this.SharedState.CreateTuple(builder, items);
+                return tuple.TypedPointer;
             }
         }
 
@@ -375,8 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (arg.Expression is ResolvedExpression.ValueTuple tuple
                     && argType.Resolution is QsResolvedTypeKind.TupleType types)
                 {
-                    var itemType = this.SharedState.Types.CreateConcreteTupleType(
-                        types.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i)));
+                    var itemType = this.SharedState.CreateConcreteTupleType(types.Item);
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
                     return new InnerTuple(this.SharedState, argType, itemType, items);
                 }
@@ -926,15 +917,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // If the argument is not already of a type that results in the creation of a tuple,
                     // then we need to create a tuple to store the (single) argument to be able to pass
                     // it to the callable value.
-                    argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue).TypedPointer;
+                    argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue).OpaquePointer;
                 }
-                Value argTuple = this.SharedState.CurrentBuilder.BitCast(argValue, this.SharedState.Types.Tuple);
+                else
+                {
+                    argValue = this.SharedState.CurrentBuilder.BitCast(argValue, this.SharedState.Types.Tuple);
+                }
 
                 ResolvedType resultResolvedType = this.SharedState.ExpressionTypeStack.Peek();
                 if (resultResolvedType.Resolution.IsUnitType)
                 {
                     Value resultTuple = this.SharedState.Constants.UnitValue;
-                    this.SharedState.CurrentBuilder.Call(func, calledValue, argTuple, resultTuple);
+                    this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple);
 
                     // Now push the result. For now we assume it's a scalar.
                     this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
@@ -943,7 +937,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     IStructType resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
                     TupleValue resultTuple = this.SharedState.CreateTupleForType(resultStructType);
-                    this.SharedState.CurrentBuilder.Call(func, calledValue, argTuple, resultTuple.OpaquePointer);
+                    this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple.OpaquePointer);
 
                     // Now push the result. For now we assume it's a scalar.
                     Value resultPointer = this.SharedState.GetTupleElementPointer(resultStructType, resultTuple.TypedPointer, 0);
@@ -967,8 +961,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
                 {
                     Value evaluatedArg = this.SharedState.EvaluateSubexpression(arg);
-                    IStructType tupleType = this.SharedState.Types.CreateConcreteTupleType(
-                        ts.Item.Select(t => this.SharedState.LlvmTypeFromQsharpType(t)));
+                    IStructType tupleType = this.SharedState.CreateConcreteTupleType(ts.Item);
                     Value[] itemPointers = this.SharedState.GetTupleElementPointers(tupleType, evaluatedArg);
 
                     Value LoadItem(Value itemPointer, ResolvedType t)

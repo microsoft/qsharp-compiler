@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {
@@ -130,6 +131,8 @@ namespace Microsoft.Quantum.QIR
             this.Pauli = context.GetIntType(2);
         }
 
+        // internal helpers to simplify common code
+
         /// <summary>
         /// Given the type of a pointer to a struct, returns the type of the struct.
         /// This method thus is the inverse mapping of CreatePointerType.
@@ -146,6 +149,12 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public IArrayType CreateConcreteArrayType(ITypeRef elementType, uint count) =>
             elementType.CreateArrayType(count);
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains the given items.
+        /// </summary>
+        public IStructType CreateConcreteTupleType(params Value[] items) =>
+            this.context.CreateStructType(false, items.Select(v => v.NativeType).ToArray());
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains items of the given types.
