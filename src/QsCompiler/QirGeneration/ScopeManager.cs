@@ -129,6 +129,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (this.sharedState.Types.IsTupleType(value.NativeType))
             {
+                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
+                builder.Call(func, untypedTuple);
+
                 // for tuples we also unreference all inner tuples
                 var tupleStruct = Types.StructFromPointer(value.NativeType);
                 for (var i = 0; i < tupleStruct.Members.Count; ++i)
@@ -141,12 +144,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.RecursivelyModifyReferences(item, this.sharedState.GetOrCreateRuntimeFunction(itemFuncName), getItemFunc, builder);
                     }
                 }
-
-                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
-                builder.Call(func, untypedTuple);
             }
             else
             {
+                builder.Call(func, value);
+
                 if (value.NativeType == this.sharedState.Types.Array)
                 {
                     // TODO:
@@ -158,8 +160,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // Releasing any captured callable (first item in the capture tuple for a partial application)
                     // could in principle be done by the runtime, so not sure if we should do something here
                 }
-
-                builder.Call(func, value);
             }
         }
 
