@@ -29,11 +29,11 @@ entry:
   call void @__quantum__rt__callable_invoke(%Callable* %20, %Tuple* %13, %Tuple* %result-tuple)
   %21 = bitcast { %Qubit*, i64 }* %6 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %21)
-  %22 = bitcast { %Array*, %Tuple* }* %14 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %22)
-  %23 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %14, i64 0, i32 0
-  %24 = load %Array*, %Array** %23
-  call void @__quantum__rt__array_unreference(%Array* %24)
+  %22 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %14, i64 0, i32 0
+  %23 = load %Array*, %Array** %22
+  call void @__quantum__rt__array_unreference(%Array* %23)
+  %24 = bitcast { %Array*, %Tuple* }* %14 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %24)
   call void @__quantum__rt__callable_unreference(%Callable* %20)
   ret void
 }

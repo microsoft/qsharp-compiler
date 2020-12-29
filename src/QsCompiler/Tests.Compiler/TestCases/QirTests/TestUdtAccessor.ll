@@ -14,11 +14,11 @@ entry:
   %y = load i64, i64* %7
   %8 = bitcast { i2, i64 }* %2 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %8)
-  %9 = bitcast { { i2, i64 }*, double }* %x to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %9)
-  %10 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %x, i64 0, i32 0
-  %11 = load { i2, i64 }*, { i2, i64 }** %10
-  %12 = bitcast { i2, i64 }* %11 to %Tuple*
+  %9 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %x, i64 0, i32 0
+  %10 = load { i2, i64 }*, { i2, i64 }** %9
+  %11 = bitcast { i2, i64 }* %10 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %11)
+  %12 = bitcast { { i2, i64 }*, double }* %x to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %12)
   ret i64 %y
 }

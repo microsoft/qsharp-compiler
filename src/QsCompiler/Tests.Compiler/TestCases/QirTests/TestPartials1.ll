@@ -77,11 +77,11 @@ then0__1:                                         ; preds = %body__1
   call void @__quantum__rt__callable_reference(%Callable* %36)
   %37 = getelementptr { %Callable*, { %String*, %Qubit* }* }, { %Callable*, { %String*, %Qubit* }* }* %34, i64 0, i32 1
   store { %String*, %Qubit* }* %tuple2, { %String*, %Qubit* }** %37
-  %38 = bitcast { %String*, %Qubit* }* %tuple2 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %38)
-  %39 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
-  %40 = load %String*, %String** %39
-  call void @__quantum__rt__string_reference(%String* %40)
+  %38 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
+  %39 = load %String*, %String** %38
+  call void @__quantum__rt__string_reference(%String* %39)
+  %40 = bitcast { %String*, %Qubit* }* %tuple2 to %Tuple*
+  call void @__quantum__rt__tuple_reference(%Tuple* %40)
   %partial2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3, %Tuple* %33)
   %41 = bitcast { %String*, %Qubit* }* %tuple2 to %Tuple*
   call void @__quantum__rt__callable_invoke(%Callable* %partial1, %Tuple* %41, %Tuple* null)
@@ -118,11 +118,11 @@ then0__1:                                         ; preds = %body__1
   %58 = bitcast { i64, double }* %tuple1 to %Tuple*
   call void @__quantum__rt__tuple_unreference(%Tuple* %58)
   call void @__quantum__rt__string_unreference(%String* %23)
-  %59 = bitcast { %String*, %Qubit* }* %tuple2 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %59)
-  %60 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
-  %61 = load %String*, %String** %60
-  call void @__quantum__rt__string_unreference(%String* %61)
+  %59 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
+  %60 = load %String*, %String** %59
+  call void @__quantum__rt__string_unreference(%String* %60)
+  %61 = bitcast { %String*, %Qubit* }* %tuple2 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %61)
   call void @__quantum__rt__callable_unreference(%Callable* %30)
   call void @__quantum__rt__callable_unreference(%Callable* %partial1)
   call void @__quantum__rt__callable_unreference(%Callable* %36)
@@ -165,11 +165,11 @@ continue__1:                                      ; preds = %then0__1, %body__1
   call void @__quantum__rt__callable_unreference(%Callable* %66)
   call void @__quantum__rt__callable_unreference(%Callable* %68)
   call void @__quantum__rt__array_unreference(%Array* %69)
-  %76 = bitcast { %Array* }* %72 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %76)
-  %77 = getelementptr { %Array* }, { %Array* }* %72, i64 0, i32 0
-  %78 = load %Array*, %Array** %77
-  call void @__quantum__rt__array_unreference(%Array* %78)
+  %76 = getelementptr { %Array* }, { %Array* }* %72, i64 0, i32 0
+  %77 = load %Array*, %Array** %76
+  call void @__quantum__rt__array_unreference(%Array* %77)
+  %78 = bitcast { %Array* }* %72 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %78)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %continue__1
