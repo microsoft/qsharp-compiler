@@ -1,14 +1,14 @@
 define i64 @Microsoft__Quantum__Testing__QIR__TestControlled__body() #0 {
 entry:
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
-  %1 = bitcast %Tuple* %0 to { %Callable*, i64 }*
-  %2 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %1, i64 0, i32 0
-  %3 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, %Tuple* null)
-  store %Callable* %3, %Callable** %2
-  call void @__quantum__rt__callable_reference(%Callable* %3)
-  %4 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %1, i64 0, i32 1
+  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, %Tuple* null)
+  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
+  %2 = bitcast %Tuple* %1 to { %Callable*, i64 }*
+  %3 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %2, i64 0, i32 0
+  %4 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %2, i64 0, i32 1
+  store %Callable* %0, %Callable** %3
+  call void @__quantum__rt__callable_reference(%Callable* %0)
   store i64 1, i64* %4
-  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %0)
+  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %1)
   %adj_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %adj_qop)
   %ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop)
@@ -368,7 +368,12 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__result_unreference(%Result* %8)
   call void @__quantum__rt__result_unreference(%Result* %9)
   %169 = load i64, i64* %error_code
-  call void @__quantum__rt__callable_unreference(%Callable* %3)
+  call void @__quantum__rt__callable_unreference(%Callable* %0)
+  %170 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %2, i64 0, i32 0
+  %171 = load %Callable*, %Callable** %170
+  call void @__quantum__rt__callable_unreference(%Callable* %171)
+  %172 = bitcast { %Callable*, i64 }* %2 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %172)
   call void @__quantum__rt__callable_unreference(%Callable* %qop)
   call void @__quantum__rt__callable_unreference(%Callable* %adj_qop)
   call void @__quantum__rt__callable_unreference(%Callable* %ctl_qop)

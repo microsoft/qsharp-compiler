@@ -946,17 +946,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (this.CurrentFunction != null)
             {
-                var udtTupleType = this.LlvmStructTypeFromQsharpType(spec.Signature.ArgumentType);
-                var udtTuple = this.CreateTupleForType(udtTupleType).TypedPointer;
-
-                var nrArgs = spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Length : 1;
-                for (int i = 0; i < nrArgs; i++)
-                {
-                    var itemPtr = this.GetTupleElementPointer(udtTupleType, udtTuple, i);
-                    this.CurrentBuilder.Store(this.CurrentFunction.Parameters[i], itemPtr);
-                }
-
-                QirStatementKindTransformation.AddReturn(this, udtTuple, returnsVoid: false);
+                var udtTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
+                QirStatementKindTransformation.AddReturn(this, udtTuple.TypedPointer, returnsVoid: false);
             }
         }
 

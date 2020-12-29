@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private void BuildPartialApplication(TypedExpression method, TypedExpression arg)
         {
-            PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<(Value, ResolvedType)> capturedValues)
+            PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<Value> capturedValues)
             {
                 // We need argType because _'s -- missing expressions -- have MissingType, rather than the actual type.
                 if (arg.Expression.IsMissingExpr)
@@ -375,8 +375,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // A value we should capture; remember that the first element in the capture tuple is the inner callable
                     var val = this.SharedState.EvaluateSubexpression(arg);
-                    capturedValues.Add((val, argType));
-                    return new InnerCapture(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(arg.ResolvedType), capturedValues.Count);
+                    capturedValues.Add(val);
+                    return new InnerCapture(this.SharedState, this.SharedState.LlvmTypeFromQsharpType(arg.ResolvedType), capturedValues.Count - 1);
                 }
             }
 
@@ -488,34 +488,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 _ => throw new InvalidOperationException("expecting an operation or function type")
             };
 
-            // Figure out the inputs to the resulting callable based on the signature of the partial application expression.
+            // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var partialArgType = this.SharedState.LlvmStructTypeFromQsharpType(
                 CallableArgumentType(this.SharedState.ExpressionTypeStack.Peek()));
 
             // Argument type of the callable that is partially applied
             var innerArgType = CallableArgumentType(method.ResolvedType);
 
-            // Figure out the args & signature of the resulting callable
-            var captured = new List<(Value, ResolvedType)>();
+            // Create the capture tuple, which contains the inner callable as the first item and
+            // construct the mapping to compine captured arguments with the arguments for the partial application
+            var captured = new List<Value>();
+            captured.Add(this.SharedState.EvaluateSubexpression(method));
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-
-            // Create the capture tuple
-            // Note that we set aside the first element of the capture tuple for the inner operation to call
-            var capTypeList = captured.Select(c => c.Item1.NativeType).Prepend(this.SharedState.Types.Callable);
-            IStructType capType = this.SharedState.Types.CreateConcreteTupleType(capTypeList);
-            var capture = this.SharedState.CreateTupleForType(capType);
-            var callablePointer = this.SharedState.GetTupleElementPointer(capType, capture.TypedPointer, 0);
-
-            var innerCallable = this.SharedState.EvaluateSubexpression(method);
-            this.SharedState.CurrentBuilder.Store(innerCallable, callablePointer);
-            this.SharedState.ScopeMgr.AddReference(innerCallable);
-
-            for (int n = 0; n < captured.Count; n++)
-            {
-                var item = this.SharedState.GetTupleElementPointer(capType, capture.TypedPointer, n + 1);
-                this.SharedState.CurrentBuilder.Store(captured[n].Item1, item);
-                this.SharedState.ScopeMgr.AddReference(captured[n].Item1);
-            }
+            var capture = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, captured.ToArray());
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -548,7 +533,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var kind = GenerationContext.FunctionArray[index];
                 if (kinds.Contains(kind))
                 {
-                    specializations[index] = BuildLiftedSpecialization(liftedName, kind, capType, partialArgType, rebuild);
+                    specializations[index] = BuildLiftedSpecialization(liftedName, kind, capture.StructType, partialArgType, rebuild);
                 }
                 else
                 {
@@ -940,9 +925,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple.OpaquePointer);
 
                     // Now push the result. For now we assume it's a scalar.
-                    Value resultPointer = this.SharedState.GetTupleElementPointer(resultStructType, resultTuple.TypedPointer, 0);
-                    ITypeRef resultType = this.SharedState.LlvmTypeFromQsharpType(resultResolvedType);
-                    Value result = this.SharedState.CurrentBuilder.Load(resultType, resultPointer);
+                    Value resultPointer = this.SharedState.GetTupleElementPointer(resultTuple.StructType, resultTuple.TypedPointer, 0);
+                    Value result = this.SharedState.CurrentBuilder.Load(resultTuple.StructType.Members[0], resultPointer);
                     this.SharedState.ValueStack.Push(result);
                 }
             }
