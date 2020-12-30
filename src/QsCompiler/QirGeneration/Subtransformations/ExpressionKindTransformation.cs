@@ -521,6 +521,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.PushValueInScope(callableValue);
         }
 
+        /// <summary>
+        /// Evaluates the give expression and uses the runtime function with the given name to apply the corresponding functor.
+        /// Does not validate the given arguments.
+        /// </summary>
+        /// <returns>An invalid expression</returns>
+        private ResolvedExpression ApplyFunctor(TypedExpression ex, string runtimeFunctionName)
+        {
+            var callable = this.SharedState.EvaluateSubexpression(ex);
+
+            // We don't keep track of user counts for callables and hence instead
+            // take care here to not make unnecessary copies. We have to be pessimistic, however,
+            // and make a copy for anything that would require further evaluation of the expression,
+            // such as e.g. if ex is a conditional expression.
+
+            // If ex is an identifier to a global callable then it is safe to apply the functor directly,
+            // since in that case baseCallable is a freshly created callable value.
+            // The same holds if ex is a partial application or another functor application.
+            // Call-expression on the other hand may take a callable as argument and return the same value;
+            // it is thus not save to apply the functor directly to the returned value (pointer) in that case.
+
+            var exIsGlobalCallable = ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsGlobalCallable;
+            var exIsPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
+            var exIsFunctorApplication = ex.Expression is ResolvedExpression.AdjointApplication || ex.Expression is ResolvedExpression.ControlledApplication;
+            var safeToModify = exIsGlobalCallable || exIsPartialApplication || exIsFunctorApplication;
+
+            if (!safeToModify)
+            {
+                var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
+                callable = this.SharedState.CurrentBuilder.Call(makeCopy, callable);
+                this.SharedState.ScopeMgr.AddValue(callable);
+            }
+
+            var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
+            this.SharedState.CurrentBuilder.Call(applyFunctor, callable);
+            this.SharedState.ValueStack.Push(callable);
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
         // public overrides
 
         public override ResolvedExpression OnAddition(TypedExpression lhs, TypedExpression rhs)
@@ -558,30 +597,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpression.InvalidExpr;
         }
 
-        public override ResolvedExpression OnAdjointApplication(TypedExpression ex)
-        {
-            // ex will evaluate to a callable
-            var baseCallable = this.SharedState.EvaluateSubexpression(ex);
-
-            // If ex was a variable, we need to make a copy before we take the adjoint.
-            Value callable;
-            if (ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsLocalVariable)
-            {
-                var copier = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                callable = this.SharedState.CurrentBuilder.Call(copier, baseCallable);
-                this.SharedState.ScopeMgr.AddValue(callable);
-            }
-            else
-            {
-                callable = baseCallable;
-            }
-
-            var adjointer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
-            this.SharedState.CurrentBuilder.Call(adjointer, callable);
-            this.SharedState.ValueStack.Push(callable);
-
-            return ResolvedExpression.InvalidExpr;
-        }
+        public override ResolvedExpression OnAdjointApplication(TypedExpression ex) =>
+            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeAdjoint);
 
         /// <exception cref="ArgumentException">
         /// The given arr expression is not an array or the given idx expression is not of type Int or Range.
@@ -1045,31 +1062,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpression.InvalidExpr;
         }
 
-        public override ResolvedExpression OnControlledApplication(TypedExpression ex)
-        {
-            // ex will evaluate to a callable
-            var baseCallable = this.SharedState.EvaluateSubexpression(ex);
-
-            // If ex was a variable, we need to make a copy before we take the adjoint.
-            Value callable;
-
-            if (ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsLocalVariable)
-            {
-                var copier = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                callable = this.SharedState.CurrentBuilder.Call(copier, baseCallable);
-                this.SharedState.ScopeMgr.AddValue(callable);
-            }
-            else
-            {
-                callable = baseCallable;
-            }
-
-            var adjointer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
-            this.SharedState.CurrentBuilder.Call(adjointer, callable);
-            this.SharedState.ValueStack.Push(callable);
-
-            return ResolvedExpression.InvalidExpr;
-        }
+        public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
+            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeControlled);
 
         public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
