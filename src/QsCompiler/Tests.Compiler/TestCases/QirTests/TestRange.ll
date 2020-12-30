@@ -37,27 +37,27 @@ entry:
   %22 = insertvalue %Range %21, i64 0, 0
   %23 = insertvalue %Range %22, i64 1, 1
   %y = insertvalue %Range %23, i64 4, 2
-  %start__1 = extractvalue %Range %y, 0
-  %step__1 = extractvalue %Range %y, 1
-  %end__1 = extractvalue %Range %y, 2
+  %24 = extractvalue %Range %y, 0
+  %25 = extractvalue %Range %y, 1
+  %26 = extractvalue %Range %y, 2
   br label %preheader__1
 
 preheader__1:                                     ; preds = %entry
-  %test__1 = icmp sgt i64 %step__1, 0
+  %27 = icmp sgt i64 %25, 0
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %preheader__1
-  %j = phi i64 [ %start__1, %preheader__1 ], [ %27, %exiting__1 ]
-  %24 = icmp sge i64 %j, %end__1
-  %25 = icmp sle i64 %j, %end__1
-  %26 = select i1 %test__1, i1 %25, i1 %24
-  br i1 %26, label %body__1, label %exit__1
+  %j = phi i64 [ %24, %preheader__1 ], [ %31, %exiting__1 ]
+  %28 = icmp sge i64 %j, %26
+  %29 = icmp sle i64 %j, %26
+  %30 = select i1 %27, i1 %29, i1 %28
+  br i1 %30, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
-  %27 = add i64 %j, %step__1
+  %31 = add i64 %j, %25
   br label %header__1
 
 exit__1:                                          ; preds = %header__1

@@ -1287,6 +1287,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context.CreateConstant(index)
         };
 
+        internal (Value, Value, Value) IndexRange(Value array, InstructionBuilder? builder = null)
+        {
+            builder ??= this.CurrentBuilder;
+            var getLength = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
+            var arrayLength = builder.Call(getLength, array);
+
+            var startValue = this.Context.CreateConstant(0L);
+            var stepValue = this.Context.CreateConstant(1L);
+            var endValue = builder.Sub(arrayLength, stepValue);
+            return (startValue, stepValue, endValue);
+        }
+
         /// <summary>
         /// Returns a pointer to an array element.
         /// If no builder is specified, the current builder is used.
