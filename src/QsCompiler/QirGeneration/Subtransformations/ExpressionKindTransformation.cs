@@ -743,8 +743,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpression.InvalidExpr;
         }
 
-///////////////////////
-
         public override ResolvedExpression OnConditionalExpression(TypedExpression cond, TypedExpression ifTrue, TypedExpression ifFalse)
         {
             static bool ExpressionIsSelfEvaluating(TypedExpression ex)
@@ -785,7 +783,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);
-                var phi = this.SharedState.CurrentBuilder.PhiNode(trueValue.NativeType);
+                var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
                 phi.AddIncoming(trueValue, trueBlock);
                 phi.AddIncoming(falseValue, falseBlock);
 
@@ -797,6 +795,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
             this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeControlled);
+
+        ///////////////////////
 
         public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
