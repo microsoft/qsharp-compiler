@@ -83,6 +83,10 @@ let ``QIR UDT update`` () =
 [<Fact>]
 let ``QIR UDT argument`` () =
     qirTest false "TestUdtArgument"
+
+[<Fact>]
+let ``QIR callable values`` () =
+    qirTest false "TestLocalCallables"
     
 [<Fact>]
 let ``QIR operation argument`` () =

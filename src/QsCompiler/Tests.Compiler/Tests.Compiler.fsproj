@@ -105,6 +105,12 @@
     <Content Include="TestCases\QirTests\TestIntegers.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestLocalCallables.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLocalCallables.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestOpArgument.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

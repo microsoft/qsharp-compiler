@@ -238,6 +238,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
             $"{FunctionName(fullName, kind)}__wrapper";
 
+        /// <returns>
+        /// Returns true and the target instruction name for the callable as out parameter
+        /// if a target instruction exists for the callable.
+        /// Returns false otherwise.
+        /// </returns>
+        internal static bool TryGetTargetInstructionName(QsCallable callable, [MaybeNullWhen(false)] out string instructionName)
+        {
+            if (SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var att && att.IsValue)
+            {
+                instructionName = att.Item;
+                return true;
+            }
+            else
+            {
+                instructionName = null;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Order of specializations in the constant array that contains the fours IrFunctions
         /// associated with a callable.
@@ -363,9 +382,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             foreach (var c in this.globalCallables.Values)
             {
-                if (SymbolResolution.TryGetTargetInstructionName(c.Attributes) is var att && att.IsValue)
+                if (TryGetTargetInstructionName(c, out var name))
                 {
-                    var name = att.Item;
                     // Special handling for Unit since by default it turns into an empty tuple
                     var returnType = c.Signature.ReturnType.Resolution.IsUnitType
                         ? this.Context.VoidType
@@ -422,10 +440,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 foreach (var c in this.globalCallables.Values)
                 {
-                    if (SymbolResolution.TryGetTargetInstructionName(c.Attributes) is var att && att.IsValue)
+                    if (TryGetTargetInstructionName(c, out var name))
                     {
-                        var func = this.quantumInstructionSet.GetOrCreateFunction(att.Item);
-                        this.GenerateInterop(func, att.Item);
+                        var func = this.quantumInstructionSet.GetOrCreateFunction(name);
+                        this.GenerateInterop(func, name);
                     }
                 }
 
@@ -737,7 +755,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="name">The name of the function.</param>
         /// <returns>The LLVM function object</returns>
-        internal IrFunction GetOrCreateQuantumFunction(string name) =>
+        internal IrFunction GetOrCreateTargetInstruction(string name) =>
             this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
@@ -1118,9 +1136,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, List<Value> args)
             {
-                if (SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var qisCode && qisCode.IsValue)
+                if (TryGetTargetInstructionName(callable, out var name))
                 {
-                    var func = this.GetOrCreateQuantumFunction(qisCode.Item);
+                    var func = this.GetOrCreateTargetInstruction(name);
                     return specKind == QsSpecializationKind.QsBody
                         ? this.CurrentBuilder.Call(func, args.ToArray())
                         : throw new ArgumentException($"non-body specialization for target instruction");
