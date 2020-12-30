@@ -541,11 +541,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Call-expression on the other hand may take a callable as argument and return the same value;
             // it is thus not save to apply the functor directly to the returned value (pointer) in that case.
 
-            var exIsGlobalCallable = ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsGlobalCallable;
-            var exIsPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
-            var exIsFunctorApplication = ex.Expression is ResolvedExpression.AdjointApplication || ex.Expression is ResolvedExpression.ControlledApplication;
-            var safeToModify = exIsGlobalCallable || exIsPartialApplication || exIsFunctorApplication;
-
+            var safeToModify = ex.IsGlobalCallable() || ex.IsPartialApplication() || ex.IsFunctorApplication();
             if (!safeToModify)
             {
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
@@ -566,33 +562,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Add(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
+            else if (exType.IsDouble)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FAdd(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsString)
+            else if (exType.IsString)
             {
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsArrayType)
+            else if (exType.IsArrayType)
             {
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for addition");
             }
             return ResolvedExpression.InvalidExpr;
         }
@@ -600,34 +597,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnAdjointApplication(TypedExpression ex) =>
             this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeAdjoint);
 
-        /// <exception cref="ArgumentException">
-        /// The given arr expression is not an array or the given idx expression is not of type Int or Range.
-        /// </exception>
         public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
         {
-            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType et
-                ? this.SharedState.LlvmTypeFromQsharpType(et.Item)
-                : throw new ArgumentException("expecting expression of type array in array item access");
-
             // TODO: handle multi-dimensional arrays
             var array = this.SharedState.EvaluateSubexpression(arr);
             var index = this.SharedState.EvaluateSubexpression(idx);
 
             if (idx.ResolvedType.Resolution.IsInt)
             {
+                var elementType = this.SharedState.CurrentLlvmExpressionType();
                 var element = this.SharedState.GetArrayElement(elementType, array, index);
                 this.PushValueInScope(element);
-                this.SharedState.ScopeMgr.AddReference(element);
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                var slicer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice);
-                var slice = this.SharedState.CurrentBuilder.Call(slicer, array, this.SharedState.Context.CreateConstant(0), index);
+                // Array slice creates a copy if the current user count is larger than zero.
+                // Since we keep track of user counts for arrays, there is no need to force the copy.
+                var forceCopy = this.SharedState.Context.CreateConstant(false);
+                var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
+                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array, index, forceCopy);
                 this.PushValueInScope(slice);
             }
             else
             {
-                throw new ArgumentException("expecting an expression of type Int or Range in array item access");
+                throw new NotSupportedException("invalid index type for array item access");
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -663,19 +656,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitand);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for bitwise AND");
             }
             return ResolvedExpression.InvalidExpr;
         }
@@ -684,19 +678,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitxor);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for bitwise XOR");
             }
             return ResolvedExpression.InvalidExpr;
         }
@@ -704,20 +699,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnBitwiseNot(TypedExpression ex)
         {
             Value exValue = this.SharedState.EvaluateSubexpression(ex);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (ex.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 Value minusOne = this.SharedState.Context.CreateConstant(-1L);
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(exValue, minusOne));
             }
-            else if (ex.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitnot);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, exValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(exValue.NativeType));
+                throw new NotSupportedException("invalid type for bitwise NOT");
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -727,19 +723,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Or(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitor);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for bitwise OR");
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -807,8 +804,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // The argument should be an array
                     var arrayArg = this.SharedState.EvaluateSubexpression(arg);
-                    var lengthFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength);
-                    var value = this.SharedState.CurrentBuilder.Call(lengthFunc, arrayArg, this.SharedState.Context.CreateConstant(0));
+                    var lengthFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
+                    var value = this.SharedState.CurrentBuilder.Call(lengthFunc, arrayArg);
                     this.SharedState.ValueStack.Push(value);
                     return true;
                 }

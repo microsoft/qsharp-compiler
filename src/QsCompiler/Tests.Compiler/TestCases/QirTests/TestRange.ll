@@ -32,7 +32,7 @@ entry:
   %19 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 8)
   %20 = bitcast i8* %19 to i64*
   store i64 16, i64* %20
-  %b = call %Array* @__quantum__rt__array_slice(%Array* %a, i32 0, %Range %x)
+  %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range %x, i1 false)
   %21 = load %Range, %Range* @EmptyRange
   %22 = insertvalue %Range %21, i64 0, 0
   %23 = insertvalue %Range %22, i64 1, 1

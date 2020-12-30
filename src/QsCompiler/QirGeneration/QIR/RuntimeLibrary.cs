@@ -57,6 +57,8 @@ namespace Microsoft.Quantum.QIR
 
         // tuple functions
         public const string TupleCreate = "tuple_create";
+        public const string TupleAddUser = "tuple_add_user";
+        public const string TupleRemoveUser = "tuple_remove_user";
         public const string TupleReference = "tuple_reference";
         public const string TupleUnreference = "tuple_unreference";
         public const string TupleCopy = "tuple_copy";
@@ -64,15 +66,18 @@ namespace Microsoft.Quantum.QIR
         // array functions
         public const string ArrayCreate = "array_create";
         public const string ArrayGetElementPtr = "array_get_element_ptr";
-
+        // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
-        public const string ArrayGetLength = "array_get_length";
+        public const string ArrayAddUser = "array_add_user";
+        public const string ArrayRemoveUser = "array_remove_user";
         public const string ArrayReference = "array_reference";
         public const string ArrayUnreference = "array_unreference";
         public const string ArrayCopy = "array_copy";
         public const string ArrayConcatenate = "array_concatenate";
         public const string ArraySlice = "array_slice";
+        public const string ArraySlice1d = "array_slice_1d";
+        public const string ArrayGetSize1d = "array_get_size_1d";
 
         // callable-related
         public const string CallableCreate = "callable_create";

@@ -306,6 +306,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // tuple library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleAddUser, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleRemoveUser, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleReference, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUnreference, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Context.BoolType, this.Types.Tuple);
@@ -316,12 +318,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetLength, this.Context.Int64Type, this.Types.Array, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddUser, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveUser, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayReference, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUnreference, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice, this.Types.Array, this.Types.Array, this.Context.Int32Type, this.Types.Range);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice, this.Types.Array, this.Context.Int32Type, this.Types.Array, this.Types.Range);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
             this.runtimeLibrary.AddFunction(
@@ -1169,6 +1174,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Type helpers
+
+        /// <returns>The kind of the Q# type on top of the expression type stack</returns>
+        internal QsResolvedTypeKind CurrentExpressionType() =>
+            this.ExpressionTypeStack.Peek().Resolution;
+
+        /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
+        internal ITypeRef CurrentLlvmExpressionType() =>
+            this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
 
         /// <summary>
         /// Gets the QIR equivalent for a Q# type.

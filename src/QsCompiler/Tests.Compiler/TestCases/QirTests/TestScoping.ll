@@ -2,7 +2,7 @@ define i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
 entry:
   %sum = alloca i64
   store i64 0, i64* %sum
-  %0 = call i64 @__quantum__rt__array_get_length(%Array* %a, i32 0)
+  %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %end__1 = sub i64 %0, 1
   br label %preheader__1
 
@@ -45,7 +45,7 @@ exiting__1:                                       ; preds = %continue__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  %12 = call i64 @__quantum__rt__array_get_length(%Array* %a, i32 0)
+  %12 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %end__2 = sub i64 %12, 1
   br label %preheader__2
 

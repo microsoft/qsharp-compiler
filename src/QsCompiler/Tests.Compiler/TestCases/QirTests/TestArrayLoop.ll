@@ -14,7 +14,7 @@ entry:
   %7 = load i64, i64* %5
   %y = alloca i64
   store i64 %7, i64* %y
-  %8 = call i64 @__quantum__rt__array_get_length(%Array* %a, i32 0)
+  %8 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %end__1 = sub i64 %8, 1
   br label %preheader__1
 

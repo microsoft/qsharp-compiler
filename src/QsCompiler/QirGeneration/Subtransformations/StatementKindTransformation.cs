@@ -399,9 +399,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 stepValue = this.SharedState.Context.CreateConstant(1L);
                 array = (this.SharedState.EvaluateSubexpression(stm.IterationValues), elementType);
                 var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength),
-                    array.Value.Item1,
-                    this.SharedState.Context.CreateConstant(0));
+                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
+                    array.Value.Item1);
                 endValue = this.SharedState.CurrentBuilder.Sub(
                     arrayLength, this.SharedState.Context.CreateConstant(1L));
                 this.SharedState.RegisterName(startName, startValue);

@@ -386,6 +386,32 @@ let (| Missing | _ |) arg =
     | Some [] -> Some Missing
     | _ -> None
 
+// extensions for typed expressions
+
+[<Extension>]
+let IsPartialApplication (this : TypedExpression) = 
+    TypedExpression.IsPartialApplication(this.Expression)
+
+[<Extension>]
+let IsFunctorApplication (this : TypedExpression) = 
+    match this.Expression with 
+    | AdjointApplication _ 
+    | ControlledApplication _ -> true
+    | _ -> false
+
+[<Extension>]
+let IsGlobalCallable (this : TypedExpression) = 
+    match this.Expression with 
+    | Identifier (GlobalCallable _, _) -> true
+    | _ -> false
+
+[<Extension>]
+let IsArraySlice (this : TypedExpression) =
+    let isRange = function | Range -> true | _ -> false
+    match this.Expression with 
+    | ArrayItem (_, ex) -> ex.ResolvedType.Resolution |> isRange
+    | _ -> false
+
 // filter for type parameter resolution dictionaries
 
 [<Extension>]
