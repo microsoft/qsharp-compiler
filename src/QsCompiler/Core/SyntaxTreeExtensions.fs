@@ -386,6 +386,34 @@ let (| Missing | _ |) arg =
     | Some [] -> Some Missing
     | _ -> None
 
+// extensions for typed expressions and resolved types
+
+[<Extension>]
+let TryGetArgumentType (this : ResolvedType) = 
+    match this.Resolution with 
+    | QsTypeKind.Function (argType, _)
+    | QsTypeKind.Operation ((argType, _), _) -> Value argType
+    | _ -> Null
+
+[<Extension>]
+let TryGetReturnType (this : ResolvedType) = 
+    match this.Resolution with 
+    | QsTypeKind.Function (_, retType)
+    | QsTypeKind.Operation ((_, retType), _) -> Value retType
+    | _ -> Null
+
+[<Extension>]
+let TryGetCallableInformation (this : ResolvedType) = 
+    match this.Resolution with 
+    | QsTypeKind.Operation (_, set) -> Value set
+    | _ -> Null
+
+[<Extension>]
+let TryAsGlobalCallable (this : TypedExpression) = 
+    match this.Expression with 
+    | Identifier (GlobalCallable cName, _) -> Value cName
+    | _ -> Null
+
 // filter for type parameter resolution dictionaries
 
 [<Extension>]

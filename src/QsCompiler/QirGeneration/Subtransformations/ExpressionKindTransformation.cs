@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QIR;
@@ -135,10 +136,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Pushes a value onto the value stack and also adds it to the current ref counting scope.
+        /// Pushes a value onto the value stack and also registers it with the current scope
+        /// such that it is properly unreferenced when it goes out of scope.
         /// </summary>
-        /// <param name="value">The LLVM value to push</param>
-        /// <param name="valueType">The Q# type of the value</param>
         private void PushValueInScope(Value value)
         {
             this.SharedState.ValueStack.Push(value);
@@ -325,7 +325,1104 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return false;
         }
 
-        private void BuildPartialApplication(TypedExpression method, TypedExpression arg)
+        /// <returns>
+        /// The result of the evaluation if the given name matches one of the recognized runtime functions,
+        /// and null otherwise.
+        /// </returns>
+        private bool TryEvaluateRuntimeFunction(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out Value evaluated)
+        {
+            if (name.Equals(BuiltIn.Length.FullName))
+            {
+                var arrayArg = this.SharedState.EvaluateSubexpression(arg);
+                var lengthFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
+                evaluated = this.SharedState.CurrentBuilder.Call(lengthFunc, arrayArg);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.RangeStart.FullName))
+            {
+                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
+                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.RangeStep.FullName))
+            {
+                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
+                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.RangeEnd))
+            {
+                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
+                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.RangeReverse.FullName))
+            {
+                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
+                var start = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
+                var step = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
+                var end = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
+                var newStart = this.SharedState.CurrentBuilder.Add(
+                    start,
+                    this.SharedState.CurrentBuilder.Mul(
+                        step,
+                        this.SharedState.CurrentBuilder.SDiv(
+                            this.SharedState.CurrentBuilder.Sub(end, start), step)));
+                evaluated = this.SharedState.CurrentBuilder.Load(
+                    this.SharedState.Types.Range,
+                    this.SharedState.Constants.EmptyRange);
+                evaluated = this.SharedState.CurrentBuilder.InsertValue(evaluated, newStart, 0u);
+                evaluated = this.SharedState.CurrentBuilder.InsertValue(evaluated, this.SharedState.CurrentBuilder.Neg(step), 1u);
+                evaluated = this.SharedState.CurrentBuilder.InsertValue(evaluated, start, 2u);
+                return true;
+            }
+            else
+            {
+                evaluated = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Handles calls to specific functor specializations of global callables.
+        /// Directly invokes the corresponding target instruction If a target instruction name is associated the callable.
+        /// Inlines the corresponding function if the callable is marked as to be inlined.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when no callable with the given name exists, or the corresponding specialization cannot be found.
+        /// </exception>
+        private void InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg)
+        {
+            void CallGlobal(IrFunction func, TypedExpression arg)
+            {
+                Value[] argList;
+                if (arg.ResolvedType.Resolution.IsUnitType)
+                {
+                    argList = new Value[] { };
+                }
+                else if (arg.ResolvedType.Resolution.IsTupleType && arg.Expression is ResolvedExpression.ValueTuple vs)
+                {
+                    argList = vs.Item.Select(this.SharedState.EvaluateSubexpression).ToArray();
+                }
+                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
+                {
+                    Value evaluatedArg = this.SharedState.EvaluateSubexpression(arg);
+                    IStructType tupleType = this.SharedState.CreateConcreteTupleType(ts.Item);
+                    argList = this.SharedState.GetTupleElements(tupleType, evaluatedArg);
+                }
+                else
+                {
+                    argList = new Value[] { this.SharedState.EvaluateSubexpression(arg) };
+                }
+
+                var result = this.SharedState.CurrentBuilder.Call(func, argList);
+                this.PushValueInScope(result);
+            }
+
+            void InlineSpecialization(QsSpecialization spec, TypedExpression arg)
+            {
+                this.SharedState.StartInlining();
+                if (spec.Implementation is SpecializationImplementation.Provided impl)
+                {
+                    if (!spec.Signature.ArgumentType.Resolution.IsUnitType)
+                    {
+                        var symbolTuple = SyntaxGenerator.ArgumentTupleAsSymbolTuple(impl.Item1);
+                        var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
+                        this.Transformation.StatementKinds.OnVariableDeclaration(binding);
+                    }
+                    this.Transformation.Statements.OnScope(impl.Item2);
+                }
+                else
+                {
+                    throw new InvalidOperationException("missing specialization implementation for inlining");
+                }
+                this.SharedState.StopInlining();
+
+                // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
+                if (spec.Signature.ReturnType.Resolution.IsUnitType)
+                {
+                    this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
+                }
+            }
+
+            if (!this.SharedState.TryGetGlobalCallable(callableName, out var callable))
+            {
+                throw new InvalidOperationException("Q# declaration for global callable not found");
+            }
+            else if (GenerationContext.TryGetTargetInstructionName(callable, out var instructionName))
+            {
+                // deal with functions that are part of the target specific instruction set
+                var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
+                CallGlobal(targetInstruction, arg);
+            }
+            else if (callable.Attributes.Any(BuiltIn.MarksInlining))
+            {
+                // deal with global callables that need to be inlined
+                var inlinedSpec = callable.Specializations.Where(spec => spec.Kind == kind).Single();
+                InlineSpecialization(inlinedSpec, arg);
+            }
+            else
+            {
+                // deal with all other global callables
+                var func = this.SharedState.GetFunctionByName(callableName, kind);
+                CallGlobal(func, arg);
+            }
+        }
+
+        /// <summary>
+        /// Handles calls to callables that are (only) locally defined, i.e. calls to callable values.
+        /// </summary>
+        private void InvokeLocalCallable(TypedExpression method, TypedExpression arg)
+        {
+            var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
+            Value calledValue = this.SharedState.EvaluateSubexpression(method);
+
+            Value argValue = this.SharedState.EvaluateSubexpression(arg);
+            if (!arg.ResolvedType.Resolution.IsTupleType &&
+                !arg.ResolvedType.Resolution.IsUserDefinedType &&
+                !arg.ResolvedType.Resolution.IsUnitType)
+            {
+                // If the argument is not already of a type that results in the creation of a tuple,
+                // then we need to create a tuple to store the (single) argument to be able to pass
+                // it to the callable value.
+                argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue).OpaquePointer;
+            }
+            else
+            {
+                argValue = this.SharedState.CurrentBuilder.BitCast(argValue, this.SharedState.Types.Tuple);
+            }
+
+            var returnType = method.ResolvedType.TryGetReturnType().Item;
+            if (returnType.Resolution.IsUnitType)
+            {
+                Value resultTuple = this.SharedState.Constants.UnitValue;
+                this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple);
+                this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
+            }
+            else
+            {
+                IStructType resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(returnType);
+                TupleValue resultTuple = new TupleValue(resultStructType, this.SharedState);
+                this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple.OpaquePointer);
+
+                Value result = returnType.Resolution.IsTupleType
+                    ? resultTuple.TypedPointer
+                    : this.SharedState.GetTupleElements(resultTuple.StructType, resultTuple.TypedPointer).Single();
+                this.PushValueInScope(result);
+            }
+        }
+
+        /// <summary>
+        /// Evaluates the give expression and uses the runtime function with the given name to apply the corresponding functor.
+        /// Does not validate the given arguments.
+        /// </summary>
+        /// <returns>An invalid expression</returns>
+        private ResolvedExpression ApplyFunctor(TypedExpression ex, string runtimeFunctionName)
+        {
+            var callable = this.SharedState.EvaluateSubexpression(ex);
+
+            // We don't keep track of user counts for callables and hence instead
+            // take care here to not make unnecessary copies. We have to be pessimistic, however,
+            // and make a copy for anything that would require further evaluation of the expression,
+            // such as e.g. if ex is a conditional expression.
+
+            // If ex is an identifier to a global callable then it is safe to apply the functor directly,
+            // since in that case baseCallable is a freshly created callable value.
+            // The same holds if ex is a partial application or another functor application.
+            // Call-expression on the other hand may take a callable as argument and return the same value;
+            // it is thus not save to apply the functor directly to the returned value (pointer) in that case.
+
+            var isGlobalCallable = ex.TryAsGlobalCallable().IsValue;
+            var isPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
+            var isFunctorApplication = ex.Expression.IsAdjointApplication || ex.Expression.IsControlledApplication;
+            var safeToModify = isGlobalCallable || isPartialApplication || isFunctorApplication;
+            if (!safeToModify)
+            {
+                var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
+                callable = this.SharedState.CurrentBuilder.Call(makeCopy, callable);
+                this.SharedState.ScopeMgr.AddValue(callable);
+            }
+
+            var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
+            this.SharedState.CurrentBuilder.Call(applyFunctor, callable);
+            this.SharedState.ValueStack.Push(callable);
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        // public overrides
+
+        public override ResolvedExpression OnAddition(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Add(lhsValue, rhsValue));
+            }
+            else if (exType.IsDouble)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FAdd(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
+            }
+            else if (exType.IsString)
+            {
+                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
+            }
+            else if (exType.IsArrayType)
+            {
+                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for addition");
+            }
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnAdjointApplication(TypedExpression ex) =>
+            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeAdjoint);
+
+        public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
+        {
+            // TODO: handle multi-dimensional arrays
+            var array = this.SharedState.EvaluateSubexpression(arr);
+            var index = this.SharedState.EvaluateSubexpression(idx);
+
+            if (idx.ResolvedType.Resolution.IsInt)
+            {
+                var elementType = this.SharedState.CurrentLlvmExpressionType();
+                var element = this.SharedState.GetArrayElement(elementType, array, index);
+                this.PushValueInScope(element);
+            }
+            else if (idx.ResolvedType.Resolution.IsRange)
+            {
+                // Array slice creates a copy if the current user count is larger than zero.
+                // Since we keep track of user counts for arrays, there is no need to force the copy.
+                var forceCopy = this.SharedState.Context.CreateConstant(false);
+                var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
+                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array, index, forceCopy);
+                this.PushValueInScope(slice);
+            }
+            else
+            {
+                throw new NotSupportedException("invalid index type for array item access");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBigIntLiteral(BigInteger b)
+        {
+            Value bigIntValue;
+            if ((b <= long.MaxValue) && (b >= long.MinValue))
+            {
+                var val = this.SharedState.Context.CreateConstant((long)b);
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
+                bigIntValue = this.SharedState.CurrentBuilder.Call(func, val);
+            }
+            else
+            {
+                var bytes = b.ToByteArray();
+                var n = this.SharedState.Context.CreateConstant(bytes.Length);
+                var byteArray = ConstantArray.From(
+                    this.SharedState.Context.Int8Type,
+                    bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
+                var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
+                    byteArray,
+                    this.SharedState.Context.Int8Type.CreateArrayType(0));
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
+                bigIntValue = this.SharedState.CurrentBuilder.Call(func, n, zeroByteArray);
+            }
+            this.PushValueInScope(bigIntValue);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBitwiseAnd(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitand);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for bitwise AND");
+            }
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBitwiseExclusiveOr(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitxor);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for bitwise XOR");
+            }
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBitwiseNot(TypedExpression ex)
+        {
+            Value exValue = this.SharedState.EvaluateSubexpression(ex);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                Value minusOne = this.SharedState.Context.CreateConstant(-1L);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(exValue, minusOne));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitnot);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, exValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for bitwise NOT");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBitwiseOr(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Or(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitor);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for bitwise OR");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnBoolLiteral(bool b)
+        {
+            Value lit = this.SharedState.Context.CreateConstant(b);
+            this.SharedState.ValueStack.Push(lit);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnConditionalExpression(TypedExpression cond, TypedExpression ifTrue, TypedExpression ifFalse)
+        {
+            static bool ExpressionIsSelfEvaluating(TypedExpression ex)
+            {
+                return ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
+                    || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
+                    || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
+            }
+
+            var condValue = this.SharedState.EvaluateSubexpression(cond);
+
+            // Special case: if both values are self-evaluating (literals or simple identifiers), we can
+            // do this with a select.
+            if (ExpressionIsSelfEvaluating(ifTrue) && ExpressionIsSelfEvaluating(ifFalse))
+            {
+                var trueValue = this.SharedState.EvaluateSubexpression(ifTrue);
+                var falseValue = this.SharedState.EvaluateSubexpression(ifFalse);
+                var select = this.SharedState.CurrentBuilder.Select(condValue, trueValue, falseValue);
+                this.SharedState.ValueStack.Push(select);
+            }
+            else
+            {
+                // This is similar to conditional statements, but actually a bit simpler because there's always an else,
+                // and we don't need to open a new scope. On the other hand, we do need to build a phi node in the
+                // continuation block.
+                var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
+                var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
+                var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
+
+                this.SharedState.CurrentBuilder.Branch(condValue, trueBlock, falseBlock);
+
+                this.SharedState.SetCurrentBlock(trueBlock);
+                var trueValue = this.SharedState.EvaluateSubexpression(ifTrue);
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+
+                this.SharedState.SetCurrentBlock(falseBlock);
+                var falseValue = this.SharedState.EvaluateSubexpression(ifFalse);
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+
+                this.SharedState.SetCurrentBlock(contBlock);
+                var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
+                phi.AddIncoming(trueValue, trueBlock);
+                phi.AddIncoming(falseValue, falseBlock);
+
+                this.SharedState.ValueStack.Push(phi);
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
+            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeControlled);
+
+        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
+        {
+            var copy = this.GetWritableCopy(lhs); // if a copy is made, registers the copy with the ScopeMgr
+
+            if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType itemType)
+            {
+                if (accEx.ResolvedType.Resolution.IsInt)
+                {
+                    var index = this.SharedState.EvaluateSubexpression(accEx);
+                    var value = this.SharedState.EvaluateSubexpression(rhs);
+                    var elementType = this.SharedState.LlvmTypeFromQsharpType(itemType.Item);
+                    var elementPtr = this.SharedState.GetArrayElementPointer(elementType, copy, index);
+                    this.SharedState.CurrentBuilder.Store(value, elementPtr);
+                }
+                else if (accEx.ResolvedType.Resolution.IsRange)
+                {
+                    // TODO: handle range updates
+                    throw new NotImplementedException("Array slice updates");
+                }
+                this.SharedState.ValueStack.Push(copy);
+            }
+            else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
+            {
+                var location = new List<(int, IStructType)>();
+                if (this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
+                    && accEx.Expression is ResolvedExpression.Identifier acc
+                    && acc.Item1 is Identifier.LocalVariable loc
+                    && this.FindNamedItem(loc.Item, udt.TypeItems, location))
+                {
+                    // The location list is backwards, by design, so we have to reverse it
+                    location.Reverse();
+                    var current = copy;
+                    for (int i = 0; i < location.Count; i++)
+                    {
+                        var ptr = this.SharedState.GetTupleElementPointer(
+                            location[i].Item2,
+                            current,
+                            location[i].Item1);
+                        // For the last item on the list, we store; otherwise, we load the next tuple
+                        if (i == location.Count - 1)
+                        {
+                            var value = this.SharedState.EvaluateSubexpression(rhs);
+                            this.SharedState.CurrentBuilder.Store(value, ptr);
+                        }
+                        else
+                        {
+                            current = this.SharedState.CurrentBuilder.Load(location[i + 1].Item2.CreatePointerType(), ptr);
+                        }
+                    }
+                    this.SharedState.ValueStack.Push(copy);
+                }
+                else
+                {
+                    throw new NotImplementedException("unknown item in copy-and-update expression");
+                }
+            }
+            else
+            {
+                throw new NotImplementedException("unknown expression type for copy-and-update expression");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnDivision(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.SDiv(lhsValue, rhsValue));
+            }
+            else if (exType.IsDouble)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FDiv(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntDivide);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for division");
+            }
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnDoubleLiteral(double d)
+        {
+            Value lit = this.SharedState.Context.CreateConstant(d);
+            this.SharedState.ValueStack.Push(lit);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnEquality(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            // The code we generate here is highly dependent on the type of the expression
+            if (lhs.ResolvedType.Resolution.IsResult)
+            {
+                // Generate a call to the result equality testing function
+                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual), lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBool || lhs.ResolvedType.Resolution.IsInt || lhs.ResolvedType.Resolution.IsQubit
+                || lhs.ResolvedType.Resolution.IsPauli)
+            {
+                // Works for pointers as well as integer types
+                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsString)
+            {
+                // Generate a call to the string equality testing function
+                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual), lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                // Generate a call to the bigint equality testing function
+                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual), lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else
+            {
+                // TODO: Equality testing for general types
+                throw new NotSupportedException("invalid type for equality comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnExponentiate(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                // RHS must be an integer that can fit into an i32
+                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
+                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.IntPower);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
+            }
+            else if (exType.IsDouble)
+            {
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                // RHS must be an integer that can fit into an i32
+                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
+                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntPower);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for exponentiation");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnFunctionCall(TypedExpression method, TypedExpression arg)
+        {
+            var callableName = method.TryAsGlobalCallable().ValueOr(null);
+            if (callableName == null)
+            {
+                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
+                this.InvokeLocalCallable(method, arg);
+            }
+            else if (this.TryEvaluateRuntimeFunction(callableName, arg, out var evaluated))
+            {
+                // deal with recognized runtime functions
+                this.SharedState.ValueStack.Push(evaluated);
+            }
+            else
+            {
+                // deal with other global callables
+                this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg);
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnGreaterThan(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            if (lhs.ResolvedType.Resolution.IsInt)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThan, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnGreaterThanOrEqual(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            if (lhs.ResolvedType.Resolution.IsInt)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThanOrEqual, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThanOrEqual, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+        {
+            if (sym is Identifier.LocalVariable local)
+            {
+                var value = this.SharedState.GetNamedValue(local.Item);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (sym is Identifier.GlobalCallable globalCallable)
+            {
+                if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
+                {
+                    var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
+                    var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Constants.UnitValue);
+                    this.PushValueInScope(callableValue);
+                }
+                else
+                {
+                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Callable));
+                }
+            }
+            else
+            {
+                throw new NotSupportedException("unknown identifier");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnInequality(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            // The code we generate here is highly dependent on the type of the expression
+            if (lhs.ResolvedType.Resolution.IsResult)
+            {
+                // Generate a call to the result equality testing function
+                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual), lhsValue, rhsValue);
+                var ineq = this.SharedState.CurrentBuilder.Not(eq);
+                this.SharedState.ValueStack.Push(ineq);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBool || lhs.ResolvedType.Resolution.IsInt || lhs.ResolvedType.Resolution.IsQubit
+                || lhs.ResolvedType.Resolution.IsPauli)
+            {
+                // Works for pointers as well as integer types
+                var eq = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal, lhsValue, rhsValue);
+                var ineq = this.SharedState.CurrentBuilder.Not(eq);
+                this.SharedState.ValueStack.Push(ineq);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var eq = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual, lhsValue, rhsValue);
+                var ineq = this.SharedState.CurrentBuilder.Not(eq);
+                this.SharedState.ValueStack.Push(ineq);
+            }
+            else if (lhs.ResolvedType.Resolution.IsString)
+            {
+                // Generate a call to the string equality testing function
+                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual), lhsValue, rhsValue);
+                var ineq = this.SharedState.CurrentBuilder.Not(eq);
+                this.SharedState.ValueStack.Push(ineq);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                // Generate a call to the bigint equality testing function
+                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual), lhsValue, rhsValue);
+                var ineq = this.SharedState.CurrentBuilder.Not(eq);
+                this.SharedState.ValueStack.Push(ineq);
+            }
+            else
+            {
+                // TODO: Equality testing for general types
+                throw new NotSupportedException("invalid type for inequality comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnIntLiteral(long i)
+        {
+            Value lit = this.SharedState.Context.CreateConstant(i);
+            this.SharedState.ValueStack.Push(lit);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLeftShift(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.ShiftLeft(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftleft);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for left shift");
+            }
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLessThan(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            if (lhs.ResolvedType.Resolution.IsInt)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThan, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThan, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
+                var value = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+                this.SharedState.ValueStack.Push(value);
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLessThanOrEqual(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+
+            if (lhs.ResolvedType.Resolution.IsInt)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsDouble)
+            {
+                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThanOrEqual, lhsValue, rhsValue);
+                this.SharedState.ValueStack.Push(value);
+            }
+            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
+                var value = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+                this.SharedState.ValueStack.Push(value);
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for comparison");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLogicalAnd(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLogicalNot(TypedExpression ex)
+        {
+            // Get the Value for the expression
+            Value exValue = this.SharedState.EvaluateSubexpression(ex);
+            this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Not(exValue));
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnLogicalOr(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Or(lhsValue, rhsValue));
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnModulo(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.SRem(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntModulus);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for modulo");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnMultiplication(TypedExpression lhs, TypedExpression rhs)
+        {
+            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
+            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Mul(lhsValue, rhsValue));
+            }
+            else if (exType.IsDouble)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FMul(lhsValue, rhsValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntMultiply);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for multiplication");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
+        {
+            if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt
+                && this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
+                && acc is Identifier.LocalVariable itemName)
+            {
+                var location = new List<(int, IStructType)>();
+                if (this.FindNamedItem(itemName.Item, udt.TypeItems, location))
+                {
+                    // The location list refers to the location of the named item within the item tuple
+                    // and contains inner items first, so we have to reverse it
+                    location.Reverse();
+                    var value = this.SharedState.EvaluateSubexpression(ex);
+                    for (int i = 0; i < location.Count; i++)
+                    {
+                        value = this.SharedState.GetTupleElement(location[i].Item2, value, location[i].Item1);
+                    }
+                    this.SharedState.ScopeMgr.AddReference(value);
+                    this.PushValueInScope(value);
+                }
+                else
+                {
+                    throw new InvalidOperationException("no item with that name exists");
+                }
+            }
+            else
+            {
+                throw new ArgumentException("named item access requires a value of user defined type");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnNegative(TypedExpression ex)
+        {
+            Value exValue = this.SharedState.EvaluateSubexpression(ex);
+            var exType = this.SharedState.CurrentExpressionType();
+
+            if (exType.IsInt)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Neg(exValue));
+            }
+            else if (exType.IsDouble)
+            {
+                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FNeg(exValue));
+            }
+            else if (exType.IsBigInt)
+            {
+                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntNegate);
+                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, exValue));
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for negative");
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression idx)
+        {
+            // TODO: new multi-dimensional arrays
+            var array = new ArrayValue(
+                this.SharedState.EvaluateSubexpression(idx),
+                this.SharedState.LlvmTypeFromQsharpType(elementType),
+                this.SharedState);
+
+            this.PushValueInScope(array.OpaquePointer);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnOperationCall(TypedExpression method, TypedExpression arg)
+        {
+            (TypedExpression, bool, int) StripModifiers(TypedExpression m, bool a, int c) =>
+                m.Expression switch
+                {
+                    ResolvedExpression.AdjointApplication adj => StripModifiers(adj.Item, !a, c),
+                    ResolvedExpression.ControlledApplication con => StripModifiers(con.Item, a, c + 1),
+                    _ => (m, a, c),
+                };
+
+            TypedExpression BuildInnerArg(TypedExpression arg, int controlledCount)
+            {
+                // throws an InvalidOperationException if the remainingArg is not a tuple with two items
+                (TypedExpression, TypedExpression) TupleItems(TypedExpression remainingArg) =>
+                    (remainingArg.Expression is ResolvedExpression.ValueTuple tuple && tuple.Item.Length == 2)
+                    ? (tuple.Item[0], tuple.Item[1])
+                    : throw new InvalidOperationException("control count is inconsistent with the shape of the argument tuple");
+
+                if (controlledCount < 2)
+                {
+                    // no need to concatenate the controlled arguments
+                    return arg;
+                }
+
+                // The arglist will be a 2-tuple with the first element an array of qubits and the second element
+                // a 2-tuple containing an array of qubits and another tuple -- possibly with more nesting levels
+                var (controls, remainingArg) = TupleItems(arg);
+                while (--controlledCount > 0)
+                {
+                    var (innerControls, innerArg) = TupleItems(remainingArg);
+                    controls = SyntaxGenerator.AddExpressions(controls.ResolvedType.Resolution, controls, innerControls);
+                    remainingArg = innerArg;
+                }
+
+                return SyntaxGenerator.TupleLiteral(new[] { controls, remainingArg });
+            }
+
+            static QsSpecializationKind GetSpecializationKind(bool isAdjoint, bool isControlled) =>
+                isAdjoint && isControlled ? QsSpecializationKind.QsControlledAdjoint :
+                isControlled ? QsSpecializationKind.QsControlled :
+                isAdjoint ? QsSpecializationKind.QsAdjoint :
+                QsSpecializationKind.QsBody;
+
+            // We avoid constructing a callable value when functors are applied to global callables.
+            var (innerCallable, isAdjoint, controlledCount) = StripModifiers(method, false, 0);
+            var callableName = innerCallable.TryAsGlobalCallable().ValueOr(null);
+            if (callableName == null)
+            {
+                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
+                this.InvokeLocalCallable(method, arg);
+            }
+            else
+            {
+                // deal with global callables
+                var innerArg = BuildInnerArg(arg, controlledCount);
+                var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
+                this.InvokeGlobalCallable(callableName, kind, innerArg);
+            }
+
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        public override ResolvedExpression OnPartialApplication(TypedExpression method, TypedExpression arg)
         {
             PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<Value> capturedValues)
             {
@@ -519,1120 +1616,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var callableValue = this.SharedState.CurrentBuilder.Call(func, table, capture.OpaquePointer);
 
             this.PushValueInScope(callableValue);
-        }
-
-        // public overrides
-
-        public override ResolvedExpression OnAddition(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Add(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FAdd(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsString)
-            {
-                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsArrayType)
-            {
-                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnAdjointApplication(TypedExpression ex)
-        {
-            // ex will evaluate to a callable
-            var baseCallable = this.SharedState.EvaluateSubexpression(ex);
-
-            // If ex was a variable, we need to make a copy before we take the adjoint.
-            Value callable;
-            if (ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsLocalVariable)
-            {
-                var copier = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                callable = this.SharedState.CurrentBuilder.Call(copier, baseCallable);
-                this.SharedState.ScopeMgr.AddValue(callable);
-            }
-            else
-            {
-                callable = baseCallable;
-            }
-
-            var adjointer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
-            this.SharedState.CurrentBuilder.Call(adjointer, callable);
-            this.SharedState.ValueStack.Push(callable);
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        /// <exception cref="ArgumentException">
-        /// The given arr expression is not an array or the given idx expression is not of type Int or Range.
-        /// </exception>
-        public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
-        {
-            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType et
-                ? this.SharedState.LlvmTypeFromQsharpType(et.Item)
-                : throw new ArgumentException("expecting expression of type array in array item access");
-
-            // TODO: handle multi-dimensional arrays
-            var array = this.SharedState.EvaluateSubexpression(arr);
-            var index = this.SharedState.EvaluateSubexpression(idx);
-
-            if (idx.ResolvedType.Resolution.IsInt)
-            {
-                var element = this.SharedState.GetArrayElement(elementType, array, index);
-                this.PushValueInScope(element);
-                this.SharedState.ScopeMgr.AddReference(element);
-            }
-            else if (idx.ResolvedType.Resolution.IsRange)
-            {
-                var slicer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice);
-                var slice = this.SharedState.CurrentBuilder.Call(slicer, array, this.SharedState.Context.CreateConstant(0), index);
-                this.PushValueInScope(slice);
-            }
-            else
-            {
-                throw new ArgumentException("expecting an expression of type Int or Range in array item access");
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBigIntLiteral(BigInteger b)
-        {
-            Value bigIntValue;
-            if ((b <= long.MaxValue) && (b >= long.MinValue))
-            {
-                var val = this.SharedState.Context.CreateConstant((long)b);
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
-                bigIntValue = this.SharedState.CurrentBuilder.Call(func, val);
-            }
-            else
-            {
-                var bytes = b.ToByteArray();
-                var n = this.SharedState.Context.CreateConstant(bytes.Length);
-                var byteArray = ConstantArray.From(
-                    this.SharedState.Context.Int8Type,
-                    bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
-                var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
-                    byteArray,
-                    this.SharedState.Context.Int8Type.CreateArrayType(0));
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
-                bigIntValue = this.SharedState.CurrentBuilder.Call(func, n, zeroByteArray);
-            }
-            this.PushValueInScope(bigIntValue);
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBitwiseAnd(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitand);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBitwiseExclusiveOr(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitxor);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBitwiseNot(TypedExpression ex)
-        {
-            Value exValue = this.SharedState.EvaluateSubexpression(ex);
-
-            if (ex.ResolvedType.Resolution.IsInt)
-            {
-                Value minusOne = this.SharedState.Context.CreateConstant(-1L);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Xor(exValue, minusOne));
-            }
-            else if (ex.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitnot);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, exValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(exValue.NativeType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBitwiseOr(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Or(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitor);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnBoolLiteral(bool b)
-        {
-            Value lit = this.SharedState.Context.CreateConstant(b);
-            this.SharedState.ValueStack.Push(lit);
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnCallLikeExpression(TypedExpression method, TypedExpression arg)
-        {
-            static (TypedExpression BaseMethod, bool Adjoint, int Controlled)
-                ResolveModifiers(TypedExpression m, bool a, int c) => m.Expression switch
-                {
-                    ResolvedExpression.AdjointApplication adj => ResolveModifiers(adj.Item, !a, c),
-                    ResolvedExpression.ControlledApplication con => ResolveModifiers(con.Item, a, c + 1),
-                    _ => (m, a, c),
-                };
-
-            static QsSpecializationKind GetSpecializationKind(bool isAdjoint, bool isControlled) =>
-                isAdjoint && isControlled ? QsSpecializationKind.QsControlledAdjoint
-                    : (isAdjoint ? QsSpecializationKind.QsAdjoint
-                    : (isControlled ? QsSpecializationKind.QsControlled
-                    : QsSpecializationKind.QsBody));
-
-            TypedExpression BuildArg(TypedExpression arg, int controlledCount)
-            {
-                // throws an InvalidOperationException if the remainingArg is not a tuple with two items
-                (TypedExpression, TypedExpression) TupleItems(TypedExpression remainingArg) =>
-                    (remainingArg.Expression is ResolvedExpression.ValueTuple tuple && tuple.Item.Length == 2)
-                    ? (tuple.Item[0], tuple.Item[1])
-                    : throw new InvalidOperationException("control count is inconsistent with the shape of the argument tuple");
-
-                if (controlledCount < 2)
-                {
-                    // no need to concatenate the controlled arguments
-                    return arg;
-                }
-
-                // The arglist will be a 2-tuple with the first element an array of qubits and the second element
-                // a 2-tuple containing an array of qubits and another tuple -- possibly with more nesting levels
-                var (controls, remainingArg) = TupleItems(arg);
-                while (--controlledCount > 0)
-                {
-                    var (innerControls, innerArg) = TupleItems(remainingArg);
-                    controls = SyntaxGenerator.AddExpressions(controls.ResolvedType.Resolution, controls, innerControls);
-                    remainingArg = innerArg;
-                }
-
-                return SyntaxGenerator.TupleLiteral(new[] { controls, remainingArg });
-            }
-
-            // this method currently does not support handling operations or tuple-valued arguments
-            bool TryBuildRuntimeFunction(QsQualifiedName name, TypedExpression arg)
-            {
-                if (method.ResolvedType.Resolution.IsOperation || arg.ResolvedType.Resolution.IsTupleType)
-                {
-                    throw new NotImplementedException("expecting a function with a single argument");
-                }
-
-                if (name.Equals(BuiltIn.Length.FullName))
-                {
-                    // The argument should be an array
-                    var arrayArg = this.SharedState.EvaluateSubexpression(arg);
-                    var lengthFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength);
-                    var value = this.SharedState.CurrentBuilder.Call(lengthFunc, arrayArg, this.SharedState.Context.CreateConstant(0));
-                    this.SharedState.ValueStack.Push(value);
-                    return true;
-                }
-                else if (name.Equals(BuiltIn.RangeStart.FullName))
-                {
-                    // The argument should be an range
-                    var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                    var start = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
-                    this.SharedState.ValueStack.Push(start);
-                    return true;
-                }
-                else if (name.Equals(BuiltIn.RangeStep.FullName))
-                {
-                    // The argument should be an range
-                    var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                    var step = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
-                    this.SharedState.ValueStack.Push(step);
-                    return true;
-                }
-                else if (name.Equals(BuiltIn.RangeEnd))
-                {
-                    // The argument should be an range
-                    var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                    var end = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
-                    this.SharedState.ValueStack.Push(end);
-                    return true;
-                }
-                else if (name.Equals(BuiltIn.RangeReverse.FullName))
-                {
-                    // The argument should be an range
-                    var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                    var start = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
-                    var step = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
-                    var end = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
-                    var newStart = this.SharedState.CurrentBuilder.Add(
-                        start,
-                        this.SharedState.CurrentBuilder.Mul(
-                            step,
-                            this.SharedState.CurrentBuilder.SDiv(
-                                this.SharedState.CurrentBuilder.Sub(end, start), step)));
-                    var newRange = this.SharedState.CurrentBuilder.Load(
-                        this.SharedState.Types.Range,
-                        this.SharedState.Constants.EmptyRange);
-                    var reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, newStart, 0u);
-                    reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, this.SharedState.CurrentBuilder.Neg(step), 1u);
-                    reversedRange = this.SharedState.CurrentBuilder.InsertValue(newRange, start, 2u);
-                    this.SharedState.ValueStack.Push(reversedRange);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            void CallCallableValue(TypedExpression method, TypedExpression arg)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                Value calledValue = this.SharedState.EvaluateSubexpression(method);
-
-                Value argValue = this.SharedState.EvaluateSubexpression(arg);
-                if (!arg.ResolvedType.Resolution.IsTupleType &&
-                    !arg.ResolvedType.Resolution.IsUserDefinedType &&
-                    !arg.ResolvedType.Resolution.IsUnitType)
-                {
-                    // If the argument is not already of a type that results in the creation of a tuple,
-                    // then we need to create a tuple to store the (single) argument to be able to pass
-                    // it to the callable value.
-                    argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue).OpaquePointer;
-                }
-                else
-                {
-                    argValue = this.SharedState.CurrentBuilder.BitCast(argValue, this.SharedState.Types.Tuple);
-                }
-
-                ResolvedType resultResolvedType = this.SharedState.ExpressionTypeStack.Peek();
-                if (resultResolvedType.Resolution.IsUnitType)
-                {
-                    Value resultTuple = this.SharedState.Constants.UnitValue;
-                    this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple);
-                    this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
-                }
-                else
-                {
-                    IStructType resultStructType = this.SharedState.LlvmStructTypeFromQsharpType(resultResolvedType);
-                    TupleValue resultTuple = new TupleValue(resultStructType, this.SharedState);
-                    this.SharedState.CurrentBuilder.Call(func, calledValue, argValue, resultTuple.OpaquePointer);
-
-                    // Now push the result. For now we assume it's a scalar.
-                    Value result = this.SharedState.GetTupleElement(resultTuple.StructType, resultTuple.TypedPointer, 0);
-                    this.SharedState.ValueStack.Push(result);
-                }
-            }
-
-            void CallGlobal(IrFunction func, TypedExpression arg)
-            {
-                Value[] argList;
-                if (arg.ResolvedType.Resolution.IsUnitType)
-                {
-                    argList = new Value[] { };
-                }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.Expression is ResolvedExpression.ValueTuple vs)
-                {
-                    argList = vs.Item.Select(this.SharedState.EvaluateSubexpression).ToArray();
-                }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
-                {
-                    Value evaluatedArg = this.SharedState.EvaluateSubexpression(arg);
-                    IStructType tupleType = this.SharedState.CreateConcreteTupleType(ts.Item);
-                    argList = this.SharedState.GetTupleElements(tupleType, evaluatedArg);
-                }
-                else
-                {
-                    argList = new Value[] { this.SharedState.EvaluateSubexpression(arg) };
-                }
-
-                var result = this.SharedState.CurrentBuilder.Call(func, argList);
-                this.PushValueInScope(result);
-            }
-
-            void InlineCalledRoutine(QsCallable inlinedCallable, TypedExpression arg, bool isAdjoint, bool isControlled)
-            {
-                var inlineKind = GetSpecializationKind(isAdjoint, isControlled);
-                var inlinedSpecialization = inlinedCallable.Specializations.Where(spec => spec.Kind == inlineKind).Single();
-                if (isAdjoint && inlinedSpecialization.Implementation is SpecializationImplementation.Generated gen && gen.Item.IsSelfInverse)
-                {
-                    inlinedSpecialization = inlinedCallable.Specializations
-                        .Where(spec => spec.Kind == (isControlled ? QsSpecializationKind.QsControlled : QsSpecializationKind.QsBody))
-                        .Single();
-                }
-
-                this.SharedState.StartInlining();
-                if (inlinedSpecialization.Implementation is SpecializationImplementation.Provided impl)
-                {
-                    if (!inlinedSpecialization.Signature.ArgumentType.Resolution.IsUnitType)
-                    {
-                        var symbolTuple = SyntaxGenerator.ArgumentTupleAsSymbolTuple(impl.Item1);
-                        var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
-                        this.Transformation.StatementKinds.OnVariableDeclaration(binding);
-                    }
-                    this.Transformation.Statements.OnScope(impl.Item2);
-                }
-                else
-                {
-                    throw new InvalidOperationException("missing specialization implementation for inlining");
-                }
-                this.SharedState.StopInlining();
-
-                // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
-                if (inlinedCallable.Signature.ReturnType.Resolution.IsUnitType)
-                {
-                    this.SharedState.ValueStack.Push(this.SharedState.Constants.UnitValue);
-                }
-            }
-
-            if (TypedExpression.IsPartialApplication(ResolvedExpression.NewCallLikeExpression(method, arg)))
-            {
-                this.BuildPartialApplication(method, arg);
-            }
-            else if (method.Expression is ResolvedExpression.Identifier id
-                && id.Item1 is Identifier.GlobalCallable cName
-                && this.SharedState.TryGetGlobalCallable(cName.Item, out QsCallable? callable)
-                && SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var qisCode && qisCode.IsValue)
-            {
-                // Handle the special case of a call to an operation that maps directly to a quantum instruction.
-                // Note that such an operation will never have an Adjoint or Controlled specialization.
-                var func = this.SharedState.GetOrCreateQuantumFunction(qisCode.Item);
-                CallGlobal(func, arg);
-            }
-            else
-            {
-                // Resolve Adjoint and Controlled modifiers
-                var (baseMethod, isAdjoint, controlledCount) = ResolveModifiers(method, false, 0);
-                arg = BuildArg(arg, controlledCount);
-
-                // Check for, and handle, inlining
-                if (baseMethod.Expression is ResolvedExpression.Identifier baseId
-                    && baseId.Item1 is Identifier.GlobalCallable baseCallable)
-                {
-                    if (this.SharedState.TryGetGlobalCallable(baseCallable.Item, out var inlinedCallable)
-                        && inlinedCallable.Attributes.Any(BuiltIn.MarksInlining))
-                    {
-                        InlineCalledRoutine(inlinedCallable, arg, isAdjoint, controlledCount > 0);
-                    }
-                    // TryBuildRuntimeFunction pushes the necessary LLVM if it is supported
-                    else if (method.ResolvedType.Resolution.IsOperation
-                        || arg.ResolvedType.Resolution.IsTupleType
-                        || !TryBuildRuntimeFunction(baseCallable.Item, arg))
-                    {
-                        var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                        var func = this.SharedState.GetFunctionByName(baseCallable.Item, kind);
-                        CallGlobal(func, arg);
-                    }
-                }
-                else
-                {
-                    CallCallableValue(method, arg);
-                }
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnConditionalExpression(TypedExpression cond, TypedExpression ifTrue, TypedExpression ifFalse)
-        {
-            static bool ExpressionIsSelfEvaluating(TypedExpression ex)
-            {
-                return ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
-                    || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
-                    || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
-            }
-
-            var condValue = this.SharedState.EvaluateSubexpression(cond);
-
-            // Special case: if both values are self-evaluating (literals or simple identifiers), we can
-            // do this with a select.
-            if (ExpressionIsSelfEvaluating(ifTrue) && ExpressionIsSelfEvaluating(ifFalse))
-            {
-                var trueValue = this.SharedState.EvaluateSubexpression(ifTrue);
-                var falseValue = this.SharedState.EvaluateSubexpression(ifFalse);
-                var select = this.SharedState.CurrentBuilder.Select(condValue, trueValue, falseValue);
-                this.SharedState.ValueStack.Push(select);
-            }
-            else
-            {
-                // This is similar to conditional statements, but actually a bit simpler because there's always an else,
-                // and we don't need to open a new scope. On the other hand, we do need to build a phi node in the
-                // continuation block.
-                var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
-                var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
-                var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
-
-                this.SharedState.CurrentBuilder.Branch(condValue, trueBlock, falseBlock);
-
-                this.SharedState.SetCurrentBlock(trueBlock);
-                var trueValue = this.SharedState.EvaluateSubexpression(ifTrue);
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.SetCurrentBlock(falseBlock);
-                var falseValue = this.SharedState.EvaluateSubexpression(ifFalse);
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.SetCurrentBlock(contBlock);
-                var phi = this.SharedState.CurrentBuilder.PhiNode(trueValue.NativeType);
-                phi.AddIncoming(trueValue, trueBlock);
-                phi.AddIncoming(falseValue, falseBlock);
-
-                this.SharedState.ValueStack.Push(phi);
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnControlledApplication(TypedExpression ex)
-        {
-            // ex will evaluate to a callable
-            var baseCallable = this.SharedState.EvaluateSubexpression(ex);
-
-            // If ex was a variable, we need to make a copy before we take the adjoint.
-            Value callable;
-
-            if (ex.Expression is ResolvedExpression.Identifier id && id.Item1.IsLocalVariable)
-            {
-                var copier = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                callable = this.SharedState.CurrentBuilder.Call(copier, baseCallable);
-                this.SharedState.ScopeMgr.AddValue(callable);
-            }
-            else
-            {
-                callable = baseCallable;
-            }
-
-            var adjointer = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
-            this.SharedState.CurrentBuilder.Call(adjointer, callable);
-            this.SharedState.ValueStack.Push(callable);
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
-        {
-            var copy = this.GetWritableCopy(lhs); // if a copy is made, registers the copy with the ScopeMgr
-
-            if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType itemType)
-            {
-                if (accEx.ResolvedType.Resolution.IsInt)
-                {
-                    var index = this.SharedState.EvaluateSubexpression(accEx);
-                    var value = this.SharedState.EvaluateSubexpression(rhs);
-                    var elementType = this.SharedState.LlvmTypeFromQsharpType(itemType.Item);
-                    var elementPtr = this.SharedState.GetArrayElementPointer(elementType, copy, index);
-                    this.SharedState.CurrentBuilder.Store(value, elementPtr);
-                }
-                else if (accEx.ResolvedType.Resolution.IsRange)
-                {
-                    // TODO: handle range updates
-                    throw new NotImplementedException("Array slice updates");
-                }
-                this.SharedState.ValueStack.Push(copy);
-            }
-            else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt)
-            {
-                var location = new List<(int, IStructType)>();
-                if (this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
-                    && accEx.Expression is ResolvedExpression.Identifier acc
-                    && acc.Item1 is Identifier.LocalVariable loc
-                    && this.FindNamedItem(loc.Item, udt.TypeItems, location))
-                {
-                    // The location list is backwards, by design, so we have to reverse it
-                    location.Reverse();
-                    var current = copy;
-                    for (int i = 0; i < location.Count; i++)
-                    {
-                        var ptr = this.SharedState.GetTupleElementPointer(
-                            location[i].Item2,
-                            current,
-                            location[i].Item1);
-                        // For the last item on the list, we store; otherwise, we load the next tuple
-                        if (i == location.Count - 1)
-                        {
-                            var value = this.SharedState.EvaluateSubexpression(rhs);
-                            this.SharedState.CurrentBuilder.Store(value, ptr);
-                        }
-                        else
-                        {
-                            current = this.SharedState.CurrentBuilder.Load(location[i + 1].Item2.CreatePointerType(), ptr);
-                        }
-                    }
-                    this.SharedState.ValueStack.Push(copy);
-                }
-                else
-                {
-                    throw new NotImplementedException("unknown item in copy-and-update expression");
-                }
-            }
-            else
-            {
-                throw new NotImplementedException("unknown expression type for copy-and-update expression");
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnDivision(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.SDiv(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FDiv(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntDivide);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnDoubleLiteral(double d)
-        {
-            Value lit = this.SharedState.Context.CreateConstant(d);
-            this.SharedState.ValueStack.Push(lit);
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnEquality(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            // The code we generate here is highly dependent on the type of the expression
-            if (lhs.ResolvedType.Resolution.IsResult)
-            {
-                // Generate a call to the result equality testing function
-                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual), lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBool || lhs.ResolvedType.Resolution.IsInt || lhs.ResolvedType.Resolution.IsQubit
-                || lhs.ResolvedType.Resolution.IsPauli)
-            {
-                // Works for pointers as well as integer types
-                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsString)
-            {
-                // Generate a call to the string equality testing function
-                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual), lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                // Generate a call to the bigint equality testing function
-                var value = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual), lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else
-            {
-                // TODO: Equality testing for general types
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnExponentiate(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                // RHS must be an integer that can fit into an i32
-                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
-                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.IntPower);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                // RHS must be an integer that can fit into an i32
-                var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
-                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntPower);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Int));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnGreaterThan(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThan, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnGreaterThanOrEqual(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThanOrEqual, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThanOrEqual, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-        {
-            if (sym is Identifier.LocalVariable local)
-            {
-                var value = this.SharedState.GetNamedValue(local.Item);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (sym is Identifier.GlobalCallable globalCallable)
-            {
-                if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
-                {
-                    var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
-                    var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-                    var callableValue = this.SharedState.CurrentBuilder.Call(func, wrapper, this.SharedState.Constants.UnitValue);
-                    this.PushValueInScope(callableValue);
-                }
-                else
-                {
-                    this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Callable));
-                }
-            }
-            else
-            {
-                // Invalid identifier
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(
-                    this.SharedState.LlvmTypeFromQsharpType(this.SharedState.ExpressionTypeStack.Peek())));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnInequality(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            // The code we generate here is highly dependent on the type of the expression
-            if (lhs.ResolvedType.Resolution.IsResult)
-            {
-                // Generate a call to the result equality testing function
-                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual), lhsValue, rhsValue);
-                var ineq = this.SharedState.CurrentBuilder.Not(eq);
-                this.SharedState.ValueStack.Push(ineq);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBool || lhs.ResolvedType.Resolution.IsInt || lhs.ResolvedType.Resolution.IsQubit
-                || lhs.ResolvedType.Resolution.IsPauli)
-            {
-                // Works for pointers as well as integer types
-                var eq = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal, lhsValue, rhsValue);
-                var ineq = this.SharedState.CurrentBuilder.Not(eq);
-                this.SharedState.ValueStack.Push(ineq);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var eq = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual, lhsValue, rhsValue);
-                var ineq = this.SharedState.CurrentBuilder.Not(eq);
-                this.SharedState.ValueStack.Push(ineq);
-            }
-            else if (lhs.ResolvedType.Resolution.IsString)
-            {
-                // Generate a call to the string equality testing function
-                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual), lhsValue, rhsValue);
-                var ineq = this.SharedState.CurrentBuilder.Not(eq);
-                this.SharedState.ValueStack.Push(ineq);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                // Generate a call to the bigint equality testing function
-                var eq = this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual), lhsValue, rhsValue);
-                var ineq = this.SharedState.CurrentBuilder.Not(eq);
-                this.SharedState.ValueStack.Push(ineq);
-            }
-            else
-            {
-                // TODO: Equality testing for general types
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnIntLiteral(long i)
-        {
-            Value lit = this.SharedState.Context.CreateConstant(i);
-            this.SharedState.ValueStack.Push(lit);
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLeftShift(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.ShiftLeft(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftleft);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLessThan(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThan, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThan, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
-                var value = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-                this.SharedState.ValueStack.Push(value);
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLessThanOrEqual(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                var value = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThanOrEqual, lhsValue, rhsValue);
-                this.SharedState.ValueStack.Push(value);
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
-                var value = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-                this.SharedState.ValueStack.Push(value);
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLogicalAnd(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsBool)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.And(lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLogicalNot(TypedExpression ex)
-        {
-            // Get the Value for the expression
-            Value exValue = this.SharedState.EvaluateSubexpression(ex);
-
-            if (ex.ResolvedType.Resolution.IsBool)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Not(exValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnLogicalOr(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsBool)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Or(lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Context.BoolType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnModulo(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.SRem(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntModulus);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnMultiplication(TypedExpression lhs, TypedExpression rhs)
-        {
-            Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
-            Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
-
-            if (lhs.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Mul(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FMul(lhsValue, rhsValue));
-            }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntMultiply);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
-        {
-            if (ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType tt
-                && this.SharedState.TryGetCustomType(tt.Item.GetFullName(), out QsCustomType? udt)
-                && acc is Identifier.LocalVariable itemName)
-            {
-                var location = new List<(int, IStructType)>();
-                if (this.FindNamedItem(itemName.Item, udt.TypeItems, location))
-                {
-                    // The location list refers to the location of the named item within the item tuple
-                    // and contains inner items first, so we have to reverse it
-                    location.Reverse();
-                    var value = this.SharedState.EvaluateSubexpression(ex);
-                    for (int i = 0; i < location.Count; i++)
-                    {
-                        value = this.SharedState.GetTupleElement(location[i].Item2, value, location[i].Item1);
-                    }
-                    this.SharedState.ScopeMgr.AddReference(value);
-                    this.PushValueInScope(value);
-                }
-                else
-                {
-                    throw new InvalidOperationException("no item with that name exists");
-                }
-            }
-            else
-            {
-                throw new ArgumentException("named item access requires a value of user defined type");
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnNegative(TypedExpression ex)
-        {
-            Value exValue = this.SharedState.EvaluateSubexpression(ex);
-
-            if (ex.ResolvedType.Resolution.IsInt)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Neg(exValue));
-            }
-            else if (ex.ResolvedType.Resolution.IsDouble)
-            {
-                this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FNeg(exValue));
-            }
-            else if (ex.ResolvedType.Resolution.IsBigInt)
-            {
-                var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntNegate);
-                this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, exValue));
-            }
-            else
-            {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(exValue.NativeType));
-            }
-
-            return ResolvedExpression.InvalidExpr;
-        }
-
-        public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression idx)
-        {
-            // TODO: new multi-dimensional arrays
-            var array = new ArrayValue(
-                this.SharedState.EvaluateSubexpression(idx),
-                this.SharedState.LlvmTypeFromQsharpType(elementType),
-                this.SharedState);
-
-            this.PushValueInScope(array.OpaquePointer);
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -1659,7 +1642,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(this.SharedState.Types.Pauli));
+                throw new NotSupportedException("unknown value for Pauli");
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -1706,19 +1689,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.ArithmeticShiftRight(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftright);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for right shift");
             }
 
             return ResolvedExpression.InvalidExpr;
@@ -1927,23 +1911,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value lhsValue = this.SharedState.EvaluateSubexpression(lhs);
             Value rhsValue = this.SharedState.EvaluateSubexpression(rhs);
+            var exType = this.SharedState.CurrentExpressionType();
 
-            if (lhs.ResolvedType.Resolution.IsInt)
+            if (exType.IsInt)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.Sub(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsDouble)
+            else if (exType.IsDouble)
             {
                 this.SharedState.ValueStack.Push(this.SharedState.CurrentBuilder.FSub(lhsValue, rhsValue));
             }
-            else if (lhs.ResolvedType.Resolution.IsBigInt)
+            else if (exType.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntSubtract);
                 this.PushValueInScope(this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue));
             }
             else
             {
-                this.SharedState.ValueStack.Push(Constant.UndefinedValueFor(lhsValue.NativeType));
+                throw new NotSupportedException("invalid type for subtraction");
             }
 
             return ResolvedExpression.InvalidExpr;

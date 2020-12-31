@@ -77,20 +77,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="symbolValue">The Value to bind to</param>
         /// <param name="symbolType">The Q# type of the SymbolTuple</param>
         /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbolTuple, Value symbolValue, ResolvedType symbolType, bool isImmutable)
+        private void BindSymbolTuple(SymbolTuple symbolTuple, Value symbolValue, ResolvedType symbolType, bool mutable = false)
         {
             // Bind a Value to a simple variable
             void BindVariable(string variable, Value value, ResolvedType type)
             {
-                if (isImmutable)
-                {
-                    this.SharedState.RegisterName(variable, value, false);
-                }
-                else
+                if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
                     this.SharedState.RegisterName(variable, ptr, true);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
+                }
+                else
+                {
+                    this.SharedState.RegisterName(variable, value, false);
                 }
             }
 
@@ -335,163 +335,115 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The current function or the current block is set to null, or if the iteration is not over an array or range.
+        /// </exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null)
+            if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
             {
                 throw new InvalidOperationException("current function is set to null");
             }
 
-            Value ProcessAndRegister(TypedExpression ex, string name, bool isMutable = false)
+            (Value Start, Value Step, Value End) RangeItems(TypedExpression range)
             {
-                Value value = this.SharedState.EvaluateSubexpression(ex);
-                this.SharedState.RegisterName(name, value, isMutable);
-                return value;
-            }
-
-            // Loop variables
-            var startName = this.SharedState.GenerateUniqueName("start");
-            var stepName = this.SharedState.GenerateUniqueName("step");
-            var endName = this.SharedState.GenerateUniqueName("end");
-            var testName = this.SharedState.GenerateUniqueName("test");
-
-            // The array to iterate through, if any
-            (Value, ITypeRef)? array = null;
-
-            // First compute the iteration range
-            Value startValue;
-            Value stepValue;
-            Value endValue;
-            if (stm.IterationValues.Expression is ResolvedExpression.RangeLiteral rlit)
-            {
-                // Item2 is always the end. Either Item1 is the start and 1 is the step,
-                // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
-                endValue = ProcessAndRegister(rlit.Item2, endName);
-
-                if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
+                (Value? startValue, Value? stepValue, Value? endValue) = (null, null, null);
+                if (range.Expression is ResolvedExpression.RangeLiteral rlit)
                 {
-                    stepValue = ProcessAndRegister(rlitInner.Item2, stepName);
-                    startValue = ProcessAndRegister(rlitInner.Item1, startName);
+                    if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
+                    {
+                        startValue = this.SharedState.EvaluateSubexpression(rlitInner.Item1);
+                        stepValue = this.SharedState.EvaluateSubexpression(rlitInner.Item2);
+                    }
+                    else
+                    {
+                        // 1 is the step
+                        startValue = this.SharedState.EvaluateSubexpression(rlit.Item1);
+                        stepValue = this.SharedState.Context.CreateConstant(1L);
+                    }
+
+                    // Item2 is always the end. Either Item1 is the start and 1 is the step,
+                    // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
+                    endValue = this.SharedState.EvaluateSubexpression(rlit.Item2);
                 }
                 else
                 {
-                    // 1 is the step
-                    stepValue = this.SharedState.Context.CreateConstant(1L);
-                    this.SharedState.RegisterName(stepName, stepValue);
-                    startValue = ProcessAndRegister(rlit.Item1, startName);
+                    var rangeValue = this.SharedState.EvaluateSubexpression(range);
+                    startValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 0);
+                    stepValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 1);
+                    endValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 2);
                 }
+                return (startValue, stepValue, endValue);
             }
-            else if (stm.IterationValues.ResolvedType.Resolution.IsRange)
+
+            void IterateThroughRange(Value startValue, Value increment, Value endValue, Action<Value> executeBody)
             {
-                var rangeValue = this.SharedState.EvaluateSubexpression(stm.IterationValues);
-                startValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 0);
-                stepValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 1);
-                endValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 2);
-                this.SharedState.RegisterName(startName, startValue);
-                this.SharedState.RegisterName(stepName, stepValue);
-                this.SharedState.RegisterName(endName, endValue);
+                // Creates a preheader block to determine the direction of the loop.
+                Value CreatePreheader()
+                {
+                    var preheaderName = this.SharedState.GenerateUniqueName("preheader");
+                    var preheaderBlock = this.SharedState.CurrentFunction.AppendBasicBlock(preheaderName);
+
+                    // End the current block by branching to the preheader
+                    this.SharedState.CurrentBuilder.Branch(preheaderBlock);
+
+                    // Preheader block: determine whether the step size is positive
+                    this.SharedState.SetCurrentBlock(preheaderBlock);
+                    return this.SharedState.CurrentBuilder.Compare(
+                        IntPredicate.SignedGreaterThan,
+                        increment,
+                        this.SharedState.Context.CreateConstant(0L));
+                }
+
+                Value EvaluateCondition(Value loopVarIncreases, Value loopVariable)
+                {
+                    var isGreaterOrEqualEnd = this.SharedState.CurrentBuilder.Compare(
+                        IntPredicate.SignedGreaterThanOrEqual, loopVariable, endValue);
+                    var isSmallerOrEqualEnd = this.SharedState.CurrentBuilder.Compare(
+                        IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
+                    // If we increase the loop variable in each iteration (i.e. step is positive)
+                    // then we need to check that the current value is smaller than or equal to the end value,
+                    // and otherwise we check if it is larger than or equal to the end value.
+                    return this.SharedState.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
+                }
+
+                Value loopVarIncreases = CreatePreheader();
+                this.SharedState.CreateForLoop(startValue, loopVar => EvaluateCondition(loopVarIncreases, loopVar), increment, executeBody);
             }
-            else if (stm.IterationValues.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrType)
+
+            if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
-                var elementType = this.SharedState.LlvmTypeFromQsharpType(arrType.Item);
-                startValue = this.SharedState.Context.CreateConstant(0L);
-                stepValue = this.SharedState.Context.CreateConstant(1L);
-                array = (this.SharedState.EvaluateSubexpression(stm.IterationValues), elementType);
-                var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength),
-                    array.Value.Item1,
-                    this.SharedState.Context.CreateConstant(0));
-                endValue = this.SharedState.CurrentBuilder.Sub(
-                    arrayLength, this.SharedState.Context.CreateConstant(1L));
-                this.SharedState.RegisterName(startName, startValue);
-                this.SharedState.RegisterName(stepName, stepValue);
-                this.SharedState.RegisterName(endName, endValue);
+                void ExecuteBody(Value loopVariable)
+                {
+                    // If we iterate through a range, we don't inject an additional binding for the loop variable
+                    // at the beginning of the body and instead directly register the iteration value under that name.
+                    var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
+                        ? name.Item
+                        : throw new ArgumentException("invalid loop variable name");
+                    this.SharedState.RegisterName(loopVarName, loopVariable);
+                    this.Transformation.Statements.OnScope(stm.Body);
+                }
+
+                var (startValue, stepValue, endValue) = RangeItems(stm.IterationValues);
+                IterateThroughRange(startValue, stepValue, endValue, ExecuteBody);
+            }
+            else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
+            {
+                void ExecuteBody(Value arrayItem)
+                {
+                    // If we iterate through an array, we inject a binding at the beginning of the body.
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, stm.LoopItem.Item2);
+                    this.Transformation.Statements.OnScope(stm.Body);
+                }
+
+                var itemType = this.SharedState.LlvmTypeFromQsharpType(stm.LoopItem.Item2);
+                var array = this.SharedState.EvaluateSubexpression(stm.IterationValues);
+                this.SharedState.IterateThroughArray(itemType, array, ExecuteBody);
             }
             else
             {
                 throw new InvalidOperationException("For loop through invalid value");
             }
-
-            // If we're iterating through a range, we can use the iteration variable name directly.
-            // Otherwise, we need to generate a unique name for the iteration through the array's indices.
-            var iterationVar = array == null && stm.LoopItem.Item1 is SymbolTuple.VariableName loopVar
-                ? loopVar.Item
-                : this.SharedState.GenerateUniqueName("iter");
-
-            // We need to reflect the standard LLVM block structure for a loop
-            var preheaderName = this.SharedState.GenerateUniqueName("preheader");
-            var headerName = this.SharedState.GenerateUniqueName("header");
-            var bodyName = this.SharedState.GenerateUniqueName("body");
-            var exitingName = this.SharedState.GenerateUniqueName("exiting");
-            var exitName = this.SharedState.GenerateUniqueName("exit");
-
-            var preheaderBlock = this.SharedState.CurrentFunction.AppendBasicBlock(preheaderName);
-            var headerBlock = this.SharedState.CurrentFunction.AppendBasicBlock(headerName);
-            var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(bodyName);
-            var exitingBlock = this.SharedState.CurrentFunction.AppendBasicBlock(exitingName);
-            var exitBlock = this.SharedState.CurrentFunction.AppendBasicBlock(exitName);
-
-            // End the current block by branching to the preheader
-            this.SharedState.CurrentBuilder.Branch(preheaderBlock);
-
-            // Start a new naming scope
-            this.SharedState.OpenNamingScope();
-
-            // Preheader block: compute the range and test direction for the loop, then branch to the header
-            this.SharedState.SetCurrentBlock(preheaderBlock);
-            var testValue = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedGreaterThan,
-                stepValue,
-                this.SharedState.Context.CreateConstant(0L));
-            this.SharedState.RegisterName(testName, testValue);
-            this.SharedState.CurrentBuilder.Branch(headerBlock);
-
-            // Header block: phi node to assign the iteration variable, then test
-            this.SharedState.SetCurrentBlock(headerBlock);
-            var iterationValue = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.Types.Int);
-            iterationValue.AddIncoming(startValue, preheaderBlock);
-            this.SharedState.RegisterName(iterationVar, iterationValue);
-            // We can't add the other incoming value yet, because we haven't generated it yet.
-            // We'll add it when we generate the exiting block.
-            // TODO: simplify the following if the step is a compile-time constant
-            var aboveEnd = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedGreaterThanOrEqual, iterationValue, endValue);
-            var belowEnd = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedLessThanOrEqual, iterationValue, endValue);
-            var continueValue = this.SharedState.CurrentBuilder.Select(testValue, belowEnd, aboveEnd);
-            this.SharedState.CurrentBuilder.Branch(continueValue, bodyBlock, exitBlock);
-
-            // Body block -- first, if we're stepping through an array, we need to fetch the array element
-            // and potentially deconstruct it
-            this.SharedState.SetCurrentBlock(bodyBlock);
-            this.SharedState.ScopeMgr.OpenScope();
-            if (array != null)
-            {
-                var item = this.SharedState.GetArrayElement(array.Value.Item2, array.Value.Item1, iterationValue);
-                this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
-            }
-
-            // Now finish the block with the statements in the body
-            this.Transformation.Statements.OnScope(stm.Body);
-            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
-            this.SharedState.ScopeMgr.CloseScope(isTerminated);
-            if (!isTerminated)
-            {
-                this.SharedState.CurrentBuilder.Branch(exitingBlock);
-            }
-
-            // Exiting block -- update the iteration value and the phi node
-            this.SharedState.SetCurrentBlock(exitingBlock);
-            var nextValue = this.SharedState.CurrentBuilder.Add(iterationValue, stepValue);
-            iterationValue.AddIncoming(nextValue, exitingBlock);
-            this.SharedState.CurrentBuilder.Branch(headerBlock);
-
-            // And finally, the exit block -- empty to start with
-            this.SharedState.SetCurrentBlock(exitBlock);
-
-            // and close the naming scope
-            this.SharedState.CloseNamingScope();
 
             return QsStatementKind.EmptyStatement;
         }
@@ -594,7 +546,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
             var val = this.SharedState.EvaluateSubexpression(stm.Rhs);
-            this.BindSymbolTuple(stm.Lhs, val, stm.Rhs.ResolvedType, stm.Kind.IsImmutableBinding);
+            this.BindSymbolTuple(stm.Lhs, val, stm.Rhs.ResolvedType, stm.Kind.IsMutableBinding);
             return QsStatementKind.EmptyStatement;
         }
 

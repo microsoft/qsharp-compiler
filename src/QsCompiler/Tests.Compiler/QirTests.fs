@@ -83,6 +83,10 @@ let ``QIR UDT update`` () =
 [<Fact>]
 let ``QIR UDT argument`` () =
     qirTest false "TestUdtArgument"
+
+[<Fact>]
+let ``QIR callable values`` () =
+    qirTest false "TestLocalCallables"
     
 [<Fact>]
 let ``QIR operation argument`` () =
@@ -127,6 +131,10 @@ let ``QIR entry points`` () =
 [<Fact>]
 let ``QIR partial applications`` () =
     qirMultiTest true "TestPartials" ["TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4"]
+
+[<Fact>]
+let ``QIR declarations`` () =
+    qirMultiTest false "TestDeclarations" ["TestDeclarations1"; "TestDeclarations2"; "TestDeclarations3"; "TestDeclarations4"; "TestDeclarations5"; "TestDeclarations6"]
 
 [<Fact>]
 let ``QIR functors`` () =

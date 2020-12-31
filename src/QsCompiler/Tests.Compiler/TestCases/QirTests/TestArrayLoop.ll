@@ -14,22 +14,17 @@ entry:
   %7 = load i64, i64* %5
   %y = alloca i64
   store i64 %7, i64* %y
-  %8 = call i64 @__quantum__rt__array_get_length(%Array* %a, i32 0)
-  %end__1 = sub i64 %8, 1
-  br label %preheader__1
-
-preheader__1:                                     ; preds = %entry
+  %8 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
+  %9 = sub i64 %8, 1
   br label %header__1
 
-header__1:                                        ; preds = %exiting__1, %preheader__1
-  %iter__1 = phi i64 [ 0, %preheader__1 ], [ %20, %exiting__1 ]
-  %9 = icmp sge i64 %iter__1, %end__1
-  %10 = icmp sle i64 %iter__1, %end__1
-  %11 = select i1 true, i1 %10, i1 %9
+header__1:                                        ; preds = %exiting__1, %entry
+  %10 = phi i64 [ 0, %entry ], [ %20, %exiting__1 ]
+  %11 = icmp sle i64 %10, %9
   br i1 %11, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
-  %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %iter__1)
+  %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %10)
   %13 = bitcast i8* %12 to { i64, i64 }**
   %z = load { i64, i64 }*, { i64, i64 }** %13
   %14 = getelementptr { i64, i64 }, { i64, i64 }* %z, i64 0, i32 0
@@ -45,7 +40,7 @@ body__1:                                          ; preds = %header__1
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
-  %20 = add i64 %iter__1, 1
+  %20 = add i64 %10, 1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
