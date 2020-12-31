@@ -313,23 +313,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntDivide, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntModulus, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntPower, this.Types.BigInt, this.Types.BigInt, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitand, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitor, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitxor, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitnot, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftleft, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftright, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseAnd, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseOr, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseXor, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseNot, this.Types.BigInt, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftLeft, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftRight, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntEqual, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreater, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreaterEq, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
 
             // tuple library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleAddUser, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleRemoveUser, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleAddAccess, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleRemoveAccess, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleReference, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUnreference, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Context.BoolType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Types.Tuple, this.Types.Tuple, this.Context.BoolType);
 
             // array library functions
             this.runtimeLibrary.AddVarArgsFunction(RuntimeLibrary.ArrayCreate, this.Types.Array, this.Context.Int32Type, this.Context.Int32Type);
@@ -337,11 +337,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddUser, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveUser, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddAccess, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveAccess, this.Context.VoidType, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayReference, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUnreference, this.Context.VoidType, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice, this.Types.Array, this.Context.Int32Type, this.Types.Array, this.Types.Range);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Context.BoolType);
@@ -354,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Types.FunctionSignature.CreatePointerType().CreateArrayType(4).CreatePointerType(),
                 this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableReference, this.Context.VoidType, this.Types.Callable);
@@ -1427,14 +1427,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
             TupleValue tuple = new TupleValue(tupleType, this, builder);
-            this.ScopeMgr.AddValue(tuple.TypedPointer);
 
             // Fill it in, field by field
             Value[] itemPointers = this.GetTupleElementPointers(tupleType, tuple.TypedPointer, builder);
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 builder.Store(vs[i], itemPointers[i]);
-                this.ScopeMgr.AddReference(vs[i], builder);
+                this.IncreaseReferenceCount(vs[i], builder);
             }
 
             return tuple;

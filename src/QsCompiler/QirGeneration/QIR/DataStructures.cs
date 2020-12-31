@@ -36,9 +36,11 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 if (this.opaquePointer == null && this.typedPointer == null)
                 {
-                    var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
+                    // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
+                    var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
                     this.opaquePointer = this.Builder.Call(constructor, size);
+                    this.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED POINTER
                 }
                 this.typedPointer ??= this.Builder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
                 return this.typedPointer;
@@ -80,9 +82,11 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 if (this.opaquePointer == null)
                 {
-                    var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
+                    // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
+                    var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
                     this.opaquePointer = this.Builder.Call(constructor, elementSize, this.Length);
+                    this.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
                 }
                 return this.opaquePointer;
             }
