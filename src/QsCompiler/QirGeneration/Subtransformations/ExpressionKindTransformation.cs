@@ -135,16 +135,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // private helpers
 
-        private void IncreaseUserCount(Value value)
-        {
-            // TODO: IMPLEMENT
-        }
-
-        private void DecreaseUserCount(Value value)
-        {
-            // TODO: IMPLEMENT
-        }
-
         /// <summary>
         /// Pushes a value onto the value stack and also registers it with the current scope
         /// such that it is properly unreferenced when it goes out of scope.
