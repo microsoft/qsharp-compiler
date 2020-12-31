@@ -1191,87 +1191,118 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #endregion
 
-        #region Type helpers
-
-        /// <returns>The kind of the Q# type on top of the expression type stack</returns>
-        internal QsResolvedTypeKind CurrentExpressionType() =>
-            this.ExpressionTypeStack.Peek().Resolution;
-
-        /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
-        internal ITypeRef CurrentLlvmExpressionType() =>
-            this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
+        #region Iteration
 
         /// <summary>
-        /// Gets the QIR equivalent for a Q# type.
-        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
+        /// Creates a for-loop that breaks based on a condition.
         /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR type</returns>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
+        /// <param name="startValue">The value to which the loop variable will be instantiated</param>
+        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered</param>
+        /// <param name="increment">The value that is added to the loop variable after each iteration </param>
+        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop</param>
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
         {
-            this.BuiltType = null;
-            this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
+            if (this.CurrentFunction == null || this.CurrentBlock == null)
+            {
+                throw new InvalidOperationException("current function is set to null");
+            }
+
+            // Contains the loop header that creates the phi-node, evaluates the condition,
+            // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
+            var headerName = this.GenerateUniqueName("header");
+            var headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
+
+            // Contains the body of the loop, which has its own naming scope.
+            var bodyName = this.GenerateUniqueName("body");
+            var bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
+
+            // Increments the loop variable and then branches into the header block
+            // which determines whether to enter the next iteration.
+            var exitingName = this.GenerateUniqueName("exiting");
+            var exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
+
+            // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
+            var exitName = this.GenerateUniqueName("exit");
+            var exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
+
+            PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
+            {
+                // End the current block by branching into the header of the loop
+                BasicBlock precedingBlock = this.CurrentBlock;
+                this.CurrentBuilder.Branch(headerBlock);
+
+                // Header block: create/update phi node representing the iteration variable and evaluate the condition
+                this.SetCurrentBlock(headerBlock);
+                var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
+                loopVariable.AddIncoming(startValue, precedingBlock);
+
+                var condition = evaluateCondition(loopVariable);
+                this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
+                return loopVariable;
+            }
+
+            bool PopulateLoopBody(Action executeBody)
+            {
+                this.OpenNamingScope();
+                this.SetCurrentBlock(bodyBlock);
+                this.ScopeMgr.OpenScope();
+
+                executeBody();
+
+                var isTerminated = this.CurrentBlock?.Terminator != null;
+                this.ScopeMgr.CloseScope(isTerminated);
+                this.CloseNamingScope();
+
+                return isTerminated;
+            }
+
+            void ContinueOrExitLoop(PhiNode loopVariable, Value increment, bool bodyWasTerminated = false)
+            {
+                // Unless there was a terminating statement in the loop body (such as return or fail),
+                // continue into the exiting block, which updates the loop variable and enters the next iteration.
+                if (!bodyWasTerminated)
+                {
+                    this.CurrentBuilder.Branch(exitingBlock);
+                }
+
+                // Update the iteration value (phi node) and enter the next iteration
+                this.SetCurrentBlock(exitingBlock);
+                var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
+                loopVariable.AddIncoming(nextValue, exitingBlock);
+                this.CurrentBuilder.Branch(headerBlock);
+
+                this.SetCurrentBlock(exitBlock);
+            }
+
+            var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
+            var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
+            ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
         }
 
         /// <summary>
-        /// Gets the QIR equivalent for a Q# type, as a structure.
-        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
-        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
-        /// and the "normal" converted type as the second element.
+        /// Iterates through the given array and executes the given action on each element.
+        /// The action is executed within its own scope.
         /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR structure type</returns>
-        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
-            resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple
-                ? this.CreateConcreteTupleType(tuple.Item)
-                : this.CreateConcreteTupleType(new[] { resolvedType });
-
-        /// <summary>
-        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
-        /// </summary>
-        internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
-
-        /// <summary>
-        /// Computes the size in bytes of an LLVM type as an LLVM value.
-        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
-        /// </summary>
-        /// <param name="type">The LLVM type to compute the size of</param>
-        /// <param name="builder">The builder to use to generate the struct size computation, if needed</param>
-        /// <param name="intType">The integer type to return</param>
-        /// <returns>
-        /// An LLVM value of the specified integer type - or i64 if none is specified - containing the size of the type in bytes
-        /// </returns>
-        internal Value ComputeSizeForType(ITypeRef type, InstructionBuilder? builder = null, ITypeRef? intType = null)
+        /// <param name="elementType">The type of an array item</param>
+        /// <param name="array">The array to iterate over</param>
+        /// <param name="executeBody">The action to perform on each item</param>
+        internal void IterateThroughArray(ITypeRef elementType, Value array, Action<Value> executeBody)
         {
-            builder ??= this.CurrentBuilder;
-            intType ??= this.Context.Int64Type;
+            var getLength = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
+            var arrayLength = this.CurrentBuilder.Call(getLength, array);
 
-            if (type.IsInteger)
-            {
-                return this.Context.CreateConstant(intType, (type.IntegerBitWidth + 7u) / 8u, false);
-            }
-            else if (type.IsDouble)
-            {
-                return this.Context.CreateConstant(intType, 8, false);
-            }
-            else if (type.IsPointer)
-            {
-                // We assume 64-bit address space
-                return this.Context.CreateConstant(intType, 8, false);
-            }
-            else
-            {
-                // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
-                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = builder.PointerToInt(firstPtr, intType);
-                var secondPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = builder.PointerToInt(secondPtr, intType);
-                return builder.Sub(second, first);
-            }
+            var startValue = this.Context.CreateConstant(0L);
+            var increment = this.Context.CreateConstant(1L);
+            var endValue = this.CurrentBuilder.Sub(arrayLength, increment);
+
+            Value EvaluateCondition(Value loopVariable) =>
+                this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
+
+            void ExecuteBody(Value loopVariable) =>
+                executeBody(this.GetArrayElement(elementType, array, loopVariable));
+
+            this.CreateForLoop(startValue, EvaluateCondition, increment, ExecuteBody);
         }
 
         #endregion
@@ -1286,18 +1317,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context.CreateConstant(0L),
             this.Context.CreateConstant(index)
         };
-
-        internal (Value, Value, Value) IndexRange(Value array, InstructionBuilder? builder = null)
-        {
-            builder ??= this.CurrentBuilder;
-            var getLength = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
-            var arrayLength = builder.Call(getLength, array);
-
-            var startValue = this.Context.CreateConstant(0L);
-            var stepValue = this.Context.CreateConstant(1L);
-            var endValue = builder.Sub(arrayLength, stepValue);
-            return (startValue, stepValue, endValue);
-        }
 
         /// <summary>
         /// Returns a pointer to an array element.
@@ -1419,6 +1438,91 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             return tuple;
+        }
+
+        #endregion
+
+        #region Type helpers
+
+        /// <returns>The kind of the Q# type on top of the expression type stack</returns>
+        internal QsResolvedTypeKind CurrentExpressionType() =>
+            this.ExpressionTypeStack.Peek().Resolution;
+
+        /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
+        internal ITypeRef CurrentLlvmExpressionType() =>
+            this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
+
+        /// <summary>
+        /// Gets the QIR equivalent for a Q# type.
+        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
+        /// </summary>
+        /// <param name="resolvedType">The Q# type</param>
+        /// <returns>The equivalent QIR type</returns>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
+        {
+            this.BuiltType = null;
+            this.Transformation.Types.OnType(resolvedType);
+            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
+        }
+
+        /// <summary>
+        /// Gets the QIR equivalent for a Q# type, as a structure.
+        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
+        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
+        /// and the "normal" converted type as the second element.
+        /// </summary>
+        /// <param name="resolvedType">The Q# type</param>
+        /// <returns>The equivalent QIR structure type</returns>
+        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
+            resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple
+                ? this.CreateConcreteTupleType(tuple.Item)
+                : this.CreateConcreteTupleType(new[] { resolvedType });
+
+        /// <summary>
+        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
+        /// </summary>
+        internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
+            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
+
+        /// <summary>
+        /// Computes the size in bytes of an LLVM type as an LLVM value.
+        /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
+        /// </summary>
+        /// <param name="type">The LLVM type to compute the size of</param>
+        /// <param name="builder">The builder to use to generate the struct size computation, if needed</param>
+        /// <param name="intType">The integer type to return</param>
+        /// <returns>
+        /// An LLVM value of the specified integer type - or i64 if none is specified - containing the size of the type in bytes
+        /// </returns>
+        internal Value ComputeSizeForType(ITypeRef type, InstructionBuilder? builder = null, ITypeRef? intType = null)
+        {
+            builder ??= this.CurrentBuilder;
+            intType ??= this.Context.Int64Type;
+
+            if (type.IsInteger)
+            {
+                return this.Context.CreateConstant(intType, (type.IntegerBitWidth + 7u) / 8u, false);
+            }
+            else if (type.IsDouble)
+            {
+                return this.Context.CreateConstant(intType, 8, false);
+            }
+            else if (type.IsPointer)
+            {
+                // We assume 64-bit address space
+                return this.Context.CreateConstant(intType, 8, false);
+            }
+            else
+            {
+                // Everything else we let getelementptr compute for us
+                var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
+                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
+                var firstPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+                var first = builder.PointerToInt(firstPtr, intType);
+                var secondPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+                var second = builder.PointerToInt(secondPtr, intType);
+                return builder.Sub(second, first);
+            }
         }
 
         #endregion
