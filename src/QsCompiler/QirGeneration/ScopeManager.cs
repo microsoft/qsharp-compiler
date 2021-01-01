@@ -27,6 +27,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal class ScopeManager
     {
+        // FIXME THE RELEASE STACK NEEDS TO CONTAIN SOMETHING WITH MORE TYPE INFO
+        // -> HAVE TUPLEVALUE, ARRAYVALUE ETC INHERIT FROM A COMMON CLASS AND KEEP A STACK OF THAT INSTEAD...
+        // WE CAN KEEP THE RELEASE FUNCTION AS A STATIC MEMBER IN THAT CLASS AS WELL, ELMININATING THEM FROM THE ScopeManager.
         private readonly Stack<List<(Value, string)>> releaseStack = new Stack<List<(Value, string)>>();
         private readonly GenerationContext sharedState;
 
@@ -192,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// and makes sure that the value and all its items are unreferenced when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void AddValue(Value value)
+        public void _AddValue(Value value)
         {
             var releaser = this.GetReleaseFunctionForType(value.NativeType);
             if (releaser != null)
@@ -208,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value to be released</param>
         /// or an array of Qubits.</param>
-        public void AddQubitAllocation(Value value)
+        public void _AddQubitAllocation(Value value)
         {
             var releaser =
                 value.NativeType == this.sharedState.Types.Array ? RuntimeLibrary.QubitReleaseArray :
@@ -224,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void AddReference(Value value, InstructionBuilder? builder = null)
+        public void _AddReference(Value value, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
             var referenceFunc = this.GetReferenceFunctionForType(value.NativeType);
@@ -241,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The loads and call are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="pointer">Pointer to the value that will no longer be accessible via that pointer</param>
-        public void RemoveReference(Value pointer, InstructionBuilder? builder = null)
+        public void _RemoveReference(Value pointer, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
             var type = ((IPointerType)pointer.NativeType).ElementType;
@@ -279,9 +282,40 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void ExitScope(Value returned, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
-            foreach (var releases in this.releaseStack)
+
+            // To avoid increasing the reference count for the returned value and all contained items
+            // followed by immediately decreasing it again, we check whether we can avoid that.
+            // There are a couple of pitfalls to watch out for when doing this:
+            // a) It is possible that the returned value is or contains items that are not going to be
+            //    unreferenced here, e.g. when the returned value has been passed as argument to the
+            //    the callable we are exiting here. If that's the case, then we need to first increase
+            //    the reference count for the returned value before processing all unreference calls,
+            //    since otherwise an item contained in the returned value might get deallocated.
+            // b) Conversely, it is also possible that the returned value is dereferenced multiple times.
+            //    we hence need to make sure that we only omit one of these calls.
+            // c) We need to make sure to not modify any of the release stacks; they may be used by other
+            //    execution paths that don't return the same value.
+
+            var returnedValueMarkedForRelease = this.releaseStack.Any(releases =>
+                releases.Select(r => r.Item1).Contains(returned));
+            if (!returnedValueMarkedForRelease)
             {
-                this.GenerateReleasesForLevel(releases.Where(value => value.Item1 != returned), builder);
+                this.AddReference(returned);
+            }
+
+            var releaseAll = !returnedValueMarkedForRelease;
+            foreach (var frame in this.releaseStack)
+            {
+                if (releaseAll)
+                {
+                    this.GenerateReleasesForLevel(frame, builder);
+                    continue;
+                }
+
+                var releasesForReturn = frame.Where(r => r.Item1 == returned);
+                var otherReleases = frame.Where(value => value.Item1 != returned);
+                this.GenerateReleasesForLevel(releasesForReturn.Skip(1).Concat(otherReleases), builder);
+                releaseAll = releasesForReturn.Any();
             }
         }
     }
