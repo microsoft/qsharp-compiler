@@ -421,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Does not validate the given arguments.
         /// </summary>
         /// <returns>An invalid expression</returns>
-        private ResolvedExpression ApplyFunctor(TypedExpression ex, string runtimeFunctionName)
+        private ResolvedExpression ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
         {
             var callable = this.SharedState.EvaluateSubexpression(ex);
 
@@ -440,22 +440,37 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var isPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
             var isFunctorApplication = ex.Expression.IsAdjointApplication || ex.Expression.IsControlledApplication;
             var safeToModify = isGlobalCallable || isPartialApplication || isFunctorApplication;
-            if (!safeToModify)
+            Value value = this.ApplyFunctor(runtimeFunctionName, callable, safeToModify);
+
+            this.SharedState.ValueStack.Push(value);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        // Used when applying functors when building a functor application expression as well as
+        // when creating the specializations for a partial application.
+        private Value ApplyFunctor(string runtimeFunctionName, Value callable, bool modifyInPlace = false, InstructionBuilder? builder = null)
+        {
+            builder ??= this.SharedState.CurrentBuilder;
+            if (!modifyInPlace)
             {
+                // FIXME:
+                // WE NEED TO INCREASE THE REFERENCE COUNT FOR THE CAPTURE TUPLE.
+                // For that we need a callable_get_capture runtime function,
+                // and we need to keep track of additional type information during QIR emission.
+                // Dereferencing needs to recur into the capture tuple as well.
+
                 // Since we don't track access counts for callables we need to force the copy.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
-                callable = this.SharedState.CurrentBuilder.Call(makeCopy, callable, forceCopy);
+                callable = builder.Call(makeCopy, callable, forceCopy);
                 this.QueueDecreaseReferenceCount(callable);
             }
 
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
             // but instead modify the given callable in place.
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
-            this.SharedState.CurrentBuilder.Call(applyFunctor, callable);
-            this.SharedState.ValueStack.Push(callable);
-
-            return ResolvedExpression.InvalidExpr;
+            builder.Call(applyFunctor, callable);
+            return callable;
         }
 
         // public overrides
@@ -506,7 +521,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpression OnAdjointApplication(TypedExpression ex) =>
-            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeAdjoint);
+            this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, ex);
 
         public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
         {
@@ -736,7 +751,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
-            this.ApplyFunctor(ex, RuntimeLibrary.CallableMakeControlled);
+            this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, ex);
 
         public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
@@ -776,7 +791,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
                     // TODO: handle range updates
-                    throw new NotImplementedException("Array slice updates");
+                    throw new NotImplementedException("array slice updates are not yet supported in QIR emission");
                 }
                 else
                 {
@@ -1463,12 +1478,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpression.InvalidExpr;
         }
 
-        // TODO
         public override ResolvedExpression OnPartialApplication(TypedExpression method, TypedExpression arg)
         {
             PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<Value> capturedValues)
             {
-                // We need argType because _'s -- missing expressions -- have MissingType, rather than the actual type.
+                // We need argType because missing argument items have MissingType, rather than the actual type.
                 if (arg.Expression.IsMissingExpr)
                 {
                     remainingArgs.Add(argType);
@@ -1483,52 +1497,38 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    // A value we should capture; remember that the first element in the capture tuple is the inner callable
-                    var val = this.SharedState.EvaluateSubexpression(arg);
-                    capturedValues.Add(val);
+                    capturedValues.Add(this.SharedState.EvaluateSubexpression(arg));
                     return new InnerCapture(this.SharedState, capturedValues.Count - 1);
-                }
-            }
-
-            Value GetSpecializedInnerCallable(Value innerCallable, QsSpecializationKind kind, InstructionBuilder builder)
-            {
-                if (kind == QsSpecializationKind.QsBody)
-                {
-                    return innerCallable;
-                }
-                else
-                {
-                    var forceCopy = this.SharedState.Context.CreateConstant(false);
-                    var copier = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                    var copy = builder.Call(copier, innerCallable);
-                    this.SharedState.ScopeMgr.AddValue(copy);
-                    if (kind == QsSpecializationKind.QsAdjoint)
-                    {
-                        var adj = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
-                        builder.Call(adj, copy);
-                    }
-                    else if (kind == QsSpecializationKind.QsControlled)
-                    {
-                        var ctl = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
-                        builder.Call(ctl, copy);
-                    }
-                    else if (kind == QsSpecializationKind.QsControlledAdjoint)
-                    {
-                        var adj = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
-                        var ctl = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
-                        builder.Call(adj, copy);
-                        builder.Call(ctl, copy);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException("unknown specialization");
-                    }
-                    return copy;
                 }
             }
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, IStructType captureType, IStructType parArgsStruct, PartialApplicationArgument partialArgs)
             {
+                Value ApplyFunctors(Value innerCallable, InstructionBuilder builder)
+                {
+                    if (kind == QsSpecializationKind.QsBody)
+                    {
+                        return innerCallable;
+                    }
+                    else if (kind == QsSpecializationKind.QsAdjoint)
+                    {
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false, builder);
+                    }
+                    else if (kind == QsSpecializationKind.QsControlled)
+                    {
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: false, builder);
+                    }
+                    else if (kind == QsSpecializationKind.QsControlledAdjoint)
+                    {
+                        innerCallable = this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false, builder);
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: true, builder);
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("unknown specialization");
+                    }
+                }
+
                 var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
                 IrFunction func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
 
@@ -1537,10 +1537,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 func.Parameters[2].Name = "result-tuple";
                 var entry = func.AppendBasicBlock("entry");
 
-                InstructionBuilder builder = new InstructionBuilder(entry);
                 this.SharedState.ScopeMgr.OpenScope();
-                Value capturePointer = builder.BitCast(func.Parameters[0], captureType.CreatePointerType());
+                InstructionBuilder builder = new InstructionBuilder(entry);
 
+                Value capturePointer = builder.BitCast(func.Parameters[0], captureType.CreatePointerType());
                 TupleValue BuildControlledInnerArgument(ITypeRef paArgType)
                 {
                     // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
@@ -1576,14 +1576,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : this.SharedState.CreateTuple(builder, typedInnerArg).OpaquePointer;
                 }
 
+                var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
                 var innerCallable = this.SharedState.GetTupleElement(captureType, capturePointer, 0, builder);
-                // Depending on the specialization, we may have to get a different specialization of the callable
-                var specToCall = GetSpecializedInnerCallable(innerCallable, kind, builder);
-                var invoke = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                builder.Call(invoke, specToCall, innerArg, func.Parameters[2]);
+                builder.Call(invokeCallable, ApplyFunctors(innerCallable, builder), innerArg, func.Parameters[2]);
 
-                this.SharedState.ScopeMgr.CloseScope(isTerminated: false, builder);
                 builder.Return();
+                this.SharedState.ScopeMgr.CloseScope(isTerminated: false, builder);
 
                 return func;
             }
@@ -1649,14 +1647,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            // Build the array
-            var t = this.SharedState.Types.FunctionSignature.CreatePointerType();
-            var array = ConstantArray.From(t, specializations);
+            // Build the callable table
+            var array = ConstantArray.From(this.SharedState.Types.FunctionSignature.CreatePointerType(), specializations);
             var table = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, liftedName);
 
-            // Create the callable
-            var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var value = this.SharedState.CurrentBuilder.Call(func, table, capture.OpaquePointer);
+            // Create the callable and make sure we inject/queue the functions to manage the reference counts
+            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+            var value = this.SharedState.CurrentBuilder.Call(createCallable, table, capture.OpaquePointer);
+            this.IncreaseReferenceCount(capture.OpaquePointer);
+            this.QueueDecreaseReferenceCount(value);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
