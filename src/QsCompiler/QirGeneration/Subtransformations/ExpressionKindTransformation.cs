@@ -788,6 +788,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             Value CopyAndUpdateUdt(QsQualifiedName udtName)
             {
+                Value GetTupleCopy(Value original)
+                {
+                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
+                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                    var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
+                    var forceCopy = this.SharedState.Context.CreateConstant(false);
+
+                    // We need to cast the value to the opaque tuple type before passing it to the runtime.
+                    var tuple = this.SharedState.CurrentBuilder.BitCast(original, this.SharedState.Types.Tuple);
+                    return this.SharedState.CurrentBuilder.Call(createShallowCopy, tuple, forceCopy);
+                }
+
+                var originalValue = this.SharedState.EvaluateSubexpression(lhs);
+                var newItemValue = this.SharedState.EvaluateSubexpression(rhs);
+                var value = GetTupleCopy(originalValue);
+                this.QueueDecreaseReferenceCount(value);
+
                 if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
                     throw new InvalidOperationException("Q# declaration for type not found");
@@ -796,27 +814,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     && id.Item1 is Identifier.LocalVariable name
                     && this.FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
-                    var copy = this.GetWritableCopy(lhs); // if a copy is made, registers the copy with the ScopeMgr
-
-                    Value current = copy;
-                    for (int i = 0; i < location.Count; i++)
+                    Value innerTuple = value;
+                    for (int depth = 0; depth < location.Count; depth++)
                     {
-                        var ptr = this.SharedState.GetTupleElementPointer(
-                            location[i].Item2,
-                            current,
-                            location[i].Item1);
-                        // For the last item on the list, we store; otherwise, we load the next tuple
-                        if (i == location.Count - 1)
+                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                        // reference counts always need to be modified recursively. However, while the reference count for
+                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                        // to increase the reference count of the contained items due to lacking type information.
+                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                        // manually (recursively) increase the reference counts for all items.
+                        var itemPointers = this.SharedState.GetTupleElementPointers(location[depth].Item2, innerTuple);
+                        var itemIndex = location[depth].Item1;
+                        for (var i = 0; i < itemPointers.Length; ++i)
                         {
-                            var value = this.SharedState.EvaluateSubexpression(rhs);
-                            this.SharedState.CurrentBuilder.Store(value, ptr);
+                            if (i != itemIndex)
+                            {
+                                var item = this.SharedState.CurrentBuilder.Load(itemPointers[i].NativeType, itemPointers[i]);
+                                this.IncreaseReferenceCount(item);
+                            }
+                        }
+
+                        if (depth == location.Count - 1)
+                        {
+                            this.SharedState.CurrentBuilder.Store(newItemValue, itemPointers[itemIndex]);
+                            this.IncreaseReferenceCount(newItemValue);
                         }
                         else
                         {
-                            current = this.SharedState.CurrentBuilder.Load(location[i + 1].Item2.CreatePointerType(), ptr);
+                            // We load the original item at that location (which is an inner tuple),
+                            // and replace it with a copy of it (if a copy is needed),
+                            // such that we can then proceed to modify that copy (the next inner tuple).
+                            var originalItem = this.SharedState.CurrentBuilder.Load(
+                                itemPointers[itemIndex].NativeType,
+                                itemPointers[itemIndex]);
+                            innerTuple = GetTupleCopy(originalItem);
+                            this.SharedState.CurrentBuilder.Store(innerTuple, itemPointers[itemIndex]);
                         }
                     }
-                    return copy;
+
+                    return value;
                 }
                 else
                 {

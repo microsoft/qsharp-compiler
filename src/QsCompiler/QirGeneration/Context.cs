@@ -1395,9 +1395,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ? tuple
                 : builder.BitCast(tuple, tupleType.CreatePointerType());
 
-            Value ItemPointer(int index) =>
-                builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(index));
-            return tupleType.Members.Select((_, i) => ItemPointer(i)).ToArray();
+            return tupleType.Members
+                .Select((_, i) => builder.GetElementPtr(tupleType, typedTuple, this.PointerIndex(i)))
+                .ToArray();
         }
 
         /// <summary>
