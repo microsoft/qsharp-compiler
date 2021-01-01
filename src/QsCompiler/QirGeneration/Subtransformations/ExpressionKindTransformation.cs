@@ -314,9 +314,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     argList = new Value[] { this.SharedState.EvaluateSubexpression(arg) };
                 }
 
-                this.SharedState.CurrentBuilder.Call(func, argList);
-                // FIXME: WE NEED TO RETURN THE RETURN VALUE;
-                // WHICH MEANS WE NEED TO RETURN UNIT IF THE RETURN VALUE IS VOID, AND RETURN THE CALL OTHERWISE?
+                var value = this.SharedState.CurrentBuilder.Call(func, argList);
+                return func.Signature.ReturnType.IsVoid
+                    ? this.SharedState.Constants.UnitValue
+                    : value;
             }
 
             Value InlineSpecialization(QsSpecialization spec, TypedExpression arg)
@@ -336,15 +337,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new InvalidOperationException("missing specialization implementation for inlining");
                 }
-                this.SharedState.StopInlining();
-
-                // If the inlined routine returns Unit, we need to push an extra empty tuple on the stack
-                if (spec.Signature.ReturnType.Resolution.IsUnitType)
-                {
-                    return this.SharedState.Constants.UnitValue;
-                }
-
-                // FIXME: WE NEED TO PROPERLY HANDLE INLINING CALLABLES THAT HAVE RETURN STATEMENTS!
+                return this.SharedState.StopInlining();
             }
 
             if (!this.SharedState.TryGetGlobalCallable(callableName, out var callable))
@@ -446,10 +439,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpression.InvalidExpr;
         }
 
-        // Used when applying functors when building a functor application expression as well as
-        // when creating the specializations for a partial application.
+        /// <summary>
+        /// Invokes the runtime function with the given name to apply a functor to a callable value.
+        /// Unless modifyInPlace is set to true, a copy of the callable is made prior to applying the functor.
+        /// </summary>
+        /// <param name="runtimeFunctionName">The runtime method to invoke in order to apply the funtor</param>
+        /// <param name="callable">The callable to copy (unless modifyInPlace is true) before applying the functor to it</param>
+        /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
+        /// <param name="builder">Builder to use to generate the instructions</param>
+        /// <returns>The callable value to which the functor has been applied</returns>
         private Value ApplyFunctor(string runtimeFunctionName, Value callable, bool modifyInPlace = false, InstructionBuilder? builder = null)
         {
+            // This method is used when applying functors when building a functor application expression
+            // as well as when creating the specializations for a partial application.
+
             builder ??= this.SharedState.CurrentBuilder;
             if (!modifyInPlace)
             {

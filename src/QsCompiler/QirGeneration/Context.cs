@@ -963,12 +963,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                QirStatementKindTransformation.AddReturn(this, this.Constants.UnitValue, returnsVoid: false);
+                QirStatementKindTransformation.AddOrPushReturn(this, this.Constants.UnitValue, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
                 var udtTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
-                QirStatementKindTransformation.AddReturn(this, udtTuple.TypedPointer, returnsVoid: false);
+                QirStatementKindTransformation.AddOrPushReturn(this, udtTuple.TypedPointer, returnsVoid: false);
             }
         }
 
@@ -1542,8 +1542,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Stop inlining a callable invocation.
         /// This pops the top naming scope and decreases the inlining level.
         /// </summary>
-        internal void StopInlining()
+        internal Value StopInlining()
         {
+            // FIXME: INSTEAD OF AN INTEGER FOR INLINING, KEEP A STACK OF VALUES WITH THE RETURNS FOR EACH INLINE LEVEL
+            // FIXME: PREVENT INLINING OF CALLABLES THAT RETURN A VALUE OTHER THAN UNIT AND HAVE MORE THAN ONE RETURN STATEMENT
+            // FIXME: INSTANTIATE THE RETURN VALUE FOR EACH INLINE LEVEL WITH UNIT
+
             this.CurrentInlineLevel--;
             this.CloseNamingScope();
         }
