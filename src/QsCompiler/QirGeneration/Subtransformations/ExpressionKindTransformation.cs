@@ -287,11 +287,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         private Value InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg)
         {
-            TODO;
-            // FIXME: WE NEED TO REVISE THE IMPLEMENTATION ACCORDING TO THIS DESCRIPTION.
-            // No need to increase the reference count on the argument;
-            // we increase the reference count for the corresponding values when we populate the result tuple.
-
             Value CallGlobal(IrFunction func, TypedExpression arg)
             {
                 Value[] argList;
@@ -369,11 +364,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private Value InvokeLocalCallable(TypedExpression method, TypedExpression arg)
         {
-            TODO;
-            // FIXME: WE NEED TO REVISE THE IMPLEMENTATION ACCORDING TO THIS DESCRIPTION.
-            // No need to increase the reference count on the argument;
-            // we increase the reference count for the corresponding values when we populate the result tuple.
-
             var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
             Value calledValue = this.SharedState.EvaluateSubexpression(method);
             Value argValue = this.SharedState.EvaluateSubexpression(arg);
