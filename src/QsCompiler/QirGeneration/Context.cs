@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -137,13 +136,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
-        internal int CurrentInlineLevel { get; private set; } = 0;
         internal ITypeRef? BuiltType { get; set; }
 
         internal readonly ScopeManager ScopeMgr;
         internal readonly Stack<Value> ValueStack;
         internal readonly Stack<ResolvedType> ExpressionTypeStack;
 
+        /// <summary>
+        /// We support nested inlining and hence keep a stack with the information for each inline level.
+        /// Each item in the stack contains a an identifier for the inlining that is unique within the
+        /// current callable and can be used to construct suitable variable names for inlined variables.
+        /// It also contains the return value for that inline level.
+        /// While this is currently not necessary since we currently require that any inlined callable either
+        /// returns unit or has exactly one return statement, this restriction could be lifted in the future.
+        /// </summary>
+        private readonly Stack<(string, Value)> inlineLevels;
         private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
         private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
 
@@ -175,6 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.ValueStack = new Stack<Value>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
+            this.inlineLevels = new Stack<(string, Value)>();
             this.ScopeMgr = new ScopeManager(this);
 
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -791,7 +799,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         internal void StartFunction()
         {
-            if (this.namesInScope.Any() || this.CurrentInlineLevel != 0 || !this.ScopeMgr.IsEmpty)
+            if (this.namesInScope.Any() || this.inlineLevels.Any() || !this.ScopeMgr.IsEmpty)
             {
                 throw new InvalidOperationException("Processing of the current function and needs to be properly terminated before starting a new one");
             }
@@ -846,7 +854,42 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBuilder.Return();
             }
 
-            return this.ScopeMgr.IsEmpty && this.CurrentInlineLevel == 0 && !this.namesInScope.Any();
+            return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any() && !this.namesInScope.Any();
+        }
+
+        /// <summary>
+        /// If we are not currently inlining, exits the scope and generates a suitable return using the current builder,
+        /// and otherwise updates the return value for the current inline level.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">A return value for current inline level is already defined</exception>
+        internal void AddReturn(Value result, bool returnsVoid)
+        {
+            if (!this.inlineLevels.Any())
+            {
+                // The return value and its inner items either won't be unreferenced
+                // when exiting the scope or a reference will be added by ExitScope
+                // before exiting the scope by since it will be used by the caller.
+                this.ScopeMgr.ExitScope(returned: result);
+
+                if (returnsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.CurrentBuilder.Return(result);
+                }
+            }
+            else if (!returnsVoid)
+            {
+                var (inlineId, current) = this.inlineLevels.Pop();
+                if (current != this.Constants.UnitValue)
+                {
+                    throw new InvalidOperationException("return value for current inline level already defined");
+                }
+
+                this.inlineLevels.Push((inlineId, result));
+            }
         }
 
         /// <summary>
@@ -963,12 +1006,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                QirStatementKindTransformation.AddOrPushReturn(this, this.Constants.UnitValue, returnsVoid: false);
+                this.AddReturn(this.Constants.UnitValue, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
                 var udtTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
-                QirStatementKindTransformation.AddOrPushReturn(this, udtTuple.TypedPointer, returnsVoid: false);
+                this.AddReturn(udtTuple.TypedPointer, returnsVoid: false);
             }
         }
 
@@ -1535,7 +1578,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void StartInlining()
         {
             this.OpenNamingScope();
-            this.CurrentInlineLevel++;
+            var inlineId = this.GenerateUniqueName("__inline");
+            this.inlineLevels.Push((inlineId, this.Constants.UnitValue));
         }
 
         /// <summary>
@@ -1544,12 +1588,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal Value StopInlining()
         {
-            // FIXME: INSTEAD OF AN INTEGER FOR INLINING, KEEP A STACK OF VALUES WITH THE RETURNS FOR EACH INLINE LEVEL
-            // FIXME: PREVENT INLINING OF CALLABLES THAT RETURN A VALUE OTHER THAN UNIT AND HAVE MORE THAN ONE RETURN STATEMENT
-            // FIXME: INSTANTIATE THE RETURN VALUE FOR EACH INLINE LEVEL WITH UNIT
-
-            this.CurrentInlineLevel--;
             this.CloseNamingScope();
+            return this.inlineLevels.Pop().Item2;
         }
 
         /// <summary>
@@ -1560,13 +1600,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The mapped name</returns>
         internal string InlinedName(string name)
         {
-            var sb = new StringBuilder();
-            for (int i = 0; i < this.CurrentInlineLevel; i++)
-            {
-                sb.Append('.');
-            }
-            sb.Append(name);
-            return sb.ToString();
+            var postfix = this.inlineLevels.TryPeek(out var level) ? level.Item1 : "";
+            return $"{name}{postfix}";
         }
 
         #endregion

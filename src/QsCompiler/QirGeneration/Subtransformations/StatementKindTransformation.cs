@@ -10,7 +10,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -35,40 +34,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public QirStatementKindTransformation(GenerationContext sharedState, TransformationOptions options) : base(sharedState, options)
         {
-        }
-
-        // static methods
-
-        // used by the return statement transformation as well as for building constructors
-
-        /// <summary>
-        /// If the current inline level is zero, exists the scope and generates a suitable return using the current builder.
-        /// Otherwise, pushes the given result value on top of the value stack.
-        /// </summary>
-        internal static void AddOrPushReturn(GenerationContext sharedState, Value result, bool returnsVoid)
-        {
-            // FIXME: THIS IS NOT ACTUALLY TRUE; ALSO, THE CALLABLE MAY HAVE SEVERAL RETURN STATEMENT,
-            // SO WE NEED A DIFFERENT STRATEGY THAN LEAVING THE RETURN VALUE AT THE TOP OF THE STACK IF WE INLINE!
-
-            if (sharedState.CurrentInlineLevel == 0)
-            {
-                // The return value and its inner items won't be unreferenced when exiting the scope
-                // since it will be used by the caller
-                sharedState.ScopeMgr.ExitScope(returned: result);
-
-                if (returnsVoid)
-                {
-                    sharedState.CurrentBuilder.Return();
-                }
-                else
-                {
-                    sharedState.CurrentBuilder.Return(result);
-                }
-            }
-            else
-            {
-                sharedState.ValueStack.Push(result);
-            }
         }
 
         // to be removed
@@ -515,7 +480,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
             Value result = this.SharedState.EvaluateSubexpression(ex);
-            AddOrPushReturn(this.SharedState, result, ex.ResolvedType.Resolution.IsUnitType);
+            this.SharedState.AddReturn(result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;
         }
 
