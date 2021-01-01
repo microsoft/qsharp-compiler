@@ -1348,6 +1348,59 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.CreateForLoop(startValue, EvaluateCondition, increment, ExecuteBody);
         }
 
+        /// <summary>
+        /// Iterates through the range defined by start, step, and end, and executes the given action on each iteration value.
+        /// The action is executed within its own scope.
+        /// </summary>
+        /// <param name="start">The start of the range and first iteration value</param>
+        /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L</param>
+        /// <param name="end">The end of the range after which the iteration terminates</param>
+        /// <param name="executeBody">The action to perform on each item</param>
+        /// <exception cref="InvalidOperationException">The current block is set to null.</exception>
+        internal void IterateThroughRange(Value start, Value? step, Value end, Action<Value> executeBody)
+        {
+            if (this.CurrentFunction == null)
+            {
+                throw new InvalidOperationException("current function is set to null");
+            }
+
+            // Creates a preheader block to determine the direction of the loop.
+            // The returned value evaluates to true if he given increment is positive.
+            Value CreatePreheader(Value increment)
+            {
+                var preheaderName = this.GenerateUniqueName("preheader");
+                var preheaderBlock = this.CurrentFunction.AppendBasicBlock(preheaderName);
+
+                // End the current block by branching to the preheader
+                this.CurrentBuilder.Branch(preheaderBlock);
+
+                // Preheader block: determine whether the step size is positive
+                this.SetCurrentBlock(preheaderBlock);
+                return this.CurrentBuilder.Compare(
+                    IntPredicate.SignedGreaterThan,
+                    increment,
+                    this.Context.CreateConstant(0L));
+            }
+
+            Value EvaluateCondition(Value loopVarIncreases, Value loopVariable)
+            {
+                var isGreaterOrEqualEnd = this.CurrentBuilder.Compare(
+                    IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
+                var isSmallerOrEqualEnd = this.CurrentBuilder.Compare(
+                    IntPredicate.SignedLessThanOrEqual, loopVariable, end);
+                // If we increase the loop variable in each iteration (i.e. step is positive)
+                // then we need to check that the current value is smaller than or equal to the end value,
+                // and otherwise we check if it is larger than or equal to the end value.
+                return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
+            }
+
+            Value loopVarIncreases = step == null
+                ? this.Context.CreateConstant(true) // the step is one by default
+                : CreatePreheader(step);
+            step ??= this.Context.CreateConstant(1L);
+            this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
+        }
+
         #endregion
 
         #region Tuple and array handling
@@ -1691,13 +1744,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
         /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void RegisterName(string name, Value value, bool isMutable = false)
+        internal void _RegisterName(string name, Value value, bool isMutable = false)
         {
             if (string.IsNullOrEmpty(value.Name))
             {
                 value.RegisterName(this.InlinedName(name));
             }
             this.namesInScope.Peek().Add(name, (value, isMutable));
+            this.IncreaseAccessCount(value);
+            // FIXME: IF WE INCREASE THE ACCESS COUNT HERE, THEN WE NEED TO DECREASE THE ACCESS COUNT WHEN WE POP THE NAMES
         }
 
         /// <summary>

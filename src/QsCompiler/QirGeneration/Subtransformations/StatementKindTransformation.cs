@@ -117,70 +117,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Generate the allocations and bindings for the qubit bindings in a using statement.
-        /// </summary>
-        /// <param name="binding">The Q# binding to process</param>
-        private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
-        {
-            ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
-            IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
-            IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
-
-            Value Allocate(ResolvedInitializer init)
-            {
-                if (init.Resolution.IsSingleQubitAllocation)
-                {
-                    Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                    this.SharedState.ScopeMgr.AddQubitAllocation(allocation);
-                    return allocation;
-                }
-                else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
-                {
-                    Value countValue = this.SharedState.EvaluateSubexpression(reg.Item);
-                    Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                    this.SharedState.ScopeMgr.AddQubitAllocation(allocation);
-                    return allocation;
-                }
-                else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
-                {
-                    var items = inits.Item.Select(Allocate).ToArray();
-                    return this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items).TypedPointer;
-                }
-                else
-                {
-                    throw new NotImplementedException("unknown initializer in qubit allocation");
-                }
-            }
-
-            // Generate the allocations for an item, which might be a single variable or might be a tuple
-            void AllocateAndAssign(SymbolTuple item, ResolvedInitializer itemInit)
-            {
-                switch (item)
-                {
-                    case SymbolTuple.VariableName v:
-                        this.SharedState.RegisterName(v.Item, Allocate(itemInit));
-                        break;
-                    case SymbolTuple.VariableNameTuple syms:
-                        if (itemInit.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits
-                            && inits.Item.Length == syms.Item.Length)
-                        {
-                            for (int i = 0; i < syms.Item.Length; i++)
-                            {
-                                AllocateAndAssign(syms.Item[i], inits.Item[i]);
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            throw new ArgumentException("shape of symbol tuple does not match initializers");
-                        }
-                }
-            }
-
-            AllocateAndAssign(binding.Lhs, binding.Rhs);
-        }
-
-        /// <summary>
         /// Generate QIR for a Q# scope, with a specified continuation block.
         /// The QIR starts in the provided basic block, but may be generated into many blocks depending
         /// on the Q# code.
@@ -228,8 +164,69 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnQubitScope(QsQubitScope stm)
         {
+            void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
+            {
+                ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
+                IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
+                IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
+
+                Value Allocate(ResolvedInitializer init)
+                {
+                    if (init.Resolution.IsSingleQubitAllocation)
+                    {
+                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
+                        this.SharedState.ScopeMgr._AddQubitAllocation(allocation);
+                        return allocation;
+                    }
+                    else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
+                    {
+                        Value countValue = this.SharedState.EvaluateSubexpression(reg.Item);
+                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
+                        this.SharedState.ScopeMgr._AddQubitAllocation(allocation);
+                        return allocation;
+                    }
+                    else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
+                    {
+                        var items = inits.Item.Select(Allocate).ToArray();
+                        return this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items).TypedPointer;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("unknown initializer in qubit allocation");
+                    }
+                }
+
+                // Generate the allocations for an item, which might be a single variable or might be a tuple
+                void AllocateAndAssign(SymbolTuple item, ResolvedInitializer itemInit)
+                {
+                    switch (item)
+                    {
+                        case SymbolTuple.VariableName v:
+                            this.SharedState._RegisterName(v.Item, Allocate(itemInit));
+                            break;
+
+                        case SymbolTuple.VariableNameTuple syms:
+                            if (itemInit.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits
+                                && inits.Item.Length == syms.Item.Length)
+                            {
+                                for (int i = 0; i < syms.Item.Length; i++)
+                                {
+                                    AllocateAndAssign(syms.Item[i], inits.Item[i]);
+                                }
+                                break;
+                            }
+                            else
+                            {
+                                throw new ArgumentException("shape of symbol tuple does not match initializers");
+                            }
+                    }
+                }
+
+                AllocateAndAssign(binding.Lhs, binding.Rhs);
+            }
+
             this.SharedState.ScopeMgr.OpenScope();
-            this.ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
+            ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             return QsStatementKind.EmptyStatement;
@@ -244,7 +241,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var clauses = stm.ConditionalBlocks;
-            // Create the "continuation" block, used for all conditionals
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
 
             // if/then/elif...else
@@ -316,10 +312,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
             this.SharedState.CurrentBuilder.Unreachable();
 
-            // Even though this terminates the block execution, we'll still wind up terminating
-            // the containing Q# statement block, and thus the LLVM basic block, so we don't need
-            // to tell LLVM that this is actually a terminator.
-
             return QsStatementKind.EmptyStatement;
         }
 
@@ -333,72 +325,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
-            (Value Start, Value Step, Value End) RangeItems(TypedExpression range)
-            {
-                (Value? startValue, Value? stepValue, Value? endValue) = (null, null, null);
-                if (range.Expression is ResolvedExpression.RangeLiteral rlit)
-                {
-                    if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
-                    {
-                        startValue = this.SharedState.EvaluateSubexpression(rlitInner.Item1);
-                        stepValue = this.SharedState.EvaluateSubexpression(rlitInner.Item2);
-                    }
-                    else
-                    {
-                        // 1 is the step
-                        startValue = this.SharedState.EvaluateSubexpression(rlit.Item1);
-                        stepValue = this.SharedState.Context.CreateConstant(1L);
-                    }
-
-                    // Item2 is always the end. Either Item1 is the start and 1 is the step,
-                    // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
-                    endValue = this.SharedState.EvaluateSubexpression(rlit.Item2);
-                }
-                else
-                {
-                    var rangeValue = this.SharedState.EvaluateSubexpression(range);
-                    startValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 0);
-                    stepValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 1);
-                    endValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 2);
-                }
-                return (startValue, stepValue, endValue);
-            }
-
-            void IterateThroughRange(Value startValue, Value increment, Value endValue, Action<Value> executeBody)
-            {
-                // Creates a preheader block to determine the direction of the loop.
-                Value CreatePreheader()
-                {
-                    var preheaderName = this.SharedState.GenerateUniqueName("preheader");
-                    var preheaderBlock = this.SharedState.CurrentFunction.AppendBasicBlock(preheaderName);
-
-                    // End the current block by branching to the preheader
-                    this.SharedState.CurrentBuilder.Branch(preheaderBlock);
-
-                    // Preheader block: determine whether the step size is positive
-                    this.SharedState.SetCurrentBlock(preheaderBlock);
-                    return this.SharedState.CurrentBuilder.Compare(
-                        IntPredicate.SignedGreaterThan,
-                        increment,
-                        this.SharedState.Context.CreateConstant(0L));
-                }
-
-                Value EvaluateCondition(Value loopVarIncreases, Value loopVariable)
-                {
-                    var isGreaterOrEqualEnd = this.SharedState.CurrentBuilder.Compare(
-                        IntPredicate.SignedGreaterThanOrEqual, loopVariable, endValue);
-                    var isSmallerOrEqualEnd = this.SharedState.CurrentBuilder.Compare(
-                        IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
-                    // If we increase the loop variable in each iteration (i.e. step is positive)
-                    // then we need to check that the current value is smaller than or equal to the end value,
-                    // and otherwise we check if it is larger than or equal to the end value.
-                    return this.SharedState.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
-                }
-
-                Value loopVarIncreases = CreatePreheader();
-                this.SharedState.CreateForLoop(startValue, loopVar => EvaluateCondition(loopVarIncreases, loopVar), increment, executeBody);
-            }
-
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -408,12 +334,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    this.SharedState.RegisterName(loopVarName, loopVariable);
+                    this.SharedState._RegisterName(loopVarName, loopVariable);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
-                var (startValue, stepValue, endValue) = RangeItems(stm.IterationValues);
-                IterateThroughRange(startValue, stepValue, endValue, ExecuteBody);
+                var (getStart, getStep, getEnd) = QirExpressionKindTransformation.RangeItems(this.SharedState, stm.IterationValues);
+                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {
@@ -435,6 +361,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             return QsStatementKind.EmptyStatement;
         }
+
+//////////////
 
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)

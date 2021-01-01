@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -152,6 +153,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // private helpers
 
+        /// <param name="sharedState">The generation context in which to emit the instructions</param>
+        /// <param name="range">The range expression for which to create the access functions</param>
+        /// <returns>
+        /// Three functions to access the start, step, and end of a range.
+        /// The function to access the step may return null if the given range does not specify the step.
+        /// In that case, the step size defaults to be 1L.
+        /// </returns>
+        internal static (Func<Value> GetStart, Func<Value?> GetStep, Func<Value> GetEnd) RangeItems(GenerationContext sharedState, TypedExpression range)
+        {
+            Func<Value> startValue;
+            Func<Value?> stepValue;
+            Func<Value> endValue;
+            if (range.Expression is ResolvedExpression.RangeLiteral rlit)
+            {
+                if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
+                {
+                    startValue = () => sharedState.EvaluateSubexpression(rlitInner.Item1);
+                    stepValue = () => sharedState.EvaluateSubexpression(rlitInner.Item2);
+                }
+                else
+                {
+                    startValue = () => sharedState.EvaluateSubexpression(rlit.Item1);
+                    stepValue = () => null;
+                }
+
+                // Item2 is always the end. Either Item1 is the start and 1 is the step,
+                // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
+                endValue = () => sharedState.EvaluateSubexpression(rlit.Item2);
+            }
+            else
+            {
+                var rangeValue = sharedState.EvaluateSubexpression(range);
+                startValue = () => sharedState.CurrentBuilder.ExtractValue(rangeValue, 0);
+                stepValue = () => sharedState.CurrentBuilder.ExtractValue(rangeValue, 1);
+                endValue = () => sharedState.CurrentBuilder.ExtractValue(rangeValue, 2);
+            }
+            return (startValue, stepValue, endValue);
+        }
+
         /// <summary>
         /// Determines the location of the item with the given name within the tuple of type items.
         /// The returned list contains the index of the item starting from the outermost tuple
@@ -175,6 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             _ => ResolvedType.New(QsResolvedTypeKind.InvalidType)
                         };
                         return this.SharedState.LlvmTypeFromQsharpType(leafType);
+
                     case QsTuple<QsTypeItem>.QsTuple list:
                         var types = list.Item.Select(i => i switch
                         {
@@ -183,6 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             _ => this.SharedState.Context.TokenType
                         });
                         return this.SharedState.Types.CreateConcreteTupleType(types).CreatePointerType();
+
                     default:
                         throw new NotImplementedException("unknown item in argument tuple");
                 }
@@ -234,28 +276,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (name.Equals(BuiltIn.RangeStart.FullName))
             {
-                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
+                var (getStart, _, _) = RangeItems(this.SharedState, arg);
+                evaluated = getStart();
                 return true;
             }
             else if (name.Equals(BuiltIn.RangeStep.FullName))
             {
-                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
+                var (_, getStep, _) = RangeItems(this.SharedState, arg);
+                evaluated = getStep() ?? this.SharedState.Context.CreateConstant(1L);
                 return true;
             }
             else if (name.Equals(BuiltIn.RangeEnd))
             {
-                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                evaluated = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
+                var (_, _, getEnd) = RangeItems(this.SharedState, arg);
+                evaluated = getEnd();
                 return true;
             }
             else if (name.Equals(BuiltIn.RangeReverse.FullName))
             {
-                var rangeArg = this.SharedState.EvaluateSubexpression(arg);
-                var start = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 0u);
-                var step = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 1u);
-                var end = this.SharedState.CurrentBuilder.ExtractValue(rangeArg, 2u);
+                var (getStart, getStep, getEnd) = RangeItems(this.SharedState, arg);
+                var start = getStart();
+                var step = getStep() ?? this.SharedState.Context.CreateConstant(1L);
+                var end = getEnd();
+
                 var newStart = this.SharedState.CurrentBuilder.Add(
                     start,
                     this.SharedState.CurrentBuilder.Mul(
@@ -751,7 +794,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value CopyAndUpdateArray(ITypeRef elementType)
             {
                 var originalArray = this.SharedState.EvaluateSubexpression(lhs);
-                var index = this.SharedState.EvaluateSubexpression(accEx);
                 var newItemValue = this.SharedState.EvaluateSubexpression(rhs);
 
                 // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
@@ -770,21 +812,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.IterateThroughArray(elementType, value, this.IncreaseReferenceCount);
                 this.QueueDecreaseReferenceCount(value);
 
-                if (accEx.ResolvedType.Resolution.IsInt)
+                void UpdateElement(Func<Value, Value> getNewItemForIndex, Value index)
                 {
                     var elementPtr = this.SharedState.GetArrayElementPointer(elementType, value, index);
                     var originalElement = this.SharedState.CurrentBuilder.Load(elementType, elementPtr);
+                    var newElement = getNewItemForIndex(index);
+
                     // Remark: Avoiding to increase and then decrease the reference count for the original item
                     // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
                     // whether that would be much better.
                     this.DecreaseReferenceCount(originalElement);
-                    this.SharedState.CurrentBuilder.Store(newItemValue, elementPtr);
-                    this.IncreaseReferenceCount(newItemValue);
+                    this.SharedState.CurrentBuilder.Store(newElement, elementPtr);
+                    this.IncreaseReferenceCount(newElement);
+                }
+
+                if (accEx.ResolvedType.Resolution.IsInt)
+                {
+                    var index = this.SharedState.EvaluateSubexpression(accEx);
+                    UpdateElement(_ => newItemValue, index);
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
-                    // TODO: handle range updates
-                    throw new NotImplementedException("array slice updates are not yet supported in QIR emission");
+                    Value GetNewItemForIndex(Value index) =>
+                        this.SharedState.GetArrayElement(elementType, newItemValue, index);
+
+                    var (getStart, getStep, getEnd) = RangeItems(this.SharedState, accEx);
+                    this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(GetNewItemForIndex, index));
                 }
                 else
                 {
