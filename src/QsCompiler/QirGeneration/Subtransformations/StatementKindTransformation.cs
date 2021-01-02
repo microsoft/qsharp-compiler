@@ -52,12 +52,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState.ScopeMgr.RegisterName(varName.Item, ptr, true);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr, true);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
                 }
                 else
                 {
-                    this.SharedState.ScopeMgr.RegisterName(varName.Item, value, false);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, value, false);
                 }
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     switch (item)
                     {
                         case SymbolTuple.VariableName v:
-                            this.SharedState.ScopeMgr.RegisterName(v.Item, Allocate(itemInit));
+                            this.SharedState.ScopeMgr.RegisterVariable(v.Item, Allocate(itemInit));
                             break;
 
                         case SymbolTuple.VariableNameTuple syms:
@@ -276,7 +276,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    this.SharedState.ScopeMgr.RegisterName(loopVarName, loopVariable);
+                    this.SharedState.ScopeMgr.RegisterVariable(loopVarName, loopVariable);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 

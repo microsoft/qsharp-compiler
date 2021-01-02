@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
                     var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
                     this.opaquePointer = this.Builder.Call(constructor, size);
-                    this.sharedState.ScopeMgr.QueueDecreaseReferenceCount(this.TypedPointer);
+                    this.sharedState.ScopeMgr.RegisterValue(this.TypedPointer);
                 }
 
                 this.opaquePointer ??= this.Builder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
                     var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
                     this.opaquePointer = this.Builder.Call(constructor, elementSize, this.Length);
-                    this.sharedState.ScopeMgr.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
+                    this.sharedState.ScopeMgr.RegisterValue(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
                 }
                 return this.opaquePointer;
             }

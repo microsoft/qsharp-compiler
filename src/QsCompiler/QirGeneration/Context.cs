@@ -961,7 +961,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (outerArgNames.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
                 var innerTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
-                this.ScopeMgr.RegisterName(outerArgNames[0], innerTuple.TypedPointer, false);
+                this.ScopeMgr.RegisterVariable(outerArgNames[0], innerTuple.TypedPointer, false);
             }
             else
             {
@@ -969,7 +969,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var argName in outerArgNames)
                 {
                     this.CurrentFunction.Parameters[i].Name = argName;
-                    this.ScopeMgr.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
+                    this.ScopeMgr.RegisterVariable(argName, this.CurrentFunction.Parameters[i], false);
                     i++;
                 }
             }
@@ -985,7 +985,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
                     var element = this.GetTupleElement(tupleType, tupleValue, idx);
-                    this.ScopeMgr.RegisterName(argName, element, false);
+                    this.ScopeMgr.RegisterVariable(argName, element, false);
                     idx++;
                 }
             }

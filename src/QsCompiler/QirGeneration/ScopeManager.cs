@@ -280,66 +280,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Registers a variable name as an alias for an LLVM value.
+        /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
-        /// <param name="name">The name to register</param>
-        /// <param name="value">The LLVM value</param>
-        /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void RegisterName(string name, Value value, bool isMutable = false)
+        /// <param name="value">The value which is referenced</param>
+        public void IncreaseReferenceCount(Value value, InstructionBuilder? builder = null)
         {
-            if (string.IsNullOrEmpty(value.Name))
+            builder ??= this.sharedState.CurrentBuilder;
+            var referenceFunc = this.ReferenceFunctionForType(value.NativeType);
+            if (referenceFunc != null)
             {
-                value.RegisterName(this.sharedState.InlinedName(name));
+                this.RecursivelyModifyCounts(value, referenceFunc, this.ReferenceFunctionForType, builder);
             }
-            this.IncreaseAccessCount(value);
-            this.namesInScope.Peek().Add(name, (value, isMutable));
         }
 
         /// <summary>
-        /// Gets the pointer to a mutable variable by name.
-        /// The name must have been registered as an alias for the pointer value using
-        /// <see cref="RegisterName(string, Value, bool)"/>.
+        /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
-        /// <param name="name">The registered variable name to look for</param>
-        /// <returns>The pointer value for the mutable value</returns>
-        internal Value GetNamedPointer(string name)
+        /// <param name="value">The value which is unreferenced</param>
+        public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null)
         {
-            foreach (var dict in this.namesInScope)
+            builder ??= this.sharedState.CurrentBuilder;
+            var unreferenceFunc = this.UnreferenceFunctionForType(value.NativeType);
+            if (unreferenceFunc != null)
             {
-                if (dict.TryGetValue(name, out (Value, bool) item))
-                {
-                    if (item.Item2)
-                    {
-                        return item.Item1;
-                    }
-                }
+                this.RecursivelyModifyCounts(value, unreferenceFunc, this.UnreferenceFunctionForType, builder);
             }
-            throw new KeyNotFoundException($"Could not find a Value for mutable symbol {name}");
-        }
-
-        /// <summary>
-        /// Gets the value of a named variable on the value stack, loading the value if necessary.
-        /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterName(string, Value, bool)"/>.
-        /// <para>
-        /// If the variable is mutable, then the associated pointer value is used to load and push the actual
-        /// variable value.
-        /// </para>
-        /// </summary>
-        /// <param name="name">The registered variable name to look for</param>
-        internal Value GetNamedValue(string name)
-        {
-            foreach (var dict in this.namesInScope)
-            {
-                if (dict.TryGetValue(name, out (Value, bool) item))
-                {
-                    return item.Item2
-                        // Mutable, so the value is a pointer; we need to load what it's pointing to
-                        ? this.sharedState.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
-                        : item.Item1;
-                }
-            }
-            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>
@@ -373,59 +340,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Queues a call to a suitable runtime library function that decreases the access count for the value
-        /// when the scope is closed or exited.
-        /// </summary>
-        /// <param name="value">The value which is unassigned from a handle</param>
-        private void QueueDecreaseAccessCount(Value value)
-        // FIXME: WHY IS THIS NOT NEEDED? WHY IS NAMING SCOPE A SEPARATE THING?
-        // QUEUE DECREASE ACCESS COUNT IS NOT NEEDED BECAUSE ACCESS COUNTS REFLECT BINDINGS TO VARIABLES,
-        // AND SINCE WE TRACK VARIABLES, WE CAN AUTOMATICALLY DECREASET THE ACCESS COUNT UPON POPING THE STACK
-        // QueueDecreaseReferenceCount IS JUST THE REGISTRATION FOR UNNAMED VARIABLES
-        {
-            var func = this.RemoveAccessFunctionForType(value.NativeType);
-            if (func != null)
-            {
-                this.pendingCalls.Peek().Add((value, func));
-            }
-        }
-
-        /// <summary>
-        /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
-        /// </summary>
-        /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var referenceFunc = this.ReferenceFunctionForType(value.NativeType);
-            if (referenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, referenceFunc, this.ReferenceFunctionForType, builder);
-            }
-        }
-
-        /// <summary>
-        /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
-        /// </summary>
-        /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var unreferenceFunc = this.UnreferenceFunctionForType(value.NativeType);
-            if (unreferenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, unreferenceFunc, this.UnreferenceFunctionForType, builder);
-            }
-        }
-
-        /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
         /// when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void QueueDecreaseReferenceCount(Value value)
+        public void RegisterValue(Value value)
         {
             var func = this.UnreferenceFunctionForType(value.NativeType);
             if (func != null)
@@ -446,7 +365,70 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value.NativeType == this.sharedState.Types.Qubit ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
             this.pendingCalls.Peek().Add((value, releaser)); // this takes care purely of the deallocation
-            this.QueueDecreaseReferenceCount(value); // this takes care of properly unreferencing the created array if necessary
+            this.RegisterValue(value); // this takes care of properly unreferencing the created array if necessary
+        }
+
+        /// <summary>
+        /// Registers a variable name as an alias for an LLVM value.
+        /// </summary>
+        /// <param name="name">The name to register</param>
+        /// <param name="value">The LLVM value</param>
+        /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
+        internal void RegisterVariable(string name, Value value, bool isMutable = false)
+        {
+            if (string.IsNullOrEmpty(value.Name))
+            {
+                value.RegisterName(this.sharedState.InlinedName(name));
+            }
+            this.IncreaseAccessCount(value);
+            this.namesInScope.Peek().Add(name, (value, isMutable));
+        }
+
+        /// <summary>
+        /// Gets the pointer to a mutable variable by name.
+        /// The name must have been registered as an alias for the pointer value using
+        /// <see cref="RegisterVariable(string, Value, bool)"/>.
+        /// </summary>
+        /// <param name="name">The registered variable name to look for</param>
+        /// <returns>The pointer value for the mutable value</returns>
+        internal Value GetNamedPointer(string name)
+        {
+            foreach (var dict in this.namesInScope)
+            {
+                if (dict.TryGetValue(name, out (Value, bool) item))
+                {
+                    if (item.Item2)
+                    {
+                        return item.Item1;
+                    }
+                }
+            }
+            throw new KeyNotFoundException($"Could not find a Value for mutable symbol {name}");
+        }
+
+        /// <summary>
+        /// Gets the value of a named variable on the value stack, loading the value if necessary.
+        /// The name must have been registered as an alias for the value using
+        /// <see cref="RegisterVariable(string, Value, bool)"/>.
+        /// <para>
+        /// If the variable is mutable, then the associated pointer value is used to load and push the actual
+        /// variable value.
+        /// </para>
+        /// </summary>
+        /// <param name="name">The registered variable name to look for</param>
+        internal Value GetNamedValue(string name)
+        {
+            foreach (var dict in this.namesInScope)
+            {
+                if (dict.TryGetValue(name, out (Value, bool) item))
+                {
+                    return item.Item2
+                        // Mutable, so the value is a pointer; we need to load what it's pointing to
+                        ? this.sharedState.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
+                        : item.Item1;
+                }
+            }
+            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>

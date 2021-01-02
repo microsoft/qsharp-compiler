@@ -482,7 +482,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
                 callable = builder.Call(makeCopy, callable, forceCopy);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(callable);
+                this.SharedState.ScopeMgr.RegisterValue(callable);
             }
 
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
@@ -514,21 +514,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntAdd creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
                 value = this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else if (exType.IsString)
             {
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
                 value = this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else if (exType.IsArrayType)
             {
                 // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 value = this.SharedState.CurrentBuilder.Call(adder, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -564,7 +564,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 value = this.SharedState.CurrentBuilder.Call(sliceArray, array, index, forceCopy);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -584,7 +584,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var createBigInt = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
                 var val = this.SharedState.Context.CreateConstant((long)b);
                 value = this.SharedState.CurrentBuilder.Call(createBigInt, val);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -599,7 +599,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     byteArray,
                     this.SharedState.Context.Int8Type.CreateArrayType(0));
                 value = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -622,7 +622,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntBitwiseAnd creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseAnd);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -649,7 +649,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntBitwiseXor creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseXor);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -676,7 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntBitwiseNot creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseNot);
                 value = this.SharedState.CurrentBuilder.Call(func, exValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -703,7 +703,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntBitwiseOr creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseOr);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -793,7 +793,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // In the same way that we increase the reference count when we populate an array, we hence need to
                 // manually (recursively) increase the reference counts for all items.
                 this.SharedState.IterateThroughArray(elementType, value, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
 
                 void UpdateElement(Func<Value, Value> getNewItemForIndex, Value index)
                 {
@@ -848,7 +848,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var originalValue = this.SharedState.EvaluateSubexpression(lhs);
                 var newItemValue = this.SharedState.EvaluateSubexpression(rhs);
                 var value = GetTupleCopy(originalValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
 
                 if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
@@ -943,7 +943,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntDivide creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntDivide);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1030,7 +1030,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntPower);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhsValue, this.SharedState.Context.Int32Type, true);
                 value = this.SharedState.CurrentBuilder.Call(powFunc, lhsValue, exponent);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1139,7 +1139,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
                 var capture = this.SharedState.Constants.UnitValue; // nothing to capture
                 value = this.SharedState.CurrentBuilder.Call(createCallable, wrapper, capture);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1217,7 +1217,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntLeftShift creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftLeft);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1327,7 +1327,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntModulus creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntModulus);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1358,7 +1358,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntMultiply creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntMultiply);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1389,7 +1389,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1419,7 +1419,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntNegative creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntNegate);
                 value = this.SharedState.CurrentBuilder.Call(func, exValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1684,7 +1684,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
             var value = this.SharedState.CurrentBuilder.Call(createCallable, table, capture.OpaquePointer);
             this.SharedState.ScopeMgr.IncreaseReferenceCount(capture.OpaquePointer);
-            this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+            this.SharedState.ScopeMgr.RegisterValue(value);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
@@ -1772,7 +1772,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntRightShift creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftRight);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1933,7 +1933,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (exs.IsEmpty)
             {
                 value = CreateConstantString(str);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1972,7 +1972,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 value = current ?? CreateConstantString("");
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -1999,7 +1999,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntSubtract creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntSubtract);
                 value = this.SharedState.CurrentBuilder.Call(func, lhsValue, rhsValue);
-                this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -2071,7 +2071,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-            this.SharedState.ScopeMgr.QueueDecreaseReferenceCount(value);
+            this.SharedState.ScopeMgr.RegisterValue(value);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
