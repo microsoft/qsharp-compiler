@@ -1793,9 +1793,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (dict.TryGetValue(name, out (Value, bool) item))
                 {
-                    return item.Item2 && item.Item1.NativeType is IPointerType ptr
+                    return item.Item2
                         // Mutable, so the value is a pointer; we need to load what it's pointing to
-                        ? this.CurrentBuilder.Load(ptr.ElementType, item.Item1)
+                        ? this.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
                         : item.Item1;
                 }
             }

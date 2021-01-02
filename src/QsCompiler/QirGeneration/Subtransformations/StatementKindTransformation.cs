@@ -65,55 +65,46 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="symbolValue">The Value to bind to</param>
         /// <param name="symbolType">The Q# type of the SymbolTuple</param>
         /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbolTuple, Value symbolValue, ResolvedType symbolType, bool mutable = false)
+        private void BindSymbolTuple(SymbolTuple symbols, Value value, ResolvedType type, bool mutable = false)
         {
-            // Bind a Value to a simple variable
-            void BindVariable(string variable, Value value, ResolvedType type)
+            if (symbols is SymbolTuple.VariableName varName)
             {
                 if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState.RegisterName(variable, ptr, true);
+                    this.SharedState._RegisterName(varName.Item, ptr, true);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
                 }
                 else
                 {
-                    this.SharedState.RegisterName(variable, value, false);
+                    this.SharedState._RegisterName(varName.Item, value, false);
                 }
+
             }
-
-            // Bind a structured Value to a tuple of variables (which might contain embedded tuples)
-            void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
+            else if (symbols is SymbolTuple.VariableNameTuple syms)
             {
-                Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
-                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, val);
-
-                for (int i = 0; i < items.Length; i++)
+                if (!(type.Resolution is QsResolvedTypeKind.TupleType types) || syms.Item.Length == types.Item.Length)
                 {
-                    if (!items[i].IsDiscardedItem && !items[i].IsInvalidItem)
+                    throw new InvalidOperationException("shape mismatch in symbol binding");
+                }
+
+                var itemTypes = types.Item.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
+                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
+                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, value);
+
+                for (int i = 0; i < syms.Item.Length; i++)
+                {
+                    if (!syms.Item[i].IsDiscardedItem && !syms.Item[i].IsInvalidItem)
                     {
                         var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemPointers[i]);
-                        BindItem(items[i], itemValue, types[i]);
+                        this.BindSymbolTuple(syms.Item[i], itemValue, types.Item[i], mutable);
                     }
                 }
             }
-
-            // Bind a Value to an item, which might be a single variable or a tuple
-            void BindItem(SymbolTuple item, Value itemValue, ResolvedType itemType)
+            else
             {
-                if (item is SymbolTuple.VariableName v)
-                {
-                    BindVariable(v.Item, itemValue, itemType);
-                }
-                else if (item is SymbolTuple.VariableNameTuple t)
-                {
-                    BindTuple(t.Item, ((QsResolvedTypeKind.TupleType)itemType.Resolution).Item, itemValue);
-                }
+                throw new NotImplementedException("unknown item in symbol tuple");
             }
-
-            BindItem(symbolTuple, symbolValue, symbolType);
         }
 
         /// <summary>
@@ -362,8 +353,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-//////////////
-
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
@@ -414,43 +403,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
-            // Given a symbol with an existing binding, calls RemoveReference on the old value,
-            // update the binding to a new value and calls AddReference on the new value.
-            void UpdateBinding(string symbol, Value newValue)
-            {
-                Value ptr = this.SharedState.GetNamedPointer(symbol);
-                this.SharedState.ScopeMgr.RemoveReference(ptr);
-                this.SharedState.CurrentBuilder.Store(newValue, ptr);
-                this.SharedState.ScopeMgr.AddReference(newValue);
-            }
-
-            // Update a tuple of items from a tuple value.
-            void UpdateTuple(ImmutableArray<TypedExpression> items, Value val)
-            {
-                var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var tupleItems = this.SharedState.GetTupleElements(tupleType, val);
-                for (int i = 0; i < tupleItems.Length; i++)
-                {
-                    UpdateItem(items[i], tupleItems[i]);
-                }
-            }
-
             // Update an item, which might be a single symbol or a tuple, to a new Value
-            void UpdateItem(TypedExpression item, Value itemValue)
+            void UpdateItem(TypedExpression symbols, Value value)
             {
-                if (item.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
+                if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    UpdateBinding(varName.Item, itemValue);
+                    Value ptr = this.SharedState.GetNamedPointer(varName.Item);
+                    this.DecreaseAccessCount(ptr);
+                    this.SharedState.CurrentBuilder.Store(value, ptr);
+                    this.IncreaseAccessCount(value);
                 }
-                else if (item.Expression is ResolvedExpression.ValueTuple tuple)
+                else if (symbols.Expression is ResolvedExpression.ValueTuple tuple)
                 {
-                    UpdateTuple(tuple.Item, itemValue);
+                    var itemTypes = tuple.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
+                    var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
+                    var tupleItems = this.SharedState.GetTupleElements(tupleType, value);
+                    for (int i = 0; i < tupleItems.Length; i++)
+                    {
+                        UpdateItem(tuple.Item[i], tupleItems[i]);
+                    }
                 }
                 else
                 {
-                    // This should never happen
-                    throw new InvalidOperationException("set statement with invalid left-hand side");
+                    throw new NotSupportedException("unknown expression in left-hand side of set statement");
                 }
             }
 
