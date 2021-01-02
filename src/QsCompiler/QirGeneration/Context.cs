@@ -1529,7 +1529,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 builder.Store(vs[i], itemPointers[i]);
-                this.IncreaseReferenceCount(vs[i], builder);
+                this.ScopeMgr.IncreaseReferenceCount(vs[i], builder);
             }
 
             return tuple;
@@ -1723,7 +1723,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void CloseNamingScope()
         {
-            this.namesInScope.Pop();
+            var popped = this.namesInScope.Pop();
+            foreach (var (_, (item, mutable)) in popped)
+            {
+                var value = mutable // mutable values are represented as pointers and require loading
+                    ? this.CurrentBuilder.Load(((IPointerType)item.NativeType).ElementType, item)
+                    : item;
+                this.ScopeMgr.DecreaseAccessCount(value);
+            }
         }
 
         /// <summary>
@@ -1744,15 +1751,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
         /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void _RegisterName(string name, Value value, bool isMutable = false)
+        internal void RegisterName(string name, Value value, bool isMutable = false)
         {
             if (string.IsNullOrEmpty(value.Name))
             {
                 value.RegisterName(this.InlinedName(name));
             }
+            this.ScopeMgr.IncreaseAccessCount(value);
             this.namesInScope.Peek().Add(name, (value, isMutable));
-            this.IncreaseAccessCount(value);
-            // FIXME: IF WE INCREASE THE ACCESS COUNT HERE, THEN WE NEED TO DECREASE THE ACCESS COUNT WHEN WE POP THE NAMES
         }
 
         /// <summary>

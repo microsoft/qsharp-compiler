@@ -25,6 +25,15 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             get
             {
+                if (this.opaquePointer == null && this.typedPointer == null)
+                {
+                    // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
+                    var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
+                    var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
+                    this.opaquePointer = this.Builder.Call(constructor, size);
+                    this.sharedState.ScopeMgr.QueueDecreaseReferenceCount(this.TypedPointer);
+                }
+
                 this.opaquePointer ??= this.Builder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
                 return this.opaquePointer;
             }
@@ -34,14 +43,6 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             get
             {
-                if (this.opaquePointer == null && this.typedPointer == null)
-                {
-                    // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
-                    var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-                    var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
-                    this.opaquePointer = this.Builder.Call(constructor, size);
-                    this.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED POINTER
-                }
                 this.typedPointer ??= this.Builder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
                 return this.typedPointer;
             }
@@ -86,7 +87,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
                     var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
                     this.opaquePointer = this.Builder.Call(constructor, elementSize, this.Length);
-                    this.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
+                    this.sharedState.ScopeMgr.QueueDecreaseReferenceCount(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
                 }
                 return this.opaquePointer;
             }

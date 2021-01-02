@@ -36,23 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // to be removed
-
-        private void IncreaseAccessCount(Value value)
-        {
-            // TODO: IMPLEMENT
-        }
-
-        private void DecreaseAccessCount(Value value)
-        {
-            // TODO: IMPLEMENT
-        }
-
-        private void QueueDecreaseAccessCount(Value value)
-        {
-            // TODO: IMPLEMENT
-        }
-
         // private helpers
 
         /// <summary>
@@ -72,12 +55,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState._RegisterName(varName.Item, ptr, true);
+                    this.SharedState.RegisterName(varName.Item, ptr, true);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
                 }
                 else
                 {
-                    this.SharedState._RegisterName(varName.Item, value, false);
+                    this.SharedState.RegisterName(varName.Item, value, false);
                 }
 
             }
@@ -166,14 +149,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                        this.SharedState.ScopeMgr._AddQubitAllocation(allocation);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
                         return allocation;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value countValue = this.SharedState.EvaluateSubexpression(reg.Item);
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                        this.SharedState.ScopeMgr._AddQubitAllocation(allocation);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
                         return allocation;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
@@ -193,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     switch (item)
                     {
                         case SymbolTuple.VariableName v:
-                            this.SharedState._RegisterName(v.Item, Allocate(itemInit));
+                            this.SharedState.RegisterName(v.Item, Allocate(itemInit));
                             break;
 
                         case SymbolTuple.VariableNameTuple syms:
@@ -325,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    this.SharedState._RegisterName(loopVarName, loopVariable);
+                    this.SharedState.RegisterName(loopVarName, loopVariable);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -409,9 +392,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
                     Value ptr = this.SharedState.GetNamedPointer(varName.Item);
-                    this.DecreaseAccessCount(ptr);
+                    this.SharedState.ScopeMgr.DecreaseAccessCount(ptr);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
-                    this.IncreaseAccessCount(value);
+                    this.SharedState.ScopeMgr.IncreaseAccessCount(value);
                 }
                 else if (symbols.Expression is ResolvedExpression.ValueTuple tuple)
                 {
