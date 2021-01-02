@@ -52,7 +52,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Gets the name of the reference runtime function for a given LLVM type.
+        /// Gets the name of the runtime function to increase the access count for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? AddAccessFunctionForType(ITypeRef t)
+        {
+            if (t.IsPointer)
+            {
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayAddAccess;
+                }
+                else if (this.sharedState.Types.IsTupleType(t))
+                {
+                    return RuntimeLibrary.TupleAddAccess;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
+        /// </summary>
+        /// <param name="t">The LLVM type</param>
+        /// <returns>The name of the unreference function for this type</returns>
+        private string? RemoveAccessFunctionForType(ITypeRef t)
+        {
+            if (t.IsPointer)
+            {
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayRemoveAccess;
+                }
+                else if (this.sharedState.Types.IsTupleType(t))
+                {
+                    return RuntimeLibrary.TupleRemoveAccess;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the name of the runtime function to increase the reference count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
@@ -89,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Gets the name of the unreference runtime function for a given LLVM type.
+        /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
@@ -129,16 +171,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Applies the given function to the given value, casting the value if necessary,
         /// and then recurs into contained items and if getItemFunc returns not null, applies the returned function to them.
         /// </summary>
-        private void RecursivelyModifyReferences(Value value, string funcName, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
+        private void RecursivelyModifyCounts(Value value, string funcName, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
         {
-            //var referenceFunc = this.GetReferenceFunctionForType(value.NativeType);
-            //if (referenceFunc != null)
-            //{
-            //    IrFunction func = this.sharedState.GetOrCreateRuntimeFunction(referenceFunc);
-            //    this.RecursivelyModifyReferences(value, func, this.GetReferenceFunctionForType, builder);
-            //}
-
-
             if (this.sharedState.Types.IsTupleType(value.NativeType))
             {
                 // for tuples we also unreference all inner tuples
@@ -149,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (itemFuncName != null)
                     {
                         var item = this.sharedState.GetTupleElement(tupleStruct, value, i, builder);
-                        this.RecursivelyModifyReferences(item, itemFuncName, getItemFunc, builder);
+                        this.RecursivelyModifyCounts(item, itemFuncName, getItemFunc, builder);
                     }
                 }
 
@@ -184,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             foreach ((Value value, string funcName) in pending)
             {
-                this.RecursivelyModifyReferences(value, funcName, this.UnreferenceFunctionForType, builder);
+                this.RecursivelyModifyCounts(value, funcName, this.UnreferenceFunctionForType, builder);
             }
         }
 
@@ -199,19 +233,48 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.pendingCalls.Push(new List<(Value, string)>());
         }
 
-        internal void IncreaseAccessCount(Value value)
+        /// <summary>
+        /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
+        /// </summary>
+        /// <param name="value">The value which is assigned to a handle</param>
+        internal void IncreaseAccessCount(Value value, InstructionBuilder? builder = null)
         {
-            // TODO: IMPLEMENT
+            builder ??= this.sharedState.CurrentBuilder;
+            var referenceFunc = this.AddAccessFunctionForType(value.NativeType);
+            if (referenceFunc != null)
+            {
+                this.RecursivelyModifyCounts(value, referenceFunc, this.AddAccessFunctionForType, builder);
+            }
         }
 
-        internal void DecreaseAccessCount(Value value)
+        /// <summary>
+        /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
+        /// </summary>
+        /// <param name="value">The value which is unassigned from a handle</param>
+        internal void DecreaseAccessCount(Value value, InstructionBuilder? builder = null)
         {
-            // TODO: IMPLEMENT
+            builder ??= this.sharedState.CurrentBuilder;
+            var unreferenceFunc = this.RemoveAccessFunctionForType(value.NativeType);
+            if (unreferenceFunc != null)
+            {
+                this.RecursivelyModifyCounts(value, unreferenceFunc, this.RemoveAccessFunctionForType, builder);
+            }
         }
 
+        /// <summary>
+        /// Queues a call to a suitable runtime library function that decreases the access count for the value
+        /// when the scope is closed or exited.
+        /// </summary>
+        /// <param name="value">The value which is unassigned from a handle</param>
         private void QueueDecreaseAccessCount(Value value) // FIXME: WHY IS THIS NOT NEEDED? WHY IS NAMING SCOPE A SEPARATE THING?
         {
-            // TODO: IMPLEMENT
+            var func = this.RemoveAccessFunctionForType(value.NativeType);
+            if (func != null)
+            {
+                this.pendingCalls.Peek().Add((value, func));
+            }
         }
 
         /// <summary>
@@ -225,28 +288,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var referenceFunc = this.ReferenceFunctionForType(value.NativeType);
             if (referenceFunc != null)
             {
-                this.RecursivelyModifyReferences(value, referenceFunc, this.ReferenceFunctionForType, builder);
+                this.RecursivelyModifyCounts(value, referenceFunc, this.ReferenceFunctionForType, builder);
             }
         }
 
         /// <summary>
-        /// Given a pointer loads the current value at that location and decreases the value for the reference count if necessary.
-        /// The loads and call are generated in the current block if no builder is specified, and otherwise the given builder is used.
+        /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
+        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
-        /// <param name="pointer">Pointer to the value that will no longer be accessible via that pointer</param>
+        /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
             var unreferenceFunc = this.UnreferenceFunctionForType(value.NativeType);
             if (unreferenceFunc != null)
             {
-                this.RecursivelyModifyReferences(value, unreferenceFunc, this.UnreferenceFunctionForType, builder);
+                this.RecursivelyModifyCounts(value, unreferenceFunc, this.UnreferenceFunctionForType, builder);
             }
         }
 
         /// <summary>
-        /// Adds a value to the current topmost scope, and makes sure that the value and all its items
-        /// are unreferenced when the scope is closed or exited.
+        /// Queues a call to a suitable runtime library function that unreferences the value
+        /// when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
         public void QueueDecreaseReferenceCount(Value value)
