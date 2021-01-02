@@ -152,7 +152,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private readonly Stack<(string, Value)> inlineLevels;
         private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
-        private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
 
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -799,13 +798,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         internal void StartFunction()
         {
-            if (this.namesInScope.Any() || this.inlineLevels.Any() || !this.ScopeMgr.IsEmpty)
+            if (this.inlineLevels.Any() || !this.ScopeMgr.IsEmpty)
             {
                 throw new InvalidOperationException("Processing of the current function and needs to be properly terminated before starting a new one");
             }
 
             this.uniqueNameIds.Clear();
-            this.OpenNamingScope();
             this.ScopeMgr.OpenScope();
         }
 
@@ -842,7 +840,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
-            this.CloseNamingScope();
 
             if (!HasAPredecessor(this.CurrentBlock)
                 && this.CurrentFunction.BasicBlocks.Count > 1)
@@ -854,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBuilder.Return();
             }
 
-            return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any() && !this.namesInScope.Any();
+            return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
         }
 
         /// <summary>
@@ -869,7 +866,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The return value and its inner items either won't be unreferenced
                 // when exiting the scope or a reference will be added by ExitScope
                 // before exiting the scope by since it will be used by the caller.
-                this.ScopeMgr.ExitScope(returned: result);
+                this.ScopeMgr.ExitFunction(returned: result);
 
                 if (returnsVoid)
                 {
@@ -964,7 +961,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (outerArgNames.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
                 var innerTuple = this.CreateTuple(this.CurrentBuilder, this.CurrentFunction.Parameters.ToArray());
-                this.RegisterName(outerArgNames[0], innerTuple.TypedPointer, false);
+                this.ScopeMgr.RegisterName(outerArgNames[0], innerTuple.TypedPointer, false);
             }
             else
             {
@@ -972,7 +969,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var argName in outerArgNames)
                 {
                     this.CurrentFunction.Parameters[i].Name = argName;
-                    this.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
+                    this.ScopeMgr.RegisterName(argName, this.CurrentFunction.Parameters[i], false);
                     i++;
                 }
             }
@@ -981,14 +978,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             while (deconstuctArgument && innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
-                var tupleValue = this.GetNamedValue(tupleArgName);
+                var tupleValue = this.ScopeMgr.GetNamedValue(tupleArgName);
                 IStructType tupleType = Types.StructFromPointer(tupleValue.NativeType);
 
                 int idx = 0;
                 foreach (var argName in ArgTupleToNames(tupleArg, innerTuples))
                 {
                     var element = this.GetTupleElement(tupleType, tupleValue, idx);
-                    this.RegisterName(argName, element, false);
+                    this.ScopeMgr.RegisterName(argName, element, false);
                     idx++;
                 }
             }
@@ -1220,13 +1217,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
                     {
-                        this.OpenNamingScope();
+                        this.ScopeMgr.OpenScope();
                         Value argTupleValue = this.CurrentFunction.Parameters[1];
                         var argList = GenerateArgTupleDecomposition(spec.Signature.ArgumentType, argTupleValue);
                         var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
                         PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
+                        this.ScopeMgr.CloseScope(false);
                         this.CurrentBuilder.Return();
-                        this.CloseNamingScope();
                     }
                 }
             }
@@ -1287,15 +1284,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             bool PopulateLoopBody(Action executeBody)
             {
-                this.OpenNamingScope();
-                this.SetCurrentBlock(bodyBlock);
+                this.SetCurrentBlock(bodyBlock); // the loop variable is just an integer, so it's fine to start the block here
                 this.ScopeMgr.OpenScope();
 
                 executeBody();
 
-                var isTerminated = this.CurrentBlock?.Terminator != null;
+                var isTerminated = this.CurrentBlock.Terminator != null;
                 this.ScopeMgr.CloseScope(isTerminated);
-                this.CloseNamingScope();
 
                 return isTerminated;
             }
@@ -1630,7 +1625,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void StartInlining()
         {
-            this.OpenNamingScope();
+            this.ScopeMgr.OpenScope();
             var inlineId = this.GenerateUniqueName("__inline");
             this.inlineLevels.Push((inlineId, this.Constants.UnitValue));
         }
@@ -1641,7 +1636,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal Value StopInlining()
         {
-            this.CloseNamingScope();
+            this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
             return this.inlineLevels.Pop().Item2;
         }
 
@@ -1706,34 +1701,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Opens a new naming scope and pushes it on top of the naming scope stack.
-        /// <para>
-        /// Naming scopes map variable names to values.
-        /// New names are always added to the scope on top of the stack.
-        /// When looking for a name, the stack is searched top-down.
-        /// </para>
-        /// </summary>
-        internal void OpenNamingScope()
-        {
-            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
-        }
-
-        /// <summary>
-        /// Closes the current naming scope by popping it off of the naming scope stack.
-        /// </summary>
-        internal void CloseNamingScope()
-        {
-            var popped = this.namesInScope.Pop();
-            foreach (var (_, (item, mutable)) in popped)
-            {
-                var value = mutable // mutable values are represented as pointers and require loading
-                    ? this.CurrentBuilder.Load(((IPointerType)item.NativeType).ElementType, item)
-                    : item;
-                this.ScopeMgr.DecreaseAccessCount(value);
-            }
-        }
-
-        /// <summary>
         /// Generates a unique string with a given prefix.
         /// </summary>
         /// <param name="prefix">The prefix</param>
@@ -1743,69 +1710,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var index = this.uniqueNameIds.TryGetValue(prefix, out int n) ? n + 1 : 1;
             this.uniqueNameIds[prefix] = index;
             return $"{prefix}__{index}";
-        }
-
-        /// <summary>
-        /// Registers a variable name as an alias for an LLVM value.
-        /// </summary>
-        /// <param name="name">The name to register</param>
-        /// <param name="value">The LLVM value</param>
-        /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void RegisterName(string name, Value value, bool isMutable = false)
-        {
-            if (string.IsNullOrEmpty(value.Name))
-            {
-                value.RegisterName(this.InlinedName(name));
-            }
-            this.ScopeMgr.IncreaseAccessCount(value);
-            this.namesInScope.Peek().Add(name, (value, isMutable));
-        }
-
-        /// <summary>
-        /// Gets the pointer to a mutable variable by name.
-        /// The name must have been registered as an alias for the pointer value using
-        /// <see cref="RegisterName(string, Value, bool)"/>.
-        /// </summary>
-        /// <param name="name">The registered variable name to look for</param>
-        /// <returns>The pointer value for the mutable value</returns>
-        internal Value GetNamedPointer(string name)
-        {
-            foreach (var dict in this.namesInScope)
-            {
-                if (dict.TryGetValue(name, out (Value, bool) item))
-                {
-                    if (item.Item2)
-                    {
-                        return item.Item1;
-                    }
-                }
-            }
-            throw new KeyNotFoundException($"Could not find a Value for mutable symbol {name}");
-        }
-
-        /// <summary>
-        /// Gets the value of a named variable on the value stack, loading the value if necessary.
-        /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterName(string, Value, bool)"/>.
-        /// <para>
-        /// If the variable is mutable, then the associated pointer value is used to load and push the actual
-        /// variable value.
-        /// </para>
-        /// </summary>
-        /// <param name="name">The registered variable name to look for</param>
-        internal Value GetNamedValue(string name)
-        {
-            foreach (var dict in this.namesInScope)
-            {
-                if (dict.TryGetValue(name, out (Value, bool) item))
-                {
-                    return item.Item2
-                        // Mutable, so the value is a pointer; we need to load what it's pointing to
-                        ? this.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
-                        : item.Item1;
-                }
-            }
-            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>

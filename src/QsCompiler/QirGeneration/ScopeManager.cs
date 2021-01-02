@@ -27,18 +27,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal class ScopeManager
     {
+        private readonly GenerationContext sharedState;
+
+        /// <summary>
+        /// Naming scopes map variable names to values.
+        /// New names are always added to the scope on top of the stack.
+        /// When looking for a name, the stack is searched top-down.
+        /// </summary>
+        private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
+
         // FIXME THE STACK NEEDS TO CONTAIN SOMETHING WITH MORE TYPE INFO
         // -> HAVE TUPLEVALUE, ARRAYVALUE ETC INHERIT FROM A COMMON CLASS AND KEEP A STACK OF THAT INSTEAD...
         // WE CAN KEEP THE NECESSARY FUNCTION AS A STATIC MEMBER IN THAT CLASS AS WELL, ELMININATING THEM FROM THE ScopeManager.
         // FIXME: NAMING SCOPE SHOULD ALSO BE PART OF THIS CLASS...
         private readonly Stack<List<(Value, string)>> pendingCalls = new Stack<List<(Value, string)>>();
-        private readonly GenerationContext sharedState;
 
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
         /// Stack frames are added and removed by OpenScope and CloseScope respectively.
         /// </summary>
-        public bool IsEmpty => !this.pendingCalls.Any();
+        public bool IsEmpty => !this.pendingCalls.Any(); // FIXME: NAMES IN SCOPE AND PENDING CALLS SHOULD ALWAYS MATCH - MAKE SURE OF THAT BY ADDING A SUITABLE DATA STRUCTURE
 
         /// <summary>
         /// Creates a new ref count scope manager.
@@ -214,9 +222,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="pending">The list of pending calls to unreference the values for a scope</param>
         /// <param name="builder">The InstructionBuilder where the calls should be generated</param>
-        private void ExecutePendingCalls(IEnumerable<(Value, string)> pending, InstructionBuilder builder)
+        private void ExecutePendingCalls(IDictionary<string, (Value, bool)> variables, IEnumerable<(Value, string)> calls, InstructionBuilder? builder = null)
         {
-            foreach ((Value value, string funcName) in pending)
+            builder ??= this.sharedState.CurrentBuilder;
+
+            foreach (var (_, (item, mutable)) in variables)
+            {
+                var value = mutable // mutable values are represented as pointers and require loading
+                    ? builder.Load(((IPointerType)item.NativeType).ElementType, item)
+                    : item;
+                this.DecreaseAccessCount(value);
+            }
+
+            foreach ((Value value, string funcName) in calls)
             {
                 this.RecursivelyModifyCounts(value, funcName, this.UnreferenceFunctionForType, builder);
             }
@@ -225,12 +243,103 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // public methods
 
         /// <summary>
-        /// Opens a new ref counting scope.
-        /// The new scope is a child of the current scope (it is pushed on to the scope stack).
+        /// Opens a new scope and pushes it on top of the naming scope stack.
+        /// Opening a new scope automatically opens a new naming scope as well.
         /// </summary>
         public void OpenScope()
         {
             this.pendingCalls.Push(new List<(Value, string)>());
+            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
+        }
+
+        /// <summary>
+        /// Closes the current scope by popping it off of the stack.
+        /// Closing the scope automatically also closes the current naming scope as well.
+        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
+        /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
+        /// </summary>
+        public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
+        {
+            var variables = this.namesInScope.Pop();
+            var pending = this.pendingCalls.Pop();
+            if (!isTerminated)
+            {
+                this.ExecutePendingCalls(variables, pending, builder);
+            }
+        }
+
+        public void ExitScope(bool isTerminated, InstructionBuilder? builder = null)
+        {
+            var variables = this.namesInScope.Peek();
+            var pending = this.pendingCalls.Peek();
+            if (!isTerminated)
+            {
+                this.ExecutePendingCalls(variables, pending, builder);
+            }
+        }
+
+        /// <summary>
+        /// Registers a variable name as an alias for an LLVM value.
+        /// </summary>
+        /// <param name="name">The name to register</param>
+        /// <param name="value">The LLVM value</param>
+        /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
+        internal void RegisterName(string name, Value value, bool isMutable = false)
+        {
+            if (string.IsNullOrEmpty(value.Name))
+            {
+                value.RegisterName(this.sharedState.InlinedName(name));
+            }
+            this.IncreaseAccessCount(value);
+            this.namesInScope.Peek().Add(name, (value, isMutable));
+        }
+
+        /// <summary>
+        /// Gets the pointer to a mutable variable by name.
+        /// The name must have been registered as an alias for the pointer value using
+        /// <see cref="RegisterName(string, Value, bool)"/>.
+        /// </summary>
+        /// <param name="name">The registered variable name to look for</param>
+        /// <returns>The pointer value for the mutable value</returns>
+        internal Value GetNamedPointer(string name)
+        {
+            foreach (var dict in this.namesInScope)
+            {
+                if (dict.TryGetValue(name, out (Value, bool) item))
+                {
+                    if (item.Item2)
+                    {
+                        return item.Item1;
+                    }
+                }
+            }
+            throw new KeyNotFoundException($"Could not find a Value for mutable symbol {name}");
+        }
+
+        /// <summary>
+        /// Gets the value of a named variable on the value stack, loading the value if necessary.
+        /// The name must have been registered as an alias for the value using
+        /// <see cref="RegisterName(string, Value, bool)"/>.
+        /// <para>
+        /// If the variable is mutable, then the associated pointer value is used to load and push the actual
+        /// variable value.
+        /// </para>
+        /// </summary>
+        /// <param name="name">The registered variable name to look for</param>
+        internal Value GetNamedValue(string name)
+        {
+            foreach (var dict in this.namesInScope)
+            {
+                if (dict.TryGetValue(name, out (Value, bool) item))
+                {
+                    return item.Item2
+                        // Mutable, so the value is a pointer; we need to load what it's pointing to
+                        ? this.sharedState.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
+                        : item.Item1;
+                }
+            }
+            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>
@@ -268,7 +377,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// when the scope is closed or exited.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        private void QueueDecreaseAccessCount(Value value) // FIXME: WHY IS THIS NOT NEEDED? WHY IS NAMING SCOPE A SEPARATE THING?
+        private void QueueDecreaseAccessCount(Value value)
+        // FIXME: WHY IS THIS NOT NEEDED? WHY IS NAMING SCOPE A SEPARATE THING?
+        // QUEUE DECREASE ACCESS COUNT IS NOT NEEDED BECAUSE ACCESS COUNTS REFLECT BINDINGS TO VARIABLES,
+        // AND SINCE WE TRACK VARIABLES, WE CAN AUTOMATICALLY DECREASET THE ACCESS COUNT UPON POPING THE STACK
+        // QueueDecreaseReferenceCount IS JUST THE REGISTRATION FOR UNNAMED VARIABLES
         {
             var func = this.RemoveAccessFunctionForType(value.NativeType);
             if (func != null)
@@ -337,28 +450,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Closes the current scope by emitting the calls to unreference values going out of scope and popping the scope off of the stack.
-        /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
-        /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
-        /// </summary>
-        public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var pending = this.pendingCalls.Pop();
-            if (!isTerminated)
-            {
-                this.ExecutePendingCalls(pending, builder);
-            }
-        }
-
-        /// <summary>
-        /// Exits the current scope by emitting the calls to unreference values going out of scope for all open scopes.
+        /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
         /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// Exiting the current scope does *not* close the scope.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
-        public void ExitScope(Value returned, InstructionBuilder? builder = null)
+        public void ExitFunction(Value returned, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
 
@@ -389,17 +487,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var executeAll = !returnWillBeUnreferenced;
-            foreach (var frame in this.pendingCalls)
+            foreach (var (variables, frame) in this.namesInScope.Zip(this.pendingCalls, (n, f) => (n, f)))
             {
                 if (executeAll)
                 {
-                    this.ExecutePendingCalls(frame, builder);
+                    this.ExecutePendingCalls(variables, frame, builder);
                     continue;
                 }
 
                 var unreferenceCallsForReturn = frame.Where(call => call == (returned, unreferenceFunc));
                 var otherCalls = frame.Where(call => call != (returned, unreferenceFunc));
-                this.ExecutePendingCalls(unreferenceCallsForReturn.Skip(1).Concat(otherCalls), builder);
+                this.ExecutePendingCalls(variables, unreferenceCallsForReturn.Skip(1).Concat(otherCalls), builder);
                 executeAll = unreferenceCallsForReturn.Any();
             }
         }

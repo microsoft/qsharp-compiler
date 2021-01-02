@@ -1126,7 +1126,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value value;
             if (sym is Identifier.LocalVariable local)
             {
-                value = this.SharedState.GetNamedValue(local.Item);
+                value = this.SharedState.ScopeMgr.GetNamedValue(local.Item);
             }
             else if (!(sym is Identifier.GlobalCallable globalCallable))
             {

@@ -2,14 +2,11 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Immutable;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -55,14 +52,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState.RegisterName(varName.Item, ptr, true);
+                    this.SharedState.ScopeMgr.RegisterName(varName.Item, ptr, true);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
                 }
                 else
                 {
-                    this.SharedState.RegisterName(varName.Item, value, false);
+                    this.SharedState.ScopeMgr.RegisterName(varName.Item, value, false);
                 }
-
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
             {
@@ -114,26 +110,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        /// <summary>
-        /// Generate QIR for a Q# scope, with a specified continuation block.
-        /// The QIR starts in the current basic block, but may be generated into many blocks depending
-        /// on the Q# code.
-        /// This method does not open or close a reference-counting scope.
-        /// </summary>
-        /// <param name="block">The LLVM basic block to start in</param>
-        /// <param name="scope">The Q# scope to generate QIR for</param>
-        /// <param name="continuation">The block where execution should continue after this scope,
-        /// assuming that the scope doesn't end with a return statement</param>
-        private void ProcessUnscopedBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
-        {
-            this.SharedState.SetCurrentBlock(block);
-            this.Transformation.Statements.OnScope(scope);
-            if (this.SharedState.CurrentBlock?.Terminator == null)
-            {
-                this.SharedState.CurrentBuilder.Branch(continuation);
-            }
-        }
-
         // public overrides
 
         public override QsStatementKind OnQubitScope(QsQubitScope stm)
@@ -176,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     switch (item)
                     {
                         case SymbolTuple.VariableName v:
-                            this.SharedState.RegisterName(v.Item, Allocate(itemInit));
+                            this.SharedState.ScopeMgr.RegisterName(v.Item, Allocate(itemInit));
                             break;
 
                         case SymbolTuple.VariableNameTuple syms:
@@ -228,16 +204,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Evaluate the test, which should be a Boolean at this point
                 var test = clauses[n].Item1;
                 var testValue = this.SharedState.EvaluateSubexpression(test);
-
-                // The success block is always then{n}
-                var successBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
                             this.SharedState.GenerateUniqueName($"then{n}"), contBlock);
 
                 // If this is an intermediate clause, then the next block if the test fails
                 // is the next clause's test block.
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
-                var failureBlock = n < clauses.Length - 1
+                var nextConditional = n < clauses.Length - 1
                     ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.GenerateUniqueName($"test{n + 1}"), contBlock)
                     : (stm.Default.IsNull
                         ? contBlock
@@ -245,24 +219,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 this.SharedState.GenerateUniqueName($"else"), contBlock));
 
                 // Create the branch
-                this.SharedState.CurrentBuilder.Branch(testValue, successBlock, failureBlock);
+                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
 
                 // Get a builder for the then block, make it current, and then process the block
-                var thenScope = clauses[n].Item2.Body;
-                this.SharedState.OpenNamingScope();
-                this.ProcessBlock(successBlock, thenScope, contBlock);
-                this.SharedState.CloseNamingScope();
+                this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock);
 
-                // Make the failure current for the next clause
-                this.SharedState.SetCurrentBlock(failureBlock);
+                this.SharedState.SetCurrentBlock(nextConditional);
             }
 
             // Deal with the default, if there is any
             if (stm.Default.IsValue)
             {
-                this.SharedState.OpenNamingScope();
                 this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock);
-                this.SharedState.CloseNamingScope();
             }
 
             // Finally, set the continuation block as current
@@ -282,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var message = this.SharedState.EvaluateSubexpression(ex);
 
             // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitScope(message);
+            this.SharedState.ScopeMgr.ExitFunction(message);
             this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
             this.SharedState.CurrentBuilder.Unreachable();
 
@@ -308,7 +276,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    this.SharedState.RegisterName(loopVarName, loopVariable);
+                    this.SharedState.ScopeMgr.RegisterName(loopVarName, loopVariable);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -351,8 +319,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // analyze the loop later if we do it this way.
             // We need to be a bit careful about scopes here, though.
 
-            this.SharedState.OpenNamingScope();
-
             var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("repeat"));
             var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("until"));
             var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("fixup"));
@@ -360,19 +326,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.CurrentBuilder.Branch(repeatBlock);
 
+            this.SharedState.SetCurrentBlock(repeatBlock);
             this.SharedState.ScopeMgr.OpenScope();
-            this.ProcessUnscopedBlock(repeatBlock, stm.RepeatBlock.Body, testBlock);
+            this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
+            if (this.SharedState.CurrentBlock?.Terminator == null)
+            {
+                this.SharedState.CurrentBuilder.Branch(testBlock);
+
+                // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
+                // We need to make sure to properly invoke all calls to unreference, release, and remove access counts
+                // for variables and values in the repeat-block after the statement ends.
+                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.ScopeMgr.ExitScope(false);
+            }
 
             this.SharedState.SetCurrentBlock(testBlock);
             var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition);
             this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
-            this.ProcessUnscopedBlock(fixupBlock, stm.FixupBlock.Body, repeatBlock);
+            this.SharedState.SetCurrentBlock(fixupBlock);
+            this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
+            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+            this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            if (!isTerminated)
+            {
+                this.SharedState.CurrentBuilder.Branch(repeatBlock);
+            }
 
             this.SharedState.SetCurrentBlock(contBlock);
-            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
-
-            this.SharedState.CloseNamingScope();
 
             return QsStatementKind.EmptyStatement;
         }
@@ -391,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    Value ptr = this.SharedState.GetNamedPointer(varName.Item);
+                    Value ptr = this.SharedState.ScopeMgr.GetNamedPointer(varName.Item);
                     this.SharedState.ScopeMgr.DecreaseAccessCount(ptr);
                     this.SharedState.CurrentBuilder.Store(value, ptr);
                     this.SharedState.ScopeMgr.IncreaseAccessCount(value);
@@ -448,9 +429,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
 
-            this.SharedState.OpenNamingScope();
             this.ProcessBlock(bodyBlock, stm.Body, testBlock);
-            this.SharedState.CloseNamingScope();
             this.SharedState.SetCurrentBlock(contBlock);
             return QsStatementKind.EmptyStatement;
         }
