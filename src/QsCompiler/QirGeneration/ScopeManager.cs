@@ -12,41 +12,124 @@ using Ubiquity.NET.Llvm.Values;
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
-    /// This class is used to track reference counts that must be decremented before leaving the current scope.
-    /// <para>
-    /// Scopes are nested, corresponding to nested scopes in Q#.
-    /// In general any Q# construct that opens a naming scope also opens a ref counting scope.
-    /// </para>
+    /// This class is used to track the validity of variables and values, to track access and reference counts,
+    /// and to release and unreference values when they go out of scope.
     /// <para>
     /// There are two primary ways to leave a scope: close it and continue in the parent scope, or exit the current
     /// scope and all parent scopes and leave the callable altogether (i.e., return).
     /// While each scope has a single place it is closed, there may be many exits.
-    /// When a scope is closed, the unreferences for that scope are emitted.
-    /// When the callable is exited, all pending unreferences for the entire stack of scopes need to be emitted.
     /// </para>
     /// </summary>
     internal class ScopeManager
     {
+        private class Scope
+        {
+            private readonly ScopeManager parent;
+
+            /// <summary>
+            /// Maps variable names to a tuple with a value to access them and whether or not accessing them requires loading the value first.
+            /// </summary>
+            private readonly Dictionary<string, (Value, bool)> variables = new Dictionary<string, (Value, bool)>();
+
+            /// <summary>
+            /// Contains all values that require unreferencing upon closing the scope.
+            /// </summary>
+            private readonly List<Value> trackedValues = new List<Value>();
+
+            /// <summary>
+            /// Contains the values that require invoking a release function upon closing the scope,
+            /// as well as the name of the release function to invoke.
+            /// </summary>
+            private readonly List<(Value, string)> requiredReleases = new List<(Value, string)>();
+
+            public Scope(ScopeManager parent)
+            {
+                this.parent = parent;
+            }
+
+            // public and internal methods
+
+            public void AddVariable(string varName, Value accessHandle, bool requiresLoading) =>
+                this.variables.Add(varName, (accessHandle, requiresLoading));
+
+            public void AddValue(Value value, string? releaseFunction = null)
+            {
+                if (releaseFunction != null)
+                {
+                    this.requiredReleases.Add((value, releaseFunction));
+                }
+                if (value.NativeType.IsPointer)
+                {
+                    this.trackedValues.Add(value);
+                }
+            }
+
+            public bool TryGetVariable(string varName, out (Value, bool) accessHandle) =>
+                this.variables.TryGetValue(varName, out accessHandle);
+
+            /// <summary>
+            /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
+            /// unless it is explicitly excluded.
+            /// </summary>
+            internal bool WillBeUnreferenced(Value value) =>
+                this.trackedValues.Contains(value);
+
+            /// <summary>
+            /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
+            /// and invokes the specified release functions for values if necessary.
+            /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
+            /// </summary>
+            /// <param name="builder">The InstructionBuilder where the calls should be generated</param>
+            /// <param name="omitUnreferencing">
+            /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
+            /// </param>
+            internal void ExecutePendingCalls(InstructionBuilder? builder = null, List<Value>? omitUnreferencing = null)
+            {
+                builder ??= this.parent.sharedState.CurrentBuilder;
+                omitUnreferencing ??= new List<Value>();
+
+                foreach (var (value, funcName) in this.requiredReleases)
+                {
+                    var func = this.parent.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    builder.Call(func, value);
+                }
+
+                foreach (var (_, (item, mutable)) in this.variables)
+                {
+                    var value = mutable // mutable values are represented as pointers and require loading
+                        ? builder.Load(((IPointerType)item.NativeType).ElementType, item)
+                        : item;
+                    this.parent.DecreaseAccessCount(value);
+                }
+
+                foreach (var value in this.trackedValues)
+                {
+                    if (!omitUnreferencing.Remove(value))
+                    {
+                        this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value, builder);
+                    }
+                }
+            }
+        }
+
         private readonly GenerationContext sharedState;
 
         /// <summary>
-        /// Naming scopes map variable names to values.
-        /// New names are always added to the scope on top of the stack.
+        /// New variables and values are always added to the scope on top of the stack.
         /// When looking for a name, the stack is searched top-down.
         /// </summary>
-        private readonly Stack<Dictionary<string, (Value, bool)>> namesInScope = new Stack<Dictionary<string, (Value, bool)>>();
+        private readonly Stack<Scope> scopes = new Stack<Scope>();
 
         // FIXME THE STACK NEEDS TO CONTAIN SOMETHING WITH MORE TYPE INFO
         // -> HAVE TUPLEVALUE, ARRAYVALUE ETC INHERIT FROM A COMMON CLASS AND KEEP A STACK OF THAT INSTEAD...
         // WE CAN KEEP THE NECESSARY FUNCTION AS A STATIC MEMBER IN THAT CLASS AS WELL, ELMININATING THEM FROM THE ScopeManager.
         // FIXME: NAMING SCOPE SHOULD ALSO BE PART OF THIS CLASS...
-        private readonly Stack<List<(Value, string)>> pendingCalls = new Stack<List<(Value, string)>>();
 
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
         /// Stack frames are added and removed by OpenScope and CloseScope respectively.
         /// </summary>
-        public bool IsEmpty => !this.pendingCalls.Any(); // FIXME: NAMES IN SCOPE AND PENDING CALLS SHOULD ALWAYS MATCH - MAKE SURE OF THAT BY ADDING A SUITABLE DATA STRUCTURE
+        public bool IsEmpty => !this.scopes.Any();
 
         /// <summary>
         /// Creates a new ref count scope manager.
@@ -176,67 +259,55 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Applies the given function to the given value, casting the value if necessary,
-        /// and then recurs into contained items and if getItemFunc returns not null, applies the returned function to them.
+        /// If the given function returns a function name for the given value,
+        /// applies the runtime function with that name to the given value, casting the value if necessary,
+        /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Value value, string funcName, Func<ITypeRef, string?> getItemFunc, InstructionBuilder builder)
+        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, Value value, InstructionBuilder? builder = null)
         {
-            if (this.sharedState.Types.IsTupleType(value.NativeType))
+            void ModifyCounts(Func<ITypeRef, string?> getItemFunc, string funcName, Value value, InstructionBuilder builder)
             {
-                // for tuples we also unreference all inner tuples
-                var tupleStruct = Types.StructFromPointer(value.NativeType);
-                for (var i = 0; i < tupleStruct.Members.Count; ++i)
+                if (this.sharedState.Types.IsTupleType(value.NativeType))
                 {
-                    var itemFuncName = getItemFunc(tupleStruct.Members[i]);
-                    if (itemFuncName != null)
+                    // for tuples we also unreference all inner tuples
+                    var tupleStruct = Types.StructFromPointer(value.NativeType);
+                    for (var i = 0; i < tupleStruct.Members.Count; ++i)
                     {
-                        var item = this.sharedState.GetTupleElement(tupleStruct, value, i, builder);
-                        this.RecursivelyModifyCounts(item, itemFuncName, getItemFunc, builder);
+                        var itemFuncName = getItemFunc(tupleStruct.Members[i]);
+                        if (itemFuncName != null)
+                        {
+                            var item = this.sharedState.GetTupleElement(tupleStruct, value, i, builder);
+                            ModifyCounts(getItemFunc, itemFuncName, item, builder);
+                        }
                     }
-                }
 
-                var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
-                var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                builder.Call(func, untypedTuple);
-            }
-            else
-            {
-                if (value.NativeType == this.sharedState.Types.Array)
+                    var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
+                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    builder.Call(func, untypedTuple);
+                }
+                else
                 {
-                    // TODO
-                    // RECURSIVELY UNREFERENCE INNER ITEMS
-                }
-                else if (value.NativeType == this.sharedState.Types.Callable)
-                {
-                    // TODO
-                    // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
-                }
+                    if (value.NativeType == this.sharedState.Types.Array)
+                    {
+                        // TODO
+                        // RECURSIVELY UNREFERENCE INNER ITEMS
+                    }
+                    else if (value.NativeType == this.sharedState.Types.Callable)
+                    {
+                        // TODO
+                        // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
+                    }
 
-                var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                builder.Call(func, value);
+                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    builder.Call(func, value);
+                }
             }
-        }
 
-        /// <summary>
-        /// Generates the calls to unreference the the registered values for a single scope in the stack.
-        /// </summary>
-        /// <param name="pending">The list of pending calls to unreference the values for a scope</param>
-        /// <param name="builder">The InstructionBuilder where the calls should be generated</param>
-        private void ExecutePendingCalls(IDictionary<string, (Value, bool)> variables, IEnumerable<(Value, string)> calls, InstructionBuilder? builder = null)
-        {
             builder ??= this.sharedState.CurrentBuilder;
-
-            foreach (var (_, (item, mutable)) in variables)
+            var func = getFunctionName(value.NativeType);
+            if (func != null)
             {
-                var value = mutable // mutable values are represented as pointers and require loading
-                    ? builder.Load(((IPointerType)item.NativeType).ElementType, item)
-                    : item;
-                this.DecreaseAccessCount(value);
-            }
-
-            foreach ((Value value, string funcName) in calls)
-            {
-                this.RecursivelyModifyCounts(value, funcName, this.UnreferenceFunctionForType, builder);
+                ModifyCounts(getFunctionName, func, value, builder);
             }
         }
 
@@ -248,8 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void OpenScope()
         {
-            this.pendingCalls.Push(new List<(Value, string)>());
-            this.namesInScope.Push(new Dictionary<string, (Value, bool)>());
+            this.scopes.Push(new Scope(this));
         }
 
         /// <summary>
@@ -261,21 +331,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
         {
-            var variables = this.namesInScope.Pop();
-            var pending = this.pendingCalls.Pop();
+            var scope = this.scopes.Pop();
             if (!isTerminated)
             {
-                this.ExecutePendingCalls(variables, pending, builder);
+                scope.ExecutePendingCalls(builder);
             }
         }
 
         public void ExitScope(bool isTerminated, InstructionBuilder? builder = null)
         {
-            var variables = this.namesInScope.Peek();
-            var pending = this.pendingCalls.Peek();
+            var scope = this.scopes.Peek();
             if (!isTerminated)
             {
-                this.ExecutePendingCalls(variables, pending, builder);
+                scope.ExecutePendingCalls(builder);
             }
         }
 
@@ -284,60 +352,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var referenceFunc = this.ReferenceFunctionForType(value.NativeType);
-            if (referenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, referenceFunc, this.ReferenceFunctionForType, builder);
-            }
-        }
+        public void IncreaseReferenceCount(Value value, InstructionBuilder? builder = null) =>
+            this.RecursivelyModifyCounts(this.ReferenceFunctionForType, value, builder);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var unreferenceFunc = this.UnreferenceFunctionForType(value.NativeType);
-            if (unreferenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, unreferenceFunc, this.UnreferenceFunctionForType, builder);
-            }
-        }
+        public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null) =>
+            this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value, builder);
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var referenceFunc = this.AddAccessFunctionForType(value.NativeType);
-            if (referenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, referenceFunc, this.AddAccessFunctionForType, builder);
-            }
-        }
+        internal void IncreaseAccessCount(Value value, InstructionBuilder? builder = null) =>
+            this.RecursivelyModifyCounts(this.AddAccessFunctionForType, value, builder);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(Value value, InstructionBuilder? builder = null)
-        {
-            builder ??= this.sharedState.CurrentBuilder;
-            var unreferenceFunc = this.RemoveAccessFunctionForType(value.NativeType);
-            if (unreferenceFunc != null)
-            {
-                this.RecursivelyModifyCounts(value, unreferenceFunc, this.RemoveAccessFunctionForType, builder);
-            }
-        }
+        internal void DecreaseAccessCount(Value value, InstructionBuilder? builder = null) =>
+            this.RecursivelyModifyCounts(this.RemoveAccessFunctionForType, value, builder);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
@@ -346,11 +386,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">Value that is created within the current scope</param>
         public void RegisterValue(Value value)
         {
-            var func = this.UnreferenceFunctionForType(value.NativeType);
-            if (func != null)
-            {
-                this.pendingCalls.Peek().Add((value, func));
-            }
+            this.scopes.Peek().AddValue(value);
         }
 
         /// <summary>
@@ -364,8 +400,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value.NativeType == this.sharedState.Types.Array ? RuntimeLibrary.QubitReleaseArray :
                 value.NativeType == this.sharedState.Types.Qubit ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            this.pendingCalls.Peek().Add((value, releaser)); // this takes care purely of the deallocation
-            this.RegisterValue(value); // this takes care of properly unreferencing the created array if necessary
+            this.scopes.Peek().AddValue(value, releaser);
         }
 
         /// <summary>
@@ -381,7 +416,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value.RegisterName(this.sharedState.InlinedName(name));
             }
             this.IncreaseAccessCount(value);
-            this.namesInScope.Peek().Add(name, (value, isMutable));
+            this.scopes.Peek().AddVariable(name, value, isMutable);
         }
 
         /// <summary>
@@ -393,9 +428,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The pointer value for the mutable value</returns>
         internal Value GetNamedPointer(string name)
         {
-            foreach (var dict in this.namesInScope)
+            foreach (var scope in this.scopes)
             {
-                if (dict.TryGetValue(name, out (Value, bool) item))
+                if (scope.TryGetVariable(name, out (Value, bool) item))
                 {
                     if (item.Item2)
                     {
@@ -418,9 +453,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The registered variable name to look for</param>
         internal Value GetNamedValue(string name)
         {
-            foreach (var dict in this.namesInScope)
+            foreach (var scope in this.scopes)
             {
-                if (dict.TryGetValue(name, out (Value, bool) item))
+                if (scope.TryGetVariable(name, out (Value, bool) item))
                 {
                     return item.Item2
                         // Mutable, so the value is a pointer; we need to load what it's pointing to
@@ -458,29 +493,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // d) We can't modify the pending calls; they may be used by other execution paths that
             //    don't return the same value.
 
-            string? unreferenceFunc = this.UnreferenceFunctionForType(returned.NativeType);
-            var returnWillBeUnreferenced =
-                unreferenceFunc != null
-                && this.pendingCalls.Any(pending => pending.Contains((returned, unreferenceFunc)));
-
+            var returnWillBeUnreferenced = this.scopes.Any(scope => scope.WillBeUnreferenced(returned));
             if (!returnWillBeUnreferenced)
             {
                 this.IncreaseReferenceCount(returned);
             }
 
-            var executeAll = !returnWillBeUnreferenced;
-            foreach (var (variables, frame) in this.namesInScope.Zip(this.pendingCalls, (n, f) => (n, f)))
+            var omittedUnreferences = new List<Value>() { returned };
+            foreach (var scope in this.scopes)
             {
-                if (executeAll)
-                {
-                    this.ExecutePendingCalls(variables, frame, builder);
-                    continue;
-                }
-
-                var unreferenceCallsForReturn = frame.Where(call => call == (returned, unreferenceFunc));
-                var otherCalls = frame.Where(call => call != (returned, unreferenceFunc));
-                this.ExecutePendingCalls(variables, unreferenceCallsForReturn.Skip(1).Concat(otherCalls), builder);
-                executeAll = unreferenceCallsForReturn.Any();
+                scope.ExecutePendingCalls(builder, omittedUnreferences);
             }
         }
     }
