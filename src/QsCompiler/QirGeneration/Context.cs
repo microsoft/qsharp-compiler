@@ -344,8 +344,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddAccess, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveAccess, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddAccess, this.Context.VoidType, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveAccess, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayReference, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUnreference, this.Context.VoidType, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
@@ -1514,7 +1514,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal TupleValue CreateTuple(InstructionBuilder builder, params Value[] vs)
         {
             // Build the LLVM structure type we need
-            IStructType tupleType = this.Types.CreateConcreteTupleType(vs);
+            IStructType tupleType = this.Types.TypedTuple(vs);
 
             // Allocate the tuple, cast it to the concrete type, and make to track if for release
             TupleValue tuple = new TupleValue(tupleType, this, builder);
@@ -1572,7 +1572,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
         internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-            this.Types.CreateConcreteTupleType(items.Select(this.LlvmTypeFromQsharpType));
+            this.Types.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.

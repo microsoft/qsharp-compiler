@@ -62,13 +62,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
             {
-                if (!(type.Resolution is QsResolvedTypeKind.TupleType types) || syms.Item.Length == types.Item.Length)
+                if (!(type.Resolution is QsResolvedTypeKind.TupleType types) || syms.Item.Length != types.Item.Length)
                 {
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
 
                 var itemTypes = types.Item.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
+                var tupleType = this.SharedState.Types.TypedTuple(itemTypes);
                 var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, value);
 
                 for (int i = 0; i < syms.Item.Length; i++)
@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (symbols.Expression is ResolvedExpression.ValueTuple tuple)
                 {
                     var itemTypes = tuple.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                    var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
+                    var tupleType = this.SharedState.Types.TypedTuple(itemTypes);
                     var tupleItems = this.SharedState.GetTupleElements(tupleType, value);
                     for (int i = 0; i < tupleItems.Length; i++)
                     {

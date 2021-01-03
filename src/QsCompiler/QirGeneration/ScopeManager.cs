@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var (_, (item, mutable)) in this.variables)
                 {
                     var value = mutable // mutable values are represented as pointers and require loading
-                        ? builder.Load(((IPointerType)item.NativeType).ElementType, item)
+                        ? builder.Load(Types.PointerElementType(item), item)
                         : item;
                     this.parent.DecreaseAccessCount(value);
                 }
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.ArrayAddAccess;
                 }
-                else if (this.sharedState.Types.IsTupleType(t))
+                else if (this.sharedState.Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleAddAccess;
                 }
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.ArrayRemoveAccess;
                 }
-                else if (this.sharedState.Types.IsTupleType(t))
+                else if (this.sharedState.Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleRemoveAccess;
                 }
@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.BigIntReference;
                 }
-                else if (this.sharedState.Types.IsTupleType(t))
+                else if (this.sharedState.Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleReference;
                 }
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.BigIntUnreference;
                 }
-                else if (this.sharedState.Types.IsTupleType(t))
+                else if (this.sharedState.Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleUnreference;
                 }
@@ -267,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             void ModifyCounts(Func<ITypeRef, string?> getItemFunc, string funcName, Value value, InstructionBuilder builder)
             {
-                if (this.sharedState.Types.IsTupleType(value.NativeType))
+                if (this.sharedState.Types.IsTypedTuple(value.NativeType))
                 {
                     // for tuples we also unreference all inner tuples
                     var tupleStruct = Types.StructFromPointer(value.NativeType);
@@ -459,7 +459,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return item.Item2
                         // Mutable, so the value is a pointer; we need to load what it's pointing to
-                        ? this.sharedState.CurrentBuilder.Load(((IPointerType)item.Item1.NativeType).ElementType, item.Item1)
+                        ? this.sharedState.CurrentBuilder.Load(Types.PointerElementType(item.Item1), item.Item1)
                         : item.Item1;
                 }
             }

@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QIR
         /// The type is a pointer to an opaque struct.
         /// For item access and deconstruction, tuple values need to be cast
         /// to a suitable concrete type depending on the types of their items.
-        /// Such a concrete tuple type is constructed using <see cref="CreateConcreteTupleType"/>.
+        /// Such a concrete tuple type is constructed using <see cref="TypedTuple"/>.
         /// </summary>
         public readonly IPointerType Tuple;
 
@@ -142,37 +142,38 @@ namespace Microsoft.Quantum.QIR
             pointer is IPointerType pt && pt.ElementType is IStructType st ? st :
             throw new ArgumentException("the given argument is not a pointer to a struct");
 
-        // public members
-
         /// <summary>
-        /// Creates the concrete type of a QIR array value that contains the given number of items of the given type.
+        /// Given a pointer, returns the type of the value it points to.
+        /// Casts the type of the given value to an IPointerType in the process,
+        /// throwing the corresponding exception if the cast fails.
         /// </summary>
-        public IArrayType CreateConcreteArrayType(ITypeRef elementType, uint count) =>
-            elementType.CreateArrayType(count);
+        internal static ITypeRef PointerElementType(Value pointer) =>
+            ((IPointerType)pointer.NativeType).ElementType;
+
+        // public members
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains the given items.
         /// </summary>
-        public IStructType CreateConcreteTupleType(params Value[] items) =>
+        public IStructType TypedTuple(params Value[] items) =>
             this.context.CreateStructType(false, items.Select(v => v.NativeType).ToArray());
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
-        public IStructType CreateConcreteTupleType(IEnumerable<ITypeRef> items) =>
+        public IStructType TypedTuple(IEnumerable<ITypeRef> items) =>
             this.context.CreateStructType(false, items.ToArray());
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
-        public IStructType CreateConcreteTupleType(params ITypeRef[] items) =>
+        public IStructType TypedTuple(params ITypeRef[] items) =>
             this.context.CreateStructType(false, items);
 
         /// <summary>
-        /// Determines whether an LLVM type is a pointer to a tuple.
-        /// Tuple values in QIR always contain a tuple header as the first item.
+        /// Determines whether an LLVM type is a pointer to a typed tuple.
         /// </summary>
-        public bool IsTupleType(ITypeRef t) =>
+        public bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
             && st.Name == null

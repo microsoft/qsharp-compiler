@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -79,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override Value BuildItem(InstructionBuilder builder, Value capture, Value parArgs)
             {
                 // parArgs.NativeType == this.ItemType may occur if we have an item of user defined type (represented as a tuple)
-                if (this.SharedState.Types.IsTupleType(parArgs.NativeType) && parArgs.NativeType != this.ItemType)
+                if (this.SharedState.Types.IsTypedTuple(parArgs.NativeType) && parArgs.NativeType != this.ItemType)
                 {
                     var parArgsStruct = Quantum.QIR.Types.StructFromPointer(parArgs.NativeType);
                     return this.SharedState.GetTupleElement(parArgsStruct, parArgs, this.ArgIndex, builder);
@@ -206,7 +205,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             QsTuple<QsTypeItem>.QsTupleItem l => GetTypeItemType(l),
                             _ => this.SharedState.Context.TokenType
                         });
-                        return this.SharedState.Types.CreateConcreteTupleType(types).CreatePointerType();
+                        return this.SharedState.Types.TypedTuple(types).CreatePointerType();
 
                     default:
                         throw new NotImplementedException("unknown item in argument tuple");
@@ -228,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             if (FindNamedItem(list.Item[i], location))
                             {
-                                var tupleStruct = this.SharedState.Types.CreateConcreteTupleType(list.Item.Select(GetTypeItemType));
+                                var tupleStruct = this.SharedState.Types.TypedTuple(list.Item.Select(GetTypeItemType));
                                 location.Add((i, tupleStruct));
                                 return true;
                             }
@@ -832,6 +831,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             Value CopyAndUpdateUdt(QsQualifiedName udtName)
             {
+                // Returns the shallow copy as typed tuple.
                 Value GetTupleCopy(Value original)
                 {
                     // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
@@ -842,7 +842,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     // We need to cast the value to the opaque tuple type before passing it to the runtime.
                     var tuple = this.SharedState.CurrentBuilder.BitCast(original, this.SharedState.Types.Tuple);
-                    return this.SharedState.CurrentBuilder.Call(createShallowCopy, tuple, forceCopy);
+                    var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, tuple, forceCopy);
+                    return this.SharedState.CurrentBuilder.BitCast(copy, original.NativeType);
                 }
 
                 var originalValue = this.SharedState.EvaluateSubexpression(lhs);
@@ -873,7 +874,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             if (i != itemIndex)
                             {
-                                var item = this.SharedState.CurrentBuilder.Load(itemPointers[i].NativeType, itemPointers[i]);
+                                var itemType = Quantum.QIR.Types.PointerElementType(itemPointers[i]);
+                                var item = this.SharedState.CurrentBuilder.Load(itemType, itemPointers[i]);
                                 this.SharedState.ScopeMgr.IncreaseReferenceCount(item);
                             }
                         }
@@ -889,7 +891,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
                             var originalItem = this.SharedState.CurrentBuilder.Load(
-                                itemPointers[itemIndex].NativeType,
+                                Quantum.QIR.Types.PointerElementType(itemPointers[itemIndex]),
                                 itemPointers[itemIndex]);
                             innerTuple = GetTupleCopy(originalItem);
                             this.SharedState.CurrentBuilder.Store(innerTuple, itemPointers[itemIndex]);
@@ -1575,7 +1577,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
                     // as well as a tuple with the remaining arguments for the partial application.
                     // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
-                    var ctlPaArgsStruct = this.SharedState.Types.CreateConcreteTupleType(this.SharedState.Types.Array, paArgType);
+                    var ctlPaArgsStruct = this.SharedState.Types.TypedTuple(this.SharedState.Types.Array, paArgType);
                     var ctlPaArgs = builder.BitCast(func.Parameters[1], ctlPaArgsStruct.CreatePointerType());
                     var ctlPaArgItems = this.SharedState.GetTupleElements(ctlPaArgsStruct, ctlPaArgs, builder);
 
@@ -1600,7 +1602,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var parArgsPointer = builder.BitCast(func.Parameters[1], parArgsStruct.CreatePointerType());
                     var typedInnerArg = partialArgs.BuildItem(builder, capturePointer, parArgsPointer);
-                    innerArg = this.SharedState.Types.IsTupleType(typedInnerArg.NativeType)
+                    innerArg = this.SharedState.Types.IsTypedTuple(typedInnerArg.NativeType)
                         ? builder.BitCast(typedInnerArg, this.SharedState.Types.Tuple)
                         : this.SharedState.CreateTuple(builder, typedInnerArg).OpaquePointer;
                 }
@@ -2065,7 +2067,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var elementType = this.SharedState.LlvmTypeFromQsharpType(udtDecl.Type);
                 value = this.SharedState.GetTupleElement(
-                     this.SharedState.Types.CreateConcreteTupleType(elementType),
+                     this.SharedState.Types.TypedTuple(elementType),
                      value,
                      0);
             }
