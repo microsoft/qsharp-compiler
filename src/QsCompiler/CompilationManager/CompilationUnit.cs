@@ -19,9 +19,9 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
-    /// <summary>
-    /// this representation will change depending on the binary format in which we ship compiled Q# code
-    /// </summary>
+    /// <remarks>
+    /// This representation will change depending on the binary format in which we ship compiled Q# code.
+    /// </remarks>
     public class References
     {
         public class Headers
@@ -43,10 +43,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Initializes a set of reference headers based on the given syntax tree loaded from the specified source.
-            /// The source is expected to be the path to the dll from which the syntax has been loaded.
-            /// Returns an empty set of headers if the given syntax tree is null.
+            /// Initializes a set of reference headers based on the <paramref name="syntaxTree"/> loaded from <paramref name="source"/>.
             /// </summary>
+            /// <remarks>
+            /// <paramref name="source"/> is expected to be the path to the dll from which <paramref name="syntaxTree"/> has been loaded.
+            /// </remarks>
+            /// <!-- TODO: where should this line go?: An empty set of headers if the given syntax tree is null. -->
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
@@ -89,11 +91,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
 
         /// <summary>
-        /// Renames all declarations in the headers for which an alternative name is specified
+        /// Renames all declarations in <paramref name="headers"/> for which an alternative name is specified
         /// that may be used when loading a type or callable for testing purposes.
+        /// </summary>
+        /// <remarks>
         /// Leaves declarations for which no such name is defined unchanged.
         /// Does not check whether there are any conflicts when using alternative names.
-        /// </summary>
+        /// </remarks>
         private static Headers LoadTestNames(string source, Headers headers)
         {
             var renaming = headers.Callables.Where(callable => !callable.Kind.IsTypeConstructor)
@@ -139,11 +143,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Checks whether the given sequence of elements contains multiple items with the same qualified name.
-        /// Returns a sequence of two strings, with the first one containing the name of the duplication,
-        /// and the second one listing all sources in which it occurs.
-        /// Returns null if the given sequence of elements is null.
+        /// Checks whether <paramref name="elements"/> contains multiple items with the same qualified name.
         /// </summary>
+        /// <returns>
+        /// A sequence of two strings, with the first one containing the name of the duplication
+        /// and the second one listing all sources in which it occurs, or null if <paramref name="elements"/> is null.
+        /// </returns>
         private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName Name, string Source, AccessModifier Access)> elements) =>
             elements
                 .Where(e => Namespace.IsDeclarationAccessible(false, e.Access))
@@ -161,11 +166,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new References(ImmutableDictionary<string, Headers>.Empty);
 
         /// <summary>
-        /// Combines the current references with the given references, and verifies that there are no conflicts.
-        /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
-        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// Combines the current references with <paramref name="other"/>, and verifies that there are no conflicts.
         /// </summary>
-        /// <exception cref="ArgumentException">The given set (<paramref name="other"/>) shares references with the current one.</exception>
+        /// <exception cref="ArgumentException"><paramref name="other"/> shares references with the current references.</exception>
+        /// <remarks>
+        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
+        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// </remarks>
         internal References CombineWith(References other, Action<ErrorCode, string[]>? onError = null)
         {
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any())
@@ -176,22 +183,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a new collection with the given reference and all its entries removed.
-        /// Verifies that there are no conflicts for the new set of references.
-        /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
-        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// Returns a new collection with <paramref name="source"/> and all its entries removed.
         /// </summary>
+        /// <remarks>
+        /// Verifies that there are no conflicts for the new set of references.
+        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
+        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// </remarks>
         internal References Remove(string source, Action<ErrorCode, string[]>? onError = null) =>
             new References(this.Declarations.Remove(source), onError: onError);
 
         /// <summary>
-        /// Given a dictionary that maps the ids of dll files to the corresponding headers,
-        /// initializes a new set of references based on the given headers and verifies that there are no conflicts.
-        /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
-        /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// If loadTestNames is set to true, then public types and callables declared in referenced assemblies
-        /// are exposed via their test name defined by the corresponding attribute.
+        /// Initializes a new set of references based on the headers in <paramref name="refs"/> and verifies that there are no conflicts.
         /// </summary>
+        /// <remarks>
+        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
+        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// If <paramref name="loadTestNames"/> is set to true, then public types and callables declared in referenced assemblies
+        /// are exposed via their test name defined by the corresponding attribute.
+        /// </remarks>
+        /// <param name="refs">A dictionary that maps the ids of dll files to the corresponding headers.</param>
         public References(ImmutableDictionary<string, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]>? onError = null)
         {
             this.Declarations = refs;
@@ -220,19 +231,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Combines the syntax trees loaded from different source assemblies and combines them into a single syntax tree.
-        /// The first item in the given arguments is expected to contain the id of the source from which the syntax tree was loaded,
-        /// and the second item is expected to contain the loaded syntax tree.
-        /// The source file of a declaration in the combined tree will be set to the specified source from which it was loaded,
-        /// and internal declaration as well as their usages will be renamed to avoid conflicts.
+        /// Combines the syntax trees loaded from different source assemblies into a single syntax tree.
         /// </summary>
-        /// <returns>Returns true and the combined syntax tree as out parameter
-        /// if the given syntax trees do not contain any conflicting declarations and were successfully combined.
-        /// Returns false and an empty array of namespaces as out parameter otherwise.</returns>
+        /// <returns>
+        /// True if the syntax trees in <paramref name="loaded"/> do not contain any conflicting declarations and were successfully combined.
+        /// False otherwise.
+        /// </returns>
+        /// <remarks>
+        /// The first tuple item in <paramref name="loaded"/> is expected to contain the id of the source from which the syntax tree was loaded,
+        /// and the second is expected to contain the loaded syntax tree.
+        /// The source file of a declaration in <paramref name="combined"/> will be set to the specified source from which it was loaded,
+        /// and internal declarations as well as their usages will be renamed to avoid conflicts.
+        /// </remarks>
+        /// <param name="combined">The resulting combined syntax tree, or an empty array of namespaces on faliure.</param>
         /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation besides the loaded assemblies.</param>
         /// <param name="onError">Invoked on the error messages generated when the given syntax trees contain conflicting declarations.</param>
-        /// <param name="loaded">A parameter array of tuples containing the syntax trees to combine
-        /// as well as the sources from which they were loaded.</param>
+        /// <param name="loaded">
+        /// A parameter array of tuples containing the syntax trees to combine
+        /// as well as the sources from which they were loaded.
+        /// </param>
         public static bool CombineSyntaxTrees(
             out ImmutableArray<QsNamespace> combined,
             int additionalAssemblies = 0,
@@ -273,11 +290,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     }
 
     /// <summary>
-    /// Class representing a compilation;
-    /// apart from storing and providing the means to update the compilation itself,
-    /// it stores referenced content and provides the infrastructure to track global symbols.
-    /// IMPORTANT: The responsibility to update the compilation to match changes to the GlobalSymbols lays within the the managing entity.
+    /// Apart from storing and providing the means to update the compilation itself,
+    /// this class stores referenced content and provides the infrastructure to track global symbols.
     /// </summary>
+    /// <remarks>
+    /// IMPORTANT: The responsibility to update the compilation to match changes to <see cref="GlobalSymbols"/> lays within the the managing entity.
+    /// </remarks>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
         internal References Externals { get; private set; }
@@ -301,8 +319,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a new CompilationUnit to store and update a compilation referencing the given content (if any),
-        /// with the given sequence of locks registered as dependent locks if the sequence is not null.
+        /// Returns a new <see cref="CompilationUnit"/> to store and update a compilation referencing the given content (if any),
+        /// with <paramref name="dependentLocks"/> registered as dependent locks if not null.
         /// </summary>
         internal CompilationUnit(
             RuntimeCapability capability,
@@ -340,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.IsExecutable);
 
         /// <summary>
-        /// Replaces the GlobalSymbols to match the newly specified references.
+        /// Replaces <see cref="GlobalSymbols"/> to match <paramref name="externals"/>.
         /// </summary>
         internal void UpdateReferences(References externals)
         {
@@ -357,7 +375,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Registers the given lock as a dependent lock -
+        /// Registers <paramref name="depLock"/> as a dependent lock -
         /// i.e. whenever both this compilation unit and a dependent lock are required,
         /// ensures that the compilation unit has to be the outer lock.
         /// </summary>
@@ -380,9 +398,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Removes the given lock from the set of dependent locks.
-        /// Returns true if the lock was successfully removed and false otherwise.
+        /// Removes <paramref name="depLock"/> from the set of dependent locks.
         /// </summary>
+        /// <returns>
+        /// True if the lock was successfully removed and false otherwise.
+        /// </returns>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
             #if DEBUG
@@ -404,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines replacing the direct access to the sync root
 
         /// <summary>
-        /// Enters a read-lock, provided none of the dependent locks is set, or a compilation lock is aready held.
+        /// Enters a read-lock, provided none of the dependent locks is set, or a compilation lock is already held.
         /// </summary>
         /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterReadLock()
@@ -445,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public void ExitUpgradeableReadLock() => this.syncRoot.ExitUpgradeableReadLock();
 
         /// <summary>
-        /// Enters a write-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held.
+        /// Enters a write-lock, provided none of the dependent locks is set, or a suitable compilation lock is already held.
         /// </summary>
         /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterWriteLock()
@@ -468,9 +488,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // methods related to accessing and managing information about the compilation
 
         /// <summary>
-        /// Returns all currently compiled Q# callables as ReadOnlyDictionary.
-        /// -> Note that the wrapped dictionary may change!
+        /// Returns all currently compiled Q# callables as an <see cref="IReadOnlyDictionary"/>.
         /// </summary>
+        /// <remarks>
+        /// The wrapped dictionary may change!
+        /// </remarks>
         internal IReadOnlyDictionary<QsQualifiedName, QsCallable> GetCallables()
         {
             this.syncRoot.EnterReadLock();
@@ -485,9 +507,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all currently compiled Q# types as ReadOnlyDictionary.
-        /// -> Note that the wrapped dictionary may change!
+        /// Returns all currently compiled Q# types as an <see cref="IReadOnlyDictionary"/>.
         /// </summary>
+        /// <remarks>
+        /// The wrapped dictionary may change!
+        /// </remarks>
         internal IReadOnlyDictionary<QsQualifiedName, QsCustomType> GetTypes()
         {
             this.syncRoot.EnterReadLock();
@@ -502,8 +526,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the given updates are not null, replaces the contained types in the compilation, or adds them if they do not yet exist.
-        /// Proceeds to remove any types that are not currently listed in GlobalSymbols from the compilation, and updates all position information.
+        /// Replaces corresponding types in the compilation with <paramref name="updates"/>, or adds them if they do not yet exist.
+        /// Proceeds to remove any types that are not currently listed in <see cref="GlobalSymbols"/> from the compilation, and updates all position information.
         /// </summary>
         internal void UpdateTypes(IEnumerable<QsCustomType> updates)
         {
@@ -561,8 +585,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the given updates are not null, replaces the contained callables in the compilation, or adds them if they do not yet exist.
-        /// Proceeds to remove any callables and specializations that are not currently listed in GlobalSymbols from the compilation,
+        /// Replaces corresponding callables in the compilation with <paramref name="updates"/>, or adds them if they do not yet exist.
+        /// Proceeds to remove any callables and specializations that are not currently listed in <see cref="GlobalSymbols"/> from the compilation,
         /// and updates the position information for all callables and specializations.
         /// </summary>
         internal void UpdateCallables(IEnumerable<QsCallable> updates)
@@ -681,10 +705,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Constructs a suitable callable for a given callable declaration header -
-        /// i.e. given all information about a callable except the implementation of its specializations,
-        /// constructs a QsCallable with the implementation of each specialization set to External.
+        /// Constructs a suitable callable for <paramref name="header"/>. 
         /// </summary>
+        /// <remarks>
+        /// Given all information about a callable except the implementation of its specializations,
+        /// constructs a <see cref="QsCallable"/> with the implementation of each specialization set to External.
+        /// </remarks>
         private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
@@ -738,7 +764,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Constructs a suitable type for a given type declaration header.
+        /// Constructs a suitable type for <paramref name="header"/>.
         /// </summary>
         private QsCustomType GetImportedType(TypeDeclarationHeader header) =>
             new QsCustomType(
@@ -753,10 +779,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsComments.Empty);
 
         /// <summary>
-        /// Builds a syntax tree containing the given callables and types,
-        /// and attaches the documentation specified by the given dictionary - if any - to each namespace.
-        /// All elements within a namespace will be sorted in alphabetical order.
+        /// Builds a syntax tree containing <paramref name="callables"/> and <paramref name="types"/>,
+        /// and attaches the documentation specified by <paramref name="documentation"/> - if any - to each namespace.
         /// </summary>
+        /// <remarks>
+        /// All elements within a namespace will be sorted in alphabetical order.
+        /// </remarks>
         public static ImmutableArray<QsNamespace> NewSyntaxTree(
             IEnumerable<QsCallable> callables,
             IEnumerable<QsCustomType> types,
@@ -781,10 +809,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the built Q# compilation reflecting the current internal state.
-        /// Note that functor generation directives are *not* evaluated in the the returned compilation,
-        /// and the returned compilation may contain invalid parts.
         /// </summary>
         /// <exception cref="InvalidOperationException">A callable definition is listed in <see cref="GlobalSymbols"/> for which no compilation exists.</exception>
+        /// <remarks>
+        /// Functor generation directives are *not* evaluated in the the returned compilation,
+        /// and the returned compilation may contain invalid parts.
+        /// </remarks>
         public QsCompilation Build()
         {
             this.syncRoot.EnterReadLock();
@@ -846,7 +876,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a look-up that contains the names of all namespaces and the corresponding short hand, if any,
-        /// imported within a certain source file for the given namespace.
+        /// imported within a certain source file for <paramref name="nsName"/>.
         /// </summary>
         /// <exception cref="ArgumentException">No namespace exists with name <paramref name="nsName"/>.</exception>
         public ILookup<string, (string, string?)> GetOpenDirectives(string nsName)
@@ -863,11 +893,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Determines the closest preceding specialization for the given position in the given file.
-        /// Returns the name of the parent callable, its position in the file as well as the position of the relevant specialization as out parameters.
-        /// Returns null without setting any of the out parameters if the given file or position is null, or if the parent callable could not be determined.
-        /// Sets the correct namespace name and callable position but returns no implementation if the given position is within a callable declaration.
+        /// Determines the closest preceding specialization for <paramref name="pos"/> in <paramref name="file"/>.
         /// </summary>
+        /// <returns>
+        /// The name of the parent callable, its position in the file, as well as the position of the relevant specialization as out parameters.
+        /// Null without setting any of the out parameters if <paramref name="file"/> or <paramref name="pos"/> is null, or if the parent callable could not be determined.
+        /// </returns>
+        /// <remarks>
+        /// Sets the correct namespace name and callable position but returns no implementation if <paramref name="pos"/> is within a callable declaration.
+        /// </remarks>
         internal QsScope? TryGetSpecializationAt(
             FileContentManager file,
             Position pos,
@@ -922,12 +956,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given all locally defined symbols within a particular specialization of a callable,
-        /// returns a new set of LocalDeclarations with the position information updated to the absolute values,
+        /// returns a new set of <see cref="LocalDeclarations"/> with the position information updated to the absolute values,
         /// assuming the given positions for the parent callable and the specialization the symbols are defined in are correct.
-        /// If no LocalDeclarations are given or the given declarations are null,
-        /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value.
-        /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
         /// </summary>
+        /// <returns>
+        /// A new set of <see cref="LocalDeclarations"/> with the position information updated to the absolute values.
+        /// If <paramref name="declarations"/> is null,
+        /// all (valid) symbols defined as part of the declaration of <paramref name="parentCallable"/> with their position information set to the absolute value.
+        /// If <paramref name="parentCallable"/> is null or no callable with the name is currently compiled, <see cref="LocalDeclarations.Empty"/>. 
+        /// </returns>
         internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position? callablePos, Position? specPos, LocalDeclarations? declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
@@ -950,16 +987,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all locally declared symbols at the given (absolute) position in the given file
-        /// and sets the out parameter to the name of the parent callable at that position,
-        /// assuming that the position corresponds to a piece of code within the given file.
-        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
-        /// the returned declarations or the set parent name are not necessarily accurate - they are for any actual piece of code, though.
-        /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object.
-        /// Sets the parent name to null, if no parent could be determind.
+        /// Returns all locally declared symbols at absolute position <paramref name="pos"/> in <paramref name="file"/> 
+        /// and sets <paramref name="parentCallable"/> to the name of the parent callable at that position,
+        /// assuming that the position corresponds to a piece of code within that file.
         /// </summary>
+        /// <remarks>
+        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then the returned declarations includes the symbols declared within the statement at <paramref name="pos"/>,
+        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
+        /// Note that if <paramref name="pos"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
+        /// the returned declarations or set value of <paramref name="parentCallable"/> are not necessarily accurate - they are for any actual piece of code, though.
+        /// If <paramref name="file"/> or <paramref name="pos"/> is null, or if the locally declared symbols could not be determined, returns <see cref="LocalDeclarations.Empty"/>.
+        /// Sets <paramref name="parentCallable"/> to null if no parent could be determind.
+        /// </remarks>
+        /// <returns>
+        /// All locally declared symbols at absolute position <paramref name="pos"/> in <paramref name="file"/> 
+        /// and the name of the parent callable at that position as out parameter <paramref name="parentCallable"/>.
+        /// </returns>
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName? parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
@@ -968,16 +1011,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Tags the names of internal callables and types that are from a source that satisfies
-        /// the given predicate with a unique identifier based on the path to their source,
+        /// Tags the names of internal <paramref name="callables"/> and <paramref name="types"/> that are from a source that satisfies
+        /// <paramref name="predicate"/> with a unique identifier based on the path to their source,
         /// so that they do not conflict with public callables and types.
-        /// If no predicate is specified or the given predicate is null, tags all types and callables.
-        /// Renames all usages to the tagged names.
         /// </summary>
+        /// <remarks>
+        /// If <paramref name="predicate"/> is null, tags all types and callables.
+        /// Renames all usages to the tagged names.
+        /// </remarks>
         /// <param name="callables">The callables to rename and update if they are internal.</param>
         /// <param name="types">The types to rename and update if they are internal.</param>
         /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation
-        /// besides the ones listed as sources in the given types and callables.</param>
+        /// besides the ones listed as sources in <paramref name="types"/> and <paramref name="callables"/>.</param>
         /// <param name="predicate">If specified, only types and callables from a source for which
         /// this function returns true are renamed.</param>
         /// <returns>The renamed and updated callables and types.</returns>

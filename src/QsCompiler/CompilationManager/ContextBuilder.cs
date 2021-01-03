@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the TokenIndex for the first token in the given file, or null if no such token exists.
+        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the first token in <paramref name="file"/>, or null if no such token exists.
         /// </summary>
         internal static CodeFragment.TokenIndex? FirstToken(this FileContentManager file)
         {
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the TokenIndex for the last token in the given file, or null if no such token exists.
+        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the last token in <paramref name="file"/>, or null if no such token exists.
         /// </summary>
         internal static CodeFragment.TokenIndex? LastToken(this FileContentManager file)
         {
@@ -67,45 +67,50 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given token is fully included in the given range.
+        /// Returns true if <paramref name="token"/> is fully included in <paramref name="range"/>.
         /// </summary>
         internal static bool IsWithinRange(this CodeFragment token, Range range) =>
             range.Contains(token.Range.Start) && range.ContainsEnd(token.Range.End);
 
         /// <summary>
-        /// Returns a function that returns true if a given fragment ends at or before the given position.
+        /// Returns a function that returns true if a given fragment ends at or before <paramref name="pos"/>.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensUpTo(Position pos) => token =>
             token.Range.End <= pos;
 
         /// <summary>
-        /// Returns a function that returns true if a given fragment starts (strictly) before the given position.
+        /// Returns a function that returns true if a given fragment starts (strictly) before <paramref name="pos"/>.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensStartingBefore(Position pos) => token =>
             token.Range.Start < pos;
 
         /// <summary>
-        /// Returns a function that returns true if a given fragment starts at or after the given position.
+        /// Returns a function that returns true if a given fragment starts at or after <paramref name="pos"/>.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensAfter(Position pos) => token =>
             pos <= token.Range.Start;
 
         /// <summary>
-        /// Returns a function that returns true if a given fragment does not overlap with the specified range.
+        /// Returns a function that returns true if a given fragment does not overlap with <paramref name="relRange"/>.
         /// </summary>
         internal static Func<CodeFragment, bool> NotOverlappingWith(Range relRange) => token =>
             token.IsWithinRange(Range.Create(Position.Zero, relRange.Start))
             || TokensAfter(relRange.End)(token);
 
         /// <summary>
-        /// Returns the CodeFragment at the given position if such a fragment exists and null otherwise.
-        /// If the given position is equal to the end of the fragment, that fragment is returned if includeEnd is set to true.
-        /// If a fragment is determined for the given position, returns the corresponding token index as out parameter.
+        /// Get the code fragment at <paramref name="pos"/>.
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="pos"/> is equal to the end of the fragment, that fragment is returned if <paramref name="includeEnd"/> is set to true.
         /// Note that token indices are no longer valid as soon as the file is modified (possibly e.g. by queued background processing).
         /// Any query or attempt operation on the returned token index may result in an exception once it lost its validity.
-        /// Returns null if the given file or the specified position is null,
-        /// or if the specified position is not within the current Content range.
-        /// </summary>
+        /// </remarks>
+        /// <returns>
+        /// The code fragment at <paramref name="pos"/> if such a fragment exists.
+        /// Null if no such fragment exists, <paramref name="file"/> or <paramref name="pos"/> is null,
+        /// or if <paramref name="pos"/> is not within the current Content range.
+        /// If a fragment is determined for <paramref name="pos"/>, the corresponding token index via out parameter <paramref name="tIndex"/>.
+        /// </returns>
         public static CodeFragment? TryGetFragmentAt(
             this FileContentManager file,
             Position? pos,
@@ -137,10 +142,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the name of the namespace to which the given position belongs.
-        /// Returns null if the given file or position is null, or if no such namespace can be found
-        /// (e.g. because the namespace name is invalid).
+        /// Returns the name of the namespace to which <paramref name="pos"/> belongs.
         /// </summary>
+        /// <returns>
+        /// The name of the namespace, or null if the given file or position is null, or if no such namespace can be found
+        /// (e.g. because the namespace name is invalid).
+        /// </returns>
         public static string? TryGetNamespaceAt(this FileContentManager file, Position pos)
         {
             if (file == null || pos == null || !file.ContainsPosition(pos))
@@ -153,15 +160,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the position and the kind of the closest specialization preceding the given position,
-        /// and the name of the callable it belongs to as well as its position as Nullable.
-        /// Returns null if the given file or position is null, or if no preceding callable can be found (e.g. because the callable name is invalid).
+        /// Returns the position and the kind of the closest specialization preceding <paramref name="pos"/>,
+        /// and the name of the callable it belongs to as well as its position as <see cref="Nullable"/>.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if <paramref name="file"/> or <paramref name="pos"/> is null, or if no preceding callable can be found (e.g. because the callable name is invalid).
         /// If a callable name but no specializations (preceding or otherwise) within that callable can be found,
         /// assumes that the correct specialization is an auto-inserted default body,
-        /// and returns QsBody as well as the start position of the callable declaration along with the callable name and its position.
-        /// If a callable name as well as existing specializations can be found, but no specialization precedes the given position,
+        /// and returns <see cref="QsBody"/> as well as the start position of the callable declaration along with the callable name and its position.
+        /// If a callable name as well as existing specializations can be found, but no specialization precedes <paramref name="pos"/>,
         /// returns null for the specialization kind as well as for its position.
-        /// </summary>
+        /// </remarks>
         public static ((string, Position), (QsSpecializationKind?, Position?))? TryGetClosestSpecialization(
             this FileContentManager file, Position pos)
         {
@@ -218,11 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given file contains any tokens overlapping with the given fragment.
-        /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
-        /// whereas the range of the given fragment is assumed to be the absolute range.
+        /// Returns true if <paramref name="file"/> contains any tokens overlapping with <paramref name="range"/> of the fragment.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="range"/> is not a valid range within <paramref name="file"/>.</exception>
+        /// <remarks>
+        /// The range of the tokens in <paramref name="file"/> is assumed to be relative to their start line (the index at which they are listed),
+        /// whereas <paramref name="range"/> of the given fragment is assumed to be the absolute range.
+        /// </remarks>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
             if (!file.ContainsRange(range))
@@ -253,7 +264,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Assuming both the current tokens and the tokens to update are sorted according to their range,
+        /// Assuming both <paramref name="current"/> and <paramref name="updated"/> are sorted according to their range,
         /// merges the current and updated tokens such that the merged collection is sorted as well.
         /// </summary>
         /// <exception cref="QsCompilerException">The token verification for the merged collection failed.</exception>
@@ -287,10 +298,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Comparing for equality by value,
-        /// returns the index of the first element in the given list of CodeFragments that matches the given token,
+        /// Returns the index of the first element in <paramref name="list"/> that matches <paramref name="token"/>,
         /// or -1 if no such element exists.
         /// </summary>
+        /// <remarks>
+        /// Compares for equality by value.
+        /// </remarks>
         internal static int FindByValue(this IReadOnlyList<CodeFragment> list, CodeFragment token)
         {
             var index = -1;
@@ -303,8 +316,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the index of the closest preceding non-empty token with the next lower indentation level.
-        /// Returns null if no such token exists.
         /// </summary>
+        /// <returns>
+        /// The index, or null if no such token exists.
+        /// </returns>
         internal static CodeFragment.TokenIndex? GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
             var current = tIndex;
@@ -321,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an IEnumerable with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
+        /// Returns an <see cref="IEnumerable"/> with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetNonEmptyParents(this CodeFragment.TokenIndex tIndex)
         {
@@ -332,13 +347,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returnes an IEnumerable with the indices of all children of the given token.
-        /// If deep is set to true (default value), then the returned children are all following tokens
-        /// with a higher indentation level than the token corresponding to tIndex
-        /// up to the point where we are at the same indentation level again.
-        /// If deep is set to false, then of those only the tokens with an indentation level that is precisely
-        /// one larger than the one of the parent token are returned.
+        /// Returns an <see cref="IEnumerable"/> with the indices of all children of the token corresponding to <paramref name="tIndex"/>.
         /// </summary>
+        /// <remarks>
+        /// If <paramref name="deep"/> is set to true (default value), then the returned children are all following tokens
+        /// with a higher indentation level than the token corresponding to <paramref name="tIndex"/> 
+        /// up to the point where we are at the same indentation level again.
+        /// If <paramref name="deep"/> is set to false, then of those only the tokens with an indentation level that is precisely
+        /// one larger than the one of the parent token are returned.
+        /// </remarks>
         internal static IEnumerable<CodeFragment.TokenIndex> GetChildren(this CodeFragment.TokenIndex tIndex, bool deep = true)
         {
             var current = tIndex;
@@ -354,8 +371,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the index of the preceding non-empty token on the same indentation level, or null if no such token exists.
-        /// Includes empty tokens if includeEmpty is set to true.
         /// </summary>
+        /// <remarks>
+        /// Includes empty tokens if <paramref name="includeEmpty"/> is set to true.
+        /// </remarks>
         internal static CodeFragment.TokenIndex? PreviousOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
             var current = tIndex;
@@ -373,8 +392,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the index of the next non-empty token on the same indenation level, or null if no such token exists.
-        /// Includes empty tokens if includeEmpty is set to true.
         /// </summary>
+        /// <remarks>
+        /// Includes empty tokens if <paramref name="includeEmpty"/> is set to true.
+        /// </remarks>
         internal static CodeFragment.TokenIndex? NextOnScope(this CodeFragment.TokenIndex tIndex, bool includeEmpty = false)
         {
             var current = tIndex;
@@ -393,7 +414,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to "reconstructing" the syntax tree from the saved tokens to do context checks
 
         /// <summary>
-        /// Returns the context object for the given token index, ignoring empty fragments.
+        /// Returns the context object for <paramref name="tokenIndex"/>, ignoring empty fragments.
         /// </summary>
         private static Context.SyntaxTokenContext GetContext(this CodeFragment.TokenIndex tokenIndex)
         {
@@ -415,11 +436,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given an SortedSet of changed lines, verifies the context for each token on one of these lines,
-        /// and adds the computed diagnostics to the ones returned as out parameter.
-        /// Marks the token indices which are to be excluded from compilation due to context errors.
-        /// Returns the line numbers for which the context diagnostics have been recomputed.
+        /// Given <paramref name="changedLines"/>, verifies the context for each token on one of these lines,
+        /// and adds the computed diagnostics to the ones returned as out parameter <paramref name="diagnostics"/>.
         /// </summary>
+        /// <remarks>
+        /// Marks the token indices which are to be excluded from compilation due to context errors.
+        /// </remarks>
+        /// <returns>
+        /// The line numbers for which the context diagnostics have been recomputed.
+        /// </returns>
         private static HashSet<int> VerifyContext(this FileContentManager file, SortedSet<int> changedLines, out List<Diagnostic> diagnostics)
         {
             IEnumerable<CodeFragment.TokenIndex> TokenIndices(int lineNr) =>
@@ -473,7 +498,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external routines for context verification
 
         /// <summary>
-        /// Given the line number of the lines that contain tokens that (possibly) have been modified,
+        /// Given <paramref name="changesLines"/>, the lines that contain tokens that (possibly) have been modified,
         /// checks which callable declaration they can potentially belong to and returns the fully qualified name of those callables.
         /// </summary>
         internal static IEnumerable<(Range, QsQualifiedName)> CallablesWithContentModifications(this FileContentManager file, IEnumerable<int> changedLines)
@@ -514,10 +539,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Dequeues all lines whose tokens has changed and verifies the positions of these tokens.
+        /// Dequeues all lines whose tokens have changed and verifies the positions of these tokens.
+        /// </summary>
+        /// <remarks>
         /// Does nothing if no lines have been modified.
         /// Recomputes and pushes the context diagnostics for the processed tokens otherwise.
-        /// </summary>
+        /// </remarks>
         internal static void UpdateContext(this FileContentManager file)
         {
             file.SyncRoot.EnterUpgradeableReadLock();
