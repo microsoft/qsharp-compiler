@@ -120,11 +120,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private readonly Stack<Scope> scopes = new Stack<Scope>();
 
-        // FIXME THE STACK NEEDS TO CONTAIN SOMETHING WITH MORE TYPE INFO
-        // -> HAVE TUPLEVALUE, ARRAYVALUE ETC INHERIT FROM A COMMON CLASS AND KEEP A STACK OF THAT INSTEAD...
-        // WE CAN KEEP THE NECESSARY FUNCTION AS A STATIC MEMBER IN THAT CLASS AS WELL, ELMININATING THEM FROM THE ScopeManager.
-        // FIXME: NAMING SCOPE SHOULD ALSO BE PART OF THIS CLASS...
-
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
         /// Stack frames are added and removed by OpenScope and CloseScope respectively.

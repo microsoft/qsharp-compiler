@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
                     var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
                     this.opaquePointer = this.Builder.Call(constructor, elementSize, this.Length);
-                    this.sharedState.ScopeMgr.RegisterValue(this.opaquePointer); // FIXME: WE NEED TO QUEUE IT FOR THE TYPED VALUE
+                    this.sharedState.ScopeMgr.RegisterValue(this.opaquePointer);
                 }
                 return this.opaquePointer;
             }
