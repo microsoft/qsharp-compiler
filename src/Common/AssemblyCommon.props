@@ -12,6 +12,12 @@
     <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
+    <!-- Enable and treat as error malformed XML doc comment warning (FS3390) -->
+    <OtherFlags>--warnon:3390</OtherFlags>
+    <WarningsAsErrors>3390</WarningsAsErrors>
+  </PropertyGroup>
+
   <!--
     When DefineConstants receives a list with the semicolon escaped (%3B),
     like: SIGNED%3BTELEMETRY

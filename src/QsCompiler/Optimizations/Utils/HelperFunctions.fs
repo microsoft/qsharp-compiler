@@ -59,10 +59,12 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
     expr.Fold folder
 
 
+/// <summary>
 /// If check(value) is true, returns a Constants with the given variable defined as the given value.
 /// Otherwise, returns constants without any changes.
 /// If the given variable is already defined, its name is shadowed in the current scope.
-/// Throws an InvalidOperationException if there aren't any scopes on the stack.
+/// </summary>
+/// <exception cref="InvalidOperationException">There aren't any scopes on the stack.</exception>
 let internal defineVar check (constants: IDictionary<_, _>) (name, value) =
     if check value then constants.[name] <- value
 
@@ -92,10 +94,12 @@ let rec internal flatten =
     | Tuple t1 -> Seq.collect flatten t1
     | v1 -> Seq.singleton v1
 
+/// <summary>
 /// Flattens a pair of nested tuples by pairing the base items of each tuple.
 /// Returns a seqence of pairs, one element from each side.
 /// It is guaranteed that at most one element of a pair will be a Tuple.
-/// Throws an ArgumentException if the lengths of the tuples do not match.
+/// </summary>
+/// <exception cref="ArgumentException">The lengths of the tuples do not match.</exception>
 let rec internal jointFlatten =
     function
     | Tuple t1, Tuple t2 ->
@@ -106,8 +110,10 @@ let rec internal jointFlatten =
     | v1, v2 -> Seq.singleton (v1, v2)
 
 
+/// <summary>
 /// Converts a range literal to a sequence of integers.
-/// Throws an ArgumentException if the input isn't a valid range literal.
+/// </summary>
+/// <exception cref="ArgumentException">The input isn't a valid range literal.</exception>
 let internal rangeLiteralToSeq (r: ExprKind): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
@@ -302,13 +308,19 @@ let rec internal isAllDiscarded =
     | _ -> false
 
 
-/// Casts an int64 to an int, throwing an ArgumentException if outside the allowed range
+/// <summary>
+/// Casts an <see cref="int64"/> to an <see cref="int"/>.
+/// </summary>
+/// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
 let internal safeCastInt64 (i: int64): int =
     if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30)
     then ArgumentException "Integer is too large for 32 bits" |> raise
     else int i
 
-/// Casts a BigInteger to an int, throwing an ArgumentException if outside the allowed range
+/// <summary>
+/// Casts a <see cref="BigInteger"/> to an <see cref="int"/>.
+/// </summary>
+/// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
 let internal safeCastBigInt (i: BigInteger): int =
     if BigInteger.Abs(i) > BigInteger(1 <<< 30)
     then ArgumentException "Integer is too large for 32 bits" |> raise
