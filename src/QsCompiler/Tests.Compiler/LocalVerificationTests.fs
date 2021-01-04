@@ -160,6 +160,7 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration24" []
         this.Expect "VariableDeclaration25" []
         this.Expect "VariableDeclaration26" []
+        this.Expect "VariableDeclaration27" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
 
 
     [<Fact>]

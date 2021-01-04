@@ -374,6 +374,10 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return M(q);
     }
 
+    operation VariableDeclaration27() : Unit {
+        using q = Qubit()
+    }
+
 
     // copy-and-update array
 
