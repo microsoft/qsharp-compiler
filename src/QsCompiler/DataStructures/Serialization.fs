@@ -173,6 +173,35 @@ type TypedExpressionConverter() =
             (writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
 
 
+/// <summary>
+/// The schema for <see cref="QsSpecialization"/> that is used with JSON serialization.
+/// </summary>
+[<CLIMutable>]
+[<DataContract>]
+type private QsSpecializationSchema =
+    {
+        [<DataMember>]
+        Kind: QsSpecializationKind
+        [<DataMember>]
+        Parent: QsQualifiedName
+        [<DataMember>]
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        [<DataMember>]
+        SourceFile: string
+        [<DataMember>]
+        Location: QsNullable<QsLocation>
+        [<DataMember>]
+        TypeArguments: QsNullable<ImmutableArray<ResolvedType>>
+        [<DataMember>]
+        Signature: ResolvedSignature
+        [<DataMember>]
+        Implementation: SpecializationImplementation
+        [<DataMember>]
+        Documentation: ImmutableArray<string>
+        [<DataMember>]
+        Comments: QsComments
+    }
+
 type private QsSpecializationConverter() =
     inherit JsonConverter<QsSpecialization>()
 
@@ -209,6 +238,37 @@ type private QsSpecializationConverter() =
 
         serializer.Serialize(writer, schema)
 
+
+/// <summary>
+/// The schema for <see cref="QsCallable"/> that is used with JSON serialization.
+/// </summary>
+[<CLIMutable>]
+[<DataContract>]
+type private QsCallableSchema =
+    {
+        [<DataMember>]
+        Kind: QsCallableKind
+        [<DataMember>]
+        FullName: QsQualifiedName
+        [<DataMember>]
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        [<DataMember>]
+        Modifiers: Modifiers
+        [<DataMember>]
+        SourceFile: string
+        [<DataMember>]
+        Location: QsNullable<QsLocation>
+        [<DataMember>]
+        Signature: ResolvedSignature
+        [<DataMember>]
+        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+        [<DataMember>]
+        Specializations: ImmutableArray<QsSpecialization>
+        [<DataMember>]
+        Documentation: ImmutableArray<string>
+        [<DataMember>]
+        Comments: QsComments
+    }
 
 type private QsCallableConverter() =
     inherit JsonConverter<QsCallable>()
@@ -248,6 +308,33 @@ type private QsCallableConverter() =
 
         serializer.Serialize(writer, schema)
 
+
+/// <summary>
+/// The schema for <see cref="QsCustomType"/> that is used with JSON serialization.
+/// </summary>
+[<CLIMutable>]
+[<DataContract>]
+type private QsCustomTypeSchema =
+    {
+        [<DataMember>]
+        FullName: QsQualifiedName
+        [<DataMember>]
+        Attributes: ImmutableArray<QsDeclarationAttribute>
+        [<DataMember>]
+        Modifiers: Modifiers
+        [<DataMember>]
+        SourceFile: string
+        [<DataMember>]
+        Location: QsNullable<QsLocation>
+        [<DataMember>]
+        Type: ResolvedType
+        [<DataMember>]
+        TypeItems: QsTuple<QsTypeItem>
+        [<DataMember>]
+        Documentation: ImmutableArray<string>
+        [<DataMember>]
+        Comments: QsComments
+    }
 
 type private QsCustomTypeConverter() =
     inherit JsonConverter<QsCustomType>()
