@@ -155,6 +155,11 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration19" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration20" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "VariableDeclaration21" []
+        this.Expect "VariableDeclaration22" []
+        this.Expect "VariableDeclaration23" []
+        this.Expect "VariableDeclaration24" []
+        this.Expect "VariableDeclaration25" []
+        this.Expect "VariableDeclaration26" []
 
 
     [<Fact>]
