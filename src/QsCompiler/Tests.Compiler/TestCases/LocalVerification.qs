@@ -368,14 +368,34 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
     }
 
-    operation VariableDeclaration26() : Result {
+    operation VariableDeclaration26() : Unit {
+        using q = Qubit()
+    }
+
+    operation VariableDeclaration27() : Unit {
+        if (true) {
+            using q = Qubit();
+            Operation(q);
+        }
+        Operation(q);
+    }
+
+    operation VariableDeclaration28() : Result {
         borrowing q = Qubit();
         Operation(q);
         return M(q);
     }
 
-    operation VariableDeclaration27() : Unit {
-        using q = Qubit()
+    operation VariableDeclaration29() : Unit {
+        borrowing q = Qubit()
+    }
+
+    operation VariableDeclaration30() : Unit {
+        if (true) {
+            borrowing q = Qubit();
+            Operation(q);
+        }
+        Operation(q);
     }
 
 

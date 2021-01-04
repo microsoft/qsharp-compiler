@@ -160,7 +160,11 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration24" []
         this.Expect "VariableDeclaration25" []
         this.Expect "VariableDeclaration26" []
-        this.Expect "VariableDeclaration27" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
+        this.Expect "VariableDeclaration26" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
+        this.Expect "VariableDeclaration27" [ Error ErrorCode.UnknownIdentifier ]
+        this.Expect "VariableDeclaration28" []
+        this.Expect "VariableDeclaration29" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
+        this.Expect "VariableDeclaration30" [ Error ErrorCode.UnknownIdentifier ]
 
 
     [<Fact>]
