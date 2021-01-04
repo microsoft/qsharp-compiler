@@ -10,7 +10,8 @@ variables:
   VSIX.Outdir: $(Drops.Dir)/vsix
   Blobs.Outdir: $(Drops.Dir)/blobs
 
-trigger: none
+trigger:
+- main
 
 pr:
 - main
