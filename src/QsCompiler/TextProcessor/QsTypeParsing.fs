@@ -137,54 +137,13 @@ let private userDefinedType =
 /// </summary>
 /// <remarks>Uses leftRecursionByInfix to process the signature and raise suitable errors.</remarks>
 let private operationType =
-    // utils for handling deprecated and partially deprecated syntax:
-    let quantumFunctor =
-        choice [ (qsControlledFunctor.parse |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjointFunctor.parse |>> buildCharacteristics (SimpleSet Adjointable))
-                 (qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjSet.parse |>> buildCharacteristics (SimpleSet Adjointable)) ]
-
-    let functorSupport startPos =
-        sepBy1 quantumFunctor (comma >>? followedBy quantumFunctor)
-        >>= function // fail on comma followed by something else than a functor
-        | head :: tail ->
-            let setExpr =
-                tail |> List.fold (fun acc x -> buildCombinedExpression (Union(acc, x)) (acc.Range, x.Range)) head
-
-            match setExpr.Range with
-            | Null -> preturn setExpr
-            | Value range ->
-                let characteristics =
-                    head :: tail
-                    |> List.choose (fun a ->
-                        match a.Characteristics with
-                        | SimpleSet Controllable -> Some qsCtlSet.id
-                        | SimpleSet Adjointable -> Some qsAdjSet.id
-                        | _ -> None)
-                    |> String.concat qsSetUnion.op
-                    |> sprintf "%s %s" qsCharacteristics.id
-
-                QsCompilerDiagnostic.Warning
-                    (WarningCode.DeprecatedOpCharacteristics, [ characteristics ])
-                    (Range.Create startPos range.End)
-                |> pushDiagnostic
-                >>. preturn setExpr
-        | _ -> fail "not a functor support annotation"
-
-    // the actual type parsing:
     let inAndOutputType =
         let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
-    let characteristics =
-        qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
-        .>> notFollowedBy (comma >>. quantumFunctor)
+    let characteristics = qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
 
-    let deprecatedCharacteristics = qsCharacteristics.parse |>> (fun r -> r.Start) >>= functorSupport
-
-    inAndOutputType
-    .>>. (attempt characteristics <|> deprecatedCharacteristics <|>% Characteristics.New(EmptySet, Null))
-    |> term
+    inAndOutputType .>>. (characteristics <|>% Characteristics.New(EmptySet, Null)) |> term
     |>> asType Operation
 
 /// <summary>

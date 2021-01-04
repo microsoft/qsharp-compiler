@@ -997,18 +997,13 @@ let ``Operation type tests`` () =
 
         "new (Qubit => Unit is Adj, Ctl)[0]",
         true,
-        toNewArray (toTupleType [ toOpType qubitType unitType adjCtlSet ]) (toInt 0),
-        [ Warning WarningCode.DeprecatedOpCharacteristics ]
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType adjSet
+                           toType InvalidType ])
+            (toInt 0),
+        [ Error ErrorCode.InvalidType ]
 
-        "new Qubit => Unit is Adj, Ctl[0]",
-        true,
-        toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-        [
-            Error ErrorCode.MissingLTupleBracket
-            Error ErrorCode.MissingRTupleBracket
-            Warning WarningCode.DeprecatedOpCharacteristics
-        ]
-
+        "new Qubit => Unit is Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
         "new (Qubit => Unit) is Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
 
         "new (Qubit => Unit is (Adj + Ctl))[0]",
