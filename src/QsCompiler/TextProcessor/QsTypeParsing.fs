@@ -132,76 +132,29 @@ let private userDefinedType =
 
 // composite types
 
-/// Parses a Q# operation type raising the corresponding missing parenthesis errors if the outer parenthesis are missing.
-/// Inner parenthesis of the form "((T1 -=> T2) is Adj)" are optional.
-/// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// <summary>
+/// Parses a Q# operation type.
+/// </summary>
+/// <remarks>Uses leftRecursionByInfix to process the signature and raise suitable errors.</remarks>
 let private operationType =
-    // utils for handling deprecated and partially deprecated syntax:
-    let quantumFunctor =
-        choice [ (qsControlledFunctor.parse |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjointFunctor.parse |>> buildCharacteristics (SimpleSet Adjointable))
-                 (qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable))
-                 (qsAdjSet.parse |>> buildCharacteristics (SimpleSet Adjointable)) ]
-
-    let functorSupport startPos =
-        sepBy1 quantumFunctor (comma >>? followedBy quantumFunctor)
-        >>= function // fail on comma followed by something else than a functor
-        | head :: tail ->
-            let setExpr =
-                tail
-                |> List.fold (fun acc x ->
-                    buildCombinedExpression (CharacteristicsKind.Union(acc, x)) (acc.Range, x.Range)) head
-
-            match setExpr.Range with
-            | Null -> preturn setExpr
-            | Value range ->
-                let characteristics =
-                    head :: tail
-                    |> List.choose (fun a ->
-                        match a.Characteristics with
-                        | SimpleSet Controllable -> Some qsCtlSet.id
-                        | SimpleSet Adjointable -> Some qsAdjSet.id
-                        | _ -> None)
-                    |> String.concat qsSetUnion.op
-                    |> sprintf "%s %s" qsCharacteristics.id
-
-                QsCompilerDiagnostic.Warning
-                    (WarningCode.DeprecatedOpCharacteristics, [ characteristics ])
-                    (Range.Create startPos range.End)
-                |> pushDiagnostic
-                >>. preturn setExpr
-        | _ -> fail "not a functor support annotation"
-    // the actual type parsing:
     let inAndOutputType =
-        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse <|> followedBy colon
+        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
-    let opTypeWith characteristics =
-        let withInnerBrackets = optTupleBrackets (tupleBrackets inAndOutputType |>> fst .>>. characteristics)
-        let withoutInnerBrackets = optTupleBrackets (inAndOutputType .>>. characteristics)
-        withInnerBrackets <|> withoutInnerBrackets
+    let characteristics = qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
 
-    let deprecatedCharacteristics =
-        let colonWithWarning = buildWarning (getEmptyRange .>> colon) WarningCode.DeprecatedOpCharacteristicsIntro
+    inAndOutputType .>>. (characteristics <|>% Characteristics.New(EmptySet, Null)) |> term
+    |>> asType Operation
 
-        attempt (colonWithWarning >>. characteristics .>> notFollowedBy (comma >>. quantumFunctor))
-        <|> (qsCharacteristics.parse |>> (fun r -> r.Start) <|> (getPosition .>> colon) >>= functorSupport)
-
-    let characteristics =
-        qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
-        .>> notFollowedBy (comma >>. quantumFunctor)
-
-    let opTypeWithoutCharacteristics =
-        optTupleBrackets (inAndOutputType .>>. preturn ((EmptySet, Null) |> Characteristics.New))
-
-    opTypeWith characteristics <|> opTypeWith deprecatedCharacteristics <|> opTypeWithoutCharacteristics
-    |>> asType Operation // keep this order!
-
-/// Parses a Q# function type raising the corresponding missing bracket errors if the outer tuple brackets are missing.
-/// NOTE: Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// <summary>
+/// Parses a Q# function type.
+/// </summary>
+/// <remarks>
+/// Uses leftRecursionByInfix to process the signature and raise suitable errors.
+/// </remarks>
 let private functionType =
-    let core = leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation)
-    optTupleBrackets core |>> asType Function
+    leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation) |> term
+    |>> asType Function
 
 /// Parses a Q# tuple type, raising an Missing- or InvalidTypeDeclaration error for missing or invalid items.
 /// The tuple must consist of at least one tuple item.
@@ -209,35 +162,53 @@ let internal tupleType =
     let buildTupleType (items, range: Range) = (TupleType items, range) |> QsType.New
     buildTuple qsType buildTupleType ErrorCode.InvalidType ErrorCode.MissingType invalidType
 
+/// <summary>
+/// Validates that a parsed Q# type follows additional rules that prevent confusing syntax.
+/// </summary>
+/// <param name="isArrayItem">Whether the given type is part of an array postfix bracket type, "T[]" or "T[n]".</param>
+let internal validateTypeSyntax isArrayItem { Type = kind; Range = range } =
+    let start = (range.ValueOr Range.Zero).Start
+    let end' = (range.ValueOr Range.Zero).End
+
+    match kind with
+    | Function _
+    | Operation _ when isArrayItem ->
+        // To avoid confusing syntax like "new Int -> Int[3]" or "Qubit => Unit is Adj[]", require that function and
+        // operation types are tupled when used as an array item type.
+        [
+            QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
+            QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
+        ]
+        |> pushDiagnostics
+    | _ -> preturn ()
+
 /// Parses for an arbitrary Q# type, using the given parser to process tuple types.
 let internal typeParser tupleType =
-    let nonArrayTypes =
-        choice [ attempt operationType // operation and function signatures need to be processed *first* to make the left recursion work!
-                 attempt functionType
-                 attempt unitType // needs to come *before* tupleType but *after* function- and operationType ...
-                 attempt tupleType
-                 attempt atomicType
-                 attempt userDefinedType ] // needs to be last
+    let baseType =
+        [
+            // operation and function signatures need to be processed *first* to make the left recursion work!
+            operationType
+            functionType
 
-    let buildArrays p =
-        let combine kind (lRange, rRange) =
-            match QsNullable.Map2 Range.Span lRange rRange with
-            | Value range -> { Type = kind; Range = Value range }
-            | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
+            unitType // needs to come *before* tupleType but *after* function- and operationType ...
+            tupleType
+            typeParameterLike
+            atomicType
+            userDefinedType // needs to be last
+        ]
+        |> choice
 
-        let rec applyArrays (t: QsType, item) =
-            match item with
-            | [] -> t
-            | (_, range) :: tail ->
-                let arrType = combine (ArrayType t) (t.Range, Value range)
-                applyArrays (arrType, tail)
+    let combine kind (lRange, rRange) =
+        match QsNullable.Map2 Range.Span lRange rRange with
+        | Value range -> { Type = kind; Range = Value range }
+        | Null -> { Type = InvalidType; Range = Null } // *needs* to be invalid if the combined range is Null!
 
-        p .>>. many (arrayBrackets emptySpace) |>> applyArrays
+    let createArray itemType range =
+        combine (ArrayType itemType) (itemType.Range, Value range)
 
-    let nonGenericType = buildArrays nonArrayTypes
-    let genericType = buildArrays typeParameterLike
-
-    (genericType <|> nonGenericType) // generic type needs to come first here
-    .>>? notFollowedBy (fctArrow <|> opArrow) // needed to make the error handling for missing brackets on op and fct types work (left recursion)
+    baseType .>>. many (arrayBrackets emptySpace)
+    >>= fun (itemType, brackets) ->
+            validateTypeSyntax (List.isEmpty brackets |> not) itemType
+            >>% (brackets |> Seq.map snd |> Seq.fold createArray itemType)
 
 do qsTypeImpl := typeParser tupleType
