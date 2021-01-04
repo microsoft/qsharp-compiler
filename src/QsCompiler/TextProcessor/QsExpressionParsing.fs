@@ -476,7 +476,8 @@ let private valueArray = // this disallows []
 /// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
-    let body = expectedQsType (lArray >>% ()) .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
+    let itemType = expectedQsType (lArray >>% ()) >>= fun itemType -> validateTypeSyntax true itemType >>% itemType
+    let body = itemType .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
 
     let invalid =
         checkForInvalid
