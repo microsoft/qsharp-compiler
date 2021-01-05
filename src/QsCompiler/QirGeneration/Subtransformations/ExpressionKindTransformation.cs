@@ -174,33 +174,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>Returns true if the item was found and false otherwise</returns>
         private bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
         {
-            ITypeRef GetTypeItemType(QsTuple<QsTypeItem> item)
-            {
-                switch (item)
-                {
-                    case QsTuple<QsTypeItem>.QsTupleItem leaf:
-                        var leafType = leaf.Item switch
-                        {
-                            QsTypeItem.Anonymous anon => anon.Item,
-                            QsTypeItem.Named named => named.Item.Type,
-                            _ => ResolvedType.New(QsResolvedTypeKind.InvalidType)
-                        };
-                        return this.SharedState.LlvmTypeFromQsharpType(leafType);
-
-                    case QsTuple<QsTypeItem>.QsTuple list:
-                        var types = list.Item.Select(i => i switch
-                        {
-                            QsTuple<QsTypeItem>.QsTuple l => GetTypeItemType(l),
-                            QsTuple<QsTypeItem>.QsTupleItem l => GetTypeItemType(l),
-                            _ => this.SharedState.Context.TokenType
-                        });
-                        return this.SharedState.Types.TypedTuple(types).CreatePointerType();
-
-                    default:
-                        throw new NotImplementedException("unknown item in argument tuple");
-                }
-            }
-
             bool FindNamedItem(QsTuple<QsTypeItem> items, List<int> location)
             {
                 switch (items)
