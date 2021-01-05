@@ -10,14 +10,21 @@ variables:
   VSIX.Outdir: $(Drops.Dir)/vsix
   Blobs.Outdir: $(Drops.Dir)/blobs
 
-trigger:
-- main
+trigger: none
 
 pr:
 - main
 - feature/*
 - features/*
 - release/*
+
+schedules:
+- cron: "0 8 * * *"
+  displayName: 'Build for Component Governance'
+  branches:
+    include:
+    - main
+  always: false
 
 jobs:
 - job: "QsCompiler"
