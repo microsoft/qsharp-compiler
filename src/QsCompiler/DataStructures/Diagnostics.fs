@@ -908,23 +908,23 @@ type DiagnosticItem =
             | WarningCode.UnsupportedResultComparison ->
                 "{0}: "
                 + DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args |> Seq.skip 4)
-                + " [{1}:{2}:{3}]"
+                + " [{1}: ln {2}, cn {3}]"
             | WarningCode.ResultComparisonNotInOperationIf ->
                 "{0}: "
                 + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4)
-                + " [{1}:{2}:{3}]"
+                + " [{1}: ln {2}, cn {3}]"
             | WarningCode.ReturnInResultConditionedBlock ->
                 "{0}: "
                 + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4)
-                + " [{1}:{2}:{3}]"
+                + " [{1}: ln {2}, cn {3}]"
             | WarningCode.SetInResultConditionedBlock ->
                 "{0}: "
                 + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
-                + " [{1}:{2}:{3}]"
+                + " [{1}: ln {2}, cn {3}]"
             | WarningCode.UnsupportedCallableCapability ->
                 "{0}: "
                 + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
-                + " [{1}:{2}:{3}]"
+                + " [{1}: ln {2}, cn {3}]"
 
             | WarningCode.TypeParameterNotResolvedByArgument ->
                 "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments."
