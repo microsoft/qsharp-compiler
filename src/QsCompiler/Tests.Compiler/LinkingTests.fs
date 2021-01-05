@@ -96,7 +96,8 @@ type LinkingTests(output: ITestOutputHelper) =
         let source, built = manager |> this.BuildWithSource input
         let tests = new CompilerTests(built)
 
-        let inFile (c: QsCallable) = Source.assemblyOrCodeFile c.Source = source
+        let inFile (c: QsCallable) =
+            Source.assemblyOrCodeFile c.Source = source
 
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.VerifyDiagnostics(callable.FullName, diag)

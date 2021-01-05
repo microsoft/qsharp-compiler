@@ -41,7 +41,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         [
             for file in compilation.SourceFiles do
                 let containedCallables =
-                    callables.Where(fun kv -> Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
+                    callables.Where(fun kv ->
+                        Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
 
                 let locations =
                     containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
