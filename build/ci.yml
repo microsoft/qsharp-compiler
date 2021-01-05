@@ -19,12 +19,12 @@ pr:
 - release/*
 
 schedules:
-- cron: "0 8 * * *"
+- cron: "0 9 * * Sat"
   displayName: 'Build for Component Governance'
   branches:
     include:
     - main
-  always: false
+  always: true
 
 jobs:
 - job: "QsCompiler"
