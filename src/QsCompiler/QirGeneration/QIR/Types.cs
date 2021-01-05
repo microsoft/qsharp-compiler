@@ -173,11 +173,35 @@ namespace Microsoft.Quantum.QIR
         /// <summary>
         /// Determines whether an LLVM type is a pointer to a typed tuple.
         /// </summary>
-        public bool IsTypedTuple(ITypeRef t) =>
+        public static bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
             && st.Name == null
             && st.Members.Count > 0;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque tuple.
+        /// </summary>
+        public static bool IsTuple(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Tuple;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque array.
+        /// </summary>
+        public static bool IsArray(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Array;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque callable.
+        /// </summary>
+        public static bool IsCallable(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Callable;
     }
 
     /// <summary>
