@@ -7,7 +7,6 @@ open System
 open System.Collections.Immutable
 open System.Linq
 open System.Runtime.InteropServices
-open System.Runtime.Serialization
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -684,21 +683,33 @@ and QsStatement =
     }
 
 
-/// The source files for a syntax tree node.
+/// The source files of a syntax tree node.
 type Source =
     {
         /// The path to the original source code file.
         CodeFile: string
-
         /// The path to the assembly file if the node was loaded from a reference.
         AssemblyFile: string QsNullable
     }
 
+/// The module for source files.
+module Source =
     /// The assembly file path for this source if one exists, otherwise the code file path.
-    member source.AssemblyOrCodeFile = source.AssemblyFile.ValueOr source.CodeFile
+    [<CompiledName "AssemblyOrCodeFile">]
+    let assemblyOrCodeFile source =
+        source.AssemblyFile.ValueOr source.CodeFile
 
     /// Whether the source is from a referenced assembly.
-    member source.IsReference = QsNullable.isValue source.AssemblyFile
+    [<CompiledName "IsReference">]
+    let isReference (source: Source) = QsNullable.isValue source.AssemblyFile
+
+// C# API for Source.
+type Source with
+    /// The assembly file path for this source if one exists, otherwise the code file path.
+    member source.AssemblyOrCodeFile = Source.assemblyOrCodeFile source
+
+    /// Whether the source is from a referenced assembly.
+    member source.IsReference = Source.isReference source
 
     /// <summary>
     /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
@@ -710,16 +721,6 @@ type Source =
             CodeFile = codeFile |> Option.defaultValue source.CodeFile
             AssemblyFile = assemblyFile |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyFile
         }
-
-/// Operations for source files.
-module Source =
-    /// The assembly file path for this source if one exists, otherwise the code file path.
-    [<CompiledName "AssemblyOrCodeFile">]
-    let assemblyOrCodeFile (source: Source) = source.AssemblyOrCodeFile
-
-    /// Whether the source is from a referenced assembly.
-    [<CompiledName "IsReference">]
-    let isReference (source: Source) = source.IsReference
 
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable
