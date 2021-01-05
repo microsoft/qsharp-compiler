@@ -339,16 +339,25 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation VariableDeclaration22() : Unit {
         using q = Qubit();
+    }
+
+    operation VariableDeclaration23() : Unit {
+        using q = Qubit();
         Operation(q);
     }
 
-    operation VariableDeclaration23() : Result {
+    operation VariableDeclaration24() : Unit {
+        using q = Qubit();
+        Operation(foo);
+    }
+
+    operation VariableDeclaration25() : Result {
         using q = Qubit();
         Operation(q);
         return M(q);
     }
 
-    operation VariableDeclaration24() : Result {
+    operation VariableDeclaration26() : Result {
         if (true) {
             using q = Qubit();
             Operation(q);
@@ -358,7 +367,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
     }
 
-    operation VariableDeclaration25() : Bool {
+    operation VariableDeclaration27() : Bool {
         using q = Qubit();
         Operation(q);
         if M(q) == One {
@@ -368,11 +377,11 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
     }
 
-    operation VariableDeclaration26() : Unit {
+    operation VariableDeclaration28() : Unit {
         using q = Qubit()
     }
 
-    operation VariableDeclaration27() : Unit {
+    operation VariableDeclaration29() : Unit {
         if (true) {
             using q = Qubit();
             Operation(q);
@@ -380,17 +389,17 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         Operation(q);
     }
 
-    operation VariableDeclaration28() : Result {
+    operation VariableDeclaration30() : Result {
         borrowing q = Qubit();
         Operation(q);
         return M(q);
     }
 
-    operation VariableDeclaration29() : Unit {
+    operation VariableDeclaration31() : Unit {
         borrowing q = Qubit()
     }
 
-    operation VariableDeclaration30() : Unit {
+    operation VariableDeclaration32() : Unit {
         if (true) {
             borrowing q = Qubit();
             Operation(q);
