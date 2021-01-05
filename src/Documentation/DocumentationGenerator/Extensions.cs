@@ -312,9 +312,9 @@ namespace Microsoft.Quantum.Documentation
                 _ => false,
             };
 
-        internal static bool IsInCompilationUnit(this QsCallable callable) => callable.Source.AssemblyFile.IsNull;
+        internal static bool IsInCompilationUnit(this QsCallable callable) => !callable.Source.IsReference;
 
-        internal static bool IsInCompilationUnit(this QsCustomType type) => type.Source.AssemblyFile.IsNull;
+        internal static bool IsInCompilationUnit(this QsCustomType type) => !type.Source.IsReference;
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(

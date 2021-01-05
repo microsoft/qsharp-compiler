@@ -697,6 +697,9 @@ type Source =
     /// The assembly file path for this source if one exists, otherwise the code file path.
     member source.AssemblyOrCodeFile = source.AssemblyFile.ValueOr source.CodeFile
 
+    /// Whether the source is from a referenced assembly.
+    member source.IsReference = QsNullable.isValue source.AssemblyFile
+
     /// <summary>
     /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
     /// provided.
@@ -713,6 +716,10 @@ module Source =
     /// The assembly file path for this source if one exists, otherwise the code file path.
     [<CompiledName "AssemblyOrCodeFile">]
     let assemblyOrCodeFile (source: Source) = source.AssemblyOrCodeFile
+
+    /// Whether the source is from a referenced assembly.
+    [<CompiledName "IsReference">]
+    let isReference (source: Source) = source.IsReference
 
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable

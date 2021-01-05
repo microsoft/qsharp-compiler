@@ -50,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
-                    syntaxTree.Callables().Where(c => c.Source.AssemblyFile.IsNull).Select(CallableDeclarationHeader.New),
-                    syntaxTree.Specializations().Where(c => c.Source.AssemblyFile.IsNull).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
-                    syntaxTree.Types().Where(c => c.Source.AssemblyFile.IsNull).Select(TypeDeclarationHeader.New))
+                    syntaxTree.Callables().Where(c => !c.Source.IsReference).Select(CallableDeclarationHeader.New),
+                    syntaxTree.Specializations().Where(c => !c.Source.IsReference).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
+                    syntaxTree.Types().Where(c => !c.Source.IsReference).Select(TypeDeclarationHeader.New))
             {
             }
 
