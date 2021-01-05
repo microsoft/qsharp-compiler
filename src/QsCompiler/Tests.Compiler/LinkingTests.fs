@@ -96,7 +96,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let source, built = manager |> this.BuildWithSource input
         let tests = new CompilerTests(built)
 
-        let inFile (c: QsCallable) = Source.assemblyOrCode c.Source = source
+        let inFile (c: QsCallable) = Source.assemblyOrCodeFile c.Source = source
 
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.VerifyDiagnostics(callable.FullName, diag)
@@ -704,15 +704,15 @@ type LinkingTests(output: ITestOutputHelper) =
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl: QsCustomType) =
-                AssertSource(tDecl.FullName, Source.assemblyOrCode tDecl.Source, Some tDecl.Modifiers.Access)
+                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Modifiers.Access)
                 tDecl
 
             let onCallableDecl (cDecl: QsCallable) =
-                AssertSource(cDecl.FullName, Source.assemblyOrCode cDecl.Source, Some cDecl.Modifiers.Access)
+                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Modifiers.Access)
                 cDecl
 
             let onSpecDecl (sDecl: QsSpecialization) =
-                AssertSource(sDecl.Parent, Source.assemblyOrCode sDecl.Source, None)
+                AssertSource(sDecl.Parent, Source.assemblyOrCodeFile sDecl.Source, None)
                 sDecl
 
             let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)

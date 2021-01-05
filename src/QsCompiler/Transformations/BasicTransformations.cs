@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override Source OnSource(Source source)
             {
-                this.SharedState.SourceFiles.Add(source.AssemblyOrCode);
+                this.SharedState.SourceFiles.Add(source.AssemblyOrCodeFile);
                 return base.OnSource(source);
             }
         }
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// <inheritdoc/>
             public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
-                if (this.SharedState.Predicate(t.Source.AssemblyOrCode))
+                if (this.SharedState.Predicate(t.Source.AssemblyOrCodeFile))
                 {
                     this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCustomType(t)));
                 }
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// <inheritdoc/>
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
-                if (this.SharedState.Predicate(c.Source.AssemblyOrCode))
+                if (this.SharedState.Predicate(c.Source.AssemblyOrCodeFile))
                 {
                     this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCallable(c)));
                 }

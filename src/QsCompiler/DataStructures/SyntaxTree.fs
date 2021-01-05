@@ -695,7 +695,7 @@ type Source =
     }
 
     /// The assembly file path for this source if one exists, otherwise the code file path.
-    member source.AssemblyOrCode = source.AssemblyFile.ValueOr source.CodeFile
+    member source.AssemblyOrCodeFile = source.AssemblyFile.ValueOr source.CodeFile
 
     /// <summary>
     /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
@@ -711,8 +711,8 @@ type Source =
 /// Operations for source files.
 module Source =
     /// The assembly file path for this source if one exists, otherwise the code file path.
-    [<CompiledName "AssemblyOrCode">]
-    let assemblyOrCode (source: Source) = source.AssemblyOrCode
+    [<CompiledName "AssemblyOrCodeFile">]
+    let assemblyOrCodeFile (source: Source) = source.AssemblyOrCodeFile
 
 
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable
@@ -810,7 +810,7 @@ type QsSpecialization =
 
     // TODO: RELEASE 2021-07: Remove QsSpecialization.SourceFile.
     [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// describes a Q# function, operation, or type constructor
@@ -863,7 +863,7 @@ type QsCallable =
 
     // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
     [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -915,7 +915,7 @@ type QsCustomType =
 
     // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
     [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// Describes a valid Q# namespace element.

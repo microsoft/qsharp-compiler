@@ -201,14 +201,14 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
                 |> UserDefinedType
                 |> ResolvedType.New
 
-            for entry in getTypes ((getLocation header).Offset, Source.assemblyOrCode header.Source) parent None do
+            for entry in getTypes ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source) parent None do
                 queue.Enqueue entry
 
             let rec search () =
                 if queue.Count <> 0 then
                     let ctypes =
                         getTypes
-                            ((getLocation header).Offset, Source.assemblyOrCode header.Source)
+                            ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source)
                             (queue.Dequeue())
                             (Some typeIndex)
 
@@ -245,7 +245,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             let udt = definitions.[udtIndex]
             let loc = getLocation udt
 
-            ((loc.Offset, Source.assemblyOrCode udt.Source),
+            ((loc.Offset, Source.assemblyOrCodeFile udt.Source),
              loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeIsPartOfCyclicDeclaration, []))
             |> diagnostics.Add
 

@@ -58,7 +58,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnSource: Source -> Source
 
     default this.OnSource source =
-        let file = Source.assemblyOrCode source |> this.OnSourceFile
+        let file = Source.assemblyOrCodeFile source |> this.OnSourceFile
 
         if file.EndsWith ".qs"
         then { source with CodeFile = file }

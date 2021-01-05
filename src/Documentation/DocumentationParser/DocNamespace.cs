@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsVisible(callable.Source.AssemblyOrCode, callable.Modifiers.Access, callable.FullName.Name) &&
+                    if (IsVisible(callable.Source.AssemblyOrCodeFile, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         this.items.Add(new DocCallable(this.name, callable));
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsVisible(udt.Source.AssemblyOrCode, udt.Modifiers.Access, udt.FullName.Name))
+                    if (IsVisible(udt.Source.AssemblyOrCodeFile, udt.Modifiers.Access, udt.FullName.Name))
                     {
                         this.items.Add(new DocUdt(this.name, udt));
                     }

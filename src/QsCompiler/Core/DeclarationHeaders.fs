@@ -154,7 +154,7 @@ type TypeDeclarationHeader =
 
     // TODO: RELEASE 2021-07: Remove TypeDeclarationHeader.SourceFile.
     [<JsonIgnore; Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.FromSource source = { this with Source = source }
 
@@ -272,7 +272,7 @@ type CallableDeclarationHeader =
 
     // TODO: RELEASE 2021-07: Remove CallableDeclarationHeader.SourceFile.
     [<JsonIgnore; Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.FromSource source = { this with Source = source }
 
@@ -401,7 +401,7 @@ type SpecializationDeclarationHeader =
 
     // TODO: RELEASE 2021-07: Remove SpecializationDeclarationHeader.SourceFile.
     [<JsonIgnore; Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCode this.Source
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.FromSource source = { this with Source = source }
 

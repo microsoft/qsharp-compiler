@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.Documentation
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: type.Source.AssemblyOrCode);
+                    source: type.Source.AssemblyOrCodeFile);
 
                 this.writer?.WriteOutput(type, docComment)?.Wait();
 
@@ -182,7 +182,7 @@ namespace Microsoft.Quantum.Documentation
                     name => inputDeclarations.ContainsKey(name),
                     docComment.Input.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.Source.AssemblyOrCode);
+                    source: callable.Source.AssemblyOrCodeFile);
                 this.ValidateNames(
                     callableName,
                     "type parameter",
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.Documentation
                             validName.Item == name.TrimStart('\'')),
                     docComment.TypeParameters.Keys,
                     range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.Source.AssemblyOrCode);
+                    source: callable.Source.AssemblyOrCodeFile);
 
                 this.writer?.WriteOutput(callable, docComment)?.Wait();
 

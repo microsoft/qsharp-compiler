@@ -446,7 +446,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let getAttribute ((nsName, symName), symRange) =
             match tryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
             | Some (udt, declSource, _), errs -> // declSource may be the name of an assembly!
-                let declSource = Source.assemblyOrCode declSource
+                let declSource = Source.assemblyOrCodeFile declSource
                 let fullName = sprintf "%s.%s" udt.Namespace udt.Name
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications(udt.Namespace, declSource)
 

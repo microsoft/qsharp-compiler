@@ -268,26 +268,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
-                if (!this.SharedState.IsRelevant(t.Source.AssemblyOrCode) || t.Location.IsNull)
+                if (!this.SharedState.IsRelevant(t.Source.AssemblyOrCodeFile) || t.Location.IsNull)
                 {
                     return t;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = Tuple.Create(t.Source.AssemblyOrCode, t.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(t.Source.AssemblyOrCodeFile, t.Location.Item);
                 }
                 return base.OnTypeDeclaration(t);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
-                if (!this.SharedState.IsRelevant(c.Source.AssemblyOrCode) || c.Location.IsNull)
+                if (!this.SharedState.IsRelevant(c.Source.AssemblyOrCodeFile) || c.Location.IsNull)
                 {
                     return c;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = Tuple.Create(c.Source.AssemblyOrCode, c.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(c.Source.AssemblyOrCodeFile, c.Location.Item);
                 }
                 return base.OnCallableDeclaration(c);
             }
@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.Source.AssemblyOrCode) ? base.OnSpecializationDeclaration(spec) : spec;
+                this.SharedState.IsRelevant(spec.Source.AssemblyOrCodeFile) ? base.OnSpecializationDeclaration(spec) : spec;
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
@@ -316,7 +316,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override Source OnSource(Source source)
             {
-                this.SharedState.Source = source.AssemblyOrCode;
+                this.SharedState.Source = source.AssemblyOrCodeFile;
                 return source;
             }
         }

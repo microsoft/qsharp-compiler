@@ -208,8 +208,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return;
             }
             var conflicting = new List<(string, string)>();
-            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCode, c.Modifiers.Access));
-            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCode, t.Modifiers.Access));
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
@@ -254,8 +254,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 additionalAssemblies: additionalAssemblies);
 
             var conflicting = new List<(string, string)>();
-            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCode, c.Modifiers.Access));
-            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCode, t.Modifiers.Access));
+            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
+            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
             foreach (var (name, conflicts) in conflicting.Distinct())
@@ -798,7 +798,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for type " +
-                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCode}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCodeFile}'");
                     }
                 }
 
@@ -814,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for callable " +
-                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCode}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCodeFile}'");
                     }
 
                     foreach (var (_, specHeader) in this.GlobalSymbols.DefinedSpecializations(declaration.QualifiedName))
@@ -824,7 +824,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (!compiledSpecs.Any())
                         {
                             throw new InvalidOperationException($"missing compilation for specialization " +
-                            $"{specHeader.Kind} of {specHeader.Parent.Namespace}.{specHeader.Parent.Name} in '{specHeader.Source.AssemblyOrCode}'");
+                            $"{specHeader.Kind} of {specHeader.Parent.Namespace}.{specHeader.Parent.Name} in '{specHeader.Source.AssemblyOrCodeFile}'");
                         }
                     }
                 }
@@ -991,8 +991,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             NameDecorator decorator = new NameDecorator($"QsRef");
             ImmutableDictionary<string, int> ids =
-                callables.Select(callable => callable.Source.AssemblyOrCode)
-                .Concat(types.Select(type => type.Source.AssemblyOrCode))
+                callables.Select(callable => callable.Source.AssemblyOrCodeFile)
+                .Concat(types.Select(type => type.Source.AssemblyOrCodeFile))
                 .Distinct()
                 .Where(source => predicate?.Invoke(source) ?? true)
                 // this setup will mean that internal declarations won't get replaced with target specific implementations
@@ -1015,19 +1015,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var transformations = callables
                 .Select(callable =>
-                    (name: callable.FullName, source: callable.Source.AssemblyOrCode, access: callable.Modifiers.Access))
+                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Modifiers.Access))
                 .Concat(types.Select(type =>
-                    (name: type.FullName, source: type.Source.AssemblyOrCode, access: type.Modifiers.Access)))
+                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Modifiers.Access)))
                 .GroupBy(item => item.source)
                 .ToImmutableDictionary(
                     group => group.Key,
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.Source.AssemblyOrCode].Namespaces.OnCallableDeclaration(callable))
+                callable => transformations[callable.Source.AssemblyOrCodeFile].Namespaces.OnCallableDeclaration(callable))
                 .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.Source.AssemblyOrCode].Namespaces.OnTypeDeclaration(type))
+                type => transformations[type.Source.AssemblyOrCodeFile].Namespaces.OnTypeDeclaration(type))
                 .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }

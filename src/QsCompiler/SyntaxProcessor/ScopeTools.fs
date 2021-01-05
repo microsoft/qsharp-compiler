@@ -439,11 +439,11 @@ type ScopeContext =
                          processorArchitecture
                          (spec: SpecializationDeclarationHeader)
                          =
-        match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, Source.assemblyOrCode spec.Source) with
+        match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, Source.assemblyOrCodeFile spec.Source) with
         | Found declaration ->
             {
                 Globals = nsManager
-                Symbols = SymbolTracker(nsManager, Source.assemblyOrCode spec.Source, spec.Parent)
+                Symbols = SymbolTracker(nsManager, Source.assemblyOrCodeFile spec.Source, spec.Parent)
                 IsInOperation = declaration.Kind = Operation
                 IsInIfCondition = false
                 ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
