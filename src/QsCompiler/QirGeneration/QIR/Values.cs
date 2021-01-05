@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -64,5 +65,56 @@ namespace Microsoft.Quantum.QIR.Emission
             type.Resolution is QsResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item, builder) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type, builder) :
             (IValue)new SimpleValue(value, type, builder);
+
+        internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, InstructionBuilder? builder = null) =>
+            new TupleValue(elementTypes, this.sharedState, builder);
+
+        /// <summary>
+        /// Builds a typed tuple with the items set to the given tuple elements.
+        /// Increases the reference count for the tuple elements.
+        /// </summary>
+        /// <param name="builder">The builder to use to create the tuple</param>
+        /// <param name="tupleElements">The tuple elements</param>
+        internal TupleValue CreateTuple(InstructionBuilder builder, params IValue[] tupleElements)
+        {
+            TupleValue tuple = new TupleValue(tupleElements.Select(v => v.QSharpType).ToImmutableArray(), this.sharedState, builder);
+            Value[] itemPointers = tuple.GetTupleElementPointers();
+
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                builder.Store(tupleElements[i].Value, itemPointers[i]);
+                this.sharedState.ScopeMgr.IncreaseReferenceCount(tupleElements[i], builder);
+            }
+
+            return tuple;
+        }
+
+        /// <summary>
+        /// Builds a typed tuple with the items set to the given tuple elements.
+        /// Increases the reference count for the tuple elements.
+        /// </summary>
+        /// <param name="tupleElements">The tuple elements</param>
+        internal TupleValue CreateTuple(params IValue[] tupleElements) =>
+            this.CreateTuple(this.sharedState.CurrentBuilder, tupleElements);
+
+        internal ArrayValue CreateArray(Value length, ResolvedType elementType, InstructionBuilder? builder = null) =>
+            new ArrayValue(length, elementType, this.sharedState, builder);
+
+        internal ArrayValue CreateArray(ResolvedType elementType, InstructionBuilder builder, params IValue[] arrayElements)
+        {
+            var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, builder);
+            Value[] itemPointers = array.GetArrayElementPointers();
+
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                builder.Store(arrayElements[i].Value, itemPointers[i]);
+                this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i], builder);
+            }
+
+            return array;
+        }
+
+        internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements) =>
+            this.CreateArray(elementType, this.sharedState.CurrentBuilder, arrayElements);
     }
 }

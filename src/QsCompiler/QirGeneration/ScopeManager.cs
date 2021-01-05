@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -29,18 +30,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Maps variable names to a tuple with a value to access them and whether or not accessing them requires loading the value first.
             /// </summary>
-            private readonly Dictionary<string, (Value, bool)> variables = new Dictionary<string, (Value, bool)>();
+            private readonly Dictionary<string, (IValue, bool)> variables = new Dictionary<string, (IValue, bool)>();
 
             /// <summary>
             /// Contains all values that require unreferencing upon closing the scope.
             /// </summary>
-            private readonly List<Value> trackedValues = new List<Value>();
+            private readonly List<IValue> trackedValues = new List<IValue>();
 
             /// <summary>
             /// Contains the values that require invoking a release function upon closing the scope,
             /// as well as the name of the release function to invoke.
             /// </summary>
-            private readonly List<(Value, string)> requiredReleases = new List<(Value, string)>();
+            private readonly List<(IValue, string)> requiredReleases = new List<(IValue, string)>();
 
             public Scope(ScopeManager parent)
             {
@@ -49,10 +50,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // public and internal methods
 
-            public void AddVariable(string varName, Value accessHandle, bool requiresLoading) =>
+            public void AddVariable(string varName, IValue accessHandle, bool requiresLoading) =>
                 this.variables.Add(varName, (accessHandle, requiresLoading));
 
-            public void AddValue(Value value, string? releaseFunction = null)
+            public void AddValue(IValue value, string? releaseFunction = null)
             {
                 if (releaseFunction != null)
                 {
@@ -64,14 +65,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            public bool TryGetVariable(string varName, out (Value, bool) accessHandle) =>
+            public bool TryGetVariable(string varName, out (IValue, bool) accessHandle) =>
                 this.variables.TryGetValue(varName, out accessHandle);
 
             /// <summary>
             /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
             /// unless it is explicitly excluded.
             /// </summary>
-            internal bool WillBeUnreferenced(Value value) =>
+            internal bool WillBeUnreferenced(IValue value) =>
                 this.trackedValues.Contains(value);
 
             /// <summary>
@@ -83,10 +84,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal void ExecutePendingCalls(InstructionBuilder? builder = null, List<Value>? omitUnreferencing = null)
+            internal void ExecutePendingCalls(InstructionBuilder? builder = null, List<IValue>? omitUnreferencing = null)
             {
                 builder ??= this.parent.sharedState.CurrentBuilder;
-                omitUnreferencing ??= new List<Value>();
+                omitUnreferencing ??= new List<IValue>();
 
                 foreach (var (value, funcName) in this.requiredReleases)
                 {
@@ -104,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 foreach (var value in this.trackedValues)
                 {
-                    if (!omitUnreferencing.Remove(value))
+                    if (!omitUnreferencing.Remove(value)) // FIXME: FOR COMPARISON WE NEED TO GO BY VALUE, NOT IVALUE!
                     {
                         this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value, builder);
                     }
@@ -150,7 +151,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.ArrayAddAccess;
                 }
-                else if (this.sharedState.Types.IsTypedTuple(t))
+                else if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleAddAccess;
                 }
@@ -171,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.ArrayRemoveAccess;
                 }
-                else if (this.sharedState.Types.IsTypedTuple(t))
+                else if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleRemoveAccess;
                 }
@@ -204,7 +205,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.BigIntReference;
                 }
-                else if (this.sharedState.Types.IsTypedTuple(t))
+                else if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleReference;
                 }
@@ -241,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return RuntimeLibrary.BigIntUnreference;
                 }
-                else if (this.sharedState.Types.IsTypedTuple(t))
+                else if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleUnreference;
                 }
@@ -258,9 +259,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, Value value, InstructionBuilder? builder = null)
+        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue value, InstructionBuilder? builder = null)
         {
-            void ModifyCounts(Func<ITypeRef, string?> getItemFunc, string funcName, Value value, InstructionBuilder builder)
+            void ModifyCounts(Func<ITypeRef, string?> getItemFunc, string funcName, IValue value, InstructionBuilder builder)
             {
                 if (this.sharedState.Types.IsTypedTuple(value.NativeType))
                 {
@@ -347,7 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(Value value, InstructionBuilder? builder = null) =>
+        public void IncreaseReferenceCount(IValue value, InstructionBuilder? builder = null) =>
             this.RecursivelyModifyCounts(this.ReferenceFunctionForType, value, builder);
 
         /// <summary>
@@ -355,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(Value value, InstructionBuilder? builder = null) =>
+        public void DecreaseReferenceCount(IValue value, InstructionBuilder? builder = null) =>
             this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value, builder);
 
         /// <summary>
@@ -363,7 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(Value value, InstructionBuilder? builder = null) =>
+        internal void IncreaseAccessCount(IValue value, InstructionBuilder? builder = null) =>
             this.RecursivelyModifyCounts(this.AddAccessFunctionForType, value, builder);
 
         /// <summary>
@@ -371,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(Value value, InstructionBuilder? builder = null) =>
+        internal void DecreaseAccessCount(IValue value, InstructionBuilder? builder = null) =>
             this.RecursivelyModifyCounts(this.RemoveAccessFunctionForType, value, builder);
 
         /// <summary>
@@ -379,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void RegisterValue(Value value)
+        public void RegisterValue(IValue value)
         {
             this.scopes.Peek().AddValue(value);
         }
@@ -404,7 +405,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
         /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void RegisterVariable(string name, Value value, bool isMutable = false)
+        internal void RegisterVariable(string name, IValue value, bool isMutable = false)
         {
             if (string.IsNullOrEmpty(value.Name))
             {
@@ -425,7 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             foreach (var scope in this.scopes)
             {
-                if (scope.TryGetVariable(name, out (Value, bool) item))
+                if (scope.TryGetVariable(name, out (IValue, bool) item))
                 {
                     if (item.Item2)
                     {
@@ -446,11 +447,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </para>
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
-        internal Value GetNamedValue(string name)
+        internal IValue GetNamedValue(string name)
         {
             foreach (var scope in this.scopes)
             {
-                if (scope.TryGetVariable(name, out (Value, bool) item))
+                if (scope.TryGetVariable(name, out (QirValues, bool) item))
                 {
                     return item.Item2
                         // Mutable, so the value is a pointer; we need to load what it's pointing to
@@ -468,7 +469,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exiting the current scope does *not* close the scope.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
-        public void ExitFunction(Value returned, InstructionBuilder? builder = null)
+        public void ExitFunction(IValue returned, InstructionBuilder? builder = null)
         {
             builder ??= this.sharedState.CurrentBuilder;
 

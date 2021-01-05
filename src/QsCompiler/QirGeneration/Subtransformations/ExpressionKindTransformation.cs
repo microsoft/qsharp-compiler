@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public readonly ResolvedType TupleType;
             public readonly ImmutableArray<PartialApplicationArgument> Items;
 
-            public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, IEnumerable<PartialApplicationArgument>? items)
+            public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, IEnumerable<PartialApplicationArgument> items)
             : base(sharedState)
             {
                 this.TupleType = tupleType;
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override IValue BuildItem(InstructionBuilder builder, TupleValue capture, IValue parArgs)
             {
                 var items = this.Items.Select(item => item.BuildItem(builder, capture, parArgs)).ToArray();
-                var tuple = this.SharedState.CreateTuple(builder, items);
+                var tuple = this.SharedState.Values.CreateTuple(builder, items);
                 return tuple;
             }
         }
@@ -363,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If the argument is not already of a type that results in the creation of a tuple,
                 // then we need to create a tuple to store the (single) argument to be able to pass
                 // it to the callable value.
-                argValue = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, argValue);
+                argValue = this.SharedState.Values.CreateTuple(argValue);
             }
 
             var argTuple = (TupleValue)argValue;
@@ -379,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resElementTypes = returnType.Resolution is QsResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
-                TupleValue resultTuple = new TupleValue(resElementTypes, this.SharedState);
+                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, argTuple.OpaquePointer, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
@@ -1482,7 +1482,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // TODO: new multi-dimensional arrays
             var length = this.SharedState.EvaluateSubexpression(lengthEx);
-            var array = new ArrayValue(length.Value, elementType, this.SharedState);
+            var array = this.SharedState.Values.CreateArray(length.Value, elementType);
             this.SharedState.ValueStack.Push(array);
             return ResolvedExpression.InvalidExpr;
         }
@@ -1627,7 +1627,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
                     // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
                     var innerArgs = partialArgs.BuildItem(builder, captureTuple, ctlPaArgItems[1]);
-                    return this.SharedState.CreateTuple(builder, ctlPaArgItems[0], innerArgs);
+                    return this.SharedState.Values.CreateTuple(builder, ctlPaArgItems[0], innerArgs);
                 }
 
                 TupleValue innerArg;
@@ -1646,7 +1646,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var typedInnerArg = partialArgs.BuildItem(builder, captureTuple, parArgsTuple);
                     innerArg = typedInnerArg is TupleValue innerArgTuple
                         ? innerArgTuple
-                        : this.SharedState.CreateTuple(builder, typedInnerArg);
+                        : this.SharedState.Values.CreateTuple(builder, typedInnerArg);
                 }
 
                 var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
@@ -1682,7 +1682,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var captured = new List<IValue>();
             captured.Add(this.SharedState.EvaluateSubexpression(method));
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var capture = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, captured.ToArray());
+            var capture = this.SharedState.Values.CreateTuple(captured.ToArray());
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -2081,19 +2081,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var elementType = this.SharedState.CurrentExpressionType().Resolution is QsResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
-            var value = new ArrayValue((uint)vs.Length, elementType, this.SharedState);
-
-            long idx = 0;
-            foreach (var v in vs)
-            {
-                var index = this.SharedState.Context.CreateConstant(idx);
-                var elementPointer = value.GetArrayElementPointer(index);
-                var element = this.SharedState.EvaluateSubexpression(v);
-                this.SharedState.CurrentBuilder.Store(element.Value, elementPointer);
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(element);
-                idx++;
-            }
-
+            var elements = vs.Select(this.SharedState.EvaluateSubexpression).ToArray();
+            var value = this.SharedState.Values.CreateArray(elementType, elements);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
         }
@@ -2101,7 +2090,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
             var items = vs.Select(v => this.SharedState.EvaluateSubexpression(v)).ToArray();
-            var tuple = this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items);
+            var tuple = this.SharedState.Values.CreateTuple(items);
             this.SharedState.ValueStack.Push(tuple);
             return ResolvedExpression.InvalidExpr;
         }

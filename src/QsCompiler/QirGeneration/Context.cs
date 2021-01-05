@@ -930,7 +930,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 (string, ResolvedType) LocalVarName(QsArgumentTuple v)
                 {
-                    if (v is QsArgumentTuple.QsTuple items)
+                    if (v is QsArgumentTuple.QsTuple)
                     {
                         var name = this.GenerateUniqueName("arg");
                         tupleQueue.Enqueue((name, v));
@@ -976,7 +976,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("number of function parameters does not match argument");
                 }
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
-                var innerTuple = this.CreateTuple(this.CurrentBuilder, tupleItems);
+                var innerTuple = this.Values.CreateTuple(tupleItems);
                 this.ScopeMgr.RegisterVariable(outerArgItems[0].Item1, innerTuple, false);
             }
             else
@@ -1032,7 +1032,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.CreateTuple(this.CurrentBuilder, tupleItems);
+                var udtTuple = this.Values.CreateTuple(tupleItems);
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
         }
@@ -1419,33 +1419,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 executeBody(array.GetArrayElement(loopVariable));
 
             this.CreateForLoop(startValue, EvaluateCondition, increment, ExecuteBody);
-        }
-
-        #endregion
-
-        // FIXME: MOVE TO DATASTRUCTURES
-        #region Tuple and array handling
-
-        /// <summary>
-        /// Builds a typed tuple with the items set to the given values and pushes it onto the value stack.
-        /// The create value is added to the current scope in the scope manager.
-        /// </summary>
-        /// <param name="builder">The builder to use to create the tuple</param>
-        /// <param name="vs">The tuple elements</param>
-        internal TupleValue CreateTuple(InstructionBuilder builder, params IValue[] vs)
-        {
-            // Allocate the tuple, cast it to the concrete type, and make to track if for release
-            TupleValue tuple = new TupleValue(vs.Select(v => v.QSharpType).ToImmutableArray(), this, builder);
-
-            // Fill it in, field by field
-            Value[] itemPointers = tuple.GetTupleElementPointers();
-            for (var i = 0; i < itemPointers.Length; ++i)
-            {
-                builder.Store(vs[i].Value, itemPointers[i]);
-                this.ScopeMgr.IncreaseReferenceCount(vs[i], builder);
-            }
-
-            return tuple;
         }
 
         #endregion

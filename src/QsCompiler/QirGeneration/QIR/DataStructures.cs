@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
@@ -306,8 +307,6 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns an array element.
         /// If no builder is specified, the current builder is used.
         /// </summary>
-        /// <param name="elementType">The type of the array element.</param>
-        /// <param name="array">The pointer to the array.</param>
         /// <param name="index">The element's index into the array.</param>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue GetArrayElement(Value index)
@@ -315,6 +314,35 @@ namespace Microsoft.Quantum.QIR.Emission
             var elementPtr = this.GetArrayElementPointer(index);
             var element = this.Builder.Load(this.ElementType, elementPtr);
             return this.sharedState.Values.From(element, this.elementType, this.builder);
+        }
+
+        /// <summary>
+        /// Returns a pointer to an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        internal Value[] GetArrayElementPointers(params int[] indices)
+        {
+            var enumerable = indices.Length != 0 ? indices :
+                this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
+                throw new InvalidOperationException("cannot get all element pointers for array of unknown length");
+
+            return enumerable
+                .Select(idx => this.sharedState.Context.CreateConstant((long)idx))
+                .Select(this.GetArrayElementPointer)
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Returns an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        internal IValue[] GetArrayElements(params int[] indices)
+        {
+            var elementPtrs = this.GetArrayElementPointers(indices);
+            var elements = elementPtrs.Select(ptr => this.Builder.Load(this.ElementType, ptr));
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.elementType, this.builder)).ToArray();
         }
     }
 
