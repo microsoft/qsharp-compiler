@@ -60,12 +60,10 @@
 		"description": "Documentation comments"
 	},
 
-	"Using": {
-		"prefix": "using",
+	"Use": {
+		"prefix": "use",
 		"body": [
-			"${1|using,borrowing|} (${2:name} = Qubit()) {",
-			"    ${3:// ...}",
-			"}"
+			"${1|use,borrow|} ${2:name} = Qubit();"
 		],
 		"description": "Allocate a new qubit or register"
 	}
