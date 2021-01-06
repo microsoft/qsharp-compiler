@@ -226,43 +226,43 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     // variable declarations 
 
     operation VariableDeclaration1 () : Unit {
-        using q = Qubit() {}
+        use q = Qubit() {}
     }
 
     operation VariableDeclaration2 () : Unit {
-        using q = (Qubit()) {}
+        use q = (Qubit()) {}
     }
 
     operation VariableDeclaration3 () : Unit {
-        using (q) = Qubit() {}
+        use (q) = Qubit() {}
     }
 
     operation VariableDeclaration4 () : Unit {
-        using (q) = (Qubit()) {}
+        use (q) = (Qubit()) {}
     }
 
     operation VariableDeclaration5 () : Unit {
-        using (q1, q2) = (Qubit(), Qubit()) {}
+        use (q1, q2) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration6 () : Unit {
-        using (q1, (q2)) = (Qubit(), Qubit()) {}
+        use (q1, (q2)) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration7 () : Unit {
-        using (qs) = (Qubit(), Qubit()) {}
+        use (qs) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration8 () : Unit {
-        using qs = (Qubit(), Qubit()) {}
+        use qs = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration9 () : Unit {
-        using (q1, q2) = (Qubit()) {}
+        use (q1, q2) = (Qubit()) {}
     }
 
     operation VariableDeclaration10 () : Unit {
-        using (q1, q2, q3) = (Qubit(), (Qubit(), Qubit())) {}
+        use (q1, q2, q3) = (Qubit(), (Qubit(), Qubit())) {}
     }
 
     operation VariableDeclaration11<'T>(cnt: Int, arg : 'T) : Unit {
@@ -1450,19 +1450,37 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
     }
 
-    operation ParensUsing() : Unit {
-        using (q = Qubit()) { }
+    operation ParensUse() : Unit {
+        use (q = Qubit()) { }
     }
 
-    operation NoParensUsing() : Unit {
+    operation NoParensUse() : Unit {
+        use q = Qubit() { }
+    }
+
+    operation ParensBorrow() : Unit {
+        borrow (q = Qubit()) { }
+    }
+
+    operation NoParensBorrow() : Unit {
+        borrow q = Qubit() { }
+    }
+
+    // Deprecated qubit allocation keywords
+
+    operation DeprecatedUsingKeyword() : Unit {
         using q = Qubit() { }
     }
 
-    operation ParensBorrowing() : Unit {
-        borrowing (q = Qubit()) { }
+    operation DeprecatedUsingKeywordParens() : Unit {
+        using (q = Qubit()) { }
     }
 
-    operation NoParensBorrowing() : Unit {
+    operation DeprecatedBorrowingKeyword() : Unit {
         borrowing q = Qubit() { }
+    }
+
+    operation DeprecatedBorrowingKeywordParens() : Unit {
+        borrowing (q = Qubit()) { }
     }
 }

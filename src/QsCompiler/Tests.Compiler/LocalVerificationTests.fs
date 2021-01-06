@@ -5,7 +5,6 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System.Collections.Generic
 open System.IO
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -31,45 +30,38 @@ type LocalVerificationTests() =
     member this.``Type argument inference``() =
         this.Expect "TypeArgumentsInference1" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
         this.Expect "TypeArgumentsInference2" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-
         this.Expect
             "TypeArgumentsInference3"
             [
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
                 Error ErrorCode.MultipleTypesInArray
             ]
-
         this.Expect
             "TypeArgumentsInference4"
             [
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
                 Error ErrorCode.MultipleTypesInArray
             ]
-
         this.Expect
             "TypeArgumentsInference5"
             [
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
             ]
-
         this.Expect "TypeArgumentsInference6" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
         this.Expect "TypeArgumentsInference7" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-
         this.Expect
             "TypeArgumentsInference8"
             [
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
             ]
-
         this.Expect
             "TypeArgumentsInference9"
             [
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
                 Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
             ]
-
         this.Expect "TypeArgumentsInference10" []
         this.Expect "TypeArgumentsInference11" []
         this.Expect "TypeArgumentsInference12" []
@@ -90,21 +82,18 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference27" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "TypeArgumentsInference28" [ Error ErrorCode.ArgumentTypeMismatch ]
         this.Expect "TypeArgumentsInference29" [ Error ErrorCode.InvalidCyclicTypeParameterResolution ]
-
         this.Expect
             "TypeArgumentsInference30"
             [
                 Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
-
         this.Expect
             "TypeArgumentsInference31"
             [
                 Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
-
         this.Expect "TypeArgumentsInference32" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "TypeArgumentsInference33" [ Error ErrorCode.ArgumentTypeMismatch ]
         this.Expect "TypeArgumentsInference34" []
@@ -133,25 +122,21 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration11" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration12" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration13" [ Error ErrorCode.ConstrainsTypeParameter ]
-
         this.Expect
             "VariableDeclaration14"
             [
                 Error ErrorCode.InvalidUseOfTypeParameterizedObject
                 Error ErrorCode.InvalidUseOfTypeParameterizedObject
             ]
-
         this.Expect "VariableDeclaration15" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration16" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration17" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-
         this.Expect
             "VariableDeclaration18"
             [
                 Error ErrorCode.InvalidUseOfTypeParameterizedObject
                 Error ErrorCode.MultipleTypesInArray
             ]
-
         this.Expect "VariableDeclaration19" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration20" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "VariableDeclaration21" []
@@ -199,14 +184,12 @@ type LocalVerificationTests() =
         this.Expect "ApplyAndReassign4" []
         this.Expect "ApplyAndReassign5" []
         this.Expect "ApplyAndReassign6" [ Error ErrorCode.ExpectingBoolExpr ]
-
         this.Expect
             "ApplyAndReassign7"
             [
                 Error ErrorCode.ArgumentMismatchInBinaryOp
                 Error ErrorCode.ArgumentMismatchInBinaryOp
             ]
-
         this.Expect "ApplyAndReassign8" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ApplyAndReassign9" [ Error ErrorCode.UpdateOfArrayItemExpr ]
         this.Expect "ApplyAndReassign10" [ Error ErrorCode.UpdateOfArrayItemExpr ]
@@ -216,39 +199,33 @@ type LocalVerificationTests() =
     [<Fact>]
     member this.``Named type item access``() =
         this.Expect "ItemAccess1" [ Error ErrorCode.ExpectingUserDefinedType ]
-
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
-
         this.Expect
             "ItemAccess5"
             [
                 Error ErrorCode.ArgumentMismatchInBinaryOp
                 Error ErrorCode.ArgumentMismatchInBinaryOp
             ]
-
         this.Expect "ItemAccess6" []
         this.Expect "ItemAccess7" []
         this.Expect "ItemAccess8" []
         this.Expect "ItemAccess9" []
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
-
         this.Expect
             "ItemAccess12"
             [
                 Error ErrorCode.OperationCallOutsideOfOperation
                 Error ErrorCode.OperationCallOutsideOfOperation
             ]
-
         this.Expect
             "ItemAccess13"
             [
                 Error ErrorCode.MissingFunctorForAutoGeneration
                 Error ErrorCode.MissingFunctorForAutoGeneration
             ]
-
         this.Expect "ItemAccess14" []
         this.Expect "ItemAccess15" []
         this.Expect "ItemAccess16" []
@@ -267,50 +244,41 @@ type LocalVerificationTests() =
         this.Expect "ItemUpdate5" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ItemUpdate6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "ItemUpdate7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-
         this.Expect
             "ItemUpdate8"
             [
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
             ]
-
         this.Expect "ItemUpdate9" []
-
         this.Expect
             "ItemUpdate10"
             [
                 Error ErrorCode.InvalidIdentifierExprInUpdate
                 Error ErrorCode.ExcessContinuation
             ]
-
         this.Expect "ItemUpdate11" [ Error ErrorCode.UpdateOfArrayItemExpr ]
-
         this.Expect
             "ItemUpdate12"
             [
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
             ]
-
         this.Expect "ItemUpdate13" []
         this.Expect "ItemUpdate14" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "ItemUpdate15" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-
         this.Expect
             "ItemUpdate16"
             [
                 Error ErrorCode.MissingFunctorForAutoGeneration
                 Error ErrorCode.MissingFunctorForAutoGeneration
             ]
-
         this.Expect
             "ItemUpdate17"
             [
                 Error ErrorCode.MissingFunctorForAutoGeneration
                 Error ErrorCode.ValueUpdateWithinAutoInversion
             ]
-
         this.Expect "ItemUpdate18" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "ItemUpdate19" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "ItemUpdate20" []
@@ -397,14 +365,12 @@ type LocalVerificationTests() =
         this.Expect "UsingDeprecatedType1" [ Warning WarningCode.DeprecationWithoutRedirect ]
         this.Expect "UsingDeprecatedType2" [ Warning WarningCode.DeprecationWithoutRedirect ]
         this.Expect "UsingDeprecatedType3" [ Warning WarningCode.DeprecationWithoutRedirect ]
-
         this.Expect
             "UsingDeprecatedType4"
             [
                 Warning WarningCode.DeprecationWithoutRedirect
                 Warning WarningCode.DeprecationWithoutRedirect
             ]
-
         this.Expect
             "UsingDeprecatedType5"
             [
@@ -415,14 +381,12 @@ type LocalVerificationTests() =
         this.Expect "UsingRenamedType1" [ Warning WarningCode.DeprecationWithRedirect ]
         this.Expect "UsingRenamedType2" [ Warning WarningCode.DeprecationWithRedirect ]
         this.Expect "UsingRenamedType3" [ Warning WarningCode.DeprecationWithRedirect ]
-
         this.Expect
             "UsingRenamedType4"
             [
                 Warning WarningCode.DeprecationWithRedirect
                 Warning WarningCode.DeprecationWithRedirect
             ]
-
         this.Expect
             "UsingRenamedType5"
             [
@@ -458,21 +422,18 @@ type LocalVerificationTests() =
         this.Expect "InvalidTestAttribute2" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidTestAttribute3" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidTestAttribute4" [ Error ErrorCode.MisplacedDeclarationAttribute ]
-
         this.Expect
             "InvalidTestAttribute5"
             [
                 Error ErrorCode.InvalidTestAttributePlacement
                 Warning WarningCode.TypeParameterNotResolvedByArgument
             ]
-
         this.Expect
             "InvalidTestAttribute6"
             [
                 Error ErrorCode.InvalidTestAttributePlacement
                 Warning WarningCode.TypeParameterNotResolvedByArgument
             ]
-
         this.Expect "InvalidTestAttribute7" [ Error ErrorCode.InvalidTestAttributePlacement ]
         this.Expect "InvalidTestAttribute8" [ Error ErrorCode.InvalidTestAttributePlacement ]
         this.Expect "InvalidTestAttribute9" [ Error ErrorCode.InvalidTestAttributePlacement ]
@@ -481,32 +442,27 @@ type LocalVerificationTests() =
         this.Expect "InvalidTestAttribute12" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute13" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute14" [ Error ErrorCode.InvalidExecutionTargetForTest ]
-
         this.Expect
             "InvalidTestAttribute15"
             [
                 Error ErrorCode.InvalidExecutionTargetForTest
                 Warning WarningCode.DuplicateAttribute
             ]
-
         this.Expect
             "InvalidTestAttribute16"
             [ Error ErrorCode.InvalidTestAttributePlacement; Error ErrorCode.UnknownType ]
-
         this.Expect
             "InvalidTestAttribute17"
             [
                 Error ErrorCode.InvalidExecutionTargetForTest
                 Error ErrorCode.AttributeArgumentTypeMismatch
             ]
-
         this.Expect
             "InvalidTestAttribute18"
             [
                 Error ErrorCode.InvalidExecutionTargetForTest
                 Error ErrorCode.MissingAttributeArgument
             ]
-
         this.Expect "InvalidTestAttribute19" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute20" [ Error ErrorCode.InvalidExecutionTargetForTest ]
         this.Expect "InvalidTestAttribute21" [ Error ErrorCode.InvalidExecutionTargetForTest ]
@@ -527,7 +483,25 @@ type LocalVerificationTests() =
         this.Expect "NoParensUntil" []
         this.Expect "ParensUntilFixup" []
         this.Expect "NoParensUntilFixup" []
-        this.Expect "ParensUsing" [ Warning WarningCode.DeprecatedTupleBrackets ]
-        this.Expect "NoParensUsing" []
-        this.Expect "ParensBorrowing" [ Warning WarningCode.DeprecatedTupleBrackets ]
-        this.Expect "NoParensBorrowing" []
+        this.Expect "ParensUse" [ Warning WarningCode.DeprecatedTupleBrackets ]
+        this.Expect "NoParensUse" []
+        this.Expect "ParensBorrow" [ Warning WarningCode.DeprecatedTupleBrackets ]
+        this.Expect "NoParensBorrow" []
+
+
+    [<Fact>]
+    member this.``Deprecated qubit allocation keywords``() =
+        this.Expect "DeprecatedUsingKeyword" [ Warning WarningCode.DeprecatedKeyword ]
+        this.Expect
+            "DeprecatedUsingKeywordParens"
+            [
+                Warning WarningCode.DeprecatedKeyword
+                Warning WarningCode.DeprecatedTupleBrackets
+            ]
+        this.Expect "DeprecatedBorrowingKeyword" [ Warning WarningCode.DeprecatedKeyword ]
+        this.Expect
+            "DeprecatedBorrowingKeywordParens"
+            [
+                Warning WarningCode.DeprecatedKeyword
+                Warning WarningCode.DeprecatedTupleBrackets
+            ]
