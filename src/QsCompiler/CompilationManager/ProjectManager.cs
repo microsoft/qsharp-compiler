@@ -1256,6 +1256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and calls the given onDiagnostic action on all generated diagnostics.
         /// Catches any thrown exception and calls onException on it if it is specified and not null.
         /// </summary>
+        // TODO: Another version of this method could be created that returns a Task rather than the headers themselves.
         private static References.Headers? LoadReferencedDll(
             Uri asm,
             bool ignoreDllResources,
@@ -1353,6 +1354,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile)));
             }
 
+            // TODO: Here's where parallelization of reference loading could be done.
             return existingProjectDlls
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
                 .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.Item1]), asm => asm.Item2);
@@ -1386,6 +1388,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic,
                 onException);
 
+            // TODO: Here's where parallelization of reference loading could be done.
             return assembliesToLoad
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
                 .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
