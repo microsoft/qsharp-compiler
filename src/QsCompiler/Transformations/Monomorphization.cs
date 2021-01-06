@@ -66,7 +66,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                     // Generate the concrete version of the callable
                     var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getAccessModifiers);
-                    concretizations.Add(concrete.WithFullName(oldName => concreteName));
+                    concretizations.Add(
+                        concrete.WithFullName(oldName => concreteName)
+                        .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray()));
                 }
                 else
                 {
