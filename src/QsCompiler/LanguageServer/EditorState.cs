@@ -222,8 +222,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Invokes the given Action showError with a suitable message if the given file cannot be loaded.
         /// Invokes the given Action logError with a suitable message if the given file cannot be associated with a compilation unit,
         /// or if the given file is already listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task OpenFileAsync(
             TextDocumentItem textDocument,
             Action<string, MessageType>? showError = null,
@@ -288,8 +288,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// To be called whenever a file is changed within the editor (i.e. changes are not necessarily reflected on disk).
         /// Does nothing if the given file is listed as to be ignored.
-        /// Throws an ArgumentException if the uri of the text document identifier in the given parameter is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of the text document identifier in the given parameter is not an absolute file URI.</exception>
         internal Task DidChangeAsync(DidChangeTextDocumentParams param)
         {
             if (!ValidFileUri(param.TextDocument.Uri))
@@ -317,8 +317,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Used to reload the file content when a file is saved.
         /// Does nothing if the given file is listed as to be ignored.
         /// Expects to get the entire content of the file at the time of saving as argument.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task SaveFileAsync(TextDocumentIdentifier textDocument, string fileContent)
         {
             if (!ValidFileUri(textDocument.Uri))
@@ -352,8 +352,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Does nothing if the given file is listed as to be ignored.
         /// Otherwise the file content is reloaded from disk (in case changes in the editor are discarded without closing), and the diagnostics are updated.
         /// Invokes the given Action onError with a suitable message if the given file is not listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is null or not an absolute file URI.</exception>
         internal Task CloseFileAsync(TextDocumentIdentifier textDocument, Action<string, MessageType>? onError = null)
         {
             if (textDocument is null || !ValidFileUri(textDocument.Uri))

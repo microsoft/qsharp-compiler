@@ -3,10 +3,10 @@ root = true
 [*]
 indent_style = space
 insert_final_newline = true
+trim_trailing_whitespace = true
 
 [*.cs]
 indent_size = 4
-trim_trailing_whitespace = true
 
 dotnet_style_qualification_for_event = true:suggestion
 dotnet_style_qualification_for_field = true:suggestion
@@ -54,3 +54,14 @@ dotnet_diagnostic.SA1629.severity = none        # Documentation text should end 
 dotnet_diagnostic.SA1633.severity = none        # File should have header
 dotnet_diagnostic.SA1642.severity = none        # Constructor summary documentation should begin with standard text
 dotnet_diagnostic.SA1649.severity = none        # File name should match first type name
+
+[*.fs]
+indent_size = 4
+
+fsharp_max_array_or_list_width = 80
+fsharp_max_dot_get_expression_width = 100
+fsharp_max_infix_operator_expression = 100
+fsharp_max_record_number_of_items = 2
+fsharp_max_value_binding_width = 100
+fsharp_multiline_block_brackets_on_same_column = true
+fsharp_record_multiline_formatter = number_of_items

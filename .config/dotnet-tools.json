@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "fantomas-tool": {
+      "version": "4.3.0-alpha-001",
+      "commands": [
+        "fantomas"
+      ]
+    }
+  }
+}

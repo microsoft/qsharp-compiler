@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.Documentation
 
                 // docs.ms metadata
                 ["ms.date"] = DateTime.Today.ToString(),
-                ["ms.topic"] = "article",
+                ["ms.topic"] = "managed-reference",
 
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",

@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the URI is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
         public static string GetFileId(Uri uri)
         {
             if (!uri.IsAbsoluteUri || !uri.IsFile)
@@ -214,8 +214,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a FileContentManager for the given document with the given content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon processing the given content.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
         public static FileContentManager InitializeFileManager(
             Uri uri,
             string fileContent,
@@ -238,8 +238,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a FileContentManager for each entry in the given dictionary of source files and their content.
         /// If an Action for publishing is given, publishes the diagnostics generated upon content processing.
-        /// Throws an ArgumentException if any of the given uris is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files"/> is not an absolute file URI.</exception>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -305,9 +305,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Modifies the compilation and all diagnostics to reflect the given change.
-        /// Throws a InvalidOperationException if file for which a change is given is not listed as source file.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of the given text document identifier is null or not an absolute file URI.</exception>
+        /// <exception cref="InvalidOperationException">The file for which a change is given is not listed as a source file.</exception>
         public Task SourceFileDidChangeAsync(DidChangeTextDocumentParams param) =>
             this.Processing.QueueForExecutionAsync(() =>
             {
@@ -343,8 +343,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Called in order to process any queued changes in the file with the given URI and
         /// - if verifications are enabled - trigger a semantic check.
         /// Does not do anything if no file with the given URI is listed as source file of this compilation.
-        /// Throws an ArgumentException if the URI of the given text document identifier is null or not an absolute file URI.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
         private Task TriggerFileUpdateAsync(Uri uri)
         {
             var docKey = GetFileId(uri);
@@ -378,8 +378,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// publishes empty Diagnostics for that file unless publishEmptyDiagnostics is set to false,
         /// and adapts all remaining diagnostics as needed.
         /// Does nothing if no file with the given Uri is listed as source file.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
         public Task TryRemoveSourceFileAsync(Uri uri, bool publishEmptyDiagnostics = true)
         {
             var docKey = GetFileId(uri);
@@ -410,8 +410,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and adapts all remaining diagnostics as needed.
         /// Does nothing if a file with the given Uri is not listed as source file.
         /// Spawns a compilation unit wide type checking unless suppressVerification is set to true, even if no files have been removed.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">A URI in <paramref name="files"/> is not an absolute file URI.</exception>
         public Task TryRemoveSourceFilesAsync(IEnumerable<Uri> files, bool suppressVerification = false, bool publishEmptyDiagnostics = true)
         {
             if (files.Any(uri => !uri.IsAbsoluteUri || !uri.IsFile))

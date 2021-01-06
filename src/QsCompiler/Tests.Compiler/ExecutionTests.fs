@@ -13,42 +13,40 @@ open Xunit
 open Xunit.Abstractions
 
 
-type ExecutionTests (output:ITestOutputHelper) =
+type ExecutionTests(output: ITestOutputHelper) =
 
-    let WS = new Regex(@"\s+"); 
-    let stripWS str = WS.Replace (str, ""); 
-    let AssertEqual expected got = 
-        Assert.True (
-            stripWS expected = stripWS got, 
-            sprintf "expected: \n%s\ngot: \n%s" expected got)
+    let WS = new Regex(@"\s+")
+    let stripWS str = WS.Replace(str, "")
 
-    let ExecuteOnQuantumSimulator cName = 
+    let AssertEqual expected got =
+        Assert.True(stripWS expected = stripWS got, sprintf "expected: \n%s\ngot: \n%s" expected got)
+
+    let ExecuteOnQuantumSimulator cName =
         let exitCode, ex = ref -101, ref null
         let out, err = ref (new StringBuilder()), ref (new StringBuilder())
         let exe = File.ReadAllLines("ReferenceTargets.txt").First()
         let args = sprintf "\"%s\" %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
-        let ranToEnd = ProcessRunner.Run ("dotnet", args, out, err, exitCode, ex, timeout = 10000)
+        let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
         Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)
         Assert.Equal(0, !exitCode)
         (!out).ToString(), (!err).ToString()
 
-    let ExecuteAndCompareOutput cName expectedOutput = 
+    let ExecuteAndCompareOutput cName expectedOutput =
         let out, err = ExecuteOnQuantumSimulator cName
         AssertEqual String.Empty err
         AssertEqual expectedOutput out
 
 
     [<Fact>]
-    member this.``Loading via test names`` () = 
+    member this.``Loading via test names``() =
         ExecuteAndCompareOutput "LogViaTestName" "not implemented"
 
 
     [<Fact>]
-    member this.``Specialization Generation for Conjugations`` () = 
-        ExecuteAndCompareOutput 
-            "ConjugationsInBody" "
+    member this.``Specialization Generation for Conjugations``() =
+        ExecuteAndCompareOutput "ConjugationsInBody" "
                 U1
                 V1
                 U3
@@ -68,11 +66,10 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V3
                 Adjoint U3
                 Adjoint V1
-                Adjoint U1        
+                Adjoint U1
             "
-            
-        ExecuteAndCompareOutput 
-            "ConjugationsInAdjoint" "
+
+        ExecuteAndCompareOutput "ConjugationsInAdjoint" "
                 U1
                 V1
                 U3
@@ -92,11 +89,10 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V3
                 Adjoint U3
                 Adjoint V1
-                Adjoint U1        
+                Adjoint U1
             "
-            
-        ExecuteAndCompareOutput 
-            "ConjugationsInControlled" "
+
+        ExecuteAndCompareOutput "ConjugationsInControlled" "
                 U1
                 V1
                 U3
@@ -116,11 +112,10 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V3
                 Adjoint U3
                 Adjoint V1
-                Adjoint U1        
+                Adjoint U1
             "
-            
-        ExecuteAndCompareOutput 
-            "ConjugationsInControlledAdjoint" "
+
+        ExecuteAndCompareOutput "ConjugationsInControlledAdjoint" "
                 U1
                 V1
                 U3
@@ -140,26 +135,24 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V3
                 Adjoint U3
                 Adjoint V1
-                Adjoint U1        
+                Adjoint U1
             "
 
 
     [<Fact>]
-    member this.``Referencing Projects and Packages`` () = 
-        ExecuteAndCompareOutput 
-            "PackageAndProjectReference" "
+    member this.``Referencing Projects and Packages``() =
+        ExecuteAndCompareOutput "PackageAndProjectReference" "
                 Welcome to Q#!
                 Info: Go check out https://docs.microsoft.com/en-us/quantum/?view=qsharp-preview.
             "
-        ExecuteAndCompareOutput 
-            "TypeInReferencedProject" "            
+
+        ExecuteAndCompareOutput "TypeInReferencedProject" "
                 [Complex((1, 0))]
             "
 
     [<Fact>]
-    member this.``Adjoint generation from expressions should be reversed`` () =
-        ExecuteAndCompareOutput
-            "AdjointExpressions" "
+    member this.``Adjoint generation from expressions should be reversed``() =
+        ExecuteAndCompareOutput "AdjointExpressions" "
                 1
                 2
                 3
@@ -191,4 +184,3 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint 2
                 Adjoint 1
             "
-

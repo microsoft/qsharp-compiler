@@ -342,8 +342,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given project reference is not referenced by this project.
-            /// Throws an ArgumentException if the given Uri is not an absolute uri to a file.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="projectReference"/> is not an absolute file URI.</exception>
             private void ReloadProjectReference(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
             {
                 if (!this.specifiedProjectReferences.Contains(projectReference) || !this.isLoaded)
@@ -404,8 +404,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// and updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given assembly is not referenced by this project.
-            /// Throws an ArgumentException if the given Uri is not an absolute uri to a file.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="reference"/> is not an absolute file URI.</exception>
             private void ReloadReferencedAssembly(Uri reference)
             {
                 if (!this.specifiedReferences.Contains(reference) || !this.isLoaded)
