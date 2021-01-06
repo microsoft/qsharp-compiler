@@ -45,11 +45,13 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value? opaquePointer;
         private Value? typedPointer;
+        private UserDefinedType? customType;
 
         public Value Value => this.TypedPointer;
 
-        public ResolvedType QSharpType =>
-            ResolvedType.New(QsResolvedTypeKind.NewTupleType(ImmutableArray.CreateRange(this.ElementTypes)));
+        public ResolvedType QSharpType => this.customType != null
+            ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(this.customType))
+            : ResolvedType.New(QsResolvedTypeKind.NewTupleType(ImmutableArray.CreateRange(this.ElementTypes)));
 
         internal readonly ImmutableArray<ResolvedType> ElementTypes;
         public readonly IStructType StructType;
@@ -106,7 +108,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
+        internal TupleValue(UserDefinedType? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
         {
             var isTypedTuple = Types.IsTypedTuple(tuple.NativeType);
             var isOpaqueTuple = Types.IsTuple(tuple.NativeType);
@@ -119,8 +121,23 @@ namespace Microsoft.Quantum.QIR.Emission
             this.builder = builder;
             this.opaquePointer = isOpaqueTuple ? tuple : null;
             this.typedPointer = isTypedTuple ? tuple : null;
+            this.customType = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+        }
+
+        /// <summary>
+        /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
+        /// respectively are executed lazily. When needed, the instructions are emitted using the given builder.
+        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// </summary>
+        /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
+        /// <param name="elementTypes">The Q# types of the tuple items</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
+        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
+        : this(null, tuple, elementTypes, context, builder)
+        {
         }
 
         // methods for item access

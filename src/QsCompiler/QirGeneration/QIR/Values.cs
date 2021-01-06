@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             var elementTypes = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
-            return this.FromTuple(value, elementTypes, builder);
+            return new TupleValue(udt, value, elementTypes, this.sharedState, builder);
         }
 
         /// <summary>
