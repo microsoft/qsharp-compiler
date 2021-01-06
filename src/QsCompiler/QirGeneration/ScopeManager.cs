@@ -293,8 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemFuncName = getFunctionName(array.ElementType);
                     if (itemFuncName != null)
                     {
-                        // FIXME: ENABLE (MODIFIES THE SCOPES STACK, SO LOOP IN EXITFUNCTION IS NOT HAPPY)
-                        //this.sharedState.IterateThroughArray(array, arrItem => this.RecursivelyModifyCounts(getFunctionName, arrItem, builder));
+                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
                     builder.Call(func, array.OpaquePointer);
                 }
@@ -506,8 +505,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.IncreaseReferenceCount(returned);
             }
 
+            // We need to extract the scopes to iterate over since for loops to release array items
+            // will create new scopes and hence modify the collection.
+            var currentScopes = this.scopes.ToArray();
             var omittedUnreferences = new List<IValue>() { returned };
-            foreach (var scope in this.scopes)
+            foreach (var scope in currentScopes)
             {
                 scope.ExecutePendingCalls(builder, omittedUnreferences);
             }

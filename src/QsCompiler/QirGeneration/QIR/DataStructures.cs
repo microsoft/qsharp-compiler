@@ -15,13 +15,29 @@ namespace Microsoft.Quantum.QIR.Emission
 {
     using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
+    /// <summary>
+    /// Interface used to pass around values during QIR emission
+    /// that captures a built LLVM value along with its Q# type.
+    /// </summary>
     internal interface IValue
     {
+        /// <summary>
+        /// The QIR representation of the value.
+        /// </summary>
         public Value Value { get; }
 
+        /// <summary>
+        /// Q# type of the value.
+        /// </summary>
         public ResolvedType QSharpType { get; }
     }
 
+    /// <summary>
+    /// Stores the QIR representation for a Q# value of a simple type,
+    /// meaning a type where the LLVM behavior matches the expected behavior
+    /// and no custom handling is needed.
+    /// The is the case e.g. for Int, Double, and Bool.
+    /// </summary>
     internal class SimpleValue : IValue
     {
         public Value Value { get; }
@@ -35,6 +51,9 @@ namespace Microsoft.Quantum.QIR.Emission
         }
     }
 
+    /// <summary>
+    /// Stores the QIR representation of a Q# tuple or a value of user defined type.
+    /// </summary>
     internal class TupleValue : IValue
     {
         private readonly GenerationContext sharedState;
@@ -45,7 +64,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value? opaquePointer;
         private Value? typedPointer;
-        private UserDefinedType? customType;
+        private readonly UserDefinedType? customType;
 
         public Value Value => this.TypedPointer;
 
@@ -100,10 +119,12 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
-        /// respectively are executed lazily. When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// Creates a new tuple value representing a Q# value of user defined type from the given tuple pointer.
+        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed, the
+        /// instructions are emitted using the given builder. If no builder is specified, the builder defined in
+        /// the context is used when a pointer is constructed.
         /// </summary>
+        /// <param name="type">Optionally the user defined type tha that the tuple represents</param>
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
@@ -153,19 +174,21 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns a pointer to a tuple element.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetTupleElementPointer(int index, InstructionBuilder? b = null) =>
             (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
 
         /// <summary>
         /// Returns a tuple element.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue GetTupleElement(int index, InstructionBuilder? b = null)
         {
             var builder = b ?? this.Builder;
@@ -176,9 +199,10 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns an array with all pointers to the tuple elements.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal Value[] GetTupleElementPointers(InstructionBuilder? b = null) =>
             this.StructType.Members
                 .Select((_, i) => (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
@@ -186,9 +210,10 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns an array with all tuple elements.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue[] GetTupleElements(InstructionBuilder? b = null)
         {
             var builder = b ?? this.Builder;
@@ -198,6 +223,9 @@ namespace Microsoft.Quantum.QIR.Emission
         }
     }
 
+    /// <summary>
+    /// Stores the QIR representation of a Q# array.
+    /// </summary>
     internal class ArrayValue : IValue
     {
         private readonly GenerationContext sharedState;
@@ -310,10 +338,11 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns a pointer to an array element.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal Value GetArrayElementPointer(Value index, InstructionBuilder? b = null)
         {
             var builder = b ?? this.Builder;
@@ -324,10 +353,11 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns an array element.
-        /// If no builder is specified, the current builder is used.
+        /// If no builder is specified, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue GetArrayElement(Value index, InstructionBuilder? b = null)
         {
             var builder = b ?? this.Builder;
@@ -337,10 +367,13 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Returns a pointer to an array element.
-        /// If no builder is specified, the current builder is used.
+        /// Returns the pointers to an array element at the given indices.
+        /// If no indices are specified, returns all element pointers if the length of the array is know,
+        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
+        /// If the specified builder is null, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal Value[] GetArrayElementPointers(InstructionBuilder? b, params int[] indices)
         {
             var enumerable = indices.Length != 0 ? indices :
@@ -354,18 +387,23 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Returns a pointer to an array element.
-        /// If no builder is specified, the current builder is used.
+        /// Returns the pointers to an array element at the given indices.
+        /// If no indices are specified, returns all element pointers if the length of the array is know,
+        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
+        /// The builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal Value[] GetArrayElementPointers(params int[] indices) =>
             this.GetArrayElementPointers(null, indices);
 
         /// <summary>
-        /// Returns an array element.
-        /// If no builder is specified, the current builder is used.
+        /// Returns the array elements at the given indices.
+        /// If no indices are specified, returns all elements if the length of the array is know,
+        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
+        /// If the specified builder is null, the builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue[] GetArrayElements(InstructionBuilder? b, params int[] indices)
         {
             var builder = b ?? this.Builder;
@@ -375,15 +413,20 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Returns an array element.
-        /// If no builder is specified, the current builder is used.
+        /// Returns the array elements at the given indices.
+        /// If no indices are specified, returns all elements if the length of the array is know,
+        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
+        /// The builder specified upon construction is used if on was specified,
+        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
         internal IValue[] GetArrayElements(params int[] indices) =>
             this.GetArrayElements(null, indices);
     }
 
-    internal class CallableValue : SimpleValue // FIXME
+    /// <summary>
+    /// Stores the QIR representation of a Q# callable.
+    /// </summary>
+    internal class CallableValue : SimpleValue
     {
         internal CallableValue(Value callabe, ResolvedType type, InstructionBuilder? builder = null)
         : base(callabe, type, builder)
