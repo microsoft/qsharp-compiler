@@ -6,12 +6,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
+    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     /// <summary>
     /// This class is used to track the validity of variables and values, to track access and reference counts,
     /// and to release and unreference values when they go out of scope.
@@ -59,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((value, releaseFunction));
                 }
-                if (value.NativeType.IsPointer)
+                if (value.Value.NativeType.IsPointer)
                 {
                     this.trackedValues.Add(value);
                 }
@@ -73,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// unless it is explicitly excluded.
             /// </summary>
             internal bool WillBeUnreferenced(IValue value) =>
-                this.trackedValues.Contains(value);
+                this.trackedValues.Exists(tracked => tracked.Value == value.Value);
 
             /// <summary>
             /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
@@ -92,20 +96,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var (value, funcName) in this.requiredReleases)
                 {
                     var func = this.parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    builder.Call(func, value);
+                    builder.Call(func, value.Value);
                 }
 
                 foreach (var (_, (item, mutable)) in this.variables)
                 {
-                    var value = mutable // mutable values are represented as pointers and require loading
-                        ? builder.Load(Types.PointerElementType(item), item)
-                        : item;
+                    var value = item;
+                    if (mutable)
+                    {
+                        var loaded = builder.Load(Types.PointerElementType(item.Value), item.Value);
+                        value = this.parent.sharedState.Values.From(loaded, value.QSharpType, builder);
+                    }
                     this.parent.DecreaseAccessCount(value);
                 }
 
                 foreach (var value in this.trackedValues)
                 {
-                    if (!omitUnreferencing.Remove(value)) // FIXME: FOR COMPARISON WE NEED TO GO BY VALUE, NOT IVALUE!
+                    var omitted = omitUnreferencing.FirstOrDefault(omitted => omitted.Value == value.Value);
+                    if (!omitUnreferencing.Remove(omitted))
                     {
                         this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value, builder);
                     }
@@ -261,49 +269,48 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue value, InstructionBuilder? builder = null)
         {
-            void ModifyCounts(Func<ITypeRef, string?> getItemFunc, string funcName, IValue value, InstructionBuilder builder)
+            void ModifyCounts(string funcName, IValue value)
             {
-                if (this.sharedState.Types.IsTypedTuple(value.NativeType))
+                var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+
+                if (value is TupleValue tuple)
                 {
                     // for tuples we also unreference all inner tuples
-                    var tupleStruct = Types.StructFromPointer(value.NativeType);
-                    for (var i = 0; i < tupleStruct.Members.Count; ++i)
+                    for (var i = 0; i < tuple.StructType.Members.Count; ++i)
                     {
-                        var itemFuncName = getItemFunc(tupleStruct.Members[i]);
+                        var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
                         if (itemFuncName != null)
                         {
-                            var item = this.sharedState.GetTupleElement(tupleStruct, value, i, builder);
-                            ModifyCounts(getItemFunc, itemFuncName, item, builder);
+                            var item = tuple.GetTupleElement(i, builder);
+                            ModifyCounts(itemFuncName, item);
                         }
                     }
 
-                    var untypedTuple = builder.BitCast(value, this.sharedState.Types.Tuple);
-                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    builder.Call(func, untypedTuple);
+                    builder.Call(func, tuple.OpaquePointer);
                 }
-                else
+                else if (value is ArrayValue array)
                 {
-                    if (value.NativeType == this.sharedState.Types.Array)
+                    var itemFuncName = getFunctionName(array.ElementType);
+                    if (itemFuncName != null)
                     {
-                        // TODO
-                        // RECURSIVELY UNREFERENCE INNER ITEMS
+                        // FIXME: ENABLE (MODIFIES THE SCOPES STACK, SO LOOP IN EXITFUNCTION IS NOT HAPPY)
+                        //this.sharedState.IterateThroughArray(array, arrItem => this.RecursivelyModifyCounts(getFunctionName, arrItem, builder));
                     }
-                    else if (value.NativeType == this.sharedState.Types.Callable)
-                    {
-                        // TODO
-                        // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
-                    }
-
-                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    builder.Call(func, value);
+                    builder.Call(func, array.OpaquePointer);
+                }
+                else if (value is CallableValue callable)
+                {
+                    // TODO
+                    // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
+                    builder.Call(func, callable.Value);
                 }
             }
 
             builder ??= this.sharedState.CurrentBuilder;
-            var func = getFunctionName(value.NativeType);
+            var func = getFunctionName(value.Value.NativeType);
             if (func != null)
             {
-                ModifyCounts(getFunctionName, func, value, builder);
+                ModifyCounts(func, value);
             }
         }
 
@@ -392,11 +399,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void RegisterAllocatedQubits(Value value)
         {
-            var releaser =
-                value.NativeType == this.sharedState.Types.Array ? RuntimeLibrary.QubitReleaseArray :
-                value.NativeType == this.sharedState.Types.Qubit ? RuntimeLibrary.QubitRelease :
+            var (releaser, type) =
+                value.NativeType == this.sharedState.Types.Array ? (RuntimeLibrary.QubitReleaseArray, SyntaxGenerator.QubitArrayType) :
+                value.NativeType == this.sharedState.Types.Qubit ? (RuntimeLibrary.QubitRelease, ResolvedType.New(QsResolvedTypeKind.Qubit)) :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            this.scopes.Peek().AddValue(value, releaser);
+            var typedValue = this.sharedState.Values.From(value, type);
+            this.scopes.Peek().AddValue(typedValue, releaser);
         }
 
         /// <summary>
@@ -407,9 +415,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
         internal void RegisterVariable(string name, IValue value, bool isMutable = false)
         {
-            if (string.IsNullOrEmpty(value.Name))
+            if (string.IsNullOrEmpty(value.Value.Name))
             {
-                value.RegisterName(this.sharedState.InlinedName(name));
+                value.Value.RegisterName(this.sharedState.InlinedName(name));
             }
             this.IncreaseAccessCount(value);
             this.scopes.Peek().AddVariable(name, value, isMutable);
@@ -422,7 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
         /// <returns>The pointer value for the mutable value</returns>
-        internal Value GetNamedPointer(string name)
+        internal IValue GetNamedPointer(string name)
         {
             foreach (var scope in this.scopes)
             {
@@ -451,12 +459,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             foreach (var scope in this.scopes)
             {
-                if (scope.TryGetVariable(name, out (QirValues, bool) item))
+                if (scope.TryGetVariable(name, out (IValue, bool) item))
                 {
-                    return item.Item2
-                        // Mutable, so the value is a pointer; we need to load what it's pointing to
-                        ? this.sharedState.CurrentBuilder.Load(Types.PointerElementType(item.Item1), item.Item1)
-                        : item.Item1;
+                    var value = item.Item1;
+                    if (item.Item2)
+                    {
+                        var loaded = this.sharedState.CurrentBuilder.Load(Types.PointerElementType(item.Item1.Value), item.Item1.Value);
+                        value = this.sharedState.Values.From(loaded, value.QSharpType);
+                    }
+                    return value;
                 }
             }
             throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
@@ -495,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.IncreaseReferenceCount(returned);
             }
 
-            var omittedUnreferences = new List<Value>() { returned };
+            var omittedUnreferences = new List<IValue>() { returned };
             foreach (var scope in this.scopes)
             {
                 scope.ExecutePendingCalls(builder, omittedUnreferences);

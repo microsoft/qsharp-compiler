@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (mutable)
                 {
                     var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    var ptrValue = this.SharedState.Values.FromSimpleValue(ptr, ResolvedType.New(QsResolvedTypeKind.InvalidType));
+                    var ptrValue = this.SharedState.Values.FromSimpleValue(ptr, type); // FIXME: THIS IS PRETTY HORRIBLE
                     this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptrValue, true);
                     this.SharedState.CurrentBuilder.Store(ex.Value, ptr);
                 }
@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
-            else
+            else if (!symbols.IsDiscardedItem)
             {
                 throw new NotImplementedException("unknown item in symbol tuple");
             }
@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    Value ptr = this.SharedState.ScopeMgr.GetNamedPointer(varName.Item);
+                    Value ptr = this.SharedState.ScopeMgr.GetNamedPointer(varName.Item).Value;
                     var loadedOriginal = this.SharedState.CurrentBuilder.Load(rhs.Value.NativeType, ptr);
                     var originalValue = this.SharedState.Values.From(loadedOriginal, rhs.QSharpType);
                     this.SharedState.ScopeMgr.DecreaseAccessCount(originalValue);

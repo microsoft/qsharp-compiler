@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
@@ -141,8 +140,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value GetTupleElementPointer(int index) =>
-            this.Builder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        internal Value GetTupleElementPointer(int index, InstructionBuilder? b = null) =>
+            (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
 
         /// <summary>
         /// Returns a tuple element.
@@ -150,11 +149,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue GetTupleElement(int index)
+        internal IValue GetTupleElement(int index, InstructionBuilder? b = null)
         {
-            var elementPtr = this.GetTupleElementPointer(index);
-            var element = this.Builder.Load(this.StructType.Members[index], elementPtr);
-            return this.sharedState.Values.From(element, this.ElementTypes[index], this.builder);
+            var builder = b ?? this.Builder;
+            var elementPtr = this.GetTupleElementPointer(index, b);
+            var element = builder.Load(this.StructType.Members[index], elementPtr);
+            return this.sharedState.Values.From(element, this.ElementTypes[index], b ?? this.builder);
         }
 
         /// <summary>
@@ -162,9 +162,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value[] GetTupleElementPointers() =>
+        internal Value[] GetTupleElementPointers(InstructionBuilder? b = null) =>
             this.StructType.Members
-                .Select((_, i) => this.Builder.GetElementPtr(this.TypedPointer, this.PointerIndex(i)))
+                .Select((_, i) => (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
                 .ToArray();
 
         /// <summary>
@@ -172,11 +172,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue[] GetTupleElements()
+        internal IValue[] GetTupleElements(InstructionBuilder? b = null)
         {
-            var elementPtrs = this.GetTupleElementPointers();
-            var elements = this.StructType.Members.Select((itemType, i) => this.Builder.Load(itemType, elementPtrs[i]));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.ElementTypes[i], this.builder)).ToArray();
+            var builder = b ?? this.Builder;
+            var elementPtrs = this.GetTupleElementPointers(b);
+            var elements = this.StructType.Members.Select((itemType, i) => builder.Load(itemType, elementPtrs[i]));
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.ElementTypes[i], b ?? this.builder)).ToArray();
         }
     }
 
@@ -296,11 +297,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value GetArrayElementPointer(Value index)
+        internal Value GetArrayElementPointer(Value index, InstructionBuilder? b = null)
         {
+            var builder = b ?? this.Builder;
             var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
-            var opaqueElementPointer = this.Builder.Call(getElementPointer, this.OpaquePointer, index);
-            return this.Builder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
+            var opaqueElementPointer = builder.Call(getElementPointer, this.OpaquePointer, index);
+            return builder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
         }
 
         /// <summary>
@@ -309,11 +311,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue GetArrayElement(Value index)
+        internal IValue GetArrayElement(Value index, InstructionBuilder? b = null)
         {
-            var elementPtr = this.GetArrayElementPointer(index);
-            var element = this.Builder.Load(this.ElementType, elementPtr);
-            return this.sharedState.Values.From(element, this.elementType, this.builder);
+            var builder = b ?? this.Builder;
+            var elementPtr = this.GetArrayElementPointer(index, b);
+            var element = builder.Load(this.ElementType, elementPtr);
+            return this.sharedState.Values.From(element, this.elementType, b ?? this.builder);
         }
 
         /// <summary>
@@ -321,7 +324,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value[] GetArrayElementPointers(params int[] indices)
+        internal Value[] GetArrayElementPointers(InstructionBuilder? b, params int[] indices)
         {
             var enumerable = indices.Length != 0 ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
@@ -329,8 +332,29 @@ namespace Microsoft.Quantum.QIR.Emission
 
             return enumerable
                 .Select(idx => this.sharedState.Context.CreateConstant((long)idx))
-                .Select(this.GetArrayElementPointer)
+                .Select(idx => this.GetArrayElementPointer(idx, b))
                 .ToArray();
+        }
+
+        /// <summary>
+        /// Returns a pointer to an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        internal Value[] GetArrayElementPointers(params int[] indices) =>
+            this.GetArrayElementPointers(null, indices);
+
+        /// <summary>
+        /// Returns an array element.
+        /// If no builder is specified, the current builder is used.
+        /// </summary>
+        /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
+        internal IValue[] GetArrayElements(InstructionBuilder? b, params int[] indices)
+        {
+            var builder = b ?? this.Builder;
+            var elementPtrs = this.GetArrayElementPointers(b, indices);
+            var elements = elementPtrs.Select(ptr => builder.Load(this.ElementType, ptr));
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.elementType, b ?? this.builder)).ToArray();
         }
 
         /// <summary>
@@ -338,12 +362,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no builder is specified, the current builder is used.
         /// </summary>
         /// <param name="builder">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue[] GetArrayElements(params int[] indices)
-        {
-            var elementPtrs = this.GetArrayElementPointers(indices);
-            var elements = elementPtrs.Select(ptr => this.Builder.Load(this.ElementType, ptr));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.elementType, this.builder)).ToArray();
-        }
+        internal IValue[] GetArrayElements(params int[] indices) =>
+            this.GetArrayElements(null, indices);
     }
 
     internal class CallableValue : SimpleValue // FIXME

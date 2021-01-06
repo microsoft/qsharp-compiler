@@ -366,12 +366,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 argValue = this.SharedState.Values.CreateTuple(argValue);
             }
 
-            var argTuple = (TupleValue)argValue;
+            var callableArg = argValue.QSharpType.Resolution.IsUnitType
+                ? this.SharedState.Values.Unit.Value
+                : ((TupleValue)argValue).OpaquePointer;
             var returnType = method.ResolvedType.TryGetReturnType().Item;
+
             if (returnType.Resolution.IsUnitType)
             {
                 Value resultTuple = this.SharedState.Constants.UnitValue;
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, argTuple.OpaquePointer, resultTuple);
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
                 return this.SharedState.Values.Unit;
             }
             else
@@ -380,7 +383,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, argTuple.OpaquePointer, resultTuple.OpaquePointer);
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
                     : resultTuple.GetTupleElements().Single();
@@ -769,7 +772,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
-                var array = this.SharedState.Values.FromArray(copy, originalArray.QSharpType);
+                var array = this.SharedState.Values.FromArray(copy, elementType);
 
                 // In order to accurately reflect which items are still in use and thus need to remain allocated,
                 // reference counts always need to be modified recursively. However, while the reference count for

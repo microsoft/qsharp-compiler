@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
@@ -31,6 +32,17 @@ namespace Microsoft.Quantum.QIR.Emission
 
         internal SimpleValue FromSimpleValue(Value value, ResolvedType type, InstructionBuilder? builder = null) =>
             new SimpleValue(value, type, builder);
+
+        internal TupleValue FromCustomType(Value value, UserDefinedType udt, InstructionBuilder? builder = null)
+        {
+            if (!this.sharedState.TryGetCustomType(udt.GetFullName(), out var udtDecl))
+            {
+                throw new ArgumentException("type declaration not found");
+            }
+
+            var elementTypes = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
+            return this.FromTuple(value, elementTypes, builder);
+        }
 
         /// <summary>
         /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
@@ -63,6 +75,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal IValue From(Value value, ResolvedType type, InstructionBuilder? builder = null) =>
             type.Resolution is QsResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item, builder) :
             type.Resolution is QsResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item, builder) :
+            type.Resolution is QsResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item, builder) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type, builder) :
             (IValue)new SimpleValue(value, type, builder);
 
