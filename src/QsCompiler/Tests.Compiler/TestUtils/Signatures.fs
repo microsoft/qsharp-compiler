@@ -163,14 +163,22 @@ let public MonomorphizationSignatures =
              MonomorphizationNs, "Test3", [||], "Unit"
              GenericsNs, "Test3Main", [||], "Unit"
 
-             GenericsNs, "GenericCallsSpecializations", [| "Double"; "String"; "Qubit[]" |], "Unit"
-             GenericsNs, "GenericCallsSpecializations", [| "Double"; "String"; "Double" |], "Unit"
-             GenericsNs, "GenericCallsSpecializations", [| "String"; "Int"; "Unit" |], "Unit"
+             GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Qubit[]"|], "Unit"
+             GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit"
+             GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit"
 
-             GenericsNs, "BasicGeneric", [| "String"; "Qubit[]" |], "Unit"
-             GenericsNs, "BasicGeneric", [| "String"; "Int" |], "Unit"
+             GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit"
+             GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit"
 
-             GenericsNs, "ArrayGeneric", [| "Qubit"; "Double" |], "Int"
+             GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int"
+             GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int"
+             GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int"
          |])
         // Test Case 4
         (_DefaultTypes,
