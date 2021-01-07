@@ -57,6 +57,5 @@ namespace Microsoft.Quantum.QsCompiler
 
             return null;
         }
-
     }
 }

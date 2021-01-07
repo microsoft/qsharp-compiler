@@ -4,7 +4,6 @@
 #nullable enable
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -92,8 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         [Obsolete("Please use Examples instead.")]
         public string Example => string.Join(
             "\n\n",
-            this.Examples
-        );
+            this.Examples);
 
         /// <summary>
         /// A list of examples of using the item.

@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet);
         }
 
-        #region ResolveGenerics
+        // Resolve Generics
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
@@ -158,9 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        #endregion
-
-        #region RewriteImplementations
+        // Rewrite Implementations
 
         private static AccessModifier GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
@@ -314,9 +312,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        #endregion
-
-        #region RewriteCalls
+        // Rewrite Calls
 
         private static Identifier GetConcreteIdentifier(
             Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
@@ -465,7 +461,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
         }
-
-        #endregion
     }
 }

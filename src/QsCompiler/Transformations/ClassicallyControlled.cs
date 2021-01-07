@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 {
                 }
 
-                #region Condition Reshaping Logic
+                // Condition Reshaping Logic
 
                 /// <summary>
                 /// Converts if-elif-else structures to nested if-else structures.
@@ -227,8 +227,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     return statement;
                 }
 
-                #endregion
-
                 public override QsScope OnScope(QsScope scope)
                 {
                     var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
@@ -366,7 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         new InferredExpressionInformation(false, expressions.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                         QsNullable<Range>.Null);
 
-                #region Condition Converting Logic
+                // Condition Converting Logic
 
                 /// <summary>
                 /// Creates an operation call from the conditional control API, given information
@@ -644,9 +642,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
-                #endregion
-
-                #region Condition Checking Logic
+                // Condition Checking Logic
 
                 /// <summary>
                 /// Checks if the statement is a condition statement that only has one conditional block in it (default blocks are optional).
@@ -760,8 +756,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     return false;
                 }
-
-                #endregion
 
                 public override QsScope OnScope(QsScope scope)
                 {

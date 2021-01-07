@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
     /// Loads all DLLs passed into the configuration as containing external rewrite steps.
-    /// Disocvers and instantiates all types implementing IRewriteStep 
+    /// Discovers and instantiates all types implementing IRewriteStep
     /// </summary>
     internal class AssemblyRewriteStepsLoader : AbstractRewriteStepsLoader
     {

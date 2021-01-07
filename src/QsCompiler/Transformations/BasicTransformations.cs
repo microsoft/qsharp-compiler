@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public class StatementTransformation<TSelector>
         : Core.StatementTransformation<TransformationState> where TSelector : SelectByFoldingOverExpressions
         {
-            protected TSelector? SubSelector;
+            protected TSelector? subSelector;
             protected readonly Func<TransformationState, TSelector> CreateSelector;
 
             /// <summary>
@@ -237,12 +237,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// <inheritdoc/>
             public override QsStatement OnStatement(QsStatement stm)
             {
-                this.SubSelector = this.CreateSelector(this.SharedState);
-                var loc = this.SubSelector.Statements.OnLocation(stm.Location);
-                var stmKind = this.SubSelector.StatementKinds.OnStatementKind(stm.Statement);
-                var varDecl = this.SubSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
+                this.subSelector = this.CreateSelector(this.SharedState);
+                var loc = this.subSelector.Statements.OnLocation(stm.Location);
+                var stmKind = this.subSelector.StatementKinds.OnStatementKind(stm.Statement);
+                var varDecl = this.subSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
                 this.SharedState.FoldResult = this.SharedState.ConstructFold(
-                    this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);
+                    this.SharedState.FoldResult, this.subSelector.SharedState.FoldResult);
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
+                    if (this.subSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         statements.Add(transformed);
                     }
