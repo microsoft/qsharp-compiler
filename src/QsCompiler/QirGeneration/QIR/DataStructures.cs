@@ -75,17 +75,22 @@ namespace Microsoft.Quantum.QIR.Emission
         internal readonly ImmutableArray<ResolvedType> ElementTypes;
         public readonly IStructType StructType;
 
+        private void AllocateTuple()
+        {
+            // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
+            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
+            var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
+            this.opaquePointer = this.Builder.Call(constructor, size);
+            this.sharedState.ScopeMgr.RegisterValue(this);
+        }
+
         internal Value OpaquePointer
         {
             get
             {
                 if (this.opaquePointer == null && this.typedPointer == null)
                 {
-                    // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
-                    var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-                    var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
-                    this.opaquePointer = this.Builder.Call(constructor, size);
-                    this.sharedState.ScopeMgr.RegisterValue(this);
+                    this.AllocateTuple();
                 }
 
                 this.opaquePointer ??= this.Builder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
@@ -97,6 +102,11 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             get
             {
+                if (this.opaquePointer == null && this.typedPointer == null)
+                {
+                    this.AllocateTuple();
+                }
+
                 this.typedPointer ??= this.Builder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
                 return this.typedPointer;
             }
