@@ -160,6 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
+        private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
 
         #endregion
 
@@ -230,8 +231,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// by a double underscore and the callable name, then another double underscore and the name of the
         /// callable kind ("body", "adj", "ctl", or "ctladj").
         /// </summary>
-        /// <param name="namespaceName">The callable's namespace name</param>
-        /// <param name="name">The callable's name</param>
+        /// <param name="fullName">The callable's qualified name</param>
         /// <param name="kind">The specialization kind</param>
         /// <returns>The mangled name for the specialization</returns>
         public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
@@ -541,6 +541,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (MapType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
                     (mappedResultType != func.ReturnType))
                 {
+                    this.StartFunction();
                     var epFunc = this.Module.CreateFunction(epName, this.Context.GetFunctionType(mappedResultType, mappedArgList));
                     var namedValues = new Dictionary<string, Value>();
                     for (var i = 0; i < mappedNameList.Count; i++)
@@ -549,33 +550,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         namedValues[epFunc.Parameters[i].Name] = epFunc.Parameters[i];
                     }
                     var entryBlock = epFunc.AppendBasicBlock("entry");
-                    var builder = new InstructionBuilder(entryBlock);
+                    this.SetCurrentBlock(entryBlock);
+
                     // Build the argument list for the inner function
                     var argValueList = new List<Value>();
                     foreach (var mapping in mappingList)
                     {
                         if (mapping.IsArray)
                         {
-                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType, builder);
-                            var elementSize = builder.IntCast(elementSize64, this.Context.Int32Type, false);
+                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType);
+                            var elementSize = this.CurrentBuilder.IntCast(elementSize64, this.Context.Int32Type, false);
                             var length = namedValues[mapping.ArrayCountName];
-                            var array = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d), elementSize, length);
+                            var array = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d), elementSize, length);
                             argValueList.Add(array);
                             arraysToReleaseList.Add(array);
                             // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
                             var copyBlock = epFunc.AppendBasicBlock("copy");
                             var nextBlock = epFunc.AppendBasicBlock("next");
-                            var cond = builder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
-                            builder.Branch(cond, copyBlock, nextBlock);
-                            builder = new InstructionBuilder(copyBlock);
-                            var destBase = builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, this.Context.CreateConstant(0L));
-                            builder.MemCpy(
+                            var cond = this.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
+                            this.CurrentBuilder.Branch(cond, copyBlock, nextBlock);
+
+                            this.CurrentBuilder = new InstructionBuilder(copyBlock);
+                            var destBase = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, this.Context.CreateConstant(0L));
+                            this.CurrentBuilder.MemCpy(
                                 destBase,
                                 namedValues[mapping.BaseName],
-                                builder.Mul(length, builder.IntCast(elementSize, this.Context.Int64Type, true)),
+                                this.CurrentBuilder.Mul(length, this.CurrentBuilder.IntCast(elementSize, this.Context.Int64Type, true)),
                                 false);
-                            builder.Branch(nextBlock);
-                            builder = new InstructionBuilder(nextBlock);
+                            this.CurrentBuilder.Branch(nextBlock);
+                            this.SetCurrentBlock(nextBlock);
                         }
                         else if (mapping.IsStruct)
                         {
@@ -587,23 +590,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
                     }
 
-                    Value result = builder.Call(func, argValueList);
+                    Value result = this.CurrentBuilder.Call(func, argValueList);
                     foreach (var arrayToRelease in arraysToReleaseList)
                     {
-                        builder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
+                        this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
                     }
 
                     if (func.ReturnType.IsVoid)
                     {
-                        builder.Return();
+                        this.CurrentBuilder.Return();
                     }
                     else
                     {
                         if (mappedResultType != func.ReturnType)
                         {
-                            result = builder.BitCast(result, mappedResultType);
+                            result = this.CurrentBuilder.BitCast(result, mappedResultType);
                         }
-                        builder.Return(result);
+                        this.CurrentBuilder.Return(result);
                     }
 
                     // Mark the function as an entry point
@@ -628,7 +631,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="func">The function to generate a stub for</param>
         /// <param name="baseName">The function that the stub should call</param>
-        /// <param name="m">(optional) The LLVM module in which the stub should be generated</param>
         private void GenerateInterop(IrFunction func, string baseName)
         {
             // TODO: why do we need both GenerateEntryPoint and GenerateInterop?
@@ -1037,6 +1039,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
+        {
+            var funcName = FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
+            IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+            this.liftedPartialApplications.Add((func, body));
+            return func;
+        }
+
         /// <summary>
         /// Tries to get the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, false is returned.
@@ -1135,6 +1145,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Populates a function that takes a capture tuple, and argument tuple,
+        /// and an output tuple as arguments and returns void.
+        /// </summary>
+        /// <param name="func">The function to populate</param>
+        /// <param name="executeBody">The body of the function</param>
+        private void GenerateWrapperFunction(IrFunction func, Action<IReadOnlyList<Argument>> executeBody)
+        {
+            this.CurrentFunction = func;
+            this.CurrentFunction.Parameters[0].Name = "capture-tuple";
+            this.CurrentFunction.Parameters[1].Name = "arg-tuple";
+            this.CurrentFunction.Parameters[2].Name = "result-tuple";
+            this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
+            this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
+
+            this.ScopeMgr.OpenScope();
+            executeBody(this.CurrentFunction.Parameters);
+            this.ScopeMgr.CloseScope(isTerminated: false);
+            this.CurrentBuilder.Return();
+        }
+
+        /// <summary>
         /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
         /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
         /// For each declared callable, a constant array with four IrFunction values represents the bundle.
@@ -1219,41 +1250,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            bool GenerateWrapperHeader(QsCallable callable, QsSpecialization spec)
+            foreach (var (callable, _) in this.wrapperQueue.Values)
             {
-                if (this.TryGetWrapper(callable, spec.Kind, out IrFunction? func))
-                {
-                    this.CurrentFunction = func;
-                    this.CurrentFunction.Parameters[0].Name = "capture-tuple";
-                    this.CurrentFunction.Parameters[1].Name = "arg-tuple";
-                    this.CurrentFunction.Parameters[2].Name = "result-tuple";
-                    this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
-                    this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            foreach (var kvp in this.wrapperQueue)
-            {
-                var callable = kvp.Value.Item1;
                 foreach (var spec in callable.Specializations)
                 {
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
-                        && GenerateWrapperHeader(callable, spec) && this.CurrentFunction != null)
+                        && this.TryGetWrapper(callable, spec.Kind, out IrFunction? func))
                     {
-                        this.ScopeMgr.OpenScope();
-                        Value argTupleValue = this.CurrentFunction.Parameters[1];
-                        var argList = GenerateArgTupleDecomposition(spec.Signature.ArgumentType, argTupleValue);
-                        var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
-                        PopulateResultTuple(callable.Signature.ReturnType, result, this.CurrentFunction.Parameters[2]);
-                        this.ScopeMgr.CloseScope(false);
-                        this.CurrentBuilder.Return();
+                        this.GenerateWrapperFunction(func, parameters =>
+                        {
+                            var argList = GenerateArgTupleDecomposition(spec.Signature.ArgumentType, parameters[1]);
+                            var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
+                            PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
+                        });
                     }
                 }
+            }
+
+            foreach (var (func, body) in this.liftedPartialApplications)
+            {
+                this.GenerateWrapperFunction(func, body);
             }
         }
 
@@ -1470,14 +1486,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// If the type isn't a simple pointer, integer, or double, we compute it using a standard LLVM idiom.
         /// </summary>
         /// <param name="type">The LLVM type to compute the size of</param>
-        /// <param name="builder">The builder to use to generate the struct size computation, if needed</param>
         /// <param name="intType">The integer type to return</param>
         /// <returns>
         /// An LLVM value of the specified integer type - or i64 if none is specified - containing the size of the type in bytes
         /// </returns>
-        internal Value ComputeSizeForType(ITypeRef type, InstructionBuilder? builder = null, ITypeRef? intType = null)
+        internal Value ComputeSizeForType(ITypeRef type, ITypeRef? intType = null)
         {
-            builder ??= this.CurrentBuilder;
             intType ??= this.Context.Int64Type;
 
             if (type.IsInteger)
@@ -1498,11 +1512,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Everything else we let getelementptr compute for us
                 var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
                 // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = builder.PointerToInt(firstPtr, intType);
-                var secondPtr = builder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = builder.PointerToInt(secondPtr, intType);
-                return builder.Sub(second, first);
+                var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+                var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
+                var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+                var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
+                return this.CurrentBuilder.Sub(second, first);
             }
         }
 

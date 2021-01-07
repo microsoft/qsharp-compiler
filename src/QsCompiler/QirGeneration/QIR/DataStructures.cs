@@ -7,7 +7,6 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -44,7 +43,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ResolvedType QSharpType { get; }
 
-        internal SimpleValue(Value value, ResolvedType type, InstructionBuilder? builder = null)
+        internal SimpleValue(Value value, ResolvedType type)
         {
             this.Value = value;
             this.QSharpType = type;
@@ -54,10 +53,6 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class PointerValue : IValue
     {
         private readonly GenerationContext sharedState;
-        private readonly InstructionBuilder? builder;
-
-        private InstructionBuilder Builder =>
-            this.builder ?? this.sharedState.CurrentBuilder;
 
         public readonly Value Pointer;
 
@@ -70,25 +65,23 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a pointer to a value of arbitrary type.
-        /// When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
         /// </summary>
         /// <param name="type">The Q# type of the value that the pointer points to</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal PointerValue(ResolvedType type, GenerationContext context, InstructionBuilder? builder = null)
+        internal PointerValue(ResolvedType type, GenerationContext context)
         {
             this.sharedState = context;
-            this.builder = builder;
             this.QSharpType = type;
-            this.Pointer = this.Builder.Alloca(context.LlvmTypeFromQsharpType(type));
+            this.Pointer = this.sharedState.CurrentBuilder.Alloca(context.LlvmTypeFromQsharpType(type));
         }
 
-        public IValue LoadValue(InstructionBuilder? b = null)
+        /// <summary>
+        /// Loads and returns the value that the pointer currently points to.
+        /// </summary>
+        public IValue LoadValue()
         {
-            var builder = b ?? this.Builder;
-            var loaded = builder.Load(this.sharedState.LlvmTypeFromQsharpType(this.QSharpType), this.Pointer);
-            return this.sharedState.Values.From(loaded, this.QSharpType, b ?? this.builder);
+            var loaded = this.sharedState.CurrentBuilder.Load(this.sharedState.LlvmTypeFromQsharpType(this.QSharpType), this.Pointer);
+            return this.sharedState.Values.From(loaded, this.QSharpType);
         }
     }
 
@@ -98,10 +91,6 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class TupleValue : IValue
     {
         private readonly GenerationContext sharedState;
-        private readonly InstructionBuilder? builder;
-
-        private InstructionBuilder Builder =>
-            this.builder ?? this.sharedState.CurrentBuilder;
 
         private Value? opaquePointer;
         private Value? typedPointer;
@@ -120,8 +109,8 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-            var size = this.sharedState.ComputeSizeForType(this.StructType, this.builder);
-            this.opaquePointer = this.Builder.Call(constructor, size);
+            var size = this.sharedState.ComputeSizeForType(this.StructType);
+            this.opaquePointer = this.sharedState.CurrentBuilder.Call(constructor, size);
             this.sharedState.ScopeMgr.RegisterValue(this);
         }
 
@@ -134,7 +123,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.AllocateTuple();
                 }
 
-                this.opaquePointer ??= this.Builder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
+                this.opaquePointer ??= this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
                 return this.opaquePointer;
             }
         }
@@ -148,23 +137,20 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.AllocateTuple();
                 }
 
-                this.typedPointer ??= this.Builder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
+                this.typedPointer ??= this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
                 return this.typedPointer;
             }
         }
 
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
         {
             this.sharedState = context;
-            this.builder = builder;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
         }
@@ -172,15 +158,13 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new tuple value representing a Q# value of user defined type from the given tuple pointer.
         /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed, the
-        /// instructions are emitted using the given builder. If no builder is specified, the builder defined in
-        /// the context is used when a pointer is constructed.
+        /// instructions are emitted using the current builder.
         /// </summary>
         /// <param name="type">Optionally the user defined type tha that the tuple represents</param>
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal TupleValue(UserDefinedType? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
+        internal TupleValue(UserDefinedType? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
         {
             var isTypedTuple = Types.IsTypedTuple(tuple.NativeType);
             var isOpaqueTuple = Types.IsTuple(tuple.NativeType);
@@ -190,7 +174,6 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             this.sharedState = context;
-            this.builder = builder;
             this.opaquePointer = isOpaqueTuple ? tuple : null;
             this.typedPointer = isTypedTuple ? tuple : null;
             this.customType = type;
@@ -200,15 +183,13 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
-        /// respectively are executed lazily. When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// respectively are executed lazily. When needed, the instructions are emitted using the current builder.
         /// </summary>
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, InstructionBuilder? builder = null)
-        : this(null, tuple, elementTypes, context, builder)
+        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
+        : this(null, tuple, elementTypes, context)
         {
         }
 
@@ -224,53 +205,39 @@ namespace Microsoft.Quantum.QIR.Emission
         };
 
         /// <summary>
-        /// Returns a pointer to a tuple element.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
+        /// Returns a pointer to the tuple element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value GetTupleElementPointer(int index, InstructionBuilder? b = null) =>
-            (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        internal Value GetTupleElementPointer(int index) =>
+            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
 
         /// <summary>
-        /// Returns a tuple element.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
+        /// Returns the tuple element with the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue GetTupleElement(int index, InstructionBuilder? b = null)
+        internal IValue GetTupleElement(int index)
         {
-            var builder = b ?? this.Builder;
-            var elementPtr = this.GetTupleElementPointer(index, b);
-            var element = builder.Load(this.StructType.Members[index], elementPtr);
-            return this.sharedState.Values.From(element, this.ElementTypes[index], b ?? this.builder);
+            var elementPtr = this.GetTupleElementPointer(index);
+            var element = this.sharedState.CurrentBuilder.Load(this.StructType.Members[index], elementPtr);
+            return this.sharedState.Values.From(element, this.ElementTypes[index]);
         }
 
         /// <summary>
         /// Returns an array with all pointers to the tuple elements.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value[] GetTupleElementPointers(InstructionBuilder? b = null) =>
+        internal Value[] GetTupleElementPointers() =>
             this.StructType.Members
-                .Select((_, i) => (b ?? this.Builder).GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
+                .Select((_, i) => this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
                 .ToArray();
 
         /// <summary>
         /// Returns an array with all tuple elements.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue[] GetTupleElements(InstructionBuilder? b = null)
+        internal IValue[] GetTupleElements()
         {
-            var builder = b ?? this.Builder;
-            var elementPtrs = this.GetTupleElementPointers(b);
-            var elements = this.StructType.Members.Select((itemType, i) => builder.Load(itemType, elementPtrs[i]));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.ElementTypes[i], b ?? this.builder)).ToArray();
+            var elementPtrs = this.GetTupleElementPointers();
+            var elements = this.StructType.Members.Select((itemType, i) => this.sharedState.CurrentBuilder.Load(itemType, elementPtrs[i]));
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.ElementTypes[i])).ToArray();
         }
     }
 
@@ -280,10 +247,6 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         private readonly GenerationContext sharedState;
-        private readonly InstructionBuilder? builder;
-
-        private InstructionBuilder Builder =>
-            this.builder ?? this.sharedState.CurrentBuilder;
 
         // Imporant: the constructors must ensure that either length or opaque pointer is not null!
         private Value? opaquePointer;
@@ -305,7 +268,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 if (this.length == null)
                 {
                     var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
-                    this.length = this.Builder.Call(getLength, this.opaquePointer ?? throw new InvalidOperationException("array has no value"));
+                    this.length = this.sharedState.CurrentBuilder.Call(getLength, this.opaquePointer ?? throw new InvalidOperationException("array has no value"));
                 }
                 return this.length;
             }
@@ -319,8 +282,8 @@ namespace Microsoft.Quantum.QIR.Emission
                 {
                     // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
                     var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-                    var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.builder, this.sharedState.Context.Int32Type);
-                    this.opaquePointer = this.Builder.Call(constructor, elementSize, this.Length);
+                    var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.sharedState.Context.Int32Type);
+                    this.opaquePointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
                     this.sharedState.ScopeMgr.RegisterValue(this);
                 }
                 return this.opaquePointer;
@@ -329,17 +292,14 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are other necessary computations. When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// is lazy, and so are other necessary computations. When needed, the instructions are emitted using the current builder.
         /// </summary>
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, InstructionBuilder? builder = null)
+        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.builder = builder;
             this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
@@ -349,17 +309,14 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
         /// The allocation of the value via invokation of the corresponding runtime function is lazy, and so are
-        /// other necessary computations. When needed, the instructions are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// other necessary computations. When needed, the instructions are emitted using the current builder.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, InstructionBuilder? builder = null)
+        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.builder = builder;
             this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = length;
@@ -367,18 +324,15 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type. When needed,
-        /// the instructions to compute the length of the array are emitted using the given builder.
-        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// the instructions to compute the length of the array are emitted using the current builder.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array; will be computed on demand if the given value is null</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
-        internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context, InstructionBuilder? builder = null)
+        internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.builder = builder;
             this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.opaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
@@ -388,44 +342,33 @@ namespace Microsoft.Quantum.QIR.Emission
         // methods for item access
 
         /// <summary>
-        /// Returns a pointer to an array element.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
+        /// Returns a pointer to the array element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value GetArrayElementPointer(Value index, InstructionBuilder? b = null)
+        internal Value GetArrayElementPointer(Value index)
         {
-            var builder = b ?? this.Builder;
             var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
-            var opaqueElementPointer = builder.Call(getElementPointer, this.OpaquePointer, index);
-            return builder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
+            var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
+            return this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
         }
 
         /// <summary>
-        /// Returns an array element.
-        /// If no builder is specified, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
+        /// Returns the array element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue GetArrayElement(Value index, InstructionBuilder? b = null)
+        internal IValue GetArrayElement(Value index)
         {
-            var builder = b ?? this.Builder;
-            var elementPtr = this.GetArrayElementPointer(index, b);
-            var element = builder.Load(this.ElementType, elementPtr);
-            return this.sharedState.Values.From(element, this.QSharpElementType, b ?? this.builder);
+            var elementPtr = this.GetArrayElementPointer(index);
+            var element = this.sharedState.CurrentBuilder.Load(this.ElementType, elementPtr);
+            return this.sharedState.Values.From(element, this.QSharpElementType);
         }
 
         /// <summary>
         /// Returns the pointers to an array element at the given indices.
         /// If no indices are specified, returns all element pointers if the length of the array is know,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
-        /// If the specified builder is null, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal Value[] GetArrayElementPointers(InstructionBuilder? b, params int[] indices)
+        internal Value[] GetArrayElementPointers(params int[] indices)
         {
             var enumerable = indices.Length != 0 ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
@@ -433,45 +376,21 @@ namespace Microsoft.Quantum.QIR.Emission
 
             return enumerable
                 .Select(idx => this.sharedState.Context.CreateConstant((long)idx))
-                .Select(idx => this.GetArrayElementPointer(idx, b))
+                .Select(idx => this.GetArrayElementPointer(idx))
                 .ToArray();
         }
 
         /// <summary>
-        /// Returns the pointers to an array element at the given indices.
-        /// If no indices are specified, returns all element pointers if the length of the array is know,
-        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
-        /// The builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
-        /// </summary>
-        internal Value[] GetArrayElementPointers(params int[] indices) =>
-            this.GetArrayElementPointers(null, indices);
-
-        /// <summary>
         /// Returns the array elements at the given indices.
         /// If no indices are specified, returns all elements if the length of the array is know,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
-        /// If the specified builder is null, the builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
         /// </summary>
-        /// <param name="b">Optional argument specifying the builder to use to create the instructions</param>
-        internal IValue[] GetArrayElements(InstructionBuilder? b, params int[] indices)
+        internal IValue[] GetArrayElements(params int[] indices)
         {
-            var builder = b ?? this.Builder;
-            var elementPtrs = this.GetArrayElementPointers(b, indices);
-            var elements = elementPtrs.Select(ptr => builder.Load(this.ElementType, ptr));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.QSharpElementType, b ?? this.builder)).ToArray();
+            var elementPtrs = this.GetArrayElementPointers(indices);
+            var elements = elementPtrs.Select(ptr => this.sharedState.CurrentBuilder.Load(this.ElementType, ptr));
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.QSharpElementType)).ToArray();
         }
-
-        /// <summary>
-        /// Returns the array elements at the given indices.
-        /// If no indices are specified, returns all elements if the length of the array is know,
-        /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
-        /// The builder specified upon construction is used if on was specified,
-        /// and the current builder is used otherwise.
-        /// </summary>
-        internal IValue[] GetArrayElements(params int[] indices) =>
-            this.GetArrayElements(null, indices);
     }
 
     /// <summary>
@@ -479,8 +398,8 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class CallableValue : SimpleValue
     {
-        internal CallableValue(Value callabe, ResolvedType type, InstructionBuilder? builder = null)
-        : base(callabe, type, builder)
+        internal CallableValue(Value callabe, ResolvedType type)
+        : base(callabe, type)
         {
         }
     }

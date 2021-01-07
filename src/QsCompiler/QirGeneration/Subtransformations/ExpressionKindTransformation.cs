@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState = sharedState;
             }
 
-            public abstract IValue BuildItem(InstructionBuilder builder, TupleValue capture, IValue parArgs);
+            public abstract IValue BuildItem(TupleValue capture, IValue parArgs);
         }
 
         private class InnerCapture : PartialApplicationArgument
@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// The given capture is expected to be fully typed.
             /// The parArgs parameter is unused.
             /// </summary>
-            public override IValue BuildItem(InstructionBuilder builder, TupleValue capture, IValue parArgs) =>
+            public override IValue BuildItem(TupleValue capture, IValue parArgs) =>
                 capture.GetTupleElement(this.CaptureIndex);
         }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// The given parameter parArgs is expected to contain an argument to a partial application, and is expected to be fully typed.
             /// The given capture is unused.
             /// </summary>
-            public override IValue BuildItem(InstructionBuilder builder, TupleValue capture, IValue paArgs) =>
+            public override IValue BuildItem(TupleValue capture, IValue paArgs) =>
                 // parArgs.NativeType == this.ItemType may occur if we have an item of user defined type (represented as a tuple)
                 (paArgs is TupleValue paArgsTuple) && paArgsTuple.StructType.CreatePointerType() != this.ItemType
                     ? paArgsTuple.GetTupleElement(this.ArgIndex)
@@ -96,10 +96,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// The given parameter parArgs is expected to contain an argument to a partial application, and is expected to be fully typed.
             /// </summary>
             /// <returns>A fully typed tuple that combines the captured values as well as the arguments to the partial application</returns>
-            public override IValue BuildItem(InstructionBuilder builder, TupleValue capture, IValue parArgs)
+            public override IValue BuildItem(TupleValue capture, IValue parArgs)
             {
-                var items = this.Items.Select(item => item.BuildItem(builder, capture, parArgs)).ToArray();
-                var tuple = this.SharedState.Values.CreateTuple(builder, items);
+                var items = this.Items.Select(item => item.BuildItem(capture, parArgs)).ToArray();
+                var tuple = this.SharedState.Values.CreateTuple(items);
                 return tuple;
             }
         }
@@ -427,14 +427,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="runtimeFunctionName">The runtime method to invoke in order to apply the funtor</param>
         /// <param name="callable">The callable to copy (unless modifyInPlace is true) before applying the functor to it</param>
         /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
-        /// <param name="builder">Builder to use to generate the instructions</param>
         /// <returns>The callable value to which the functor has been applied</returns>
-        private IValue ApplyFunctor(string runtimeFunctionName, IValue callable, bool modifyInPlace = false, InstructionBuilder? builder = null)
+        private IValue ApplyFunctor(string runtimeFunctionName, IValue callable, bool modifyInPlace = false)
         {
             // This method is used when applying functors when building a functor application expression
             // as well as when creating the specializations for a partial application.
 
-            builder ??= this.SharedState.CurrentBuilder;
             if (!modifyInPlace)
             {
                 // FIXME:
@@ -446,7 +444,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Since we don't track access counts for callables we need to force the copy.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
-                var modified = builder.Call(makeCopy, callable.Value, forceCopy);
+                var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
                 callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
                 this.SharedState.ScopeMgr.RegisterValue(callable);
             }
@@ -454,7 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
             // but instead modify the given callable in place.
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
-            builder.Call(applyFunctor, callable.Value);
+            this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
             return callable;
         }
 
@@ -1584,7 +1582,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ImmutableArray<ResolvedType> captureType, ImmutableArray<ResolvedType> paArgsTypes, PartialApplicationArgument partialArgs)
             {
-                IValue ApplyFunctors(IValue innerCallable, InstructionBuilder builder)
+                IValue ApplyFunctors(IValue innerCallable)
                 {
                     if (kind == QsSpecializationKind.QsBody)
                     {
@@ -1592,16 +1590,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else if (kind == QsSpecializationKind.QsAdjoint)
                     {
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false, builder);
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false);
                     }
                     else if (kind == QsSpecializationKind.QsControlled)
                     {
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: false, builder);
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: false);
                     }
                     else if (kind == QsSpecializationKind.QsControlledAdjoint)
                     {
-                        innerCallable = this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false, builder);
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: true, builder);
+                        innerCallable = this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false);
+                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: true);
                     }
                     else
                     {
@@ -1609,60 +1607,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                var funcName = GenerationContext.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
-                IrFunction func = this.SharedState.Module.CreateFunction(funcName, this.SharedState.Types.FunctionSignature);
-
-                func.Parameters[0].Name = "capture-tuple";
-                func.Parameters[1].Name = "arg-tuple";
-                func.Parameters[2].Name = "result-tuple";
-                var entry = func.AppendBasicBlock("entry");
-
-                this.SharedState.ScopeMgr.OpenScope();
-                InstructionBuilder builder = new InstructionBuilder(entry);
-
-                var captureTuple = this.SharedState.Values.FromTuple(func.Parameters[0], captureType, builder);
-                TupleValue BuildControlledInnerArgument(ResolvedType paArgType)
+                void BuildPartialApplicationBody(IReadOnlyList<Argument> parameters)
                 {
-                    // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
-                    // as well as a tuple with the remaining arguments for the partial application.
-                    // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
-                    var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgType);
-                    var ctlPaArgsTuple = this.SharedState.Values.FromTuple(func.Parameters[1], ctlPaArgsTypes, builder);
-                    var ctlPaArgItems = ctlPaArgsTuple.GetTupleElements();
+                    var captureTuple = this.SharedState.Values.FromTuple(parameters[0], captureType);
+                    TupleValue BuildControlledInnerArgument(ResolvedType paArgType)
+                    {
+                        // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
+                        // as well as a tuple with the remaining arguments for the partial application.
+                        // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
+                        var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgType);
+                        var ctlPaArgsTuple = this.SharedState.Values.FromTuple(parameters[1], ctlPaArgsTypes);
+                        var ctlPaArgItems = ctlPaArgsTuple.GetTupleElements();
 
-                    // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
-                    // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
-                    var innerArgs = partialArgs.BuildItem(builder, captureTuple, ctlPaArgItems[1]);
-                    return this.SharedState.Values.CreateTuple(builder, ctlPaArgItems[0], innerArgs);
+                        // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
+                        // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
+                        var innerArgs = partialArgs.BuildItem(captureTuple, ctlPaArgItems[1]);
+                        return this.SharedState.Values.CreateTuple(ctlPaArgItems[0], innerArgs);
+                    }
+
+                    TupleValue innerArg;
+                    if (kind == QsSpecializationKind.QsControlled || kind == QsSpecializationKind.QsControlledAdjoint)
+                    {
+                        // Deal with the extra control qubit arg for controlled and controlled-adjoint
+                        // We special case if the base specialization only takes a single parameter and don't create the sub-tuple in this case.
+                        innerArg = BuildControlledInnerArgument(
+                            paArgsTypes.Length == 1
+                            ? paArgsTypes[0]
+                            : ResolvedType.New(QsResolvedTypeKind.NewTupleType(paArgsTypes)));
+                    }
+                    else
+                    {
+                        var parArgsTuple = this.SharedState.Values.FromTuple(parameters[1], paArgsTypes);
+                        var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
+                        innerArg = typedInnerArg is TupleValue innerArgTuple
+                            ? innerArgTuple
+                            : this.SharedState.Values.CreateTuple(typedInnerArg);
+                    }
+
+                    var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
+                    var innerCallable = captureTuple.GetTupleElement(0);
+                    this.SharedState.CurrentBuilder.Call(invokeCallable, ApplyFunctors(innerCallable).Value, innerArg.OpaquePointer, parameters[2]);
                 }
 
-                TupleValue innerArg;
-                if (kind == QsSpecializationKind.QsControlled || kind == QsSpecializationKind.QsControlledAdjoint)
-                {
-                    // Deal with the extra control qubit arg for controlled and controlled-adjoint
-                    // We special case if the base specialization only takes a single parameter and don't create the sub-tuple in this case.
-                    innerArg = BuildControlledInnerArgument(
-                        paArgsTypes.Length == 1
-                        ? paArgsTypes[0]
-                        : ResolvedType.New(QsResolvedTypeKind.NewTupleType(paArgsTypes)));
-                }
-                else
-                {
-                    var parArgsTuple = this.SharedState.Values.FromTuple(func.Parameters[1], paArgsTypes, builder);
-                    var typedInnerArg = partialArgs.BuildItem(builder, captureTuple, parArgsTuple);
-                    innerArg = typedInnerArg is TupleValue innerArgTuple
-                        ? innerArgTuple
-                        : this.SharedState.Values.CreateTuple(builder, typedInnerArg);
-                }
-
-                var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                var innerCallable = captureTuple.GetTupleElement(0);
-                builder.Call(invokeCallable, ApplyFunctors(innerCallable, builder).Value, innerArg.OpaquePointer, func.Parameters[2]);
-
-                builder.Return();
-                this.SharedState.ScopeMgr.CloseScope(isTerminated: false, builder);
-
-                return func;
+                return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
             }
 
             var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");

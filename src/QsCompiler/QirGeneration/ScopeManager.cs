@@ -8,7 +8,6 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -84,19 +83,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// and invokes the specified release functions for values if necessary.
             /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
             /// </summary>
-            /// <param name="builder">The InstructionBuilder where the calls should be generated</param>
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal void ExecutePendingCalls(InstructionBuilder? builder = null, List<IValue>? omitUnreferencing = null)
+            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null)
             {
-                builder ??= this.parent.sharedState.CurrentBuilder;
                 omitUnreferencing ??= new List<IValue>();
 
                 foreach (var (value, funcName) in this.requiredReleases)
                 {
                     var func = this.parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    builder.Call(func, value.Value);
+                    this.parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
                 foreach (var (_, value) in this.variables)
@@ -109,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => omitted.Value == value.Value);
                     if (!omitUnreferencing.Remove(omitted))
                     {
-                        this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value, builder);
+                        this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value);
                     }
                 }
             }
@@ -249,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ResolvedType, string?> getFunctionName, IValue value, InstructionBuilder? builder = null)
+        private void RecursivelyModifyCounts(Func<ResolvedType, string?> getFunctionName, IValue value)
         {
             void ModifyCounts(string funcName, IValue value)
             {
@@ -257,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (value is PointerValue pointer)
                 {
-                    ModifyCounts(funcName, pointer.LoadValue(builder));
+                    ModifyCounts(funcName, pointer.LoadValue());
                 }
                 else if (value is TupleValue tuple)
                 {
@@ -267,12 +264,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var itemFuncName = getFunctionName(tuple.ElementTypes[i]);
                         if (itemFuncName != null)
                         {
-                            var item = tuple.GetTupleElement(i, builder);
+                            var item = tuple.GetTupleElement(i);
                             ModifyCounts(itemFuncName, item);
                         }
                     }
 
-                    builder.Call(func, tuple.OpaquePointer);
+                    this.sharedState.CurrentBuilder.Call(func, tuple.OpaquePointer);
                 }
                 else if (value is ArrayValue array)
                 {
@@ -282,17 +279,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // FIXME: THE BUILDER FOR THIS IS ENTIRELY WRONG
                         //this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
-                    builder.Call(func, array.OpaquePointer);
+                    this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer);
                 }
                 else if (value is CallableValue callable)
                 {
                     // TODO
                     // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
-                    builder.Call(func, callable.Value);
+                    this.sharedState.CurrentBuilder.Call(func, callable.Value);
                 }
             }
 
-            builder ??= this.sharedState.CurrentBuilder;
             var func = getFunctionName(value.QSharpType); // FIXME: MAKE NATIVE TYPE PART OF THE ITUPLE INTERFACE,
             if (func != null)
             {
@@ -318,21 +314,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
         /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
-        public void CloseScope(bool isTerminated, InstructionBuilder? builder = null)
+        public void CloseScope(bool isTerminated)
         {
             var scope = this.scopes.Pop();
             if (!isTerminated)
             {
-                scope.ExecutePendingCalls(builder);
+                scope.ExecutePendingCalls();
             }
         }
 
-        public void ExitScope(bool isTerminated, InstructionBuilder? builder = null)
+        public void ExitScope(bool isTerminated)
         {
             var scope = this.scopes.Peek();
             if (!isTerminated)
             {
-                scope.ExecutePendingCalls(builder);
+                scope.ExecutePendingCalls();
             }
         }
 
@@ -341,32 +337,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(IValue value, InstructionBuilder? builder = null) =>
-            this.RecursivelyModifyCounts(this.ReferenceFunctionForType, value, builder);
+        public void IncreaseReferenceCount(IValue value) =>
+            this.RecursivelyModifyCounts(this.ReferenceFunctionForType, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(IValue value, InstructionBuilder? builder = null) =>
-            this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value, builder);
+        public void DecreaseReferenceCount(IValue value) =>
+            this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(IValue value, InstructionBuilder? builder = null) =>
-            this.RecursivelyModifyCounts(this.AddAccessFunctionForType, value, builder);
+        internal void IncreaseAccessCount(IValue value) =>
+            this.RecursivelyModifyCounts(this.AddAccessFunctionForType, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, InstructionBuilder? builder = null) =>
-            this.RecursivelyModifyCounts(this.RemoveAccessFunctionForType, value, builder);
+        internal void DecreaseAccessCount(IValue value) =>
+            this.RecursivelyModifyCounts(this.RemoveAccessFunctionForType, value);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
@@ -434,10 +430,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exiting the current scope does *not* close the scope.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
-        public void ExitFunction(IValue returned, InstructionBuilder? builder = null)
+        public void ExitFunction(IValue returned)
         {
-            builder ??= this.sharedState.CurrentBuilder;
-
             // To avoid increasing the reference count for the returned value and all contained items
             // followed by immediately decreasing it again, we check whether we can avoid that.
             // There are a couple of pitfalls to watch out for when doing this:
@@ -466,7 +460,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var omittedUnreferences = new List<IValue>() { returned };
             foreach (var scope in currentScopes)
             {
-                scope.ExecutePendingCalls(builder, omittedUnreferences);
+                scope.ExecutePendingCalls(omittedUnreferences);
             }
         }
     }
