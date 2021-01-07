@@ -130,7 +130,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -204,7 +205,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -243,7 +245,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -256,7 +259,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -372,7 +376,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class StatementTransformation : StatementTransformation<TransformationState>
             {
-                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -386,7 +391,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -410,7 +416,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -442,7 +449,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 

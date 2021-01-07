@@ -221,7 +221,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         // helper classes
 
         public class StatementTransformation<TSelector>
-        : Core.StatementTransformation<TransformationState> where TSelector : SelectByFoldingOverExpressions
+        : Core.StatementTransformation<TransformationState>
+            where TSelector : SelectByFoldingOverExpressions
         {
             protected TSelector? subSelector;
             protected readonly Func<TransformationState, TSelector> CreateSelector;
@@ -305,7 +306,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// The transformation itself merely walks expressions and rebuilding is disabled.
     /// </summary>
     public class FoldOverExpressions<TState, TResult>
-    : ExpressionTransformation<TState> where TState : FoldOverExpressions<TState, TResult>.IFoldingState
+    : ExpressionTransformation<TState>
+        where TState : FoldOverExpressions<TState, TResult>.IFoldingState
     {
         public interface IFoldingState
         {

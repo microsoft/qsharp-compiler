@@ -86,7 +86,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
     public static class Program
     {
-        private static int Run<T>(Func<T, ConsoleLogger, int> compile, T options) where T : Options
+        private static int Run<T>(Func<T, ConsoleLogger, int> compile, T options)
+            where T : Options
         {
             var logger = options.GetLogger();
             try

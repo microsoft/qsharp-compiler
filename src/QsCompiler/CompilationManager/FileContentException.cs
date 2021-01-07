@@ -13,7 +13,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Creates a <see cref="FileContentException"/> with the given message.
         /// </summary>
-        public FileContentException(string message) : base(message)
+        public FileContentException(string message)
+            : base(message)
         {
         }
     }
