@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             byte[] byteArray)
         {
             QsCompilation? bondCompilation = null;
-            lock(BondSharedDataStructuresLock)
+            lock (BondSharedDataStructuresLock)
             {
                 var inputBuffer = new InputBuffer(byteArray);
                 var deserializer = GetSimpleBinaryDeserializer();
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
         {
-            lock(BondSharedDataStructuresLock)
+            lock (BondSharedDataStructuresLock)
             {
                 var outputBuffer = new OutputBuffer();
                 var serializer = GetSimpleBinarySerializer();
