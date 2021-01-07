@@ -40,7 +40,7 @@ export function createNewProject(context: vscode.ExtensionContext) {
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
-        oc(packageInfo).nugetVersion
+        oc(packageInfo).nugetVersion()
         ? `::${packageInfo!.nugetVersion}`
         : "";
     let proc = cp.spawn(
