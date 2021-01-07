@@ -164,6 +164,7 @@ namespace Microsoft.Quantum.Documentation
 
 "
                 .MaybeWithSection("Description", docComment.Description)
+                .WithSectionForEach("Example", docComment.Examples)
                 .MaybeWithSection(
                     "See Also",
                     string.Join("\n", docComment.SeeAlso.Select(
@@ -232,6 +233,7 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                         return $"### {itemName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}";
                     })))
             .MaybeWithSection("Description", docComment.Description)
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(
@@ -325,6 +327,7 @@ Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
                             ? comment
                             : string.Empty)}"
                         : string.Empty)))
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(
