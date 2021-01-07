@@ -10,7 +10,6 @@ using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -47,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Required = true,
                 SetName = Options.ResponseFiles,
                 HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
-            public IEnumerable<string> ResponseFiles { get; set; }
+            public new IEnumerable<string> ResponseFiles { get; set; }
 
             [Option(
                 'o',
