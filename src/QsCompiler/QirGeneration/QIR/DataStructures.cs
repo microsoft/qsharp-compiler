@@ -145,6 +145,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
         /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
+        /// Registers the value with the scope manager once it is allocated.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
@@ -293,6 +294,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new array value. The allocation of the value via invokation of the corresponding runtime function
         /// is lazy, and so are other necessary computations. When needed, the instructions are emitted using the current builder.
+        /// Registers the value with the scope manager once it is allocated.
         /// </summary>
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
@@ -310,6 +312,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
         /// The allocation of the value via invokation of the corresponding runtime function is lazy, and so are
         /// other necessary computations. When needed, the instructions are emitted using the current builder.
+        /// Registers the value with the scope manager once it is allocated.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
@@ -398,8 +401,8 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class CallableValue : SimpleValue
     {
-        internal CallableValue(Value callabe, ResolvedType type)
-        : base(callabe, type)
+        internal CallableValue(Value value, ResolvedType type, GenerationContext context)
+        : base(value, type)
         {
         }
     }

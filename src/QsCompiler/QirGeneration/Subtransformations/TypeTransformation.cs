@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;

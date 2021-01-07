@@ -339,6 +339,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Closes the current scope by popping it off of the stack.
+        /// Closing the scope automatically also closes the current naming scope as well.
+        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// </summary>
+        public void CloseScope(IValue returned)
+        {
+            var scope = this.scopes.Pop();
+
+            if (!scope.WillBeUnreferenced(returned))
+            {
+                this.IncreaseReferenceCount(returned);
+            }
+
+            scope.ExecutePendingCalls(new List<IValue>() { returned });
+        }
+
+        /// <summary>
         /// Exits the current scope by emitting the calls to unreference values going out of scope,
         /// decreasing access counts and invoking release functions if necessary.
         /// Exiting the current scope does *not* close the scope.
@@ -442,7 +460,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
         /// decreasing access counts and invoking release functions if necessary.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
-        /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
+        /// The calls are generated in using the current builder.
         /// Exiting the current function does *not* close the scopes.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>

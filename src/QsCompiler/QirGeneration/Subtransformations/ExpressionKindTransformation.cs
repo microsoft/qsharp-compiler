@@ -299,9 +299,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var res = this.SharedState.CurrentBuilder.Call(func, argList.Select(a => a.Value).ToArray());
-                return func.Signature.ReturnType.IsVoid
-                    ? this.SharedState.Values.Unit
-                    : this.SharedState.Values.From(res, returnType);
+                if (func.Signature.ReturnType.IsVoid)
+                {
+                    return this.SharedState.Values.Unit;
+                }
+
+                var value = this.SharedState.Values.From(res, returnType);
+                this.SharedState.ScopeMgr.RegisterValue(value);
+                return value;
             }
 
             IValue InlineSpecialization(QsSpecialization spec, TypedExpression arg)
@@ -828,13 +833,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = this.SharedState.Context.CreateConstant(false);
                     var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    return this.SharedState.Values.FromTuple(copy, original.ElementTypes);
+                    var tuple = this.SharedState.Values.FromTuple(copy, original.ElementTypes);
+                    this.SharedState.ScopeMgr.RegisterValue(tuple);
+                    return tuple;
                 }
 
                 var originalValue = (TupleValue)this.SharedState.EvaluateSubexpression(lhs);
                 var newItemValue = this.SharedState.EvaluateSubexpression(rhs);
                 var value = GetTupleCopy(originalValue);
-                this.SharedState.ScopeMgr.RegisterValue(value);
 
                 if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
@@ -1436,9 +1442,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     value = ((TupleValue)value).GetTupleElement(location[i]);
                 }
-
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -2107,9 +2110,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 value = ((TupleValue)value).GetTupleElement(0);
             }
-
-            this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-            this.SharedState.ScopeMgr.RegisterValue(value);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;

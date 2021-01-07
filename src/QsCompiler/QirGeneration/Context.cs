@@ -1538,11 +1538,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Stop inlining a callable invocation.
         /// This pops the top naming scope and decreases the inlining level.
+        /// The reference count of the return value for the inlining scope is increased before closing the scope,
+        /// and the value is registered with the scope manager.
         /// </summary>
         internal IValue StopInlining()
         {
-            this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
-            return this.inlineLevels.Pop().Item2;
+            var res = this.inlineLevels.Pop().Item2;
+            this.ScopeMgr.CloseScope(res);
+            this.ScopeMgr.RegisterValue(res);
+            return res;
         }
 
         /// <summary>
