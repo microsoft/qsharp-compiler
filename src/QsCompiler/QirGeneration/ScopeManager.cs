@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((value, releaseFunction));
                 }
-                if (value.Value.NativeType.IsPointer)
+                if (value.LlvmType.IsPointer)
                 {
                     this.trackedValues.Add(value);
                 }
@@ -147,13 +147,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (t.IsPointer)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayAddAccess;
-                }
-                else if (Types.IsTypedTuple(t))
+                if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleAddAccess;
+                }
+                else if (Types.IsArray(t))
+                {
+                    return RuntimeLibrary.ArrayAddAccess;
                 }
             }
             return null;
@@ -168,13 +168,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (t.IsPointer)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayRemoveAccess;
-                }
-                else if (Types.IsTypedTuple(t))
+                if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleRemoveAccess;
+                }
+                else if (Types.IsArray(t))
+                {
+                    return RuntimeLibrary.ArrayRemoveAccess;
                 }
             }
             return null;
@@ -189,29 +189,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (t.IsPointer)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayReference;
-                }
-                else if (t == this.sharedState.Types.Result)
-                {
-                    return RuntimeLibrary.ResultReference;
-                }
-                else if (t == this.sharedState.Types.String)
-                {
-                    return RuntimeLibrary.StringReference;
-                }
-                else if (t == this.sharedState.Types.BigInt)
-                {
-                    return RuntimeLibrary.BigIntReference;
-                }
-                else if (Types.IsTypedTuple(t))
+                if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleReference;
                 }
-                else if (t == this.sharedState.Types.Callable)
+                else if (Types.IsArray(t))
+                {
+                    return RuntimeLibrary.ArrayReference;
+                }
+                else if (Types.IsCallable(t))
                 {
                     return RuntimeLibrary.CallableReference;
+                }
+                else if (Types.IsResult(t))
+                {
+                    return RuntimeLibrary.ResultReference;
+                }
+                else if (Types.IsString(t))
+                {
+                    return RuntimeLibrary.StringReference;
+                }
+                else if (Types.IsBigInt(t))
+                {
+                    return RuntimeLibrary.BigIntReference;
                 }
             }
             return null;
@@ -226,29 +226,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (t.IsPointer)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayUnreference;
-                }
-                else if (t == this.sharedState.Types.Result)
-                {
-                    return RuntimeLibrary.ResultUnreference;
-                }
-                else if (t == this.sharedState.Types.String)
-                {
-                    return RuntimeLibrary.StringUnreference;
-                }
-                else if (t == this.sharedState.Types.BigInt)
-                {
-                    return RuntimeLibrary.BigIntUnreference;
-                }
-                else if (Types.IsTypedTuple(t))
+                if (Types.IsTypedTuple(t))
                 {
                     return RuntimeLibrary.TupleUnreference;
                 }
-                else if (t == this.sharedState.Types.Callable)
+                else if (Types.IsArray(t))
+                {
+                    return RuntimeLibrary.ArrayUnreference;
+                }
+                else if (Types.IsCallable(t))
                 {
                     return RuntimeLibrary.CallableUnreference;
+                }
+                else if (Types.IsResult(t))
+                {
+                    return RuntimeLibrary.ResultUnreference;
+                }
+                else if (Types.IsString(t))
+                {
+                    return RuntimeLibrary.StringUnreference;
+                }
+                else if (Types.IsBigInt(t))
+                {
+                    return RuntimeLibrary.BigIntUnreference;
                 }
             }
             return null;
@@ -305,7 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            var func = getFunctionName(value.Value.NativeType);
+            var func = getFunctionName(value.LlvmType);
             if (func != null)
             {
                 ModifyCounts(func, value);
@@ -413,14 +413,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Makes sure that all allocated qubits are released when the scope is closed or exited
         /// and that the value and all its items are unreferenced.
         /// </summary>
-        public void RegisterAllocatedQubits(Value value)
+        public void RegisterAllocatedQubits(IValue value)
         {
-            var (releaser, type) =
-                value.NativeType == this.sharedState.Types.Array ? (RuntimeLibrary.QubitReleaseArray, SyntaxGenerator.QubitArrayType) :
-                value.NativeType == this.sharedState.Types.Qubit ? (RuntimeLibrary.QubitRelease, ResolvedType.New(QsResolvedTypeKind.Qubit)) :
+            var releaser =
+                Types.IsArray(value.LlvmType) ? RuntimeLibrary.QubitReleaseArray :
+                Types.IsQubit(this.sharedState.Types.Qubit) ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            var typedValue = this.sharedState.Values.From(value, type);
-            this.scopes.Peek().AddValue(typedValue, releaser);
+            this.scopes.Peek().AddValue(value, releaser);
         }
 
         /// <summary>

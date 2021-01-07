@@ -53,8 +53,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (mutable)
                 {
                     var ptr = this.SharedState.Values.CreatePointer(type);
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
                     this.SharedState.CurrentBuilder.Store(ex.Value, ptr.Pointer);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
                 }
                 else
                 {
@@ -123,15 +123,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
-                        return this.SharedState.Values.From(allocation, init.Type);
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value countValue = this.SharedState.EvaluateSubexpression(reg.Item).Value;
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
-                        return this.SharedState.Values.From(allocation, init.Type);
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {

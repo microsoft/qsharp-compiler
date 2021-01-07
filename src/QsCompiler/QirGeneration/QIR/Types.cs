@@ -202,6 +202,38 @@ namespace Microsoft.Quantum.QIR
             t is IPointerType pt
             && pt.ElementType is IStructType st
             && st.Name == TypeNames.Callable;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a qubit pointer.
+        /// </summary>
+        public static bool IsQubit(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Qubit;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a measurement result pointer.
+        /// </summary>
+        public static bool IsResult(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Result;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a big int pointer.
+        /// </summary>
+        public static bool IsBigInt(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.BigInt;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a string pointer.
+        /// </summary>
+        public static bool IsString(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.String;
     }
 
     /// <summary>

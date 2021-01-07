@@ -26,7 +26,13 @@ namespace Microsoft.Quantum.QIR.Emission
         public Value Value { get; }
 
         /// <summary>
-        /// Q# type of the value.
+        /// The LLVM type of the value.
+        /// Accessing the type does not require constructing or loading the value.
+        /// </summary>
+        public ITypeRef LlvmType { get; }
+
+        /// <summary>
+        /// The Q# type of the value.
         /// </summary>
         public ResolvedType QSharpType { get; }
     }
@@ -40,6 +46,8 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class SimpleValue : IValue
     {
         public Value Value { get; }
+
+        public ITypeRef LlvmType => this.Value.NativeType;
 
         public ResolvedType QSharpType { get; }
 
@@ -56,31 +64,31 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public readonly Value Pointer;
 
-        public ITypeRef PointerElementType =>
-            Types.PointerElementType(this.Pointer);
-
         public Value Value => this.Pointer;
+
+        public ITypeRef LlvmType { get; }
 
         public ResolvedType QSharpType { get; }
 
         /// <summary>
-        /// Creates a pointer to a value of arbitrary type.
+        /// Creates a pointer that represents a mutable variable.
         /// </summary>
-        /// <param name="type">The Q# type of the value that the pointer points to</param>
+        /// <param name="type">The Q# type of the variable that the pointer represents</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal PointerValue(ResolvedType type, GenerationContext context)
         {
             this.sharedState = context;
             this.QSharpType = type;
-            this.Pointer = this.sharedState.CurrentBuilder.Alloca(context.LlvmTypeFromQsharpType(type));
+            this.LlvmType = context.LlvmTypeFromQsharpType(type);
+            this.Pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
         }
 
         /// <summary>
-        /// Loads and returns the value that the pointer currently points to.
+        /// Loads and returns the current value of the mutable variable.
         /// </summary>
         public IValue LoadValue()
         {
-            var loaded = this.sharedState.CurrentBuilder.Load(this.sharedState.LlvmTypeFromQsharpType(this.QSharpType), this.Pointer);
+            var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.Pointer);
             return this.sharedState.Values.From(loaded, this.QSharpType);
         }
     }
@@ -97,6 +105,8 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly UserDefinedType? customType;
 
         public Value Value => this.TypedPointer;
+
+        public ITypeRef LlvmType => this.StructType.CreatePointerType();
 
         public ResolvedType QSharpType => this.customType != null
             ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(this.customType))
@@ -255,10 +265,12 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public Value Value => this.OpaquePointer;
 
+        public ITypeRef LlvmType => this.sharedState.Types.Array;
+
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.qsElementType));
 
-        private readonly ResolvedType qsElementType; // FIXME: ELIMINATE ELEMENTTYPE AND INSTEAD HAVE THE POINTERS RETURN A POINTER VALUE
+        private readonly ResolvedType qsElementType;
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
 
@@ -399,11 +411,23 @@ namespace Microsoft.Quantum.QIR.Emission
     /// <summary>
     /// Stores the QIR representation of a Q# callable.
     /// </summary>
-    internal class CallableValue : SimpleValue
+    internal class CallableValue : IValue
     {
+        public Value Value { get; }
+
+        /// <summary>
+        /// The LLVM type by which the value is passed across function bounaries,
+        /// i.e. the LLVM native type of the stored value.
+        /// </summary>
+        public ITypeRef LlvmType { get; }
+
+        public ResolvedType QSharpType { get; }
+
         internal CallableValue(Value value, ResolvedType type, GenerationContext context)
-        : base(value, type)
         {
+            this.Value = value;
+            this.LlvmType = context.Types.Callable;
+            this.QSharpType = type;
         }
     }
 }
