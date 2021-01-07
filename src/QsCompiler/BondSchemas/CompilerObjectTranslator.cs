@@ -49,16 +49,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
             this QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> bondQsExpressionKindComposition) =>
-            bondQsExpressionKindComposition.ToCompilerObjectGeneric<
-                SyntaxTree.TypedExpression,
-                SyntaxTree.Identifier,
-                SyntaxTree.ResolvedType,
-                TypedExpression,
-                Identifier,
-                ResolvedType>(
-                    expressionTranslator: ToCompilerObject,
-                    symbolTranslator: ToCompilerObject,
-                    typeTranslator: ToCompilerObject);
+            bondQsExpressionKindComposition.ToCompilerObjectGeneric(
+                expressionTranslator: ToCompilerObject,
+                symbolTranslator: ToCompilerObject,
+                typeTranslator: ToCompilerObject);
 
         private static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
             bondQsGeneratorDirective switch
