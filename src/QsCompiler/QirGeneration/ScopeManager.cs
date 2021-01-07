@@ -8,6 +8,7 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -142,15 +143,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? AddAccessFunctionForType(ResolvedType t)
+        private string? AddAccessFunctionForType(ITypeRef t)
         {
-            if (t.Resolution.IsArrayType)
+            if (t.IsPointer)
             {
-                return RuntimeLibrary.ArrayAddAccess;
-            }
-            else if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
-            {
-                return RuntimeLibrary.TupleAddAccess;
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayAddAccess;
+                }
+                else if (Types.IsTypedTuple(t))
+                {
+                    return RuntimeLibrary.TupleAddAccess;
+                }
             }
             return null;
         }
@@ -160,15 +164,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? RemoveAccessFunctionForType(ResolvedType t)
+        private string? RemoveAccessFunctionForType(ITypeRef t)
         {
-            if (t.Resolution.IsArrayType)
+            if (t.IsPointer)
             {
-                return RuntimeLibrary.ArrayRemoveAccess;
-            }
-            else if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
-            {
-                return RuntimeLibrary.TupleRemoveAccess;
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayRemoveAccess;
+                }
+                else if (Types.IsTypedTuple(t))
+                {
+                    return RuntimeLibrary.TupleRemoveAccess;
+                }
             }
             return null;
         }
@@ -178,31 +185,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? ReferenceFunctionForType(ResolvedType t)
+        private string? ReferenceFunctionForType(ITypeRef t)
         {
-            if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
+            if (t.IsPointer)
             {
-                return RuntimeLibrary.TupleReference;
-            }
-            else if (t.Resolution.IsArrayType)
-            {
-                return RuntimeLibrary.ArrayReference;
-            }
-            else if (t.Resolution.IsResult)
-            {
-                return RuntimeLibrary.ResultReference;
-            }
-            else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
-            {
-                return RuntimeLibrary.CallableReference;
-            }
-            else if (t.Resolution.IsString)
-            {
-                return RuntimeLibrary.StringReference;
-            }
-            else if (t.Resolution.IsBigInt)
-            {
-                return RuntimeLibrary.BigIntReference;
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayReference;
+                }
+                else if (t == this.sharedState.Types.Result)
+                {
+                    return RuntimeLibrary.ResultReference;
+                }
+                else if (t == this.sharedState.Types.String)
+                {
+                    return RuntimeLibrary.StringReference;
+                }
+                else if (t == this.sharedState.Types.BigInt)
+                {
+                    return RuntimeLibrary.BigIntReference;
+                }
+                else if (Types.IsTypedTuple(t))
+                {
+                    return RuntimeLibrary.TupleReference;
+                }
+                else if (t == this.sharedState.Types.Callable)
+                {
+                    return RuntimeLibrary.CallableReference;
+                }
             }
             return null;
         }
@@ -212,31 +222,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? UnreferenceFunctionForType(ResolvedType t)
+        private string? UnreferenceFunctionForType(ITypeRef t)
         {
-            if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
+            if (t.IsPointer)
             {
-                return RuntimeLibrary.TupleUnreference;
-            }
-            else if (t.Resolution.IsArrayType)
-            {
-                return RuntimeLibrary.ArrayUnreference;
-            }
-            else if (t.Resolution.IsResult)
-            {
-                return RuntimeLibrary.ResultUnreference;
-            }
-            else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
-            {
-                return RuntimeLibrary.CallableUnreference;
-            }
-            else if (t.Resolution.IsString)
-            {
-                return RuntimeLibrary.StringUnreference;
-            }
-            else if (t.Resolution.IsBigInt)
-            {
-                return RuntimeLibrary.BigIntUnreference;
+                if (t == this.sharedState.Types.Array)
+                {
+                    return RuntimeLibrary.ArrayUnreference;
+                }
+                else if (t == this.sharedState.Types.Result)
+                {
+                    return RuntimeLibrary.ResultUnreference;
+                }
+                else if (t == this.sharedState.Types.String)
+                {
+                    return RuntimeLibrary.StringUnreference;
+                }
+                else if (t == this.sharedState.Types.BigInt)
+                {
+                    return RuntimeLibrary.BigIntUnreference;
+                }
+                else if (Types.IsTypedTuple(t))
+                {
+                    return RuntimeLibrary.TupleUnreference;
+                }
+                else if (t == this.sharedState.Types.Callable)
+                {
+                    return RuntimeLibrary.CallableUnreference;
+                }
             }
             return null;
         }
@@ -246,7 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ResolvedType, string?> getFunctionName, IValue value)
+        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue value)
         {
             void ModifyCounts(string funcName, IValue value)
             {
@@ -259,9 +272,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (value is TupleValue tuple)
                 {
                     // for tuples we also unreference all inner tuples
-                    for (var i = 0; i < tuple.ElementTypes.Length; ++i)
+                    for (var i = 0; i < tuple.StructType.Members.Count; ++i)
                     {
-                        var itemFuncName = getFunctionName(tuple.ElementTypes[i]);
+                        var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
                         if (itemFuncName != null)
                         {
                             var item = tuple.GetTupleElement(i);
@@ -273,10 +286,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is ArrayValue array)
                 {
-                    var itemFuncName = getFunctionName(array.QSharpElementType);
+                    var itemFuncName = getFunctionName(array.ElementType);
                     if (itemFuncName != null)
                     {
-                        // FIXME: THE BUILDER FOR THIS IS ENTIRELY WRONG
                         //this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
                     this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer);
@@ -287,9 +299,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
                     this.sharedState.CurrentBuilder.Call(func, callable.Value);
                 }
+                else
+                {
+                    this.sharedState.CurrentBuilder.Call(func, value.Value);
+                }
             }
 
-            var func = getFunctionName(value.QSharpType); // FIXME: MAKE NATIVE TYPE PART OF THE ITUPLE INTERFACE,
+            var func = getFunctionName(value.Value.NativeType);
             if (func != null)
             {
                 ModifyCounts(func, value);
@@ -312,7 +328,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Closing the scope automatically also closes the current naming scope as well.
         /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
-        /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         public void CloseScope(bool isTerminated)
         {
@@ -323,6 +338,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        /// <summary>
+        /// Exits the current scope by emitting the calls to unreference values going out of scope,
+        /// decreasing access counts and invoking release functions if necessary.
+        /// Exiting the current scope does *not* close the scope.
+        /// </summary>
         public void ExitScope(bool isTerminated)
         {
             var scope = this.scopes.Peek();
@@ -334,7 +354,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
         public void IncreaseReferenceCount(IValue value) =>
@@ -342,7 +361,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value) =>
@@ -350,7 +368,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
         internal void IncreaseAccessCount(IValue value) =>
@@ -358,7 +375,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
-        /// The call is generated in the current block if no builder is specified, and otherwise the given builder is used.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
         internal void DecreaseAccessCount(IValue value) =>
@@ -394,7 +410,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
-        /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
         internal void RegisterVariable(string name, IValue value)
         {
             if (string.IsNullOrEmpty(value.Value.Name))
@@ -424,10 +439,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes.
+        /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
+        /// decreasing access counts and invoking release functions if necessary.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
         /// The calls are generated in the current block if no builder is specified, and otherwise the given builder is used.
-        /// Exiting the current scope does *not* close the scope.
+        /// Exiting the current function does *not* close the scopes.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
         public void ExitFunction(IValue returned)

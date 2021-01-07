@@ -255,9 +255,9 @@ namespace Microsoft.Quantum.QIR.Emission
         public Value Value => this.OpaquePointer;
 
         public ResolvedType QSharpType =>
-            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
+            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.qsElementType));
 
-        internal readonly ResolvedType QSharpElementType; // FIXME: ELIMINATE ELEMENTTYPE AND INSTEAD HAVE THE POINTERS RETURN A POINTER VALUE
+        private readonly ResolvedType qsElementType; // FIXME: ELIMINATE ELEMENTTYPE AND INSTEAD HAVE THE POINTERS RETURN A POINTER VALUE
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
 
@@ -300,7 +300,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.QSharpElementType = elementType;
+            this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
             this.length = context.Context.CreateConstant((long)count);
@@ -317,7 +317,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.QSharpElementType = elementType;
+            this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = length;
         }
@@ -333,7 +333,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.QSharpElementType = elementType;
+            this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.opaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
             this.length = length;
@@ -360,7 +360,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             var elementPtr = this.GetArrayElementPointer(index);
             var element = this.sharedState.CurrentBuilder.Load(this.ElementType, elementPtr);
-            return this.sharedState.Values.From(element, this.QSharpElementType);
+            return this.sharedState.Values.From(element, this.qsElementType);
         }
 
         /// <summary>
@@ -389,7 +389,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             var elementPtrs = this.GetArrayElementPointers(indices);
             var elements = elementPtrs.Select(ptr => this.sharedState.CurrentBuilder.Load(this.ElementType, ptr));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.QSharpElementType)).ToArray();
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.qsElementType)).ToArray();
         }
     }
 
