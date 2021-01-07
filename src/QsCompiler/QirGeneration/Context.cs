@@ -977,7 +977,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
                 var innerTuple = this.Values.CreateTuple(tupleItems);
-                this.ScopeMgr.RegisterVariable(outerArgItems[0].Item1, innerTuple, false);
+                this.ScopeMgr.RegisterVariable(outerArgItems[0].Item1, innerTuple);
             }
             else
             {
@@ -986,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.CurrentFunction.Parameters[i].Name = arg.Item1;
                     var argValue = this.Values.From(this.CurrentFunction.Parameters[i], arg.Item2);
-                    this.ScopeMgr.RegisterVariable(arg.Item1, argValue, false);
+                    this.ScopeMgr.RegisterVariable(arg.Item1, argValue);
                     i++;
                 }
             }
@@ -995,13 +995,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             while (deconstuctArgument && innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
-                var tupleValue = (TupleValue)this.ScopeMgr.GetNamedValue(tupleArgName);
+                var tupleValue = (TupleValue)this.ScopeMgr.GetVariable(tupleArgName);
 
                 int idx = 0;
                 foreach (var arg in ArgTupleToArgItems(tupleArg, innerTuples))
                 {
                     var element = tupleValue.GetTupleElement(idx);
-                    this.ScopeMgr.RegisterVariable(arg.Item1, element, false);
+                    this.ScopeMgr.RegisterVariable(arg.Item1, element);
                     idx++;
                 }
             }

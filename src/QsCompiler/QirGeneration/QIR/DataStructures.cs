@@ -51,6 +51,47 @@ namespace Microsoft.Quantum.QIR.Emission
         }
     }
 
+    internal class PointerValue : IValue
+    {
+        private readonly GenerationContext sharedState;
+        private readonly InstructionBuilder? builder;
+
+        private InstructionBuilder Builder =>
+            this.builder ?? this.sharedState.CurrentBuilder;
+
+        public readonly Value Pointer;
+
+        public ITypeRef PointerElementType =>
+            Types.PointerElementType(this.Pointer);
+
+        public Value Value => this.Pointer;
+
+        public ResolvedType QSharpType { get; }
+
+        /// <summary>
+        /// Creates a pointer to a value of arbitrary type.
+        /// When needed, the instructions are emitted using the given builder.
+        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// </summary>
+        /// <param name="type">The Q# type of the value that the pointer points to</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
+        internal PointerValue(ResolvedType type, GenerationContext context, InstructionBuilder? builder = null)
+        {
+            this.sharedState = context;
+            this.builder = builder;
+            this.QSharpType = type;
+            this.Pointer = this.Builder.Alloca(context.LlvmTypeFromQsharpType(type));
+        }
+
+        public IValue LoadValue(InstructionBuilder? b = null)
+        {
+            var builder = b ?? this.Builder;
+            var loaded = builder.Load(this.sharedState.LlvmTypeFromQsharpType(this.QSharpType), this.Pointer);
+            return this.sharedState.Values.From(loaded, this.QSharpType, b ?? this.builder);
+        }
+    }
+
     /// <summary>
     /// Stores the QIR representation of a Q# tuple or a value of user defined type.
     /// </summary>
@@ -251,9 +292,9 @@ namespace Microsoft.Quantum.QIR.Emission
         public Value Value => this.OpaquePointer;
 
         public ResolvedType QSharpType =>
-            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.elementType));
+            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
 
-        private readonly ResolvedType elementType;
+        internal readonly ResolvedType QSharpElementType; // FIXME: ELIMINATE ELEMENTTYPE AND INSTEAD HAVE THE POINTERS RETURN A POINTER VALUE
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
 
@@ -299,7 +340,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             this.sharedState = context;
             this.builder = builder;
-            this.elementType = elementType;
+            this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
             this.length = context.Context.CreateConstant((long)count);
@@ -319,7 +360,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             this.sharedState = context;
             this.builder = builder;
-            this.elementType = elementType;
+            this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = length;
         }
@@ -338,7 +379,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             this.sharedState = context;
             this.builder = builder;
-            this.elementType = elementType;
+            this.QSharpElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.opaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
             this.length = length;
@@ -373,7 +414,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var builder = b ?? this.Builder;
             var elementPtr = this.GetArrayElementPointer(index, b);
             var element = builder.Load(this.ElementType, elementPtr);
-            return this.sharedState.Values.From(element, this.elementType, b ?? this.builder);
+            return this.sharedState.Values.From(element, this.QSharpElementType, b ?? this.builder);
         }
 
         /// <summary>
@@ -419,7 +460,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var builder = b ?? this.Builder;
             var elementPtrs = this.GetArrayElementPointers(b, indices);
             var elements = elementPtrs.Select(ptr => builder.Load(this.ElementType, ptr));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.elementType, b ?? this.builder)).ToArray();
+            return elements.Select((element, i) => this.sharedState.Values.From(element, this.QSharpElementType, b ?? this.builder)).ToArray();
         }
 
         /// <summary>

@@ -100,6 +100,16 @@ namespace Microsoft.Quantum.QIR.Emission
             (IValue)new SimpleValue(value, type, builder);
 
         /// <summary>
+        /// Creates a pointer to a value of arbitrary type.
+        /// When needed, the instructions are emitted using the given builder.
+        /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.
+        /// </summary>
+        /// <param name="type">The Q# type of the value that the pointer points to</param>
+        /// <param name="builder">Builder used to construct the opaque pointer the first time it is requested</param>
+        internal PointerValue CreatePointer(ResolvedType type, InstructionBuilder? builder = null) =>
+            new PointerValue(type, this.sharedState, builder);
+
+        /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
         /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the given builder.
         /// If no builder is specified, the builder defined in the context is used when a pointer is constructed.

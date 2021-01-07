@@ -9,7 +9,6 @@ using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -32,9 +31,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private readonly ScopeManager parent;
 
             /// <summary>
-            /// Maps variable names to a tuple with a value to access them and whether or not accessing them requires loading the value first.
+            /// Maps variable names to the corresponding value.
+            /// Mutable variables are represented as PointerValues.
             /// </summary>
-            private readonly Dictionary<string, (IValue, bool)> variables = new Dictionary<string, (IValue, bool)>();
+            private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
 
             /// <summary>
             /// Contains all values that require unreferencing upon closing the scope.
@@ -54,8 +54,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // public and internal methods
 
-            public void AddVariable(string varName, IValue accessHandle, bool requiresLoading) =>
-                this.variables.Add(varName, (accessHandle, requiresLoading));
+            public void AddVariable(string varName, IValue value) =>
+                this.variables.Add(varName, value);
 
             public void AddValue(IValue value, string? releaseFunction = null)
             {
@@ -69,8 +69,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            public bool TryGetVariable(string varName, out (IValue, bool) accessHandle) =>
-                this.variables.TryGetValue(varName, out accessHandle);
+            public bool TryGetVariable(string varName, out IValue value) =>
+                this.variables.TryGetValue(varName, out value);
 
             /// <summary>
             /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
@@ -99,14 +99,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     builder.Call(func, value.Value);
                 }
 
-                foreach (var (_, (item, mutable)) in this.variables)
+                foreach (var (_, value) in this.variables)
                 {
-                    var value = item;
-                    if (mutable)
-                    {
-                        var loaded = builder.Load(Types.PointerElementType(item.Value), item.Value);
-                        value = this.parent.sharedState.Values.From(loaded, value.QSharpType, builder);
-                    }
                     this.parent.DecreaseAccessCount(value);
                 }
 
@@ -151,18 +145,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? AddAccessFunctionForType(ITypeRef t)
+        private string? AddAccessFunctionForType(ResolvedType t)
         {
-            if (t.IsPointer)
+            if (t.Resolution.IsArrayType)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayAddAccess;
-                }
-                else if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleAddAccess;
-                }
+                return RuntimeLibrary.ArrayAddAccess;
+            }
+            else if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
+            {
+                return RuntimeLibrary.TupleAddAccess;
             }
             return null;
         }
@@ -172,18 +163,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? RemoveAccessFunctionForType(ITypeRef t)
+        private string? RemoveAccessFunctionForType(ResolvedType t)
         {
-            if (t.IsPointer)
+            if (t.Resolution.IsArrayType)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayRemoveAccess;
-                }
-                else if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleRemoveAccess;
-                }
+                return RuntimeLibrary.ArrayRemoveAccess;
+            }
+            else if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
+            {
+                return RuntimeLibrary.TupleRemoveAccess;
             }
             return null;
         }
@@ -193,34 +181,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? ReferenceFunctionForType(ITypeRef t)
+        private string? ReferenceFunctionForType(ResolvedType t)
         {
-            if (t.IsPointer)
+            if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayReference;
-                }
-                else if (t == this.sharedState.Types.Result)
-                {
-                    return RuntimeLibrary.ResultReference;
-                }
-                else if (t == this.sharedState.Types.String)
-                {
-                    return RuntimeLibrary.StringReference;
-                }
-                else if (t == this.sharedState.Types.BigInt)
-                {
-                    return RuntimeLibrary.BigIntReference;
-                }
-                else if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleReference;
-                }
-                else if (t == this.sharedState.Types.Callable)
-                {
-                    return RuntimeLibrary.CallableReference;
-                }
+                return RuntimeLibrary.TupleReference;
+            }
+            else if (t.Resolution.IsArrayType)
+            {
+                return RuntimeLibrary.ArrayReference;
+            }
+            else if (t.Resolution.IsResult)
+            {
+                return RuntimeLibrary.ResultReference;
+            }
+            else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
+            {
+                return RuntimeLibrary.CallableReference;
+            }
+            else if (t.Resolution.IsString)
+            {
+                return RuntimeLibrary.StringReference;
+            }
+            else if (t.Resolution.IsBigInt)
+            {
+                return RuntimeLibrary.BigIntReference;
             }
             return null;
         }
@@ -230,34 +215,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the unreference function for this type</returns>
-        private string? UnreferenceFunctionForType(ITypeRef t)
+        private string? UnreferenceFunctionForType(ResolvedType t)
         {
-            if (t.IsPointer)
+            if (t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType)
             {
-                if (t == this.sharedState.Types.Array)
-                {
-                    return RuntimeLibrary.ArrayUnreference;
-                }
-                else if (t == this.sharedState.Types.Result)
-                {
-                    return RuntimeLibrary.ResultUnreference;
-                }
-                else if (t == this.sharedState.Types.String)
-                {
-                    return RuntimeLibrary.StringUnreference;
-                }
-                else if (t == this.sharedState.Types.BigInt)
-                {
-                    return RuntimeLibrary.BigIntUnreference;
-                }
-                else if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleUnreference;
-                }
-                else if (t == this.sharedState.Types.Callable)
-                {
-                    return RuntimeLibrary.CallableUnreference;
-                }
+                return RuntimeLibrary.TupleUnreference;
+            }
+            else if (t.Resolution.IsArrayType)
+            {
+                return RuntimeLibrary.ArrayUnreference;
+            }
+            else if (t.Resolution.IsResult)
+            {
+                return RuntimeLibrary.ResultUnreference;
+            }
+            else if (t.Resolution.IsOperation || t.Resolution.IsFunction)
+            {
+                return RuntimeLibrary.CallableUnreference;
+            }
+            else if (t.Resolution.IsString)
+            {
+                return RuntimeLibrary.StringUnreference;
+            }
+            else if (t.Resolution.IsBigInt)
+            {
+                return RuntimeLibrary.BigIntUnreference;
             }
             return null;
         }
@@ -267,18 +249,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue value, InstructionBuilder? builder = null)
+        private void RecursivelyModifyCounts(Func<ResolvedType, string?> getFunctionName, IValue value, InstructionBuilder? builder = null)
         {
             void ModifyCounts(string funcName, IValue value)
             {
                 var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
 
-                if (value is TupleValue tuple)
+                if (value is PointerValue pointer)
+                {
+                    ModifyCounts(funcName, pointer.LoadValue(builder));
+                }
+                else if (value is TupleValue tuple)
                 {
                     // for tuples we also unreference all inner tuples
-                    for (var i = 0; i < tuple.StructType.Members.Count; ++i)
+                    for (var i = 0; i < tuple.ElementTypes.Length; ++i)
                     {
-                        var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                        var itemFuncName = getFunctionName(tuple.ElementTypes[i]);
                         if (itemFuncName != null)
                         {
                             var item = tuple.GetTupleElement(i, builder);
@@ -290,10 +276,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is ArrayValue array)
                 {
-                    var itemFuncName = getFunctionName(array.ElementType);
+                    var itemFuncName = getFunctionName(array.QSharpElementType);
                     if (itemFuncName != null)
                     {
-                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
+                        // FIXME: THE BUILDER FOR THIS IS ENTIRELY WRONG
+                        //this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
                     builder.Call(func, array.OpaquePointer);
                 }
@@ -306,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             builder ??= this.sharedState.CurrentBuilder;
-            var func = getFunctionName(value.Value.NativeType);
+            var func = getFunctionName(value.QSharpType); // FIXME: MAKE NATIVE TYPE PART OF THE ITUPLE INTERFACE,
             if (func != null)
             {
                 ModifyCounts(func, value);
@@ -412,60 +399,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
         /// <param name="isMutable">true if the name binding is mutable, false if immutable; the default is false</param>
-        internal void RegisterVariable(string name, IValue value, bool isMutable = false)
+        internal void RegisterVariable(string name, IValue value)
         {
             if (string.IsNullOrEmpty(value.Value.Name))
             {
                 value.Value.RegisterName(this.sharedState.InlinedName(name));
             }
             this.IncreaseAccessCount(value);
-            this.scopes.Peek().AddVariable(name, value, isMutable);
+            this.scopes.Peek().AddVariable(name, value);
         }
 
         /// <summary>
-        /// Gets the pointer to a mutable variable by name.
-        /// The name must have been registered as an alias for the pointer value using
-        /// <see cref="RegisterVariable(string, Value, bool)"/>.
-        /// </summary>
-        /// <param name="name">The registered variable name to look for</param>
-        /// <returns>The pointer value for the mutable value</returns>
-        internal IValue GetNamedPointer(string name)
-        {
-            foreach (var scope in this.scopes)
-            {
-                if (scope.TryGetVariable(name, out (IValue, bool) item))
-                {
-                    if (item.Item2)
-                    {
-                        return item.Item1;
-                    }
-                }
-            }
-            throw new KeyNotFoundException($"Could not find a Value for mutable symbol {name}");
-        }
-
-        /// <summary>
-        /// Gets the value of a named variable on the value stack, loading the value if necessary.
+        /// Gets the value of a named variable.
         /// The name must have been registered as an alias for the value using
         /// <see cref="RegisterVariable(string, Value, bool)"/>.
-        /// <para>
-        /// If the variable is mutable, then the associated pointer value is used to load and push the actual
-        /// variable value.
-        /// </para>
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
-        internal IValue GetNamedValue(string name)
+        internal IValue GetVariable(string name)
         {
             foreach (var scope in this.scopes)
             {
-                if (scope.TryGetVariable(name, out (IValue, bool) item))
+                if (scope.TryGetVariable(name, out IValue value))
                 {
-                    var value = item.Item1;
-                    if (item.Item2)
-                    {
-                        var loaded = this.sharedState.CurrentBuilder.Load(Types.PointerElementType(item.Item1.Value), item.Item1.Value);
-                        value = this.sharedState.Values.From(loaded, value.QSharpType);
-                    }
                     return value;
                 }
             }

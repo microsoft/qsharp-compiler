@@ -52,14 +52,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (mutable)
                 {
-                    var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    var ptrValue = this.SharedState.Values.FromSimpleValue(ptr, type); // FIXME: THIS IS PRETTY HORRIBLE
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptrValue, true);
-                    this.SharedState.CurrentBuilder.Store(ex.Value, ptr);
+                    var ptr = this.SharedState.Values.CreatePointer(type);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
+                    this.SharedState.CurrentBuilder.Store(ex.Value, ptr.Pointer);
                 }
                 else
                 {
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ex, false);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ex);
                 }
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
@@ -372,11 +371,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    Value ptr = this.SharedState.ScopeMgr.GetNamedPointer(varName.Item).Value;
-                    var loadedOriginal = this.SharedState.CurrentBuilder.Load(rhs.Value.NativeType, ptr);
-                    var originalValue = this.SharedState.Values.From(loadedOriginal, rhs.QSharpType);
+                    var originalValue = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
                     this.SharedState.ScopeMgr.DecreaseAccessCount(originalValue);
-                    this.SharedState.CurrentBuilder.Store(rhs.Value, ptr);
+                    this.SharedState.CurrentBuilder.Store(rhs.Value, originalValue.Pointer);
                     this.SharedState.ScopeMgr.IncreaseAccessCount(rhs);
                 }
                 else if (symbols.Expression is ResolvedExpression.ValueTuple ids)
