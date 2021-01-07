@@ -739,7 +739,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             edited();
                         }
-                    }, $"marking edited in {nameof(this.RemoveTokensInRange)} failed");
+                    },
+                    $"marking edited in {nameof(this.RemoveTokensInRange)} failed");
                 QsCompilerError.RaiseOnFailure(
                     () =>
                     {
@@ -747,7 +748,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             transformation();
                         }
-                    }, $"applying transformations in {nameof(this.RemoveTokensInRange)} failed");
+                    },
+                    $"applying transformations in {nameof(this.RemoveTokensInRange)} failed");
             }
             finally
             {
@@ -846,7 +848,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             transformation();
                         }
-                    }, $"applying transformations in {nameof(this.TokensUpdate)} failed");
+                    },
+                    $"applying transformations in {nameof(this.TokensUpdate)} failed");
                 QsCompilerError.RaiseOnFailure(
                     () =>
                     {
@@ -854,7 +857,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             edited();
                         }
-                    }, $"marking edited in {nameof(this.TokensUpdate)} failed");
+                    },
+                    $"marking edited in {nameof(this.TokensUpdate)} failed");
             }
             finally
             {

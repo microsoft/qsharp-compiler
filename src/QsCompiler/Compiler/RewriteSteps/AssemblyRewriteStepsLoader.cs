@@ -48,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var specifiedPluginDlls = rewriteStepAssemblies.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
-            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
-            foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
+            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.path.LocalPath));
+            foreach (var file in notFoundDlls.Select(step => step.path).Distinct())
             {
                 this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
             }

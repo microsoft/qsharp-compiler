@@ -548,7 +548,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.LogException(ex);
                     }
-                }, cancellationToken);
+                },
+                cancellationToken);
 
             if (runSynchronously)
             {
@@ -959,10 +960,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.FileContent = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].GetLines().Select(line => line.Text).ToImmutableArray()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.Tokenization = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.SyntaxTree = this.BuiltCompilation.Namespaces.ToImmutableDictionary(ns => ns.Name);
 
                 this.openDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
@@ -970,25 +971,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     nsName => manager.compilationUnit.GetOpenDirectives(nsName));
                 this.namespaceDeclarations = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].NamespaceDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
                 this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
 
                 this.ScopeDiagnostics = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].CurrentScopeDiagnostics()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.SyntaxDiagnostics = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].CurrentSyntaxDiagnostics()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.ContextDiagnostics = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].CurrentContextDiagnostics()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.HeaderDiagnostics = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].CurrentHeaderDiagnostics()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
                 this.SemanticDiagnostics = this.SourceFiles
                     .Select(file => (file, manager.fileContentManagers[file].CurrentSemanticDiagnostics()))
-                    .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+                    .ToImmutableDictionary(tuple => tuple.file, tuple => tuple.Item2);
             }
         }
     }

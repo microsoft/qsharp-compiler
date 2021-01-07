@@ -667,7 +667,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         file.ContentUpdate(start, file.NrLines() - start, replacements.Concat(updateRemaining).ToArray());
                     }
-                }, "the proposed ContentUpdate failed");
+                },
+                "the proposed ContentUpdate failed");
 
             QsCompilerError.RaiseOnFailure(
                 () =>
@@ -681,7 +682,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         file.AddScopeDiagnostics(file.ComputeScopeDiagnostics(start));
                     }
                     file.AddScopeDiagnostics(file.CheckForMissingClosings());
-                }, "updating the scope diagnostics failed");
+                },
+                "updating the scope diagnostics failed");
         }
 
         // routine(s) called by the FileContentManager upon updating a file

@@ -379,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : ImmutableArray.Create<QsExpression?>(ex);
                 return argItems.AddRange(Enumerable.Repeat<QsExpression?>(null, declItems.Item.Length - argItems.Length))
                     .Zip(declItems.Item, (e, d) => (e, d))
-                    .SelectMany(arg => ExtractParameterRanges(arg.Item1, arg.Item2));
+                    .SelectMany(arg => ExtractParameterRanges(arg.e, arg.d));
             }
 
             var callArgs = ExtractParameterRanges(args, argTuple).ToArray();
