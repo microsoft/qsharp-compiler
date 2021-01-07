@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
                 {
-                    Severity = CodeAnalysis.DiagnosticSeverity.Info,
+                    Severity = DiagnosticSeverity.Info,
                     Message = $"Writing documentation output to: {outputPath}...",
                     Range = null,
                     Source = null,
@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.Documentation
                     this
                         .TryWithExceptionsAsDiagnostics(
                             "creating directory",
-                            async () => Directory.CreateDirectory(outputPath))
+                            () => Task.FromResult(Directory.CreateDirectory(outputPath)))
                         .Wait();
                 }
             }
