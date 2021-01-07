@@ -752,192 +752,299 @@ let ``Modifier tests`` () = // modifiers can only be applied to identifiers, ari
     ]
     |> List.iter testExpr
 
-// Note that since we do not currently have the means to support a left-recursive grammar (would require a different approach to parsing),
-// we have to prioritize in order to stick with a non-left-recursive grammar (there are algorithms that translate a left-recursive grammar into a non-left-recursive one,
-// but for practical purposes would require reconstructing the syntax tree of the old grammar from the one built by the new grammar).
-// We prioritize call like expressions over array item expressions,
-// and hence similar syntax patterns for array item expressions as tested above for call-like expressions are currently not processed / do not exist in the language.
+
+[<Fact>]
+let ``Function type tests`` () =
+    [
+        "(Int -> Int)", toTupleType [ Function(toType Int, toType Int) |> toType ], []
+
+        "(Int -> (Int -> Int))",
+        toTupleType [ Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType ],
+        []
+
+        "((Int -> Int) -> Int)",
+        toTupleType [ Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType ],
+        []
+
+        "Int -> Int", Function(toType Int, toType Int) |> toType, []
+        "Int -> Int -> Int", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+
+        "Int -> (Int -> Int)",
+        Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType,
+        []
+
+        "(Int -> Int) -> Int",
+        Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType,
+        []
+
+        "Unit -> 'a", Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "'a -> Unit", Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
+        "'a -> 'a", Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+
+        "(Int -> Int, Int)",
+        toTupleType [ Function(toType Int, toType Int) |> toType
+                      toType Int ],
+        []
+
+        "(Int, Int -> Int)",
+        toTupleType [ toType Int
+                      Function(toType Int, toType Int) |> toType ],
+        []
+
+        "('T => Unit)[] -> Unit",
+        Function
+            (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
+             |> toType,
+             unitType)
+        |> toType,
+        []
+
+        "('T => Unit is Adj)[] -> Unit",
+        Function
+            (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType adjSet ])
+             |> toType,
+             unitType)
+        |> toType,
+        []
+
+        "(('T => Unit)[] -> Unit)",
+        toTupleType [ Function
+                          (ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
+                           |> toType,
+                           unitType)
+                      |> toType ],
+        []
+    ]
+    |> List.iter testType
+
+    [
+        "new (Int -> Int)[0]",
+        true,
+        toNewArray (toTupleType [ Function(toType Int, toType Int) |> toType ]) (toInt 0),
+        []
+
+        "new Int -> Int[0]",
+        true,
+        toNewArray (Function(toType Int, toType Int) |> toType) (toInt 0),
+        [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+    ]
+    |> List.iter testExpr
 
 
 [<Fact>]
 let ``Operation type tests`` () =
     [
-        ("new (Qubit => Unit is Adj)[0]", true, toNewArray (toOpType qubitType unitType adjSet) (toInt 0), [])
-        ("new Qubit => Unit is Adj[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ])
-        ("new (Qubit => Unit) is Adj[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ])
+        "(Qubit => Unit)", toTupleType [ toOpType qubitType unitType emptySet ], []
 
-        ("new (Qubit => Unit : Adjoint)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristics ])
-        ("new Qubit => Unit : Adjoint[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) : Adjoint[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "(Qubit => (Qubit => Unit))",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) emptySet ],
+        []
 
-        ("new (Qubit => Unit : Adj)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristicsIntro ])
-        ("new Qubit => Unit : Adj[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristicsIntro
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) : Adj[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristicsIntro
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "((Qubit => Unit) => Unit)",
+        toTupleType [ toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType emptySet ],
+        []
 
-        ("new (Qubit => Unit is Adj + Ctl)[0]", true, toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0), [])
-        ("new Qubit => Unit is Adj + Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ])
-        ("new (Qubit => Unit) is Adj + Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ])
+        "Qubit => Unit", toOpType qubitType unitType emptySet, []
+        "Qubit => Qubit => Unit", toOpType qubitType (toOpType qubitType unitType emptySet) emptySet, []
 
-        ("new (Qubit => Unit : Adjoint, Controlled)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristics ])
-        ("new Qubit => Unit : Adjoint, Controlled[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) : Adjoint, Controlled[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "Qubit => (Qubit => Unit)",
+        toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) emptySet,
+        []
 
-        ("new (Qubit => Unit : Adj + Ctl)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristicsIntro ])
-        ("new Qubit => Unit : Adj + Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristicsIntro
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) : Adj + Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristicsIntro
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "(Qubit => Unit) => Unit", toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType emptySet, []
+        "(Qubit => Unit is Adj)", toTupleType [ toOpType qubitType unitType adjSet ], []
+        "(Qubit => Unit) is Adj", toTupleType [ toOpType qubitType unitType emptySet ], []
 
-        ("new (Qubit => Unit : Adj, Ctl)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristics ])
-        ("new Qubit => Unit : Adj, Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) : Adj, Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "((Qubit => Unit) is Adj)",
+        toTupleType [ toTupleType [ toOpType qubitType unitType emptySet ] ],
+        [ Error ErrorCode.ExcessContinuation ]
 
-        ("new (Qubit => Unit is Adj, Ctl)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Warning WarningCode.DeprecatedOpCharacteristics ])
-        ("new Qubit => Unit is Adj, Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
-        ("new (Qubit => Unit) is Adj, Ctl[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [
-             Warning WarningCode.DeprecatedOpCharacteristics
-             Error ErrorCode.MissingLTupleBracket
-             Error ErrorCode.MissingRTupleBracket
-         ])
+        "(Qubit => (Qubit => Unit is Adj))",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType adjSet ]) emptySet ],
+        []
 
-        ("new (Qubit => Unit is (Adj + Ctl))[0]", true, toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0), [])
-        ("new (Qubit => Unit is ((Adj) + (Ctl)))[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [])
-        ("new (Qubit => Unit is (Adj + Ctl _))[0]",
-         true,
-         toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
-         [ Error ErrorCode.ExcessContinuation ])
-        ("new (Qubit => Unit is ())[0]",
-         true,
-         toNewArray (toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr)) (toInt 0),
-         [ Error ErrorCode.MissingOperationCharacteristics ])
-        ("new (Qubit => Unit is (Adj + (Ctl + )))[0]",
-         true,
-         toNewArray (toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr)) (toInt 0),
-         [ Error ErrorCode.InvalidOperationCharacteristics ])
+        "(Qubit => (Qubit => Unit) is Adj)",
+        toTupleType [ toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) adjSet ],
+        []
 
-        ("new (Qubit => Unit is MySet)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr)) (toInt 0),
-         [ Error ErrorCode.UnknownSetName ])
-        ("new (Qubit => Unit is Adj + MySet)[0]",
-         true,
-         toNewArray (toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr)) (toInt 0),
-         [ Error ErrorCode.UnknownSetName ])
-        ("new (Qubit => Unit is (Adj + MySet))[0]",
-         true,
-         toNewArray (toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr)) (toInt 0),
-         [ Error ErrorCode.UnknownSetName ])
+        "((Qubit => Unit) => Unit is Adj)",
+        toTupleType [ toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType adjSet ],
+        []
+
+        "Qubit => Unit is Adj", toOpType qubitType unitType adjSet, []
+        "Qubit => Qubit => Unit is Adj", toOpType qubitType (toOpType qubitType unitType adjSet) emptySet, []
+
+        "Qubit => (Qubit => Unit) is Adj",
+        toOpType qubitType (toTupleType [ toOpType qubitType unitType emptySet ]) adjSet,
+        []
+
+        "(Qubit => Unit) => Unit is Adj",
+        toOpType (toTupleType [ toOpType qubitType unitType emptySet ]) unitType adjSet,
+        []
+
+        "Unit => 'a", toOpType unitType (TypeParameter(toSymbol "a") |> toType) emptySet, []
+        "'a => Unit", toOpType (TypeParameter(toSymbol "a") |> toType) unitType emptySet, []
+
+        "'a => 'a",
+        toOpType (TypeParameter(toSymbol "a") |> toType) (TypeParameter(toSymbol "a") |> toType) emptySet,
+        []
+
+        "(Int => Int, Int)",
+        toTupleType [ toOpType (toType Int) (toType Int) emptySet
+                      toType Int ],
+        []
+
+        "(Int, Int => Int)",
+        toTupleType [ toType Int
+                      toOpType (toType Int) (toType Int) emptySet ],
+        []
+
+        "(Qubit => Unit is Adj)[]", ArrayType(toTupleType [ toOpType qubitType unitType adjSet ]) |> toType, []
+
+        "Qubit => Unit is Adj[]",
+        ArrayType(toOpType qubitType unitType adjSet) |> toType,
+        [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+
+        "(Qubit => Unit : Adjoint, Controlled)",
+        toTupleType [ toOpType qubitType unitType emptySet
+                      toType InvalidType ],
+        [ Error ErrorCode.ExcessContinuation; Error ErrorCode.InvalidType ]
+
+        "Qubit => Unit : Adjoint, Controlled", toOpType qubitType unitType emptySet, []
+    ]
+    |> List.iter testType
+
+    [
+        "new (Qubit => Unit is Adj)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType adjSet ]) (toInt 0),
+        []
+
+        "new Qubit => Unit is Adj[0]",
+        true,
+        toNewArray (toOpType qubitType unitType adjSet) (toInt 0),
+        [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+
+        "new (Qubit => Unit) is Adj[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit : Adjoint)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType emptySet ]) (toInt 0),
+        [ Error ErrorCode.ExcessContinuation ]
+
+        "new Qubit => Unit : Adjoint[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+        "new (Qubit => Unit) : Adjoint[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit : Adj)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType emptySet ]) (toInt 0),
+        [ Error ErrorCode.ExcessContinuation ]
+
+        "new Qubit => Unit : Adj[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+        "new (Qubit => Unit) : Adj[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit is Adj + Ctl)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType adjCtlSet ]) (toInt 0),
+        []
+
+        "new Qubit => Unit is Adj + Ctl[0]",
+        true,
+        toNewArray (toOpType qubitType unitType adjCtlSet) (toInt 0),
+        [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+
+        "new (Qubit => Unit) is Adj + Ctl[0]",
+        true,
+        toExpr InvalidExpr,
+        [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit : Adjoint, Controlled)[0]",
+        true,
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType emptySet
+                           toType InvalidType ])
+            (toInt 0),
+        [ Error ErrorCode.ExcessContinuation; Error ErrorCode.InvalidType ]
+
+        "new Qubit => Unit : Adjoint, Controlled[0]",
+        true,
+        toExpr InvalidExpr,
+        [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit) : Adjoint, Controlled[0]",
+        true,
+        toExpr InvalidExpr,
+        [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit : Adj + Ctl)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType emptySet ]) (toInt 0),
+        [ Error ErrorCode.ExcessContinuation ]
+
+        "new Qubit => Unit : Adj + Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+        "new (Qubit => Unit) : Adj + Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit : Adj, Ctl)[0]",
+        true,
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType emptySet
+                           toType InvalidType ])
+            (toInt 0),
+        [ Error ErrorCode.ExcessContinuation; Error ErrorCode.InvalidType ]
+
+        "new Qubit => Unit : Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+        "new (Qubit => Unit) : Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit is Adj, Ctl)[0]",
+        true,
+        toNewArray
+            (toTupleType [ toOpType qubitType unitType adjSet
+                           toType InvalidType ])
+            (toInt 0),
+        [ Error ErrorCode.InvalidType ]
+
+        "new Qubit => Unit is Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+        "new (Qubit => Unit) is Adj, Ctl[0]", true, toExpr InvalidExpr, [ Error ErrorCode.InvalidConstructorExpression ]
+
+        "new (Qubit => Unit is (Adj + Ctl))[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType adjCtlSet ]) (toInt 0),
+        []
+
+        "new (Qubit => Unit is ((Adj) + (Ctl)))[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType adjCtlSet ]) (toInt 0),
+        []
+
+        "new (Qubit => Unit is (Adj + Ctl _))[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType adjCtlSet ]) (toInt 0),
+        [ Error ErrorCode.ExcessContinuation ]
+
+        "new (Qubit => Unit is ())[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr) ]) (toInt 0),
+        [ Error ErrorCode.MissingOperationCharacteristics ]
+
+        "new (Qubit => Unit is (Adj + (Ctl + )))[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr) ]) (toInt 0),
+        [ Error ErrorCode.InvalidOperationCharacteristics ]
+
+        "new (Qubit => Unit is MySet)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr) ]) (toInt 0),
+        [ Error ErrorCode.UnknownSetName ]
+
+        "new (Qubit => Unit is Adj + MySet)[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr) ]) (toInt 0),
+        [ Error ErrorCode.UnknownSetName ]
+
+        "new (Qubit => Unit is (Adj + MySet))[0]",
+        true,
+        toNewArray (toTupleType [ toOpType qubitType unitType (toCharacteristicsExpr InvalidSetExpr) ]) (toInt 0),
+        [ Error ErrorCode.UnknownSetName ]
     ]
     |> List.iter testExpr
 
