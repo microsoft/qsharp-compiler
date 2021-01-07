@@ -95,10 +95,14 @@ let unitType = UnitType |> toType
 
 let qubitType = Qubit |> toType
 
+let internal toTupleType items =
+    ImmutableArray.CreateRange items |> TupleType |> toType
+
 let toOpType it ot s = Operation((it, ot), s) |> toType
 
 let toCharacteristicsExpr k = { Characteristics = k; Range = Null }
 
+let internal emptySet = toCharacteristicsExpr EmptySet
 let adjSet = SimpleSet Adjointable |> toCharacteristicsExpr
 let ctlSet = SimpleSet Controllable |> toCharacteristicsExpr
 let adjCtlSet = Union(adjSet, ctlSet) |> toCharacteristicsExpr
@@ -355,6 +359,18 @@ let testOne parser (str, succExp, resExp, diagsExp) =
               elif not resOk
               then sprintf "expected result %A but received %A" resExp res.Value
               else sprintf "expected errors %A but received %A" diagsExp diags))
+
+let internal testType (str, result, diagnostics) =
+    let success, diagnostics', result' = parse_string_diags_res TypeParsing.qsType str
+    Assert.True(success, sprintf "Failed to parse: %s" str)
+
+    Assert.True
+        (result' |> Option.exists (matchType result),
+         sprintf "Type: %s\n\nExpected result:\n%A\n\nActual result:\n%A" str result result')
+
+    Assert.True
+        (matchDiagnostics diagnostics diagnostics',
+         sprintf "Type: %s\n\nExpected diagnostics:\n%A\n\nActual diagnostics:\n%A" str diagnostics diagnostics')
 
 let testExpr (str, succExp, resExp, diagsExp) =
     let succ, diags, res = parse_string_diags_res ExpressionParsing.expr str
