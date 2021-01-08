@@ -147,7 +147,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation)));
+            //return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation));
+            return Task.Run(() => new SimpleBinaryDeserializer(type: typeof(QsCompilation), factory: (Factory?)null, inlineNested: false));
         }
 
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()
