@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QIR
         /// String and big integers for example are instantiated with a data array.
         /// </summary>
         internal IPointerType DataArrayPointer =>
-            this.context.Int8Type.CreateArrayType(0).CreatePointerType();
+            this.context.Int8Type.CreatePointerType();
 
         /// <summary>
         /// Given the type of a pointer to a struct, returns the type of the struct.

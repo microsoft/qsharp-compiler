@@ -575,8 +575,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var byteArray = ConstantArray.From(
                     this.SharedState.Context.Int8Type,
                     bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
-                var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
+                var byteArrayPointer = this.SharedState.CurrentBuilder.GetElementPtr(
+                    this.SharedState.Context.Int8Type.CreateArrayType((uint)bytes.Length),
                     byteArray,
+                    new[] { this.SharedState.Context.CreateConstant(0) });
+                var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
+                    byteArrayPointer,
                     this.SharedState.Types.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
@@ -1877,18 +1881,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
 
-                Value? globalConstant = null;
+                Value? constantArray = null;
                 if (cleanStr.Length > 0)
                 {
                     var constantString = this.SharedState.Context.CreateConstantString(cleanStr, true);
-                    globalConstant = this.SharedState.Module.AddGlobal(
+                    var globalConstant = this.SharedState.Module.AddGlobal(
                         constantString.NativeType, true, Linkage.Internal, constantString);
+                    constantArray = this.SharedState.CurrentBuilder.GetElementPtr(
+                        this.SharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
+                        globalConstant,
+                        new[] { this.SharedState.Context.CreateConstant(0) });
                 }
 
-                var zeroLengthString = globalConstant == null
+                var zeroLengthString = constantArray == null
                     ? this.SharedState.Types.DataArrayPointer.GetNullValue()
                     : this.SharedState.CurrentBuilder.BitCast(
-                        globalConstant,
+                        constantArray,
                         this.SharedState.Types.DataArrayPointer);
 
                 var n = this.SharedState.Context.CreateConstant(cleanStr.Length);
