@@ -45,20 +45,20 @@ namespace Microsoft.Quantum.QIR
         public const string BigIntDivide = "bigint_divide";
         public const string BigIntModulus = "bigint_modulus";
         public const string BigIntPower = "bigint_power";
-        public const string BigIntBitand = "bigint_bitand";
-        public const string BigIntBitor = "bigint_bitor";
-        public const string BigIntBitxor = "bigint_bitxor";
-        public const string BigIntBitnot = "bigint_bitnot";
-        public const string BigIntShiftleft = "bigint_shiftleft";
-        public const string BigIntShiftright = "bigint_shiftright";
+        public const string BigIntBitwiseAnd = "bigint_bitand";
+        public const string BigIntBitwiseOr = "bigint_bitor";
+        public const string BigIntBitwiseXor = "bigint_bitxor";
+        public const string BigIntBitwiseNot = "bigint_bitnot";
+        public const string BigIntShiftLeft = "bigint_shiftleft";
+        public const string BigIntShiftRight = "bigint_shiftright";
         public const string BigIntEqual = "bigint_equal";
         public const string BigIntGreater = "bigint_greater";
         public const string BigIntGreaterEq = "bigint_greater_eq";
 
         // tuple functions
         public const string TupleCreate = "tuple_create";
-        public const string TupleAddUser = "tuple_add_user";
-        public const string TupleRemoveUser = "tuple_remove_user";
+        public const string TupleAddAccess = "tuple_add_access";
+        public const string TupleRemoveAccess = "tuple_remove_access";
         public const string TupleReference = "tuple_reference";
         public const string TupleUnreference = "tuple_unreference";
         public const string TupleCopy = "tuple_copy";
@@ -69,8 +69,8 @@ namespace Microsoft.Quantum.QIR
         // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
-        public const string ArrayAddUser = "array_add_user";
-        public const string ArrayRemoveUser = "array_remove_user";
+        public const string ArrayAddAccess = "array_add_access";
+        public const string ArrayRemoveAccess = "array_remove_access";
         public const string ArrayReference = "array_reference";
         public const string ArrayUnreference = "array_unreference";
         public const string ArrayCopy = "array_copy";

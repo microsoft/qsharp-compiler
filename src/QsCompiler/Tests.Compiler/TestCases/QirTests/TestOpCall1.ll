@@ -33,13 +33,12 @@ entry:
   %15 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
   %16 = load %Array*, %Array** %15
   call void @__quantum__rt__array_unreference(%Array* %16)
-  %17 = bitcast { %Array* }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %17)
+  call void @__quantum__rt__tuple_unreference(%Tuple* %6)
   call void @__quantum__rt__array_unreference(%Array* %9)
   call void @__quantum__rt__array_unreference(%Array* %12)
-  %18 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
-  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %18)
+  %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
+  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %17)
   call void @__quantum__rt__callable_unreference(%Callable* %doNothing)
-  call void @__quantum__rt__callable_unreference(%Callable* %18)
+  call void @__quantum__rt__callable_unreference(%Callable* %17)
   ret void
 }

@@ -269,7 +269,7 @@ module SyntaxGenerator =
 
     // utils related to building and generating functor specializations
 
-    let private QubitArray = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
+    let QubitArrayType = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
     /// Given a QsTuple, recursively extracts and returns all of its items.
     let ExtractItems (this : QsTuple<_>) =
@@ -293,7 +293,7 @@ module SyntaxGenerator =
 
     /// Given the resolved argument type of an operation, returns the argument type of its controlled version.
     let AddControlQubits (argT : ResolvedType) =
-        [QubitArray; argT].ToImmutableArray() |> TupleType |> ResolvedType.New
+        [QubitArrayType; argT].ToImmutableArray() |> TupleType |> ResolvedType.New
 
     /// Given a resolved signature, returns the corresponding signature for the controlled version.
     let BuildControlled (this : ResolvedSignature) =
@@ -304,7 +304,7 @@ module SyntaxGenerator =
     /// Throws an ArgumentException if the given argument tuple is not a QsTuple.
     let WithControlQubits arg offset (name, symRange : QsNullable<_>) =
         let range = symRange.ValueOr Range.Zero
-        let ctlQs = LocalVariableDeclaration.New false ((offset, range), name, QubitArray, false)
+        let ctlQs = LocalVariableDeclaration.New false ((offset, range), name, QubitArrayType, false)
         let unitArg =
             let argName = ValidName InternalUse.UnitArgument
             let unitT = UnitType |> ResolvedType.New
@@ -324,7 +324,7 @@ module SyntaxGenerator =
         let isInvalid = function
             | Tuple _ | Item _ | Missing -> false
             | _ -> true
-        if ctlQs.ResolvedType.Resolution <> QubitArray.Resolution && not (ctlQs.ResolvedType |> isInvalid) then
+        if ctlQs.ResolvedType.Resolution <> QubitArrayType.Resolution && not (ctlQs.ResolvedType |> isInvalid) then
             new ArgumentException "expression for the control qubits is valid but not of type Qubit[]" |> raise
         TupleLiteral [ctlQs; arg]
 
