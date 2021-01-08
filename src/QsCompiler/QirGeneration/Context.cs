@@ -948,21 +948,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argTuple">The specialization's argument tuple.</param>
         internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple, bool deconstuctArgument = true)
         {
-            IEnumerable<(string, ResolvedType)> ArgTupleToArgItems(QsArgumentTuple arg, Queue<(string, QsArgumentTuple)> tupleQueue)
+            (string?, ResolvedType)[] ArgTupleToArgItems(QsArgumentTuple arg, Queue<(string?, QsArgumentTuple)> tupleQueue)
             {
-                (string, ResolvedType) LocalVarName(QsArgumentTuple v)
+                (string?, ResolvedType) LocalVarName(QsArgumentTuple v)
                 {
                     if (v is QsArgumentTuple.QsTuple)
                     {
-                        var name = this.GenerateUniqueName("arg");
-                        tupleQueue.Enqueue((name, v));
-                        return (name, v.GetResolvedType());
+                        tupleQueue.Enqueue((null, v));
+                        return (null, v.GetResolvedType());
                     }
                     else if (v is QsArgumentTuple.QsTupleItem item)
                     {
                         return item.Item.VariableName is QsLocalSymbol.ValidName varName
                             ? (varName.Item, item.Item.Type)
-                            : (this.GenerateUniqueName("arg"), item.Item.Type);
+                            : (null, item.Item.Type);
                     }
                     else
                     {
@@ -971,7 +970,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 return arg is QsArgumentTuple.QsTuple tuple
-                    ? tuple.Item.Select(item => LocalVarName(item))
+                    ? tuple.Item.Select(item => LocalVarName(item)).ToArray()
                     : new[] { LocalVarName(arg) };
             }
 
@@ -983,8 +982,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
 
-            var innerTuples = new Queue<(string, QsArgumentTuple)>();
-            var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples).ToArray();
+            var innerTuples = new Queue<(string?, QsArgumentTuple)>();
+            var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
+            var innerTupleValues = new Queue<TupleValue>();
 
             // If we have a single named tuple-valued argument, then the items of the tuple
             // are the arguments to the function and we need to reconstruct the tuple.
@@ -999,32 +999,55 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
                 var innerTuple = this.Values.CreateTuple(tupleItems);
-                this.ScopeMgr.RegisterVariable(outerArgItems[0].Item1, innerTuple);
+                var name = outerArgItems[0].Item1;
+                if (name != null)
+                {
+                    this.ScopeMgr.RegisterVariable(name, innerTuple);
+                }
+                else
+                {
+                    innerTupleValues.Enqueue(innerTuple);
+                }
             }
             else
             {
-                var i = 0;
-                foreach (var arg in outerArgItems)
+                for (var i = 0; i < outerArgItems.Length; ++i)
                 {
-                    this.CurrentFunction.Parameters[i].Name = arg.Item1;
-                    var argValue = this.Values.From(this.CurrentFunction.Parameters[i], arg.Item2);
-                    this.ScopeMgr.RegisterVariable(arg.Item1, argValue);
-                    i++;
+                    var (argName, argType) = outerArgItems[i];
+                    var argValue = this.Values.From(this.CurrentFunction.Parameters[i], argType);
+                    if (argName != null)
+                    {
+                        this.CurrentFunction.Parameters[i].Name = argName;
+                        this.ScopeMgr.RegisterVariable(argName, argValue);
+                    }
+                    else
+                    {
+                        innerTupleValues.Enqueue((TupleValue)argValue);
+                    }
                 }
             }
 
             // Now break up inner argument tuples
-            while (deconstuctArgument && innerTuples.TryDequeue(out (string, QsArgumentTuple) tuple))
+            while (deconstuctArgument && innerTuples.TryDequeue(out (string?, QsArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
-                var tupleValue = (TupleValue)this.ScopeMgr.GetVariable(tupleArgName);
+                var tupleValue = tupleArgName == null
+                    ? innerTupleValues.Dequeue()
+                    : (TupleValue)this.ScopeMgr.GetVariable(tupleArgName);
 
-                int idx = 0;
-                foreach (var arg in ArgTupleToArgItems(tupleArg, innerTuples))
+                var argTupleItems = ArgTupleToArgItems(tupleArg, innerTuples);
+                for (var i = 0; i < argTupleItems.Length; ++i)
                 {
-                    var element = tupleValue.GetTupleElement(idx);
-                    this.ScopeMgr.RegisterVariable(arg.Item1, element);
-                    idx++;
+                    var (argName, _) = argTupleItems[i];
+                    var element = tupleValue.GetTupleElement(i);
+                    if (argName != null)
+                    {
+                        this.ScopeMgr.RegisterVariable(argName, element);
+                    }
+                    else
+                    {
+                        innerTupleValues.Enqueue((TupleValue)element);
+                    }
                 }
             }
         }
