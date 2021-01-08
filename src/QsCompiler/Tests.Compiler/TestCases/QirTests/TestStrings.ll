@@ -76,7 +76,6 @@ entry:
   call void @__quantum__rt__string_unreference(%String* %x)
   call void @__quantum__rt__string_unreference(%String* %y)
   call void @__quantum__rt__string_unreference(%String* %y)
-  call void @__quantum__rt__result_unreference(%Result* %21)
   call void @__quantum__rt__bigint_unreference(%BigInt* %26)
   call void @__quantum__rt__string_unreference(%String* %i)
   ret %String* %37

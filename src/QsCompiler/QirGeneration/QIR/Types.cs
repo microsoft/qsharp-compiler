@@ -173,11 +173,67 @@ namespace Microsoft.Quantum.QIR
         /// <summary>
         /// Determines whether an LLVM type is a pointer to a typed tuple.
         /// </summary>
-        public bool IsTypedTuple(ITypeRef t) =>
+        public static bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
             && st.Name == null
             && st.Members.Count > 0;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque tuple.
+        /// </summary>
+        public static bool IsTuple(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Tuple;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque array.
+        /// </summary>
+        public static bool IsArray(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Array;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque callable.
+        /// </summary>
+        public static bool IsCallable(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Callable;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a qubit pointer.
+        /// </summary>
+        public static bool IsQubit(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Qubit;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a measurement result pointer.
+        /// </summary>
+        public static bool IsResult(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Result;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a big int pointer.
+        /// </summary>
+        public static bool IsBigInt(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.BigInt;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a string pointer.
+        /// </summary>
+        public static bool IsString(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.String;
     }
 
     /// <summary>

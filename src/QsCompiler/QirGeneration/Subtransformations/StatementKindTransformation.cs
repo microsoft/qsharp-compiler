@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -45,19 +46,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="symbolValue">The Value to bind to</param>
         /// <param name="symbolType">The Q# type of the SymbolTuple</param>
         /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbols, Value value, ResolvedType type, bool mutable = false)
+        private void BindSymbolTuple(SymbolTuple symbols, IValue ex, ResolvedType type, bool mutable = false)
         {
             if (symbols is SymbolTuple.VariableName varName)
             {
                 if (mutable)
                 {
-                    var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr, true);
-                    this.SharedState.CurrentBuilder.Store(value, ptr);
+                    var ptr = this.SharedState.Values.CreatePointer(type);
+                    this.SharedState.CurrentBuilder.Store(ex.Value, ptr.Pointer);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
                 }
                 else
                 {
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, value, false);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ex);
                 }
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
@@ -67,20 +68,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
 
-                var itemTypes = types.Item.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.Types.TypedTuple(itemTypes);
-                var itemPointers = this.SharedState.GetTupleElementPointers(tupleType, value);
-
+                var tuple = (TupleValue)ex;
                 for (int i = 0; i < syms.Item.Length; i++)
                 {
                     if (!syms.Item[i].IsDiscardedItem && !syms.Item[i].IsInvalidItem)
                     {
-                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemPointers[i]);
+                        var itemValue = tuple.GetTupleElement(i);
                         this.BindSymbolTuple(syms.Item[i], itemValue, types.Item[i], mutable);
                     }
                 }
             }
-            else
+            else if (!symbols.IsDiscardedItem)
             {
                 throw new NotImplementedException("unknown item in symbol tuple");
             }
@@ -120,25 +118,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
                 IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
 
-                Value Allocate(ResolvedInitializer init)
+                IValue Allocate(ResolvedInitializer init)
                 {
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
-                        return allocation;
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
-                        Value countValue = this.SharedState.EvaluateSubexpression(reg.Item);
+                        Value countValue = this.SharedState.EvaluateSubexpression(reg.Item).Value;
                         Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(allocation);
-                        return allocation;
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {
                         var items = inits.Item.Select(Allocate).ToArray();
-                        return this.SharedState.CreateTuple(this.SharedState.CurrentBuilder, items).TypedPointer;
+                        return this.SharedState.Values.CreateTuple(items);
                     }
                     else
                     {
@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Evaluate the test, which should be a Boolean at this point
                 var test = clauses[n].Item1;
-                var testValue = this.SharedState.EvaluateSubexpression(test);
+                var testValue = this.SharedState.EvaluateSubexpression(test).Value;
                 var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
                             this.SharedState.GenerateUniqueName($"then{n}"), contBlock);
 
@@ -251,7 +251,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Release any resources (qubits or memory) before we fail.
             this.SharedState.ScopeMgr.ExitFunction(message);
-            this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
+            var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
+            this.SharedState.CurrentBuilder.Call(fail, message.Value);
             this.SharedState.CurrentBuilder.Unreachable();
 
             return QsStatementKind.EmptyStatement;
@@ -276,7 +277,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    this.SharedState.ScopeMgr.RegisterVariable(loopVarName, loopVariable);
+                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(QsResolvedTypeKind.Int));
+                    this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -285,16 +287,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {
-                void ExecuteBody(Value arrayItem)
+                void ExecuteBody(IValue arrayItem)
                 {
                     // If we iterate through an array, we inject a binding at the beginning of the body.
                     this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, stm.LoopItem.Item2);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
-                var itemType = this.SharedState.LlvmTypeFromQsharpType(stm.LoopItem.Item2);
-                var array = this.SharedState.EvaluateSubexpression(stm.IterationValues);
-                this.SharedState.IterateThroughArray(itemType, array, ExecuteBody);
+                var array = (ArrayValue)this.SharedState.EvaluateSubexpression(stm.IterationValues);
+                this.SharedState.IterateThroughArray(array, ExecuteBody);
             }
             else
             {
@@ -341,7 +342,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.SetCurrentBlock(testBlock);
-            var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition);
+            var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
             this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
             this.SharedState.SetCurrentBlock(fixupBlock);
@@ -360,7 +361,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
-            Value result = this.SharedState.EvaluateSubexpression(ex);
+            var result = this.SharedState.EvaluateSubexpression(ex);
             this.SharedState.AddReturn(result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;
         }
@@ -368,23 +369,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
             // Update an item, which might be a single symbol or a tuple, to a new Value
-            void UpdateItem(TypedExpression symbols, Value value)
+            void UpdateItem(TypedExpression symbols, IValue rhs)
             {
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    Value ptr = this.SharedState.ScopeMgr.GetNamedPointer(varName.Item);
-                    this.SharedState.ScopeMgr.DecreaseAccessCount(ptr);
-                    this.SharedState.CurrentBuilder.Store(value, ptr);
-                    this.SharedState.ScopeMgr.IncreaseAccessCount(value);
+                    var originalValue = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
+                    this.SharedState.ScopeMgr.DecreaseAccessCount(originalValue);
+                    this.SharedState.CurrentBuilder.Store(rhs.Value, originalValue.Pointer);
+                    this.SharedState.ScopeMgr.IncreaseAccessCount(rhs);
                 }
-                else if (symbols.Expression is ResolvedExpression.ValueTuple tuple)
+                else if (symbols.Expression is ResolvedExpression.ValueTuple ids)
                 {
-                    var itemTypes = tuple.Item.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                    var tupleType = this.SharedState.Types.TypedTuple(itemTypes);
-                    var tupleItems = this.SharedState.GetTupleElements(tupleType, value);
+                    var tuple = (TupleValue)rhs;
+                    var tupleItems = tuple.GetTupleElements();
+                    if (tupleItems.Length != ids.Item.Length)
+                    {
+                        throw new InvalidOperationException("shape mismatch in value update");
+                    }
+
                     for (int i = 0; i < tupleItems.Length; i++)
                     {
-                        UpdateItem(tuple.Item[i], tupleItems[i]);
+                        UpdateItem(ids.Item[i], tupleItems[i]);
                     }
                 }
                 else
@@ -425,7 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
             // expression to perform an allocation that needs to get cleaned up, so...
             this.SharedState.ScopeMgr.OpenScope();
-            var test = this.SharedState.EvaluateSubexpression(stm.Condition);
+            var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
 

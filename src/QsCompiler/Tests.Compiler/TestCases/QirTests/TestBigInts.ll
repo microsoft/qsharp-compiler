@@ -17,6 +17,7 @@ entry:
   call void @__quantum__rt__bigint_unreference(%BigInt* %3)
   call void @__quantum__rt__bigint_unreference(%BigInt* %d)
   call void @__quantum__rt__bigint_unreference(%BigInt* %e)
+  call void @__quantum__rt__bigint_unreference(%BigInt* %f)
   call void @__quantum__rt__bigint_unreference(%BigInt* %4)
   call void @__quantum__rt__bigint_unreference(%BigInt* %5)
   call void @__quantum__rt__bigint_unreference(%BigInt* %g)
