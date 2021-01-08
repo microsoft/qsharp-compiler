@@ -46,14 +46,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="symbolValue">The Value to bind to</param>
         /// <param name="symbolType">The Q# type of the SymbolTuple</param>
         /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbols, IValue ex, ResolvedType type, bool mutable = false)
+        private void BindSymbolTuple(SymbolTuple symbols, IValue ex, bool mutable = false)
         {
             if (symbols is SymbolTuple.VariableName varName)
             {
                 if (mutable)
                 {
-                    var ptr = this.SharedState.Values.CreatePointer(type);
-                    this.SharedState.CurrentBuilder.Store(ex.Value, ptr.Pointer);
+                    var ptr = this.SharedState.Values.CreatePointer(ex);
                     this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
                 }
                 else
@@ -63,18 +62,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
             {
-                if (!(type.Resolution is QsResolvedTypeKind.TupleType types) || syms.Item.Length != types.Item.Length)
+                if (!(ex is TupleValue tuple) || syms.Item.Length != tuple.ElementTypes.Length)
                 {
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
 
-                var tuple = (TupleValue)ex;
                 for (int i = 0; i < syms.Item.Length; i++)
                 {
                     if (!syms.Item[i].IsDiscardedItem && !syms.Item[i].IsInvalidItem)
                     {
                         var itemValue = tuple.GetTupleElement(i);
-                        this.BindSymbolTuple(syms.Item[i], itemValue, types.Item[i], mutable);
+                        this.BindSymbolTuple(syms.Item[i], itemValue, mutable);
                     }
                 }
             }
@@ -290,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void ExecuteBody(IValue arrayItem)
                 {
                     // If we iterate through an array, we inject a binding at the beginning of the body.
-                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, stm.LoopItem.Item2);
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -406,7 +404,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
             var val = this.SharedState.EvaluateSubexpression(stm.Rhs);
-            this.BindSymbolTuple(stm.Lhs, val, stm.Rhs.ResolvedType, stm.Kind.IsMutableBinding);
+            this.BindSymbolTuple(stm.Lhs, val, stm.Kind.IsMutableBinding);
             return QsStatementKind.EmptyStatement;
         }
 

@@ -36,6 +36,5 @@ continue__1:                                      ; preds = %fixup__1
   br label %repeat__1
 
 rend__1:                                          ; preds = %until__1
-  %8 = load i64, i64* %n
-  ret i64 %8
+  ret i64 %5
 }

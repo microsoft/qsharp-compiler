@@ -62,7 +62,17 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
-        public readonly Value Pointer;
+        private Value pointer;
+        private IValue? cachedValue;
+
+        public Value Pointer
+        {
+            get
+            {
+                this.cachedValue = null;
+                return this.pointer;
+            }
+        }
 
         public Value Value => this.Pointer;
 
@@ -75,12 +85,14 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="type">The Q# type of the variable that the pointer represents</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal PointerValue(ResolvedType type, GenerationContext context)
+        internal PointerValue(IValue value, GenerationContext context)
         {
             this.sharedState = context;
-            this.QSharpType = type;
-            this.LlvmType = context.LlvmTypeFromQsharpType(type);
-            this.Pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
+            this.QSharpType = value.QSharpType;
+            this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
+            this.pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
+            this.cachedValue = value;
+            context.CurrentBuilder.Store(value.Value, this.Pointer);
         }
 
         /// <summary>
@@ -88,8 +100,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         public IValue LoadValue()
         {
-            var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.Pointer);
-            return this.sharedState.Values.From(loaded, this.QSharpType);
+            if (this.cachedValue == null)
+            {
+                var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.Pointer);
+                this.cachedValue = this.sharedState.Values.From(loaded, this.QSharpType);
+            }
+            return this.cachedValue;
         }
     }
 
@@ -219,8 +235,11 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns a pointer to the tuple element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        internal Value GetTupleElementPointer(int index) =>
-            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        internal Value GetTupleElementPointer(int index)
+        {
+            //new PointerValue(this.ElementTypes[index], this.sharedState)
+            return this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        }
 
         /// <summary>
         /// Returns the tuple element with the given index.
@@ -236,10 +255,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Returns an array with all pointers to the tuple elements.
         /// </summary>
-        internal Value[] GetTupleElementPointers() =>
-            this.StructType.Members
+        internal Value[] GetTupleElementPointers()
+        {
+            return this.StructType.Members
                 .Select((_, i) => this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
                 .ToArray();
+        }
 
         /// <summary>
         /// Returns an array with all tuple elements.

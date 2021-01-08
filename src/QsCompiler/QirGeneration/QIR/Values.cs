@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
-        /// respectively are executed lazily. When needed, the instructions are emitted using the current builder.
+        /// respectively are executed lazily. When needed, instructions are emitted using the current builder.
         /// </summary>
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type. When needed,
-        /// the instructions to compute the length of the array are emitted using the current builder.
+        /// instructions to compute the length of the array are emitted using the current builder.
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         internal ArrayValue FromArray(Value value, ResolvedType elementType) =>
@@ -91,16 +91,16 @@ namespace Microsoft.Quantum.QIR.Emission
             (IValue)new SimpleValue(value, type);
 
         /// <summary>
-        /// Creates a pointer to a value of arbitrary type.
-        /// When needed, the instructions are emitted using the current builder.
+        /// Creates a pointer to the given value.
+        /// When needed, instructions are emitted using the current builder.
         /// </summary>
         /// <param name="type">The Q# type of the value that the pointer points to</param>
-        internal PointerValue CreatePointer(ResolvedType type) =>
-            new PointerValue(type, this.sharedState);
+        internal PointerValue CreatePointer(IValue value) =>
+            new PointerValue(value, this.sharedState);
 
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
+        /// is lazy, and so are the necessary casts. When needed, instructions are emitted using the current builder.
         /// Registers the value with the scope manager once it is allocated.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
         /// The allocation of the value via invokation of the corresponding runtime function is lazy, and so are
-        /// other necessary computations. When needed, the instructions are emitted using the current builder.
+        /// other necessary computations. When needed, instructions are emitted using the current builder.
         /// Registers the value with the scope manager once it is allocated.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
