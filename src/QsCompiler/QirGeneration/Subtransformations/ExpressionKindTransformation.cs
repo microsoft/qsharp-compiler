@@ -496,12 +496,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
-            else if (exType.Resolution.IsArrayType)
+            else if (exType.Resolution is QsResolvedTypeKind.ArrayType elementType)
             {
                 // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                value = this.SharedState.Values.FromArray(res, exType);
+                value = this.SharedState.Values.FromArray(res, elementType.Item);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
@@ -521,6 +521,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
             var index = this.SharedState.EvaluateSubexpression(idx);
+            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrElementType
+                ? arrElementType.Item
+                : throw new InvalidOperationException("expecting an array in array item access");
 
             IValue value;
             if (idx.ResolvedType.Resolution.IsInt)
@@ -537,7 +540,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
-                value = this.SharedState.Values.FromArray(slice, array.QSharpType);
+                value = this.SharedState.Values.FromArray(slice, elementType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else

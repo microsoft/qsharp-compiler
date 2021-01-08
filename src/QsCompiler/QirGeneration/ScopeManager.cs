@@ -301,7 +301,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemFuncName = getFunctionName(array.ElementType);
                     if (itemFuncName != null)
                     {
-                        //this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
+                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
                     this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer);
                 }
