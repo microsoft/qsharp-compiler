@@ -48,17 +48,20 @@ namespace Microsoft.Quantum.QsCompiler
             using var assemblyFile = new PEReader(stream);
             if (ignoreDllResources || !FromResource(assemblyFile, out var compilation, onDeserializationException))
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.HeaderAttributesLoading);
+                // TODO: Needs performance tracking multi-thread support.
+                //PerformanceTracking.TaskStart(PerformanceTracking.Task.HeaderAttributesLoading);
                 var attributes = LoadHeaderAttributes(assemblyFile);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.HeaderAttributesLoading);
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
+                //PerformanceTracking.TaskEnd(PerformanceTracking.Task.HeaderAttributesLoading);
+                // TODO: Needs performance tracking multi-thread support.
+                //PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
                 headers = new References.Headers(id, attributes);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
+                //PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
                 return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
+            // TODO: Needs performance tracking multi-thread support.
+            //PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
             headers = new References.Headers(id, compilation?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
+            //PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
             return true;
         }
 
@@ -110,9 +113,10 @@ namespace Microsoft.Quantum.QsCompiler
             compilation = null;
             try
             {
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
+                // TODO: Needs performance tracking multi-thread support.
+                //PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
+                //PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
             {
@@ -206,14 +210,15 @@ namespace Microsoft.Quantum.QsCompiler
             // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
             // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
             // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            // TODO: Needs performance tracking multi-thread support.
+            //PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
             var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            //PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
             if (isBondV1ResourcePresent)

@@ -1256,7 +1256,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and calls the given onDiagnostic action on all generated diagnostics.
         /// Catches any thrown exception and calls onException on it if it is specified and not null.
         /// </summary>
-        // TODO: Another version of this method could be created that returns a Task rather than the headers themselves.
         private static References.Headers? LoadReferencedDll(
             Uri asm,
             bool ignoreDllResources,
@@ -1292,6 +1291,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onException?.Invoke(ex);
                 return null;
             }
+        }
+
+        // TODO: Make sure onDiagnostic and onException keep working.
+        private static Task<References.Headers?> LoadReferencedDllAsync(
+            Uri asm,
+            bool ignoreDllResources,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
+        {
+            return Task.Run(() => LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException));
         }
 
         /// <summary>
@@ -1388,9 +1397,53 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic,
                 onException);
 
-            // TODO: Here's where parallelization of reference loading could be done.
             return assembliesToLoad
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
+                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+        }
+
+        // TODO: Document.
+        public static ImmutableDictionary<string, References.Headers> LoadReferencedAssembliesInParallel(
+            IEnumerable<string> references,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null,
+            bool ignoreDllResources = false)
+        {
+            Task<References.Headers?> LoadReferencedDllAsync(Uri asm) =>
+                ProjectManager.LoadReferencedDllAsync(asm, ignoreDllResources, onDiagnostic, onException);
+
+            // TODO: This could be abstracted in a common helper method.
+            var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
+            var assembliesToLoad = FilterFiles(
+                relevant,
+                WarningCode.DuplicateBinaryFile,
+                NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound,
+                out IEnumerable<Uri> duplicates,
+                out IEnumerable<(string, Exception)> invalidPaths,
+                onDiagnostic,
+                onException);
+
+            // TODO: Maybe use a named tuple in order to improve readability.
+            var loadingAssemblies = new List<(Uri, Task<References.Headers?>)>();
+            foreach (var assembly in assembliesToLoad.ToList())
+            {
+                var loadingTask = LoadReferencedDllAsync(assembly);
+                loadingAssemblies.Add((assembly, loadingTask));
+            }
+
+            var loadingTasks = loadingAssemblies.Aggregate(
+                new List<Task<References.Headers?>>(loadingAssemblies.Count),
+                (tasksList, tuple) =>
+                {
+                    tasksList.Add(tuple.Item2);
+                    return tasksList;
+                });
+
+            Task.WaitAll(loadingTasks.ToArray());
+            return loadingAssemblies
+                .SelectNotNull(asmReferenceTuple => asmReferenceTuple.Item2.Result?.Apply(headers => (asmReferenceTuple.Item1, headers)))
                 .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
         }
     }
