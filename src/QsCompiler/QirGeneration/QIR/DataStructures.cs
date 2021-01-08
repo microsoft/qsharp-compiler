@@ -74,19 +74,12 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
+        // We need to store the branch id with the value since the value needs to be reloaded
+        // (only) if it was set within a branch that is not a parent branch of the current branch.
+        private (int, IValue) cachedValue;
         private readonly Value pointer;
-        private IValue? cachedValue;
 
-        public Value Pointer
-        {
-            get
-            {
-                this.cachedValue = null;
-                return this.pointer;
-            }
-        }
-
-        public Value Value => this.Pointer;
+        public Value Value => this.LoadValue().Value;
 
         public ITypeRef LlvmType { get; }
 
@@ -103,14 +96,9 @@ namespace Microsoft.Quantum.QIR.Emission
             this.QSharpType = value.QSharpType;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
             this.pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
-            context.CurrentBuilder.Store(value.Value, this.Pointer);
-            this.cachedValue = value;
+            context.CurrentBuilder.Store(value.Value, this.pointer);
+            this.cachedValue = (this.sharedState.CurrentBranch, value);
         }
-
-        // FIXME: THIS IS NOT ENTIRELY SAFE SINCE IF WE GIVE ACCESS TO THE POINTER
-        // THEN SOMEONE COULD TECHNICALLY GET THE POINTER, USE THIS METHOD TO LOAD THE VALUE,
-        // THEN MODIFY THE VALUE, AND SUBSEQUENTLY CALLING THIS METHOD AGAIN WOULD GIVE THE INCORRECT VALUE.
-        // TO MAKE IT SAFE WE NEED TO NOT GRANT ACCESS TO THE POINTER.
 
         /// <summary>
         /// Loads and returns the current value of the mutable variable.
@@ -120,12 +108,19 @@ namespace Microsoft.Quantum.QIR.Emission
             // We need to force that mutable variables that are set within the loop are reloaded
             // when they are used instead of accessing the cached version.
             // We could be smarter and only reload them if they are indeed updated as part of the loop.
-            if (this.cachedValue == null || this.sharedState.IsWithinLoop)
+            if (this.sharedState.IsWithinLoop || !this.sharedState.IsOpenBranch(this.cachedValue.Item1))
             {
-                var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.Pointer);
-                this.cachedValue = this.sharedState.Values.From(loaded, this.QSharpType);
+                var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.pointer);
+                var value = this.sharedState.Values.From(loaded, this.QSharpType);
+                this.cachedValue = (this.sharedState.CurrentBranch, value);
             }
-            return this.cachedValue;
+            return this.cachedValue.Item2;
+        }
+
+        public void StoreValue(IValue value)
+        {
+            this.cachedValue = (this.sharedState.CurrentBranch, value);
+            this.sharedState.CurrentBuilder.Store(value.Value, this.pointer);
         }
 
         void IValue.RegisterName(string name)

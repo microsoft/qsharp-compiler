@@ -69,36 +69,34 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %30 = load i64, i64* %x
-  %31 = load i64, i64* %y
-  %32 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
-  %33 = bitcast %Tuple* %32 to { i64, i64 }*
-  %34 = getelementptr { i64, i64 }, { i64, i64 }* %33, i64 0, i32 0
-  %35 = getelementptr { i64, i64 }, { i64, i64 }* %33, i64 0, i32 1
-  store i64 %30, i64* %34
-  store i64 %31, i64* %35
-  %36 = sub i64 %0, 1
+  %30 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %31 = bitcast %Tuple* %30 to { i64, i64 }*
+  %32 = getelementptr { i64, i64 }, { i64, i64 }* %31, i64 0, i32 0
+  %33 = getelementptr { i64, i64 }, { i64, i64 }* %31, i64 0, i32 1
+  store i64 %26, i64* %32
+  store i64 %28, i64* %33
+  %34 = sub i64 %0, 1
   br label %header__3
 
 header__3:                                        ; preds = %exiting__3, %exit__2
-  %37 = phi i64 [ 0, %exit__2 ], [ %43, %exiting__3 ]
-  %38 = icmp sle i64 %37, %36
-  br i1 %38, label %body__3, label %exit__3
+  %35 = phi i64 [ 0, %exit__2 ], [ %41, %exiting__3 ]
+  %36 = icmp sle i64 %35, %34
+  br i1 %36, label %body__3, label %exit__3
 
 body__3:                                          ; preds = %header__3
-  %39 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %37)
-  %40 = bitcast i8* %39 to { i64, i64 }**
-  %41 = load { i64, i64 }*, { i64, i64 }** %40
-  %42 = bitcast { i64, i64 }* %41 to %Tuple*
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %42)
+  %37 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %35)
+  %38 = bitcast i8* %37 to { i64, i64 }**
+  %39 = load { i64, i64 }*, { i64, i64 }** %38
+  %40 = bitcast { i64, i64 }* %39 to %Tuple*
+  call void @__quantum__rt__tuple_remove_access(%Tuple* %40)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
-  %43 = add i64 %37, 1
+  %41 = add i64 %35, 1
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__array_remove_access(%Array* %a)
   call void @__quantum__rt__tuple_unreference(%Tuple* %9)
-  ret { i64, i64 }* %33
+  ret { i64, i64 }* %31
 }

@@ -12,10 +12,7 @@ entry:
   call void @__quantum__rt__array_remove_access(%Array* %y)
   store %Array* %0, %Array** %x
   call void @__quantum__rt__array_add_access(%Array* %0)
-  %4 = load %Array*, %Array** %x
-  call void @__quantum__rt__array_reference(%Array* %4)
   call void @__quantum__rt__array_remove_access(%Array* %y)
-  call void @__quantum__rt__array_remove_access(%Array* %4)
-  call void @__quantum__rt__array_unreference(%Array* %0)
-  ret %Array* %4
+  call void @__quantum__rt__array_remove_access(%Array* %0)
+  ret %Array* %0
 }

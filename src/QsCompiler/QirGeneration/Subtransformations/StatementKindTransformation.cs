@@ -220,7 +220,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
 
                 // Get a builder for the then block, make it current, and then process the block
+                this.SharedState.StartBranch();
                 this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock);
+                this.SharedState.EndBranch();
 
                 this.SharedState.SetCurrentBlock(nextConditional);
             }
@@ -379,9 +381,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
                 {
-                    var originalValue = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                    this.SharedState.ScopeMgr.DecreaseAccessCount(originalValue);
-                    this.SharedState.CurrentBuilder.Store(rhs.Value, originalValue.Pointer);
+                    var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
+                    this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    pointer.StoreValue(rhs);
                     this.SharedState.ScopeMgr.IncreaseAccessCount(rhs);
                 }
                 else if (symbols.Expression is ResolvedExpression.ValueTuple ids)

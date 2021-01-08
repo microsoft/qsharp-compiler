@@ -16,6 +16,5 @@ do__1:                                            ; preds = %while__1
   br label %while__1
 
 wend__1:                                          ; preds = %while__1
-  %4 = load i64, i64* %n
-  ret i64 %4
+  ret i64 %3
 }

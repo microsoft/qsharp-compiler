@@ -142,7 +142,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
         internal ITypeRef? BuiltType { get; set; }
-        internal bool IsWithinLoop = false;
 
         internal readonly ScopeManager ScopeMgr;
         internal readonly Stack<IValue> ValueStack;
@@ -162,6 +161,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
+
+        #endregion
+
+        #region Control flow context tracking
+
+        internal bool IsWithinLoop = false;
+
+        private (int, Stack<int>) branchIds = (0, new Stack<int>(new[] { 0 }));
+        internal int CurrentBranch => this.branchIds.Item2.Peek();
+        internal bool IsOpenBranch(int id) => this.branchIds.Item2.Contains(id);
+
+        internal void StartBranch()
+        {
+            var (lastUsedId, stack) = this.branchIds;
+            stack.Push(lastUsedId + 1);
+            this.branchIds = (stack.Peek(), stack);
+        }
+
+        internal void EndBranch() =>
+            this.branchIds.Item2.Pop();
 
         #endregion
 

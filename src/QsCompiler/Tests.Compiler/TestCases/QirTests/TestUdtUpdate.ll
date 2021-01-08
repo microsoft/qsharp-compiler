@@ -38,29 +38,17 @@ entry:
   %24 = bitcast { double, i64 }* %23 to %Tuple*
   call void @__quantum__rt__tuple_add_access(%Tuple* %24)
   call void @__quantum__rt__tuple_add_access(%Tuple* %9)
-  %25 = load { { double, i64 }*, i64 }*, { { double, i64 }*, i64 }** %x
-  %26 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %25, i64 0, i32 0
-  %27 = load { double, i64 }*, { double, i64 }** %26
-  %28 = bitcast { double, i64 }* %27 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %28)
-  %29 = bitcast { { double, i64 }*, i64 }* %25 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %29)
-  %30 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %25, i64 0, i32 0
-  %31 = load { double, i64 }*, { double, i64 }** %30
-  %32 = bitcast { double, i64 }* %31 to %Tuple*
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %32)
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %29)
+  %25 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %10, i64 0, i32 0
+  %26 = load { double, i64 }*, { double, i64 }** %25
+  %27 = bitcast { double, i64 }* %26 to %Tuple*
+  call void @__quantum__rt__tuple_remove_access(%Tuple* %27)
+  call void @__quantum__rt__tuple_remove_access(%Tuple* %9)
   call void @__quantum__rt__tuple_unreference(%Tuple* %0)
-  %33 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %4, i64 0, i32 0
-  %34 = load { double, i64 }*, { double, i64 }** %33
-  %35 = bitcast { double, i64 }* %34 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %35)
+  %28 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %4, i64 0, i32 0
+  %29 = load { double, i64 }*, { double, i64 }** %28
+  %30 = bitcast { double, i64 }* %29 to %Tuple*
+  call void @__quantum__rt__tuple_unreference(%Tuple* %30)
   call void @__quantum__rt__tuple_unreference(%Tuple* %8)
-  %36 = getelementptr { { double, i64 }*, i64 }, { { double, i64 }*, i64 }* %10, i64 0, i32 0
-  %37 = load { double, i64 }*, { double, i64 }** %36
-  %38 = bitcast { double, i64 }* %37 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %38)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %9)
   call void @__quantum__rt__tuple_unreference(%Tuple* %15)
-  ret { { double, i64 }*, i64 }* %25
+  ret { { double, i64 }*, i64 }* %10
 }
