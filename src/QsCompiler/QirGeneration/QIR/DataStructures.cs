@@ -35,6 +35,18 @@ namespace Microsoft.Quantum.QIR.Emission
         /// The Q# type of the value.
         /// </summary>
         public ResolvedType QSharpType { get; }
+
+        /// <summary>
+        /// Registers the given name as the name of the LLVM value using <see cref="ValueExtensions.RegisterName" />.
+        /// Does nothing if a name is already defined for the value.
+        /// </summary>
+        internal void RegisterName(string name)
+        {
+            if (string.IsNullOrEmpty(this.Value.Name))
+            {
+                this.Value.RegisterName(name);
+            }
+        }
     }
 
     /// <summary>
@@ -62,7 +74,7 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
-        private Value pointer;
+        private readonly Value pointer;
         private IValue? cachedValue;
 
         public Value Pointer
@@ -91,9 +103,14 @@ namespace Microsoft.Quantum.QIR.Emission
             this.QSharpType = value.QSharpType;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
             this.pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
-            this.cachedValue = value;
             context.CurrentBuilder.Store(value.Value, this.Pointer);
+            this.cachedValue = value;
         }
+
+        // FIXME: THIS IS NOT ENTIRELY SAFE SINCE IF WE GIVE ACCESS TO THE POINTER
+        // THEN SOMEONE COULD TECHNICALLY GET THE POINTER, USE THIS METHOD TO LOAD THE VALUE,
+        // THEN MODIFY THE VALUE, AND SUBSEQUENTLY CALLING THIS METHOD AGAIN WOULD GIVE THE INCORRECT VALUE.
+        // TO MAKE IT SAFE WE NEED TO NOT GRANT ACCESS TO THE POINTER.
 
         /// <summary>
         /// Loads and returns the current value of the mutable variable.
@@ -106,6 +123,14 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.cachedValue = this.sharedState.Values.From(loaded, this.QSharpType);
             }
             return this.cachedValue;
+        }
+
+        void IValue.RegisterName(string name)
+        {
+            if (string.IsNullOrEmpty(this.pointer.Name))
+            {
+                this.pointer.RegisterName(name);
+            }
         }
     }
 

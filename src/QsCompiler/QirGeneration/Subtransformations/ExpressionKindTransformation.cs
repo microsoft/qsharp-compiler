@@ -869,7 +869,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var itemIndex = location[depth];
                         for (var i = 0; i < itemPointers.Length; ++i)
                         {
-                            if (i != itemIndex)
+                            if (i != itemIndex && this.SharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
                             {
                                 var itemType = Quantum.QIR.Types.PointerElementType(itemPointers[i]);
                                 var loadedItem = this.SharedState.CurrentBuilder.Load(itemType, itemPointers[i]);
