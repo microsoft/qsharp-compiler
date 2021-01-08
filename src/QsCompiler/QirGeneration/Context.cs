@@ -1348,14 +1348,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             bool PopulateLoopBody(Action executeBody)
             {
-                this.SetCurrentBlock(bodyBlock); // the loop variable is just an integer, so it's fine to start the block here
-                this.ScopeMgr.OpenScope();
-
+                this.ScopeMgr.OpenScope(); // the loop variable is just an integer, so it's fine to start the block here
+                this.SetCurrentBlock(bodyBlock);
                 executeBody();
-
                 var isTerminated = this.CurrentBlock.Terminator != null;
                 this.ScopeMgr.CloseScope(isTerminated);
-
                 return isTerminated;
             }
 

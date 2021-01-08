@@ -279,26 +279,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue CallGlobal(IrFunction func, TypedExpression arg, ResolvedType returnType)
             {
-                IEnumerable<IValue> argList;
+                IEnumerable<IValue> args;
                 if (arg.ResolvedType.Resolution.IsUnitType)
                 {
-                    argList = Enumerable.Empty<IValue>();
+                    args = Enumerable.Empty<IValue>();
                 }
                 else if (arg.ResolvedType.Resolution.IsTupleType && arg.Expression is ResolvedExpression.ValueTuple vs)
                 {
-                    argList = vs.Item.Select(this.SharedState.EvaluateSubexpression);
+                    args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
                 else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
                 {
                     var evaluatedArg = (TupleValue)this.SharedState.EvaluateSubexpression(arg);
-                    argList = evaluatedArg.GetTupleElements();
+                    args = evaluatedArg.GetTupleElements();
                 }
                 else
                 {
-                    argList = new[] { this.SharedState.EvaluateSubexpression(arg) };
+                    args = new[] { this.SharedState.EvaluateSubexpression(arg) };
                 }
 
-                var res = this.SharedState.CurrentBuilder.Call(func, argList.Select(a => a.Value).ToArray());
+                var argList = args.Select(a => a.Value).ToArray();
+                var res = this.SharedState.CurrentBuilder.Call(func, argList);
                 if (func.Signature.ReturnType.IsVoid)
                 {
                     return this.SharedState.Values.Unit;

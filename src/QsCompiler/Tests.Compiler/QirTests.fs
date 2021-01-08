@@ -51,6 +51,10 @@ let private qirTest target name =
 [<Fact>]
 let ``QIR using`` () =
     qirTest false "TestUsing"
+
+[<Fact>]
+let ``QIR access counts`` () =
+    qirTest false "TestAccessCounts"
     
 [<Fact>]
 let ``QIR array loop`` () =

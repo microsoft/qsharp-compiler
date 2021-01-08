@@ -27,6 +27,12 @@
     <Content Include="..\..\..\examples\QIR\QirTarget.qs" Link="TestCases\QirTests\QirTarget.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestAccessCounts.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestAccessCounts.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestArrayLoop.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
