@@ -33,11 +33,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     public sealed class ConcreteCallGraphNode : CallGraphNodeBase, IEquatable<ConcreteCallGraphNode>
     {
         /// <summary>
-        /// The specific functor specialization represented.
-        /// </summary>
-        public QsSpecializationKind Kind { get; }
-
-        /// <summary>
         /// The concrete type mappings for the type parameters for the callable.
         /// </summary>
         public TypeParameterResolutions ParamResolutions { get; }
@@ -46,10 +41,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Constructor for ConcreteCallGraphNode objects.
         /// Strips position info from the given type parameter resolutions.
         /// </summary>
-        public ConcreteCallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, TypeParameterResolutions paramResolutions) : base(callableName)
+        public ConcreteCallGraphNode(QsQualifiedName callableName, TypeParameterResolutions paramResolutions) : base(callableName)
         {
-            this.Kind = kind;
-
             // Remove position info from type parameter resolutions
             this.ParamResolutions = paramResolutions.ToImmutableDictionary(
                 kvp => kvp.Key,
@@ -65,7 +58,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(ConcreteCallGraphNode other) =>
             base.Equals(other)
-            && this.Kind.Equals(other.Kind)
             && (this.ParamResolutions == other.ParamResolutions
                 || this.ParamResolutions
                        .OrderBy(kvp => kvp.Key)
@@ -76,7 +68,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         {
             HashCode hash = default;
             hash.Add(this.CallableName);
-            hash.Add(this.Kind);
             foreach (var kvp in this.ParamResolutions)
             {
                 hash.Add(kvp);

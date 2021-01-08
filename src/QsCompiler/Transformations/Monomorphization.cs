@@ -42,10 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var concretizations = new List<QsCallable>();
             var concreteNames = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
-            var nodes = new ConcreteCallGraph(compilation).Nodes
-                // Remove specialization information so that we only deal with the full callables.
-                .Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions))
-                .ToImmutableHashSet();
+            var nodes = new ConcreteCallGraph(compilation).Nodes.ToImmutableHashSet();
 
             var getAccessModifiers = new GetAccessModifiers((typeName) => GetAccessModifier(compilation.Namespaces.GlobalTypeResolutions(), typeName));
 
@@ -335,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 return globalCallable;
             }
 
-            var node = new ConcreteCallGraphNode(globalCallable.Item, QsSpecializationKind.QsBody, types);
+            var node = new ConcreteCallGraphNode(globalCallable.Item, types);
 
             if (concreteNames.TryGetValue(node, out var name))
             {
