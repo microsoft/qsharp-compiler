@@ -776,6 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
                 var array = this.SharedState.Values.FromArray(copy, elementType);
+                this.SharedState.ScopeMgr.RegisterValue(array);
 
                 // In order to accurately reflect which items are still in use and thus need to remain allocated,
                 // reference counts always need to be modified recursively. However, while the reference count for
@@ -783,8 +784,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // to increase the reference count of the contained items due to lacking type information.
                 // In the same way that we increase the reference count when we populate an array, we hence need to
                 // manually (recursively) increase the reference counts for all items.
-                this.SharedState.IterateThroughArray(array, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
-                this.SharedState.ScopeMgr.RegisterValue(array);
+                if (this.SharedState.ScopeMgr.RequiresReferenceCount(array.ElementType))
+                {
+                    this.SharedState.IterateThroughArray(array, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
+                }
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
@@ -885,10 +888,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             var loadedOriginalItem = this.SharedState.CurrentBuilder.Load(
                                 Quantum.QIR.Types.PointerElementType(itemPointers[itemIndex]),
                                 itemPointers[itemIndex]);
-                            var oritinalItemTypes = innerTuple.ElementTypes[itemIndex].Resolution is QsResolvedTypeKind.TupleType elementTypes
+                            var originalItemTypes = innerTuple.ElementTypes[itemIndex].Resolution is QsResolvedTypeKind.TupleType elementTypes
                                 ? elementTypes.Item
                                 : throw new InvalidOperationException("expecting inner tuple in copy-and-update");
-                            var originalItem = this.SharedState.Values.FromTuple(loadedOriginalItem, oritinalItemTypes);
+                            var originalItem = this.SharedState.Values.FromTuple(loadedOriginalItem, originalItemTypes);
                             innerTuple = GetTupleCopy(originalItem);
                             this.SharedState.CurrentBuilder.Store(innerTuple.Value, itemPointers[itemIndex]);
                         }
@@ -1161,9 +1164,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // The runtime function CallableCreate creates a new value with reference count 1.
                 var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-                var wrapper = this.SharedState.GetOrCreateCallableTable(callable);
+                var table = this.SharedState.GetOrCreateCallableTable(callable);
                 var capture = this.SharedState.Constants.UnitValue; // nothing to capture
-                var res = this.SharedState.CurrentBuilder.Call(createCallable, wrapper, capture);
+                var res = this.SharedState.CurrentBuilder.Call(createCallable, table, capture);
                 value = this.SharedState.Values.FromCallable(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }

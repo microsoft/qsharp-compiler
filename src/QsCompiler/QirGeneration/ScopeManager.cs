@@ -181,6 +181,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Returns true if access counts are tracked for values of the given LLVM type.
+        /// </summary>
+        internal bool RequiresAccessCount(ITypeRef t) =>
+            this.AddAccessFunctionForType(t) != null;
+
+        /// <summary>
         /// Gets the name of the runtime function to increase the reference count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
@@ -253,6 +259,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             return null;
         }
+
+        /// <summary>
+        /// Returns true if reference counts are tracked for values of the given LLVM type.
+        /// </summary>
+        internal bool RequiresReferenceCount(ITypeRef t) =>
+            this.ReferenceFunctionForType(t) != null;
 
         /// <summary>
         /// If the given function returns a function name for the given value,
