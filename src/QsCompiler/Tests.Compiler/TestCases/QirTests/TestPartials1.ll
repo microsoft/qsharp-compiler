@@ -50,7 +50,7 @@ then0__1:                                         ; preds = %body__1
   store i64 %a, i64* %21
   store double %b, double* %22
   call void @__quantum__rt__tuple_add_access(%Tuple* %20)
-  %23 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8] zeroinitializer)
+  %23 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8]* null)
   %24 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %tuple2 = bitcast %Tuple* %24 to { %String*, %Qubit* }*
   %25 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
@@ -122,7 +122,7 @@ then0__1:                                         ; preds = %body__1
   call void @__quantum__rt__tuple_reference(%Tuple* %60)
   call void @__quantum__rt__tuple_reference(%Tuple* %52)
   %61 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple, %Tuple* null)
-  %62 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8] zeroinitializer)
+  %62 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8]* null)
   %63 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 3))
   %64 = bitcast %Tuple* %63 to { %Callable*, %String*, %Qubit* }*
   %65 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %64, i64 0, i32 0

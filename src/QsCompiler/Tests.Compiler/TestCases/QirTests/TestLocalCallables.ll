@@ -32,7 +32,7 @@ entry:
   %18 = load %Callable*, %Callable** %17
   call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* null, %Tuple* null)
   %fct = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnTuple, %Tuple* null)
-  %19 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8] zeroinitializer)
+  %19 = call %String* @__quantum__rt__string_create(i32 0, [0 x i8]* null)
   %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %21 = bitcast %Tuple* %20 to { %String* }*
   %22 = getelementptr { %String* }, { %String* }* %21, i64 0, i32 0

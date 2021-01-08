@@ -261,6 +261,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
+            bool withinOuterLoop = this.SharedState.IsWithinLoop;
+            this.SharedState.IsWithinLoop = true;
+
             if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
             {
                 throw new InvalidOperationException("current function is set to null");
@@ -300,12 +303,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("For loop through invalid value");
             }
 
+            this.SharedState.IsWithinLoop = withinOuterLoop;
             return QsStatementKind.EmptyStatement;
         }
 
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
+            bool withinOuterLoop = this.SharedState.IsWithinLoop;
+            this.SharedState.IsWithinLoop = true;
+
             if (this.SharedState.CurrentFunction == null)
             {
                 throw new InvalidOperationException("current function is set to null");
@@ -354,6 +361,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.SetCurrentBlock(contBlock);
 
+            this.SharedState.IsWithinLoop = withinOuterLoop;
             return QsStatementKind.EmptyStatement;
         }
 
@@ -411,6 +419,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
         public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
         {
+            bool withinOuterLoop = this.SharedState.IsWithinLoop;
+            this.SharedState.IsWithinLoop = true;
+
             if (this.SharedState.CurrentFunction == null)
             {
                 throw new InvalidOperationException("current function is set to null");
@@ -434,6 +445,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.ProcessBlock(bodyBlock, stm.Body, testBlock);
             this.SharedState.SetCurrentBlock(contBlock);
+
+            this.SharedState.IsWithinLoop = withinOuterLoop;
             return QsStatementKind.EmptyStatement;
         }
     }

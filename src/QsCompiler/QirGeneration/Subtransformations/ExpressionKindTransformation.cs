@@ -577,7 +577,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArray,
-                    this.SharedState.Context.Int8Type.CreateArrayType(0));
+                    this.SharedState.Types.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1876,12 +1876,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // way to do this, but it's simple and clear, and strings are uncommon in Q#.
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
-                var constantString = cleanStr.Length > 0
-                    ? this.SharedState.Context.CreateConstantString(cleanStr)
-                    : this.SharedState.Types.String.GetNullValue();
-                var zeroLengthString = this.SharedState.CurrentBuilder.BitCast(
-                    constantString,
-                    this.SharedState.Context.Int8Type.CreateArrayType(0));
+
+                Value? globalConstant = null;
+                if (cleanStr.Length > 0)
+                {
+                    var constantString = this.SharedState.Context.CreateConstantString(cleanStr, true);
+                    globalConstant = this.SharedState.Module.AddGlobal(
+                        constantString.NativeType, true, Linkage.Internal, constantString);
+                }
+
+                var zeroLengthString = globalConstant == null
+                    ? this.SharedState.Types.DataArrayPointer.GetNullValue()
+                    : this.SharedState.CurrentBuilder.BitCast(
+                        globalConstant,
+                        this.SharedState.Types.DataArrayPointer);
+
                 var n = this.SharedState.Context.CreateConstant(cleanStr.Length);
                 var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
                 return this.SharedState.CurrentBuilder.Call(createString, n, zeroLengthString);

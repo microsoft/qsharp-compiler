@@ -142,6 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
         internal ITypeRef? BuiltType { get; set; }
+        internal bool IsWithinLoop = false;
 
         internal readonly ScopeManager ScopeMgr;
         internal readonly Stack<IValue> ValueStack;
@@ -298,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.Types.Result, this.Types.Result);
 
             // string library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.Types.String, this.Context.Int32Type, this.Context.Int8Type.CreateArrayType(0));
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.Types.String, this.Context.Int32Type, this.Types.DataArrayPointer);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringReference, this.Context.VoidType, this.Types.String);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUnreference, this.Context.VoidType, this.Types.String);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringConcatenate, this.Types.String, this.Types.String, this.Types.String);
@@ -316,7 +317,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // bigint library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateI64, this.Types.BigInt, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.Types.BigInt, this.Context.Int32Type, this.Context.Int8Type.CreateArrayType(0));
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.Types.BigInt, this.Context.Int32Type, this.Types.DataArrayPointer);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntReference, this.Context.VoidType, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUnreference, this.Context.VoidType, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntNegate, this.Types.BigInt, this.Types.BigInt);

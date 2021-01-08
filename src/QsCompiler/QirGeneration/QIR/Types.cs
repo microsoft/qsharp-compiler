@@ -134,6 +134,13 @@ namespace Microsoft.Quantum.QIR
         // internal helpers to simplify common code
 
         /// <summary>
+        /// Type by which data allocated as global constant array is passed to the runtime.
+        /// String and big integers for example are instantiated with a data array.
+        /// </summary>
+        internal IPointerType DataArrayPointer =>
+            this.context.Int8Type.CreateArrayType(0).CreatePointerType();
+
+        /// <summary>
         /// Given the type of a pointer to a struct, returns the type of the struct.
         /// This method thus is the inverse mapping of CreatePointerType.
         /// Throws an argument exception if the given type is not a pointer to a struct.

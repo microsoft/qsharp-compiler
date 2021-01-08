@@ -117,7 +117,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         public IValue LoadValue()
         {
-            if (this.cachedValue == null)
+            // We need to force that mutable variables that are set within the loop are reloaded
+            // when they are used instead of accessing the cached version.
+            // We could be smarter and only reload them if they are indeed updated as part of the loop.
+            if (this.cachedValue == null || this.sharedState.IsWithinLoop)
             {
                 var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.Pointer);
                 this.cachedValue = this.sharedState.Values.From(loaded, this.QSharpType);
