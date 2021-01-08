@@ -1211,18 +1211,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Generate the code that decomposes the tuple back into the named arguments
             // Note that we don't want to recurse here!
-            List<Value> GenerateArgTupleDecomposition(ResolvedType type, Value value)
+            List<Value> GenerateArgTupleDecomposition(ResolvedType type, Value argTuple)
             {
                 List<Value> args = new List<Value>();
+                var itemTypes = type.Resolution is QsResolvedTypeKind.TupleType argItemTypes
+                    ? argItemTypes.Item
+                    : ImmutableArray.Create(type);
+                var tuple = this.Values.FromTuple(argTuple, itemTypes);
 
-                if (type.Resolution is QsResolvedTypeKind.TupleType ts)
+                if (!type.Resolution.IsUnitType)
                 {
-                    var tuple = this.Values.FromTuple(value, ts.Item);
                     args.AddRange(tuple.GetTupleElements().Select(qirValue => qirValue.Value));
-                }
-                else if (!type.Resolution.IsUnitType)
-                {
-                    args.Add(this.CurrentBuilder.Load(this.LlvmTypeFromQsharpType(type), value));
                 }
 
                 return args;

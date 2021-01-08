@@ -90,7 +90,7 @@ let ``QIR UDT argument`` () =
 
 [<Fact>]
 let ``QIR callable values`` () =
-    qirTest false "TestLocalCallables"
+    qirMultiTest false "TestLocalCallables" ["TestLocalCallables1"; "TestLocalCallables2"]
     
 [<Fact>]
 let ``QIR operation argument`` () =
