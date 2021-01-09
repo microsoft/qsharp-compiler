@@ -1399,19 +1399,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBuilder.Branch(headerBlock);
             }
 
+            this.ExecuteLoop(exitBlock, () =>
+            {
+                var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
+                var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
+                ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
+            });
+        }
+
+        internal void ExecuteLoop(BasicBlock continuation, Action loop)
+        {
             // We need to mark the loop and also mark the branching
             // to ensure that pointers are properly loaded when needed.
             bool withinOuterLoop = this.IsWithinLoop;
             this.IsWithinLoop = true;
             this.StartBranch();
-
-            var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
-            var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
-            ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
-
+            loop();
             this.EndBranch();
             this.IsWithinLoop = withinOuterLoop;
-            this.SetCurrentBlock(exitBlock);
+            this.SetCurrentBlock(continuation);
         }
 
         /// <summary>

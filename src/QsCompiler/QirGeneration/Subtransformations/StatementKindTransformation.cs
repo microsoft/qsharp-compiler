@@ -326,43 +326,37 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("fixup"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("rend"));
 
-            // We need to mark the loop and also mark the branching
-            // to ensure that pointers are properly loaded when needed.
-            bool withinOuterLoop = this.SharedState.IsWithinLoop;
-            this.SharedState.IsWithinLoop = true;
-            this.SharedState.StartBranch();
-
-            this.SharedState.CurrentBuilder.Branch(repeatBlock);
-            this.SharedState.SetCurrentBlock(repeatBlock);
-            this.SharedState.ScopeMgr.OpenScope();
-            this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
-            if (this.SharedState.CurrentBlock?.Terminator == null)
-            {
-                this.SharedState.CurrentBuilder.Branch(testBlock);
-            }
-
-            this.SharedState.SetCurrentBlock(testBlock);
-            var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
-            this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
-
-            // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
-            // We need to make sure to properly invoke all calls to unreference, release, and remove access counts
-            // for variables and values in the repeat-block after the statement ends.
-            this.SharedState.SetCurrentBlock(contBlock);
-            this.SharedState.ScopeMgr.ExitScope(false);
-
-            this.SharedState.SetCurrentBlock(fixupBlock);
-            this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
-            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
-            this.SharedState.ScopeMgr.CloseScope(isTerminated);
-            if (!isTerminated)
+            this.SharedState.ExecuteLoop(contBlock, () =>
             {
                 this.SharedState.CurrentBuilder.Branch(repeatBlock);
-            }
+                this.SharedState.SetCurrentBlock(repeatBlock);
+                this.SharedState.ScopeMgr.OpenScope();
+                this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
+                if (this.SharedState.CurrentBlock?.Terminator == null)
+                {
+                    this.SharedState.CurrentBuilder.Branch(testBlock);
+                }
 
-            this.SharedState.EndBranch();
-            this.SharedState.IsWithinLoop = withinOuterLoop;
-            this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.SetCurrentBlock(testBlock);
+                var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
+                this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
+
+                // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
+                // We need to make sure to properly invoke all calls to unreference, release, and remove access counts
+                // for variables and values in the repeat-block after the statement ends.
+                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.ScopeMgr.ExitScope(false);
+
+                this.SharedState.SetCurrentBlock(fixupBlock);
+                this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
+                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                this.SharedState.ScopeMgr.CloseScope(isTerminated);
+                if (!isTerminated)
+                {
+                    this.SharedState.CurrentBuilder.Branch(repeatBlock);
+                }
+            });
+
             return QsStatementKind.EmptyStatement;
         }
 
@@ -432,26 +426,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("do"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("wend"));
 
-            // We need to mark the loop and also mark the branching
-            // to ensure that pointers are properly loaded when needed.
-            bool withinOuterLoop = this.SharedState.IsWithinLoop;
-            this.SharedState.IsWithinLoop = true;
-            this.SharedState.StartBranch();
+            this.SharedState.ExecuteLoop(contBlock, () =>
+            {
+                this.SharedState.CurrentBuilder.Branch(testBlock);
+                this.SharedState.SetCurrentBlock(testBlock);
 
-            this.SharedState.CurrentBuilder.Branch(testBlock);
-            this.SharedState.SetCurrentBlock(testBlock);
+                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
+                // expression to perform an allocation that needs to get cleaned up, so...
+                this.SharedState.ScopeMgr.OpenScope();
+                var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
+                this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
+                this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
+                this.ProcessBlock(bodyBlock, stm.Body, testBlock);
+            });
 
-            // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-            // expression to perform an allocation that needs to get cleaned up, so...
-            this.SharedState.ScopeMgr.OpenScope();
-            var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
-            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
-            this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
-            this.ProcessBlock(bodyBlock, stm.Body, testBlock);
-
-            this.SharedState.EndBranch();
-            this.SharedState.IsWithinLoop = withinOuterLoop;
-            this.SharedState.SetCurrentBlock(contBlock);
             return QsStatementKind.EmptyStatement;
         }
     }
