@@ -348,7 +348,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         // Imporant: the constructors must ensure that either length or opaque pointer is not null!
         private Value? opaquePointer;
-        private Value? length;
+        private readonly CachedValue length;
 
         public Value Value => this.OpaquePointer;
 
@@ -361,18 +361,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
 
-        public Value Length
-        {
-            get
-            {
-                if (this.length == null)
-                {
-                    var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d);
-                    this.length = this.sharedState.CurrentBuilder.Call(getLength, this.opaquePointer ?? throw new InvalidOperationException("array has no value"));
-                }
-                return this.length;
-            }
-        }
+        public Value Length => this.length.Load().Value;
 
         internal Value OpaquePointer
         {
@@ -404,7 +393,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
-            this.length = context.Context.CreateConstant((long)count);
+            this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
         }
 
         /// <summary>
@@ -421,7 +410,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
-            this.length = length;
+            this.length = this.CreateLengthCache(length);
         }
 
         /// <summary>
@@ -438,8 +427,22 @@ namespace Microsoft.Quantum.QIR.Emission
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.opaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
-            this.length = length;
+            this.length = length == null
+                ? new CachedValue(context, this.GetLength)
+                : this.CreateLengthCache(length);
         }
+
+        // private helpers
+
+        private static IValue IntValue(Value v) =>
+            new SimpleValue(v, ResolvedType.New(QsResolvedTypeKind.Int));
+
+        private IValue GetLength() => IntValue(this.sharedState.CurrentBuilder.Call(
+            this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
+            this.opaquePointer ?? throw new InvalidOperationException("array has no value")));
+
+        private CachedValue CreateLengthCache(Value length) =>
+            new CachedValue(IntValue(length), this.sharedState, this.GetLength);
 
         // methods for item access
 
