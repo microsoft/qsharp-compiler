@@ -4,19 +4,19 @@ all: QStoLLVM LLVMtoX86 LLVMtoARM X86toEXE ARMtoELF ELFtoBIN GetOutBuf CopytoFS
 
 QStoLLVM:
 	dotnet run --project ../../../src/QsCompiler/CommandLineTool/ build --qir s --build-exe --input ./QRNG.qs ../QirCore.qs ../QirTarget.qs --proj QRNG
-	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 LLVMtoX86:
 	clang -S -fno-addrsig -o QRNG_x86.s QRNG.ll 
-	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 LLVMtoARM:
 	clang -S -fno-addrsig -o QRNG_ARM.s -target thumbv7m-none-unknown-eabi -mfloat-abi=hard QRNG.ll
-	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 X86toEXE:
 	gcc -o QRNG.exe -DDOHOST QRTstubs.c QRNG_x86.s
-	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	@pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 ARMtoELF:
 	$(gccARM) -c drivers/csi.c -o csi.o
@@ -30,15 +30,15 @@ ARMtoELF:
 	$(gccARM) -c QRTstubs.c -o QRTstubs.o
 	$(gccARM) -c RTT/SEGGER_RTT_printf.c -o SEGGER_RTT_printf.o
 	arm-none-eabi-gcc '-O2' '-mthumb' '-mcpu=cortex-m4' '-mfloat-abi=hard' '-mfpu=fpv4-sp-d16'  '-T' ./CMSIS/Device/ARM/ARMCM4/Source/GCC/gcc_arm.ld '-specs=nosys.specs' '-ffunction-sections' '-fdata-sections' '-Wl,--gc-sections' QRTstubs.o QRNG.o startup_ARMCM4.o system_ARMCM4.o acl.o csi.o hcl.o SEGGER_RTT.o SEGGER_RTT_printf.o '-o' QRNG.elf
-	pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 ELFtoBIN:
 	cmd /c arm-none-eabi-objcopy -O binary QRNG.elf QRNG.bin 
-	pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 5"
+	pwsh.exe -Command "gci | sort -Property LastWriteTime -Descending | select -First 3 | format-table -HideTableHeaders"
 
 GetOutBuf:
 	pwsh.exe -Command "arm-none-eabi-objdump -Ds QRNG.elf | findstr '_SEGGER_RTT EXE_RESULT'"
 
-CopytoFS:
-	copy "QRNG*.*" "~/Onedrive/Reilly Lab"
-	copy "QRTstubs.c" "~/Onedrive/Reilly Lab"  
+CopyToFS:
+	pwsh.exe -Command "copy 'QRNG*.*' '~/Onedrive/Reilly Lab'"
+	pwsh.exe -Command "copy 'QRTstubs.c' '~/Onedrive/Reilly Lab'"  
