@@ -50,7 +50,7 @@ let private qirTest target name =
 
 [<Fact>]
 let ``QIR using`` () =
-    qirTest false "TestUsing"
+    qirMultiTest true "TestUsing" ["TestUsing1"; "TestUsing2"]
 
 [<Fact>]
 let ``QIR access counts`` () =

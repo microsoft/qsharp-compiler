@@ -249,7 +249,10 @@
     <Content Include="TestCases\QirTests\TestUdtUpdate.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestUsing.ll">
+    <Content Include="TestCases\QirTests\TestUsing1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestUsing2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestUsing.qs">
