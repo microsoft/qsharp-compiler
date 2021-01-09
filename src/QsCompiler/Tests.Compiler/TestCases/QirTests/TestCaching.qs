@@ -15,6 +15,8 @@ namespace Microsoft.Quantum.Testing.QIR {
             }
         }
 
-        return Length(arr);
+        let pad = Length(arr) < 10 ? 
+            new Int[10] | arr;
+        return Length(pad);
     }
 }

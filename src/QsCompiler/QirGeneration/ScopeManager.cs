@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((value, releaseFunction));
                 }
-                if (value.LlvmType.IsPointer)
+                if (this.parent.ReferenceFunctionForType(value.LlvmType) != null)
                 {
                     this.trackedValues.Add(value);
                 }
@@ -114,6 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         private readonly GenerationContext sharedState;
+        internal bool DisableReferenceCounting;
 
         /// <summary>
         /// New variables and values are always added to the scope on top of the stack.
@@ -142,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the name of the runtime function to increase the access count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the unreference function for this type</returns>
+        /// <returns>The name of the function to increase the access count for this type</returns>
         private string? AddAccessFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
@@ -163,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the unreference function for this type</returns>
+        /// <returns>The name of the function to decrease the access count for this type</returns>
         private string? RemoveAccessFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
@@ -181,19 +182,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Returns true if access counts are tracked for values of the given LLVM type.
-        /// </summary>
-        internal bool RequiresAccessCount(ITypeRef t) =>
-            this.AddAccessFunctionForType(t) != null;
-
-        /// <summary>
         /// Gets the name of the runtime function to increase the reference count for a given LLVM type.
+        /// Returns null if the given type is not reference counted or if reference counting is disabled.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the unreference function for this type</returns>
+        /// <returns>The name of the function to increase the reference count for this type</returns>
         private string? ReferenceFunctionForType(ITypeRef t)
         {
-            if (t.IsPointer)
+            if (t.IsPointer && !this.DisableReferenceCounting)
             {
                 if (Types.IsTypedTuple(t))
                 {
@@ -225,12 +221,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
+        /// Returns null if the given type is not reference counted or if reference counting is disabled.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the unreference function for this type</returns>
+        /// <returns>The name of the function to decrease the reference count for this type</returns>
         private string? UnreferenceFunctionForType(ITypeRef t)
         {
-            if (t.IsPointer)
+            if (t.IsPointer && !this.DisableReferenceCounting)
             {
                 if (Types.IsTypedTuple(t))
                 {
@@ -261,12 +258,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Returns true if reference counts are tracked for values of the given LLVM type.
-        /// </summary>
-        internal bool RequiresReferenceCount(ITypeRef t) =>
-            this.ReferenceFunctionForType(t) != null;
-
-        /// <summary>
         /// If the given function returns a function name for the given value,
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
@@ -283,7 +274,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is TupleValue tuple)
                 {
-                    // for tuples we also unreference all inner tuples
                     for (var i = 0; i < tuple.StructType.Members.Count; ++i)
                     {
                         var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
@@ -354,7 +344,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Closes the current scope by popping it off of the stack.
         /// Closing the scope automatically also closes the current naming scope as well.
         /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
-        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// If reference counting is enabled, increases the reference count of the returned value by 1,
+        /// either by omitting to unreference it or by explicitly increasing it.
         /// </summary>
         public void CloseScope(IValue returned)
         {
@@ -369,7 +360,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Exits the current scope by emitting the calls to unreference values going out of scope,
+        /// Exits the current scope by emitting the calls to unreference, release,
+        /// and/or decrease the access counts for values going out of scope,
         /// decreasing access counts and invoking release functions if necessary.
         /// Exiting the current scope does *not* close the scope.
         /// </summary>
@@ -381,6 +373,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 scope.ExecutePendingCalls();
             }
         }
+
+        /// <summary>
+        /// Returns true if reference counts are (currently) tracked for values of the given LLVM type.
+        /// Always returns false if reference counting is disabled.
+        /// </summary>
+        internal bool RequiresReferenceCount(ITypeRef t) =>
+            this.ReferenceFunctionForType(t) != null;
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
@@ -395,6 +394,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value) =>
             this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value);
+
+        /// <summary>
+        /// Returns true if access counts are tracked for values of the given LLVM type.
+        /// </summary>
+        internal bool RequiresAccessCount(ITypeRef t) =>
+            this.AddAccessFunctionForType(t) != null;
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
@@ -467,7 +472,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
         /// decreasing access counts and invoking release functions if necessary.
-        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// If reference counting is enabled, increases the reference count of the returned value by 1,
+        /// either by omitting to unreference it or by explicitly increasing it.
         /// The calls are generated in using the current builder.
         /// Exiting the current function does *not* close the scopes.
         /// </summary>

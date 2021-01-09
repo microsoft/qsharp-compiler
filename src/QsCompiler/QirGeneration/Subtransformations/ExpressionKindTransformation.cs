@@ -741,11 +741,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // This is similar to conditional statements, but actually a bit simpler because there's always an else,
                 // and we don't need to open a new scope. On the other hand, we do need to build a phi node in the
-                // continuation block.
+                // continuation block, and we need to make sure that the phi node gets queued for unreferencing instead
+                // of the built values.
                 var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
                 var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
                 var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
 
+                var refCountingDisabled = this.SharedState.ScopeMgr.DisableReferenceCounting;
+                this.SharedState.ScopeMgr.DisableReferenceCounting = true;
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
                 this.SharedState.SetCurrentBlock(trueBlock);
@@ -756,11 +759,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var ifFalse = this.SharedState.EvaluateSubexpression(ifFalseEx);
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
+                this.SharedState.ScopeMgr.DisableReferenceCounting = refCountingDisabled;
                 this.SharedState.SetCurrentBlock(contBlock);
                 var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
                 phi.AddIncoming(ifTrue.Value, trueBlock);
                 phi.AddIncoming(ifFalse.Value, falseBlock);
                 value = this.SharedState.Values.From(phi, exType);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
 
             this.SharedState.ValueStack.Push(value);
