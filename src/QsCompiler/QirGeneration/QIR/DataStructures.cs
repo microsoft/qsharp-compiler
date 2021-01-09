@@ -346,9 +346,12 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
-        // Imporant: the constructors must ensure that either length or opaque pointer is not null!
-        private Value? opaquePointer;
+        private readonly ResolvedType qsElementType;
+        public readonly ITypeRef ElementType;
+        public readonly uint? Count;
+
         private readonly CachedValue length;
+        public readonly Value OpaquePointer;
 
         public Value Value => this.OpaquePointer;
 
@@ -357,32 +360,11 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.qsElementType));
 
-        private readonly ResolvedType qsElementType;
-        public readonly ITypeRef ElementType;
-        public readonly uint? Count;
-
         public Value Length => this.length.Load().Value;
 
-        internal Value OpaquePointer
-        {
-            get
-            {
-                if (this.opaquePointer == null)
-                {
-                    // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
-                    var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-                    var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.sharedState.Context.Int32Type);
-                    this.opaquePointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
-                    this.sharedState.ScopeMgr.RegisterValue(this);
-                }
-                return this.opaquePointer;
-            }
-        }
-
         /// <summary>
-        /// Creates a new array value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are other necessary computations. When needed, the instructions are emitted using the current builder.
-        /// Registers the value with the scope manager once it is allocated.
+        /// Creates a new array value.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
@@ -394,13 +376,12 @@ namespace Microsoft.Quantum.QIR.Emission
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
+            this.OpaquePointer = this.AllocateArray();
         }
 
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// The allocation of the value via invokation of the corresponding runtime function is lazy, and so are
-        /// other necessary computations. When needed, the instructions are emitted using the current builder.
-        /// Registers the value with the scope manager once it is allocated.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
@@ -411,11 +392,12 @@ namespace Microsoft.Quantum.QIR.Emission
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = this.CreateLengthCache(length);
+            this.OpaquePointer = this.AllocateArray();
         }
 
         /// <summary>
-        /// Creates a new array value from the given opaque array of elements of the given type. When needed,
-        /// the instructions to compute the length of the array are emitted using the current builder.
+        /// Creates a new array value from the given opaque array of elements of the given type.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array; will be computed on demand if the given value is null</param>
@@ -426,7 +408,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
-            this.opaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
+            this.OpaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
             this.length = length == null
                 ? new CachedValue(context, this.GetLength)
                 : this.CreateLengthCache(length);
@@ -439,10 +421,20 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private IValue GetLength() => IntValue(this.sharedState.CurrentBuilder.Call(
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
-            this.opaquePointer ?? throw new InvalidOperationException("array has no value")));
+            this.OpaquePointer));
 
         private CachedValue CreateLengthCache(Value length) =>
             new CachedValue(IntValue(length), this.sharedState, this.GetLength);
+
+        private Value AllocateArray()
+        {
+            // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
+            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
+            var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.sharedState.Context.Int32Type);
+            var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
+            this.sharedState.ScopeMgr.RegisterValue(this);
+            return pointer;
+        }
 
         // methods for item access
 

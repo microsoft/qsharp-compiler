@@ -63,8 +63,8 @@ namespace Microsoft.Quantum.QIR.Emission
             new TupleValue(tuple, elementTypes, this.sharedState);
 
         /// <summary>
-        /// Creates a new array value from the given opaque array of elements of the given type. When needed,
-        /// instructions to compute the length of the array are emitted using the current builder.
+        /// Creates a new array value from the given opaque array of elements of the given type.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         internal ArrayValue FromArray(Value value, ResolvedType elementType) =>
@@ -129,9 +129,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// The allocation of the value via invokation of the corresponding runtime function is lazy, and so are
-        /// other necessary computations. When needed, instructions are emitted using the current builder.
-        /// Registers the value with the scope manager once it is allocated.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
@@ -140,7 +138,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Builds an array that containsthe given array elements.
-        /// Registers the value with the scope manager once it is allocated.
+        /// Registers the value with the scope manager.
         /// Increases the reference count for the array elements.
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>

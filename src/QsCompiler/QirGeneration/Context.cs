@@ -549,7 +549,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
                 && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
             {
-                var epName = $"{qualifiedName.Namespace.Replace('.', '_')}_{qualifiedName.Name}";
+                var epName = $"{qualifiedName.Namespace.Replace(".", "__")}__{qualifiedName.Name}";
 
                 // Check to see if the arg list needs mapping to more C-friendly types
                 // TODO: handle complicated return types
