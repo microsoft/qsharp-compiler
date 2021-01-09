@@ -63,6 +63,7 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
+  %20 = load i64, i64* %sum
   call void @__quantum__rt__array_remove_access(%Array* %a)
-  ret i64 %18
+  ret i64 %20
 }

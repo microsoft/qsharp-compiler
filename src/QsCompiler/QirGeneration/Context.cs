@@ -1363,14 +1363,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
+                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
+                // expression to perform an allocation that needs to get cleaned up, so...
+                this.ScopeMgr.OpenScope();
                 var condition = evaluateCondition(loopVariable);
+                this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
+
                 this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
                 return loopVariable;
             }
 
             bool PopulateLoopBody(Action executeBody)
             {
-                this.ScopeMgr.OpenScope(); // the loop variable is just an integer, so it's fine to start the block here
+                this.ScopeMgr.OpenScope();
                 this.SetCurrentBlock(bodyBlock);
                 executeBody();
                 var isTerminated = this.CurrentBlock.Terminator != null;
@@ -1392,13 +1397,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
                 loopVariable.AddIncoming(nextValue, exitingBlock);
                 this.CurrentBuilder.Branch(headerBlock);
-
-                this.SetCurrentBlock(exitBlock);
             }
+
+            // We need to mark the loop and also mark the branching
+            // to ensure that pointers are properly loaded when needed.
+            bool withinOuterLoop = this.IsWithinLoop;
+            this.IsWithinLoop = true;
+            this.StartBranch();
 
             var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
             var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
             ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
+
+            this.EndBranch();
+            this.IsWithinLoop = withinOuterLoop;
+            this.SetCurrentBlock(exitBlock);
         }
 
         /// <summary>

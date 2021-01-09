@@ -120,6 +120,12 @@
     <Content Include="TestCases\QirTests\TestExpressions.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestForLoop.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestForLoop.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestFunctors.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

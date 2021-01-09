@@ -59,7 +59,11 @@ let ``QIR access counts`` () =
 [<Fact>]
 let ``QIR array loop`` () =
     qirTest false "TestArrayLoop"
-    
+
+[<Fact>]
+let ``QIR nested for loop`` () =
+    qirTest false "TestForLoop"
+
 [<Fact>]
 let ``QIR array update`` () =
     qirTest false "TestArrayUpdate"
