@@ -884,16 +884,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             if (i != itemIndex && this.SharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
                             {
-                                var itemType = Quantum.QIR.Types.PointerElementType(itemPointers[i]);
-                                var loadedItem = this.SharedState.CurrentBuilder.Load(itemType, itemPointers[i]);
-                                var item = this.SharedState.Values.From(loadedItem, innerTuple.ElementTypes[i]);
+                                var item = itemPointers[i].LoadValue();
                                 this.SharedState.ScopeMgr.IncreaseReferenceCount(item);
                             }
                         }
 
                         if (depth == location.Count - 1)
                         {
-                            this.SharedState.CurrentBuilder.Store(newItemValue.Value, itemPointers[itemIndex]);
+                            itemPointers[itemIndex].StoreValue(newItemValue);
                             this.SharedState.ScopeMgr.IncreaseReferenceCount(newItemValue);
                         }
                         else
@@ -901,15 +899,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // We load the original item at that location (which is an inner tuple),
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
-                            var loadedOriginalItem = this.SharedState.CurrentBuilder.Load(
-                                Quantum.QIR.Types.PointerElementType(itemPointers[itemIndex]),
-                                itemPointers[itemIndex]);
-                            var originalItemTypes = innerTuple.ElementTypes[itemIndex].Resolution is QsResolvedTypeKind.TupleType elementTypes
-                                ? elementTypes.Item
-                                : throw new InvalidOperationException("expecting inner tuple in copy-and-update");
-                            var originalItem = this.SharedState.Values.FromTuple(loadedOriginalItem, originalItemTypes);
+                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
                             innerTuple = GetTupleCopy(originalItem);
-                            this.SharedState.CurrentBuilder.Store(innerTuple.Value, itemPointers[itemIndex]);
+                            itemPointers[itemIndex].StoreValue(innerTuple);
                         }
                     }
 

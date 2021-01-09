@@ -1265,13 +1265,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         var itemOutputPointer = qirOutputTuple.GetTupleElementPointer(j);
                         var resItem = resultTuple.GetTupleElement(j);
-                        this.CurrentBuilder.Store(resItem.Value, itemOutputPointer);
+                        itemOutputPointer.StoreValue(resItem);
                     }
                 }
                 else if (!resultType.Resolution.IsUnitType)
                 {
+                    var result = this.Values.From(resultValue, resultType);
                     var outputPointer = qirOutputTuple.GetTupleElementPointer(0);
-                    this.CurrentBuilder.Store(resultValue, outputPointer);
+                    outputPointer.StoreValue(result);
                 }
             }
 

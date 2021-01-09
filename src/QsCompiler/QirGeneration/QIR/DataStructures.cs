@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR;
@@ -36,16 +37,16 @@ namespace Microsoft.Quantum.QIR.Emission
             // (only) if it was set within a branch that is not a parent branch of the current branch.
             private (int, T?) cache;
 
-            internal Cached(T? value, GenerationContext context, Func<T> reload, Action<T>? store = null)
+            internal Cached(T? value, GenerationContext context, Func<T> load, Action<T>? store = null)
             {
                 this.sharedState = context;
-                this.load = reload;
+                this.load = load;
                 this.store = store;
                 this.cache = (context.CurrentBranch, value);
             }
 
-            internal Cached(GenerationContext context, Func<T> reload, Action<T>? store = null)
-            : this(null, context, reload, store)
+            internal Cached(GenerationContext context, Func<T> load, Action<T>? store = null)
+            : this(null, context, load, store)
             {
             }
 
@@ -54,6 +55,9 @@ namespace Microsoft.Quantum.QIR.Emission
                 (this.store == null || !this.sharedState.IsWithinLoop) &&
                 this.sharedState.IsOpenBranch(this.cache.Item1);
 
+            /// <summary>
+            /// Returns the cached value stored or loads it if necessary.
+            /// </summary>
             public T Load()
             {
                 // We need to force that mutable variables that are set within the loop are reloaded
@@ -68,6 +72,10 @@ namespace Microsoft.Quantum.QIR.Emission
                 return this.cache.Item2;
             }
 
+            /// <summary>
+            /// If a store function has been defind upon constuction, stores and caches the given value.
+            /// Throws and InvalidOperationException if no store function has been defined.
+            /// </summary>
             public void Store(T value)
             {
                 if (this.store == null)
@@ -142,11 +150,14 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType { get; }
 
         /// <summary>
-        /// Creates a pointer that represents a mutable variable.
+        /// Creates a pointer that can store a value and provides a caching mechanism for accessing that value
+        /// to avoid unnecessary loads. The pointer is instantiated with the given pointer.
+        /// If the given pointer is null, a new pointer is created via an alloca instruction.
         /// </summary>
-        /// <param name="type">The Q# type of the variable that the pointer represents</param>
+        /// <param name="pointer">Optional parameter to provide an existing pointer to use</param>
+        /// <param name="type">The Q# type of the value that the pointer points to</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal PointerValue(IValue value, GenerationContext context)
+        internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
         {
             void Store(IValue v) =>
                 context.CurrentBuilder.Store(v.Value, this.pointer);
@@ -156,11 +167,21 @@ namespace Microsoft.Quantum.QIR.Emission
                     context.CurrentBuilder.Load(this.LlvmType, this.pointer),
                     this.QSharpType);
 
-            this.QSharpType = value.QSharpType;
+            this.QSharpType = type;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
-            this.pointer = context.CurrentBuilder.Alloca(this.LlvmType);
-            context.CurrentBuilder.Store(value.Value, this.pointer);
-            this.cachedValue = new IValue.Cached<IValue>(value, context, Reload, Store);
+            this.pointer = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
+            this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
+        }
+
+        /// <summary>
+        /// Creates a pointer that represents a mutable variable.
+        /// </summary>
+        /// <param name="value">The value to store</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        internal PointerValue(IValue value, GenerationContext context)
+        : this(null, value.QSharpType, context)
+        {
+            this.cachedValue.Store(value);
         }
 
         /// <summary>
@@ -197,6 +218,7 @@ namespace Microsoft.Quantum.QIR.Emission
         // or the opaque pointer is instantiated with a value!
         private readonly IValue.Cached<Value> opaquePointer;
         private readonly IValue.Cached<Value> typedPointer;
+        private readonly IValue.Cached<PointerValue>[] tupleElementPointers;
 
         public Value Value => this.TypedPointer;
 
@@ -229,6 +251,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple());
             this.typedPointer = this.CreateTypedPointerCache();
+            this.tupleElementPointers = this.CreateTupleElementPointersCaches();
         }
 
         /// <summary>
@@ -255,6 +278,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
             this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
+            this.tupleElementPointers = this.CreateTupleElementPointersCaches();
         }
 
         /// <summary>
@@ -287,6 +311,17 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<Value> CreateTypedPointerCache(Value? pointer = null) =>
             new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
+        private Value GetElementPointer(int index) =>
+            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+
+        private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, int index) =>
+            new IValue.Cached<PointerValue>(
+                this.sharedState,
+                () => new PointerValue(this.GetElementPointer(index), type, this.sharedState));
+
+        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
+            this.ElementTypes.Select(this.CreateCachedPointer).ToArray();
+
         private Value AllocateTuple()
         {
             // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
@@ -312,37 +347,27 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns a pointer to the tuple element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        internal Value GetTupleElementPointer(int index) =>
-            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        internal PointerValue GetTupleElementPointer(int index) =>
+            this.tupleElementPointers[index].Load();
 
         /// <summary>
         /// Returns the tuple element with the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        internal IValue GetTupleElement(int index)
-        {
-            var elementPtr = this.GetTupleElementPointer(index);
-            var element = this.sharedState.CurrentBuilder.Load(this.StructType.Members[index], elementPtr);
-            return this.sharedState.Values.From(element, this.ElementTypes[index]);
-        }
+        internal IValue GetTupleElement(int index) =>
+            this.GetTupleElementPointer(index).LoadValue();
 
         /// <summary>
         /// Returns an array with all pointers to the tuple elements.
         /// </summary>
-        internal Value[] GetTupleElementPointers() =>
-            this.StructType.Members
-                .Select((_, i) => this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
-                .ToArray();
+        internal PointerValue[] GetTupleElementPointers() =>
+            this.tupleElementPointers.Select(ptr => ptr.Load()).ToArray();
 
         /// <summary>
         /// Returns an array with all tuple elements.
         /// </summary>
-        internal IValue[] GetTupleElements()
-        {
-            var elementPtrs = this.GetTupleElementPointers();
-            var elements = this.StructType.Members.Select((itemType, i) => this.sharedState.CurrentBuilder.Load(itemType, elementPtrs[i]));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.ElementTypes[i])).ToArray();
-        }
+        internal IValue[] GetTupleElements() =>
+            this.GetTupleElementPointers().Select(ptr => ptr.LoadValue()).ToArray();
     }
 
     /// <summary>
@@ -351,12 +376,11 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         private readonly GenerationContext sharedState;
-
         private readonly ResolvedType qsElementType;
+        private readonly IValue.Cached<Value> length;
+
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
-
-        private readonly IValue.Cached<Value> length;
         public readonly Value OpaquePointer;
 
         public Value Value => this.OpaquePointer;

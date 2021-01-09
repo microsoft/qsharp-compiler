@@ -8,39 +8,25 @@ entry:
   store { i64, i64 }* %1, { i64, i64 }** %4
   %5 = bitcast { i64, i64 }* %1 to %Tuple*
   call void @__quantum__rt__tuple_reference(%Tuple* %5)
-  %6 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
-  %7 = load { i64, i64 }*, { i64, i64 }** %6
-  %8 = bitcast { i64, i64 }* %7 to %Tuple*
-  call void @__quantum__rt__tuple_add_access(%Tuple* %8)
+  call void @__quantum__rt__tuple_add_access(%Tuple* %5)
   call void @__quantum__rt__tuple_add_access(%Tuple* %2)
-  %9 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 0
-  %x = load i64, i64* %9
-  %10 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
-  %y = load { i64, i64 }*, { i64, i64 }** %10
-  %11 = bitcast { i64, i64 }* %y to %Tuple*
-  call void @__quantum__rt__tuple_add_access(%Tuple* %11)
+  call void @__quantum__rt__tuple_add_access(%Tuple* %5)
   %b = alloca i64
   store i64 3, i64* %b
   %c = alloca i64
   store i64 5, i64* %c
-  %12 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 0
-  %13 = getelementptr { i64, i64 }, { i64, i64 }* %y, i64 0, i32 1
-  %14 = load i64, i64* %12
-  %15 = load i64, i64* %13
-  store i64 %14, i64* %b
-  store i64 %15, i64* %c
-  %16 = mul i64 %14, %15
-  %17 = add i64 %x, %16
-  %18 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
-  %19 = load { i64, i64 }*, { i64, i64 }** %18
-  %20 = bitcast { i64, i64 }* %19 to %Tuple*
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %20)
+  %6 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 0
+  %7 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
+  %8 = load i64, i64* %6
+  %9 = load i64, i64* %7
+  store i64 %8, i64* %b
+  store i64 %9, i64* %c
+  %10 = mul i64 %8, %9
+  %11 = add i64 %0, %10
+  call void @__quantum__rt__tuple_remove_access(%Tuple* %5)
   call void @__quantum__rt__tuple_remove_access(%Tuple* %2)
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %11)
-  %21 = getelementptr { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i64 0, i32 1
-  %22 = load { i64, i64 }*, { i64, i64 }** %21
-  %23 = bitcast { i64, i64 }* %22 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %23)
+  call void @__quantum__rt__tuple_remove_access(%Tuple* %5)
+  call void @__quantum__rt__tuple_unreference(%Tuple* %5)
   call void @__quantum__rt__tuple_unreference(%Tuple* %2)
-  ret i64 %17
+  ret i64 %11
 }
