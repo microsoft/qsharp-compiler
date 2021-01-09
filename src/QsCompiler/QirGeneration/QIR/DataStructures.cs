@@ -49,14 +49,17 @@ namespace Microsoft.Quantum.QIR.Emission
             {
             }
 
+            public bool IsCached =>
+                this.cache.Item2 != null &&
+                (this.store == null || !this.sharedState.IsWithinLoop) &&
+                this.sharedState.IsOpenBranch(this.cache.Item1);
+
             public T Load()
             {
                 // We need to force that mutable variables that are set within the loop are reloaded
                 // when they are used instead of accessing the cached version.
                 // We could be smarter and only reload them if they are indeed updated as part of the loop.
-                if (this.cache.Item2 == null ||
-                    (this.store != null && this.sharedState.IsWithinLoop) ||
-                    !this.sharedState.IsOpenBranch(this.cache.Item1))
+                if (!this.IsCached)
                 {
                     var loaded = this.load();
                     this.cache = (this.sharedState.CurrentBranch, loaded);
@@ -190,9 +193,10 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly UserDefinedType? customType;
 
         // IMPORTANT:
-        // The constructors need to ensure that either the typed pointer or the opaque pointer is not null!
-        private Value? opaquePointer;
-        private Value? typedPointer;
+        // The constructors need to ensure that either the typed pointer
+        // or the opaque pointer is instantiated with a value!
+        private readonly IValue.Cached<Value> opaquePointer;
+        private readonly IValue.Cached<Value> typedPointer;
 
         public Value Value => this.TypedPointer;
 
@@ -205,23 +209,11 @@ namespace Microsoft.Quantum.QIR.Emission
         internal readonly ImmutableArray<ResolvedType> ElementTypes;
         public readonly IStructType StructType;
 
-        internal Value OpaquePointer
-        {
-            get
-            {
-                this.opaquePointer ??= this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
-                return this.opaquePointer;
-            }
-        }
+        internal Value OpaquePointer =>
+            this.opaquePointer.Load();
 
-        internal Value TypedPointer
-        {
-            get
-            {
-                this.typedPointer ??= this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
-                return this.typedPointer;
-            }
-        }
+        internal Value TypedPointer =>
+            this.typedPointer.Load();
 
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
@@ -235,7 +227,8 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
-            this.opaquePointer = this.AllocateTuple();
+            this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple());
+            this.typedPointer = this.CreateTypedPointerCache();
         }
 
         /// <summary>
@@ -257,11 +250,11 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             this.sharedState = context;
-            this.opaquePointer = isOpaqueTuple ? tuple : null;
-            this.typedPointer = isTypedTuple ? tuple : null;
             this.customType = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
+            this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
         }
 
         /// <summary>
@@ -277,6 +270,22 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         // private helpers
+
+        private Value GetOpaquePointer() =>
+            this.typedPointer.IsCached
+            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple)
+            : throw new InvalidOperationException("tuple pointer is undefined");
+
+        private Value GetTypedPointer() =>
+            this.opaquePointer.IsCached
+            ? this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType())
+            : throw new InvalidOperationException("tuple pointer is undefined");
+
+        private IValue.Cached<Value> CreateOpaquePointerCache(Value? pointer = null) =>
+            new IValue.Cached<Value>(pointer, this.sharedState, this.GetOpaquePointer);
+
+        private IValue.Cached<Value> CreateTypedPointerCache(Value? pointer = null) =>
+            new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
         private Value AllocateTuple()
         {
