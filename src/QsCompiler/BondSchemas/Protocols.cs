@@ -147,8 +147,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            //return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation));
-            return Task.Run(() => new SimpleBinaryDeserializer(type: typeof(QsCompilation), factory: (Factory?)null, inlineNested: false));
+
+            // The inlineNested constructor argument is set to false because it optimizes deserialization time at the expense of initialization time and memory.
+            // N.B. For our Bond schemas, passing this argument to the Deserializer constructor does not seem to impact deserialization time.
+            return Task.Run(() => new SimpleBinaryDeserializer(
+                type: typeof(QsCompilation),
+                factory: (Factory?)null,
+                inlineNested: false));
         }
 
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()
