@@ -27,6 +27,7 @@ condTrue__1:                                      ; preds = %continue__1
   br label %condContinue__1
 
 condFalse__1:                                     ; preds = %continue__1
+  call void @__quantum__rt__array_reference(%Array* %arr)
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1

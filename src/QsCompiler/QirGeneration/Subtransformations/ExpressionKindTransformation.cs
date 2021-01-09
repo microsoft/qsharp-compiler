@@ -739,27 +739,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                // This is similar to conditional statements, but actually a bit simpler because there's always an else,
-                // and we don't need to open a new scope. On the other hand, we do need to build a phi node in the
-                // continuation block, and we need to make sure that the phi node gets queued for unreferencing instead
-                // of the built values.
                 var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
                 var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
                 var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
 
-                var refCountingDisabled = this.SharedState.ScopeMgr.DisableReferenceCounting;
-                this.SharedState.ScopeMgr.DisableReferenceCounting = true;
+                // In order to ensure the correct reference counts, it is important that we create a new scope
+                // for each branch of the conditional. When we close the scope, we list the computed value as
+                // to be returned from that scope, meaning it either won't be dereferenced or its reference
+                // count will increase by 1. The result of the expression is a phi node that we then properly
+                // register with the scope manager, such that it will be unreferenced when going out of scope.
+
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
                 this.SharedState.SetCurrentBlock(trueBlock);
+                this.SharedState.ScopeMgr.OpenScope();
                 var ifTrue = this.SharedState.EvaluateSubexpression(ifTrueEx);
+                this.SharedState.ScopeMgr.CloseScope(ifTrue);
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(falseBlock);
+                this.SharedState.ScopeMgr.OpenScope();
                 var ifFalse = this.SharedState.EvaluateSubexpression(ifFalseEx);
+                this.SharedState.ScopeMgr.CloseScope(ifFalse);
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
-                this.SharedState.ScopeMgr.DisableReferenceCounting = refCountingDisabled;
                 this.SharedState.SetCurrentBlock(contBlock);
                 var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
                 phi.AddIncoming(ifTrue.Value, trueBlock);
