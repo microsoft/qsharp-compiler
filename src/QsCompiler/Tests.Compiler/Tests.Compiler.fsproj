@@ -57,6 +57,12 @@
     <Content Include="TestCases\QirTests\TestBools.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestCaching.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestCaching.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestConditional.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

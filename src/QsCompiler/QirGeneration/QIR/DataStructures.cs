@@ -70,13 +70,60 @@ namespace Microsoft.Quantum.QIR.Emission
         }
     }
 
-    internal class PointerValue : IValue
+    internal class CachedValue
     {
         private readonly GenerationContext sharedState;
+        private readonly Func<IValue> load;
+        private readonly Action<IValue>? store;
 
         // We need to store the branch id with the value since the value needs to be reloaded
         // (only) if it was set within a branch that is not a parent branch of the current branch.
-        private (int, IValue) cachedValue;
+        private (int, IValue?) cache;
+
+        internal CachedValue(IValue? value, GenerationContext context, Func<IValue> reload, Action<IValue>? store = null)
+        {
+            this.sharedState = context;
+            this.load = reload;
+            this.store = store;
+            this.cache = (context.CurrentBranch, value);
+        }
+
+        internal CachedValue(GenerationContext context, Func<IValue> reload, Action<IValue>? store = null)
+        : this(null, context, reload, store)
+        {
+        }
+
+        public IValue Load()
+        {
+            // We need to force that mutable variables that are set within the loop are reloaded
+            // when they are used instead of accessing the cached version.
+            // We could be smarter and only reload them if they are indeed updated as part of the loop.
+            if (this.cache.Item2 == null ||
+                (this.store != null && this.sharedState.IsWithinLoop) ||
+                !this.sharedState.IsOpenBranch(this.cache.Item1))
+            {
+                var loaded = this.load();
+                this.cache = (this.sharedState.CurrentBranch, loaded);
+            }
+
+            return this.cache.Item2;
+        }
+
+        public void Store(IValue value)
+        {
+            if (this.store == null)
+            {
+                throw new InvalidOperationException("no storage function defined");
+            }
+
+            this.store(value);
+            this.cache = (this.sharedState.CurrentBranch, value);
+        }
+    }
+
+    internal class PointerValue : IValue
+    {
+        private readonly CachedValue cachedValue;
         private readonly Value pointer;
 
         public Value Value => this.LoadValue().Value;
@@ -92,36 +139,32 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal PointerValue(IValue value, GenerationContext context)
         {
-            this.sharedState = context;
+            void Store(IValue v) =>
+                context.CurrentBuilder.Store(v.Value, this.pointer);
+
+            IValue Reload() =>
+                context.Values.From(
+                    context.CurrentBuilder.Load(this.LlvmType, this.pointer),
+                    this.QSharpType);
+
             this.QSharpType = value.QSharpType;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
-            this.pointer = this.sharedState.CurrentBuilder.Alloca(this.LlvmType);
+            this.pointer = context.CurrentBuilder.Alloca(this.LlvmType);
             context.CurrentBuilder.Store(value.Value, this.pointer);
-            this.cachedValue = (this.sharedState.CurrentBranch, value);
+            this.cachedValue = new CachedValue(value, context, Reload, Store);
         }
 
         /// <summary>
         /// Loads and returns the current value of the mutable variable.
         /// </summary>
-        public IValue LoadValue()
-        {
-            // We need to force that mutable variables that are set within the loop are reloaded
-            // when they are used instead of accessing the cached version.
-            // We could be smarter and only reload them if they are indeed updated as part of the loop.
-            if (this.sharedState.IsWithinLoop || !this.sharedState.IsOpenBranch(this.cachedValue.Item1))
-            {
-                var loaded = this.sharedState.CurrentBuilder.Load(this.LlvmType, this.pointer);
-                var value = this.sharedState.Values.From(loaded, this.QSharpType);
-                this.cachedValue = (this.sharedState.CurrentBranch, value);
-            }
-            return this.cachedValue.Item2;
-        }
+        public IValue LoadValue() =>
+            this.cachedValue.Load();
 
-        public void StoreValue(IValue value)
-        {
-            this.cachedValue = (this.sharedState.CurrentBranch, value);
-            this.sharedState.CurrentBuilder.Store(value.Value, this.pointer);
-        }
+        /// <summary>
+        /// Sets the mutable variable to the given value.
+        /// </summary>
+        public void StoreValue(IValue value) =>
+            this.cachedValue.Store(value);
 
         void IValue.RegisterName(string name)
         {

@@ -65,6 +65,10 @@ let ``QIR nested for loop`` () =
     qirTest false "TestForLoop"
 
 [<Fact>]
+let ``QIR caching of values`` () =
+    qirTest true "TestCaching"
+
+[<Fact>]
 let ``QIR array update`` () =
     qirTest false "TestArrayUpdate"
     
