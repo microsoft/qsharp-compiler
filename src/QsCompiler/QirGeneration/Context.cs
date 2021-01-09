@@ -1407,6 +1407,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             });
         }
 
+        /// <summary>
+        /// Executes the loop defined by the given action.
+        /// Ensures that all pointers will be properly loaded during and after the loop.
+        /// </summary>
+        /// <param name="continuation">The block to set as the current block after executing the loop</param>
+        /// <param name="loop">The loop to execute</param>
         internal void ExecuteLoop(BasicBlock continuation, Action loop)
         {
             // We need to mark the loop and also mark the branching
