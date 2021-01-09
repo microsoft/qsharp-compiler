@@ -21,6 +21,63 @@ namespace Microsoft.Quantum.QIR.Emission
     internal interface IValue
     {
         /// <summary>
+        /// Used to handle value properties that are computed on demand, such as e.g. the length of an array
+        /// or loading the content of a pointer. Using this class avoids unnecessary recomputes by storing
+        /// the output of the computation and only recomputing it when needed.
+        /// </summary>
+        protected class Cached<T>
+        where T : class
+        {
+            private readonly GenerationContext sharedState;
+            private readonly Func<T> load;
+            private readonly Action<T>? store;
+
+            // We need to store the branch id with the value since the value needs to be reloaded
+            // (only) if it was set within a branch that is not a parent branch of the current branch.
+            private (int, T?) cache;
+
+            internal Cached(T? value, GenerationContext context, Func<T> reload, Action<T>? store = null)
+            {
+                this.sharedState = context;
+                this.load = reload;
+                this.store = store;
+                this.cache = (context.CurrentBranch, value);
+            }
+
+            internal Cached(GenerationContext context, Func<T> reload, Action<T>? store = null)
+            : this(null, context, reload, store)
+            {
+            }
+
+            public T Load()
+            {
+                // We need to force that mutable variables that are set within the loop are reloaded
+                // when they are used instead of accessing the cached version.
+                // We could be smarter and only reload them if they are indeed updated as part of the loop.
+                if (this.cache.Item2 == null ||
+                    (this.store != null && this.sharedState.IsWithinLoop) ||
+                    !this.sharedState.IsOpenBranch(this.cache.Item1))
+                {
+                    var loaded = this.load();
+                    this.cache = (this.sharedState.CurrentBranch, loaded);
+                }
+
+                return this.cache.Item2;
+            }
+
+            public void Store(T value)
+            {
+                if (this.store == null)
+                {
+                    throw new InvalidOperationException("no storage function defined");
+                }
+
+                this.store(value);
+                this.cache = (this.sharedState.CurrentBranch, value);
+            }
+        }
+
+        /// <summary>
         /// The QIR representation of the value.
         /// </summary>
         public Value Value { get; }
@@ -70,60 +127,9 @@ namespace Microsoft.Quantum.QIR.Emission
         }
     }
 
-    internal class CachedValue
-    {
-        private readonly GenerationContext sharedState;
-        private readonly Func<IValue> load;
-        private readonly Action<IValue>? store;
-
-        // We need to store the branch id with the value since the value needs to be reloaded
-        // (only) if it was set within a branch that is not a parent branch of the current branch.
-        private (int, IValue?) cache;
-
-        internal CachedValue(IValue? value, GenerationContext context, Func<IValue> reload, Action<IValue>? store = null)
-        {
-            this.sharedState = context;
-            this.load = reload;
-            this.store = store;
-            this.cache = (context.CurrentBranch, value);
-        }
-
-        internal CachedValue(GenerationContext context, Func<IValue> reload, Action<IValue>? store = null)
-        : this(null, context, reload, store)
-        {
-        }
-
-        public IValue Load()
-        {
-            // We need to force that mutable variables that are set within the loop are reloaded
-            // when they are used instead of accessing the cached version.
-            // We could be smarter and only reload them if they are indeed updated as part of the loop.
-            if (this.cache.Item2 == null ||
-                (this.store != null && this.sharedState.IsWithinLoop) ||
-                !this.sharedState.IsOpenBranch(this.cache.Item1))
-            {
-                var loaded = this.load();
-                this.cache = (this.sharedState.CurrentBranch, loaded);
-            }
-
-            return this.cache.Item2;
-        }
-
-        public void Store(IValue value)
-        {
-            if (this.store == null)
-            {
-                throw new InvalidOperationException("no storage function defined");
-            }
-
-            this.store(value);
-            this.cache = (this.sharedState.CurrentBranch, value);
-        }
-    }
-
     internal class PointerValue : IValue
     {
-        private readonly CachedValue cachedValue;
+        private readonly IValue.Cached<IValue> cachedValue;
         private readonly Value pointer;
 
         public Value Value => this.LoadValue().Value;
@@ -151,7 +157,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
             this.pointer = context.CurrentBuilder.Alloca(this.LlvmType);
             context.CurrentBuilder.Store(value.Value, this.pointer);
-            this.cachedValue = new CachedValue(value, context, Reload, Store);
+            this.cachedValue = new IValue.Cached<IValue>(value, context, Reload, Store);
         }
 
         /// <summary>
@@ -181,10 +187,12 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class TupleValue : IValue
     {
         private readonly GenerationContext sharedState;
+        private readonly UserDefinedType? customType;
 
+        // IMPORTANT:
+        // The constructors need to ensure that either the typed pointer or the opaque pointer is not null!
         private Value? opaquePointer;
         private Value? typedPointer;
-        private readonly UserDefinedType? customType;
 
         public Value Value => this.TypedPointer;
 
@@ -197,24 +205,10 @@ namespace Microsoft.Quantum.QIR.Emission
         internal readonly ImmutableArray<ResolvedType> ElementTypes;
         public readonly IStructType StructType;
 
-        private void AllocateTuple()
-        {
-            // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
-            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-            var size = this.sharedState.ComputeSizeForType(this.StructType);
-            this.opaquePointer = this.sharedState.CurrentBuilder.Call(constructor, size);
-            this.sharedState.ScopeMgr.RegisterValue(this);
-        }
-
         internal Value OpaquePointer
         {
             get
             {
-                if (this.opaquePointer == null && this.typedPointer == null)
-                {
-                    this.AllocateTuple();
-                }
-
                 this.opaquePointer ??= this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple);
                 return this.opaquePointer;
             }
@@ -224,11 +218,6 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             get
             {
-                if (this.opaquePointer == null && this.typedPointer == null)
-                {
-                    this.AllocateTuple();
-                }
-
                 this.typedPointer ??= this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType());
                 return this.typedPointer;
             }
@@ -246,6 +235,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.opaquePointer = this.AllocateTuple();
         }
 
         /// <summary>
@@ -286,6 +276,18 @@ namespace Microsoft.Quantum.QIR.Emission
         {
         }
 
+        // private helpers
+
+        private Value AllocateTuple()
+        {
+            // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
+            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
+            var size = this.sharedState.ComputeSizeForType(this.StructType);
+            var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
+            this.sharedState.ScopeMgr.RegisterValue(this);
+            return tuple;
+        }
+
         // methods for item access
 
         /// <summary>
@@ -301,11 +303,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns a pointer to the tuple element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the tuple.</param>
-        internal Value GetTupleElementPointer(int index)
-        {
-            //new PointerValue(this.ElementTypes[index], this.sharedState)
-            return this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
-        }
+        internal Value GetTupleElementPointer(int index) =>
+            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
 
         /// <summary>
         /// Returns the tuple element with the given index.
@@ -321,12 +320,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Returns an array with all pointers to the tuple elements.
         /// </summary>
-        internal Value[] GetTupleElementPointers()
-        {
-            return this.StructType.Members
+        internal Value[] GetTupleElementPointers() =>
+            this.StructType.Members
                 .Select((_, i) => this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(i)))
                 .ToArray();
-        }
 
         /// <summary>
         /// Returns an array with all tuple elements.
@@ -350,7 +347,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public readonly ITypeRef ElementType;
         public readonly uint? Count;
 
-        private readonly CachedValue length;
+        private readonly IValue.Cached<Value> length;
         public readonly Value OpaquePointer;
 
         public Value Value => this.OpaquePointer;
@@ -360,7 +357,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.qsElementType));
 
-        public Value Length => this.length.Load().Value;
+        public Value Length => this.length.Load();
 
         /// <summary>
         /// Creates a new array value.
@@ -410,21 +407,18 @@ namespace Microsoft.Quantum.QIR.Emission
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.OpaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
             this.length = length == null
-                ? new CachedValue(context, this.GetLength)
+                ? new IValue.Cached<Value>(context, this.GetLength)
                 : this.CreateLengthCache(length);
         }
 
         // private helpers
 
-        private static IValue IntValue(Value v) =>
-            new SimpleValue(v, ResolvedType.New(QsResolvedTypeKind.Int));
-
-        private IValue GetLength() => IntValue(this.sharedState.CurrentBuilder.Call(
+        private Value GetLength() => this.sharedState.CurrentBuilder.Call(
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
-            this.OpaquePointer));
+            this.OpaquePointer);
 
-        private CachedValue CreateLengthCache(Value length) =>
-            new CachedValue(IntValue(length), this.sharedState, this.GetLength);
+        private IValue.Cached<Value> CreateLengthCache(Value length) =>
+            new IValue.Cached<Value>(length, this.sharedState, this.GetLength);
 
         private Value AllocateArray()
         {
