@@ -27,16 +27,24 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 }
  
-namespace Microsoft.Quantum.Testing.Tracer
+namespace Microsoft.Quantum.Testing.QIR
 {
     open Microsoft.Quantum.Intrinsic;
  
+    internal function UpdatedValues(res : Result, (x : Double, y : Double)) : (Double, Double) {
+        return res == Zero ? (x - 0.5, y) | (x, y + 0.5);
+    }
+
     @EntryPoint()
-    operation TestInline() : Unit
-    {
-        using (q = Qubit())
-        {
+    operation TestInline() : (Double, Double) {
+
+        mutable (x, y) = (0., 0.);
+        using (q = Qubit()) {
+
             K(0.3, q);
+            set (x, y) = UpdatedValues(M(q), (x, y));
         }
+
+        return (x, y);
     }
 }

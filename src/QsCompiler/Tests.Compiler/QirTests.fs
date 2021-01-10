@@ -54,7 +54,7 @@ let ``QIR using`` () =
 
 [<Fact>]
 let ``QIR inlined call`` () =
-    qirTest false "TestInline"
+    qirTest true "TestInline"
 
 [<Fact>]
 let ``QIR access counts`` () =
