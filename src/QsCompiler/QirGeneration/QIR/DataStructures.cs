@@ -473,30 +473,27 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns a pointer to the array element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        internal Value GetArrayElementPointer(Value index)
+        internal PointerValue GetArrayElementPointer(Value index)
         {
             var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
             var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
-            return this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
+            var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
+            return new PointerValue(typedElementPointer, this.qsElementType, this.sharedState);
         }
 
         /// <summary>
         /// Returns the array element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        internal IValue GetArrayElement(Value index)
-        {
-            var elementPtr = this.GetArrayElementPointer(index);
-            var element = this.sharedState.CurrentBuilder.Load(this.ElementType, elementPtr);
-            return this.sharedState.Values.From(element, this.qsElementType);
-        }
+        internal IValue GetArrayElement(Value index) =>
+            this.GetArrayElementPointer(index).LoadValue();
 
         /// <summary>
-        /// Returns the pointers to an array element at the given indices.
-        /// If no indices are specified, returns all element pointers if the length of the array is know,
+        /// Returns the pointers to the array elements at the given indices.
+        /// If no indices are specified, returns all element pointers if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal Value[] GetArrayElementPointers(params int[] indices)
+        internal PointerValue[] GetArrayElementPointers(params int[] indices)
         {
             var enumerable = indices.Length != 0 ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
@@ -510,15 +507,11 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Returns the array elements at the given indices.
-        /// If no indices are specified, returns all elements if the length of the array is know,
+        /// If no indices are specified, returns all elements if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal IValue[] GetArrayElements(params int[] indices)
-        {
-            var elementPtrs = this.GetArrayElementPointers(indices);
-            var elements = elementPtrs.Select(ptr => this.sharedState.CurrentBuilder.Load(this.ElementType, ptr));
-            return elements.Select((element, i) => this.sharedState.Values.From(element, this.qsElementType)).ToArray();
-        }
+        internal IValue[] GetArrayElements(params int[] indices) =>
+            this.GetArrayElementPointers(indices).Select(ptr => ptr.LoadValue()).ToArray();
     }
 
     /// <summary>

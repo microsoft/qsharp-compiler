@@ -164,12 +164,12 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool registerWithScopeManager = true)
         {
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, registerWithScopeManager);
-            Value[] itemPointers = array.GetArrayElementPointers();
+            var itemPointers = array.GetArrayElementPointers();
 
             var elements = arrayElements.Select(this.sharedState.BuildSubitem).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
-                this.sharedState.CurrentBuilder.Store(elements[i].Value, itemPointers[i]);
+                itemPointers[i].StoreValue(elements[i]);
             }
 
             return array;
@@ -184,11 +184,11 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements)
         {
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState);
-            Value[] itemPointers = array.GetArrayElementPointers();
+            var itemPointers = array.GetArrayElementPointers();
 
             for (var i = 0; i < itemPointers.Length; ++i)
             {
-                this.sharedState.CurrentBuilder.Store(arrayElements[i].Value, itemPointers[i]);
+                itemPointers[i].StoreValue(arrayElements[i]);
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
             }
 

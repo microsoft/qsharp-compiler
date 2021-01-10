@@ -803,15 +803,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
                     var elementPtr = array.GetArrayElementPointer(index);
-                    var loadedOrigElement = this.SharedState.CurrentBuilder.Load(array.ElementType, elementPtr);
-                    var originalElement = this.SharedState.Values.From(loadedOrigElement, elementType);
+                    var originalElement = elementPtr.LoadValue();
                     var newElement = getNewItemForIndex(index);
 
                     // Remark: Avoiding to increase and then decrease the reference count for the original item
                     // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
                     // whether that would be much better.
                     this.SharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
-                    this.SharedState.CurrentBuilder.Store(newElement.Value, elementPtr);
+                    elementPtr.StoreValue(newElement);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
