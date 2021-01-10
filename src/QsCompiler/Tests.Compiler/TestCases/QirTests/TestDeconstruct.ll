@@ -16,12 +16,12 @@ entry:
   %c = alloca i64
   store i64 5, i64* %c
   %6 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 0
-  %7 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
-  %8 = load i64, i64* %6
-  %9 = load i64, i64* %7
-  store i64 %8, i64* %b
+  %7 = load i64, i64* %6
+  store i64 %7, i64* %b
+  %8 = getelementptr { i64, i64 }, { i64, i64 }* %1, i64 0, i32 1
+  %9 = load i64, i64* %8
   store i64 %9, i64* %c
-  %10 = mul i64 %8, %9
+  %10 = mul i64 %7, %9
   %11 = add i64 %0, %10
   call void @__quantum__rt__tuple_remove_access(%Tuple* %5)
   call void @__quantum__rt__tuple_remove_access(%Tuple* %2)
