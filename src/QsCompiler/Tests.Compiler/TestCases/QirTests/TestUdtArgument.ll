@@ -14,8 +14,6 @@ entry:
   call void @__quantum__rt__callable_reference(%Callable* %2)
   store i2 %3, i2* %7
   %8 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %4)
-  call void @__quantum__rt__callable_reference(%Callable* %2)
-  call void @__quantum__rt__tuple_reference(%Tuple* %4)
   %udt2 = call { i2, i64 }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %8)
   %9 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_add_access(%Tuple* %9)
@@ -31,8 +29,6 @@ entry:
   store i2 %11, i2* %15
   store double 2.000000e+00, double* %16
   %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, %Tuple* %12)
-  call void @__quantum__rt__callable_reference(%Callable* %10)
-  call void @__quantum__rt__tuple_reference(%Tuple* %12)
   %udt3 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %17)
   %18 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %udt3, i64 0, i32 0
   %19 = load { i2, i64 }*, { i2, i64 }** %18
@@ -56,13 +52,9 @@ entry:
   call void @__quantum__rt__callable_unreference(%Callable* %0)
   call void @__quantum__rt__tuple_unreference(%Tuple* %1)
   call void @__quantum__rt__callable_unreference(%Callable* %2)
-  call void @__quantum__rt__callable_unreference(%Callable* %2)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %4)
   call void @__quantum__rt__callable_unreference(%Callable* %8)
   call void @__quantum__rt__tuple_unreference(%Tuple* %9)
   call void @__quantum__rt__callable_unreference(%Callable* %10)
-  call void @__quantum__rt__callable_unreference(%Callable* %10)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %12)
   call void @__quantum__rt__callable_unreference(%Callable* %17)
   call void @__quantum__rt__tuple_unreference(%Tuple* %20)
   call void @__quantum__rt__tuple_unreference(%Tuple* %21)

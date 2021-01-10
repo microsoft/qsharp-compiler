@@ -9,8 +9,6 @@ entry:
   call void @__quantum__rt__callable_reference(%Callable* %0)
   store i64 1, i64* %4
   %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %1)
-  call void @__quantum__rt__callable_reference(%Callable* %0)
-  call void @__quantum__rt__tuple_reference(%Tuple* %1)
   %adj_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 true)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %adj_qop)
   %ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 true)
@@ -298,8 +296,6 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__result_unreference(%Result* %8)
   %103 = load i64, i64* %error_code
   call void @__quantum__rt__callable_unreference(%Callable* %0)
-  call void @__quantum__rt__callable_unreference(%Callable* %0)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %1)
   call void @__quantum__rt__callable_unreference(%Callable* %qop)
   call void @__quantum__rt__callable_unreference(%Callable* %adj_qop)
   call void @__quantum__rt__callable_unreference(%Callable* %ctl_qop)

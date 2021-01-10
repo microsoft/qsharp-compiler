@@ -1685,11 +1685,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var innerArgType = CallableArgumentType(method.ResolvedType);
 
             // Create the capture tuple, which contains the inner callable as the first item and
-            // construct the mapping to compine captured arguments with the arguments for the partial application
+            // construct the mapping to combine captured arguments with the arguments for the partial application.
+            // Since the capture tuple won't be accessible and will only be used by the partial application,
+            // we don't register the tuple with the scope manager and instead don't increase the ref count
+            // when building the partial application. Since the partial application is registered with the scope
+            // manager, the capture tuple will be released when the partial application is, as it should be.
             var captured = new List<IValue>();
             captured.Add(this.SharedState.EvaluateSubexpression(method));
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var capture = this.SharedState.Values.CreateTuple(captured.ToArray());
+            var capture = this.SharedState.Values.CreateTuple(registerWithScopeManager: false, captured.ToArray());
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -1720,14 +1724,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             for (var index = 0; index < 4; index++)
             {
                 var kind = GenerationContext.FunctionArray[index];
-                if (kinds.Contains(kind))
-                {
-                    specializations[index] = BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild);
-                }
-                else
-                {
-                    specializations[index] = Constant.ConstPointerToNullFor(this.SharedState.Types.FunctionSignature.CreatePointerType());
-                }
+                specializations[index] = kinds.Contains(kind)
+                    ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
+                    : Constant.ConstPointerToNullFor(this.SharedState.Types.FunctionSignature.CreatePointerType());
             }
 
             // Build the callable table
@@ -1738,7 +1737,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
             var callable = this.SharedState.CurrentBuilder.Call(createCallable, table, capture.OpaquePointer);
             var value = this.SharedState.Values.FromCallable(callable, exType);
-            this.SharedState.ScopeMgr.IncreaseReferenceCount(capture);
             this.SharedState.ScopeMgr.RegisterValue(value);
 
             this.SharedState.ValueStack.Push(value);

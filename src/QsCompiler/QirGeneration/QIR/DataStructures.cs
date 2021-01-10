@@ -239,16 +239,16 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
         /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
-        /// Registers the value with the scope manager once it is allocated.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
-            this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple());
+            this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
         }
@@ -321,13 +321,16 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
             this.ElementTypes.Select(this.CreateCachedPointer).ToArray();
 
-        private Value AllocateTuple()
+        private Value AllocateTuple(bool registerWithScopeManager)
         {
             // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
             var size = this.sharedState.ComputeSizeForType(this.StructType);
             var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
-            this.sharedState.ScopeMgr.RegisterValue(this);
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
             return tuple;
         }
 
@@ -393,40 +396,39 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value.
-        /// Registers the value with the scope manager.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context)
+        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
-            this.OpaquePointer = this.AllocateArray();
+            this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
         }
 
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// Registers the value with the scope manager.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context)
+        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
             this.qsElementType = elementType;
             this.ElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = this.CreateLengthCache(length);
-            this.OpaquePointer = this.AllocateArray();
+            this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
         }
 
         /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type.
-        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array; will be computed on demand if the given value is null</param>
@@ -452,13 +454,16 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<Value> CreateLengthCache(Value length) =>
             new IValue.Cached<Value>(length, this.sharedState, this.GetLength);
 
-        private Value AllocateArray()
+        private Value AllocateArray(bool registerWithScopeManager)
         {
             // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
             var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.sharedState.Context.Int32Type);
             var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
-            this.sharedState.ScopeMgr.RegisterValue(this);
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
             return pointer;
         }
 
