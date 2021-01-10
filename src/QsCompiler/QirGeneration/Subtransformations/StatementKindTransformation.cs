@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -12,9 +13,9 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal class QirStatementKindTransformation : StatementKindTransformation<GenerationContext>
     {
@@ -37,44 +38,88 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Binds a SymbolTuple, which may be a single Symbol or a tuple of Symbols and embedded tuples,
-        /// to a Value.
-        /// If the SymbolTuple to bind is structured, the Value will point to an LLVM structure with
-        /// matching structure.
+        /// Defines a new variable with the given name and binds it to the given value.
         /// </summary>
-        /// <param name="symbolTuple">The SymbolTuple to bind</param>
-        /// <param name="symbolValue">The Value to bind to</param>
-        /// <param name="symbolType">The Q# type of the SymbolTuple</param>
-        /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbols, IValue ex, bool mutable = false)
+        /// <param name="varName">The name of the variable</param>
+        /// <param name="value">The value to bind the variable to</param>
+        /// <param name="mutable">Is true the variable may be rebound to another value</param>
+        private void CreateVariable(string varName, IValue value, bool mutable = false)
         {
-            if (symbols is SymbolTuple.VariableName varName)
+            if (mutable)
             {
-                if (mutable)
-                {
-                    var ptr = this.SharedState.Values.CreatePointer(ex);
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ptr);
-                }
-                else
-                {
-                    this.SharedState.ScopeMgr.RegisterVariable(varName.Item, ex);
-                }
+                var ptr = this.SharedState.Values.CreatePointer(value);
+                this.SharedState.ScopeMgr.RegisterVariable(varName, ptr);
             }
-            else if (symbols is SymbolTuple.VariableNameTuple syms)
+            else
             {
-                if (!(ex is TupleValue tuple) || syms.Item.Length != tuple.ElementTypes.Length)
+                this.SharedState.ScopeMgr.RegisterVariable(varName, value);
+            }
+        }
+
+        /// <summary>
+        /// Binds a symbol tuple by invoking the given action for each symbol name with a suitable value.
+        /// to a Value.
+        /// </summary>
+        /// <param name="symbols">The symbols to bind</param>
+        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
+        /// <param name="ex">
+        /// The Q# expression that defines the value to bind the symbols to; it will be deconstructed if necessary
+        /// </param>
+        private void BindSymbolTuple(SymbolTuple symbols, TypedExpression ex, Action<string, IValue> bindVariable)
+        {
+            if (symbols is SymbolTuple.VariableNameTuple syms
+                && ex.Expression is ResolvedExpressionKind.ValueTuple vs)
+            {
+                if (vs.Item.Length != syms.Item.Length)
                 {
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
 
-                for (int i = 0; i < syms.Item.Length; i++)
+                foreach (var (sym, value) in syms.Item.Zip(vs.Item, (s, v) => (s, v)))
                 {
-                    if (!syms.Item[i].IsDiscardedItem && !syms.Item[i].IsInvalidItem)
+                    this.BindSymbolTuple(sym, value, bindVariable);
+                }
+            }
+            else
+            {
+                var rhs = this.SharedState.EvaluateSubexpression(ex);
+                this.BindSymbolTuple(symbols, rhs, bindVariable);
+            }
+        }
+
+        /// <summary>
+        /// Binds a symbol tuple by invoking the given action for each symbol name with a suitable value.
+        /// to a Value.
+        /// </summary>
+        /// <param name="symbols">The symbols to bind</param>
+        /// <param name="value">The value to bind the symbols to; it will be deconstructed if necessary</param>
+        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
+        private void BindSymbolTuple(SymbolTuple symbols, IValue value, Action<string, IValue> bindVariable)
+        {
+            void DestructTuple(ImmutableArray<SymbolTuple> symbols, IValue value)
+            {
+                if (!(value is TupleValue tuple) || symbols.Length != tuple.ElementTypes.Length)
+                {
+                    throw new InvalidOperationException("shape mismatch in symbol binding");
+                }
+
+                for (int i = 0; i < symbols.Length; i++)
+                {
+                    if (!symbols[i].IsDiscardedItem)
                     {
                         var itemValue = tuple.GetTupleElement(i);
-                        this.BindSymbolTuple(syms.Item[i], itemValue, mutable);
+                        this.BindSymbolTuple(symbols[i], itemValue, bindVariable);
                     }
                 }
+            }
+
+            if (symbols is SymbolTuple.VariableName varName)
+            {
+                bindVariable(varName.Item, value);
+            }
+            else if (symbols is SymbolTuple.VariableNameTuple syms)
+            {
+                DestructTuple(syms.Item, value);
             }
             else if (!symbols.IsDiscardedItem)
             {
@@ -112,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
             {
-                ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
+                ResolvedType qubitType = ResolvedType.New(ResolvedTypeKind.Qubit);
                 IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
                 IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
 
@@ -278,7 +323,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
                         ? name.Item
                         : throw new ArgumentException("invalid loop variable name");
-                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(QsResolvedTypeKind.Int));
+                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
                     this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
@@ -291,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void ExecuteBody(IValue arrayItem)
                 {
                     // If we iterate through an array, we inject a binding at the beginning of the body.
-                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem);
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (n, v) => this.CreateVariable(n, v));
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -369,45 +414,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
-            // Update an item, which might be a single symbol or a tuple, to a new Value
-            void UpdateItem(TypedExpression symbols, IValue rhs)
+            void BindVariable(string varName, IValue value)
             {
-                if (symbols.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
-                {
-                    var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                    this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
-                    pointer.StoreValue(rhs);
-                    this.SharedState.ScopeMgr.IncreaseAccessCount(rhs);
-                }
-                else if (symbols.Expression is ResolvedExpression.ValueTuple ids)
-                {
-                    var tuple = (TupleValue)rhs;
-                    var tupleItems = tuple.GetTupleElements();
-                    if (tupleItems.Length != ids.Item.Length)
-                    {
-                        throw new InvalidOperationException("shape mismatch in value update");
-                    }
-
-                    for (int i = 0; i < tupleItems.Length; i++)
-                    {
-                        UpdateItem(ids.Item[i], tupleItems[i]);
-                    }
-                }
-                else
-                {
-                    throw new NotSupportedException("unknown expression in left-hand side of set statement");
-                }
+                var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
+                this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                pointer.StoreValue(value);
+                this.SharedState.ScopeMgr.IncreaseAccessCount(value);
             }
 
-            var value = this.SharedState.EvaluateSubexpression(stm.Rhs);
-            UpdateItem(stm.Lhs, value);
+            var symbols = SyntaxGenerator.ExpressionAsSymbolTuple(stm.Lhs);
+            this.BindSymbolTuple(symbols, stm.Rhs, BindVariable);
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
-            var val = this.SharedState.EvaluateSubexpression(stm.Rhs);
-            this.BindSymbolTuple(stm.Lhs, val, stm.Kind.IsMutableBinding);
+            void BindVariable(string varName, IValue value) =>
+                 this.CreateVariable(varName, value, stm.Kind.IsMutableBinding);
+            this.BindSymbolTuple(stm.Lhs, stm.Rhs, BindVariable);
             return QsStatementKind.EmptyStatement;
         }
 

@@ -53,6 +53,10 @@ let ``QIR using`` () =
     qirMultiTest true "TestUsing" ["TestUsing1"; "TestUsing2"]
 
 [<Fact>]
+let ``QIR inlined call`` () =
+    qirTest false "TestInline"
+
+[<Fact>]
 let ``QIR access counts`` () =
     qirTest false "TestAccessCounts"
     
