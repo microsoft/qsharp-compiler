@@ -100,22 +100,42 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
         /// is lazy, and so are the necessary casts. When needed, instructions are emitted using the current builder.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
-        internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, bool registerWithScopeManager = true) =>
-            new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
+        internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes) =>
+            new TupleValue(elementTypes, this.sharedState);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="tupleElements">The tuple elements</param>
+        internal TupleValue CreateTuple(ImmutableArray<TypedExpression> tupleElements, bool registerWithScopeManager = true)
+        {
+            var elementTypes = tupleElements.Select(v => v.ResolvedType).ToImmutableArray();
+            TupleValue tuple = new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
+            PointerValue[] itemPointers = tuple.GetTupleElementPointers();
+
+            var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                itemPointers[i].StoreValue(elements[i]);
+            }
+
+            return tuple;
+        }
+
+        /// <summary>
+        /// Builds a tuple with the items set to the given tuple elements.
+        /// Registers the value with the scope manager.
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateTuple(bool registerWithScopeManager, params IValue[] tupleElements)
+        internal TupleValue CreateTuple(params IValue[] tupleElements)
         {
             var elementTypes = tupleElements.Select(v => v.QSharpType).ToImmutableArray();
-            TupleValue tuple = new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
+            TupleValue tuple = new TupleValue(elementTypes, this.sharedState);
             PointerValue[] itemPointers = tuple.GetTupleElementPointers();
 
             for (var i = 0; i < itemPointers.Length; ++i)
@@ -128,38 +148,28 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Builds a tuple with the items set to the given tuple elements.
-        /// Registers the value with the scope manager.
-        /// Increases the reference count for the tuple elements.
-        /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateTuple(params IValue[] tupleElements) =>
-            this.CreateTuple(true, tupleElements);
-
-        /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Registers the value with the scope manager.
         /// </summary>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
-        internal ArrayValue CreateArray(Value length, ResolvedType elementType, bool registerWithScopeManager = true) =>
-            new ArrayValue(length, elementType, this.sharedState, registerWithScopeManager);
+        internal ArrayValue CreateArray(Value length, ResolvedType elementType) =>
+            new ArrayValue(length, elementType, this.sharedState);
 
         /// <summary>
-        /// Builds an array that containsthe given array elements.
+        /// Builds an array that contains the given array elements.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// Increases the reference count for the array elements.
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>
-        internal ArrayValue CreateArray(ResolvedType elementType, bool registerWithScopeManager, params IValue[] arrayElements)
+        internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool registerWithScopeManager = true)
         {
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, registerWithScopeManager);
             Value[] itemPointers = array.GetArrayElementPointers();
 
+            var elements = arrayElements.Select(this.sharedState.BuildSubitem).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
-                this.sharedState.CurrentBuilder.Store(arrayElements[i].Value, itemPointers[i]);
-                this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
+                this.sharedState.CurrentBuilder.Store(elements[i].Value, itemPointers[i]);
             }
 
             return array;
@@ -171,7 +181,18 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Increases the reference count for the array elements.
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>
-        internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements) =>
-            this.CreateArray(elementType, true, arrayElements);
+        internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements)
+        {
+            var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState);
+            Value[] itemPointers = array.GetArrayElementPointers();
+
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                this.sharedState.CurrentBuilder.Store(arrayElements[i].Value, itemPointers[i]);
+                this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
+            }
+
+            return array;
+        }
     }
 }

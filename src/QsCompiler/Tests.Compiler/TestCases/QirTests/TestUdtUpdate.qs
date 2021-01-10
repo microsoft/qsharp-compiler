@@ -3,12 +3,12 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
-    newtype TestType = ((Double, A : Int), B : Int);
+    newtype TestType = ((Double, A : String), B : Int);
 
-    function TestUdtUpdate(a : Int, b : Int) : TestType
+    function TestUdtUpdate(a : String, b : Int) : TestType
     {
         mutable x = TestType((1.0, a), b);
-        set x w/= A <- 2;
+        set x w/= A <- "Hello";
         return x;
     }
 }

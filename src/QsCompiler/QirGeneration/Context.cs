@@ -1006,6 +1006,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
+                    // This case should actually never occur; the only reason we build the tuple in the first place
+                    // is because there is a Q# variable (the argument) that the value is assigne to.
+                    // However, there is also no reason to fail here, since the behavior implemented this way is correct.
                     innerTupleValues.Enqueue(innerTuple);
                 }
             }
@@ -1695,6 +1698,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.Transformation.Expressions.OnTypedExpression(ex);
             return this.ValueStack.Pop();
+        }
+
+        /// <summary>
+        /// Evaluates the given expression and increases its reference count by 1,
+        /// either by not registering a newly constructed item with the scope manager,
+        /// or by explicitly increasing its reference count.
+        /// </summary>
+        internal IValue BuildSubitem(TypedExpression ex)
+        {
+            this.ScopeMgr.OpenScope();
+            this.Transformation.Expressions.OnTypedExpression(ex);
+            var value = this.ValueStack.Pop();
+            this.ScopeMgr.CloseScope(value);
+            return value;
         }
 
         #endregion

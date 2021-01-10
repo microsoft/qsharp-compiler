@@ -752,15 +752,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
                 this.SharedState.SetCurrentBlock(trueBlock);
-                this.SharedState.ScopeMgr.OpenScope();
-                var ifTrue = this.SharedState.EvaluateSubexpression(ifTrueEx);
-                this.SharedState.ScopeMgr.CloseScope(ifTrue);
+                var ifTrue = this.SharedState.BuildSubitem(ifTrueEx);
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(falseBlock);
-                this.SharedState.ScopeMgr.OpenScope();
-                var ifFalse = this.SharedState.EvaluateSubexpression(ifFalseEx);
-                this.SharedState.ScopeMgr.CloseScope(ifFalse);
+                var ifFalse = this.SharedState.BuildSubitem(ifFalseEx);
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);
@@ -782,13 +778,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue CopyAndUpdateArray(ResolvedType elementType)
             {
-                IValue originalArray = this.SharedState.EvaluateSubexpression(lhs);
-                IValue newItemValue = this.SharedState.EvaluateSubexpression(rhs);
-
                 // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
                 // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
                 // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
+                var originalArray = this.SharedState.EvaluateSubexpression(lhs);
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
                 var array = this.SharedState.Values.FromArray(copy, elementType);
@@ -805,6 +799,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SharedState.IterateThroughArray(array, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
                 }
 
+                // The getNewItemForIndex function is expected to increase the reference count of the time by 1.
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
                     var elementPtr = array.GetArrayElementPointer(index);
@@ -817,21 +812,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // whether that would be much better.
                     this.SharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
                     this.SharedState.CurrentBuilder.Store(newElement.Value, elementPtr);
-                    this.SharedState.ScopeMgr.IncreaseReferenceCount(newElement);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
+                    IValue newItemValue = this.SharedState.BuildSubitem(rhs);
                     var index = this.SharedState.EvaluateSubexpression(accEx);
                     UpdateElement(_ => newItemValue, index.Value);
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
-                    IValue GetNewItemForIndex(Value index) =>
-                        ((ArrayValue)newItemValue).GetArrayElement(index);
-
+                    var newItemValue = (ArrayValue)this.SharedState.BuildSubitem(rhs);
                     var (getStart, getStep, getEnd) = RangeItems(this.SharedState, accEx);
-                    this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(GetNewItemForIndex, index));
+                    this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
                 }
                 else
                 {
@@ -843,7 +836,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(QsQualifiedName udtName)
             {
-                // Returns the shallow copy as typed tuple.
+                // Returns the shallow copy as tuple.
                 TupleValue GetTupleCopy(TupleValue original)
                 {
                     // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
@@ -853,13 +846,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var forceCopy = this.SharedState.Context.CreateConstant(false);
                     var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
                     var tuple = this.SharedState.Values.FromTuple(copy, original.ElementTypes);
-                    this.SharedState.ScopeMgr.RegisterValue(tuple);
                     return tuple;
                 }
 
                 var originalValue = (TupleValue)this.SharedState.EvaluateSubexpression(lhs);
-                var newItemValue = this.SharedState.EvaluateSubexpression(rhs);
                 var value = GetTupleCopy(originalValue);
+                this.SharedState.ScopeMgr.RegisterValue(value);
 
                 if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
@@ -891,8 +883,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                         if (depth == location.Count - 1)
                         {
+                            var newItemValue = this.SharedState.BuildSubitem(rhs);
                             itemPointers[itemIndex].StoreValue(newItemValue);
-                            this.SharedState.ScopeMgr.IncreaseReferenceCount(newItemValue);
                         }
                         else
                         {
@@ -1572,7 +1564,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnPartialApplication(TypedExpression method, TypedExpression arg)
         {
-            PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, List<ResolvedType> remainingArgs, List<IValue> capturedValues)
+            PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, IList<ResolvedType> remainingArgs, IList<TypedExpression> capturedValues)
             {
                 // We need argType because missing argument items have MissingType, rather than the actual type.
                 if (arg.Expression.IsMissingExpr)
@@ -1589,7 +1581,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    capturedValues.Add(this.SharedState.EvaluateSubexpression(arg));
+                    capturedValues.Add(arg);
                     return new InnerCapture(this.SharedState, capturedValues.Count - 1);
                 }
             }
@@ -1690,10 +1682,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // we don't register the tuple with the scope manager and instead don't increase the ref count
             // when building the partial application. Since the partial application is registered with the scope
             // manager, the capture tuple will be released when the partial application is, as it should be.
-            var captured = new List<IValue>();
-            captured.Add(this.SharedState.EvaluateSubexpression(method));
+            var captured = ImmutableArray.CreateBuilder<TypedExpression>();
+            captured.Add(method);
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var capture = this.SharedState.Values.CreateTuple(registerWithScopeManager: false, captured.ToArray());
+            var capture = this.SharedState.Values.CreateTuple(captured.ToImmutable(), registerWithScopeManager: false);
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -2099,17 +2091,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var elementType = this.SharedState.CurrentExpressionType().Resolution is QsResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
-            var elements = vs.Select(this.SharedState.EvaluateSubexpression).ToArray();
-            var value = this.SharedState.Values.CreateArray(elementType, elements);
+
+            var value = this.SharedState.Values.CreateArray(elementType, vs);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
         }
 
         public override ResolvedExpression OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
-            var items = vs.Select(v => this.SharedState.EvaluateSubexpression(v)).ToArray();
-            var tuple = this.SharedState.Values.CreateTuple(items);
-            this.SharedState.ValueStack.Push(tuple);
+            var value = this.SharedState.Values.CreateTuple(vs);
+            this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
         }
 
@@ -2119,8 +2110,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             var value = this.SharedState.EvaluateSubexpression(ex);
-            var udt = ex.ResolvedType.Resolution as QsResolvedTypeKind.UserDefinedType;
-            if (udt == null)
+            if (!(ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt))
             {
                 throw new NotSupportedException("invalid type for unwrap operator");
             }

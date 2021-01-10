@@ -1,11 +1,10 @@
 ﻿define { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
 entry:
-  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing, %Tuple* null)
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %1 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
-  %2 = bitcast i8* %1 to %Callable**
-  store %Callable* %0, %Callable** %2
-  call void @__quantum__rt__callable_reference(%Callable* %0)
+  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
+  %1 = bitcast i8* %0 to %Callable**
+  %2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing, %Tuple* null)
+  store %Callable* %2, %Callable** %1
   call void @__quantum__rt__array_add_access(%Array* %arr)
   %3 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %4 = bitcast i8* %3 to %Callable**
@@ -18,15 +17,14 @@ entry:
   %9 = load %Callable*, %Callable** %8
   %10 = call %Callable* @__quantum__rt__callable_copy(%Callable* %9, i1 true)
   call void @__quantum__rt__callable_make_controlled(%Callable* %10)
-  %11 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
-  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %13 = bitcast %Tuple* %12 to { %Array*, %Tuple* }*
-  %14 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %13, i64 0, i32 0
-  %15 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %13, i64 0, i32 1
-  store %Array* %11, %Array** %14
-  call void @__quantum__rt__array_reference(%Array* %11)
-  store %Tuple* null, %Tuple** %15
-  call void @__quantum__rt__callable_invoke(%Callable* %10, %Tuple* %12, %Tuple* null)
+  %11 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %12 = bitcast %Tuple* %11 to { %Array*, %Tuple* }*
+  %13 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %12, i64 0, i32 0
+  %14 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %12, i64 0, i32 1
+  %15 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
+  store %Array* %15, %Array** %13
+  store %Tuple* null, %Tuple** %14
+  call void @__quantum__rt__callable_invoke(%Callable* %10, %Tuple* %11, %Tuple* null)
   %16 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %17 = bitcast i8* %16 to %Callable**
   %18 = load %Callable*, %Callable** %17
@@ -51,11 +49,10 @@ entry:
   %30 = bitcast %Tuple* %29 to { %String*, double }*
   %31 = getelementptr { %String*, double }, { %String*, double }* %30, i64 0, i32 0
   %32 = getelementptr { %String*, double }, { %String*, double }* %30, i64 0, i32 1
-  store %String* %str, %String** %31
   call void @__quantum__rt__string_reference(%String* %str)
+  store %String* %str, %String** %31
   store double %val, double* %32
   call void @__quantum__rt__array_remove_access(%Array* %arr)
-  call void @__quantum__rt__callable_unreference(%Callable* %0)
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry
@@ -78,9 +75,8 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_unreference(%Array* %arr)
   call void @__quantum__rt__callable_unreference(%Callable* %6)
   call void @__quantum__rt__callable_unreference(%Callable* %10)
-  call void @__quantum__rt__array_unreference(%Array* %11)
-  call void @__quantum__rt__array_unreference(%Array* %11)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %12)
+  call void @__quantum__rt__array_unreference(%Array* %15)
+  call void @__quantum__rt__tuple_unreference(%Tuple* %11)
   call void @__quantum__rt__callable_unreference(%Callable* %fct)
   call void @__quantum__rt__string_unreference(%String* %19)
   call void @__quantum__rt__string_unreference(%String* %19)

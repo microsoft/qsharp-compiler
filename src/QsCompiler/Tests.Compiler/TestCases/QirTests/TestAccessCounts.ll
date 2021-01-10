@@ -38,8 +38,6 @@ exit__1:                                          ; preds = %header__1
   %17 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 0
   %18 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 1
   %19 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 2
-  store double 0.000000e+00, double* %17
-  store %Array* %coefficients, %Array** %18
   %20 = sub i64 %2, 1
   br label %header__2
 
@@ -62,9 +60,11 @@ exiting__2:                                       ; preds = %body__2
 
 exit__2:                                          ; preds = %header__2
   call void @__quantum__rt__array_reference(%Array* %coefficients)
-  store { %Array* }* %qubits, { %Array* }** %19
   call void @__quantum__rt__array_reference(%Array* %13)
   call void @__quantum__rt__tuple_reference(%Tuple* %14)
+  store double 0.000000e+00, double* %17
+  store %Array* %coefficients, %Array** %18
+  store { %Array* }* %qubits, { %Array* }** %19
   call void @Microsoft__Quantum__Testing__QIR__ApplyOp__ctl(%Array* %__controlQubits__, { double, %Array*, { %Array* }* }* %16)
   call void @__quantum__rt__array_remove_access(%Array* %__controlQubits__)
   %28 = sub i64 %2, 1
