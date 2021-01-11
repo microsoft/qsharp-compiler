@@ -304,9 +304,9 @@ type QsFragmentKind =
         | RepeatIntro _
         | UntilSuccess (_, true)
         | WithinBlockIntro _
-        | ApplyBlockIntro _
+        | ApplyBlockIntro _ -> ErrorCode.ExpectingOpeningBracket
         | UsingBlockIntro _
-        | BorrowingBlockIntro _ -> ErrorCode.ExpectingOpeningBracket
+        | BorrowingBlockIntro _ -> ErrorCode.ExpectingOpeningBracketOrSemicolon
         | BodyDeclaration gen
         | AdjointDeclaration gen
         | ControlledDeclaration gen

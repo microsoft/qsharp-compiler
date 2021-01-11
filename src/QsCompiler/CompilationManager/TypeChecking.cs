@@ -531,16 +531,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope.
         /// </summary>
         private static QsScope BuildScope(
-            IReadOnlyList<FragmentTree.TreeNode> nodeContent,
+            IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
             List<Diagnostic> diagnostics,
-            ImmutableHashSet<QsFunctor>? requiredFunctorSupport = null)
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
         {
             var inheritedSymbols = context.Symbols.CurrentDeclarations;
-            context.Symbols.BeginScope(requiredFunctorSupport);
-            var statements = BuildStatements(nodeContent.GetEnumerator(), context, diagnostics);
+            context.Symbols.BeginScope(requiredFunctors);
+            var statements = BuildStatements(nodes, context, diagnostics);
             context.Symbols.EndScope();
             return new QsScope(statements, inheritedSymbols);
+        }
+
+        /// <summary>
+        /// If the current node is not followed by an opening bracket, builds a scope that implicitly starts with the
+        /// statement after the current node, and continues until the end of the current scope. Otherwise, builds a
+        /// scope using the current node's children.
+        /// </summary>
+        /// <seealso cref="BuildScope"/>
+        private static QsScope BuildImplicitScope(
+            IEnumerator<FragmentTree.TreeNode> nodes,
+            ScopeContext context,
+            List<Diagnostic> diagnostics,
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
+        {
+            var children = nodes.Current.Fragment.FollowedBy == '{'
+                ? nodes.Current.Children.GetEnumerator()
+                : nodes;
+
+            return BuildScope(children, context, diagnostics, requiredFunctors);
         }
 
         /// <summary>
@@ -594,8 +613,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewAllocateScope(nodes.Current.Fragment.Comments, relPos, ctx, allocate.Item1, allocate.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = allocationScope(body);
+                statement = allocationScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -637,8 +655,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewBorrowScope(nodes.Current.Fragment.Comments, relPos, ctx, borrow.Item1, borrow.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = borrowingScope(body);
+                statement = borrowingScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -749,7 +766,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, symbols) => Statements.NewForStatement(nodes.Current.Fragment.Comments, relPos, symbols, forStatement.Item1, forStatement.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = forLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -792,7 +809,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewWhileStatement(nodes.Current.Fragment.Comments, relPos, ctx, whileStatement.Item),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = whileLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -837,7 +854,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
                     context.WithinIfCondition,
                     diagnostics);
-                var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
+                var ifBlock = buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics));
 
                 // elif blocks
                 proceed = nodes.MoveNext();
@@ -849,7 +866,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
                         context.WithinIfCondition,
                         diagnostics);
-                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
+                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics)));
                     proceed = nodes.MoveNext();
                 }
 
@@ -857,7 +874,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = QsNullable<QsPositionedBlock>.Null;
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
-                    var scope = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var scope = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var elseLocation = new QsLocation(nodes.Current.RelativePosition, nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
@@ -904,12 +921,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
                 // independent on what functor specializations need to be auto-generated for the containing operation.
                 var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
-                var outerTranformation = BuildScope(nodes.Current.Children, context, diagnostics, requiredFunctorSupport);
+                var outerTranformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics, requiredFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
-                    var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var innerTransformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
                     diagnostics.AddRange(built.Item2.Select(diagnostic => Diagnostics.Generate(
@@ -1287,7 +1304,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile, msg, position)));
             }
 
-            var implementation = BuildScope(root.Children, context, diagnostics);
+            var implementation = BuildScope(root.Children.GetEnumerator(), context, diagnostics);
             context.Symbols.EndScope();
 
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
