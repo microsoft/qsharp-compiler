@@ -68,6 +68,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             private readonly Stopwatch watch;
 
             /// <summary>
+            ///
+            /// </summary>
+            private readonly IDictionary<int, Stopwatch> watches;
+
+            /// <summary>
             /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
             /// </summary>
             internal static string GenerateKey(string? parentName, string name)
@@ -83,11 +88,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 this.ParentName = parentName;
                 this.Name = name;
                 this.watch = new Stopwatch();
+                this.watches = new Dictionary<int, Stopwatch>();
             }
 
             /// <summary>
             /// Returns whether a compilation class is in progress.
             /// </summary>
+            // TODO: Make it multithread.
             public bool IsInProgress()
             {
                 return this.watch.IsRunning;
@@ -98,12 +105,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// </summary>
             public void Start()
             {
-                if (this.IsInProgress())
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                if (!this.watches.TryGetValue(threadId, out var watch))
                 {
-                    throw new InvalidOperationException($"Attempt to start task '{this.Id}' when it is already in progress");
+                    watch = new Stopwatch();
+                    this.watches.Add(threadId, watch);
                 }
 
-                this.watch.Start();
+                if (watch.IsRunning)
+                {
+                    throw new InvalidOperationException($"Attempt to start task '{this.Id}' when it is already in progress in the current thread");
+                }
+
+                watch.Start();
             }
 
             /// <summary>
@@ -111,12 +125,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// </summary>
             public void Stop()
             {
-                if (!this.IsInProgress())
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                if (!this.watches.TryGetValue(threadId, out var watch))
                 {
-                    throw new InvalidOperationException($"Attempt to stop task '{this.Id}' when it is not in progress");
+                    throw new InvalidOperationException($"Attempt to stop task in a thread that did not start it");
                 }
 
-                this.watch.Stop();
+                if (!watch.IsRunning)
+                {
+                    throw new InvalidOperationException($"Attempt to stop task '{this.Id}' when it is not in progress in the current thread");
+                }
+
+                watch.Stop();
                 this.IntervalCount++;
             }
         }
