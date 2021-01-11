@@ -892,7 +892,7 @@ type DiagnosticItem =
                 "Double underscores as well as underscores before a dot or at the end of a namespace name will be reserved for internal use in the future."
             | WarningCode.DeprecatedTupleBrackets ->
                 "Deprecated syntax. Parentheses here are no longer required and will not be supported in the future."
-            | WarningCode.DeprecatedKeyword -> "The \"{0}\" keyword is deprecated. Use the keyword \"{1}\" instead."
+            | WarningCode.DeprecatedKeyword -> "The \"{0}\" keyword is deprecated. Use the \"{1}\" keyword instead."
             | WarningCode.DeprecatedRUSloopInFunction ->
                 "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
 
