@@ -155,6 +155,17 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration19" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration20" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "VariableDeclaration21" []
+        this.Expect "VariableDeclaration22" []
+        this.Expect "VariableDeclaration23" []
+        this.Expect "VariableDeclaration24" [ Error ErrorCode.UnknownIdentifier ]
+        this.Expect "VariableDeclaration25" []
+        this.Expect "VariableDeclaration26" []
+        this.Expect "VariableDeclaration27" []
+        this.Expect "VariableDeclaration28" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
+        this.Expect "VariableDeclaration29" [ Error ErrorCode.UnknownIdentifier ]
+        this.Expect "VariableDeclaration30" []
+        this.Expect "VariableDeclaration31" [ Error ErrorCode.ExpectingOpeningBracketOrSemicolon ]
+        this.Expect "VariableDeclaration32" [ Error ErrorCode.UnknownIdentifier ]
 
 
     [<Fact>]

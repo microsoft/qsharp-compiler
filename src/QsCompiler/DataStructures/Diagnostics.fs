@@ -15,6 +15,7 @@ type ErrorCode =
     | ExpectingOpeningBracket = 2002
     | ExpectingSemicolon = 2003
     | UnexpectedFragmentDelimiter = 2004
+    | ExpectingOpeningBracketOrSemicolon = 2005
 
     | UnknownCodeFragment = 3001
     | InvalidReturnStatement = 3002
@@ -422,6 +423,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingOpeningBracket -> "Expecting opening bracket (\"{\")."
             | ErrorCode.ExpectingSemicolon -> "Expecting semicolon."
             | ErrorCode.UnexpectedFragmentDelimiter -> "Unexpected statement delimiter."
+            | ErrorCode.ExpectingOpeningBracketOrSemicolon -> "Expecting opening bracket (\"{\") or semicolon."
 
             | ErrorCode.UnknownCodeFragment -> "Syntax does not match any known patterns."
             | ErrorCode.InvalidReturnStatement -> "Syntax error in return-statement."
