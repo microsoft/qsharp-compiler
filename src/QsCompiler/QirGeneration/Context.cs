@@ -1359,11 +1359,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
-                BasicBlock precedingBlock = this.CurrentBlock;
-                this.CurrentBuilder.Branch(headerBlock);
+                BasicBlock precedingBlock = this.CurrentBlock!;
+                this.CurrentBuilder.Branch(headerBlock!);
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
-                this.SetCurrentBlock(headerBlock);
+                this.SetCurrentBlock(headerBlock!);
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
@@ -1373,16 +1373,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var condition = evaluateCondition(loopVariable);
                 this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
 
-                this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
+                this.CurrentBuilder.Branch(condition, bodyBlock!, exitBlock!);
                 return loopVariable;
             }
 
             bool PopulateLoopBody(Action executeBody)
             {
                 this.ScopeMgr.OpenScope();
-                this.SetCurrentBlock(bodyBlock);
+                this.SetCurrentBlock(bodyBlock!);
                 executeBody();
-                var isTerminated = this.CurrentBlock.Terminator != null;
+                var isTerminated = this.CurrentBlock?.Terminator != null;
                 this.ScopeMgr.CloseScope(isTerminated);
                 return isTerminated;
             }
@@ -1393,14 +1393,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // continue into the exiting block, which updates the loop variable and enters the next iteration.
                 if (!bodyWasTerminated)
                 {
-                    this.CurrentBuilder.Branch(exitingBlock);
+                    this.CurrentBuilder.Branch(exitingBlock!);
                 }
 
                 // Update the iteration value (phi node) and enter the next iteration
-                this.SetCurrentBlock(exitingBlock);
+                this.SetCurrentBlock(exitingBlock!);
                 var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
-                loopVariable.AddIncoming(nextValue, exitingBlock);
-                this.CurrentBuilder.Branch(headerBlock);
+                loopVariable.AddIncoming(nextValue, exitingBlock!);
+                this.CurrentBuilder.Branch(headerBlock!);
             }
 
             this.ExecuteLoop(exitBlock, () =>
