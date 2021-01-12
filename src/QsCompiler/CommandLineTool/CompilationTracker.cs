@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         var threadNumber = 0;
                         foreach (var item in this.watches)
                         {
-                            itemizedDurations.Add(($"{item.Key}[{threadNumber.ToString("00")}]", item.Value.ElapsedMilliseconds));
+                            itemizedDurations.Add(($"{item.Key}[{threadNumber.ToString("D2")}]", item.Value.ElapsedMilliseconds));
                             threadNumber++;
                         }
                     }
