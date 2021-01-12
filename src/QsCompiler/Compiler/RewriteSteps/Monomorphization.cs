@@ -30,10 +30,11 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool ImplementsPostconditionVerification => true;
 
+
         /// <summary>
-        /// Constructor for the Monomorphization Rewrite Step. If keepAllIntrinsics is
-        /// set to true, intrinsics will not be removed as part of the rewrite step.
+        /// Constructor for the Monomorphization Rewrite Step.
         /// </summary>
+        /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
         public Monomorphization(bool keepAllIntrinsics = true)
         {
             this.keepAllIntrinsics = keepAllIntrinsics;
