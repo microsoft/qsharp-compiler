@@ -3,7 +3,7 @@ entry:
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %1 = bitcast i8* %0 to %Callable**
-  %2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing, %Tuple* null)
+  %2 = call %Callable* @__quantum__rt__callable_create([5 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing, %Tuple* null)
   store %Callable* %2, %Callable** %1
   call void @__quantum__rt__array_add_access(%Array* %arr)
   %3 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
@@ -29,7 +29,7 @@ entry:
   %17 = bitcast i8* %16 to %Callable**
   %18 = load %Callable*, %Callable** %17
   call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* null, %Tuple* null)
-  %fct = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnTuple, %Tuple* null)
+  %fct = call %Callable* @__quantum__rt__callable_create([5 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnTuple, %Tuple* null)
   %19 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %21 = bitcast %Tuple* %20 to { %String* }*

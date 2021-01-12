@@ -4,10 +4,10 @@ entry:
   %1 = bitcast %Tuple* %0 to { %Callable*, i64 }*
   %2 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %1, i64 0, i32 0
   %3 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %1, i64 0, i32 1
-  %4 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, %Tuple* null)
+  %4 = call %Callable* @__quantum__rt__callable_create([5 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, %Tuple* null)
   store %Callable* %4, %Callable** %2
   store i64 1, i64* %3
-  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %0)
+  %qop = call %Callable* @__quantum__rt__callable_create([5 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, %Tuple* %0)
   %adj_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 true)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %adj_qop)
   %ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 true)

@@ -111,8 +111,6 @@ namespace Microsoft.Quantum.QIR
         {
             this.context = context;
 
-            this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
-
             this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
             this.Qubit = context.CreateStructType(TypeNames.Qubit).CreatePointerType();
             this.String = context.CreateStructType(TypeNames.String).CreatePointerType();
@@ -121,9 +119,8 @@ namespace Microsoft.Quantum.QIR
             this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
-            this.FunctionSignature = context.GetFunctionType(
-                context.VoidType,
-                new[] { this.Tuple, this.Tuple, this.Tuple });
+            this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
+            this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
             this.Int = context.Int64Type;
             this.Double = context.DoubleType;

@@ -462,6 +462,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return callable;
         }
 
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// The given capture, if any, is expected to be an opaque tuple that contains all captured values.
+        /// Does *not* increase the reference count of the capture tuple.
+        /// </summary>
+        /// <param name="callableType">The Q# type of the callable value</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
+        /// <param name="capture">An opaque tuple containing all captured values</param>
+        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, Value? capture = null)
+        {
+            // The runtime function CallableCreate creates a new value with reference count 1.
+            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+            capture ??= this.SharedState.Constants.UnitValue;
+            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, capture);
+            var value = this.SharedState.Values.FromCallable(res, callableType);
+            this.SharedState.ScopeMgr.RegisterValue(value);
+            return value;
+        }
+
         // public overrides
 
         public override ResolvedExpression OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
@@ -1161,13 +1182,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
             {
-                // The runtime function CallableCreate creates a new value with reference count 1.
-                var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                 var table = this.SharedState.GetOrCreateCallableTable(callable);
-                var capture = this.SharedState.Constants.UnitValue; // nothing to capture
-                var res = this.SharedState.CurrentBuilder.Call(createCallable, table, capture);
-                value = this.SharedState.Values.FromCallable(res, exType);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                value = this.CreateCallableValue(exType, table);
             }
             else
             {
@@ -1688,47 +1704,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
-            var kinds = new HashSet<QsSpecializationKind>
-            {
-                QsSpecializationKind.QsBody
-            };
-            if (method.ResolvedType.Resolution is QsResolvedTypeKind.Operation op
-                && op.Item2.Characteristics.SupportedFunctors.IsValue)
-            {
-                var functors = op.Item2.Characteristics.SupportedFunctors.Item;
-                if (functors.Contains(QsFunctor.Adjoint))
-                {
-                    kinds.Add(QsSpecializationKind.QsAdjoint);
-                }
-                if (functors.Contains(QsFunctor.Controlled))
-                {
-                    kinds.Add(QsSpecializationKind.QsControlled);
-                    if (functors.Contains(QsFunctor.Adjoint))
-                    {
-                        kinds.Add(QsSpecializationKind.QsControlledAdjoint);
-                    }
-                }
-            }
+            var callableInfo = method.ResolvedType.TryGetCallableInformation();
+            var supportedFunctors = callableInfo.IsValue
+                ? callableInfo.Item.Characteristics.SupportedFunctors
+                : QsNullable<ImmutableHashSet<QsFunctor>>.Null;
 
-            // Now create our specializations
-            var specializations = new Constant[4];
-            for (var index = 0; index < 4; index++)
-            {
-                var kind = GenerationContext.FunctionArray[index];
-                specializations[index] = kinds.Contains(kind)
+            bool SupportsFunctors(params QsFunctor[] functors) =>
+                supportedFunctors.IsValue && functors.All(supportedFunctors.Item.Contains);
+
+            bool SupportsNecessaryFunctors(QsSpecializationKind kind) =>
+                kind == QsSpecializationKind.QsAdjoint ? SupportsFunctors(QsFunctor.Adjoint) :
+                kind == QsSpecializationKind.QsControlled ? SupportsFunctors(QsFunctor.Controlled) :
+                kind == QsSpecializationKind.QsControlledAdjoint ? SupportsFunctors(QsFunctor.Adjoint, QsFunctor.Controlled) :
+                true;
+
+            IrFunction? BuildSpec(QsSpecializationKind kind) =>
+                SupportsNecessaryFunctors(kind)
                     ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
-                    : Constant.ConstPointerToNullFor(this.SharedState.Types.FunctionSignature.CreatePointerType());
-            }
-
-            // Build the callable table
-            var array = ConstantArray.From(this.SharedState.Types.FunctionSignature.CreatePointerType(), specializations);
-            var table = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, liftedName);
-
-            // Create the callable and make sure we inject/queue the functions to manage the reference counts
-            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var callable = this.SharedState.CurrentBuilder.Call(createCallable, table, capture.OpaquePointer);
-            var value = this.SharedState.Values.FromCallable(callable, exType);
-            this.SharedState.ScopeMgr.RegisterValue(value);
+                    : null;
+            var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec, capture);
+            var value = this.CreateCallableValue(exType, table, capture.OpaquePointer);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;

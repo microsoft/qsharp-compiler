@@ -20,8 +20,8 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
     /// This class holds the shared state used across a QIR generation pass.
@@ -159,8 +159,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
 
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
-        private readonly Dictionary<string, (QsCallable, GlobalVariable)> wrapperQueue = new Dictionary<string, (QsCallable, GlobalVariable)>();
+        private readonly Dictionary<string, (QsCallable, GlobalVariable)> functionWrappers = new Dictionary<string, (QsCallable, GlobalVariable)>();
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
+        private readonly Dictionary<ResolvedType, IrFunction> refCountFunctions = new Dictionary<ResolvedType, IrFunction>();
 
         #endregion
 
@@ -384,7 +385,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(
                 RuntimeLibrary.CallableCreate,
                 this.Types.Callable,
-                this.Types.FunctionSignature.CreatePointerType().CreateArrayType(4).CreatePointerType(),
+                this.Types.FunctionSignature.CreatePointerType().CreateArrayType(5).CreatePointerType(),
                 this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
@@ -423,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
                     var argTypeKind = c.Signature.ArgumentType.Resolution;
                     var argTypeArray =
-                        argTypeKind is QsResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                         argTypeKind.IsUnitType ? new ITypeRef[0] :
                         new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
                     this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
@@ -451,7 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException($"The following file(s) already exist(s): {argStr}");
             }
 
-            this.GenerateQueuedWrappers();
+            this.GenerateRequiredFunctions();
 
             if (!this.Module.Verify(out string validationErrors))
             {
@@ -503,24 +504,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Unfortunately this is different enough from all of the other type mapping we do to require
             // an actual different routine. Blech...
-            bool MapType(QsArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
+            bool MapType(ArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
             {
                 bool changed = false;
 
-                if (t is QsArgumentTuple.QsTuple tuple)
+                if (t is ArgumentTuple.QsTuple tuple)
                 {
-                    foreach (QsArgumentTuple inner in tuple.Item)
+                    foreach (ArgumentTuple inner in tuple.Item)
                     {
                         changed |= MapType(inner, typeList, nameList, mappingList);
                     }
                 }
-                else if (t is QsArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
+                else if (t is ArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
                 {
                     var baseName = varName.Item;
                     var map = ArgMapping.Create(baseName);
                     switch (item.Item.Type.Resolution)
                     {
-                        case QsResolvedTypeKind.ArrayType array:
+                        case ResolvedTypeKind.ArrayType array:
                             // TODO: Handle multidimensional arrays
                             // TODO: Handle arrays of structs
                             typeList.Add(this.Context.Int64Type);
@@ -533,7 +534,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             changed = true;
                             mappingList.Add(map);
                             break;
-                        case QsResolvedTypeKind.TupleType _:
+                        case ResolvedTypeKind.TupleType _:
                             // TODO: Handle structs
                             break;
                         default:
@@ -933,7 +934,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
             var argTypeRefs =
                 spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
-                spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
@@ -946,18 +947,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, QsArgumentTuple argTuple, bool deconstuctArgument = true)
+        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true)
         {
-            (string?, ResolvedType)[] ArgTupleToArgItems(QsArgumentTuple arg, Queue<(string?, QsArgumentTuple)> tupleQueue)
+            (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
-                (string?, ResolvedType) LocalVarName(QsArgumentTuple v)
+                (string?, ResolvedType) LocalVarName(ArgumentTuple v)
                 {
-                    if (v is QsArgumentTuple.QsTuple)
+                    if (v is ArgumentTuple.QsTuple)
                     {
                         tupleQueue.Enqueue((null, v));
                         return (null, v.GetResolvedType());
                     }
-                    else if (v is QsArgumentTuple.QsTupleItem item)
+                    else if (v is ArgumentTuple.QsTupleItem item)
                     {
                         return item.Item.VariableName is QsLocalSymbol.ValidName varName
                             ? (varName.Item, item.Item.Type)
@@ -969,7 +970,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                return arg is QsArgumentTuple.QsTuple tuple
+                return arg is ArgumentTuple.QsTuple tuple
                     ? tuple.Item.Select(item => LocalVarName(item)).ToArray()
                     : new[] { LocalVarName(arg) };
             }
@@ -982,7 +983,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
 
-            var innerTuples = new Queue<(string?, QsArgumentTuple)>();
+            var innerTuples = new Queue<(string?, ArgumentTuple)>();
             var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
             var innerTupleValues = new Queue<TupleValue>();
 
@@ -992,7 +993,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // rather than the argument tuple for determining the signature of a function is much cleaner.
             if (outerArgItems.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                if (!(outerArgItems[0].Item2.Resolution is QsResolvedTypeKind.TupleType ts)
+                if (!(outerArgItems[0].Item2.Resolution is ResolvedTypeKind.TupleType ts)
                     || ts.Item.Length != this.CurrentFunction.Parameters.Count)
                 {
                     throw new InvalidOperationException("number of function parameters does not match argument");
@@ -1031,7 +1032,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // Now break up inner argument tuples
-            while (deconstuctArgument && innerTuples.TryDequeue(out (string?, QsArgumentTuple) tuple))
+            while (deconstuctArgument && innerTuples.TryDequeue(out (string?, ArgumentTuple) tuple))
             {
                 var (tupleArgName, tupleArg) = tuple;
                 var tupleValue = tupleArgName == null
@@ -1060,7 +1061,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// This routine generates all the code for the constructor, not just the header.
         /// </summary>
         /// <param name="udt">The Q# user-defined type</param>
-        internal void GenerateConstructor(QsSpecialization spec, QsArgumentTuple argTuple)
+        internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
         {
             this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
 
@@ -1071,7 +1072,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (this.CurrentFunction != null)
             {
-                var itemTypes = spec.Signature.ArgumentType.Resolution is QsResolvedTypeKind.TupleType ts
+                var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
                         ? ts.Item
                         : ImmutableArray.Create(spec.Signature.ArgumentType);
                 if (itemTypes.Length != this.CurrentFunction.Parameters.Count)
@@ -1085,6 +1086,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        /// <summary>
+        /// Generates a suitable QIR function for the partial application with the given body.
+        /// The generated function takes a capture tuple, and argument tuple, and an output tuple
+        /// as arguments and returns void.
+        /// </summary>
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
         {
             var funcName = FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
@@ -1135,21 +1141,56 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Tries to get the wrapper function for a Q# specialization.
-        /// If the wrapper function hasn't been generated yet, false is returned.
+        /// Creates a global variable with the given name that contains an array of function pointers
+        /// that define the necessary implemementations for a callable value.
+        /// The array contains the function pointers returned by the given function for each possible functor specialization,
+        /// as well as a pointer to an additional function to manage the reference counts for the given capture, if any.
+        /// Queues the generation of that function if necessary such that the current context is not modified
+        /// beyond adding the corresponding constant and function declaration, if necessary.
         /// </summary>
-        /// <param name="callable">The callable</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
-        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
-        private bool TryGetWrapper(QsCallable callable, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
+        private GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec, TupleValue? capture = null)
         {
-            var fullName = FunctionWrapperName(callable.FullName, kind);
-            return this.Module.TryGetFunction(fullName, out function);
+            IrFunction GetOrCreateRefCountFunction(TupleValue value)
+            {
+                var type = StripPositionInfo.Apply(value.QSharpType);
+                if (this.refCountFunctions.TryGetValue(type, out IrFunction func))
+                {
+                    return func;
+                }
+                var funcName = this.GenerateUniqueName("MemoryManagement");
+                func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+                this.refCountFunctions.Add(type, func);
+                return func;
+            }
+
+            // Generate the callable's function array;
+            // the first four entries contain the specializations or null
+            // if the corresponding specialization does not exist,
+            // and the last entry contains the unreference function for the capture tuple,
+            // which is set to null if the capture tuple is null (i.e. for global callables).
+
+            var funcs = new Constant[5];
+            funcs[4] = capture != null
+                ? GetOrCreateRefCountFunction(capture)
+                : Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+
+            for (var index = 0; index < 4; index++)
+            {
+                funcs[index] = getSpec(FunctionArray[index])
+                    ?? Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+            }
+
+            // Build the callable table
+            var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
         }
 
+        /// <inheritdoc cref="CreateCallableTable"/>
+        internal GlobalVariable GetOrCreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec, TupleValue? capture = null) =>
+            this.CreateCallableTable(name, getSpec, capture);
+
         /// <summary>
-        /// If a constant array with the four IrFunctions for the given callable already exists,
+        /// If a constant array with the IrFunctions for the given callable already exists,
         /// returns the corresponding global variable. If no such array exists, creates a constant array
         /// and instantiates the necessary wrapper functions, queues the generation of their implementations,
         /// and returns the created global constant.
@@ -1159,33 +1200,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
             var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
-            if (this.wrapperQueue.TryGetValue(key, out (QsCallable, GlobalVariable) item))
+            if (this.functionWrappers.TryGetValue(key, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
             }
             else
             {
-                // Generate the callable's function array
-                Constant[] funcs = new Constant[4];
-                for (var index = 0; index < 4; index++)
-                {
-                    QsSpecializationKind kind = FunctionArray[index];
-                    if (callable.Specializations.Any(spec => spec.Kind == kind &&
-                        (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)))
-                    {
-                        var f = this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature);
-                        funcs[index] = f;
-                    }
-                    else
-                    {
-                        funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
-                    }
-                }
-
-                ITypeRef t = this.Types.FunctionSignature.CreatePointerType();
-                Constant array = ConstantArray.From(t, funcs);
-                var table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, key);
-                this.wrapperQueue.Add(key, (callable, table));
+                IrFunction? BuildSpec(QsSpecializationKind kind) =>
+                    callable.Specializations.Any(spec => spec.Kind == kind &&
+                    (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
+                        ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                        : null;
+                var table = this.CreateCallableTable(key, BuildSpec);
+                this.functionWrappers.Add(key, (callable, table));
                 return table;
             }
         }
@@ -1196,7 +1223,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="func">The function to populate</param>
         /// <param name="executeBody">The body of the function</param>
-        private void GenerateWrapperFunction(IrFunction func, Action<IReadOnlyList<Argument>> executeBody)
+        private void GenerateQirFunction(IrFunction func, Action<IReadOnlyList<Argument>> executeBody)
         {
             this.CurrentFunction = func;
             this.CurrentFunction.Parameters[0].Name = "capture-tuple";
@@ -1233,35 +1260,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// which this is the case are hence accumulated during the sytnax tree transformation, and the
         /// corresponding wrappers are generated only upon emission by invoking this method.
         /// </summary>
-        private void GenerateQueuedWrappers()
+        private void GenerateRequiredFunctions()
         {
-            // Generate the code that decomposes the tuple back into the named arguments
-            // Note that we don't want to recurse here!
-            List<Value> GenerateArgTupleDecomposition(ResolvedType type, Value argTuple)
+            TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
             {
-                List<Value> args = new List<Value>();
-                var itemTypes = type.Resolution is QsResolvedTypeKind.TupleType argItemTypes
-                    ? argItemTypes.Item
-                    : ImmutableArray.Create(type);
-                var tuple = this.Values.FromTuple(argTuple, itemTypes);
-
-                if (!type.Resolution.IsUnitType)
-                {
-                    args.AddRange(tuple.GetTupleElements().Select(qirValue => qirValue.Value));
-                }
-
-                return args;
+                var itemTypes =
+                    type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                    type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                    ImmutableArray.Create(type);
+                return this.Values.FromTuple(argTuple, itemTypes);
             }
 
             // result value contains the return value, and output tuple is the tuple where that value should be stored
             void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
             {
-                var resultTupleItemTypes = resultType.Resolution is QsResolvedTypeKind.TupleType ts
+                var resultTupleItemTypes = resultType.Resolution is ResolvedTypeKind.TupleType ts
                     ? ts.Item
                     : ImmutableArray.Create(resultType);
                 var qirOutputTuple = this.Values.FromTuple(outputTuple, resultTupleItemTypes);
 
-                if (resultType.Resolution is QsResolvedTypeKind.TupleType tupleType)
+                if (resultType.Resolution is ResolvedTypeKind.TupleType tupleType)
                 {
                     var resultTuple = this.Values.FromTuple(resultValue, resultTupleItemTypes);
                     for (int j = 0; j < tupleType.Item.Length; j++)
@@ -1296,26 +1314,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            foreach (var (callable, _) in this.wrapperQueue.Values)
+            foreach (var (callable, _) in this.functionWrappers.Values)
             {
                 foreach (var spec in callable.Specializations)
                 {
+                    var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
-                        && this.TryGetWrapper(callable, spec.Kind, out IrFunction? func))
+                        && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {
-                        this.GenerateWrapperFunction(func, parameters =>
+                        this.GenerateQirFunction(func, parameters =>
                         {
-                            var argList = GenerateArgTupleDecomposition(spec.Signature.ArgumentType, parameters[1]);
+                            var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
+                            var argList = new List<Value>(argTuple.GetTupleElements().Select(qirValue => qirValue.Value));
                             var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
                             PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
                         });
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"failed to generate {fullName}");
                     }
                 }
             }
 
             foreach (var (func, body) in this.liftedPartialApplications)
             {
-                this.GenerateWrapperFunction(func, body);
+                this.GenerateQirFunction(func, body);
+            }
+
+            foreach (var (type, func) in this.refCountFunctions)
+            {
+                this.GenerateQirFunction(func, parameters =>
+                {
+                    var capture = GetArgumentTuple(type, parameters[0]);
+                    this.ScopeMgr.DecreaseReferenceCount(capture); // FIXME: NEED TO TAKE WHAT TO INVOKE AS ARGUMENT
+                });
             }
         }
 
@@ -1539,7 +1572,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="resolvedType">The Q# type</param>
         /// <returns>The equivalent QIR structure type</returns>
         internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
-            resolvedType.Resolution is QsResolvedTypeKind.TupleType tuple
+            resolvedType.Resolution is ResolvedTypeKind.TupleType tuple
                 ? this.CreateConcreteTupleType(tuple.Item)
                 : this.CreateConcreteTupleType(new[] { resolvedType });
 
