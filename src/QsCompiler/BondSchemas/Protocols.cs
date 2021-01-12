@@ -148,8 +148,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
 
-            // The inlineNested constructor argument is set to false because when it is set to true deserialization time is optimized at the expense of initialization time and memory.
-            // N.B. For our Bond schemas, passing this argument to the Deserializer constructor does not seem to impact deserialization time.
+            // inlineNested is false in order to decrease the time needed to initialize the deserializer.
+            // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
             return Task.Run(() => new SimpleBinaryDeserializer(
                 type: typeof(QsCompilation),
                 factory: (Factory?)null,
