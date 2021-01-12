@@ -33,13 +33,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public readonly string Name;
 
             /// <summary>
-            /// Gets the duration of the task in milliseconds.
+            /// Identifier of the task.
             /// </summary>
-            public long DurationInMs
+            public string Id => GenerateKey(this.ParentName, this.Name);
+
+            /// <summary>
+            /// List of tuples in which each item represents the duration measured per thread.
+            /// </summary>
+            public List<(string Id, long DurationInMs)> ItemizedDurations
             {
                 get
                 {
-                    if (this.IntervalCount == 0)
+                    if (this.watches.Count == 0)
                     {
                         throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when no interval has been measured");
                     }
@@ -48,14 +53,27 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         throw new InvalidOperationException($"Attempt to get task '{this.Id}' duration when measurement is in progress");
                     }
 
-                    return this.watch.ElapsedMilliseconds;
+                    // For tasks whose performance was only measured in one thread, do not include a thread number in the ID.
+                    var itemizedDurations = new List<(string TaskItem, long DurationInMs)>();
+                    if (this.watches.Count == 1)
+                    {
+                        var key = this.watches.Keys.First();
+                        var watch = this.watches[key];
+                        itemizedDurations.Add((this.Name, watch.ElapsedMilliseconds));
+                    }
+                    else
+                    {
+                        var threadNumber = 0;
+                        foreach (var item in this.watches)
+                        {
+                            itemizedDurations.Add(($"{item.Key}[{threadNumber.ToString("00")}]", item.Value.ElapsedMilliseconds));
+                            threadNumber++;
+                        }
+                    }
+
+                    return itemizedDurations;
                 }
             }
-
-            /// <summary>
-            /// Identifier of the task.
-            /// </summary>
-            public string Id => GenerateKey(this.ParentName, this.Name);
 
             /// <summary>
             /// Number of intervals (start/stop cycles) measured.
@@ -63,12 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public int IntervalCount { get; private set; }
 
             /// <summary>
-            /// Stopwatch used to measure the duration of the task.
-            /// </summary>
-            private readonly Stopwatch watch;
-
-            /// <summary>
-            ///
+            /// Stopwatches used to measure the duration of the task on each thread.
             /// </summary>
             private readonly IDictionary<int, Stopwatch> watches;
 
@@ -87,17 +100,23 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 this.ParentName = parentName;
                 this.Name = name;
-                this.watch = new Stopwatch();
                 this.watches = new Dictionary<int, Stopwatch>();
             }
 
             /// <summary>
             /// Returns whether a compilation class is in progress.
             /// </summary>
-            // TODO: Make it multithread.
             public bool IsInProgress()
             {
-                return this.watch.IsRunning;
+                foreach (var item in this.watches)
+                {
+                    if (item.Value.IsRunning)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             /// <summary>
@@ -163,11 +182,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     preparedPrefix = $"{prefix}.";
                 }
 
-                var propertyName = $"{preparedPrefix}{this.Task.Name}";
-                jsonWriter.WriteNumber(propertyName, this.Task.DurationInMs);
+                // Write the itemized durations for this task.
+                foreach (var item in this.Task.ItemizedDurations)
+                {
+                    var propertyName = $"{preparedPrefix}{item.Id}";
+                    jsonWriter.WriteNumber(propertyName, item.DurationInMs);
+                }
+
+                // Write the child tasks.
+                var fullTaskName = $"{preparedPrefix}{this.Task.Name}";
                 foreach (var entry in this.Children.OrderBy(e => e.Key))
                 {
-                    entry.Value.WriteToJson(jsonWriter, propertyName);
+                    entry.Value.WriteToJson(jsonWriter, fullTaskName);
                 }
             }
         }
@@ -255,7 +281,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static void CompilationEventStartHandler(string? parentTaskName, string taskName)
         {
             Debug.Assert(Monitor.IsEntered(GlobalLock));
-            string key = CompilationTask.GenerateKey(parentTaskName, taskName);
+            var key = CompilationTask.GenerateKey(parentTaskName, taskName);
             if (!CompilationTasks.TryGetValue(key, out var task))
             {
                 task = new CompilationTask(parentTaskName, taskName);
