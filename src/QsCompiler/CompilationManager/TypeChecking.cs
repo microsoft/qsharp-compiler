@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -464,8 +464,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return (item.Key, item.Value.Item1, nodes);
             });
             return specRoots.ToImmutableDictionary(
-                spec => spec.Item1,
-                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Item1.Namespace, spec.Item1.Name, spec.Item3)));
+                spec => spec.Key,
+                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Key.Namespace, spec.Key.Name, spec.nodes)));
         }
 
         /// <summary>

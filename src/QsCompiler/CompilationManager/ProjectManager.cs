@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -258,7 +258,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     this.log(
                         $"The Q# language server functionality is partially disabled for project {this.ProjectFile.LocalPath}. " +
-                        $"The full functionality will be available after updating the project to Q# version 0.3 or higher.", MessageType.Warning);
+                        $"The full functionality will be available after updating the project to Q# version 0.3 or higher.",
+                        MessageType.Warning);
                 }
                 this.LoadReferencedAssembliesAsync(this.specifiedReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadProjectReferencesAsync(projectOutputPaths, this.specifiedProjectReferences.Select(uri => uri.LocalPath), skipVerification: true);
@@ -1247,7 +1248,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onException);
             return found
                 .SelectNotNull(file => GetFileContent(file)?.Apply(content => (file, content)))
-                .ToImmutableDictionary(source => source.Item1, source => source.Item2);
+                .ToImmutableDictionary(source => source.file, source => source.content);
         }
 
         /// <summary>
@@ -1346,7 +1347,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var projectDlls = existingProjectFiles // maps the *dll path* back to the corresponding project file!
                 .SelectNotNull(projFile => TryGetOutputPath(projFile)?.Apply(output => (projFile, output)))
-                .ToImmutableDictionary(p => p.Item2, p => p.Item1); // FIXME: take care of different projects having the same output path...
+                .ToImmutableDictionary(p => p.output, p => p.projFile); // FIXME: take care of different projects having the same output path...
             var (existingProjectDlls, missingDlls) = projectDlls.Keys.Partition(f => File.Exists(f.LocalPath));
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
             {
@@ -1355,7 +1356,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return existingProjectDlls
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.Item1]), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.file]), asm => asm.headers);
         }
 
         /// <summary>
@@ -1388,7 +1389,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return assembliesToLoad
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(asm.file), asm => asm.headers);
         }
     }
 }

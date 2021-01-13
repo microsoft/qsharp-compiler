@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System.Runtime.Serialization;
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             public TextDocumentIdentifier? TextDocument { get; set; }
 
             [DataMember(Name = "range")]
-            public VisualStudio.LanguageServer.Protocol.Range? Range { get; set; }
+            public Range? Range { get; set; }
 
             [DataMember(Name = "context")]
             public CodeActionContext? Context { get; set; }

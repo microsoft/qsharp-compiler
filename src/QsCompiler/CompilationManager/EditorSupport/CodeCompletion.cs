@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -412,13 +412,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return compilation
                 .GetOpenDirectives(ns)[file.FileName]
                 .SelectNotNull(open => open.Item2?.Apply(alias => (open.Item1, alias)))
-                .Where(open => open.Item2.StartsWith(prefix))
-                .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
+                .Where(open => open.alias.StartsWith(prefix))
+                .GroupBy(open => NextNamespacePart(open.alias, prefix.Length))
                 .Select(open => new CompletionItem
                 {
                     Label = open.Key,
                     Kind = CompletionItemKind.Module,
-                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
+                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().alias
                         ? open.Single().Item1
                         : prefix + open.Key
                 });
