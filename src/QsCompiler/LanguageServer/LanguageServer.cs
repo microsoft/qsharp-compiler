@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -575,7 +575,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         public object? OnExecuteCommand(JToken arg)
         {
             ExecuteCommandParams param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
-            object? CastAndExecute<T>(Func<T, object?> command) where T : class =>
+            object? CastAndExecute<T>(Func<T, object?> command)
+                where T : class =>
                 QsCompilerError.RaiseOnFailure(
                     () => command(Utils.TryJTokenAs<T>((JObject)param.Arguments.Single())), // currently all supported commands take a single argument
                     "ExecuteCommand threw an exception");

@@ -772,7 +772,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var namespaceElements = callables.Select(c => (c.FullName.Namespace, QsNamespaceElement.NewQsCallable(c)))
                 .Concat(types.Select(t => (t.FullName.Namespace, QsNamespaceElement.NewQsCustomType(t))));
             return namespaceElements
-                .ToLookup(element => element.Item1, element => element.Item2)
+                .ToLookup(element => element.Namespace, element => element.Item2)
                 .Select(elements => new QsNamespace(
                     elements.Key,
                     elements.OrderBy(ElementName).ToImmutableArray(),

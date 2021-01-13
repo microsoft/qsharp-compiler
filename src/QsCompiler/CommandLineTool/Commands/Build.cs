@@ -10,7 +10,6 @@ using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -45,15 +44,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option(
                 "response-files",
                 Required = true,
-                SetName = RESPONSE_FILES,
+                SetName = Options.ResponseFiles,
                 HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
-            public IEnumerable<string> ResponseFiles { get; set; }
+            public new IEnumerable<string> ResponseFiles { get; set; }
 
             [Option(
                 'o',
                 "output",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
 
@@ -62,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option(
                 "proj",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Name of the project (needs to be usable as file name).")]
             public string? ProjectName { get; set; }
 
@@ -70,14 +69,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 "emit-dll",
                 Required = false,
                 Default = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
 
             [Option(
                 "perf",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string? PerfFolder { get; set; }
 
@@ -204,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (!BuildOptions.IncorporateResponseFiles(options, out var incorporated))
             {
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
-                return ReturnCode.INVALID_ARGUMENTS;
+                return ReturnCode.InvalidArguments;
             }
 
             options = incorporated;

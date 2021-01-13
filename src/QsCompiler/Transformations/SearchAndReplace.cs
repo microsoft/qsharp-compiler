@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -684,7 +684,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public TypeTransformation(RenameReferences parent) : base(parent) =>
+            public TypeTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
@@ -698,7 +699,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public ExpressionKindTransformation(RenameReferences parent) : base(parent) =>
+            public ExpressionKindTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
@@ -715,7 +717,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public NamespaceTransformation(RenameReferences parent) : base(parent) =>
+            public NamespaceTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)

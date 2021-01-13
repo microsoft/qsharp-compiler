@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -49,16 +49,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
             this QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> bondQsExpressionKindComposition) =>
-            bondQsExpressionKindComposition.ToCompilerObjectGeneric<
-                SyntaxTree.TypedExpression,
-                SyntaxTree.Identifier,
-                SyntaxTree.ResolvedType,
-                TypedExpression,
-                Identifier,
-                ResolvedType>(
-                    expressionTranslator: ToCompilerObject,
-                    symbolTranslator: ToCompilerObject,
-                    typeTranslator: ToCompilerObject);
+            bondQsExpressionKindComposition.ToCompilerObjectGeneric(
+                expressionTranslator: ToCompilerObject,
+                symbolTranslator: ToCompilerObject,
+                typeTranslator: ToCompilerObject);
 
         private static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
             bondQsGeneratorDirective switch
@@ -525,7 +519,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTree.QsTypeItem.NewNamed(
                     item: named.ToCompilerObjectGeneric(typeTranslator: item => item));
             }
-            else if(bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
+            else if (bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
             {
                 var anonymous =
                     bondQsTypeItem.Anonymous ??
@@ -693,8 +687,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTokens.CharacteristicsKind<TCompiler>.NewSimpleSet(
                     item: simpleSet.ToCompilerObject());
             }
-            else if((bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Union) ||
-                    (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Intersection))
+            else if ((bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Union) ||
+                     (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Intersection))
             {
                 var bondSetOperation =
                     bondCharacteristicsKindComposition.SetOperation ??

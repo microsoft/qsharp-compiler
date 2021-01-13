@@ -156,7 +156,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
             {
-                public BuildGraph(ConcreteGraphBuilder graph) : base(new TransformationState(graph))
+                public BuildGraph(ConcreteGraphBuilder graph)
+                    : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
                     this.Statements = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
@@ -175,7 +176,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
                 private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
-                internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
+                internal TransformationState(ConcreteGraphBuilder graph)
+                    : base(graph)
                 {
                 }
 
@@ -276,7 +278,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class NamespaceWalker : NamespaceTransformation<TransformationState>
             {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 
@@ -313,7 +316,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 

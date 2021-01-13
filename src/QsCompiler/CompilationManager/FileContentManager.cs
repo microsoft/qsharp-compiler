@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -9,7 +9,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -740,7 +739,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             edited();
                         }
-                    }, $"marking edited in {nameof(this.RemoveTokensInRange)} failed");
+                    },
+                    $"marking edited in {nameof(this.RemoveTokensInRange)} failed");
                 QsCompilerError.RaiseOnFailure(
                     () =>
                     {
@@ -748,7 +748,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             transformation();
                         }
-                    }, $"applying transformations in {nameof(this.RemoveTokensInRange)} failed");
+                    },
+                    $"applying transformations in {nameof(this.RemoveTokensInRange)} failed");
             }
             finally
             {
@@ -847,7 +848,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             transformation();
                         }
-                    }, $"applying transformations in {nameof(this.TokensUpdate)} failed");
+                    },
+                    $"applying transformations in {nameof(this.TokensUpdate)} failed");
                 QsCompilerError.RaiseOnFailure(
                     () =>
                     {
@@ -855,7 +857,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             edited();
                         }
-                    }, $"marking edited in {nameof(this.TokensUpdate)} failed");
+                    },
+                    $"marking edited in {nameof(this.TokensUpdate)} failed");
             }
             finally
             {

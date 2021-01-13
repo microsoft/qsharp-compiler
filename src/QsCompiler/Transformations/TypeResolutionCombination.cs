@@ -97,7 +97,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// type parameter resolutions are relevant to the given expression's type parameter resolutions
         /// are considered.
         /// </summary>
-        public TypeResolutionCombination(TypedExpression expression) : this(GetTypeParameterResolutions.Apply(expression))
+        public TypeResolutionCombination(TypedExpression expression)
+            : this(GetTypeParameterResolutions.Apply(expression))
         {
         }
 
@@ -264,7 +265,8 @@ namespace Microsoft.Quantum.QsCompiler
                 public HashSet<TypeParameterName> TypeParams = new HashSet<TypeParameterName>();
             }
 
-            private GetTypeParameters() : base(new TransformationState(), TransformationOptions.NoRebuild)
+            private GetTypeParameters()
+                : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
             }
 
@@ -370,7 +372,8 @@ namespace Microsoft.Quantum.QsCompiler
                 public bool InCallLike = false;
             }
 
-            private GetTypeParameterResolutions() : base(new TransformationState(), TransformationOptions.NoRebuild)
+            private GetTypeParameterResolutions()
+                : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
             }
 

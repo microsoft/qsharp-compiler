@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -506,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     yield return TypeCheckingRange(preceding.Last(), following);
                 }
-                if (following.Any() && following.First().Item1.Line == lineNr)
+                if (following.Any() && following.First().Start.Line == lineNr)
                 {
                     yield return TypeCheckingRange(following.First(), following.Skip(1));
                 }
@@ -533,7 +533,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         var verifiedLines = file.VerifyContext(changedLines, out List<Diagnostic> diagnostics);
                         file.UpdateContextDiagnostics(verifiedLines, diagnostics);
-                    }, "updating the ContextDiagnostics failed");
+                    },
+                    "updating the ContextDiagnostics failed");
 
                 var edited = file.CallablesWithContentModifications(changedLines);
                 file.MarkCallableAsContentEdited(edited);
