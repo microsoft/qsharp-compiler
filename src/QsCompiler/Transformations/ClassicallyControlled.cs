@@ -40,7 +40,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             public static QsCompilation Apply(QsCompilation compilation) =>
                 new RestructureConditions().OnCompilation(compilation);
 
-            private RestructureConditions() : base()
+            private RestructureConditions()
+                : base()
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation(this);
@@ -50,7 +51,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             private class NamespaceTransformation : Core.NamespaceTransformation
             {
-                public NamespaceTransformation(SyntaxTreeTransformation parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation parent)
+                    : base(parent)
                 {
                 }
 
@@ -59,11 +61,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             private class StatementTransformation : Core.StatementTransformation
             {
-                public StatementTransformation(SyntaxTreeTransformation parent) : base(parent)
+                public StatementTransformation(SyntaxTreeTransformation parent)
+                    : base(parent)
                 {
                 }
 
-                #region Condition Reshaping Logic
+                // Condition Reshaping Logic
 
                 /// <summary>
                 /// Converts if-elif-else structures to nested if-else structures.
@@ -227,8 +230,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     return statement;
                 }
 
-                #endregion
-
                 public override QsScope OnScope(QsScope scope)
                 {
                     var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
@@ -268,7 +269,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
             }
 
-            private ConvertConditions(QsCompilation compilation) : base(new TransformationState(compilation))
+            private ConvertConditions(QsCompilation compilation)
+                : base(new TransformationState(compilation))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation(this);
@@ -278,7 +280,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -287,7 +290,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             private class StatementTransformation : StatementTransformation<TransformationState>
             {
-                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -366,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         new InferredExpressionInformation(false, expressions.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                         QsNullable<Range>.Null);
 
-                #region Condition Converting Logic
+                // Condition Converting Logic
 
                 /// <summary>
                 /// Creates an operation call from the conditional control API, given information
@@ -644,9 +648,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
-                #endregion
-
-                #region Condition Checking Logic
+                // Condition Checking Logic
 
                 /// <summary>
                 /// Checks if the statement is a condition statement that only has one conditional block in it (default blocks are optional).
@@ -761,8 +763,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     return false;
                 }
 
-                #endregion
-
                 public override QsScope OnScope(QsScope scope)
                 {
                     var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
@@ -839,14 +839,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 internal bool IsConditionLiftable = false;
             }
 
-            public LiftContent() : base(new TransformationState())
+            public LiftContent()
+                : base(new TransformationState())
             {
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
             private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
             {
-                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 

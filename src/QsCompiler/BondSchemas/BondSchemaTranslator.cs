@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -199,16 +199,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> ToBondSchema(
             this SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> qsExpressionKind) =>
-            qsExpressionKind.ToBondSchemaGeneric<
-                TypedExpression,
-                Identifier,
-                ResolvedType,
-                SyntaxTree.TypedExpression,
-                SyntaxTree.Identifier,
-                SyntaxTree.ResolvedType>(
-            expressionTranslator: ToBondSchema,
-            symbolTranslator: ToBondSchema,
-            typeTranslator: ToBondSchema);
+            qsExpressionKind.ToBondSchemaGeneric(
+                expressionTranslator: ToBondSchema,
+                symbolTranslator: ToBondSchema,
+                typeTranslator: ToBondSchema);
 
         private static QsForStatement ToBondSchema(this SyntaxTree.QsForStatement qsForStatement) =>
             new QsForStatement
@@ -509,19 +503,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> ToBondSchema(
             this SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> qsTypeKind) =>
-            qsTypeKind.ToBondSchemaGeneric
-                <ResolvedType,
-                 UserDefinedType,
-                 QsTypeParameter,
-                 CallableInformation,
-                 SyntaxTree.ResolvedType,
-                 SyntaxTree.UserDefinedType,
-                 SyntaxTree.QsTypeParameter,
-                 SyntaxTree.CallableInformation>(
-            dataTranslator: ToBondSchema,
-            udtTranslator: ToBondSchema,
-            paramTranslator: ToBondSchema,
-            characteristicsTranslator: ToBondSchema);
+            qsTypeKind.ToBondSchemaGeneric(
+                dataTranslator: ToBondSchema,
+                udtTranslator: ToBondSchema,
+                paramTranslator: ToBondSchema,
+                characteristicsTranslator: ToBondSchema);
 
         private static QsTypeItem ToBondSchema(this SyntaxTree.QsTypeItem qsTypeItem)
         {
@@ -790,7 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             where TCompilerSymbol : class
             where TCompilerType : class
         {
-            Int64? bondIntLiteral = null;
+            long? bondIntLiteral = null;
             ArraySegment<byte> bondBigIntLiteral = null;
             double? bondDoubleLiteral = null;
             bool? bondBoolLiteral = null;

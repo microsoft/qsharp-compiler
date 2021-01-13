@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -10,7 +13,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Creates a <see cref="FileContentException"/> with the given message.
         /// </summary>
-        public FileContentException(string message) : base(message)
+        public FileContentException(string message)
+            : base(message)
         {
         }
     }

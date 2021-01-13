@@ -8,6 +8,7 @@ using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.Documentation
@@ -59,7 +60,7 @@ namespace Microsoft.Quantum.Documentation
             }
 
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new ProcessDocComments.NamespaceTransformation(this, this.Writer);
+            this.Namespaces = new NamespaceTransformation(this, this.Writer);
         }
 
         private class NamespaceTransformation

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return ResolveGenerics.Apply(compilation, final, intrinsicCallableSet, keepAllIntrinsics);
         }
 
-        #region ResolveGenerics
+        // Resolve Generics
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
@@ -136,7 +136,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -165,9 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        #endregion
-
-        #region RewriteImplementations
+        // Rewrite Implementations
 
         private static AccessModifier GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
@@ -213,7 +212,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -252,7 +252,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -265,7 +266,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -321,9 +323,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        #endregion
-
-        #region RewriteCalls
+        // Rewrite Calls
 
         private static Identifier GetConcreteIdentifier(
             Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
@@ -383,7 +383,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class StatementTransformation : StatementTransformation<TransformationState>
             {
-                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -397,7 +398,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -421,7 +423,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -453,7 +456,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -472,7 +476,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
         }
-
-        #endregion
     }
 }
