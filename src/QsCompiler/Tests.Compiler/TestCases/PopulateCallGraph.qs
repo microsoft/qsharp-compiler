@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // =================================
 
-// Concrete Graph Trims Specializations
+// Concrete Graph Contains All Specializations
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
     @ EntryPoint()
