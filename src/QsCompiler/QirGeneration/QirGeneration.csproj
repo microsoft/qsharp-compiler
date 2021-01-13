@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ubiquity.NET.Llvm" Version="10.0.0-alpha.3" />
+    <PackageReference Include="Ubiquity.NET.Llvm" Version="[10.0.0-alpha*,11)" />
+    <PackageReference Include="Ubiquity.NET.Llvm.Interop" Version="[10.0.0-alpha*,11)" />
   </ItemGroup>
 
   <ItemGroup>
