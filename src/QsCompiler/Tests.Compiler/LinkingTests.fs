@@ -96,7 +96,8 @@ type LinkingTests(output: ITestOutputHelper) =
         let source, built = manager |> this.BuildWithSource input
         let tests = new CompilerTests(built)
 
-        let inFile (c: QsCallable) = c.SourceFile = source
+        let inFile (c: QsCallable) =
+            Source.assemblyOrCodeFile c.Source = source
 
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.VerifyDiagnostics(callable.FullName, diag)
@@ -619,11 +620,12 @@ type LinkingTests(output: ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
+
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
             Assert.Equal(4, specializations.Length)
-            Assert.True(specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
+            Assert.True(specializations |> Seq.forall (fun s -> s.Source = callables.[name].Source))
 
 
     [<Fact>]
@@ -703,15 +705,15 @@ type LinkingTests(output: ITestOutputHelper) =
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl: QsCustomType) =
-                AssertSource(tDecl.FullName, tDecl.SourceFile, Some tDecl.Modifiers.Access)
+                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Modifiers.Access)
                 tDecl
 
             let onCallableDecl (cDecl: QsCallable) =
-                AssertSource(cDecl.FullName, cDecl.SourceFile, Some cDecl.Modifiers.Access)
+                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Modifiers.Access)
                 cDecl
 
             let onSpecDecl (sDecl: QsSpecialization) =
-                AssertSource(sDecl.Parent, sDecl.SourceFile, None)
+                AssertSource(sDecl.Parent, Source.assemblyOrCodeFile sDecl.Source, None)
                 sDecl
 
             let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)

@@ -32,7 +32,7 @@ let internal testName name =
 
 /// Asserts that the tester produces the expected error codes for the test case with the given name.
 let private expect (tester: CompilerTests) errorCodes name =
-    tester.VerifyDiagnostics(testName name, Seq.map Error errorCodes)
+    tester.VerifyDiagnostics(testName name, errorCodes)
 
 /// The names of all "simple" test cases: test cases that have exactly one unsupported result comparison error in
 /// BasicQuantumFunctionality, and no errors in FullComputation.
@@ -69,10 +69,10 @@ let private simpleTests =
 [<Fact>]
 let ``Unknown allows all Result comparison`` () =
     List.iter (expect fullComputation []) simpleTests
-    "SetReusedName" |> expect fullComputation [ ErrorCode.LocalVariableAlreadyExists ]
+    "SetReusedName" |> expect fullComputation [ Error ErrorCode.LocalVariableAlreadyExists ]
 
     [ "ResultTuple"; "ResultArray" ]
-    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
+    |> List.iter (expect fullComputation [ Error ErrorCode.InvalidTypeInEqualityComparison ])
 
 let ``BasicQuantumFunctionality allows callables without Result comparison`` () =
     [ "NoOp"; "OverrideBqfToBmf" ] |> List.iter (expect basicQuantumFunctionality [])
@@ -80,26 +80,31 @@ let ``BasicQuantumFunctionality allows callables without Result comparison`` () 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts all Result comparison`` () =
     simpleTests
-    |> List.iter (expect basicQuantumFunctionality [ ErrorCode.UnsupportedResultComparison ])
+    |> List.iter (expect basicQuantumFunctionality [ Error ErrorCode.UnsupportedResultComparison ])
 
     "SetReusedName"
-    |> expect basicQuantumFunctionality [ ErrorCode.LocalVariableAlreadyExists; ErrorCode.UnsupportedResultComparison ]
+    |> expect
+        basicQuantumFunctionality
+           [
+               Error ErrorCode.LocalVariableAlreadyExists
+               Error ErrorCode.UnsupportedResultComparison
+           ]
 
     [ "ResultTuple"; "ResultArray" ]
-    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
+    |> List.iter (expect fullComputation [ Error ErrorCode.InvalidTypeInEqualityComparison ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts Result comparison in functions`` () =
     [ "ResultAsBool"; "ResultAsBoolNeq" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.ResultComparisonNotInOperationIf ])
 
     [ "ResultTuple"; "ResultArray" ]
-    |> List.iter (expect fullComputation [ ErrorCode.InvalidTypeInEqualityComparison ])
+    |> List.iter (expect fullComputation [ Error ErrorCode.InvalidTypeInEqualityComparison ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-if Result comparison in operations`` () =
     [ "ResultAsBoolOp"; "ResultAsBoolNeqOp" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.ResultComparisonNotInOperationIf ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts return from Result if`` () =
@@ -109,7 +114,7 @@ let ``BasicMeasurementFeedback restricts return from Result if`` () =
         "ResultAsBoolNeqOpReturnIf"
         "NestedResultIfReturn"
     ]
-    |> List.iter (expect basicMeasurementFeedback <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
+    |> List.iter (Error ErrorCode.ReturnInResultConditionedBlock |> Seq.replicate 2 |> expect basicMeasurementFeedback)
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows local mutable set from Result if`` () =
@@ -118,27 +123,31 @@ let ``BasicMeasurementFeedback allows local mutable set from Result if`` () =
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result if`` () =
     [ "ResultAsBoolOpSetIf"; "ResultAsBoolNeqOpSetIf"; "SetTuple" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.SetInResultConditionedBlock ])
 
     "SetReusedName"
     |> expect
         basicMeasurementFeedback
-           (ErrorCode.LocalVariableAlreadyExists :: List.replicate 2 ErrorCode.SetInResultConditionedBlock)
+           [
+               Error ErrorCode.LocalVariableAlreadyExists
+               Error ErrorCode.SetInResultConditionedBlock
+               Error ErrorCode.SetInResultConditionedBlock
+           ]
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result elif`` () =
     [ "ElifSet"; "ElifElifSet" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.SetInResultConditionedBlock ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts non-local mutable set from Result else`` () =
     [ "ResultAsBoolOpElseSet"; "ElifElseSet" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.SetInResultConditionedBlock ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.SetInResultConditionedBlock ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts empty Result if function`` () =
     [ "EmptyIf"; "EmptyIfNeq" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.ResultComparisonNotInOperationIf ])
+    |> List.iter (expect basicMeasurementFeedback [ Error ErrorCode.ResultComparisonNotInOperationIf ])
 
 [<Fact>]
 let ``BasicMeasurementFeedback allows empty Result if operation`` () =
@@ -155,27 +164,67 @@ let ``FullComputation allows all library calls and references`` () =
         "CallLibraryBqf"
         "ReferenceLibraryBqf"
         "CallLibraryBmf"
+        "CallLibraryBmfWithNestedCall"
         "ReferenceLibraryBmf"
         "CallLibraryFull"
+        "CallLibraryFullWithNestedCall"
         "ReferenceLibraryFull"
     ]
     |> List.iter (expect fullComputation [])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts library calls and references`` () =
-    [ "CallLibraryBqf"; "CallLibraryBmf" ] |> List.iter (expect basicMeasurementFeedback [])
+    [ "CallLibraryBqf"; "CallLibraryBmf"; "CallLibraryBmfWithNestedCall" ]
+    |> List.iter (expect basicMeasurementFeedback [])
 
     [ "CallLibraryFull"; "ReferenceLibraryFull" ]
-    |> List.iter (expect basicMeasurementFeedback [ ErrorCode.UnsupportedCapability ])
+    |> List.iter
+        (expect
+            basicMeasurementFeedback
+             [
+                 Error ErrorCode.UnsupportedCallableCapability
+                 Warning WarningCode.ResultComparisonNotInOperationIf
+                 Warning WarningCode.ReturnInResultConditionedBlock
+                 Warning WarningCode.SetInResultConditionedBlock
+             ])
+
+    "CallLibraryFullWithNestedCall"
+    |> expect
+        basicMeasurementFeedback
+           [
+               Error ErrorCode.UnsupportedCallableCapability
+               Warning WarningCode.ResultComparisonNotInOperationIf
+               Warning WarningCode.UnsupportedCallableCapability
+           ]
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
     [ "CallLibraryBqf"; "ReferenceLibraryBqf" ] |> List.iter (expect basicQuantumFunctionality [])
 
-    [
-        "CallLibraryBmf"
-        "ReferenceLibraryBmf"
-        "CallLibraryFull"
-        "ReferenceLibraryFull"
-    ]
-    |> List.iter (expect basicQuantumFunctionality [ ErrorCode.UnsupportedCapability ])
+    [ "CallLibraryBmf"; "ReferenceLibraryBmf" ]
+    |> List.iter
+        (expect
+            basicQuantumFunctionality
+             [
+                 Error ErrorCode.UnsupportedCallableCapability
+                 Warning WarningCode.UnsupportedResultComparison
+             ])
+
+    [ "CallLibraryFull"; "ReferenceLibraryFull" ]
+    |> List.iter
+        (expect
+            basicQuantumFunctionality
+             [
+                 Error ErrorCode.UnsupportedCallableCapability
+                 Warning WarningCode.UnsupportedResultComparison
+                 Warning WarningCode.UnsupportedResultComparison
+             ])
+
+    "CallLibraryBmfWithNestedCall"
+    |> expect
+        basicQuantumFunctionality
+           [
+               Error ErrorCode.UnsupportedCallableCapability
+               Warning WarningCode.UnsupportedResultComparison
+               Warning WarningCode.UnsupportedCallableCapability
+           ]

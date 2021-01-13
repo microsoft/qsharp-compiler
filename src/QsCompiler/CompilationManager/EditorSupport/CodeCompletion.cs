@@ -310,7 +310,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: callable.QualifiedName,
-                        sourceFile: callable.SourceFile)
+                        sourceFile: callable.Source.AssemblyOrCodeFile)
                 });
         }
 
@@ -339,7 +339,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: type.QualifiedName,
-                        sourceFile: type.SourceFile)
+                        sourceFile: type.Source.AssemblyOrCodeFile)
                 });
         }
 

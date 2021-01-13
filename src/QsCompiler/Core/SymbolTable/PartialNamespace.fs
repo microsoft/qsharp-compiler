@@ -100,7 +100,7 @@ type private PartialNamespace private (name: string,
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.GetType tName =
         TypeDeclarations.TryGetValue tName
-        |> tryToOption
+        |> tryOption
         |> Option.defaultWith (fun () -> SymbolNotFoundException "A type with the given name was not found." |> raise)
 
     member internal this.ContainsType = TypeDeclarations.ContainsKey
@@ -111,7 +111,7 @@ type private PartialNamespace private (name: string,
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.GetCallable cName =
         CallableDeclarations.TryGetValue cName
-        |> tryToOption
+        |> tryOption
         |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A callable with the given name was not found." |> raise)
 

@@ -1295,16 +1295,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(
-                returnDiagnostics
-                    .Concat(capabilityDiagnostics)
-                    .Select(msg => Diagnostics.Generate(sourceFile, msg, rootPosition)));
-            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            diagnostics.AddRange(returnDiagnostics
+                .Concat(capabilityDiagnostics)
+                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, rootPosition)));
+            if (!context.ReturnType.Resolution.IsUnitType && !context.ReturnType.Resolution.IsInvalidType && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
                 diagnostics.Add(Diagnostics.Generate(sourceFile, missingReturn, specPos));
             }
+
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
 
@@ -1407,7 +1407,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     spec.Kind,
                     spec.Parent,
                     spec.Attributes,
-                    spec.SourceFile,
+                    spec.Source,
                     QsNullable<QsLocation>.Null,
                     spec.TypeArguments,
                     SyntaxGenerator.WithoutRangeInfo(signature),
@@ -1437,7 +1437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
-                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile, msg, specPos));
+                        diagnostics.Add(Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, msg, specPos));
                     }
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
@@ -1448,7 +1448,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compilation.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
-                        root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
+                        root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
@@ -1623,14 +1623,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.Source.AssemblyOrCodeFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
                         var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                         QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile, msg, offset));
+                            .Select(msg => Diagnostics.Generate(info.Source.AssemblyOrCodeFile, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
@@ -1640,7 +1640,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         parent,
                         info.Attributes,
                         info.Modifiers,
-                        info.SourceFile,
+                        info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
                         info.ArgumentTuple,
@@ -1654,7 +1654,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl.Key,
                     decl.Value.Attributes,
                     decl.Value.Modifiers,
-                    decl.Value.SourceFile,
+                    decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,
                     decl.Value.TypeItems,
@@ -1687,7 +1687,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (callableDeclarations.TryGetValue(parent, out var info))
                 {
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile, diag, offset));
+                    diagnostics.Add(Diagnostics.Generate(info.Source.AssemblyOrCodeFile, diag, offset));
                 }
             }
         }
