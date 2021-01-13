@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 
-
 let private matches scope previous (text, expected) =
     match GetCompletionKinds scope previous text with
     | Success actual ->
@@ -75,7 +74,15 @@ let private callableStatement =
 let private functionStatement = callableStatement @ [ Keyword "while" ]
 
 let private operationStatement =
-    callableStatement @ [ Keyword "repeat"; Keyword "using"; Keyword "borrowing"; Keyword "within" ]
+    callableStatement
+    @ [
+        Keyword "repeat"
+        Keyword "use"
+        Keyword "using"
+        Keyword "borrow"
+        Keyword "borrowing"
+        Keyword "within"
+    ]
 
 let private operationTopLevelStatement =
     operationStatement @ [ Keyword "body"; Keyword "adjoint"; Keyword "controlled" ]
@@ -500,7 +507,34 @@ let ``Operation statement parser tests`` () =
         [
             ("repeat ", [])
             ("within ", [])
-            ("using ", [])
+            ("use ", [ Declaration ])
+            ("use q ", [])
+            ("use q =", [ Keyword "Qubit" ])
+            ("use q = Qubit", [ Keyword "Qubit" ])
+            ("use q = Qubit(", [])
+            ("use q = Qubit()", [])
+            ("use q = Qubit[", expression)
+            ("use q = Qubit[5", [])
+            ("use q = Qubit[5]", [])
+            ("use q = Qubit[n", expression)
+            ("use q = Qubit[n ", infix)
+            ("use q = Qubit[n +", expression)
+            ("use q = Qubit[n +1", [])
+            ("use q = Qubit[n +x", expression)
+            ("use q = Qubit[n + ", expression)
+            ("use q = Qubit[n + 1", [])
+            ("use q = Qubit[n + 1]", [])
+            ("use (", [ Declaration ])
+            ("use (q,", [ Declaration ])
+            ("use (q, r)", [])
+            ("use (q, r) =", [ Keyword "Qubit" ])
+            ("use (q, r) = (", [ Keyword "Qubit" ])
+            ("use (q, r) = (Qubit(", [])
+            ("use (q, r) = (Qubit()", [])
+            ("use (q, r) = (Qubit(),", [ Keyword "Qubit" ])
+            ("use (q, r) = (Qubit(), Qubit()", [])
+            ("use (q, r) = (Qubit(), Qubit())", [])
+            ("using ", [ Declaration ])
             ("using (", [ Declaration ])
             ("using (q ", [])
             ("using (q =", [ Keyword "Qubit" ])
@@ -531,6 +565,34 @@ let ``Operation statement parser tests`` () =
             ("using ((q, r) = (Qubit(),", [ Keyword "Qubit" ])
             ("using ((q, r) = (Qubit(), Qubit()", [])
             ("using ((q, r) = (Qubit(), Qubit())", [])
+            ("using ((q, r) = (Qubit(), Qubit()))", [])
+            ("borrow ", [ Declaration ])
+            ("borrow q ", [])
+            ("borrow q =", [ Keyword "Qubit" ])
+            ("borrow q = Qubit", [ Keyword "Qubit" ])
+            ("borrow q = Qubit(", [])
+            ("borrow q = Qubit()", [])
+            ("borrow q = Qubit[", expression)
+            ("borrow q = Qubit[5", [])
+            ("borrow q = Qubit[5]", [])
+            ("borrow q = Qubit[n", expression)
+            ("borrow q = Qubit[n ", infix)
+            ("borrow q = Qubit[n +", expression)
+            ("borrow q = Qubit[n +1", [])
+            ("borrow q = Qubit[n +x", expression)
+            ("borrow q = Qubit[n + ", expression)
+            ("borrow q = Qubit[n + 1]", [])
+            ("borrow (", [ Declaration ])
+            ("borrow (q,", [ Declaration ])
+            ("borrow (q, r)", [])
+            ("borrow (q, r) =", [ Keyword "Qubit" ])
+            ("borrow (q, r) = (", [ Keyword "Qubit" ])
+            ("borrow (q, r) = (Qubit(", [])
+            ("borrow (q, r) = (Qubit()", [])
+            ("borrow (q, r) = (Qubit(),", [ Keyword "Qubit" ])
+            ("borrow (q, r) = (Qubit(), Qubit()", [])
+            ("borrow (q, r) = (Qubit(), Qubit())", [])
+            ("borrowing ", [ Declaration ])
             ("borrowing (", [ Declaration ])
             ("borrowing (q ", [])
             ("borrowing (q =", [ Keyword "Qubit" ])
@@ -560,6 +622,7 @@ let ``Operation statement parser tests`` () =
             ("borrowing ((q, r) = (Qubit(),", [ Keyword "Qubit" ])
             ("borrowing ((q, r) = (Qubit(), Qubit()", [])
             ("borrowing ((q, r) = (Qubit(), Qubit())", [])
+            ("borrowing ((q, r) = (Qubit(), Qubit()))", [])
         ]
 
     testElifElse Operation (Value(IfClause { Expression = InvalidExpr; Range = Null }))

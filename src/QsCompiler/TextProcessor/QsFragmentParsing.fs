@@ -39,6 +39,15 @@ let private invalidInitializer = (InvalidInitializer, Null) |> QsInitializer.New
 /// returns a QsFunctorGenerator representing an invalid functor generator (i.e. syntax error on parsing)
 let private unknownGenerator = (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
 
+/// Parses a Q# keyword or an equivalent deprecated keyword. If the deprecated keyword is parsed, a deprecation warning
+/// is emitted.
+let private deprecatedKeyword keyword deprecated =
+    let pushWarning =
+        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedKeyword, [ deprecated.id; keyword.id ])
+        >> pushDiagnostic
+
+    keyword.parse >>% () <|> (deprecated.parse >>= pushWarning)
+
 /// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
 let private buildSymbolTuple (items, range: Range) =
     (SymbolTuple items, range) |> QsSymbol.New
@@ -588,12 +597,12 @@ let private applyHeader = buildFragment qsApply.parse (preturn "") ApplyBlockInt
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.
 let private usingHeader =
     let invalid = UsingBlockIntro(invalidSymbol, invalidInitializer)
-    buildFragment qsUsing.parse allocationScope invalid (fun _ -> UsingBlockIntro) eof
+    buildFragment (deprecatedKeyword qsUse qsUsing) allocationScope invalid (fun _ -> UsingBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# borrowing block intro as QsFragment.
 let private borrowingHeader =
     let invalid = BorrowingBlockIntro(invalidSymbol, invalidInitializer)
-    buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
+    buildFragment (deprecatedKeyword qsBorrow qsBorrowing) allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
 /// Always builds an invalid fragment after parsing the given fragment header.
 let private buildInvalidFragment header =
@@ -616,7 +625,9 @@ let private fragments =
         (qsUntil, untilSuccess)
         (qsWithin, withinHeader)
         (qsApply, applyHeader)
+        (qsUse, usingHeader)
         (qsUsing, usingHeader)
+        (qsBorrow, borrowingHeader)
         (qsBorrowing, borrowingHeader)
         (namespaceDeclHeader, namespaceDeclaration)
         (typeDeclHeader, udtDeclaration)

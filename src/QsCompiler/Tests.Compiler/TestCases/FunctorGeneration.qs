@@ -687,14 +687,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidAutoInversion10(q : Qubit) : Unit {
         body (...) {
-            using c = Qubit() { return (); }
+            use c = Qubit() { return (); }
         }
         adjoint auto;    
     }
 
     operation InvalidAutoInversion11(q : Qubit) : Unit {
         body (...) {
-            using c = Qubit() {
+            use c = Qubit() {
                 repeat {}
                 until (true)
                 fixup {}
@@ -705,21 +705,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidAutoInversion12(q : Qubit) : Unit {
         body (...) {
-            using c = Qubit() { set _ = 1; }
+            use c = Qubit() { set _ = 1; }
         }
         adjoint auto;    
     }
 
     operation InvalidAutoInversion13(q : Qubit) : Unit {
         body (...) {
-            borrowing c = Qubit() { return (); }
+            borrow c = Qubit() { return (); }
         }
         adjoint auto;    
     }
 
     operation InvalidAutoInversion14(q : Qubit) : Unit {
         body (...) {
-            borrowing c = Qubit() {
+            borrow c = Qubit() {
                 repeat {}
                 until (true)
                 fixup {}
@@ -730,7 +730,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidAutoInversion15(q : Qubit) : Unit {
         body (...) {
-            borrowing c = Qubit() { set _ = 1; }
+            borrow c = Qubit() { set _ = 1; }
         }
         adjoint auto;    
     }
@@ -855,14 +855,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation WithInvalidQuantumDependency6 (q : Qubit) : Unit {
         body (...) {
-            using qs = Qubit[CoinFlip() ? 1 | 0] {}
+            use qs = Qubit[CoinFlip() ? 1 | 0] {}
         }
         adjoint auto;
     }
 
     operation WithInvalidQuantumDependency7 (q : Qubit) : Unit {
         body (...) {
-            borrowing qs = Qubit[CoinFlip() ? 1 | 0] {}
+            borrow qs = Qubit[CoinFlip() ? 1 | 0] {}
         }
         adjoint auto;
     }
@@ -905,14 +905,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation WithoutInvalidQuantumDependency6 (q : Qubit) : Unit {
         body (...) {
-            using c = Qubit() { Adjointable(q); }
+            use c = Qubit() { Adjointable(q); }
         }
         adjoint auto;
     }
 
     operation WithoutInvalidQuantumDependency7 (q : Qubit) : Unit {
         body (...) {
-            borrowing c = Qubit() { Adjointable(q); }
+            borrow c = Qubit() { Adjointable(q); }
         }
         adjoint auto;
     }
@@ -936,14 +936,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidControlled3 (q : Qubit) : Unit {
         body (...) {
-            using cs = Qubit[CoinFlip() ? 1 | 0] {}
+            use cs = Qubit[CoinFlip() ? 1 | 0] {}
         }
         controlled auto;
     }
 
     operation InvalidControlled4 (q : Qubit) : Unit {
         body (...) {
-            borrowing cs = Qubit[CoinFlip() ? 1 | 0] {}
+            borrow cs = Qubit[CoinFlip() ? 1 | 0] {}
         }
         controlled auto;
     }
@@ -1000,14 +1000,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation ValidControlled8 (q : Qubit) : Unit {
         body (...) {
-            using c = Qubit() { Controllable(q); }
+            use c = Qubit() { Controllable(q); }
         }
         controlled auto;
     }
 
     operation ValidControlled9 (q : Qubit) : Unit {
         body (...) {
-            borrowing c = Qubit() { Controllable(q); }
+            borrow c = Qubit() { Controllable(q); }
         }
         controlled auto;
     }
