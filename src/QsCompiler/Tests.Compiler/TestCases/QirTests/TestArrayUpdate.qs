@@ -3,10 +3,11 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
-    function TestArrayUpdate(y : Int[], a : Int, b : Int) : Int[]
+    function TestArrayUpdate(y : String[], b : String) : String[]
     {
         mutable x = y;
-        set x w/= a <- b;
+        set x w/= 0 <- b;
+        set x w/= 1 <- "Hello";
         return x;
     }
 }

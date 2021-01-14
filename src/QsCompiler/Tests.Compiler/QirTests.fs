@@ -50,12 +50,28 @@ let private qirTest target name =
 
 [<Fact>]
 let ``QIR using`` () =
-    qirTest false "TestUsing"
+    qirMultiTest true "TestUsing" ["TestUsing1"; "TestUsing2"]
+
+[<Fact>]
+let ``QIR inlined call`` () =
+    qirTest true "TestInline"
+
+[<Fact>]
+let ``QIR access counts`` () =
+    qirTest false "TestAccessCounts"
     
 [<Fact>]
 let ``QIR array loop`` () =
     qirTest false "TestArrayLoop"
-    
+
+[<Fact>]
+let ``QIR nested for loop`` () =
+    qirTest false "TestForLoop"
+
+[<Fact>]
+let ``QIR caching of values`` () =
+    qirTest true "TestCaching"
+
 [<Fact>]
 let ``QIR array update`` () =
     qirTest false "TestArrayUpdate"
@@ -86,7 +102,7 @@ let ``QIR UDT argument`` () =
 
 [<Fact>]
 let ``QIR callable values`` () =
-    qirTest false "TestLocalCallables"
+    qirMultiTest false "TestLocalCallables" ["TestLocalCallables1"; "TestLocalCallables2"]
     
 [<Fact>]
 let ``QIR operation argument`` () =

@@ -30,15 +30,13 @@ entry:
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
   call void @__quantum__rt__array_unreference(%Array* %0)
   call void @__quantum__rt__array_unreference(%Array* %3)
-  %15 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
-  %16 = load %Array*, %Array** %15
-  call void @__quantum__rt__array_unreference(%Array* %16)
+  call void @__quantum__rt__array_unreference(%Array* %3)
   call void @__quantum__rt__tuple_unreference(%Tuple* %6)
   call void @__quantum__rt__array_unreference(%Array* %9)
   call void @__quantum__rt__array_unreference(%Array* %12)
-  %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
-  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %17)
+  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
+  call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %15)
   call void @__quantum__rt__callable_unreference(%Callable* %doNothing)
-  call void @__quantum__rt__callable_unreference(%Callable* %17)
+  call void @__quantum__rt__callable_unreference(%Callable* %15)
   ret void
 }

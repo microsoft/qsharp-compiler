@@ -26,7 +26,7 @@ fixup__1:                                         ; preds = %until__1
   br i1 %6, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %fixup__1
-  %7 = call %String* @__quantum__rt__string_create(i32 19, [0 x i8] bitcast ([19 x i8] c"Too many iterations" to [0 x i8]))
+  %7 = call %String* @__quantum__rt__string_create(i32 19, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__result_unreference(%Result* %0)
   call void @__quantum__rt__fail(%String* %7)
   unreachable
@@ -36,6 +36,7 @@ continue__1:                                      ; preds = %fixup__1
   br label %repeat__1
 
 rend__1:                                          ; preds = %until__1
+  call void @__quantum__rt__result_unreference(%Result* %0)
   %8 = load i64, i64* %n
   ret i64 %8
 }

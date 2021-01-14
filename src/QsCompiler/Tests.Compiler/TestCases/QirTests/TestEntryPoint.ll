@@ -1,4 +1,4 @@
-define double @Microsoft_Quantum_Testing_QIR_TestEntryPoint(i64 %a__count, double* %a, i1 %b) #0 {
+define double @Microsoft__Quantum__Testing__QIR__TestEntryPoint(i64 %a__count, double* %a, i1 %b) #0 {
 entry:
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 %a__count)
   %1 = icmp sgt i64 %a__count, 0
