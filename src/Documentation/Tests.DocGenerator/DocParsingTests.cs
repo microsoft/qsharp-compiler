@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -157,7 +157,7 @@ seeAlso:
                 MakeFullName("GeneratorIndex"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                "GeneratorRepresentation.qs",
+                new Source("GeneratorRepresentation.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 baseType,
                 typeItems,
@@ -349,7 +349,7 @@ output:
                 MakeFullName("AdiabaticStateEnergyUnitary"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                "Techniques.qs",
+                new Source("Techniques.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 signature,
                 argTuple,

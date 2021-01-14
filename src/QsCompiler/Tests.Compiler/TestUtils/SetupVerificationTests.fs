@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
@@ -42,7 +41,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         [
             for file in compilation.SourceFiles do
                 let containedCallables =
-                    callables.Where(fun kv -> kv.Value.SourceFile = file && kv.Value.Location <> Null)
+                    callables.Where(fun kv ->
+                        Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
 
                 let locations =
                     containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)

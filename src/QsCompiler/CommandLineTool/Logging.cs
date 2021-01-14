@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Prints a summary containing the currently counted number of errors, warnings and exceptions.
         /// Indicates a compilation failure if the given status does not correspond to the ReturnCode indicating a success.
         /// </summary>
-        public virtual void ReportSummary(int status = CommandLineCompiler.ReturnCode.SUCCESS)
+        public virtual void ReportSummary(int status = CommandLineCompiler.ReturnCode.Success)
         {
             string ItemString(int nr, string name) => $"{nr} {name}{(nr == 1 ? "" : "s")}";
             var errors = ItemString(this.NrErrorsLogged, "error");
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 : "";
 
             Console.WriteLine("\n____________________________________________\n");
-            if (status == CommandLineCompiler.ReturnCode.SUCCESS)
+            if (status == CommandLineCompiler.ReturnCode.Success)
             {
                 Console.WriteLine($"Q#: Success! ({errors}, {warnings}) {exceptions}\n");
                 return;

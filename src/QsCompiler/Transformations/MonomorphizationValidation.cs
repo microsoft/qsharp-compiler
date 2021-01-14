@@ -1,10 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -33,7 +32,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             }
         }
 
-        internal ValidateMonomorphization(ImmutableHashSet<QsQualifiedName> intrinsicCallableSet) : base(new TransformationState(intrinsicCallableSet))
+        internal ValidateMonomorphization(ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            : base(new TransformationState(intrinsicCallableSet))
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
@@ -45,7 +45,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
-            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -75,7 +76,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
-            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -93,7 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         private class TypeTransformation : TypeTransformation<TransformationState>
         {
-            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
