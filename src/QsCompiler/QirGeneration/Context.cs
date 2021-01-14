@@ -1392,7 +1392,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
-                BasicBlock precedingBlock = this.CurrentBlock;
+                BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
                 this.CurrentBuilder.Branch(headerBlock);
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
@@ -1415,7 +1415,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ScopeMgr.OpenScope();
                 this.SetCurrentBlock(bodyBlock);
                 executeBody();
-                var isTerminated = this.CurrentBlock.Terminator != null;
+                var isTerminated = this.CurrentBlock?.Terminator != null;
                 this.ScopeMgr.CloseScope(isTerminated);
                 return isTerminated;
             }
