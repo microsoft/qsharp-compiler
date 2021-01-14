@@ -49,8 +49,20 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnDocumentation: ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
+    // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
+    [<Obsolete "Replaced by OnSource.">]
     abstract OnSourceFile: string -> string
-    default this.OnSourceFile f = f
+
+    default this.OnSourceFile file = file
+
+    abstract OnSource: Source -> Source
+
+    default this.OnSource source =
+        let file = Source.assemblyOrCodeFile source |> this.OnSourceFile
+
+        if file.EndsWith ".qs"
+        then { source with CodeFile = file }
+        else { source with AssemblyFile = Value file }
 
     abstract OnAttribute: QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
@@ -173,7 +185,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds.
     /// It is hence not intended and should never be needed for public use.
     member private this.OnSpecializationKind(spec: QsSpecialization) =
-        let source = this.OnSourceFile spec.SourceFile
+        let source = this.OnSource spec.Source
         let loc = this.OnLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
 
@@ -217,7 +229,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     /// This method is defined for the sole purpose of eliminating code duplication for each of the callable kinds.
     /// It is hence not intended and should never be needed for public use.
     member private this.OnCallableKind(c: QsCallable) =
-        let source = this.OnSourceFile c.SourceFile
+        let source = this.OnSource c.Source
         let loc = this.OnLocation c.Location
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
@@ -255,7 +267,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnTypeDeclaration: QsCustomType -> QsCustomType
 
     default this.OnTypeDeclaration t =
-        let source = this.OnSourceFile t.SourceFile
+        let source = this.OnSource t.Source
         let loc = this.OnLocation t.Location
         let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let underlyingType = this.Statements.Expressions.Types.OnType t.Type

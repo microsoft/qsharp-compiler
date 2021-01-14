@@ -123,21 +123,21 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     let TryResolveQualifier qualifier (nsName, source) =
         let parentNs () =
             Namespaces.TryGetValue nsName
-            |> tryToOption
+            |> tryOption
             |> Option.defaultWith (fun () ->
                 SymbolNotFoundException "The namespace with the given name was not found." |> raise)
 
         let nsAlias =
             Namespaces.TryGetValue
-            >> tryToOption
+            >> tryOption
             >> Option.orElseWith (fun () ->
                 QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
                 None)
 
         Namespaces.TryGetValue qualifier
-        |> tryToOption
+        |> tryOption
         |> Option.orElseWith (fun () ->
-            (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryToOption |> Option.bind nsAlias)
+            (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryOption |> Option.bind nsAlias)
 
     /// <summary>
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
@@ -446,6 +446,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let getAttribute ((nsName, symName), symRange) =
             match tryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
             | Some (udt, declSource, _), errs -> // declSource may be the name of an assembly!
+                let declSource = Source.assemblyOrCodeFile declSource
                 let fullName = sprintf "%s.%s" udt.Namespace udt.Name
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications(udt.Namespace, declSource)
 
@@ -946,24 +947,15 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// <summary>
     /// Returns the headers of all imported specializations for callable with the given name.
     /// </summary>
-    /// <exception cref="SymbolNotFoundException">
-    /// The parent callable or its specializations were not found in references.
-    /// </exception>
+    /// <exception cref="SymbolNotFoundException">The namespace of <paramref name="parent"/> was not found.</exception>
     member this.ImportedSpecializations(parent: QsQualifiedName) =
         // TODO: this may need to be adapted if we support external specializations
         syncRoot.EnterReadLock()
 
         try
-            let imported =
-                match Namespaces.TryGetValue parent.Namespace with
-                | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
-                | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
-
-            if imported.Length <> 0 then
-                imported
-            else
-                SymbolNotFoundException "No specializations for a callable with the given name have been imported."
-                |> raise
+            match Namespaces.TryGetValue parent.Namespace with
+            | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
+            | true, ns -> ns.SpecializationsInReferencedAssemblies.[parent.Name].ToImmutableArray()
         finally
             syncRoot.ExitReadLock()
 
@@ -1001,7 +993,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                                      Information = gen.Information
                                      Parent = parent
                                      Attributes = resolution.ResolvedAttributes
-                                     SourceFile = source
+                                     Source = { CodeFile = source; AssemblyFile = Null }
                                      Position = DeclarationHeader.Offset.Defined resolution.Position
                                      HeaderRange = DeclarationHeader.Range.Defined resolution.Range
                                      Documentation = resolution.Documentation
@@ -1053,7 +1045,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                                     QualifiedName = { Namespace = ns.Name; Name = cName }
                                     Attributes = declaration.ResolvedAttributes
                                     Modifiers = declaration.Modifiers
-                                    SourceFile = source
+                                    Source = { CodeFile = source; AssemblyFile = Null }
                                     Position = DeclarationHeader.Offset.Defined declaration.Position
                                     SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                                     Signature = signature
@@ -1118,7 +1110,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                                     QualifiedName = { Namespace = ns.Name; Name = tName }
                                     Attributes = qsType.ResolvedAttributes
                                     Modifiers = qsType.Modifiers
-                                    SourceFile = source
+                                    Source = { CodeFile = source; AssemblyFile = Null }
                                     Position = DeclarationHeader.Offset.Defined qsType.Position
                                     SymbolRange = DeclarationHeader.Range.Defined qsType.Range
                                     Type = underlyingType
@@ -1281,7 +1273,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                SourceFile = source
+                Source = { CodeFile = source; AssemblyFile = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Signature = resolvedSignature
@@ -1300,8 +1292,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let findInSources (ns: Namespace) =
             function
             | Some source ->
-                // OK to use CallableInSource because this is only evaluated if the callable is not in a
-                // reference.
+                // OK to use CallableInSource because this is only evaluated if the callable is not in a reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
 
                 if Namespace.IsDeclarationAccessible(true, declaration.Modifiers.Access)
@@ -1323,7 +1314,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             | Some ns ->
                 seq {
                     yield findInReferences ns
-                    yield findInSources ns declSource
+                    yield declSource |> Option.map (fun s -> s.CodeFile) |> findInSources ns
                 }
                 |> ResolutionResult.TryFirstBest
         finally
@@ -1386,7 +1377,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 Modifiers = declaration.Modifiers
-                SourceFile = source
+                Source = { CodeFile = source; AssemblyFile = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Type = underlyingType
@@ -1427,7 +1418,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             | Some ns ->
                 seq {
                     yield findInReferences ns
-                    yield findInSources ns declSource
+                    yield declSource |> Option.map (fun s -> s.CodeFile) |> findInSources ns
                 }
                 |> ResolutionResult.TryFirstBest
         finally

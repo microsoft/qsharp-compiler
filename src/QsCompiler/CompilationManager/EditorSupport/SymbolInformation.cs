@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return false;
                 }
                 referenceLocations = parent.Specializations
-                    .Where(spec => spec.SourceFile == file.FileName)
+                    .Where(spec => spec.Source.AssemblyOrCodeFile == file.FileName)
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
                             ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)

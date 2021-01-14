@@ -590,8 +590,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         return;
                     }
 
-                    var validCallables = compilation.GetCallables().Values.Where(c => !changedFiles.Contains(c.SourceFile));
-                    var validTypes = compilation.GetTypes().Values.Where(t => !changedFiles.Contains(t.SourceFile));
+                    var validCallables = compilation.GetCallables().Values.Where(c => !changedFiles.Contains(c.Source.AssemblyOrCodeFile));
+                    var validTypes = compilation.GetTypes().Values.Where(t => !changedFiles.Contains(t.Source.AssemblyOrCodeFile));
                     this.compilationUnit.UpdateCallables(validCallables);
                     this.compilationUnit.UpdateTypes(validTypes);
 
