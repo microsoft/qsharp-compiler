@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
@@ -45,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 'o',
                 "output",
                 Required = true,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the formatted files will be generated.")]
             public string OutputFolder { get; set; }
 #nullable restore annotations
@@ -157,14 +156,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // no rewrite steps, no generation
             var loaded =
                 new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
-            if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES)
+            if (ReturnCode.Status(loaded) == ReturnCode.UnresolvedFiles)
             {
-                return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
+                return ReturnCode.UnresolvedFiles; // ignore compilation errors
             }
             else if (loaded.VerifiedCompilation is null)
             {
                 logger.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>());
-                return ReturnCode.CODE_GENERATION_ERRORS;
+                return ReturnCode.CodeGenerationErrors;
             }
 
             // TODO: a lot of the formatting logic defined here and also in the routines above
@@ -183,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
                 logger.Verbosity = verbosity;
             }
-            return success ? ReturnCode.SUCCESS : ReturnCode.CODE_GENERATION_ERRORS;
+            return success ? ReturnCode.Success : ReturnCode.CodeGenerationErrors;
         }
     }
 }

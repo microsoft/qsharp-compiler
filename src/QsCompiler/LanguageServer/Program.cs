@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -18,8 +18,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         public class Options
         {
             // Note: items in one set are mutually exclusive with items from other sets
-            protected const string CONNECTION_VIA_SOCKET = "connectionViaSocket";
-            protected const string CONNECTION_VIA_PIPE = "connectionViaPipe";
+            protected const string ConnectionViaSocket = "connectionViaSocket";
+            protected const string ConnectionViaPipe = "connectionViaPipe";
 
             [Option(
                 'l',
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'p',
                 "port",
                 Required = true,
-                SetName = CONNECTION_VIA_SOCKET,
+                SetName = ConnectionViaSocket,
                 HelpText = "Port to use for TCP/IP connections.")]
             public int Port { get; set; }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'w',
                 "writer",
                 Required = true,
-                SetName = CONNECTION_VIA_PIPE,
+                SetName = ConnectionViaPipe,
                 HelpText = "Named pipe to write to.")]
             public string? WriterPipeName { get; set; }
 
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'r',
                 "reader",
                 Required = true,
-                SetName = CONNECTION_VIA_PIPE,
+                SetName = ConnectionViaPipe,
                 HelpText = "Named pipe to read from.")]
             public string? ReaderPipeName { get; set; }
         }

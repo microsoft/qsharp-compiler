@@ -71,6 +71,49 @@ module QsNullable =
         | Value a, Value b -> f a b |> Value
         | _ -> Null
 
+    /// <summary>
+    /// Returns the value of the nullable if it is <see cref="Value"/>, otherwise returns the given
+    /// <paramref name="value"/>.
+    /// </summary>
+    [<CompiledName "DefaultValue">]
+    let defaultValue value =
+        function
+        | Null -> value
+        | Value value' -> value'
+
+    /// <summary>
+    /// Returns the original nullable if it is <see cref="Value"/>, otherwise returns the given
+    /// <paramref name="ifNull"/>.
+    /// </summary>
+    let internal orElse ifNull =
+        function
+        | Null -> ifNull
+        | Value value -> Value value
+
+    /// <summary>
+    /// Returns true if the nullable is <see cref="Value"/> and is equal to the given <paramref name="value"/>.
+    /// </summary>
+    [<CompiledName "Contains">]
+    let contains value =
+        function
+        | Null -> false
+        | Value value' -> value = value'
+
+    /// <summary>
+    /// Returns true if the nullable is <see cref="Null"/>.
+    /// </summary>
+    [<CompiledName "IsNull">]
+    let isNull =
+        function
+        | Null -> true
+        | Value _ -> false
+
+    /// <summary>
+    /// Returns true if the nullable is <see cref="Value"/>.
+    /// </summary>
+    [<CompiledName "IsValue">]
+    let isValue nullable = isNull nullable |> not
+
 /// A position in a text document.
 type Position =
     private

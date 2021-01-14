@@ -228,7 +228,6 @@ type TypeCheckingTests() =
 
     [<Fact>]
     member this.``Named type items``() =
-
         this.Expect "NamedItems1" []
         this.Expect "NamedItems2" []
         this.Expect "NamedItems3" []
@@ -237,10 +236,8 @@ type TypeCheckingTests() =
         this.Expect "NamedItems6" []
         this.Expect "NamedItems7" []
         this.Expect "NamedItems8" []
-
         this.Expect "NamedItems9" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "NamedItems10" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-
         this.Expect "NamedItems11" [ Error ErrorCode.NamedItemAlreadyExists ]
         this.Expect "NamedItems12" [ Error ErrorCode.NamedItemAlreadyExists ]
         this.Expect "NamedItems13" [ Error ErrorCode.NamedItemAlreadyExists ]
@@ -258,39 +255,50 @@ type TypeCheckingTests() =
         this.Expect "OpType3" []
         this.Expect "OpType4" []
         this.Expect "OpType5" []
-        this.Expect "OpType6" []
-        this.Expect "OpType7" []
+        this.Expect "OpType6" [ Error ErrorCode.ExcessContinuation ]
+        this.Expect "OpType7" [ Error ErrorCode.ExcessContinuation ]
+        this.Expect "OpType8" []
+        this.Expect "OpType9" []
+        this.Expect "OpType10" []
+        this.Expect "OpType11" []
+        this.Expect "OpType12" []
+        this.Expect "OpType13" [ Error ErrorCode.ExcessContinuation ]
+        this.Expect "OpType14" [ Error ErrorCode.ExcessContinuation ]
+        this.Expect "OpType15" []
+        this.Expect "OpType16" [ Error ErrorCode.InvalidUdtItemNameDeclaration; Error ErrorCode.InvalidType ]
 
-        this.Expect "OpType8" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType9" [ Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType10" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType11" [ Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType12" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType13" [ Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "OpType14" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
+        this.Expect
+            "OpType17"
+            [
+                Error ErrorCode.InvalidUdtItemNameDeclaration
+                Error ErrorCode.InvalidType
+                Error ErrorCode.InvalidUdtItemDeclaration
+            ]
+
+        this.Expect
+            "OpType18"
+            [
+                Error ErrorCode.InvalidUdtItemNameDeclaration
+                Error ErrorCode.InvalidType
+                Error ErrorCode.InvalidUdtItemDeclaration
+            ]
 
         this.Expect "FctType1" []
         this.Expect "FctType2" []
         this.Expect "FctType3" []
-
-        this.Expect "FctType4" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "FctType5" [ Error ErrorCode.MissingRTupleBracket ]
-        this.Expect "FctType6" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-
+        this.Expect "FctType4" []
+        this.Expect "FctType5" []
+        this.Expect "FctType6" []
         this.Expect "FctType7" []
         this.Expect "FctType8" []
 
         this.Expect "ArrayType1" []
         this.Expect "ArrayType2" []
-
         this.Expect "ArrayType3" [ Error ErrorCode.UnknownType; Error ErrorCode.ExcessContinuation ]
-
         this.Expect "ArrayType4" []
         this.Expect "ArrayType5" []
-
         this.Expect "ArrayType6" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "ArrayType7" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-
         this.Expect "ArrayType8" []
         this.Expect "ArrayType9" []
         this.Expect "ArrayType10" []
@@ -299,10 +307,8 @@ type TypeCheckingTests() =
         this.Expect "ArrayType13" []
         this.Expect "ArrayType14" []
         this.Expect "ArrayType15" []
-
-        this.Expect "ArrayType16" [ Error ErrorCode.MissingRTupleBracket; Error ErrorCode.ExcessContinuation ]
+        this.Expect "ArrayType16" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
         this.Expect "ArrayType17" [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
-
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []
         this.Expect "ArrayType20" []
