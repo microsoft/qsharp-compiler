@@ -35,11 +35,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             byte[] byteArray)
         {
             QsCompilation? bondCompilation = null;
+            var inputBuffer = new InputBuffer(byteArray);
+            var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
             lock (BondSharedDataStructuresLock)
             {
-                var inputBuffer = new InputBuffer(byteArray);
                 var deserializer = GetSimpleBinaryDeserializer();
-                var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
                 bondCompilation = deserializer.Deserialize<QsCompilation>(reader);
             }
 
@@ -106,12 +106,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
         {
+            var outputBuffer = new OutputBuffer();
+            var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
+            var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
             lock (BondSharedDataStructuresLock)
             {
-                var outputBuffer = new OutputBuffer();
                 var serializer = GetSimpleBinarySerializer();
-                var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
-                var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
                 serializer.Serialize(bondCompilation, writer);
                 stream.Write(outputBuffer.Data);
             }
