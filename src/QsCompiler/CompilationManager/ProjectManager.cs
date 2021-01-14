@@ -1293,7 +1293,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
-        // TODO: Make sure onDiagnostic and onException keep working.
         private static Task<References.Headers?> LoadReferencedDllAsync(
             Uri asm,
             bool ignoreDllResources,
@@ -1363,7 +1362,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile)));
             }
 
-            // TODO: Here's where parallelization of reference loading could be done.
             return existingProjectDlls
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
                 .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.Item1]), asm => asm.Item2);
