@@ -1240,6 +1240,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// hence only need to be created when callable values are assigned or passed around. Callables for
         /// which this is the case are hence accumulated during the sytnax tree transformation, and the
         /// corresponding wrappers are generated only upon emission by invoking this method.
+        /// Additionally, this method generates all necessary partial applications and all necessary functions
+        /// for managing reference counts for capture tuples.
         /// </summary>
         private void GenerateRequiredFunctions()
         {
