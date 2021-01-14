@@ -36,10 +36,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation?)>? specs = null,
                 IEnumerable<TypeDeclarationHeader>? types = null)
             {
-                string SourceOr(string origSource) => source ?? origSource;
-                this.Types = types?.Select(t => t.FromSource(SourceOr(t.SourceFile))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
-                this.Callables = callables?.Select(c => c.FromSource(SourceOr(c.SourceFile))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
-                this.Specializations = specs?.Select(s => (s.Item1.FromSource(SourceOr(s.Item1.SourceFile)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
+                this.Types = types?.Select(t => t.FromSource(t.Source.With(assemblyFile: source))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
+                this.Callables = callables?.Select(c => c.FromSource(c.Source.With(assemblyFile: source))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
+                this.Specializations = specs?.Select(s => (s.Item1.FromSource(s.Item1.Source.With(assemblyFile: source)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray()
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
@@ -51,9 +50,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
-                    syntaxTree.Callables().Where(c => c.SourceFile.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                    syntaxTree.Specializations().Where(c => c.SourceFile.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
-                    syntaxTree.Types().Where(c => c.SourceFile.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
+                    syntaxTree.Callables().Where(c => !c.Source.IsReference).Select(CallableDeclarationHeader.New),
+                    syntaxTree.Specializations().Where(c => !c.Source.IsReference).Select(s => (SpecializationDeclarationHeader.New(s), (SpecializationImplementation?)s.Implementation)),
+                    syntaxTree.Types().Where(c => !c.Source.IsReference).Select(TypeDeclarationHeader.New))
             {
             }
 
@@ -209,8 +208,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return;
             }
             var conflicting = new List<(string, string)>();
-            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.SourceFile, c.Modifiers.Access));
-            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.SourceFile, t.Modifiers.Access));
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
@@ -247,16 +246,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var (callables, types) = CompilationUnit.RenameInternalDeclarations(
-                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c =>
-                    c.WithSourceFile(loaded.Item1)
-                    .WithSpecializations(specs => specs.Select(s => s.WithSourceFile(loaded.Item1)).ToImmutableArray()))),
-                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t =>
-                    t.WithSourceFile(loaded.Item1))),
+                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c => c
+                    .WithSource(c.Source.With(assemblyFile: loaded.Item1))
+                    .WithSpecializations(specs => specs.Select(s => s.WithSource(s.Source.With(assemblyFile: loaded.Item1))).ToImmutableArray()))),
+                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t => t
+                    .WithSource(t.Source.With(assemblyFile: loaded.Item1)))),
                 additionalAssemblies: additionalAssemblies);
 
             var conflicting = new List<(string, string)>();
-            var callableElems = callables.Select(c => (c.FullName, c.SourceFile, c.Modifiers.Access));
-            var typeElems = types.Select(t => (t.FullName, t.SourceFile, t.Modifiers.Access));
+            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
+            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
             foreach (var (name, conflicts) in conflicting.Distinct())
@@ -546,7 +545,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compiled.FullName,
                         compiled.Attributes,
                         compiled.Modifiers,
-                        compiled.SourceFile,
+                        compiled.Source,
                         header.Location,
                         compiled.Type,
                         compiled.TypeItems,
@@ -604,7 +603,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             QsSpecializationKind.QsBody,
                             header.QualifiedName,
                             header.Attributes,
-                            header.SourceFile,
+                            header.Source,
                             header.Location,
                             QsNullable<ImmutableArray<ResolvedType>>.Null,
                             header.Signature,
@@ -616,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             header.QualifiedName,
                             header.Attributes,
                             header.Modifiers,
-                            header.SourceFile,
+                            header.Source,
                             header.Location,
                             header.Signature,
                             header.ArgumentTuple,
@@ -650,7 +649,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             compiledSpec.Kind,
                             compiledSpec.Parent,
                             compiledSpec.Attributes,
-                            compiledSpec.SourceFile,
+                            compiledSpec.Source,
                             specHeader.Location,
                             compiledSpec.TypeArguments,
                             compiledSpec.Signature,
@@ -665,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compiled.FullName,
                         compiled.Attributes,
                         compiled.Modifiers,
-                        compiled.SourceFile,
+                        compiled.Source,
                         header.Location,
                         compiled.Signature,
                         compiled.ArgumentTuple,
@@ -704,7 +703,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
                     Namespace.IsDeclarationAccessible(false, header.Modifiers.Access) ||
-                    specialization.Item1.SourceFile.Equals(header.SourceFile))
+                    specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
                 .Select(specialization =>
                 {
                     var (specHeader, implementation) = specialization;
@@ -715,7 +714,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         specHeader.Kind,
                         header.QualifiedName,
                         specHeader.Attributes,
-                        specHeader.SourceFile,
+                        specHeader.Source,
                         specHeader.Location,
                         specHeader.TypeArguments,
                         specSignature,
@@ -729,7 +728,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 header.QualifiedName,
                 header.Attributes,
                 header.Modifiers,
-                header.SourceFile,
+                header.Source,
                 header.Location,
                 header.Signature,
                 header.ArgumentTuple,
@@ -746,7 +745,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 header.QualifiedName,
                 header.Attributes,
                 header.Modifiers,
-                header.SourceFile,
+                header.Source,
                 header.Location,
                 header.Type,
                 header.TypeItems,
@@ -772,7 +771,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var namespaceElements = callables.Select(c => (c.FullName.Namespace, QsNamespaceElement.NewQsCallable(c)))
                 .Concat(types.Select(t => (t.FullName.Namespace, QsNamespaceElement.NewQsCustomType(t))));
             return namespaceElements
-                .ToLookup(element => element.Item1, element => element.Item2)
+                .ToLookup(element => element.Namespace, element => element.Item2)
                 .Select(elements => new QsNamespace(
                     elements.Key,
                     elements.OrderBy(ElementName).ToImmutableArray(),
@@ -799,7 +798,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for type " +
-                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.SourceFile}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCodeFile}'");
                     }
                 }
 
@@ -815,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists)
                     {
                         throw new InvalidOperationException($"missing compilation for callable " +
-                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.SourceFile}'");
+                        $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCodeFile}'");
                     }
 
                     foreach (var (_, specHeader) in this.GlobalSymbols.DefinedSpecializations(declaration.QualifiedName))
@@ -825,7 +824,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (!compiledSpecs.Any())
                         {
                             throw new InvalidOperationException($"missing compilation for specialization " +
-                            $"{specHeader.Kind} of {specHeader.Parent.Namespace}.{specHeader.Parent.Name} in '{specHeader.SourceFile}'");
+                            $"{specHeader.Kind} of {specHeader.Parent.Namespace}.{specHeader.Parent.Name} in '{specHeader.Source.AssemblyOrCodeFile}'");
                         }
                     }
                 }
@@ -992,8 +991,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             NameDecorator decorator = new NameDecorator($"QsRef");
             ImmutableDictionary<string, int> ids =
-                callables.Select(callable => callable.SourceFile)
-                .Concat(types.Select(type => type.SourceFile))
+                callables.Select(callable => callable.Source.AssemblyOrCodeFile)
+                .Concat(types.Select(type => type.Source.AssemblyOrCodeFile))
                 .Distinct()
                 .Where(source => predicate?.Invoke(source) ?? true)
                 // this setup will mean that internal declarations won't get replaced with target specific implementations
@@ -1014,21 +1013,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // rename all internal declarations and their usages
 
-            var transformations =
-                callables.Select(callable =>
-                    (name: callable.FullName, source: callable.SourceFile, access: callable.Modifiers.Access))
+            var transformations = callables
+                .Select(callable =>
+                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Modifiers.Access))
                 .Concat(types.Select(type =>
-                    (name: type.FullName, source: type.SourceFile, access: type.Modifiers.Access)))
+                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Modifiers.Access)))
                 .GroupBy(item => item.source)
                 .ToImmutableDictionary(
                     group => group.Key,
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.SourceFile].Namespaces.OnCallableDeclaration(callable))
+                callable => transformations[callable.Source.AssemblyOrCodeFile].Namespaces.OnCallableDeclaration(callable))
                 .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.SourceFile].Namespaces.OnTypeDeclaration(type))
+                type => transformations[type.Source.AssemblyOrCodeFile].Namespaces.OnTypeDeclaration(type))
                 .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }

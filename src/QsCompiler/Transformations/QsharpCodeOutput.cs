@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -210,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     var openedNS = imports[ns.Name].Where(o => o.Item2 == null).Select(o => o.Item1).ToImmutableHashSet();
                     var nsShortNames = imports[ns.Name]
                         .SelectNotNull(o => o.Item2?.Apply(item2 => (o.Item1, item2)))
-                        .ToImmutableDictionary(o => o.Item1, o => o.Item2);
+                        .ToImmutableDictionary(o => o.Item1, o => o.item2);
                     var context = new TransformationContext
                     {
                         CurrentNamespace = ns.Name,
