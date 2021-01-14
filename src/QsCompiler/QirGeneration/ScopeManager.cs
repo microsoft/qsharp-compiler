@@ -204,15 +204,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Given a callable value, changes the reference count of its capture tuple by the given value.
-        /// The given value is expected to be a 64-bit integer.
+        /// The given value is expected to be either a 64-bit integer, or a tuple with a 64-bit integer.
         /// </summary>
-        private void InvokeCallableMemoryManagement(int funcId, IValue change, CallableValue callable)
+        private void UpdateCaptureTupleReferenceCount(IValue change, CallableValue callable)
         {
+            bool IsInt(ITypeRef type) => type == this.sharedState.Types.Int;
+            bool IsIntTuple(IStructType type) => type.Members.Count == 1 && IsInt(type.Members[0]);
+            var argTuple = change is TupleValue tuple && IsIntTuple(tuple.StructType) ? tuple :
+                IsInt(change.LlvmType) ? this.sharedState.Values.CreateTuple(registerWithScopeManager: false, change) :
+                throw new ArgumentException("epecting a 64-bit integer or tuple containing a 64-bit integer");
+
             // Each callable table contains a function pointer that can be invoked via a call to the runtime function
             // CallableMemoryManagement. For each callable value, we instantiate that pointer to a function to modify the
             // reference count of the capture tuple an all its inner items, and we use it here to modify the reference count.
-            var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
-            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcId), callable.Value, change.Value);
+            var updateCaptureReferences = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
+            this.sharedState.CurrentBuilder.Call(updateCaptureReferences, callable.Value, argTuple.OpaquePointer, this.sharedState.Values.Unit.Value);
+
+            if (!(change is TupleValue))
+            {
+                var tupleUnreference = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleUpdateReferenceCount);
+                this.sharedState.CurrentBuilder.Call(tupleUnreference, argTuple.OpaquePointer, this.minusOne.Value);
+            }
         }
 
         /// <summary>
@@ -222,6 +234,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params IValue[] values)
         {
+            TupleValue? changeTuple = null;
+            void UnreferenceChangeTuple()
+            {
+                if (changeTuple != null)
+                {
+                    var tupleUnreference = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleUpdateReferenceCount);
+                    this.sharedState.CurrentBuilder.Call(tupleUnreference, changeTuple.OpaquePointer, this.minusOne.Value);
+                    changeTuple = null;
+                }
+            }
+
             void ModifyCounts(string funcName, IValue value)
             {
                 var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
@@ -249,14 +272,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemFuncName = getFunctionName(array.ElementType);
                     if (itemFuncName != null)
                     {
+                        UnreferenceChangeTuple();
                         this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
                     this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer, change.Value);
                 }
                 else if (value is CallableValue callable)
                 {
-                    var id = funcName.Contains("reference_count") ? 0 : 1;
-                    this.InvokeCallableMemoryManagement(id, change, callable);
+                    Debug.Assert(funcName.Contains("reference_count"));
+                    if (this.sharedState.IsWithinLoop)
+                    {
+                        // The change tuple is deallocated before entering a loop for modifying counts,
+                        // and needs to be reallocated here since it may be invalid.
+                        // Since we don't generate any branches during modifying counts,
+                        // we don't need to check for them.
+                        this.UpdateCaptureTupleReferenceCount(change, callable);
+                    }
+                    else
+                    {
+                        changeTuple ??= this.sharedState.Values.CreateTuple(registerWithScopeManager: false, change);
+                        this.UpdateCaptureTupleReferenceCount(changeTuple, callable);
+                    }
                     this.sharedState.CurrentBuilder.Call(func, callable.Value, change.Value);
                 }
                 else
@@ -273,6 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ModifyCounts(func, value);
                 }
             }
+            UnreferenceChangeTuple();
         }
 
         // public and internal methods
@@ -367,7 +404,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="callable">The callable whose capture tuple to reference</param>
         internal void ReferenceCaptureTuple(CallableValue callable) =>
-            this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
+            this.UpdateCaptureTupleReferenceCount(this.plusOne, callable);
 
         /// <summary>
         /// Returns true if access counts are tracked for values of the given LLVM type.

@@ -101,25 +101,15 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public readonly IStructType Range;
 
-        // private and internal fields
+        // private fields
 
         private readonly Context context;
-
-        internal readonly IArrayType CallableTable;
-        internal readonly IFunctionType CaptureCountFunction;
-        internal readonly IArrayType CallableMemoryManagementTable;
 
         // constructor
 
         internal Types(Context context)
         {
             this.context = context;
-
-            this.Int = context.Int64Type;
-            this.Double = context.DoubleType;
-            this.Bool = context.BoolType;
-            this.Pauli = context.GetIntType(2);
-            this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
             this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
             this.Qubit = context.CreateStructType(TypeNames.Qubit).CreatePointerType();
@@ -130,9 +120,12 @@ namespace Microsoft.Quantum.QIR
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
             this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
-            this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
-            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
-            this.CallableMemoryManagementTable = this.CaptureCountFunction.CreatePointerType().CreateArrayType(2);
+            this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
+
+            this.Int = context.Int64Type;
+            this.Double = context.DoubleType;
+            this.Bool = context.BoolType;
+            this.Pauli = context.GetIntType(2);
         }
 
         // internal helpers to simplify common code

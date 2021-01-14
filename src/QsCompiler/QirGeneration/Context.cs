@@ -375,13 +375,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCreate, this.Types.Callable, this.Types.CallableTable.CreatePointerType(), this.Types.CallableMemoryManagementTable, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(
+                RuntimeLibrary.CallableCreate,
+                this.Types.Callable,
+                this.Types.FunctionSignature.CreatePointerType().CreateArrayType(5).CreatePointerType(),
+                this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
 
             // qubit library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);
@@ -1126,34 +1130,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             throw new KeyNotFoundException($"Can't find callable {fullName}");
         }
 
-        internal Constant GetOrCreateCallableMemoryManagementTable(TupleValue? value)
-        {
-            if (value == null)
-            {
-                return Constant.ConstPointerToNullFor(this.Types.CallableMemoryManagementTable.CreatePointerType());
-            }
-
-            var nullPointer = Constant.ConstPointerToNullFor(this.Types.CaptureCountFunction.CreatePointerType());
-            var funcs = new Constant[2] { nullPointer, nullPointer };
-
-            var type = StripPositionInfo.Apply(value.QSharpType);
-            if (this.refCountFunctions.TryGetValue(type, out IrFunction func))
-            {
-                funcs[0] = func;
-            }
-            else
-            {
-                var funcName = this.GenerateUniqueName("ReferencesManagement");
-                func = this.Module.CreateFunction(funcName, this.Types.CaptureCountFunction);
-                this.refCountFunctions.Add(type, func);
-                funcs[0] = func;
-            }
-
-            var name = this.GenerateUniqueName("MemoryManagement");
-            var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
-        }
-
         /// <summary>
         /// Creates a global variable with the given name that contains an array of function pointers
         /// that define the necessary implemementations for a callable value.
@@ -1162,9 +1138,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Queues the generation of that function if necessary such that the current context is not modified
         /// beyond adding the corresponding constant and function declaration, if necessary.
         /// </summary>
-        private GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec)
+        private GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec, TupleValue? capture = null)
         {
-            var funcs = new Constant[4];
+            IrFunction GetOrCreateRefCountFunction(TupleValue value)
+            {
+                var type = StripPositionInfo.Apply(value.QSharpType);
+                if (this.refCountFunctions.TryGetValue(type, out IrFunction func))
+                {
+                    return func;
+                }
+                var funcName = this.GenerateUniqueName("ReferencesManagement");
+                func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+                this.refCountFunctions.Add(type, func);
+                return func;
+            }
+
+            // Generate the callable's function array;
+            // the first four entries contain the specializations or null
+            // if the corresponding specialization does not exist,
+            // and the last entry contains the unreference function for the capture tuple,
+            // which is set to null if the capture tuple is null (i.e. for global callables).
+
+            var funcs = new Constant[5];
+            funcs[4] = capture != null
+                ? GetOrCreateRefCountFunction(capture)
+                : Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+
             for (var index = 0; index < 4; index++)
             {
                 funcs[index] = getSpec(FunctionArray[index])
@@ -1177,8 +1176,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
-        internal GlobalVariable GetOrCreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec) =>
-            this.CreateCallableTable(name, getSpec);
+        internal GlobalVariable GetOrCreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec, TupleValue? capture = null) =>
+            this.CreateCallableTable(name, getSpec, capture);
 
         /// <summary>
         /// If a constant array with the IrFunctions for the given callable already exists,
@@ -1214,13 +1213,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="func">The function to populate</param>
         /// <param name="executeBody">The body of the function</param>
-        private void GenerateQirFunction(IrFunction func, string[] argNames, Action<IReadOnlyList<Argument>> executeBody)
+        private void GenerateQirFunction(IrFunction func, Action<IReadOnlyList<Argument>> executeBody)
         {
             this.CurrentFunction = func;
-            for (var i = 0; i < argNames.Length; ++i)
-            {
-                this.CurrentFunction.Parameters[i].Name = argNames[i];
-            }
+            this.CurrentFunction.Parameters[0].Name = "capture-tuple";
+            this.CurrentFunction.Parameters[1].Name = "arg-tuple";
+            this.CurrentFunction.Parameters[2].Name = "result-tuple";
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
@@ -1314,7 +1312,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {
-                        this.GenerateQirFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
+                        this.GenerateQirFunction(func, parameters =>
                         {
                             var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
                             var argList = new List<Value>(argTuple.GetTupleElements().Select(qirValue => qirValue.Value));
@@ -1331,16 +1329,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (var (func, body) in this.liftedPartialApplications)
             {
-                this.GenerateQirFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, body);
+                this.GenerateQirFunction(func, body);
             }
 
             foreach (var (type, func) in this.refCountFunctions)
             {
-                this.GenerateQirFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
+                this.GenerateQirFunction(func, parameters =>
                 {
                     var capture = GetArgumentTuple(type, parameters[0]);
-                    var argument = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
-                    this.ScopeMgr.UpdateReferenceCount(argument, capture);
+                    var argument = GetArgumentTuple(ResolvedType.New(ResolvedTypeKind.Int), parameters[1]);
+                    this.ScopeMgr.UpdateReferenceCount(argument.GetTupleElements().Single(), capture);
                 });
             }
         }

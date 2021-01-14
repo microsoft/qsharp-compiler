@@ -82,6 +82,7 @@ entry:
   %62 = bitcast { i64, { %Callable*, %String* }* }* %8 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %62, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %9, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i64 -1)
   %63 = call i64 @__quantum__rt__array_get_size_1d(%Array* %11)
   %64 = sub i64 %63, 1
   br label %header__1
@@ -161,6 +162,5 @@ exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %39, i64 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %41, i64 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %44, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i64 -1)
   ret void
 }
