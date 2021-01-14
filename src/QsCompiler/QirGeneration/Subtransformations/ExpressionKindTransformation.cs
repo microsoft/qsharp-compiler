@@ -469,12 +469,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="callableType">The Q# type of the callable value</param>
         /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
         /// <param name="capture">An opaque tuple containing all captured values</param>
-        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, Value? capture = null)
+        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, TupleValue? capture = null)
         {
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            capture ??= this.SharedState.Constants.UnitValue;
-            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, capture);
+            var unrefCapture = this.SharedState.GetOrCreateRefCountFunction(capture);
+            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, unrefCapture, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
             var value = this.SharedState.Values.FromCallable(res, callableType);
             this.SharedState.ScopeMgr.RegisterValue(value);
             return value;
@@ -1719,8 +1719,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 SupportsNecessaryFunctors(kind)
                     ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
                     : null;
-            var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec, capture);
-            var value = this.CreateCallableValue(exType, table, capture.OpaquePointer);
+            var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
+            var value = this.CreateCallableValue(exType, table, capture);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
