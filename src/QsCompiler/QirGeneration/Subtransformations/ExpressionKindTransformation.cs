@@ -463,12 +463,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Creates a callable value of the given type and registers it with the scope manager.
         /// The necessary functions to invoke the callable are defined by the callable table;
         /// i.e. the globally defined array of function pointers accessible via the given global variable.
-        /// The given capture, if any, is expected to be an opaque tuple that contains all captured values.
+        /// The given capture, if any, is expected to be a tuple that contains all captured values.
         /// Does *not* increase the reference count of the capture tuple.
         /// </summary>
         /// <param name="callableType">The Q# type of the callable value</param>
         /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
-        /// <param name="capture">An opaque tuple containing all captured values</param>
+        /// <param name="capture">A tuple containing all captured values</param>
         private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, TupleValue? capture = null)
         {
             // The runtime function CallableCreate creates a new value with reference count 1.

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -203,16 +202,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Given a callable value, changes the reference count of its capture tuple by the given value.
-        /// The given value is expected to be a 64-bit integer.
+        /// Each callable table contains a pointer to an array of function pointers to modify access and reference
+        /// counts of the capture tuple.
+        /// Given a callable value, invokes the function at the given index in the memory management table of the callable
+        /// by calling the runtime function CallableMemoryManagement with the function index and the value by which to
+        /// change the count. The given change is expected to be a 64-bit integer.
         /// </summary>
-        private void InvokeCallableMemoryManagement(int funcId, IValue change, CallableValue callable)
+        private void InvokeCallableMemoryManagement(int funcIndex, IValue change, CallableValue callable)
         {
-            // Each callable table contains a function pointer that can be invoked via a call to the runtime function
-            // CallableMemoryManagement. For each callable value, we instantiate that pointer to a function to modify the
-            // reference count of the capture tuple an all its inner items, and we use it here to modify the reference count.
             var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
-            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcId), callable.Value, change.Value);
+            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcIndex), callable.Value, change.Value);
         }
 
         /// <summary>
@@ -255,7 +254,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is CallableValue callable)
                 {
-                    var id = funcName.Contains("reference_count") ? 0 : 1;
+                    var id = funcName.Contains("reference_count") ? 0 :
+                        funcName.Contains("access_count") ? 1 :
+                        throw new NotSupportedException("unknown function for capture tuple memory management");
                     this.InvokeCallableMemoryManagement(id, change, callable);
                     this.sharedState.CurrentBuilder.Call(func, callable.Value, change.Value);
                 }
