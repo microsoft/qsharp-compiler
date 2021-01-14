@@ -2,7 +2,7 @@
   <Import Project="..\..\Common\AssemblyCommon.props" />
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <PropertyGroup>
