@@ -206,13 +206,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Given a callable value, changes the reference count of its capture tuple by the given value.
         /// The given value is expected to be a 64-bit integer.
         /// </summary>
-        private void UpdateCaptureTupleReferenceCount(IValue change, CallableValue callable)
+        private void InvokeCallableMemoryManagement(int funcId, IValue change, CallableValue callable)
         {
             // Each callable table contains a function pointer that can be invoked via a call to the runtime function
             // CallableMemoryManagement. For each callable value, we instantiate that pointer to a function to modify the
             // reference count of the capture tuple an all its inner items, and we use it here to modify the reference count.
-            var updateCaptureReferences = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
-            this.sharedState.CurrentBuilder.Call(updateCaptureReferences, callable.Value, change.Value);
+            var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
+            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcId), callable.Value, change.Value);
         }
 
         /// <summary>
@@ -255,8 +255,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is CallableValue callable)
                 {
-                    Debug.Assert(funcName.Contains("reference_count"));
-                    this.UpdateCaptureTupleReferenceCount(change, callable);
+                    var id = funcName.Contains("reference_count") ? 0 : 1;
+                    this.InvokeCallableMemoryManagement(id, change, callable);
                     this.sharedState.CurrentBuilder.Call(func, callable.Value, change.Value);
                 }
                 else
@@ -367,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="callable">The callable whose capture tuple to reference</param>
         internal void ReferenceCaptureTuple(CallableValue callable) =>
-            this.UpdateCaptureTupleReferenceCount(this.plusOne, callable);
+            this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
 
         /// <summary>
         /// Returns true if access counts are tracked for values of the given LLVM type.

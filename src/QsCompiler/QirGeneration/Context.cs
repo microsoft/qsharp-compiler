@@ -375,13 +375,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCreate, this.Types.Callable, this.Types.CallableTable.CreatePointerType(), this.Types.CaptureCountFunction.CreatePointerType(), this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCreate, this.Types.Callable, this.Types.CallableTable.CreatePointerType(), this.Types.CallableMemoryManagementTable, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Types.Callable, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Types.Int);
 
             // qubit library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);
@@ -1126,22 +1126,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             throw new KeyNotFoundException($"Can't find callable {fullName}");
         }
 
-        internal Constant GetOrCreateRefCountFunction(TupleValue? value)
+        internal Constant GetOrCreateCallableMemoryManagementTable(TupleValue? value)
         {
             if (value == null)
             {
-                return Constant.ConstPointerToNullFor(this.Types.CaptureCountFunction.CreatePointerType());
+                return Constant.ConstPointerToNullFor(this.Types.CallableMemoryManagementTable.CreatePointerType());
             }
+
+            var nullPointer = Constant.ConstPointerToNullFor(this.Types.CaptureCountFunction.CreatePointerType());
+            var funcs = new Constant[2] { nullPointer, nullPointer };
 
             var type = StripPositionInfo.Apply(value.QSharpType);
             if (this.refCountFunctions.TryGetValue(type, out IrFunction func))
             {
-                return func;
+                funcs[0] = func;
             }
-            var funcName = this.GenerateUniqueName("ReferencesManagement");
-            func = this.Module.CreateFunction(funcName, this.Types.CaptureCountFunction);
-            this.refCountFunctions.Add(type, func);
-            return func;
+            else
+            {
+                var funcName = this.GenerateUniqueName("ReferencesManagement");
+                func = this.Module.CreateFunction(funcName, this.Types.CaptureCountFunction);
+                this.refCountFunctions.Add(type, func);
+                funcs[0] = func;
+            }
+
+            var name = this.GenerateUniqueName("MemoryManagement");
+            var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
         }
 
         /// <summary>

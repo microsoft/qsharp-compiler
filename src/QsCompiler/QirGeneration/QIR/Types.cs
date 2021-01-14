@@ -107,6 +107,7 @@ namespace Microsoft.Quantum.QIR
 
         internal readonly IArrayType CallableTable;
         internal readonly IFunctionType CaptureCountFunction;
+        internal readonly IArrayType CallableMemoryManagementTable;
 
         // constructor
 
@@ -128,9 +129,10 @@ namespace Microsoft.Quantum.QIR
             this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
-            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
             this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
             this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
+            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
+            this.CallableMemoryManagementTable = this.CaptureCountFunction.CreatePointerType().CreateArrayType(2);
         }
 
         // internal helpers to simplify common code

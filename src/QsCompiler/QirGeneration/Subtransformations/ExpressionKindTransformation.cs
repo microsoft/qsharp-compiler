@@ -473,8 +473,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var unrefCapture = this.SharedState.GetOrCreateRefCountFunction(capture);
-            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, unrefCapture, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
+            var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(capture);
+            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
             var value = this.SharedState.Values.FromCallable(res, callableType);
             this.SharedState.ScopeMgr.RegisterValue(value);
             return value;
