@@ -34,16 +34,11 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %9, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
-  %15 = call %Callable* @__quantum__rt__callable_create([5 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
+  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %15)
-  %16 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64))
-  %17 = bitcast %Tuple* %16 to { i64 }*
-  %18 = getelementptr { i64 }, { i64 }* %17, i64 0, i32 0
-  store i64 -1, i64* %18
-  call void @__quantum__rt__callable_memory_management(%Callable* %doNothing, %Tuple* %16, %Tuple* null)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %doNothing, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %doNothing, i64 -1)
-  call void @__quantum__rt__callable_memory_management(%Callable* %15, %Tuple* %16, %Tuple* null)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %15, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i64 -1)
   ret void
 }
