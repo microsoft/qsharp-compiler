@@ -314,14 +314,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.IntPower, this.Types.Int, this.Types.Int, this.Context.Int32Type);
 
             // result library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultReference, this.Context.VoidType, this.Types.Result);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUnreference, this.Context.VoidType, this.Types.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.Types.Result, this.Types.Result);
 
             // string library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.Types.String, this.Context.Int32Type, this.Types.DataArrayPointer);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringReference, this.Context.VoidType, this.Types.String);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUnreference, this.Context.VoidType, this.Types.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUpdateReferenceCount, this.Context.VoidType, this.Types.String, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringConcatenate, this.Types.String, this.Types.String, this.Types.String);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringEqual, this.Context.BoolType, this.Types.String, this.Types.String);
 
@@ -338,8 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // bigint library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateI64, this.Types.BigInt, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.Types.BigInt, this.Context.Int32Type, this.Types.DataArrayPointer);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntReference, this.Context.VoidType, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUnreference, this.Context.VoidType, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUpdateReferenceCount, this.Context.VoidType, this.Types.BigInt, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntNegate, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntAdd, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntSubtract, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
@@ -359,10 +356,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // tuple library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleAddAccess, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleRemoveAccess, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleReference, this.Context.VoidType, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUnreference, this.Context.VoidType, this.Types.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAccessCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateReferenceCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Types.Tuple, this.Types.Tuple, this.Context.BoolType);
 
             // array library functions
@@ -371,10 +366,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayAddAccess, this.Context.VoidType, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayRemoveAccess, this.Context.VoidType, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayReference, this.Context.VoidType, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUnreference, this.Context.VoidType, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAccessCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice, this.Types.Array, this.Context.Int32Type, this.Types.Array, this.Types.Range);
@@ -391,8 +384,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableReference, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUnreference, this.Context.VoidType, this.Types.Callable);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
 
             // qubit library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);
@@ -612,10 +605,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     Value result = this.CurrentBuilder.Call(func, argValueList);
-                    foreach (var arrayToRelease in arraysToReleaseList)
-                    {
-                        this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayUnreference), arrayToRelease);
-                    }
+                    // TODO: release array
 
                     if (func.ReturnType.IsVoid)
                     {
@@ -1157,7 +1147,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     return func;
                 }
-                var funcName = this.GenerateUniqueName("MemoryManagement");
+                var funcName = this.GenerateUniqueName("ReferencesManagement");
                 func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
                 this.refCountFunctions.Add(type, func);
                 return func;
@@ -1347,7 +1337,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.GenerateQirFunction(func, parameters =>
                 {
                     var capture = GetArgumentTuple(type, parameters[0]);
-                    this.ScopeMgr.DecreaseReferenceCount(capture); // FIXME: NEED TO TAKE WHAT TO INVOKE AS ARGUMENT
+                    var argument = GetArgumentTuple(ResolvedType.New(ResolvedTypeKind.Int), parameters[1]);
+                    this.ScopeMgr.UpdateReferenceCount(argument.GetTupleElements().Single(), capture);
                 });
             }
         }

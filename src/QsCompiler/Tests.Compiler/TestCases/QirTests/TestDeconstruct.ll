@@ -7,10 +7,10 @@ entry:
   store i64 %0, i64* %3
   store { i64, i64 }* %1, { i64, i64 }** %4
   %5 = bitcast { i64, i64 }* %1 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %5)
-  call void @__quantum__rt__tuple_add_access(%Tuple* %5)
-  call void @__quantum__rt__tuple_add_access(%Tuple* %2)
-  call void @__quantum__rt__tuple_add_access(%Tuple* %5)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %5, i64 1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %2, i64 1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %5, i64 1)
   %b = alloca i64
   store i64 3, i64* %b
   %c = alloca i64
@@ -23,10 +23,10 @@ entry:
   store i64 %9, i64* %c
   %10 = mul i64 %7, %9
   %11 = add i64 %0, %10
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %5)
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %2)
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %5)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %5)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %2)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %5, i64 -1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %5, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   ret i64 %11
 }

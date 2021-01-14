@@ -19,8 +19,8 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal class QirExpressionKindTransformation : ExpressionKindTransformation<GenerationContext>
     {
@@ -210,8 +210,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </returns>
         private bool TryEvaluateRuntimeFunction(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
         {
-            var intType = ResolvedType.New(QsResolvedTypeKind.Int);
-            var rangeType = ResolvedType.New(QsResolvedTypeKind.Range);
+            var intType = ResolvedType.New(ResolvedTypeKind.Int);
+            var rangeType = ResolvedType.New(ResolvedTypeKind.Range);
 
             if (name.Equals(BuiltIn.Length.FullName))
             {
@@ -288,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
+                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
                 {
                     var evaluatedArg = (TupleValue)this.SharedState.EvaluateSubexpression(arg);
                     args = evaluatedArg.GetTupleElements();
@@ -385,7 +385,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var resElementTypes = returnType.Resolution is QsResolvedTypeKind.TupleType elementTypes
+                var resElementTypes = returnType.Resolution is ResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
@@ -403,7 +403,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>An invalid expression</returns>
         private ResolvedExpression ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
         {
-            var callable = this.SharedState.EvaluateSubexpression(ex);
+            var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
             // We don't keep track of access counts for callables and hence instead
             // take care here to not make unnecessary copies. We have to be pessimistic, however,
@@ -434,24 +434,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="callable">The callable to copy (unless modifyInPlace is true) before applying the functor to it</param>
         /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
         /// <returns>The callable value to which the functor has been applied</returns>
-        private IValue ApplyFunctor(string runtimeFunctionName, IValue callable, bool modifyInPlace = false)
+        private CallableValue ApplyFunctor(string runtimeFunctionName, CallableValue callable, bool modifyInPlace = false)
         {
             // This method is used when applying functors when building a functor application expression
             // as well as when creating the specializations for a partial application.
 
             if (!modifyInPlace)
             {
-                // FIXME:
-                // WE NEED TO INCREASE THE REFERENCE COUNT FOR THE CAPTURE TUPLE.
-                // For that we need a callable_get_capture runtime function,
-                // and we need to keep track of additional type information during QIR emission.
-                // Dereferencing needs to recur into the capture tuple as well.
-
                 // Since we don't track access counts for callables we need to force the copy.
+                // While making a copy ensures that the callable is created with reference count 1,
+                // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
                 callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
+                this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);
                 this.SharedState.ScopeMgr.RegisterValue(callable);
             }
 
@@ -518,7 +515,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
-            else if (exType.Resolution is QsResolvedTypeKind.ArrayType elementType)
+            else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
                 // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
@@ -543,7 +540,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
             var index = this.SharedState.EvaluateSubexpression(idx);
-            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrElementType
+            var elementType = arr.ResolvedType.Resolution is ResolvedTypeKind.ArrayType arrElementType
                 ? arrElementType.Item
                 : throw new InvalidOperationException("expecting an array in array item access");
 
@@ -926,11 +923,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             IValue value;
-            if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType elementType)
+            if (lhs.ResolvedType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
                 value = CopyAndUpdateArray(elementType.Item);
             }
-            else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt)
+            else if (lhs.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt)
             {
                 value = CopyAndUpdateUdt(udt.Item.GetFullName());
             }
@@ -1445,7 +1442,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
         {
             IValue value;
-            if (!(ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt))
+            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
             {
                 throw new NotSupportedException("invalid type for named item access");
             }
@@ -1589,7 +1586,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return new InnerArg(this.SharedState, itemType, remainingArgs.Count - 1);
                 }
                 else if (arg.Expression is ResolvedExpression.ValueTuple tuple
-                    && argType.Resolution is QsResolvedTypeKind.TupleType types)
+                    && argType.Resolution is ResolvedTypeKind.TupleType types)
                 {
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
                     return new InnerTuple(this.SharedState, argType, items);
@@ -1603,7 +1600,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ImmutableArray<ResolvedType> captureType, ImmutableArray<ResolvedType> paArgsTypes, PartialApplicationArgument partialArgs)
             {
-                IValue ApplyFunctors(IValue innerCallable)
+                IValue ApplyFunctors(CallableValue innerCallable)
                 {
                     if (kind == QsSpecializationKind.QsBody)
                     {
@@ -1654,7 +1651,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         innerArg = BuildControlledInnerArgument(
                             paArgsTypes.Length == 1
                             ? paArgsTypes[0]
-                            : ResolvedType.New(QsResolvedTypeKind.NewTupleType(paArgsTypes)));
+                            : ResolvedType.New(ResolvedTypeKind.NewTupleType(paArgsTypes)));
                     }
                     else
                     {
@@ -1666,7 +1663,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                    var innerCallable = captureTuple.GetTupleElement(0);
+                    var innerCallable = (CallableValue)captureTuple.GetTupleElement(0);
                     this.SharedState.CurrentBuilder.Call(invokeCallable, ApplyFunctors(innerCallable).Value, innerArg.OpaquePointer, parameters[2]);
                 }
 
@@ -1676,15 +1673,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
             ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
-                QsResolvedTypeKind.Function paf => paf.Item1,
-                QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
+                ResolvedTypeKind.Function paf => paf.Item1,
+                ResolvedTypeKind.Operation pao => pao.Item1.Item1,
                 _ => throw new InvalidOperationException("expecting an operation or function type")
             };
 
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var exType = this.SharedState.CurrentExpressionType();
             var callableArgType = CallableArgumentType(exType);
-            var paArgsTypes = callableArgType.Resolution is QsResolvedTypeKind.TupleType itemTypes
+            var paArgsTypes = callableArgType.Resolution is ResolvedTypeKind.TupleType itemTypes
                 ? itemTypes.Item
                 : ImmutableArray.Create(callableArgType);
 
@@ -1903,9 +1900,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var ty = ex.ResolvedType.Resolution;
                 if (ty.IsString)
                 {
-                    var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringReference);
+                    var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                    var countChange = this.SharedState.Context.CreateConstant(1L);
                     var value = this.SharedState.EvaluateSubexpression(ex).Value;
-                    this.SharedState.CurrentBuilder.Call(addReference, value);
+                    this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
                     return value;
                 }
                 else if (ty.IsBigInt)
@@ -1962,7 +1960,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // TODO: Do something better for tuple-to-string
                     return CreateConstantString("(...)");
                 }
-                else if (ty is QsResolvedTypeKind.UserDefinedType udt)
+                else if (ty is ResolvedTypeKind.UserDefinedType udt)
                 {
                     // TODO: Do something better for UDT-to-string
                     var udtName = udt.Item.Name;
@@ -1985,10 +1983,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUnreference);
+                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                var countChange = this.SharedState.Context.CreateConstant(-1L);
                 var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
-                this.SharedState.CurrentBuilder.Call(unreference, curr);
-                this.SharedState.CurrentBuilder.Call(unreference, next);
+                this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
+                this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
                 return app;
             }
 
@@ -2082,7 +2081,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueArray(ImmutableArray<TypedExpression> vs)
         {
             // TODO: handle multi-dimensional arrays
-            var elementType = this.SharedState.CurrentExpressionType().Resolution is QsResolvedTypeKind.ArrayType arrItemType
+            var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
 
@@ -2104,7 +2103,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             var value = this.SharedState.EvaluateSubexpression(ex);
-            if (!(ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt))
+            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
             {
                 throw new NotSupportedException("invalid type for unwrap operator");
             }

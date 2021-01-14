@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -13,7 +14,7 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
     /// This class is used to track the validity of variables and values, to track access and reference counts,
@@ -63,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((value, releaseFunction));
                 }
-                if (this.parent.ReferenceFunctionForType(value.LlvmType) != null)
+                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
                 {
                     this.trackedValues.Add(value);
                 }
@@ -87,33 +88,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null)
+            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
+                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
+
+            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes)
             {
-                omitUnreferencing ??= new List<IValue>();
-
-                foreach (var (value, funcName) in this.requiredReleases)
+                foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
-                    var func = this.parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    this.parent.sharedState.CurrentBuilder.Call(func, value.Value);
+                    var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
-                foreach (var (_, value) in this.variables)
-                {
-                    this.parent.DecreaseAccessCount(value);
-                }
-
-                foreach (var value in this.trackedValues)
+                var pendingUnreferences = new Queue<IValue>();
+                foreach (var value in scopes.SelectMany(s => s.trackedValues))
                 {
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => omitted.Value == value.Value);
                     if (!omitUnreferencing.Remove(omitted))
                     {
-                        this.parent.RecursivelyModifyCounts(this.parent.UnreferenceFunctionForType, value);
+                        pendingUnreferences.Enqueue(value);
                     }
                 }
+
+                parent.DecreaseAccessCount(scopes.SelectMany(s => s.variables).Select(kv => kv.Value).ToArray());
+                parent.DecreaseReferenceCount(pendingUnreferences.ToArray());
             }
         }
 
         private readonly GenerationContext sharedState;
+        private readonly IValue minusOne;
+        private readonly IValue plusOne;
 
         /// <summary>
         /// New variables and values are always added to the scope on top of the stack.
@@ -134,124 +137,94 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public ScopeManager(GenerationContext ctx)
         {
             this.sharedState = ctx;
+            var intType = ResolvedType.New(ResolvedTypeKind.Int);
+            this.minusOne = ctx.Values.FromSimpleValue(ctx.Context.CreateConstant(-1L), intType);
+            this.plusOne = ctx.Values.FromSimpleValue(ctx.Context.CreateConstant(1L), intType);
         }
 
         // private helpers
 
         /// <summary>
-        /// Gets the name of the runtime function to increase the access count for a given LLVM type.
+        /// Gets the name of the runtime function to update the access count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to increase the access count for this type</returns>
-        private string? AddAccessFunctionForType(ITypeRef t)
+        /// <returns>The name of the function to update the access count for this type</returns>
+        private string? AccessUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleAddAccess;
+                    return RuntimeLibrary.TupleUpdateAccessCount;
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayAddAccess;
+                    return RuntimeLibrary.ArrayUpdateAccessCount;
                 }
             }
             return null;
         }
 
         /// <summary>
-        /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
+        /// Gets the name of the runtime function to update the reference count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to decrease the access count for this type</returns>
-        private string? RemoveAccessFunctionForType(ITypeRef t)
+        /// <returns>The name of the function to update the reference count for this type</returns>
+        private string? ReferencesUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleRemoveAccess;
+                    return RuntimeLibrary.TupleUpdateReferenceCount;
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayRemoveAccess;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the name of the runtime function to increase the reference count for a given LLVM type.
-        /// </summary>
-        /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to increase the reference count for this type</returns>
-        private string? ReferenceFunctionForType(ITypeRef t)
-        {
-            if (t.IsPointer)
-            {
-                if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleReference;
-                }
-                else if (Types.IsArray(t))
-                {
-                    return RuntimeLibrary.ArrayReference;
+                    return RuntimeLibrary.ArrayUpdateReferenceCount;
                 }
                 else if (Types.IsCallable(t))
                 {
-                    return RuntimeLibrary.CallableReference;
+                    return RuntimeLibrary.CallableUpdateReferenceCount;
                 }
                 else if (Types.IsResult(t))
                 {
-                    return RuntimeLibrary.ResultReference;
+                    return RuntimeLibrary.ResultUpdateReferenceCount;
                 }
                 else if (Types.IsString(t))
                 {
-                    return RuntimeLibrary.StringReference;
+                    return RuntimeLibrary.StringUpdateReferenceCount;
                 }
                 else if (Types.IsBigInt(t))
                 {
-                    return RuntimeLibrary.BigIntReference;
+                    return RuntimeLibrary.BigIntUpdateReferenceCount;
                 }
             }
             return null;
         }
 
         /// <summary>
-        /// Gets the name of the runtime function to decrease the access count for a given LLVM type.
+        /// Given a callable value, changes the reference count of its capture tuple by the given value.
+        /// The given value is expected to be either a 64-bit integer, or a tuple with a 64-bit integer.
         /// </summary>
-        /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to decrease the reference count for this type</returns>
-        private string? UnreferenceFunctionForType(ITypeRef t)
+        private void UpdateCaptureTupleReferenceCount(IValue change, CallableValue callable)
         {
-            if (t.IsPointer)
+            bool IsInt(ITypeRef type) => type == this.sharedState.Types.Int;
+            bool IsIntTuple(IStructType type) => type.Members.Count == 1 && IsInt(type.Members[0]);
+            var argTuple = change is TupleValue tuple && IsIntTuple(tuple.StructType) ? tuple :
+                IsInt(change.LlvmType) ? this.sharedState.Values.CreateTuple(registerWithScopeManager: false, change) :
+                throw new ArgumentException("epecting a 64-bit integer or tuple containing a 64-bit integer");
+
+            // Each callable table contains a function pointer that can be invoked via a call to the runtime function
+            // CallableMemoryManagement. For each callable value, we instantiate that pointer to a function to modify the
+            // reference count of the capture tuple an all its inner items, and we use it here to modify the reference count.
+            var updateCaptureReferences = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
+            this.sharedState.CurrentBuilder.Call(updateCaptureReferences, callable.Value, argTuple.OpaquePointer, this.sharedState.Values.Unit.Value);
+
+            if (!(change is TupleValue))
             {
-                if (Types.IsTypedTuple(t))
-                {
-                    return RuntimeLibrary.TupleUnreference;
-                }
-                else if (Types.IsArray(t))
-                {
-                    return RuntimeLibrary.ArrayUnreference;
-                }
-                else if (Types.IsCallable(t))
-                {
-                    return RuntimeLibrary.CallableUnreference;
-                }
-                else if (Types.IsResult(t))
-                {
-                    return RuntimeLibrary.ResultUnreference;
-                }
-                else if (Types.IsString(t))
-                {
-                    return RuntimeLibrary.StringUnreference;
-                }
-                else if (Types.IsBigInt(t))
-                {
-                    return RuntimeLibrary.BigIntUnreference;
-                }
+                var tupleUnreference = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleUpdateReferenceCount);
+                this.sharedState.CurrentBuilder.Call(tupleUnreference, argTuple.OpaquePointer, this.minusOne.Value);
             }
-            return null;
         }
 
         /// <summary>
@@ -259,8 +232,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue value)
+        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params IValue[] values)
         {
+            TupleValue? changeTuple = null;
             void ModifyCounts(string funcName, IValue value)
             {
                 var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
@@ -281,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
                     }
 
-                    this.sharedState.CurrentBuilder.Call(func, tuple.OpaquePointer);
+                    this.sharedState.CurrentBuilder.Call(func, tuple.OpaquePointer, change.Value);
                 }
                 else if (value is ArrayValue array)
                 {
@@ -290,28 +264,38 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
-                    this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer);
+                    this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer, change.Value);
                 }
                 else if (value is CallableValue callable)
                 {
-                    // TODO
-                    // RECURSIVELY UNREFERENCE THE CAPTURE TUPLE
-                    this.sharedState.CurrentBuilder.Call(func, callable.Value);
+                    Debug.Assert(funcName.Contains("reference_count"));
+                    changeTuple ??= this.sharedState.Values.CreateTuple(registerWithScopeManager: false, change);
+                    this.UpdateCaptureTupleReferenceCount(changeTuple, callable);
+                    this.sharedState.CurrentBuilder.Call(func, callable.Value, change.Value);
                 }
                 else
                 {
-                    this.sharedState.CurrentBuilder.Call(func, value.Value);
+                    this.sharedState.CurrentBuilder.Call(func, value.Value, change.Value);
                 }
             }
 
-            var func = getFunctionName(value.LlvmType);
-            if (func != null)
+            foreach (var value in values)
             {
-                ModifyCounts(func, value);
+                var func = getFunctionName(value.LlvmType);
+                if (func != null)
+                {
+                    ModifyCounts(func, value);
+                }
+            }
+
+            if (changeTuple != null)
+            {
+                var tupleUnreference = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleUpdateReferenceCount);
+                this.sharedState.CurrentBuilder.Call(tupleUnreference, changeTuple.OpaquePointer, this.minusOne.Value);
             }
         }
 
-        // public methods
+        // public and internal methods
 
         /// <summary>
         /// Opens a new scope and pushes it on top of the naming scope stack.
@@ -374,41 +358,64 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Returns true if reference counts are tracked for values of the given LLVM type.
         /// </summary>
         internal bool RequiresReferenceCount(ITypeRef t) =>
-            this.ReferenceFunctionForType(t) != null;
+            this.ReferencesUpdateFunctionForType(t) != null;
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(IValue value) =>
-            this.RecursivelyModifyCounts(this.ReferenceFunctionForType, value);
+        public void IncreaseReferenceCount(params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.plusOne, values);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(IValue value) =>
-            this.RecursivelyModifyCounts(this.UnreferenceFunctionForType, value);
+        public void DecreaseReferenceCount(params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.minusOne, values);
+
+        /// <summary>
+        /// Adds a call to a runtime library function to change the reference count for the given value.
+        /// </summary>
+        /// <param name="value">The value for which to change the reference count</param>
+        /// <param name="change">The amount by which to change the reference count given as i64</param>
+        internal void UpdateReferenceCount(IValue change, params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, change, values);
+
+        /// <summary>
+        /// Given a callable value, increases the reference count of its capture tuple by 1.
+        /// </summary>
+        /// <param name="callable">The callable whose capture tuple to reference</param>
+        internal void ReferenceCaptureTuple(CallableValue callable) =>
+            this.UpdateCaptureTupleReferenceCount(this.plusOne, callable);
 
         /// <summary>
         /// Returns true if access counts are tracked for values of the given LLVM type.
         /// </summary>
         internal bool RequiresAccessCount(ITypeRef t) =>
-            this.AddAccessFunctionForType(t) != null;
+            this.AccessUpdateFunctionForType(t) != null;
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(IValue value) =>
-            this.RecursivelyModifyCounts(this.AddAccessFunctionForType, value);
+        internal void IncreaseAccessCount(params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, values);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value) =>
-            this.RecursivelyModifyCounts(this.RemoveAccessFunctionForType, value);
+        internal void DecreaseAccessCount(params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, values);
+
+        /// <summary>
+        /// Adds a call to a runtime library function to change the access count for the given value.
+        /// </summary>
+        /// <param name="value">The value for which to change the access count</param>
+        /// <param name="countChange">The amount by which to change the access count given as i64</param>
+        internal void UpdateAccessCount(IValue change, params IValue[] values) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, change, values);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
@@ -500,10 +507,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // will create new scopes and hence modify the collection.
             var currentScopes = this.scopes.ToArray();
             var omittedUnreferences = new List<IValue>() { returned };
-            foreach (var scope in currentScopes)
-            {
-                scope.ExecutePendingCalls(omittedUnreferences);
-            }
+            Scope.ExecutePendingCalls(this, omittedUnreferences, currentScopes);
         }
     }
 }
