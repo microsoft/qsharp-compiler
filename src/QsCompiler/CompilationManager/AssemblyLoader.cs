@@ -123,6 +123,30 @@ namespace Microsoft.Quantum.QsCompiler
             return compilation != null && IsValidCompilation(compilation);
         }
 
+        // TODO: Document.
+        public static bool LoadSyntaxTree(
+            byte[] byteArray,
+            string resourceName,
+            BondSchemas.Protocols.Option[] options,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
+        {
+            compilation = null;
+            try
+            {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
+                // TODO: Call into the Protocols API.
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
+            }
+            catch (Exception ex)
+            {
+                onDeserializationException?.Invoke(ex);
+                return false;
+            }
+
+            return compilation != null && IsValidCompilation(compilation);
+        }
+
         /// <summary>
         /// Given a stream containing a binary representation of compiled Q# code, returns the corresponding Q# compilation.
         /// Returns true if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.

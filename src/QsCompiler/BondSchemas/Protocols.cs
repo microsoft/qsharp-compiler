@@ -19,6 +19,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// </summary>
     public static class Protocols
     {
+
+        // TODO: Document.
+        public enum Option
+        {
+            ExcludeNamespaceDocumentation
+        }
+
         /// <summary>
         /// Provides thread-safe access to the members and methods of this class.
         /// </summary>
@@ -31,6 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
         /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        // TODO: Extend to receive options.
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray)
         {
