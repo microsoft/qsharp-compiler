@@ -98,6 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
+                var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => kv.Value).ToArray();
                 var pendingUnreferences = new Queue<IValue>();
                 foreach (var value in scopes.SelectMany(s => s.trackedValues))
                 {
@@ -108,8 +109,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                parent.DecreaseAccessCount(scopes.SelectMany(s => s.variables).Select(kv => kv.Value).ToArray());
-                parent.DecreaseReferenceCount(pendingUnreferences.ToArray());
+                parent.RecursivelyModifyCounts(parent.AccessUpdateFunctionForType, false, parent.minusOne, pendingAccessCounts);
+                parent.RecursivelyModifyCounts(parent.ReferencesUpdateFunctionForType, false, parent.minusOne, pendingUnreferences.ToArray());
             }
         }
 
@@ -219,19 +220,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params IValue[] values)
+        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, bool shallow, IValue change, params IValue[] values)
         {
-            void ModifyCounts(string funcName, IValue value)
+            Value ProcessInnerItems(string funcName, IValue value)
             {
-                var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-
-                if (value is PointerValue pointer)
+                if (value is TupleValue tuple)
                 {
-                    ModifyCounts(funcName, pointer.LoadValue());
-                }
-                else if (value is TupleValue tuple)
-                {
-                    for (var i = 0; i < tuple.StructType.Members.Count; ++i)
+                    for (var i = 0; i < tuple.StructType.Members.Count && !shallow; ++i)
                     {
                         var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
                         if (itemFuncName != null)
@@ -240,29 +235,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             ModifyCounts(itemFuncName, item);
                         }
                     }
-
-                    this.sharedState.CurrentBuilder.Call(func, tuple.OpaquePointer, change.Value);
+                    return tuple.OpaquePointer;
                 }
                 else if (value is ArrayValue array)
                 {
                     var itemFuncName = getFunctionName(array.ElementType);
-                    if (itemFuncName != null)
+                    if (itemFuncName != null && !shallow)
                     {
                         this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
                     }
-                    this.sharedState.CurrentBuilder.Call(func, array.OpaquePointer, change.Value);
+                    return array.OpaquePointer;
                 }
-                else if (value is CallableValue callable)
+                else if (value is CallableValue callable && !shallow)
                 {
-                    var id = funcName.Contains("reference_count") ? 0 :
-                        funcName.Contains("access_count") ? 1 :
+                    var itemFuncId = funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
                         throw new NotSupportedException("unknown function for capture tuple memory management");
-                    this.InvokeCallableMemoryManagement(id, change, callable);
-                    this.sharedState.CurrentBuilder.Call(func, callable.Value, change.Value);
+                    this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
+                    return callable.Value;
                 }
                 else
                 {
-                    this.sharedState.CurrentBuilder.Call(func, value.Value, change.Value);
+                    return value.Value;
+                }
+            }
+
+            void ModifyCounts(string funcName, IValue value)
+            {
+                if (value is PointerValue pointer)
+                {
+                    ModifyCounts(funcName, pointer.LoadValue());
+                }
+                else
+                {
+                    var arg = ProcessInnerItems(funcName, value);
+                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    this.sharedState.CurrentBuilder.Call(func, arg, change.Value);
                 }
             }
 
@@ -345,23 +352,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
-        public void IncreaseReferenceCount(params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.plusOne, values);
+        public void IncreaseReferenceCount(IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, this.plusOne, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.minusOne, values);
+        public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, this.minusOne, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
-        internal void UpdateReferenceCount(IValue change, params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, change, values);
+        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, change, value);
 
         /// <summary>
         /// Given a callable value, increases the reference count of its capture tuple by 1.
@@ -380,23 +387,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, values);
+        internal void IncreaseAccessCount(IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, this.plusOne, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, values);
+        internal void DecreaseAccessCount(IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, this.minusOne, value);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the access count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the access count</param>
-        /// <param name="countChange">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, params IValue[] values) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, change, values);
+        /// <param name="change">The amount by which to change the access count given as i64</param>
+        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
+            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, change, value);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value

@@ -4,6 +4,8 @@ entry:
   %x = alloca %Array*
   store %Array* %y, %Array** %x
   call void @__quantum__rt__array_update_access_count(%Array* %y, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %y, i64 1)
+  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 -1)
   %0 = call %Array* @__quantum__rt__array_copy(%Array* %y, i1 false)
   %1 = call i64 @__quantum__rt__array_get_size_1d(%Array* %0)
   %2 = sub i64 %1, 1
@@ -32,9 +34,11 @@ exit__1:                                          ; preds = %header__1
   %11 = load %String*, %String** %10
   call void @__quantum__rt__string_update_reference_count(%String* %11, i64 -1)
   store %String* %b, %String** %10
-  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 -1)
   store %Array* %0, %Array** %x
   call void @__quantum__rt__array_update_access_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_access_count(%Array* %0, i64 -1)
   %12 = call %Array* @__quantum__rt__array_copy(%Array* %0, i1 false)
   %13 = call i64 @__quantum__rt__array_get_size_1d(%Array* %12)
   %14 = sub i64 %13, 1
@@ -63,9 +67,9 @@ exit__2:                                          ; preds = %header__2
   %24 = load %String*, %String** %23
   call void @__quantum__rt__string_update_reference_count(%String* %24, i64 -1)
   store %String* %21, %String** %23
-  call void @__quantum__rt__array_update_access_count(%Array* %0, i64 -1)
   store %Array* %12, %Array** %x
   call void @__quantum__rt__array_update_access_count(%Array* %12, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
   call void @__quantum__rt__array_update_access_count(%Array* %y, i64 -1)
   call void @__quantum__rt__array_update_access_count(%Array* %12, i64 -1)
   %25 = sub i64 %1, 1

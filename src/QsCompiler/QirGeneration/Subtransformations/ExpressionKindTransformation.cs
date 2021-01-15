@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // private helpers
+        // static methods
 
         /// <param name="sharedState">The generation context in which to emit the instructions</param>
         /// <param name="rangeEx">The range expression for which to create the access functions</param>
@@ -172,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="typeItems">The tuple defining the items of a custom type</param>
         /// <param name="itemLocation">The location of the item with the given name within the item tuple</param>
         /// <returns>Returns true if the item was found and false otherwise</returns>
-        private bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
+        private static bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
         {
             bool FindNamedItem(QsTuple<QsTypeItem> items, List<int> location)
             {
@@ -203,6 +203,174 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             itemLocation.Reverse();
             return found;
         }
+
+        /// <summary>
+        /// Evaluates the copy-and-update expression defined by the given left-hand side, the item access and the right-hand side
+        /// within the given context. If updateItemAccessCount is set to true, decreases the access count of the items that are
+        /// updated by 1 and increases the access count for the new items.
+        /// </summary>
+        /// <param name="sharedState">The context within which to evaluate the expression</param>
+        /// <param name="lhs">The original value which should be copied and updated</param>
+        /// <param name="accEx">The item(s) to update</param>
+        /// <param name="rhs">The new value(s) for the item(s) to update</param>
+        internal static ResolvedExpression CopyAndUpdate(GenerationContext sharedState, TypedExpression lhs, TypedExpression accEx, TypedExpression rhs, bool updateItemAccessCount = false)
+        {
+            void StoreElement(PointerValue pointer, IValue value)
+            {
+                if (updateItemAccessCount)
+                {
+                    sharedState.ScopeMgr.IncreaseAccessCount(value);
+                    sharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                }
+                pointer.StoreValue(value);
+            }
+
+            IValue CopyAndUpdateArray(ResolvedType elementType)
+            {
+                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
+                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
+                var originalArray = sharedState.EvaluateSubexpression(lhs);
+                var forceCopy = sharedState.Context.CreateConstant(false);
+                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
+                var array = sharedState.Values.FromArray(copy, elementType);
+                sharedState.ScopeMgr.RegisterValue(array);
+
+                // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                // reference counts always need to be modified recursively. However, while the reference count for
+                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
+                // to increase the reference count of the contained items due to lacking type information.
+                // In the same way that we increase the reference count when we populate an array, we hence need to
+                // manually (recursively) increase the reference counts for all items.
+                if (sharedState.ScopeMgr.RequiresReferenceCount(array.ElementType))
+                {
+                    sharedState.IterateThroughArray(array, item => sharedState.ScopeMgr.IncreaseReferenceCount(item));
+                }
+
+                // The getNewItemForIndex function is expected to increase the reference count of the time by 1.
+                void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
+                {
+                    var elementPtr = array.GetArrayElementPointer(index);
+                    var originalElement = elementPtr.LoadValue();
+                    var newElement = getNewItemForIndex(index);
+
+                    // Remark: Avoiding to increase and then decrease the reference count for the original item
+                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
+                    // whether that would be much better.
+                    sharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
+                    StoreElement(elementPtr, newElement);
+                }
+
+                if (accEx.ResolvedType.Resolution.IsInt)
+                {
+                    IValue newItemValue = sharedState.BuildSubitem(rhs);
+                    var index = sharedState.EvaluateSubexpression(accEx);
+                    UpdateElement(_ => newItemValue, index.Value);
+                }
+                else if (accEx.ResolvedType.Resolution.IsRange)
+                {
+                    var newItemValue = (ArrayValue)sharedState.BuildSubitem(rhs);
+                    var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
+                    sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
+                }
+                else
+                {
+                    throw new InvalidOperationException("invalid item name in named item access");
+                }
+
+                return array;
+            }
+
+            IValue CopyAndUpdateUdt(QsQualifiedName udtName)
+            {
+                // Returns the shallow copy as tuple.
+                TupleValue GetTupleCopy(TupleValue original)
+                {
+                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
+                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                    var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
+                    var forceCopy = sharedState.Context.CreateConstant(false);
+                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
+                    return sharedState.Values.FromTuple(copy, original.ElementTypes);
+                }
+
+                var originalValue = (TupleValue)sharedState.EvaluateSubexpression(lhs);
+                var value = GetTupleCopy(originalValue);
+                sharedState.ScopeMgr.RegisterValue(value);
+
+                if (!sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
+                {
+                    throw new InvalidOperationException("Q# declaration for type not found");
+                }
+                else if (accEx.Expression is ResolvedExpression.Identifier id
+                    && id.Item1 is Identifier.LocalVariable name
+                    && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
+                {
+                    TupleValue innerTuple = value;
+                    for (int depth = 0; depth < location.Count; depth++)
+                    {
+                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                        // reference counts always need to be modified recursively. However, while the reference count for
+                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                        // to increase the reference count of the contained items due to lacking type information.
+                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                        // manually (recursively) increase the reference counts for all items.
+                        var itemPointers = innerTuple.GetTupleElementPointers();
+                        var itemIndex = location[depth];
+                        for (var i = 0; i < itemPointers.Length; ++i)
+                        {
+                            if (i != itemIndex && sharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
+                            {
+                                var item = itemPointers[i].LoadValue();
+                                sharedState.ScopeMgr.IncreaseReferenceCount(item);
+                            }
+                        }
+
+                        if (depth == location.Count - 1)
+                        {
+                            var newItemValue = sharedState.BuildSubitem(rhs);
+                            StoreElement(itemPointers[itemIndex], newItemValue);
+                        }
+                        else
+                        {
+                            // We load the original item at that location (which is an inner tuple),
+                            // and replace it with a copy of it (if a copy is needed),
+                            // such that we can then proceed to modify that copy (the next inner tuple).
+                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
+                            innerTuple = GetTupleCopy(originalItem);
+                            StoreElement(itemPointers[itemIndex], innerTuple);
+                        }
+                    }
+
+                    return value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("invalid item name in named item access");
+                }
+            }
+
+            IValue value;
+            if (lhs.ResolvedType.Resolution is ResolvedTypeKind.ArrayType elementType)
+            {
+                value = CopyAndUpdateArray(elementType.Item);
+            }
+            else if (lhs.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt)
+            {
+                value = CopyAndUpdateUdt(udt.Item.GetFullName());
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for copy-and-update expression");
+            }
+
+            sharedState.ValueStack.Push(value);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        // private helpers
 
         /// <returns>
         /// The result of the evaluation if the given name matches one of the recognized runtime functions,
@@ -792,153 +960,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
             this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, ex);
 
-        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
-        {
-            IValue CopyAndUpdateArray(ResolvedType elementType)
-            {
-                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
-                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                var originalArray = this.SharedState.EvaluateSubexpression(lhs);
-                var forceCopy = this.SharedState.Context.CreateConstant(false);
-                var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
-                var array = this.SharedState.Values.FromArray(copy, elementType);
-                this.SharedState.ScopeMgr.RegisterValue(array);
-
-                // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                // reference counts always need to be modified recursively. However, while the reference count for
-                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
-                // to increase the reference count of the contained items due to lacking type information.
-                // In the same way that we increase the reference count when we populate an array, we hence need to
-                // manually (recursively) increase the reference counts for all items.
-                if (this.SharedState.ScopeMgr.RequiresReferenceCount(array.ElementType))
-                {
-                    this.SharedState.IterateThroughArray(array, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
-                }
-
-                // The getNewItemForIndex function is expected to increase the reference count of the time by 1.
-                void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
-                {
-                    var elementPtr = array.GetArrayElementPointer(index);
-                    var originalElement = elementPtr.LoadValue();
-                    var newElement = getNewItemForIndex(index);
-
-                    // Remark: Avoiding to increase and then decrease the reference count for the original item
-                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
-                    // whether that would be much better.
-                    this.SharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
-                    elementPtr.StoreValue(newElement);
-                }
-
-                if (accEx.ResolvedType.Resolution.IsInt)
-                {
-                    IValue newItemValue = this.SharedState.BuildSubitem(rhs);
-                    var index = this.SharedState.EvaluateSubexpression(accEx);
-                    UpdateElement(_ => newItemValue, index.Value);
-                }
-                else if (accEx.ResolvedType.Resolution.IsRange)
-                {
-                    var newItemValue = (ArrayValue)this.SharedState.BuildSubitem(rhs);
-                    var (getStart, getStep, getEnd) = RangeItems(this.SharedState, accEx);
-                    this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
-                }
-                else
-                {
-                    throw new InvalidOperationException("invalid item name in named item access");
-                }
-
-                return array;
-            }
-
-            IValue CopyAndUpdateUdt(QsQualifiedName udtName)
-            {
-                // Returns the shallow copy as tuple.
-                TupleValue GetTupleCopy(TupleValue original)
-                {
-                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
-                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
-                    var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
-                    var forceCopy = this.SharedState.Context.CreateConstant(false);
-                    var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    var tuple = this.SharedState.Values.FromTuple(copy, original.ElementTypes);
-                    return tuple;
-                }
-
-                var originalValue = (TupleValue)this.SharedState.EvaluateSubexpression(lhs);
-                var value = GetTupleCopy(originalValue);
-                this.SharedState.ScopeMgr.RegisterValue(value);
-
-                if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
-                {
-                    throw new InvalidOperationException("Q# declaration for type not found");
-                }
-                else if (accEx.Expression is ResolvedExpression.Identifier id
-                    && id.Item1 is Identifier.LocalVariable name
-                    && this.FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
-                {
-                    TupleValue innerTuple = value;
-                    for (int depth = 0; depth < location.Count; depth++)
-                    {
-                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                        // reference counts always need to be modified recursively. However, while the reference count for
-                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
-                        // to increase the reference count of the contained items due to lacking type information.
-                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
-                        // manually (recursively) increase the reference counts for all items.
-                        var itemPointers = innerTuple.GetTupleElementPointers();
-                        var itemIndex = location[depth];
-                        for (var i = 0; i < itemPointers.Length; ++i)
-                        {
-                            if (i != itemIndex && this.SharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
-                            {
-                                var item = itemPointers[i].LoadValue();
-                                this.SharedState.ScopeMgr.IncreaseReferenceCount(item);
-                            }
-                        }
-
-                        if (depth == location.Count - 1)
-                        {
-                            var newItemValue = this.SharedState.BuildSubitem(rhs);
-                            itemPointers[itemIndex].StoreValue(newItemValue);
-                        }
-                        else
-                        {
-                            // We load the original item at that location (which is an inner tuple),
-                            // and replace it with a copy of it (if a copy is needed),
-                            // such that we can then proceed to modify that copy (the next inner tuple).
-                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
-                            innerTuple = GetTupleCopy(originalItem);
-                            itemPointers[itemIndex].StoreValue(innerTuple);
-                        }
-                    }
-
-                    return value;
-                }
-                else
-                {
-                    throw new InvalidOperationException("invalid item name in named item access");
-                }
-            }
-
-            IValue value;
-            if (lhs.ResolvedType.Resolution is ResolvedTypeKind.ArrayType elementType)
-            {
-                value = CopyAndUpdateArray(elementType.Item);
-            }
-            else if (lhs.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt)
-            {
-                value = CopyAndUpdateUdt(udt.Item.GetFullName());
-            }
-            else
-            {
-                throw new NotSupportedException("invalid type for copy-and-update expression");
-            }
-
-            this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
-        }
+        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs) =>
+            CopyAndUpdate(this.SharedState, lhs, accEx, rhs);
 
         public override ResolvedExpression OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)
         {
@@ -1450,7 +1473,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("Q# declaration for type not found");
             }
-            else if (acc is Identifier.LocalVariable itemName && this.FindNamedItem(itemName.Item, udtDecl.TypeItems, out var location))
+            else if (acc is Identifier.LocalVariable itemName && FindNamedItem(itemName.Item, udtDecl.TypeItems, out var location))
             {
                 value = this.SharedState.EvaluateSubexpression(ex);
                 for (int i = 0; i < location.Count; i++)
