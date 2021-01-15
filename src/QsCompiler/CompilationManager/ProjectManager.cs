@@ -1294,6 +1294,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        private static Task<References.Headers?> LoadReferencedDllAsync(
+            Uri asm,
+            bool ignoreDllResources,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
+        {
+            return Task.Run(() => LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException));
+        }
+
         /// <summary>
         /// Returns the file id used for the file with the given uri.
         /// Raises a QsCompilerError if the id could not be determined.
@@ -1360,11 +1369,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Uses FilterFiles to filter the given references binary files, and generates the corresponding errors and warnings.
-        /// Ignores any binary files that contain mscorlib.dll or a similar variant in their name.
+        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// Generates a suitable error message for each binary file that could not be loaded.
         /// Calls the given onDiagnostic action on all generated diagnostics.
-        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// </summary>
         public static ImmutableDictionary<string, References.Headers> LoadReferencedAssemblies(
             IEnumerable<string> references,
@@ -1375,6 +1382,55 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             References.Headers? LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException);
 
+            var assembliesToLoad = GetAssembliesToLoad(references, onDiagnostic, onException);
+            return assembliesToLoad
+                .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
+                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+        }
+
+        /// <summary>
+        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains which are loaded in parallel.
+        /// Generates a suitable error message for each binary file that could not be loaded.
+        /// Calls the given onDiagnostic action on all generated diagnostics.
+        /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        public static ImmutableDictionary<string, References.Headers> LoadReferencedAssembliesInParallel(
+            IEnumerable<string> references,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null,
+            bool ignoreDllResources = false)
+        {
+            var assembliesToLoad = GetAssembliesToLoad(references, onDiagnostic, onException);
+            var assemblyLoadingTaskTuples = new List<(Uri Assembly, Task<References.Headers?> Task)>();
+            foreach (var assembly in assembliesToLoad.ToList())
+            {
+                var loadingTask = LoadReferencedDllAsync(assembly, ignoreDllResources, onDiagnostic, onException);
+                assemblyLoadingTaskTuples.Add((assembly, loadingTask));
+            }
+
+            var loadingTasks = assemblyLoadingTaskTuples.Aggregate(
+                new List<Task<References.Headers?>>(assemblyLoadingTaskTuples.Count),
+                (tasksList, tuple) =>
+                {
+                    tasksList.Add(tuple.Item2);
+                    return tasksList;
+                });
+
+            Task.WaitAll(loadingTasks.ToArray());
+            return assemblyLoadingTaskTuples
+                .SelectNotNull(tuple => tuple.Task.Result?.Apply(headers => (tuple.Assembly, headers)))
+                .ToImmutableDictionary(assemblyHeaderTuple => GetFileId(assemblyHeaderTuple.Item1), assemblyHeaderTuple => assemblyHeaderTuple.Item2);
+        }
+
+        /// <summary>
+        /// Uses FilterFiles to filter the given references binary files, and generates the corresponding errors and warnings.
+        /// Ignores any binary files that contain mscorlib.dll or a similar variant in their name.
+        /// </summary>
+        private static IEnumerable<Uri> GetAssembliesToLoad(
+            IEnumerable<string> references,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
+        {
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
             var assembliesToLoad = FilterFiles(
@@ -1387,9 +1443,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic,
                 onException);
 
-            return assembliesToLoad
-                .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(asm.file), asm => asm.headers);
+            return assembliesToLoad;
         }
     }
 }
