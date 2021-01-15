@@ -2,7 +2,7 @@
   <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <PlatformTarget>x64</PlatformTarget>
