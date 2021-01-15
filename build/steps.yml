@@ -2,9 +2,8 @@ steps:
 - template: init.yml
 
 
-# TODO:
-# - script: dotnet tool run fantomas -- --check --recurse .
-#   displayName: "Check style"
+- script: dotnet tool run fantomas -- --check --recurse .
+  displayName: "Check style"
 
 
 - pwsh: ./build.ps1
