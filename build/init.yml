@@ -21,5 +21,11 @@ steps:
     packageType: sdk
     version: '5.0.102'
 
+- task: UseDotNet@2
+  displayName: 'Use .NET Core 3.1.0 runtime'
+  inputs:
+    packageType: runtime
+    version: '3.1.0'
+
 - script: dotnet tool restore
   displayName: 'Restore .NET tools'
