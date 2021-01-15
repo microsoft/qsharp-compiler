@@ -30,7 +30,7 @@ steps:
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >-
-      /p:DefineConstants=$(Assembly.Constants)
+      /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
 
