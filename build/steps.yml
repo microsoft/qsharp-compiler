@@ -2,8 +2,9 @@ steps:
 - template: init.yml
 
 
-- script: dotnet tool run fantomas -- --check --recurse .
-  displayName: "Check style"
+# TODO:
+# - script: dotnet tool run fantomas -- --check --recurse .
+#   displayName: "Check style"
 
 
 - pwsh: ./build.ps1
@@ -30,7 +31,7 @@ steps:
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >-
-      /p:DefineConstants=$(Assembly.Constants) 
+      /p:DefineConstants=$(Assembly.Constants)
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
 
