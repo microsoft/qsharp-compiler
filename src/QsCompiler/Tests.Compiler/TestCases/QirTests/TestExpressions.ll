@@ -48,30 +48,36 @@ entry:
   %45 = call i1 @Microsoft__Quantum__Testing__QIR__ReturnNot__body()
   %46 = call i64 @Microsoft__Quantum__Testing__QIR__ReturnBNot__body()
   %47 = call double @Microsoft__Quantum__Testing__QIR__ReturnNegative__body(double 3.000000e+00)
-  call void @__quantum__rt__callable_unreference(%Callable* %0)
-  call void @__quantum__rt__callable_unreference(%Callable* %1)
-  call void @__quantum__rt__callable_unreference(%Callable* %4)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %0, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %1, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %1, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %4, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %4, i64 -1)
   %48 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %5, i64 0, i32 0
   %49 = load { i2, i64 }*, { i2, i64 }** %48
   %50 = bitcast { i2, i64 }* %49 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %50)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %50, i64 -1)
   %51 = bitcast { { i2, i64 }*, double }* %5 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %51)
-  call void @__quantum__rt__callable_unreference(%Callable* %6)
-  call void @__quantum__rt__callable_unreference(%Callable* %7)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %51, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %6, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %6, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %7, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %7, i64 -1)
   %52 = getelementptr { i64, { %Callable*, %String* }* }, { i64, { %Callable*, %String* }* }* %8, i64 0, i32 1
   %53 = load { %Callable*, %String* }*, { %Callable*, %String* }** %52
   %54 = getelementptr { %Callable*, %String* }, { %Callable*, %String* }* %53, i64 0, i32 0
   %55 = load %Callable*, %Callable** %54
-  call void @__quantum__rt__callable_unreference(%Callable* %55)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %55, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %55, i64 -1)
   %56 = getelementptr { %Callable*, %String* }, { %Callable*, %String* }* %53, i64 0, i32 1
   %57 = load %String*, %String** %56
-  call void @__quantum__rt__string_unreference(%String* %57)
+  call void @__quantum__rt__string_update_reference_count(%String* %57, i64 -1)
   %58 = bitcast { %Callable*, %String* }* %53 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %58)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %58, i64 -1)
   %59 = bitcast { i64, { %Callable*, %String* }* }* %8 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %59)
-  call void @__quantum__rt__string_unreference(%String* %9)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %59, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %9, i64 -1)
   %60 = call i64 @__quantum__rt__array_get_size_1d(%Array* %11)
   %61 = sub i64 %60, 1
   br label %header__1
@@ -85,7 +91,7 @@ body__1:                                          ; preds = %header__1
   %64 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %11, i64 %62)
   %65 = bitcast i8* %64 to %String**
   %66 = load %String*, %String** %65
-  call void @__quantum__rt__string_unreference(%String* %66)
+  call void @__quantum__rt__string_update_reference_count(%String* %66, i64 -1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -93,7 +99,7 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_unreference(%Array* %11)
+  call void @__quantum__rt__array_update_reference_count(%Array* %11, i64 -1)
   %68 = call i64 @__quantum__rt__array_get_size_1d(%Array* %12)
   %69 = sub i64 %68, 1
   br label %header__2
@@ -107,7 +113,7 @@ body__2:                                          ; preds = %header__2
   %72 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 %70)
   %73 = bitcast i8* %72 to %Result**
   %74 = load %Result*, %Result** %73
-  call void @__quantum__rt__result_unreference(%Result* %74)
+  call void @__quantum__rt__result_update_reference_count(%Result* %74, i64 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -115,8 +121,8 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_unreference(%Array* %12)
-  call void @__quantum__rt__string_unreference(%String* %13)
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %13, i64 -1)
   %76 = call i64 @__quantum__rt__array_get_size_1d(%Array* %15)
   %77 = sub i64 %76, 1
   br label %header__3
@@ -130,7 +136,7 @@ body__3:                                          ; preds = %header__3
   %80 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %15, i64 %78)
   %81 = bitcast i8* %80 to %Result**
   %82 = load %Result*, %Result** %81
-  call void @__quantum__rt__result_unreference(%Result* %82)
+  call void @__quantum__rt__result_update_reference_count(%Result* %82, i64 -1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -138,18 +144,18 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_unreference(%Array* %15)
+  call void @__quantum__rt__array_update_reference_count(%Array* %15, i64 -1)
   %84 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %16, i64 0, i32 0
   %85 = load { i2, i64 }*, { i2, i64 }** %84
   %86 = bitcast { i2, i64 }* %85 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %86)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %86, i64 -1)
   %87 = bitcast { { i2, i64 }*, double }* %16 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %87)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %17)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %32)
-  call void @__quantum__rt__result_unreference(%Result* %35)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %39)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %41)
-  call void @__quantum__rt__bigint_unreference(%BigInt* %44)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %87, i64 -1)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %17, i64 -1)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %32, i64 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %35, i64 -1)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %39, i64 -1)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %41, i64 -1)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %44, i64 -1)
   ret void
 }

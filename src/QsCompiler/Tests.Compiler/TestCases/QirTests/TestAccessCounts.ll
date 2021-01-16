@@ -1,6 +1,6 @@
 define void @Microsoft__Quantum__Testing__QIR__TestAccessCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
 entry:
-  call void @__quantum__rt__array_add_access(%Array* %__controlQubits__)
+  call void @__quantum__rt__array_update_access_count(%Array* %__controlQubits__, i64 1)
   %1 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 0
   %coefficients = load %Array*, %Array** %1
   %2 = call i64 @__quantum__rt__array_get_size_1d(%Array* %coefficients)
@@ -17,7 +17,7 @@ body__1:                                          ; preds = %header__1
   %7 = bitcast i8* %6 to { double, double }**
   %8 = load { double, double }*, { double, double }** %7
   %9 = bitcast { double, double }* %8 to %Tuple*
-  call void @__quantum__rt__tuple_add_access(%Tuple* %9)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -25,14 +25,14 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_add_access(%Array* %coefficients)
+  call void @__quantum__rt__array_update_access_count(%Array* %coefficients, i64 1)
   %11 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 1
   %qubits = load { %Array* }*, { %Array* }** %11
   %12 = getelementptr { %Array* }, { %Array* }* %qubits, i64 0, i32 0
   %13 = load %Array*, %Array** %12
-  call void @__quantum__rt__array_add_access(%Array* %13)
+  call void @__quantum__rt__array_update_access_count(%Array* %13, i64 1)
   %14 = bitcast { %Array* }* %qubits to %Tuple*
-  call void @__quantum__rt__tuple_add_access(%Tuple* %14)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %14, i64 1)
   %15 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %Array*, { %Array* }* }* getelementptr ({ double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* null, i32 1) to i64))
   %16 = bitcast %Tuple* %15 to { double, %Array*, { %Array* }* }*
   %17 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 0
@@ -51,7 +51,7 @@ body__2:                                          ; preds = %header__2
   %24 = bitcast i8* %23 to { double, double }**
   %25 = load { double, double }*, { double, double }** %24
   %26 = bitcast { double, double }* %25 to %Tuple*
-  call void @__quantum__rt__tuple_reference(%Tuple* %26)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %26, i64 1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -59,14 +59,14 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_reference(%Array* %coefficients)
-  call void @__quantum__rt__array_reference(%Array* %13)
-  call void @__quantum__rt__tuple_reference(%Tuple* %14)
+  call void @__quantum__rt__array_update_reference_count(%Array* %coefficients, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i64 1)
   store double 0.000000e+00, double* %17
   store %Array* %coefficients, %Array** %18
   store { %Array* }* %qubits, { %Array* }** %19
   call void @Microsoft__Quantum__Testing__QIR__ApplyOp__ctl(%Array* %__controlQubits__, { double, %Array*, { %Array* }* }* %16)
-  call void @__quantum__rt__array_remove_access(%Array* %__controlQubits__)
+  call void @__quantum__rt__array_update_access_count(%Array* %__controlQubits__, i64 -1)
   %28 = sub i64 %2, 1
   br label %header__3
 
@@ -80,7 +80,7 @@ body__3:                                          ; preds = %header__3
   %32 = bitcast i8* %31 to { double, double }**
   %33 = load { double, double }*, { double, double }** %32
   %34 = bitcast { double, double }* %33 to %Tuple*
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %34)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %34, i64 -1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -88,9 +88,9 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_remove_access(%Array* %coefficients)
-  call void @__quantum__rt__array_remove_access(%Array* %13)
-  call void @__quantum__rt__tuple_remove_access(%Tuple* %14)
+  call void @__quantum__rt__array_update_access_count(%Array* %coefficients, i64 -1)
+  call void @__quantum__rt__array_update_access_count(%Array* %13, i64 -1)
+  call void @__quantum__rt__tuple_update_access_count(%Tuple* %14, i64 -1)
   %36 = sub i64 %2, 1
   br label %header__4
 
@@ -104,7 +104,7 @@ body__4:                                          ; preds = %header__4
   %40 = bitcast i8* %39 to { double, double }**
   %41 = load { double, double }*, { double, double }** %40
   %42 = bitcast { double, double }* %41 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %42)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %42, i64 -1)
   br label %exiting__4
 
 exiting__4:                                       ; preds = %body__4
@@ -112,9 +112,9 @@ exiting__4:                                       ; preds = %body__4
   br label %header__4
 
 exit__4:                                          ; preds = %header__4
-  call void @__quantum__rt__array_unreference(%Array* %coefficients)
-  call void @__quantum__rt__array_unreference(%Array* %13)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %14)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %15)
+  call void @__quantum__rt__array_update_reference_count(%Array* %coefficients, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %15, i64 -1)
   ret void
 }

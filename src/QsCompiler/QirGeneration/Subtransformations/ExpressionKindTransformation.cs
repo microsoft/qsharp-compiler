@@ -19,8 +19,8 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal class QirExpressionKindTransformation : ExpressionKindTransformation<GenerationContext>
     {
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // private helpers
+        // static methods
 
         /// <param name="sharedState">The generation context in which to emit the instructions</param>
         /// <param name="rangeEx">The range expression for which to create the access functions</param>
@@ -172,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="typeItems">The tuple defining the items of a custom type</param>
         /// <param name="itemLocation">The location of the item with the given name within the item tuple</param>
         /// <returns>Returns true if the item was found and false otherwise</returns>
-        private bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
+        private static bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
         {
             bool FindNamedItem(QsTuple<QsTypeItem> items, List<int> location)
             {
@@ -204,14 +204,182 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return found;
         }
 
+        /// <summary>
+        /// Evaluates the copy-and-update expression defined by the given left-hand side, the item access and the right-hand side
+        /// within the given context. If updateItemAccessCount is set to true, decreases the access count of the items that are
+        /// updated by 1 and increases the access count for the new items.
+        /// </summary>
+        /// <param name="sharedState">The context within which to evaluate the expression</param>
+        /// <param name="lhs">The original value which should be copied and updated</param>
+        /// <param name="accEx">The item(s) to update</param>
+        /// <param name="rhs">The new value(s) for the item(s) to update</param>
+        internal static ResolvedExpression CopyAndUpdate(GenerationContext sharedState, TypedExpression lhs, TypedExpression accEx, TypedExpression rhs, bool updateItemAccessCount = false)
+        {
+            void StoreElement(PointerValue pointer, IValue value)
+            {
+                if (updateItemAccessCount)
+                {
+                    sharedState.ScopeMgr.IncreaseAccessCount(value);
+                    sharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                }
+                pointer.StoreValue(value);
+            }
+
+            IValue CopyAndUpdateArray(ResolvedType elementType)
+            {
+                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
+                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
+                var originalArray = sharedState.EvaluateSubexpression(lhs);
+                var forceCopy = sharedState.Context.CreateConstant(false);
+                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
+                var array = sharedState.Values.FromArray(copy, elementType);
+                sharedState.ScopeMgr.RegisterValue(array);
+
+                // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                // reference counts always need to be modified recursively. However, while the reference count for
+                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
+                // to increase the reference count of the contained items due to lacking type information.
+                // In the same way that we increase the reference count when we populate an array, we hence need to
+                // manually (recursively) increase the reference counts for all items.
+                if (sharedState.ScopeMgr.RequiresReferenceCount(array.ElementType))
+                {
+                    sharedState.IterateThroughArray(array, item => sharedState.ScopeMgr.IncreaseReferenceCount(item));
+                }
+
+                // The getNewItemForIndex function is expected to increase the reference count of the time by 1.
+                void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
+                {
+                    var elementPtr = array.GetArrayElementPointer(index);
+                    var originalElement = elementPtr.LoadValue();
+                    var newElement = getNewItemForIndex(index);
+
+                    // Remark: Avoiding to increase and then decrease the reference count for the original item
+                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
+                    // whether that would be much better.
+                    sharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
+                    StoreElement(elementPtr, newElement);
+                }
+
+                if (accEx.ResolvedType.Resolution.IsInt)
+                {
+                    IValue newItemValue = sharedState.BuildSubitem(rhs);
+                    var index = sharedState.EvaluateSubexpression(accEx);
+                    UpdateElement(_ => newItemValue, index.Value);
+                }
+                else if (accEx.ResolvedType.Resolution.IsRange)
+                {
+                    var newItemValue = (ArrayValue)sharedState.BuildSubitem(rhs);
+                    var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
+                    sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
+                }
+                else
+                {
+                    throw new InvalidOperationException("invalid item name in named item access");
+                }
+
+                return array;
+            }
+
+            IValue CopyAndUpdateUdt(QsQualifiedName udtName)
+            {
+                // Returns the shallow copy as tuple.
+                TupleValue GetTupleCopy(TupleValue original)
+                {
+                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
+                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                    var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
+                    var forceCopy = sharedState.Context.CreateConstant(false);
+                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
+                    return sharedState.Values.FromTuple(copy, original.ElementTypes);
+                }
+
+                var originalValue = (TupleValue)sharedState.EvaluateSubexpression(lhs);
+                var value = GetTupleCopy(originalValue);
+                sharedState.ScopeMgr.RegisterValue(value);
+
+                if (!sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
+                {
+                    throw new InvalidOperationException("Q# declaration for type not found");
+                }
+                else if (accEx.Expression is ResolvedExpression.Identifier id
+                    && id.Item1 is Identifier.LocalVariable name
+                    && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
+                {
+                    TupleValue innerTuple = value;
+                    for (int depth = 0; depth < location.Count; depth++)
+                    {
+                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                        // reference counts always need to be modified recursively. However, while the reference count for
+                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                        // to increase the reference count of the contained items due to lacking type information.
+                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                        // manually (recursively) increase the reference counts for all items.
+                        var itemPointers = innerTuple.GetTupleElementPointers();
+                        var itemIndex = location[depth];
+                        for (var i = 0; i < itemPointers.Length; ++i)
+                        {
+                            if (i != itemIndex && sharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
+                            {
+                                var item = itemPointers[i].LoadValue();
+                                sharedState.ScopeMgr.IncreaseReferenceCount(item);
+                            }
+                        }
+
+                        if (depth == location.Count - 1)
+                        {
+                            var newItemValue = sharedState.BuildSubitem(rhs);
+                            StoreElement(itemPointers[itemIndex], newItemValue);
+                        }
+                        else
+                        {
+                            // We load the original item at that location (which is an inner tuple),
+                            // and replace it with a copy of it (if a copy is needed),
+                            // such that we can then proceed to modify that copy (the next inner tuple).
+                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
+                            innerTuple = GetTupleCopy(originalItem);
+                            StoreElement(itemPointers[itemIndex], innerTuple);
+                        }
+                    }
+
+                    return value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("invalid item name in named item access");
+                }
+            }
+
+            IValue value;
+            if (lhs.ResolvedType.Resolution is ResolvedTypeKind.ArrayType elementType)
+            {
+                value = CopyAndUpdateArray(elementType.Item);
+            }
+            else if (lhs.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt)
+            {
+                value = CopyAndUpdateUdt(udt.Item.GetFullName());
+            }
+            else
+            {
+                throw new NotSupportedException("invalid type for copy-and-update expression");
+            }
+
+            sharedState.ValueStack.Push(value);
+            return ResolvedExpression.InvalidExpr;
+        }
+
+        // private helpers
+
         /// <returns>
         /// The result of the evaluation if the given name matches one of the recognized runtime functions,
         /// and null otherwise.
         /// </returns>
         private bool TryEvaluateRuntimeFunction(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
         {
-            var intType = ResolvedType.New(QsResolvedTypeKind.Int);
-            var rangeType = ResolvedType.New(QsResolvedTypeKind.Range);
+            var intType = ResolvedType.New(ResolvedTypeKind.Int);
+            var rangeType = ResolvedType.New(ResolvedTypeKind.Range);
 
             if (name.Equals(BuiltIn.Length.FullName))
             {
@@ -288,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is QsResolvedTypeKind.TupleType ts)
+                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
                 {
                     var evaluatedArg = (TupleValue)this.SharedState.EvaluateSubexpression(arg);
                     args = evaluatedArg.GetTupleElements();
@@ -385,7 +553,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var resElementTypes = returnType.Resolution is QsResolvedTypeKind.TupleType elementTypes
+                var resElementTypes = returnType.Resolution is ResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
@@ -403,7 +571,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>An invalid expression</returns>
         private ResolvedExpression ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
         {
-            var callable = this.SharedState.EvaluateSubexpression(ex);
+            var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
             // We don't keep track of access counts for callables and hence instead
             // take care here to not make unnecessary copies. We have to be pessimistic, however,
@@ -434,24 +602,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="callable">The callable to copy (unless modifyInPlace is true) before applying the functor to it</param>
         /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
         /// <returns>The callable value to which the functor has been applied</returns>
-        private IValue ApplyFunctor(string runtimeFunctionName, IValue callable, bool modifyInPlace = false)
+        private CallableValue ApplyFunctor(string runtimeFunctionName, CallableValue callable, bool modifyInPlace = false)
         {
             // This method is used when applying functors when building a functor application expression
             // as well as when creating the specializations for a partial application.
 
             if (!modifyInPlace)
             {
-                // FIXME:
-                // WE NEED TO INCREASE THE REFERENCE COUNT FOR THE CAPTURE TUPLE.
-                // For that we need a callable_get_capture runtime function,
-                // and we need to keep track of additional type information during QIR emission.
-                // Dereferencing needs to recur into the capture tuple as well.
-
                 // Since we don't track access counts for callables we need to force the copy.
+                // While making a copy ensures that the callable is created with reference count 1,
+                // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
                 callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
+                this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);
                 this.SharedState.ScopeMgr.RegisterValue(callable);
             }
 
@@ -460,6 +625,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
             this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
             return callable;
+        }
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// The given capture, if any, is expected to be a tuple that contains all captured values.
+        /// Does *not* increase the reference count of the capture tuple.
+        /// </summary>
+        /// <param name="callableType">The Q# type of the callable value</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
+        /// <param name="capture">A tuple containing all captured values</param>
+        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, TupleValue? capture = null)
+        {
+            // The runtime function CallableCreate creates a new value with reference count 1.
+            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+            var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(capture);
+            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
+            var value = this.SharedState.Values.FromCallable(res, callableType);
+            this.SharedState.ScopeMgr.RegisterValue(value);
+            return value;
         }
 
         // public overrides
@@ -497,7 +683,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
-            else if (exType.Resolution is QsResolvedTypeKind.ArrayType elementType)
+            else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
                 // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
@@ -522,7 +708,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
             var index = this.SharedState.EvaluateSubexpression(idx);
-            var elementType = arr.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrElementType
+            var elementType = arr.ResolvedType.Resolution is ResolvedTypeKind.ArrayType arrElementType
                 ? arrElementType.Item
                 : throw new InvalidOperationException("expecting an array in array item access");
 
@@ -774,153 +960,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
             this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, ex);
 
-        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
-        {
-            IValue CopyAndUpdateArray(ResolvedType elementType)
-            {
-                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
-                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                var originalArray = this.SharedState.EvaluateSubexpression(lhs);
-                var forceCopy = this.SharedState.Context.CreateConstant(false);
-                var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
-                var array = this.SharedState.Values.FromArray(copy, elementType);
-                this.SharedState.ScopeMgr.RegisterValue(array);
-
-                // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                // reference counts always need to be modified recursively. However, while the reference count for
-                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
-                // to increase the reference count of the contained items due to lacking type information.
-                // In the same way that we increase the reference count when we populate an array, we hence need to
-                // manually (recursively) increase the reference counts for all items.
-                if (this.SharedState.ScopeMgr.RequiresReferenceCount(array.ElementType))
-                {
-                    this.SharedState.IterateThroughArray(array, item => this.SharedState.ScopeMgr.IncreaseReferenceCount(item));
-                }
-
-                // The getNewItemForIndex function is expected to increase the reference count of the time by 1.
-                void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
-                {
-                    var elementPtr = array.GetArrayElementPointer(index);
-                    var originalElement = elementPtr.LoadValue();
-                    var newElement = getNewItemForIndex(index);
-
-                    // Remark: Avoiding to increase and then decrease the reference count for the original item
-                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
-                    // whether that would be much better.
-                    this.SharedState.ScopeMgr.DecreaseReferenceCount(originalElement);
-                    elementPtr.StoreValue(newElement);
-                }
-
-                if (accEx.ResolvedType.Resolution.IsInt)
-                {
-                    IValue newItemValue = this.SharedState.BuildSubitem(rhs);
-                    var index = this.SharedState.EvaluateSubexpression(accEx);
-                    UpdateElement(_ => newItemValue, index.Value);
-                }
-                else if (accEx.ResolvedType.Resolution.IsRange)
-                {
-                    var newItemValue = (ArrayValue)this.SharedState.BuildSubitem(rhs);
-                    var (getStart, getStep, getEnd) = RangeItems(this.SharedState, accEx);
-                    this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
-                }
-                else
-                {
-                    throw new InvalidOperationException("invalid item name in named item access");
-                }
-
-                return array;
-            }
-
-            IValue CopyAndUpdateUdt(QsQualifiedName udtName)
-            {
-                // Returns the shallow copy as tuple.
-                TupleValue GetTupleCopy(TupleValue original)
-                {
-                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
-                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
-                    var createShallowCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
-                    var forceCopy = this.SharedState.Context.CreateConstant(false);
-                    var copy = this.SharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    var tuple = this.SharedState.Values.FromTuple(copy, original.ElementTypes);
-                    return tuple;
-                }
-
-                var originalValue = (TupleValue)this.SharedState.EvaluateSubexpression(lhs);
-                var value = GetTupleCopy(originalValue);
-                this.SharedState.ScopeMgr.RegisterValue(value);
-
-                if (!this.SharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
-                {
-                    throw new InvalidOperationException("Q# declaration for type not found");
-                }
-                else if (accEx.Expression is ResolvedExpression.Identifier id
-                    && id.Item1 is Identifier.LocalVariable name
-                    && this.FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
-                {
-                    TupleValue innerTuple = value;
-                    for (int depth = 0; depth < location.Count; depth++)
-                    {
-                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                        // reference counts always need to be modified recursively. However, while the reference count for
-                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
-                        // to increase the reference count of the contained items due to lacking type information.
-                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
-                        // manually (recursively) increase the reference counts for all items.
-                        var itemPointers = innerTuple.GetTupleElementPointers();
-                        var itemIndex = location[depth];
-                        for (var i = 0; i < itemPointers.Length; ++i)
-                        {
-                            if (i != itemIndex && this.SharedState.ScopeMgr.RequiresReferenceCount(innerTuple.StructType.Members[i]))
-                            {
-                                var item = itemPointers[i].LoadValue();
-                                this.SharedState.ScopeMgr.IncreaseReferenceCount(item);
-                            }
-                        }
-
-                        if (depth == location.Count - 1)
-                        {
-                            var newItemValue = this.SharedState.BuildSubitem(rhs);
-                            itemPointers[itemIndex].StoreValue(newItemValue);
-                        }
-                        else
-                        {
-                            // We load the original item at that location (which is an inner tuple),
-                            // and replace it with a copy of it (if a copy is needed),
-                            // such that we can then proceed to modify that copy (the next inner tuple).
-                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
-                            innerTuple = GetTupleCopy(originalItem);
-                            itemPointers[itemIndex].StoreValue(innerTuple);
-                        }
-                    }
-
-                    return value;
-                }
-                else
-                {
-                    throw new InvalidOperationException("invalid item name in named item access");
-                }
-            }
-
-            IValue value;
-            if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType elementType)
-            {
-                value = CopyAndUpdateArray(elementType.Item);
-            }
-            else if (lhs.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt)
-            {
-                value = CopyAndUpdateUdt(udt.Item.GetFullName());
-            }
-            else
-            {
-                throw new NotSupportedException("invalid type for copy-and-update expression");
-            }
-
-            this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
-        }
+        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs) =>
+            CopyAndUpdate(this.SharedState, lhs, accEx, rhs);
 
         public override ResolvedExpression OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)
         {
@@ -1161,13 +1202,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
             {
-                // The runtime function CallableCreate creates a new value with reference count 1.
-                var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                 var table = this.SharedState.GetOrCreateCallableTable(callable);
-                var capture = this.SharedState.Constants.UnitValue; // nothing to capture
-                var res = this.SharedState.CurrentBuilder.Call(createCallable, table, capture);
-                value = this.SharedState.Values.FromCallable(res, exType);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                value = this.CreateCallableValue(exType, table);
             }
             else
             {
@@ -1429,7 +1465,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
         {
             IValue value;
-            if (!(ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt))
+            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
             {
                 throw new NotSupportedException("invalid type for named item access");
             }
@@ -1437,7 +1473,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("Q# declaration for type not found");
             }
-            else if (acc is Identifier.LocalVariable itemName && this.FindNamedItem(itemName.Item, udtDecl.TypeItems, out var location))
+            else if (acc is Identifier.LocalVariable itemName && FindNamedItem(itemName.Item, udtDecl.TypeItems, out var location))
             {
                 value = this.SharedState.EvaluateSubexpression(ex);
                 for (int i = 0; i < location.Count; i++)
@@ -1573,7 +1609,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return new InnerArg(this.SharedState, itemType, remainingArgs.Count - 1);
                 }
                 else if (arg.Expression is ResolvedExpression.ValueTuple tuple
-                    && argType.Resolution is QsResolvedTypeKind.TupleType types)
+                    && argType.Resolution is ResolvedTypeKind.TupleType types)
                 {
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
                     return new InnerTuple(this.SharedState, argType, items);
@@ -1587,7 +1623,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ImmutableArray<ResolvedType> captureType, ImmutableArray<ResolvedType> paArgsTypes, PartialApplicationArgument partialArgs)
             {
-                IValue ApplyFunctors(IValue innerCallable)
+                IValue ApplyFunctors(CallableValue innerCallable)
                 {
                     if (kind == QsSpecializationKind.QsBody)
                     {
@@ -1638,7 +1674,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         innerArg = BuildControlledInnerArgument(
                             paArgsTypes.Length == 1
                             ? paArgsTypes[0]
-                            : ResolvedType.New(QsResolvedTypeKind.NewTupleType(paArgsTypes)));
+                            : ResolvedType.New(ResolvedTypeKind.NewTupleType(paArgsTypes)));
                     }
                     else
                     {
@@ -1650,7 +1686,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-                    var innerCallable = captureTuple.GetTupleElement(0);
+                    var innerCallable = (CallableValue)captureTuple.GetTupleElement(0);
                     this.SharedState.CurrentBuilder.Call(invokeCallable, ApplyFunctors(innerCallable).Value, innerArg.OpaquePointer, parameters[2]);
                 }
 
@@ -1660,15 +1696,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
             ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
-                QsResolvedTypeKind.Function paf => paf.Item1,
-                QsResolvedTypeKind.Operation pao => pao.Item1.Item1,
+                ResolvedTypeKind.Function paf => paf.Item1,
+                ResolvedTypeKind.Operation pao => pao.Item1.Item1,
                 _ => throw new InvalidOperationException("expecting an operation or function type")
             };
 
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var exType = this.SharedState.CurrentExpressionType();
             var callableArgType = CallableArgumentType(exType);
-            var paArgsTypes = callableArgType.Resolution is QsResolvedTypeKind.TupleType itemTypes
+            var paArgsTypes = callableArgType.Resolution is ResolvedTypeKind.TupleType itemTypes
                 ? itemTypes.Item
                 : ImmutableArray.Create(callableArgType);
 
@@ -1688,47 +1724,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
-            var kinds = new HashSet<QsSpecializationKind>
-            {
-                QsSpecializationKind.QsBody
-            };
-            if (method.ResolvedType.Resolution is QsResolvedTypeKind.Operation op
-                && op.Item2.Characteristics.SupportedFunctors.IsValue)
-            {
-                var functors = op.Item2.Characteristics.SupportedFunctors.Item;
-                if (functors.Contains(QsFunctor.Adjoint))
-                {
-                    kinds.Add(QsSpecializationKind.QsAdjoint);
-                }
-                if (functors.Contains(QsFunctor.Controlled))
-                {
-                    kinds.Add(QsSpecializationKind.QsControlled);
-                    if (functors.Contains(QsFunctor.Adjoint))
-                    {
-                        kinds.Add(QsSpecializationKind.QsControlledAdjoint);
-                    }
-                }
-            }
+            var callableInfo = method.ResolvedType.TryGetCallableInformation();
+            var supportedFunctors = callableInfo.IsValue
+                ? callableInfo.Item.Characteristics.SupportedFunctors
+                : QsNullable<ImmutableHashSet<QsFunctor>>.Null;
 
-            // Now create our specializations
-            var specializations = new Constant[4];
-            for (var index = 0; index < 4; index++)
-            {
-                var kind = GenerationContext.FunctionArray[index];
-                specializations[index] = kinds.Contains(kind)
+            bool SupportsFunctors(params QsFunctor[] functors) =>
+                supportedFunctors.IsValue && functors.All(supportedFunctors.Item.Contains);
+
+            bool SupportsNecessaryFunctors(QsSpecializationKind kind) =>
+                kind == QsSpecializationKind.QsAdjoint ? SupportsFunctors(QsFunctor.Adjoint) :
+                kind == QsSpecializationKind.QsControlled ? SupportsFunctors(QsFunctor.Controlled) :
+                kind == QsSpecializationKind.QsControlledAdjoint ? SupportsFunctors(QsFunctor.Adjoint, QsFunctor.Controlled) :
+                true;
+
+            IrFunction? BuildSpec(QsSpecializationKind kind) =>
+                SupportsNecessaryFunctors(kind)
                     ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
-                    : Constant.ConstPointerToNullFor(this.SharedState.Types.FunctionSignature.CreatePointerType());
-            }
-
-            // Build the callable table
-            var array = ConstantArray.From(this.SharedState.Types.FunctionSignature.CreatePointerType(), specializations);
-            var table = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, liftedName);
-
-            // Create the callable and make sure we inject/queue the functions to manage the reference counts
-            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var callable = this.SharedState.CurrentBuilder.Call(createCallable, table, capture.OpaquePointer);
-            var value = this.SharedState.Values.FromCallable(callable, exType);
-            this.SharedState.ScopeMgr.RegisterValue(value);
+                    : null;
+            var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
+            var value = this.CreateCallableValue(exType, table, capture);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpression.InvalidExpr;
@@ -1908,9 +1923,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var ty = ex.ResolvedType.Resolution;
                 if (ty.IsString)
                 {
-                    var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringReference);
+                    var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                    var countChange = this.SharedState.Context.CreateConstant(1L);
                     var value = this.SharedState.EvaluateSubexpression(ex).Value;
-                    this.SharedState.CurrentBuilder.Call(addReference, value);
+                    this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
                     return value;
                 }
                 else if (ty.IsBigInt)
@@ -1967,7 +1983,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // TODO: Do something better for tuple-to-string
                     return CreateConstantString("(...)");
                 }
-                else if (ty is QsResolvedTypeKind.UserDefinedType udt)
+                else if (ty is ResolvedTypeKind.UserDefinedType udt)
                 {
                     // TODO: Do something better for UDT-to-string
                     var udtName = udt.Item.Name;
@@ -1990,10 +2006,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUnreference);
+                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                var countChange = this.SharedState.Context.CreateConstant(-1L);
                 var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
-                this.SharedState.CurrentBuilder.Call(unreference, curr);
-                this.SharedState.CurrentBuilder.Call(unreference, next);
+                this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
+                this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
                 return app;
             }
 
@@ -2087,7 +2104,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpression OnValueArray(ImmutableArray<TypedExpression> vs)
         {
             // TODO: handle multi-dimensional arrays
-            var elementType = this.SharedState.CurrentExpressionType().Resolution is QsResolvedTypeKind.ArrayType arrItemType
+            var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
 
@@ -2109,7 +2126,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             var value = this.SharedState.EvaluateSubexpression(ex);
-            if (!(ex.ResolvedType.Resolution is QsResolvedTypeKind.UserDefinedType udt))
+            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
             {
                 throw new NotSupportedException("invalid type for unwrap operator");
             }

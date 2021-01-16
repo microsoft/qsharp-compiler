@@ -21,10 +21,10 @@ entry:
   %9 = load double, double* %8
   store double %9, double* %y
   call void @__quantum__rt__qubit_release(%Qubit* %q)
-  call void @__quantum__rt__result_unreference(%Result* %0)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %0, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i64 -1)
   %10 = bitcast { double, double }* %5 to %Tuple*
-  call void @__quantum__rt__tuple_unreference(%Tuple* %10)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %10, i64 -1)
   %11 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
   %12 = bitcast %Tuple* %11 to { double, double }*
   %13 = getelementptr { double, double }, { double, double }* %12, i64 0, i32 0

@@ -16,7 +16,7 @@ entry:
   %7 = bitcast %Tuple* %6 to { %Array* }*
   %8 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
   store %Array* %3, %Array** %8
-  call void @__quantum__rt__array_reference(%Array* %3)
+  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
   call void @__quantum__rt__callable_invoke(%Callable* %doNothing, %Tuple* %6, %Tuple* null)
   %9 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %10 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 0)
@@ -28,15 +28,17 @@ entry:
   store %Qubit* %aux, %Qubit** %14
   call void @Microsoft__Quantum__Testing__QIR__DoNothing__ctl(%Array* %9, %Array* %12)
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
-  call void @__quantum__rt__array_unreference(%Array* %0)
-  call void @__quantum__rt__array_unreference(%Array* %3)
-  call void @__quantum__rt__array_unreference(%Array* %3)
-  call void @__quantum__rt__tuple_unreference(%Tuple* %6)
-  call void @__quantum__rt__array_unreference(%Array* %9)
-  call void @__quantum__rt__array_unreference(%Array* %12)
-  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, %Tuple* null)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %9, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
+  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %15)
-  call void @__quantum__rt__callable_unreference(%Callable* %doNothing)
-  call void @__quantum__rt__callable_unreference(%Callable* %15)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %doNothing, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %doNothing, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %15, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i64 -1)
   ret void
 }

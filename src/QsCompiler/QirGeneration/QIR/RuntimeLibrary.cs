@@ -12,14 +12,12 @@ namespace Microsoft.Quantum.QIR
         public const string IntPower = "int_power";
 
         // result functions
-        public const string ResultReference = "result_reference";
-        public const string ResultUnreference = "result_unreference";
+        public const string ResultUpdateReferenceCount = "result_update_reference_count";
         public const string ResultEqual = "result_equal";
 
         // string functions
         public const string StringCreate = "string_create";
-        public const string StringReference = "string_reference";
-        public const string StringUnreference = "string_unreference";
+        public const string StringUpdateReferenceCount = "string_update_reference_count";
         public const string StringConcatenate = "string_concatenate";
         public const string StringEqual = "string_equal";
 
@@ -36,8 +34,7 @@ namespace Microsoft.Quantum.QIR
         // bigint functions
         public const string BigIntCreateI64 = "bigint_create_i64";
         public const string BigIntCreateArray = "bigint_create_array";
-        public const string BigIntReference = "bigint_reference";
-        public const string BigIntUnreference = "bigint_unreference";
+        public const string BigIntUpdateReferenceCount = "bigint_update_reference_count";
         public const string BigIntNegate = "bigint_negate";
         public const string BigIntAdd = "bigint_add";
         public const string BigIntSubtract = "bigint_subtract";
@@ -57,10 +54,8 @@ namespace Microsoft.Quantum.QIR
 
         // tuple functions
         public const string TupleCreate = "tuple_create";
-        public const string TupleAddAccess = "tuple_add_access";
-        public const string TupleRemoveAccess = "tuple_remove_access";
-        public const string TupleReference = "tuple_reference";
-        public const string TupleUnreference = "tuple_unreference";
+        public const string TupleUpdateAccessCount = "tuple_update_access_count";
+        public const string TupleUpdateReferenceCount = "tuple_update_reference_count";
         public const string TupleCopy = "tuple_copy";
 
         // array functions
@@ -69,10 +64,8 @@ namespace Microsoft.Quantum.QIR
         // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
-        public const string ArrayAddAccess = "array_add_access";
-        public const string ArrayRemoveAccess = "array_remove_access";
-        public const string ArrayReference = "array_reference";
-        public const string ArrayUnreference = "array_unreference";
+        public const string ArrayUpdateAccessCount = "array_update_access_count";
+        public const string ArrayUpdateReferenceCount = "array_update_reference_count";
         public const string ArrayCopy = "array_copy";
         public const string ArrayConcatenate = "array_concatenate";
         public const string ArraySlice = "array_slice";
@@ -85,8 +78,8 @@ namespace Microsoft.Quantum.QIR
         public const string CallableCopy = "callable_copy";
         public const string CallableMakeAdjoint = "callable_make_adjoint";
         public const string CallableMakeControlled = "callable_make_controlled";
-        public const string CallableReference = "callable_reference";
-        public const string CallableUnreference = "callable_unreference";
+        public const string CallableUpdateReferenceCount = "callable_update_reference_count";
+        public const string CallableMemoryManagement = "callable_memory_management";
 
         // qubit functions
         public const string QubitAllocate = "qubit_allocate";

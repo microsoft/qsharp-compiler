@@ -1,9 +1,11 @@
 define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate__body(%Array* %y, %String* %b) {
 entry:
-  call void @__quantum__rt__array_add_access(%Array* %y)
+  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 1)
   %x = alloca %Array*
   store %Array* %y, %Array** %x
-  call void @__quantum__rt__array_add_access(%Array* %y)
+  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %y, i64 1)
+  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 -1)
   %0 = call %Array* @__quantum__rt__array_copy(%Array* %y, i1 false)
   %1 = call i64 @__quantum__rt__array_get_size_1d(%Array* %0)
   %2 = sub i64 %1, 1
@@ -18,7 +20,7 @@ body__1:                                          ; preds = %header__1
   %5 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %3)
   %6 = bitcast i8* %5 to %String**
   %7 = load %String*, %String** %6
-  call void @__quantum__rt__string_reference(%String* %7)
+  call void @__quantum__rt__string_update_reference_count(%String* %7, i64 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -26,15 +28,17 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__string_reference(%String* %b)
+  call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
   %10 = bitcast i8* %9 to %String**
   %11 = load %String*, %String** %10
-  call void @__quantum__rt__string_unreference(%String* %11)
+  call void @__quantum__rt__string_update_reference_count(%String* %11, i64 -1)
   store %String* %b, %String** %10
-  call void @__quantum__rt__array_remove_access(%Array* %y)
   store %Array* %0, %Array** %x
-  call void @__quantum__rt__array_add_access(%Array* %0)
+  call void @__quantum__rt__array_update_access_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_access_count(%Array* %0, i64 -1)
   %12 = call %Array* @__quantum__rt__array_copy(%Array* %0, i1 false)
   %13 = call i64 @__quantum__rt__array_get_size_1d(%Array* %12)
   %14 = sub i64 %13, 1
@@ -49,7 +53,7 @@ body__2:                                          ; preds = %header__2
   %17 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 %15)
   %18 = bitcast i8* %17 to %String**
   %19 = load %String*, %String** %18
-  call void @__quantum__rt__string_reference(%String* %19)
+  call void @__quantum__rt__string_update_reference_count(%String* %19, i64 1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -61,13 +65,13 @@ exit__2:                                          ; preds = %header__2
   %22 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 1)
   %23 = bitcast i8* %22 to %String**
   %24 = load %String*, %String** %23
-  call void @__quantum__rt__string_unreference(%String* %24)
+  call void @__quantum__rt__string_update_reference_count(%String* %24, i64 -1)
   store %String* %21, %String** %23
-  call void @__quantum__rt__array_remove_access(%Array* %0)
   store %Array* %12, %Array** %x
-  call void @__quantum__rt__array_add_access(%Array* %12)
-  call void @__quantum__rt__array_remove_access(%Array* %y)
-  call void @__quantum__rt__array_remove_access(%Array* %12)
+  call void @__quantum__rt__array_update_access_count(%Array* %12, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
+  call void @__quantum__rt__array_update_access_count(%Array* %y, i64 -1)
+  call void @__quantum__rt__array_update_access_count(%Array* %12, i64 -1)
   %25 = sub i64 %1, 1
   br label %header__3
 
@@ -80,7 +84,7 @@ body__3:                                          ; preds = %header__3
   %28 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %26)
   %29 = bitcast i8* %28 to %String**
   %30 = load %String*, %String** %29
-  call void @__quantum__rt__string_unreference(%String* %30)
+  call void @__quantum__rt__string_update_reference_count(%String* %30, i64 -1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -88,6 +92,6 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_unreference(%Array* %0)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
   ret %Array* %12
 }

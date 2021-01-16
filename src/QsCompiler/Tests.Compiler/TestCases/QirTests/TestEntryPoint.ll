@@ -13,6 +13,5 @@ copy:                                             ; preds = %entry
 
 next:                                             ; preds = %copy, %entry
   %5 = call double @Microsoft__Quantum__Testing__QIR__TestEntryPoint__body(%Array* %0, i1 %b)
-  call void @__quantum__rt__array_unreference(%Array* %0)
   ret double %5
 }

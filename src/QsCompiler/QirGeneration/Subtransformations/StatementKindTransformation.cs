@@ -414,16 +414,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
-            void BindVariable(string varName, IValue value)
+            var symbols = SyntaxGenerator.ExpressionAsSymbolTuple(stm.Lhs);
+            if (stm.Rhs.Expression is ResolvedExpressionKind.CopyAndUpdate ex
+                && ex.Item1.Expression is ResolvedExpressionKind.Identifier id
+                && id.Item1 is Identifier.LocalVariable varName
+                && symbols is SymbolTuple.VariableName symName
+                && symName.Item == varName.Item)
             {
-                var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
-                this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                // For copy-and-reassign statements we want to make sure that the access count is reduced
+                // before evaluating the copy-and-update expression, such that in the case where the variable
+                // that is reassigned is the only handle that has access to the original value, the copy is
+                // omitted. However, we need to make sure that the value is not released when decreasing the
+                // access count; we hence temporarily increase the reference count to avoid that.
+                // We can omit that access and reference count manipulation for inner items, since besides the
+                // items that are updated, all counts will remain the same and while also doing the same for
+                // inner items could avoid copies in rare edge cases it is not worth the increased cost for
+                // the majority of cases. For the items that are updated, we need to make sure that the access
+                // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
+                // takes care of that when updateItemAccessCount is set to true.
+
+                var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
+                this.SharedState.ScopeMgr.IncreaseReferenceCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow: true);
+
+                QirExpressionKindTransformation.CopyAndUpdate(this.SharedState, ex.Item1, ex.Item2, ex.Item3, updateItemAccessCount: true);
+                var value = this.SharedState.ValueStack.Pop();
                 pointer.StoreValue(value);
-                this.SharedState.ScopeMgr.IncreaseAccessCount(value);
+
+                this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseReferenceCount(value, shallow: true);
+            }
+            else
+            {
+                void RebindVariable(string varName, IValue value)
+                {
+                    var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
+                    this.SharedState.ScopeMgr.IncreaseAccessCount(value);
+                    this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    pointer.StoreValue(value);
+                }
+
+                this.BindSymbolTuple(symbols, stm.Rhs, RebindVariable);
             }
 
-            var symbols = SyntaxGenerator.ExpressionAsSymbolTuple(stm.Lhs);
-            this.BindSymbolTuple(symbols, stm.Rhs, BindVariable);
             return QsStatementKind.EmptyStatement;
         }
 

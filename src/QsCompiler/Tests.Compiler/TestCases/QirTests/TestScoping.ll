@@ -1,6 +1,6 @@
 define i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
 entry:
-  call void @__quantum__rt__array_add_access(%Array* %a)
+  call void @__quantum__rt__array_update_access_count(%Array* %a, i64 1)
   %sum = alloca i64
   store i64 0, i64* %sum
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
@@ -64,6 +64,6 @@ exiting__2:                                       ; preds = %body__2
 
 exit__2:                                          ; preds = %header__2
   %20 = load i64, i64* %sum
-  call void @__quantum__rt__array_remove_access(%Array* %a)
+  call void @__quantum__rt__array_update_access_count(%Array* %a, i64 -1)
   ret i64 %20
 }

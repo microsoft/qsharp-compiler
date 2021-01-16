@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             /// <summary>
-            /// If a store function has been defind upon constuction, stores and caches the given value.
+            /// If a store function has been defined upon constuction, stores and caches the given value.
             /// Throws and InvalidOperationException if no store function has been defined.
             /// </summary>
             public void Store(T value)
