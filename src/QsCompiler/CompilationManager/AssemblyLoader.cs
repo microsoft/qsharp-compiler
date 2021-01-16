@@ -27,6 +27,16 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
+        /// TODO: Document.
+        /// </summary>
+        private static IDictionary<string, Type?> syntaxTreeResourceBondType =
+            new Dictionary<string, Type?>()
+            {
+                { DotnetCoreDll.ResourceName, null },
+                //{ DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.v01.QsCompilation) }
+            };
+
+        /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
         /// Returns false if some of the content could not be loaded successfully,
@@ -112,7 +122,8 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
+                // TODO: This should be a call to the extended LoadSyntaxTree API.
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.QsCompilation));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
@@ -128,14 +139,17 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool LoadSyntaxTree(
             byte[] byteArray,
             string resourceName,
-            BondSchemas.Protocols.Option[] options,
             [NotNullWhen(true)] out QsCompilation? compilation,
+            BondSchemas.Protocols.Option[]? options = null,
             Action<Exception>? onDeserializationException = null)
         {
             compilation = null;
+
+
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
+
                 // TODO: Call into the Protocols API.
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
@@ -306,6 +320,21 @@ namespace Microsoft.Quantum.QsCompiler
                     return null;
                 }
             }
+            return null;
+        }
+
+        // TODO: Document.
+        private static (string ResourceName, ManifestResource Resource)? GetSyntaxTreeResourceTuple(MetadataReader metadataReader)
+        {
+            ManifestResource resource;
+            foreach (var resourceName in syntaxTreeResourceBondType.Keys)
+            {
+                if (metadataReader.Resources().TryGetValue(resourceName, out resource))
+                {
+                    return (resourceName, resource);
+                }
+            }
+
             return null;
         }
 

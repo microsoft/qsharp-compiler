@@ -23,6 +23,40 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                 entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
 
+        // TODO: Document.
+        public static SyntaxTree.QsCompilation CreateQsCompilation<TBond>(TBond bondCompilation)
+        {
+            throw new NotImplementedException();
+            /*
+            switch (bondCompilation)
+            {
+                case v01.QsCompilation bondCompilationV01:
+                    return CreateQsCompilation(bondCompilationV01);
+
+                case v02.QsCompilation bondCompilationV02:
+                    return CreateQsCompilation(bondCompilationV02);
+
+                default:
+                    // TODO: Use a more meaningful message.
+                    throw new ArgumentException();
+            }
+            */
+        }
+
+        /*
+        private static SyntaxTree.QsCompilation CreateQsCompilation(v01.QsCompilation bondCompilation)
+        {
+            // TODO: Implement.
+            throw new NotImplementedException();
+        }
+
+        private static SyntaxTree.QsCompilation CreateQsCompilation(v02.QsCompilation bondCompilation)
+        {
+            // TODO: Implement.
+            throw new NotImplementedException();
+        }
+        */
+
         private static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
             new BigInteger(blob);
 

@@ -1,0 +1,23 @@
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+import "../V1/CompilerDataStructuresV1.bond"
+
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2;
+
+struct QsNamespace
+{
+    5: string Name;
+
+    10: vector<Microsoft.Quantum.QsCompiler.BondSchemas.V1.QsNamespaceElement> Elements;
+
+    15: list<bonded<Microsoft.Quantum.QsCompiler.BondSchemas.V1.QsSourceFileDocumentation>> Documentation;
+}
+
+struct QsCompilation
+{
+    5: vector<QsNamespace> Namespaces;
+
+    10: vector<Microsoft.Quantum.QsCompiler.BondSchemas.V1.QsQualifiedName> EntryPoints;
+}
+

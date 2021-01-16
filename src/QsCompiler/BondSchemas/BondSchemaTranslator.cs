@@ -24,13 +24,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 EntryPoints = qsCompilation.EntryPoints.Select(e => e.ToBondSchema()).ToList()
             };
 
-        // TODO: Implement.
-        public static BondType CreateQsCompilation<BondType>(SyntaxTree.QsCompilation qsCompilation)
-        {
-            var t = typeof(BondType);
-            throw new NotImplementedException();
-        }
-
         private static AccessModifier ToBondSchema(this SyntaxTokens.AccessModifier accessModifier) =>
             accessModifier.Tag switch
             {

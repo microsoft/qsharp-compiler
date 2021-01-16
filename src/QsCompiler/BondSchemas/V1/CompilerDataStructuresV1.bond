@@ -4,7 +4,7 @@
 // This schema corresponds to the C# code at Generated/CompilerDataStructures.cs
 // N.B Whenever this schema changes, C# code must be generated again.
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.v01;
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1;
 
 // Data structures from DataTypes.fs
 

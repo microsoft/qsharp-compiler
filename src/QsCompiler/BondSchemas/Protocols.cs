@@ -40,7 +40,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         // TODO: Extend to receive options.
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
-            byte[] byteArray)
+            byte[] byteArray,
+            Type bondType,
+            Option[]? options = null)
         {
             QsCompilation? bondCompilation = null;
             var inputBuffer = new InputBuffer(byteArray);
