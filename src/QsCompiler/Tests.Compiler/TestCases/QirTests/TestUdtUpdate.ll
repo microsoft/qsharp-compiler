@@ -32,7 +32,11 @@ entry:
   %17 = getelementptr { double, %String* }, { double, %String* }* %16, i64 0, i32 0
   %18 = getelementptr { double, %String* }, { double, %String* }* %16, i64 0, i32 1
   %19 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  %20 = load %String*, %String** %18
+  call void @__quantum__rt__string_update_reference_count(%String* %20, i64 -1)
   store %String* %19, %String** %18
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
   store { { double, %String* }*, i64 }* %10, { { double, %String* }*, i64 }** %x
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
@@ -40,10 +44,5 @@ entry:
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %a, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i64 -1)
-  %20 = getelementptr { double, %String* }, { double, %String* }* %6, i64 0, i32 1
-  %21 = load %String*, %String** %20
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
   ret { { double, %String* }*, i64 }* %10
 }
