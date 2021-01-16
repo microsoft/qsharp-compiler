@@ -22,10 +22,10 @@ steps:
     version: '5.0.102'
 
 - task: UseDotNet@2
-  displayName: 'Use .NET Core 3.1.0 runtime'
+  displayName: 'Use .NET Core 3.1.11 runtime'
   inputs:
     packageType: runtime
-    version: '3.1.0'
+    version: '3.1.11'
 
 - script: dotnet tool restore
   displayName: 'Restore .NET tools'
