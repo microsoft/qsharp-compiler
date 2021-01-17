@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     Arguments = "--list-sdks",
                     RedirectStandardOutput = true,
                 });
-            if (listSdkProcess.WaitForExit(3000))
+            if (listSdkProcess?.WaitForExit(3000) == true)
             {
                 if (listSdkProcess.ExitCode != 0)
                 {
