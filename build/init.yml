@@ -16,10 +16,16 @@ steps:
     versionSpec: '5.6.0'
 
 - task: UseDotNet@2
-  displayName: 'Use .NET SDK 5.0.101'
+  displayName: 'Use .NET 5 SDK'
   inputs:
     packageType: sdk
     version: '5.0.101'
+
+- task: UseDotNet@2
+  displayName: 'Use .NET Core 3.1 runtime'
+  inputs:
+    packageType: runtime
+    version: '3.1.11'
 
 - script: dotnet tool restore
   displayName: 'Restore .NET tools'
