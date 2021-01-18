@@ -239,15 +239,17 @@ namespace Microsoft.Quantum.QIR.Emission
             this.typedPointer.Load();
 
         /// <summary>
-        /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
+        /// Creates a new tuple value representing a Q# value of user defined type.
+        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed,
+        /// the instructions are emitted using the current builder.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
+        internal TupleValue(UserDefinedType? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
+            this.customType = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
@@ -256,8 +258,20 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
+        /// Creates a new tuple value. The casts to get the opaque and typed pointer
+        /// respectively are executed lazily. When needed, the instructions are emitted using the current builder.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="elementTypes">The Q# types of the tuple items</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
+            : this(null, elementTypes, context, registerWithScopeManager)
+        {
+        }
+
+        /// <summary>
         /// Creates a new tuple value representing a Q# value of user defined type from the given tuple pointer.
-        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed, the
+        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed,
         /// instructions are emitted using the current builder.
         /// </summary>
         /// <param name="type">Optionally the user defined type tha that the tuple represents</param>

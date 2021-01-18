@@ -11,7 +11,7 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR.Emission
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
     /// Each class instance contains permits to construct QIR values for use
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal QirValues(GenerationContext context, Constants constants)
         {
             this.sharedState = context;
-            this.Unit = new SimpleValue(constants.UnitValue, ResolvedType.New(QsResolvedTypeKind.UnitType));
+            this.Unit = new SimpleValue(constants.UnitValue, ResolvedType.New(ResolvedTypeKind.UnitType));
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 throw new ArgumentException("type declaration not found");
             }
 
-            var elementTypes = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
+            var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
             return new TupleValue(udt, value, elementTypes, this.sharedState);
         }
 
@@ -83,9 +83,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="value">The LLVM value to store</param>
         /// <param name="type">The Q# of the value</param>
         internal IValue From(Value value, ResolvedType type) =>
-            type.Resolution is QsResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item) :
-            type.Resolution is QsResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item) :
-            type.Resolution is QsResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item) :
+            type.Resolution is ResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item) :
+            type.Resolution is ResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item) :
+            type.Resolution is ResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type) :
             (IValue)new SimpleValue(value, type);
 
@@ -128,15 +128,16 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
+        /// The tuple represents a value of user defined type if a name is specified.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
-        internal TupleValue CreateTuple(bool registerWithScopeManager, params IValue[] tupleElements)
+        private TupleValue CreateTuple(UserDefinedType? typeName, bool registerWithScopeManager, params IValue[] tupleElements)
         {
             var elementTypes = tupleElements.Select(v => v.QSharpType).ToImmutableArray();
-            TupleValue tuple = new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
+            TupleValue tuple = new TupleValue(typeName, elementTypes, this.sharedState, registerWithScopeManager);
             PointerValue[] itemPointers = tuple.GetTupleElementPointers();
 
             for (var i = 0; i < itemPointers.Length; ++i)
@@ -150,12 +151,43 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Increases the reference count for the tuple elements.
+        /// </summary>
+        /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        internal TupleValue CreateTuple(bool registerWithScopeManager, params IValue[] tupleElements) =>
+            this.CreateTuple(null, registerWithScopeManager, tupleElements);
+
+        /// <summary>
+        /// Builds a tuple with the items set to the given tuple elements.
         /// Registers the value with the scope manager.
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateTuple(params IValue[] tupleElements) =>
             this.CreateTuple(true, tupleElements);
+
+        /// <summary>
+        /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Increases the reference count for the tuple elements.
+        /// </summary>
+        /// <param name="typeName">The name of the user defined type</param>
+        /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        internal TupleValue CreateCustomType(UserDefinedType typeName, bool registerWithScopeManager, params IValue[] tupleElements) =>
+            this.CreateTuple(typeName, registerWithScopeManager, tupleElements);
+
+        /// <summary>
+        /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
+        /// Registers the value with the scope manager.
+        /// Increases the reference count for the tuple elements.
+        /// </summary>
+        /// <param name="typeName">The name of the user defined type</param>
+        /// <param name="tupleElements">The tuple elements</param>
+        internal TupleValue CreateCustomType(UserDefinedType typeName, params IValue[] tupleElements) =>
+            this.CreateTuple(typeName, true, tupleElements);
 
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
@@ -214,6 +246,5 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements) =>
             this.CreateArray(elementType, true, arrayElements);
-
     }
 }

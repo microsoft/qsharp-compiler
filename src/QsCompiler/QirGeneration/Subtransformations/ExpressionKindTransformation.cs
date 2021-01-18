@@ -1565,10 +1565,114 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
         {
+            IValue DefaultValue(ResolvedType type)
+            {
+                if (type.Resolution.IsInt)
+                {
+                    var value = this.SharedState.Context.CreateConstant(0L);
+                    return this.SharedState.Values.FromSimpleValue(value, type);
+                }
+                else if (type.Resolution.IsDouble)
+                {
+                    var value = this.SharedState.Context.CreateConstant(0.0);
+                    return this.SharedState.Values.FromSimpleValue(value, type);
+                }
+                else if (type.Resolution.IsBool)
+                {
+                    var value = this.SharedState.Context.CreateConstant(false);
+                    return this.SharedState.Values.FromSimpleValue(value, type);
+                }
+                else if (type.Resolution.IsPauli)
+                {
+                    var value = this.SharedState.Constants.PauliI;
+                    return this.SharedState.Values.From(value, type);
+                }
+                else if (type.Resolution.IsResult)
+                {
+                    var value = this.SharedState.Constants.ResultZero;
+                    return this.SharedState.Values.From(value, type);
+                }
+                else if (type.Resolution.IsQubit)
+                {
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
+                    return this.SharedState.Values.From(value, type);
+                }
+                else if (type.Resolution.IsRange)
+                {
+                    var value = this.SharedState.Constants.EmptyRange;
+                    return this.SharedState.Values.From(value, type);
+                }
+                else if (type.Resolution is ResolvedTypeKind.TupleType ts)
+                {
+                    var values = ts.Item.Select(DefaultValue).ToArray();
+                    return this.SharedState.Values.CreateTuple(values);
+                }
+                else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
+                {
+                    if (!this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
+                    {
+                        throw new ArgumentException("type declaration not found");
+                    }
+
+                    var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
+                    var values = elementTypes.Select(DefaultValue).ToArray();
+                    return this.SharedState.Values.CreateCustomType(udt.Item, values);
+                }
+                if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
+                {
+                    return this.SharedState.Values.CreateArray(itemType.Item);
+                }
+                else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
+                {
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
+                    return this.SharedState.Values.FromCallable(value, type);
+                }
+                else if (type.Resolution.IsString)
+                {
+                    var value = this.SharedState.CurrentBuilder.Call(
+                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate),
+                        this.SharedState.Context.CreateConstant(0),
+                        this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var built = this.SharedState.Values.From(value, type);
+                    this.SharedState.ScopeMgr.RegisterValue(built);
+                    return built;
+                }
+                else if (type.Resolution.IsBigInt)
+                {
+                    var value = this.SharedState.CurrentBuilder.Call(
+                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64),
+                        this.SharedState.Context.CreateConstant(0L));
+                    var built = this.SharedState.Values.From(value, type);
+                    this.SharedState.ScopeMgr.RegisterValue(built);
+                    return built;
+                }
+                else if (type.Resolution.IsUnitType)
+                {
+                    return this.SharedState.Values.Unit;
+                }
+                else
+                {
+                    throw new NotSupportedException("no known default value for the given type");
+                }
+            }
+
             // TODO: new multi-dimensional arrays
             var length = this.SharedState.EvaluateSubexpression(lengthEx);
             var array = this.SharedState.Values.CreateArray(length.Value, elementType);
             this.SharedState.ValueStack.Push(array);
+
+            // We need to populate the array
+            var start = this.SharedState.Context.CreateConstant(0L);
+            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
+            void PopulateItem(Value index)
+            {
+                // We need to make sure that the reference count for the built item is increased by 1.
+                this.SharedState.ScopeMgr.OpenScope();
+                var value = DefaultValue(elementType);
+                this.SharedState.ScopeMgr.CloseScope(value);
+                array.GetArrayElementPointer(index).StoreValue(value);
+            }
+            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpression.InvalidExpr;
         }
 
