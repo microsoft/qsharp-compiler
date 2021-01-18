@@ -78,6 +78,7 @@ namespace Microsoft.Quantum.QIR
         public const string CallableCopy = "callable_copy";
         public const string CallableMakeAdjoint = "callable_make_adjoint";
         public const string CallableMakeControlled = "callable_make_controlled";
+        public const string CallableUpdateAccessCount = "callable_update_access_count";
         public const string CallableUpdateReferenceCount = "callable_update_reference_count";
         public const string CallableMemoryManagement = "callable_memory_management";
 

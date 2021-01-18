@@ -26,7 +26,7 @@ entry:
   %17 = bitcast %Tuple* %capture-tuple to { %Callable* }*
   %18 = getelementptr { %Callable* }, { %Callable* }* %17, i64 0, i32 0
   %19 = load %Callable*, %Callable** %18
-  %20 = call %Callable* @__quantum__rt__callable_copy(%Callable* %19, i1 true)
+  %20 = call %Callable* @__quantum__rt__callable_copy(%Callable* %19, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %20, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %20)
   call void @__quantum__rt__callable_invoke(%Callable* %20, %Tuple* %13, %Tuple* %result-tuple)

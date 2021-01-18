@@ -646,11 +646,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (!modifyInPlace)
             {
-                // Since we don't track access counts for callables we need to force the copy.
+                // Since we track access counts for callables there is no need to force the copy.
                 // While making a copy ensures that the callable is created with reference count 1,
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                var forceCopy = this.SharedState.Context.CreateConstant(true);
+                var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
                 callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
                 this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);

@@ -380,6 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAccessCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Types.Int);
 

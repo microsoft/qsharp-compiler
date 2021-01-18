@@ -18,7 +18,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %arg-tuple, i64 1)
   %11 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
   %12 = load %Callable*, %Callable** %11
-  %13 = call %Callable* @__quantum__rt__callable_copy(%Callable* %12, i1 true)
+  %13 = call %Callable* @__quantum__rt__callable_copy(%Callable* %12, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %13, i64 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %13)
   call void @__quantum__rt__callable_invoke(%Callable* %13, %Tuple* %3, %Tuple* %result-tuple)
@@ -67,7 +67,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 1)
   %20 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %5, i64 0, i32 0
   %21 = load %Callable*, %Callable** %20
-  %22 = call %Callable* @__quantum__rt__callable_copy(%Callable* %21, i1 true)
+  %22 = call %Callable* @__quantum__rt__callable_copy(%Callable* %21, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %22, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %22)
   call void @__quantum__rt__callable_invoke(%Callable* %22, %Tuple* %16, %Tuple* %result-tuple)
@@ -122,7 +122,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 1)
   %20 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %5, i64 0, i32 0
   %21 = load %Callable*, %Callable** %20
-  %22 = call %Callable* @__quantum__rt__callable_copy(%Callable* %21, i1 true)
+  %22 = call %Callable* @__quantum__rt__callable_copy(%Callable* %21, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %22, i64 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %22)
   call void @__quantum__rt__callable_make_controlled(%Callable* %22)
