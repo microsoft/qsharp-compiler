@@ -1584,13 +1584,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsPauli)
                 {
-                    var value = this.SharedState.Constants.PauliI;
-                    return this.SharedState.Values.From(value, type);
+                    var pointer = this.SharedState.Constants.PauliI;
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pointer);
+                    return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsResult)
                 {
-                    var value = this.SharedState.Constants.ResultZero;
-                    return this.SharedState.Values.From(value, type);
+                    var pointer = this.SharedState.Constants.ResultZero;
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, pointer);
+                    return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsQubit)
                 {
@@ -1599,8 +1601,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsRange)
                 {
-                    var value = this.SharedState.Constants.EmptyRange;
-                    return this.SharedState.Values.From(value, type);
+                    var pointer = this.SharedState.Constants.EmptyRange;
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, pointer);
+                    return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution is ResolvedTypeKind.TupleType ts)
                 {
@@ -1660,6 +1663,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var length = this.SharedState.EvaluateSubexpression(lengthEx);
             var array = this.SharedState.Values.CreateArray(length.Value, elementType);
             this.SharedState.ValueStack.Push(array);
+            if (array.Length == this.SharedState.Context.CreateConstant(0L))
+            {
+                return ResolvedExpression.InvalidExpr;
+            }
 
             // We need to populate the array
             var start = this.SharedState.Context.CreateConstant(0L);

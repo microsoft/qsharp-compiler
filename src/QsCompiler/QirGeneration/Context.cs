@@ -1497,21 +1497,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.Context.CreateConstant(0L));
             }
 
-            Value EvaluateCondition(Value loopVarIncreases, Value loopVariable)
+            Value EvaluateCondition(Value? loopVarIncreases, Value loopVariable)
             {
-                var isGreaterOrEqualEnd = this.CurrentBuilder.Compare(
-                    IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
                 var isSmallerOrEqualEnd = this.CurrentBuilder.Compare(
                     IntPredicate.SignedLessThanOrEqual, loopVariable, end);
+                if (loopVarIncreases == null)
+                {
+                    // Step size is one by default, meaning the loop variable increases.
+                    return isSmallerOrEqualEnd;
+                }
+
                 // If we increase the loop variable in each iteration (i.e. step is positive)
                 // then we need to check that the current value is smaller than or equal to the end value,
                 // and otherwise we check if it is larger than or equal to the end value.
+                var isGreaterOrEqualEnd = this.CurrentBuilder.Compare(
+                    IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
                 return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
             }
 
-            Value loopVarIncreases = step == null
-                ? this.Context.CreateConstant(true) // the step is one by default
-                : CreatePreheader(step);
+            Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
             step ??= this.Context.CreateConstant(1L);
             this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
         }

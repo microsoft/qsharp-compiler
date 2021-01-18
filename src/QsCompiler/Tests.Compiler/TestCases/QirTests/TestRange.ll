@@ -50,9 +50,9 @@ preheader__1:                                     ; preds = %entry
 
 header__1:                                        ; preds = %exiting__1, %preheader__1
   %j = phi i64 [ %24, %preheader__1 ], [ %31, %exiting__1 ]
-  %28 = icmp sge i64 %j, %26
-  %29 = icmp sle i64 %j, %26
-  %30 = select i1 %27, i1 %29, i1 %28
+  %28 = icmp sle i64 %j, %26
+  %29 = icmp sge i64 %j, %26
+  %30 = select i1 %27, i1 %28, i1 %29
   br i1 %30, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
