@@ -159,9 +159,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
 
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
-        private readonly Dictionary<string, (QsCallable, GlobalVariable)> functionWrappers = new Dictionary<string, (QsCallable, GlobalVariable)>();
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
-        private readonly Dictionary<ResolvedType, IrFunction> refCountFunctions = new Dictionary<ResolvedType, IrFunction>();
+        private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
+        private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new Dictionary<ResolvedType, GlobalVariable>();
 
         #endregion
 
@@ -1163,7 +1163,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
             var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
-            if (this.functionWrappers.TryGetValue(key, out (QsCallable, GlobalVariable) item))
+            if (this.callableTables.TryGetValue(key, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
             }
@@ -1175,7 +1175,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
                         : null;
                 var table = this.CreateCallableTable(key, BuildSpec);
-                this.functionWrappers.Add(key, (callable, table));
+                this.callableTables.Add(key, (callable, table));
                 return table;
             }
         }
@@ -1198,25 +1198,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return Constant.ConstPointerToNullFor(this.Types.CallableMemoryManagementTable.CreatePointerType());
             }
 
-            var nullPointer = Constant.ConstPointerToNullFor(this.Types.CaptureCountFunction.CreatePointerType());
-            var funcs = new Constant[2] { nullPointer, nullPointer };
-
             var type = StripPositionInfo.Apply(capture.QSharpType);
-            if (this.refCountFunctions.TryGetValue(type, out IrFunction func))
+            if (this.memoryManagementTables.TryGetValue(type, out GlobalVariable table))
             {
-                funcs[0] = func;
-            }
-            else
-            {
-                var funcName = this.GenerateUniqueName("ReferencesManagement");
-                func = this.Module.CreateFunction(funcName, this.Types.CaptureCountFunction);
-                this.refCountFunctions.Add(type, func);
-                funcs[0] = func;
+                return table;
             }
 
             var name = this.GenerateUniqueName("MemoryManagement");
+            var funcs = new Constant[2];
+            var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
+            funcs[0] = func;
+            func = this.Module.CreateFunction($"{name}__AccessCount", this.Types.CaptureCountFunction);
+            funcs[1] = func;
+
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            this.memoryManagementTables.Add(type, table);
+            return table;
         }
 
         /// <summary>
@@ -1313,7 +1311,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBuilder.Return();
             }
 
-            foreach (var (callable, _) in this.functionWrappers.Values)
+            foreach (var (callable, _) in this.callableTables.Values)
             {
                 foreach (var spec in callable.Specializations)
                 {
@@ -1341,14 +1339,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, body);
             }
 
-            foreach (var (type, func) in this.refCountFunctions)
+            foreach (var (type, table) in this.memoryManagementTables)
             {
-                GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
+                var functions = new List<(string, Action<IValue, IValue>)>
                 {
-                    var capture = GetArgumentTuple(type, parameters[0]);
-                    var argument = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
-                    this.ScopeMgr.UpdateReferenceCount(argument, capture);
-                });
+                    ($"{table.Name}__RefCount", (arg, capture) => this.ScopeMgr.UpdateReferenceCount(arg, capture)),
+                    ($"{table.Name}__AccessCount", (arg, capture) => this.ScopeMgr.UpdateAccessCount(arg, capture))
+                };
+
+                foreach (var (funcName, updateCounts) in functions)
+                {
+                    if (this.Module.TryGetFunction(funcName, out IrFunction? func))
+                    {
+                        GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
+                        {
+                            var capture = GetArgumentTuple(type, parameters[0]);
+                            var argument = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
+                            this.ScopeMgr.UpdateReferenceCount(argument, capture);
+                        });
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"failed to generate {funcName}");
+                    }
+                }
             }
         }
 

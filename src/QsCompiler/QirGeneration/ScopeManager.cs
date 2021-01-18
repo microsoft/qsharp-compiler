@@ -169,17 +169,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the function to update the access count for this type</returns>
-        private string? AccessUpdateFunctionForType(ITypeRef t)
+        private (string, object[])? AccessUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleUpdateAccessCount;
+                    return (RuntimeLibrary.TupleUpdateAccessCount, Array.Empty<object>());
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayUpdateAccessCount;
+                    return (RuntimeLibrary.ArrayUpdateAccessCount, Array.Empty<object>());
+                }
+                else if (Types.IsCallable(t))
+                {
+                    return (RuntimeLibrary.CallableUpdateReferenceCount, new object[] { 1 });
                 }
             }
             return null;
@@ -190,33 +194,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the function to update the reference count for this type</returns>
-        private string? ReferencesUpdateFunctionForType(ITypeRef t)
+        private (string, object[])? ReferencesUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleUpdateReferenceCount;
+                    return (RuntimeLibrary.TupleUpdateReferenceCount, Array.Empty<object>());
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayUpdateReferenceCount;
+                    return (RuntimeLibrary.ArrayUpdateReferenceCount, Array.Empty<object>());
                 }
                 else if (Types.IsCallable(t))
                 {
-                    return RuntimeLibrary.CallableUpdateReferenceCount;
+                    return (RuntimeLibrary.CallableUpdateReferenceCount, new object[] { 0 });
                 }
                 else if (Types.IsResult(t))
                 {
-                    return RuntimeLibrary.ResultUpdateReferenceCount;
+                    return (RuntimeLibrary.ResultUpdateReferenceCount, Array.Empty<object>());
                 }
                 else if (Types.IsString(t))
                 {
-                    return RuntimeLibrary.StringUpdateReferenceCount;
+                    return (RuntimeLibrary.StringUpdateReferenceCount, Array.Empty<object>());
                 }
                 else if (Types.IsBigInt(t))
                 {
-                    return RuntimeLibrary.BigIntUpdateReferenceCount;
+                    return (RuntimeLibrary.BigIntUpdateReferenceCount, Array.Empty<object>());
                 }
             }
             return null;
@@ -240,36 +244,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, bool shallow, IValue change, params IValue[] values)
+        private void RecursivelyModifyCounts(Func<ITypeRef, (string, object[])?> getFunctionName, bool shallow, IValue change, params IValue[] values)
         {
-            Value ProcessInnerItems(string funcName, IValue value)
+            Value ProcessInnerItems(string funcName, object[] funcArgs, IValue value)
             {
                 if (value is TupleValue tuple)
                 {
                     for (var i = 0; i < tuple.StructType.Members.Count && !shallow; ++i)
                     {
-                        var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
-                        if (itemFuncName != null)
+                        var itemFunc = getFunctionName(tuple.StructType.Members[i]);
+                        if (itemFunc.HasValue)
                         {
                             var item = tuple.GetTupleElement(i);
-                            ModifyCounts(itemFuncName, item);
+                            ModifyCounts(itemFunc.Value, item);
                         }
                     }
                     return tuple.OpaquePointer;
                 }
                 else if (value is ArrayValue array)
                 {
-                    var itemFuncName = getFunctionName(array.LlvmElementType);
-                    if (itemFuncName != null && !shallow)
+                    var itemFunc = getFunctionName(array.LlvmElementType);
+                    if (itemFunc.HasValue && !shallow)
                     {
-                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
+                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFunc.Value, arrItem));
                     }
                     return array.OpaquePointer;
                 }
                 else if (value is CallableValue callable && !shallow)
                 {
-                    var itemFuncId = funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
-                        throw new NotSupportedException("unknown function for capture tuple memory management");
+                    var itemFuncId = (int)funcArgs.Single();
                     this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
                     return callable.Value;
                 }
@@ -279,15 +282,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            void ModifyCounts(string funcName, IValue value)
+            void ModifyCounts((string, object[]) funcNameAndArgs, IValue value)
             {
+                var (funcName, funcArgs) = funcNameAndArgs;
                 if (value is PointerValue pointer)
                 {
-                    ModifyCounts(funcName, pointer.LoadValue());
+                    ModifyCounts(funcNameAndArgs, pointer.LoadValue());
                 }
                 else
                 {
-                    var arg = ProcessInnerItems(funcName, value);
+                    var arg = ProcessInnerItems(funcName, funcArgs, value);
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
                     this.sharedState.CurrentBuilder.Call(func, arg, change.Value);
                 }
@@ -296,9 +300,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var value in values)
             {
                 var func = getFunctionName(value.LlvmType);
-                if (func != null)
+                if (func.HasValue)
                 {
-                    ModifyCounts(func, value);
+                    ModifyCounts(func.Value, value);
                 }
             }
         }
