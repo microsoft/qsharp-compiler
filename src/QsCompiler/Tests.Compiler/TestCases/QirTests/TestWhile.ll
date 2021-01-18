@@ -10,12 +10,11 @@ while__1:                                         ; preds = %do__1, %entry
   br i1 %1, label %do__1, label %wend__1
 
 do__1:                                            ; preds = %while__1
-  %2 = load i64, i64* %n
-  %3 = mul i64 %2, 2
-  store i64 %3, i64* %n
+  %2 = mul i64 %0, 2
+  store i64 %2, i64* %n
   br label %while__1
 
 wend__1:                                          ; preds = %while__1
-  %4 = load i64, i64* %n
-  ret i64 %4
+  %3 = load i64, i64* %n
+  ret i64 %3
 }

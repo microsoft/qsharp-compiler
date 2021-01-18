@@ -37,9 +37,9 @@ entry:
   store %String* %19, %String** %18
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
-  store { { double, %String* }*, i64 }* %10, { { double, %String* }*, i64 }** %x
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
+  store { { double, %String* }*, i64 }* %10, { { double, %String* }*, i64 }** %x
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %15, i64 -1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %a, i64 -1)

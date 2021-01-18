@@ -451,10 +451,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     updateItemAccessCount: true,
                     unreferenceOriginal: unreferenceOldValue);
                 var value = this.SharedState.ValueStack.Pop();
-                pointer.StoreValue(value);
 
                 this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
-                this.SharedState.ScopeMgr.DecreaseReferenceCount(value, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow: true);
+                pointer.StoreValue(value);
             }
             else
             {

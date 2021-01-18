@@ -21,14 +21,13 @@ fixup__1:                                         ; preds = %until__1
   %3 = load i64, i64* %n
   %4 = add i64 %3, 1
   store i64 %4, i64* %n
-  %5 = load i64, i64* %n
-  %6 = icmp sgt i64 %5, 100
-  br i1 %6, label %then0__1, label %continue__1
+  %5 = icmp sgt i64 %4, 100
+  br i1 %5, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %fixup__1
-  %7 = call %String* @__quantum__rt__string_create(i32 19, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @0, i32 0, i32 0))
+  %6 = call %String* @__quantum__rt__string_create(i32 19, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__result_update_reference_count(%Result* %0, i64 -1)
-  call void @__quantum__rt__fail(%String* %7)
+  call void @__quantum__rt__fail(%String* %6)
   unreachable
 
 continue__1:                                      ; preds = %fixup__1
@@ -37,6 +36,6 @@ continue__1:                                      ; preds = %fixup__1
 
 rend__1:                                          ; preds = %until__1
   call void @__quantum__rt__result_update_reference_count(%Result* %0, i64 -1)
-  %8 = load i64, i64* %n
-  ret i64 %8
+  %7 = load i64, i64* %n
+  ret i64 %7
 }

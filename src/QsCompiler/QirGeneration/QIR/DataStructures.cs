@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             public bool IsCached =>
                 this.cache.Item2 != null &&
-                (this.store == null || !this.sharedState.IsWithinLoop) &&
+                (this.store == null || !this.sharedState.IsWithinLoop || this.cache.Item1 == this.sharedState.CurrentBranch) &&
                 this.sharedState.IsOpenBranch(this.cache.Item1);
 
             /// <summary>
