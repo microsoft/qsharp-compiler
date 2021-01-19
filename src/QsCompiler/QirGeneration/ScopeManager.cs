@@ -56,6 +56,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private static bool FilterByEquality((IValue, bool) tracked, IValue expected) =>
                 tracked.Item1.Value == expected.Value && tracked.Item2;
 
+            private static IValue LoadValue(IValue value)
+            {
+                while (value is PointerValue ptr)
+                {
+                    value = ptr.LoadValue();
+                }
+                return value;
+            }
+
             // public and internal methods
 
             public void RegisterVariable(string varName, IValue value) =>
@@ -64,15 +73,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public bool TryGetVariable(string varName, out IValue value) =>
                 this.variables.TryGetValue(varName, out value);
 
+            /// <summary>
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope,
+            /// and makes sure the release function is invoked before unreferending the value.
+            /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
+            /// </summary>
             public void RegisterValue(IValue value, string? releaseFunction = null)
             {
                 if (releaseFunction != null)
                 {
-                    this.requiredReleases.Add((value, releaseFunction));
+                    this.requiredReleases.Add((LoadValue(value), releaseFunction));
                 }
                 if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
                 {
-                    this.requiredUnreferences.Add((value, true));
+                    this.requiredUnreferences.Add((LoadValue(value), true));
+                }
+            }
+
+            /// <summary>
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
+            /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
+            /// </summary>
+            internal void QueueUnreference(IValue value, bool recurIntoInnerItems)
+            {
+                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
+                {
+                    this.requiredUnreferences.Add((LoadValue(value), recurIntoInnerItems));
                 }
             }
 
@@ -123,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new Queue<(IValue, bool)>();
+                var pendingUnreferences = new Queue<(IValue, bool)>(); // [FIXME] stack, since values that are registered after may depend on already registered values
                 foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
                 {
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => FilterByEquality(value, omitted));
@@ -386,8 +412,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
-        public void DecreaseReferenceCount(IValue value, bool shallow = false) => // [FIXME]
+        public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
             this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.minusOne, (value, !shallow));
+            //this.scopes.Peek().QueueUnreference(value, !shallow); // [FIXME] this is the line to use after pointers are fixed
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
