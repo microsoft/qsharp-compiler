@@ -123,12 +123,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return null;
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
-                // Don't exit here, since exiting without establishing a connection will result in a cryptic failure of the extension. 
-                // Instead, we proceed to create a server instance and establish the connection. 
-                // Any errors can then be properly processed via the standard server-client communication as needed. 
+
+                // Don't exit here, since exiting without establishing a connection will result in a cryptic failure of the extension.
+                // Instead, we proceed to create a server instance and establish the connection.
+                // Any errors can then be properly processed via the standard server-client communication as needed.
             }
 
             QsLanguageServer server;
