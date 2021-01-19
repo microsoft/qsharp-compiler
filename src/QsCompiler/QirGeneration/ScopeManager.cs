@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new Queue<(IValue, bool)>(); // [FIXME] stack, since values that are registered after may depend on already registered values
+                var pendingUnreferences = new Queue<(IValue, bool)>();
                 foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
                 {
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => FilterByEquality(value, omitted));
