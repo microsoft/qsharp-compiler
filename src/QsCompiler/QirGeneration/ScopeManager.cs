@@ -413,8 +413,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.minusOne, (value, !shallow));
-            //this.scopes.Peek().QueueUnreference(value, !shallow); // [FIXME] this is the line to use after pointers are fixed
+            this.scopes.Peek().QueueUnreference(value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
