@@ -13,9 +13,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="global.json" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj">
       <Private>true</Private>
     </ProjectReference>
@@ -37,8 +34,8 @@
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="global.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <None Include="global.language-server.json" Link="global.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
