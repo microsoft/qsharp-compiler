@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
@@ -24,6 +25,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
             new BigInteger(blob);
+
+        private static Source ToSource(this string sourceFile) =>
+            new Source(sourceFile, QsNullable<string>.Null);
 
         private static DataTypes.Position ToCompilerObject(this Position position) =>
             DataTypes.Position.Create(
@@ -49,16 +53,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         private static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
             this QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> bondQsExpressionKindComposition) =>
-            bondQsExpressionKindComposition.ToCompilerObjectGeneric<
-                SyntaxTree.TypedExpression,
-                SyntaxTree.Identifier,
-                SyntaxTree.ResolvedType,
-                TypedExpression,
-                Identifier,
-                ResolvedType>(
-                    expressionTranslator: ToCompilerObject,
-                    symbolTranslator: ToCompilerObject,
-                    typeTranslator: ToCompilerObject);
+            bondQsExpressionKindComposition.ToCompilerObjectGeneric(
+                expressionTranslator: ToCompilerObject,
+                symbolTranslator: ToCompilerObject,
+                typeTranslator: ToCompilerObject);
 
         private static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
             bondQsGeneratorDirective switch
@@ -201,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCallable.FullName.ToCompilerObject(),
                 attributes: bondQsCallable.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCallable.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCallable.SourceFile,
+                source: bondQsCallable.SourceFile.ToSource(),
                 location: bondQsCallable.Location != null ?
                     bondQsCallable.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -242,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
                 modifiers: bondQsCustomType.Modifiers.ToCompilerObject(),
-                sourceFile: bondQsCustomType.SourceFile,
+                source: bondQsCustomType.SourceFile.ToSource(),
                 location: bondQsCustomType.Location != null ?
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -369,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind: bondQsSpecialization.Kind.ToCompilerObject(),
                 parent: bondQsSpecialization.Parent.ToCompilerObject(),
                 attributes: bondQsSpecialization.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
-                sourceFile: bondQsSpecialization.SourceFile,
+                source: bondQsSpecialization.SourceFile.ToSource(),
                 location: bondQsSpecialization.Location != null ?
                     bondQsSpecialization.Location.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsLocation>.Null,
@@ -525,7 +523,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTree.QsTypeItem.NewNamed(
                     item: named.ToCompilerObjectGeneric(typeTranslator: item => item));
             }
-            else if(bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
+            else if (bondQsTypeItem.Kind == QsTypeItemKind.Anonymous)
             {
                 var anonymous =
                     bondQsTypeItem.Anonymous ??
@@ -693,8 +691,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return SyntaxTokens.CharacteristicsKind<TCompiler>.NewSimpleSet(
                     item: simpleSet.ToCompilerObject());
             }
-            else if((bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Union) ||
-                    (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Intersection))
+            else if ((bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Union) ||
+                     (bondCharacteristicsKindComposition.Kind == CharacteristicsKind.Intersection))
             {
                 var bondSetOperation =
                     bondCharacteristicsKindComposition.SetOperation ??
