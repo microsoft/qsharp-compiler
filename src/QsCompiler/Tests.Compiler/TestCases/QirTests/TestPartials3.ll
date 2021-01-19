@@ -8,19 +8,19 @@ entry:
   %5 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %4, i64 0, i32 0
   %6 = getelementptr { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %4, i64 0, i32 1
   store { i64, double }* %2, { i64, double }** %5
-  %7 = bitcast { i64, double }* %2 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i64 1)
-  %8 = bitcast %Tuple* %arg-tuple to { %String*, %Qubit* }*
-  store { %String*, %Qubit* }* %8, { %String*, %Qubit* }** %6
-  %9 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %8, i64 0, i32 0
-  %10 = load %String*, %String** %9
-  call void @__quantum__rt__string_update_reference_count(%String* %10, i64 1)
+  %7 = bitcast %Tuple* %arg-tuple to { %String*, %Qubit* }*
+  store { %String*, %Qubit* }* %7, { %String*, %Qubit* }** %6
+  %8 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
+  %9 = load %Callable*, %Callable** %8
+  call void @__quantum__rt__callable_invoke(%Callable* %9, %Tuple* %3, %Tuple* %result-tuple)
+  %10 = bitcast { i64, double }* %2 to %Tuple*
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %10, i64 1)
+  %11 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %7, i64 0, i32 0
+  %12 = load %String*, %String** %11
+  call void @__quantum__rt__string_update_reference_count(%String* %12, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %arg-tuple, i64 1)
-  %11 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
-  %12 = load %Callable*, %Callable** %11
-  call void @__quantum__rt__callable_invoke(%Callable* %12, %Tuple* %3, %Tuple* %result-tuple)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %10, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %10, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %12, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %arg-tuple, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   ret void

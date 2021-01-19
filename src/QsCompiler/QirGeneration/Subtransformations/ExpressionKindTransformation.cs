@@ -976,11 +976,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
                 this.SharedState.SetCurrentBlock(trueBlock);
-                var ifTrue = this.SharedState.BuildSubitem(ifTrueEx);
+                this.SharedState.ScopeMgr.OpenScope();
+                this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
+                var ifTrue = this.SharedState.ValueStack.Pop();
+                this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(falseBlock);
-                var ifFalse = this.SharedState.BuildSubitem(ifFalseEx);
+                this.SharedState.ScopeMgr.OpenScope();
+                this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
+                var ifFalse = this.SharedState.ValueStack.Pop();
+                this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);

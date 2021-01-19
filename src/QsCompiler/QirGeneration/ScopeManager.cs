@@ -37,6 +37,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
 
             /// <summary>
+            /// Contains all values whose reference count has been increased.
+            /// The first items contains the value, and the second item indicates whether to recursively reference inner items.
+            /// </summary>
+            private readonly List<(IValue, bool)> pendingReferences = new List<(IValue, bool)>();
+
+            /// <summary>
             /// Contains all values that require unreferencing upon closing the scope.
             /// The first items contains the value, and the second item indicates whether to recursively unreference inner items.
             /// </summary>
@@ -91,10 +97,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             /// <summary>
+            /// Adds the given value to the list of values which have been referenced.
+            /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
+            /// </summary>
+            internal void ReferenceValue(IValue value, bool recurIntoInnerItems)
+            {
+                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
+                {
+                    this.pendingReferences.Add((LoadValue(value), recurIntoInnerItems));
+                }
+            }
+
+            /// <summary>
+            /// Executes all pending calls to increase reference counts.
+            /// </summary>
+            internal void ApplyPendingReferences()
+            {
+                var pending = this.pendingReferences.ToArray();
+                this.pendingReferences.Clear();
+                this.parent.ModifyCounts(this.parent.ReferencesUpdateFunctionForType, this.parent.plusOne, pending);
+            }
+
+            /// <summary>
             /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
             /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
             /// </summary>
-            internal void QueueUnreference(IValue value, bool recurIntoInnerItems)
+            internal void UnreferenceValue(IValue value, bool recurIntoInnerItems)
             {
                 if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
                 {
@@ -159,8 +187,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                parent.RecursivelyModifyCounts(parent.AccessUpdateFunctionForType, parent.minusOne, pendingAccessCounts);
-                parent.RecursivelyModifyCounts(parent.ReferencesUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
+                foreach (var scope in scopes)
+                {
+                    scope.ApplyPendingReferences();
+                }
+
+                parent.ModifyCounts(parent.AccessUpdateFunctionForType, parent.minusOne, pendingAccessCounts);
+                parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
             }
         }
 
@@ -274,13 +307,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary,
         /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params (IValue, bool)[] values)
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params (IValue, bool)[] values)
         {
-            void ModifyCounts(string funcName, IValue value, bool recurIntoInnerItems)
+            void ProcessValue(string funcName, IValue value, bool recurIntoInnerItems)
             {
                 if (value is PointerValue pointer)
                 {
-                    ModifyCounts(funcName, pointer.LoadValue(), recurIntoInnerItems);
+                    ProcessValue(funcName, pointer.LoadValue(), recurIntoInnerItems);
                 }
                 else
                 {
@@ -293,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             if (itemFuncName != null)
                             {
                                 var item = tuple.GetTupleElement(i);
-                                ModifyCounts(itemFuncName, item, true);
+                                ProcessValue(itemFuncName, item, true);
                             }
                         }
                         arg = tuple.OpaquePointer;
@@ -303,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var itemFuncName = getFunctionName(array.LlvmElementType);
                         if (itemFuncName != null && recurIntoInnerItems)
                         {
-                            this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem, true));
+                            this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem, true));
                         }
                         arg = array.OpaquePointer;
                     }
@@ -331,7 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var func = getFunctionName(value.Item1.LlvmType);
                 if (func != null)
                 {
-                    ModifyCounts(func, value.Item1, value.Item2);
+                    ProcessValue(func, value.Item1, value.Item2);
                 }
             }
         }
@@ -344,6 +377,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void OpenScope()
         {
+            if (this.scopes.TryPeek(out var current))
+            {
+                current.ApplyPendingReferences();
+            }
             this.scopes.Push(new Scope(this));
         }
 
@@ -359,6 +396,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!isTerminated)
             {
                 scope.ExecutePendingCalls();
+            }
+            else
+            {
+                 // [FIXME] validate that there are no pending references
             }
         }
 
@@ -393,6 +434,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 scope.ExecutePendingCalls();
             }
+            else
+            {
+                // [FIXME] validate that there are no pending references
+            }
         }
 
         /// <summary>
@@ -406,22 +451,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value which is referenced</param>
         public void IncreaseReferenceCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, this.plusOne, (value, !shallow));
+            this.scopes.Peek().ReferenceValue(value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
-            this.scopes.Peek().QueueUnreference(value, !shallow);
+            this.scopes.Peek().UnreferenceValue(value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
-        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, change, (value, !shallow));
+        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
+        {
+            this.scopes.Peek().ApplyPendingReferences();
+            this.ModifyCounts(this.ReferencesUpdateFunctionForType, change, (value, !shallow));
+        }
 
         /// <summary>
         /// Given a callable value, increases the reference count of its capture tuple by 1.
@@ -441,22 +489,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
         internal void IncreaseAccessCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, (value, !shallow));
+            this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, (value, !shallow));
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, bool shallow = false) => // [FIXME]
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, (value, !shallow));
+        internal void DecreaseAccessCount(IValue value, bool shallow = false)
+        {
+            this.scopes.Peek().ApplyPendingReferences();
+            this.ModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, (value, !shallow));
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to change the access count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the access count</param>
         /// <param name="change">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, change, (value, !shallow));
+        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false)
+        {
+            this.scopes.Peek().ApplyPendingReferences();
+            this.ModifyCounts(this.AccessUpdateFunctionForType, change, (value, !shallow));
+        }
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value

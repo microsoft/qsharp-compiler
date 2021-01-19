@@ -4,7 +4,6 @@ entry:
   %1 = bitcast %Tuple* %0 to { double, %String* }*
   %2 = getelementptr { double, %String* }, { double, %String* }* %1, i64 0, i32 0
   %3 = getelementptr { double, %String* }, { double, %String* }* %1, i64 0, i32 1
-  call void @__quantum__rt__string_update_reference_count(%String* %a, i64 1)
   store double 1.000000e+00, double* %2
   store %String* %a, %String** %3
   %4 = call { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__body({ double, %String* }* %1, i64 %b)
@@ -16,6 +15,7 @@ entry:
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %7, i64 1)
   %8 = bitcast { { double, %String* }*, i64 }* %4 to %Tuple*
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %8, i64 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %8, i64 -1)
   %9 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %8, i1 false)

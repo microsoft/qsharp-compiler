@@ -61,7 +61,6 @@ then0__1:                                         ; preds = %body__1
   %25 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %24, i64 0, i32 0
   %26 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %24, i64 0, i32 1
   %27 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__InnerNestedTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i64 1)
   store %Callable* %27, %Callable** %25
   store { i64, double }* %tuple1, { i64, double }** %26
   %partial1 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, [2 x void (%Tuple*, i64)*]* @MemoryManagement__2, %Tuple* %23)
@@ -71,9 +70,8 @@ then0__1:                                         ; preds = %body__1
   %29 = bitcast %Tuple* %28 to { %Callable*, { %String*, %Qubit* }* }*
   %30 = getelementptr { %Callable*, { %String*, %Qubit* }* }, { %Callable*, { %String*, %Qubit* }* }* %29, i64 0, i32 0
   %31 = getelementptr { %Callable*, { %String*, %Qubit* }* }, { %Callable*, { %String*, %Qubit* }* }* %29, i64 0, i32 1
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i64 1)
   %32 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__InnerNestedTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  call void @__quantum__rt__string_update_reference_count(%String* %22, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 1)
   store %Callable* %32, %Callable** %30
   store { %String*, %Qubit* }* %tuple2, { %String*, %Qubit* }** %31
   %partial2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3, [2 x void (%Tuple*, i64)*]* @MemoryManagement__3, %Tuple* %28)
@@ -85,8 +83,9 @@ then0__1:                                         ; preds = %body__1
   %34 = bitcast %Tuple* %33 to { %Callable*, { i64, double }* }*
   %35 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %34, i64 0, i32 0
   %36 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %34, i64 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i64 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 1)
   %37 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i64 1)
   store %Callable* %37, %Callable** %35
   store { i64, double }* %tuple1, { i64, double }** %36
   %partial3 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__4, [2 x void (%Tuple*, i64)*]* @MemoryManagement__4, %Tuple* %33)
@@ -97,6 +96,7 @@ then0__1:                                         ; preds = %body__1
   %40 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i64 0, i32 0
   %41 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i64 0, i32 1
   %42 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i64 0, i32 2
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i64 1)
   %43 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   %44 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   store %Callable* %43, %Callable** %40

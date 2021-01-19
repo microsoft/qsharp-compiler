@@ -28,13 +28,13 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
   %10 = bitcast i8* %9 to %String**
   %11 = load %String*, %String** %10
   store %String* %b, %String** %10
   call void @__quantum__rt__array_update_access_count(%Array* %0, i64 1)
   store %Array* %0, %Array** %x
+  call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 1)
   call void @__quantum__rt__array_update_access_count(%Array* %0, i64 -1)
   %12 = call %Array* @__quantum__rt__array_copy(%Array* %0, i1 false)

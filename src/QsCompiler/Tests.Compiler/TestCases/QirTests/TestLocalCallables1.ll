@@ -59,7 +59,6 @@ exit__1:                                          ; preds = %header__1
   %27 = bitcast %Tuple* %26 to { %String* }*
   %28 = getelementptr { %String* }, { %String* }* %27, i64 0, i32 0
   store %String* %25, %String** %28
-  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 1)
   %29 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   call void @__quantum__rt__callable_invoke(%Callable* %fct, %Tuple* %26, %Tuple* %29)
   %30 = bitcast %Tuple* %29 to { %String*, { i64, double }* }*
@@ -73,6 +72,7 @@ exit__1:                                          ; preds = %header__1
   %36 = bitcast %Tuple* %35 to { %String*, double }*
   %37 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 0
   %38 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 1)
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
   store %String* %str, %String** %37
   store double %val, double* %38

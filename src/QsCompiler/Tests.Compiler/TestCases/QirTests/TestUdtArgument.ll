@@ -40,9 +40,9 @@ entry:
   %25 = getelementptr { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %23, i64 0, i32 1
   %26 = getelementptr { i64 }, { i64 }* %udt1, i64 0, i32 0
   %27 = load i64, i64* %26
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   store i64 %27, i64* %24
   store { i2, i64 }* %udt2, { i2, i64 }** %25
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %1, i64 -1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %20, i64 -1)

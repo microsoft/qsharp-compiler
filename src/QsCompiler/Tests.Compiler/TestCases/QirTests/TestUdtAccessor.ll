@@ -31,8 +31,8 @@ entry:
   %3 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i64 0, i32 0
   %4 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i64 0, i32 1
   store { i2, i64 }* %0, { i2, i64 }** %3
+  store double %D, double* %4
   %5 = bitcast { i2, i64 }* %0 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
-  store double %D, double* %4
   ret { { i2, i64 }*, double }* %2
 }
