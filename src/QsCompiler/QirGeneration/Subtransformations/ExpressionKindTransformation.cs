@@ -285,6 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var newItemValue = (ArrayValue)sharedState.BuildSubitem(updated);
                     var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
                     sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
+                    sharedState.ScopeMgr.DecreaseReferenceCount(newItemValue, shallow: true); // the items get unreferenced with the value of the copy-and-update expression
                 }
                 else
                 {
