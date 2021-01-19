@@ -149,23 +149,19 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         public static bool? IsDotNet31Installed()
         {
-            var listSdkProcess = Process.Start(
-                new ProcessStartInfo()
-                {
-                    FileName = "dotnet",
-                    Arguments = "--list-sdks",
-                    RedirectStandardOutput = true,
-                });
-            if (listSdkProcess.WaitForExit(3000))
+            var process = Process.Start(new ProcessStartInfo
             {
-                if (listSdkProcess.ExitCode != 0)
-                {
-                    return null;
-                }
-                var sdks = listSdkProcess.StandardOutput.ReadToEnd();
-                return DotNet31Regex.IsMatch(sdks);
+                FileName = "dotnet",
+                Arguments = "--list-sdks",
+                RedirectStandardOutput = true,
+            });
+            if (process?.WaitForExit(3000) != true || process.ExitCode != 0)
+            {
+                return null;
             }
-            return null;
+
+            var sdks = process.StandardOutput.ReadToEnd();
+            return DotNet31Regex.IsMatch(sdks);
         }
     }
 }
