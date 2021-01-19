@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QsCompiler
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
                 return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
+
             PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
             headers = new References.Headers(id, compilation?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
