@@ -42,7 +42,6 @@ entry:
   %27 = load i64, i64* %26
   store i64 %27, i64* %24
   store { i2, i64 }* %udt2, { i2, i64 }** %25
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %1, i64 -1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %20, i64 -1)
@@ -52,7 +51,6 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %8, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %8, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %17, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %17, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %20, i64 -1)

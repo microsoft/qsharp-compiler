@@ -29,9 +29,7 @@ entry:
   store %Qubit* %aux, %Qubit** %14
   call void @Microsoft__Quantum__Testing__QIR__DoNothing__ctl(%Array* %9, %Array* %12)
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %9, i64 -1)

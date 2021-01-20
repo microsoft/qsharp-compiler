@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -59,8 +60,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.parent = parent;
             }
 
-            private static bool FilterByEquality((IValue, bool) tracked, IValue expected) =>
+            private static bool ValueEquals((IValue, bool) tracked, IValue expected) =>
                 tracked.Item1.Value == expected.Value && tracked.Item2;
+
+            private static bool ValueEquals((IValue, bool) tracked, (IValue, bool) expected) =>
+                tracked.Item1.Value == expected.Item1.Value && tracked.Item2 == expected.Item2;
+
+            private static bool TryRemoveValue(List<(IValue, bool)> values, Func<(IValue, bool), bool> condition)
+            {
+                var index = values.FindIndex(v => condition(v));
+                if (index < 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    values.RemoveAt(index);
+                    return true;
+                }
+            }
 
             private static IValue LoadValue(IValue value)
             {
@@ -135,6 +153,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             /// <summary>
+            /// Clears and returns all pending references from the scope.
+            /// </summary>
+            private List<(IValue, bool)> ClearPendingReferences()
+            {
+                var refs = this.pendingReferences.ToList();
+                this.pendingReferences.Clear();
+                return refs;
+            }
+
+            /// <summary>
             /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
             /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
             /// </summary>
@@ -151,26 +179,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
             /// Any release function that has been specified when adding the value will still execute.
             /// </summary>
-            internal bool TryRemoveValue(IValue value)
-            {
-                var index = this.requiredUnreferences.FindIndex(tracked => FilterByEquality(tracked, value));
-                if (index < 0)
-                {
-                    return false;
-                }
-                else
-                {
-                    this.requiredUnreferences.RemoveAt(index);
-                    return true;
-                }
-            }
+            internal bool TryRemoveValue(IValue value) =>
+                TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
 
             /// <summary>
             /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
             /// unless it is explicitly excluded.
             /// </summary>
             internal bool WillBeUnreferenced(IValue value) =>
-                this.requiredUnreferences.Exists(tracked => FilterByEquality(tracked, value));
+                this.requiredUnreferences.Exists(tracked => ValueEquals(tracked, value));
 
             /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
             internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null, bool applyReferences = true) =>
@@ -186,6 +203,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </param>
             internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, bool applyReferences, params Scope[] scopes)
             {
+                if (!scopes.Any())
+                {
+                    return;
+                }
+
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
                     var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
@@ -193,25 +215,38 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new Queue<(IValue, bool)>();
+                var pendingUnreferences = new List<(IValue, bool)>();
                 foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
                 {
-                    var omitted = omitUnreferencing.FirstOrDefault(omitted => FilterByEquality(value, omitted));
+                    var omitted = omitUnreferencing.FirstOrDefault(omitted => ValueEquals(value, omitted));
                     if (!omitUnreferencing.Remove(omitted))
                     {
-                        pendingUnreferences.Enqueue(value);
+                        pendingUnreferences.Add(value);
                     }
                 }
 
                 // We need to apply the pending counts here to make sure they get applied even if nothing is unreferenced.
-                if (applyReferences)
+                foreach (var scope in scopes.Skip(1))
                 {
-                    foreach (var scope in scopes)
+                    if (scope.HasPendingReferences)
                     {
-                        scope.ApplyPendingReferences();
+                        throw new InvalidOperationException("pending references in outer scopes");
                     }
                 }
 
+                // Not the most efficient version, but it will do for now.
+                var pendingReferences = applyReferences ? scopes.First().ClearPendingReferences() : new List<(IValue, bool)>();
+                var lookup1 = pendingReferences.ToLookup(x => (x.Item1.Value, x.Item2));
+                var lookup2 = pendingUnreferences.ToLookup(x => (x.Item1.Value, x.Item2));
+                var unnecessaryRefModifications = lookup1.SelectMany(l1s => lookup2[l1s.Key].Zip(l1s, (l2, l1) => l1));
+                foreach (var item in unnecessaryRefModifications)
+                {
+                    var removedFromRefs = TryRemoveValue(pendingReferences, v => ValueEquals(v, item));
+                    var removedFromUnrefs = TryRemoveValue(pendingUnreferences, v => ValueEquals(v, item));
+                    Debug.Assert(removedFromRefs && removedFromUnrefs);
+                }
+
+                parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
                 parent.ModifyCounts(parent.AccessUpdateFunctionForType, parent.minusOne, pendingAccessCounts);
                 parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
             }

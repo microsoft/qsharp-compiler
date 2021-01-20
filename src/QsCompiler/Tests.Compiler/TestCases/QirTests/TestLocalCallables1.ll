@@ -74,7 +74,6 @@ exit__1:                                          ; preds = %header__1
   %38 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 1
   store %String* %str, %String** %37
   store double %val, double* %38
-  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 1)
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
   br label %header__2
 
@@ -128,7 +127,6 @@ exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %fct, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %fct, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %25, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %26, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 -1)

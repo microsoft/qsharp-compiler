@@ -67,14 +67,6 @@ entry:
   %22 = bitcast { %String*, %Qubit* }* %4 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
@@ -123,14 +115,6 @@ entry:
   %22 = bitcast { %String*, %Qubit* }* %4 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
@@ -139,35 +123,5 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i64 -1)
-  ret void
-}
-
-define void @MemoryManagement__2__RefCount(%Tuple* %capture-tuple, i64 %count-change) {
-entry:
-  %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
-  %1 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
-  %2 = load %Callable*, %Callable** %1
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %2, i64 %count-change)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i64 %count-change)
-  %3 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 1
-  %4 = load { i64, double }*, { i64, double }** %3
-  %5 = bitcast { i64, double }* %4 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 %count-change)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %capture-tuple, i64 %count-change)
-  ret void
-}
-
-define void @MemoryManagement__2__AccessCount(%Tuple* %capture-tuple, i64 %count-change) {
-entry:
-  %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
-  %1 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
-  %2 = load %Callable*, %Callable** %1
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %2, i64 %count-change)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i64 %count-change)
-  %3 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 1
-  %4 = load { i64, double }*, { i64, double }** %3
-  %5 = bitcast { i64, double }* %4 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 %count-change)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %capture-tuple, i64 %count-change)
   ret void
 }
