@@ -125,6 +125,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             /// <summary>
+            /// Migrates all pending calls to increase reference counts from the current scope to the given scope,
+            /// clearing them from the current scope.
+            /// </summary>
+            internal void MigratePendingReferences(Scope scope)
+            {
+                scope.pendingReferences.AddRange(this.pendingReferences);
+                this.pendingReferences.Clear();
+            }
+
+            /// <summary>
             /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
             /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
             /// </summary>
@@ -163,8 +173,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.requiredUnreferences.Exists(tracked => FilterByEquality(tracked, value));
 
             /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
-                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
+            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null, bool applyReferences = true) =>
+                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), applyReferences, this);
 
             /// <summary>
             /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
@@ -174,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes)
+            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, bool applyReferences, params Scope[] scopes)
             {
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
@@ -194,9 +204,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 // We need to apply the pending counts here to make sure they get applied even if nothing is unreferenced.
-                foreach (var scope in scopes)
+                if (applyReferences)
                 {
-                    scope.ApplyPendingReferences();
+                    foreach (var scope in scopes)
+                    {
+                        scope.ApplyPendingReferences();
+                    }
                 }
 
                 parent.ModifyCounts(parent.AccessUpdateFunctionForType, parent.minusOne, pendingAccessCounts);
@@ -394,15 +407,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Opens a new scope and pushes it on top of the scope stack.
-        /// Adds all pending calls to increase reference counts to the current block.
+        /// If migratePendingReferences is set to false,
+        /// adds all pending calls to increase reference counts to the current block.
+        /// If it is set to true, then the pending calls are not applied but instead
+        /// removed from the current scope and added to the new scope.
         /// </summary>
-        public void OpenScope()
+        public void OpenScope(bool migratePendingReferences)
         {
+            var newScope = new Scope(this);
             if (this.scopes.TryPeek(out var current))
             {
-                current.ApplyPendingReferences();
+                if (migratePendingReferences)
+                {
+                    current.MigratePendingReferences(newScope);
+                }
+                else
+                {
+                    current.ApplyPendingReferences();
+                }
             }
-            this.scopes.Push(new Scope(this));
+            this.scopes.Push(newScope);
         }
 
         /// <summary>
@@ -440,12 +464,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.IncreaseReferenceCount(returned);
             }
 
-            scope.ExecutePendingCalls(new List<IValue>() { returned });
-            _ = this.scopes.Pop();
+            scope.ExecutePendingCalls(new List<IValue>() { returned }, applyReferences: !allowDelayReferencing);
+            scope = this.scopes.Pop();
 
-            if (allowDelayReferencing && !skipUnreference)
+            if (allowDelayReferencing)
             {
-                this.IncreaseReferenceCount(returned);
+                scope.MigratePendingReferences(this.scopes.Peek());
+                if (!skipUnreference)
+                {
+                    this.IncreaseReferenceCount(returned);
+                }
             }
         }
 
@@ -636,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // will create new scopes and hence modify the collection.
             var currentScopes = this.scopes.ToArray();
             var omittedUnreferences = new List<IValue>() { returned };
-            Scope.ExecutePendingCalls(this, omittedUnreferences, currentScopes);
+            Scope.ExecutePendingCalls(this, omittedUnreferences, true, currentScopes);
         }
     }
 }

@@ -40,9 +40,9 @@ exit__1:                                          ; preds = %header__1
   %12 = getelementptr { double, %String* }, { double, %String* }* %11, i64 0, i32 0
   %13 = getelementptr { double, %String* }, { double, %String* }* %11, i64 0, i32 1
   %14 = load %String*, %String** %13
-  call void @__quantum__rt__string_update_reference_count(%String* %14, i64 1)
   %15 = load double, double* %energy
   store double %15, double* %12
+  call void @__quantum__rt__string_update_reference_count(%String* %14, i64 1)
   call void @__quantum__rt__tuple_update_access_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)

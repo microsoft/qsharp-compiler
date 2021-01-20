@@ -22,7 +22,6 @@ entry:
   %9 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %10 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 0)
   %11 = bitcast i8* %10 to %Qubit**
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
   store %Qubit* %aux, %Qubit** %11
   %12 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %13 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 0)
@@ -30,6 +29,7 @@ entry:
   store %Qubit* %aux, %Qubit** %14
   call void @Microsoft__Quantum__Testing__QIR__DoNothing__ctl(%Array* %9, %Array* %12)
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
+  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)

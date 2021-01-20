@@ -72,10 +72,10 @@ exit__1:                                          ; preds = %header__1
   %36 = bitcast %Tuple* %35 to { %String*, double }*
   %37 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 0
   %38 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 1
-  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
   store %String* %str, %String** %37
   store double %val, double* %38
+  call void @__quantum__rt__string_update_reference_count(%String* %25, i64 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1

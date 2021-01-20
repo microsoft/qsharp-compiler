@@ -977,14 +977,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
-                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: false);
                 this.SharedState.SetCurrentBlock(trueBlock);
                 this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
                 var ifTrue = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
-                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: false);
                 this.SharedState.SetCurrentBlock(falseBlock);
                 this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
                 var ifFalse = this.SharedState.ValueStack.Pop();
@@ -1683,7 +1683,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             void PopulateItem(Value index)
             {
                 // We need to make sure that the reference count for the built item is increased by 1.
-                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: true);
                 var value = DefaultValue(elementType);
                 this.SharedState.ScopeMgr.CloseScope(value);
                 array.GetArrayElementPointer(index).StoreValue(value);

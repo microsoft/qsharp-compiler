@@ -820,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.uniqueNameIds.Clear();
-            this.ScopeMgr.OpenScope();
+            this.ScopeMgr.OpenScope(migratePendingReferences: false);
         }
 
         /// <summary>
@@ -1306,7 +1306,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
                 this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
 
-                this.ScopeMgr.OpenScope();
+                this.ScopeMgr.OpenScope(migratePendingReferences: false);
                 executeBody(this.CurrentFunction.Parameters);
                 this.ScopeMgr.CloseScope(isTerminated: false);
                 this.CurrentBuilder.Return();
@@ -1412,7 +1412,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We need to open the scope before creating the header block, since
                 // a) it is possible for the condition to perform an allocation that needs to get cleaned up, and
                 // b) we need to make sure that all pending reference count increases are executed before entering the loop.
-                this.ScopeMgr.OpenScope();
+                this.ScopeMgr.OpenScope(migratePendingReferences: false);
                 this.CurrentBuilder.Branch(headerBlock);
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
@@ -1429,7 +1429,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             bool PopulateLoopBody(Action executeBody)
             {
-                this.ScopeMgr.OpenScope();
+                this.ScopeMgr.OpenScope(migratePendingReferences: false);
                 this.SetCurrentBlock(bodyBlock);
                 executeBody();
                 var isTerminated = this.CurrentBlock?.Terminator != null;
@@ -1652,7 +1652,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void StartInlining()
         {
-            this.ScopeMgr.OpenScope();
+            this.ScopeMgr.OpenScope(migratePendingReferences: true);
             var inlineId = this.GenerateUniqueName("__inline");
             this.inlineLevels.Push((inlineId, this.Values.Unit));
         }
@@ -1763,7 +1763,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal IValue BuildSubitem(TypedExpression ex)
         {
-            this.ScopeMgr.OpenScope();
+            this.ScopeMgr.OpenScope(migratePendingReferences: true);
             this.Transformation.Expressions.OnTypedExpression(ex);
             var value = this.ValueStack.Pop();
             this.ScopeMgr.CloseScope(value);
