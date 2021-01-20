@@ -716,11 +716,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 catch (Exception ex)
                 {
-                    #if DEBUG
+#if DEBUG
                     this.LogException(ex);
-                    #else
-                    if (!suppressExceptionLogging) this.LogException(ex);
-                    #endif
+#else
+                    if (!suppressExceptionLogging)
+                    {
+                        this.LogException(ex);
+                    }
+#endif
                     return null;
                 }
             }
