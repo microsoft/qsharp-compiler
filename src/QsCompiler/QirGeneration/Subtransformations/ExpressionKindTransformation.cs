@@ -258,7 +258,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // While we avoid increasing the reference count here for items if unreferenceOriginal is set to true,
                     // we decrease the reference count for the original array itself at the end of the evaluation since
                     // we need the array to stay alive for the evaluation.
-                    sharedState.IterateThroughArray(array, item => sharedState.ScopeMgr.IncreaseReferenceCount(item));
+                    sharedState.ScopeMgr.IncreaseReferenceCount(array);
+                    sharedState.ScopeMgr.DecreaseReferenceCount(array, shallow: true);
                 }
 
                 // The getNewItemForIndex function is expected to increase the reference count of the item by 1.
