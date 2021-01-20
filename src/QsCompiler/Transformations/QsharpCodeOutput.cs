@@ -1101,19 +1101,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 var symbols = this.SymbolTuple(stm.Binding.Lhs);
                 var initializers = this.InitializerTuple(stm.Binding.Rhs);
-                string header;
-                if (stm.Kind.IsBorrow)
-                {
-                    header = Keywords.qsBorrowing.id;
-                }
-                else if (stm.Kind.IsAllocate)
-                {
-                    header = Keywords.qsUsing.id;
-                }
-                else
-                {
-                    throw new NotImplementedException("unknown qubit scope");
-                }
+                var header =
+#pragma warning disable 618
+                    stm.Kind.IsBorrow ? Keywords.qsBorrowing.id
+                    : stm.Kind.IsAllocate ? Keywords.qsUsing.id
+#pragma warning restore 618
+                    : throw new NotImplementedException("unknown qubit scope");
 
                 var intro = $"{header} ({symbols} = {initializers})";
                 this.AddBlockStatement(intro, stm.Body);

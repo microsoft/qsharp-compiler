@@ -18,6 +18,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
+#nowarn "44"
 
 // utils used for fragment construction
 

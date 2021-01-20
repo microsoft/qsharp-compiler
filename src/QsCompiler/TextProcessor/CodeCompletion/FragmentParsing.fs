@@ -19,8 +19,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ExpressionParsin
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitives
 
-#nowarn "40"
-
+#nowarn "40" "44"
 
 /// Parses a declaration modifier list.
 let private modifiers = expectedKeyword qsInternal
