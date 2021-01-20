@@ -155,14 +155,14 @@ let rec private qubitInitializerTuple =
 let private usingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
 
-    expectedKeyword qsUse <|>@ expectedKeyword qsUsing
+    expectedKeyword qsUse <|>@ hide (expectedKeyword qsUsing)
     ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses a borrowing-block intro.
 let private borrowingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
 
-    expectedKeyword qsBorrow <|>@ expectedKeyword qsBorrowing
+    expectedKeyword qsBorrow <|>@ hide (expectedKeyword qsBorrowing)
     ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses an operation specialization declaration.

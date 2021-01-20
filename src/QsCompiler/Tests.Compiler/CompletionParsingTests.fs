@@ -78,9 +78,7 @@ let private operationStatement =
     @ [
         Keyword "repeat"
         Keyword "use"
-        Keyword "using"
         Keyword "borrow"
-        Keyword "borrowing"
         Keyword "within"
     ]
 
