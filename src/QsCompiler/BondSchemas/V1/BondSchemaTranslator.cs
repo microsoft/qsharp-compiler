@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
 {
     /// <summary>
     /// This class translates compiler objects to Bond schema objects.

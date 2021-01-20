@@ -8,7 +8,7 @@ using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
 {
     /// <summary>
     /// This class translates Bond schema objects to C# compiler objects.

@@ -123,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 // TODO: This should be a call to the extended LoadSyntaxTree API.
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.QsCompilation));
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.V1.QsCompilation));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)

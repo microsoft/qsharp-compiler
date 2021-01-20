@@ -11,6 +11,7 @@ using Bond.Protocols;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
+    using BondQsCompilation = V1.QsCompilation;
     using SimpleBinaryDeserializer = Deserializer<SimpleBinaryReader<InputBuffer>>;
     using SimpleBinarySerializer = Serializer<SimpleBinaryWriter<OutputBuffer>>;
 
@@ -44,16 +45,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             Type bondType,
             Option[]? options = null)
         {
-            QsCompilation? bondCompilation = null;
+            BondQsCompilation? bondCompilation = null;
             var inputBuffer = new InputBuffer(byteArray);
             var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
             lock (BondSharedDataStructuresLock)
             {
                 var deserializer = GetSimpleBinaryDeserializer();
-                bondCompilation = deserializer.Deserialize<QsCompilation>(reader);
+                bondCompilation = deserializer.Deserialize<BondQsCompilation>(reader);
             }
 
-            return CompilerObjectTranslator.CreateQsCompilation(bondCompilation);
+            return Translators.FromBondSchemaToSyntaxTree(bondCompilation);
         }
 
         /// <summary>
@@ -64,15 +65,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                if (simpleBinaryDeserializerInitialization == null)
-                {
-                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
-                }
-
-                if (simpleBinarySerializerInitialization == null)
-                {
-                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
-                }
+                _ = TryInitializeDeserializer();
+                _ = TryInitializeSerializer();
             }
         }
 
@@ -84,10 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                if (simpleBinaryDeserializerInitialization == null)
-                {
-                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
-                }
+                _ = TryInitializeDeserializer();
             }
         }
 
@@ -99,10 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                if (simpleBinarySerializerInitialization == null)
-                {
-                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
-                }
+                _ = TryInitializeSerializer();
             }
         }
 
@@ -118,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             var outputBuffer = new OutputBuffer();
             var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
-            var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+            var bondCompilation = Translators.FromSyntaxTreeToBondSchema(qsCompilation);
             lock (BondSharedDataStructuresLock)
             {
                 var serializer = GetSimpleBinarySerializer();
@@ -142,6 +130,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return simpleBinaryDeserializerInitialization.Result;
         }
 
+        private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer(Type type)
+        {
+            VerifyLockAcquired(BondSharedDataStructuresLock);
+            Task<SimpleBinaryDeserializer> deserializerInitialization;
+            if (type == typeof(BondQsCompilation))
+            {
+                deserializerInitialization = TryInitializeDeserializer();
+            }
+            else
+            {
+                // TODO: Add a meaningful message.
+                throw new ArgumentException();
+            }
+
+            deserializerInitialization.Wait();
+            return deserializerInitialization.Result;
+        }
+
         private static SimpleBinarySerializer GetSimpleBinarySerializer()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
@@ -157,11 +163,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
+            // TODO: Maybe use this method to initialize everything by iterating through a dictionary.
 
             // inlineNested is false in order to decrease the time needed to initialize the deserializer.
             // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
             return Task.Run(() => new SimpleBinaryDeserializer(
-                type: typeof(QsCompilation),
+                type: typeof(BondQsCompilation),
                 factory: (Factory?)null,
                 inlineNested: false));
         }
@@ -169,7 +176,29 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            return Task.Run(() => new SimpleBinarySerializer(typeof(QsCompilation)));
+            return Task.Run(() => new SimpleBinarySerializer(typeof(BondQsCompilation)));
+        }
+
+        private static Task<SimpleBinaryDeserializer> TryInitializeDeserializer()
+        {
+            VerifyLockAcquired(BondSharedDataStructuresLock);
+            if (simpleBinaryDeserializerInitialization == null)
+            {
+                simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+            }
+
+            return simpleBinaryDeserializerInitialization;
+        }
+
+        private static Task<SimpleBinarySerializer> TryInitializeSerializer()
+        {
+            VerifyLockAcquired(BondSharedDataStructuresLock);
+            if (simpleBinarySerializerInitialization == null)
+            {
+                simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+            }
+
+            return simpleBinarySerializerInitialization;
         }
 
         private static void VerifyLockAcquired(object lockObject)
