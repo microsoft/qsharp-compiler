@@ -502,17 +502,17 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Deprecated qubit allocation keywords``() =
-        this.Expect "DeprecatedUsingKeyword" [ Warning WarningCode.DeprecatedKeyword ]
+        this.Expect "DeprecatedUsingKeyword" [ Warning WarningCode.DeprecatedQubitBindingKeyword ]
         this.Expect
             "DeprecatedUsingKeywordParens"
             [
-                Warning WarningCode.DeprecatedKeyword
+                Warning WarningCode.DeprecatedQubitBindingKeyword
                 Warning WarningCode.DeprecatedTupleBrackets
             ]
-        this.Expect "DeprecatedBorrowingKeyword" [ Warning WarningCode.DeprecatedKeyword ]
+        this.Expect "DeprecatedBorrowingKeyword" [ Warning WarningCode.DeprecatedQubitBindingKeyword ]
         this.Expect
             "DeprecatedBorrowingKeywordParens"
             [
-                Warning WarningCode.DeprecatedKeyword
+                Warning WarningCode.DeprecatedQubitBindingKeyword
                 Warning WarningCode.DeprecatedTupleBrackets
             ]

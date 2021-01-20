@@ -337,7 +337,7 @@ type WarningCode =
     | UseOfFutureReservedKeyword = 3304
     | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] UseOfUnderscorePattern = 3305
     | DeprecatedTupleBrackets = 3306
-    | DeprecatedKeyword = 3307
+    | DeprecatedQubitBindingKeyword = 3307
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001
@@ -902,7 +902,9 @@ type DiagnosticItem =
                 "Double underscores as well as underscores before a dot or at the end of a namespace name will be reserved for internal use in the future."
             | WarningCode.DeprecatedTupleBrackets ->
                 "Deprecated syntax. Parentheses here are no longer required and will not be supported in the future."
-            | WarningCode.DeprecatedKeyword -> "The \"{0}\" keyword is deprecated. Use the \"{1}\" keyword instead."
+            | WarningCode.DeprecatedQubitBindingKeyword ->
+                "The \"{0}\" keyword has been replaced with \"{1}\", and qubits may now be allocated without a block. "
+                + "Consider \"{1} q = Qubit();\" or \"{1} q = Qubit() {{ ... }}\"."
             | WarningCode.DeprecatedRUSloopInFunction ->
                 "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
 
