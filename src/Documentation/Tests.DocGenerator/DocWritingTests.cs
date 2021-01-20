@@ -12,6 +12,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 
+#pragma warning disable 618
+
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
     using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol>;

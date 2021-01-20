@@ -69,9 +69,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CodeMode,
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
+#pragma warning disable 618
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
         internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites.ToCapability();
+#pragma warning restore 618
 
         [Option(
             "build-exe",

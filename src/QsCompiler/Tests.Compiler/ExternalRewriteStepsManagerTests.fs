@@ -5,6 +5,8 @@ open Xunit
 open System.Collections.Generic
 open System.Collections.Immutable
 
+#nowarn "44"
+
 type TestRewriteStep(priority: int) =
     interface IRewriteStep with
         member this.AssemblyConstants: IDictionary<string, string> =

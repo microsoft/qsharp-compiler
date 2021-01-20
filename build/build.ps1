@@ -27,9 +27,10 @@ function Build-One {
         -v $Env:BUILD_VERBOSITY `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
-        /property:InformationalVersion=$Env:SEMVER_VERSION
+        /property:InformationalVersion=$Env:SEMVER_VERSION `
+        /property:TreatWarningsAsErrors=true
 
-    if  ($LastExitCode -ne 0) {
+    if ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to build $project."
         $script:all_ok = $False
     }
@@ -45,7 +46,7 @@ function Build-VSCode() {
         Try {
             npm ci
             npm run compile
-    
+
             if  ($LastExitCode -ne 0) {
                 throw
             }
@@ -69,11 +70,11 @@ function Build-VS() {
     if (Get-Command nuget -ErrorAction SilentlyContinue) {
         Try {
             nuget restore VisualStudioExtension.sln
-    
+
             if ($LastExitCode -ne 0) {
                 throw
             }
-            
+
             if (Get-Command msbuild -ErrorAction SilentlyContinue) {
                 Try {
                     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
@@ -86,7 +87,7 @@ function Build-VS() {
                         @args `
                         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
                         /property:InformationalVersion=$Env:SEMVER_VERSION
-    
+
                     if ($LastExitCode -ne 0) {
                         throw
                     }
@@ -131,4 +132,4 @@ if (-not $all_ok) {
     exit 1
 } else {
     exit 0
-} 
+}

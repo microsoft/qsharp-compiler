@@ -30,7 +30,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool ImplementsPostconditionVerification => true;
 
-
         /// <summary>
         /// Constructor for the Monomorphization Rewrite Step.
         /// </summary>

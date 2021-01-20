@@ -12,6 +12,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
+#nowarn "44"
+
 type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 

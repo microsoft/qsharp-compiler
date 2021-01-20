@@ -187,7 +187,9 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isBondV1ResourcePresent = true;
             }
+#pragma warning disable 618
             else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+#pragma warning restore 618
             {
                 isNewtonSoftResourcePresent = true;
             }
@@ -223,7 +225,9 @@ namespace Microsoft.Quantum.QsCompiler
             }
             else if (isNewtonSoftResourcePresent)
             {
+#pragma warning disable 618
                 return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+#pragma warning restore 618
             }
 
             return false;

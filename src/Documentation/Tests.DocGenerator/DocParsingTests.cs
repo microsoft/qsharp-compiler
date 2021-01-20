@@ -13,6 +13,8 @@ using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
+#pragma warning disable 618
+
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
     using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol>;

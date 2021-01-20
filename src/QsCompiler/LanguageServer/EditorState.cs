@@ -126,8 +126,10 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
+#pragma warning disable 618
             var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
                 ? result.ToCapability()
+#pragma warning restore 618
                 : RuntimeCapability.FullComputation;
 
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
