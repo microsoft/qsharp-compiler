@@ -6,18 +6,18 @@
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
-  
+
   <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
   <ItemDefinitionGroup>
-    <!-- Instead of using GeneratePathProperty="true" for each package reference, 
+    <!-- Instead of using GeneratePathProperty="true" for each package reference,
     we force packages containing compiler extensions or target-specific decompositions to include a .props file that defines this property,
     or users to explicitly specify it for that reference. -->
-    <PackageReference IsQscReference ="false" IsTargetPackage="false" /> 
+    <PackageReference IsQscReference ="false" IsTargetPackage="false" />
     <ProjectReference IsQscReference ="false" IsTargetPackage="false" />
   </ItemDefinitionGroup>
-  
 
-  <!-- Resolution of verified configurable properties. 
+
+  <!-- Resolution of verified configurable properties.
   These properties need to live here to ensure that they are evaluated after the properties defined by the project file. -->
 
   <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
@@ -47,12 +47,12 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
-  <!-- Resolving the RuntimeCapabilites to either QPRGen0, QPRGen1, or Unknown.-->
+  <!-- Resolving the RuntimeCapabilites to either BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
   <PropertyGroup>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">QPRGen0</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Unknown</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">FullComputation</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
@@ -78,50 +78,50 @@
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
-      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
-      <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
-      <ResolvedTargetSpecificDecompositions Include="@(_ResolvedTargetPackageReference->Split(`;`))" /> 
+      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" />
+      <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" />
+      <ResolvedTargetSpecificDecompositions Include="@(_ResolvedTargetPackageReference->Split(`;`))" />
     </ItemGroup>
     <Error Condition="@(_TargetPackageReference->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
-    <Error 
-      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_TargetPackageReference->Count()) &gt; 0" 
+    <Error
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_TargetPackageReference->Count()) &gt; 0"
       Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
-    <Message 
+    <Message
       Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package assembly: @(ResolvedTargetSpecificDecompositions)" 
-      Importance="High" /> 
-  </Target>  
+      Text="Resolved target package assembly: @(ResolvedTargetSpecificDecompositions)"
+      Importance="High" />
+  </Target>
 
   <!-- Computes ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. -->
   <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
       <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsQscReference)" />
-      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" /> 
-      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
-      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" />
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" />
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" />
     </ItemGroup>
     <!-- get the path property name for all relevant package references which are passed as qsc references -->
     <ItemGroup>
       <QscPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsQscReference)" />
-      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
-      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
-      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'QscRef_$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" />
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" />
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" />
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'QscRef_$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" />
     </ItemGroup>
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
       <_ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
-      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" />
       <_InvalidQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' == ''" />
       <ResolvedQscReferences Include="@(_ResolvedQscReferences->Split(`;`))" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
-      <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
+      <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" />
     </ItemGroup>
     <Warning Condition="@(_InvalidQscReferences->Count()) &gt; 0" Text="One or more qsc reference(s) could not be identified correctly due to a lack of the expected properties." />
-    <Message 
+    <Message
       Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))" 
-      Importance="High" /> 
-  </Target>  
+      Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))"
+      Importance="High" />
+  </Target>
 
 </Project>
