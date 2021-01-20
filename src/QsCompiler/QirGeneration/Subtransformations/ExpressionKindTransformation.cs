@@ -318,7 +318,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
                     var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    return sharedState.Values.FromTuple(copy, original.ElementTypes);
+                    return original.TypeName == null
+                        ? sharedState.Values.FromTuple(copy, original.ElementTypes)
+                        : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
                 }
 
                 var value = GetTupleCopy(originalValue);
@@ -975,15 +977,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
-                this.SharedState.SetCurrentBlock(trueBlock);
                 this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(trueBlock);
                 this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
                 var ifTrue = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
-                this.SharedState.SetCurrentBlock(falseBlock);
                 this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(falseBlock);
                 this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
                 var ifFalse = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch

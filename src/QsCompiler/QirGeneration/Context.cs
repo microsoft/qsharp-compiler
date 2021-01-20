@@ -880,7 +880,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!this.inlineLevels.Any())
             {
                 // The return value and its inner items either won't be unreferenced
-                // when exiting the scope or a reference will be added by ExitScope
+                // when exiting the function or a reference will be added by ExitScope
                 // before exiting the scope by since it will be used by the caller.
                 this.ScopeMgr.ExitFunction(returned: result);
 
@@ -1408,6 +1408,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // End the current block by branching into the header of the loop
                 BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
+
+                // We need to open the scope before creating the header block, since
+                // a) it is possible for the condition to perform an allocation that needs to get cleaned up, and
+                // b) we need to make sure that all pending reference count increases are executed before entering the loop.
+                this.ScopeMgr.OpenScope();
                 this.CurrentBuilder.Branch(headerBlock);
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
@@ -1415,9 +1420,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
-                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-                // expression to perform an allocation that needs to get cleaned up, so...
-                this.ScopeMgr.OpenScope();
                 var condition = evaluateCondition(loopVariable);
                 this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
 

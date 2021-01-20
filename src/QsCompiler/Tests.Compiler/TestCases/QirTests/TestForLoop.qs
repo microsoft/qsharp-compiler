@@ -3,7 +3,13 @@
 
 namespace Microsoft.Quantum.Testing.QIR {
 
-    function TestNestedLoops () : Double {
+    newtype Energy = (Abs : Double, Name : String);
+
+    function TestNestedLoops () : Energy {
+
+        let name = "energy";
+        mutable res = Energy(0.0, "");
+        set res w/= Name <- name;
 
         mutable energy = 0.0;
 
@@ -13,6 +19,6 @@ namespace Microsoft.Quantum.Testing.QIR {
             }
         }
 
-        return energy;
+        return res w/ Abs <- energy;
     }
 }

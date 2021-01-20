@@ -140,8 +140,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// assuming that the scope doesn't end with a return statement</param>
         private void ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
-            this.SharedState.SetCurrentBlock(block);
             this.SharedState.ScopeMgr.OpenScope();
+            this.SharedState.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
             var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
             this.SharedState.ScopeMgr.CloseScope(isTerminated);
@@ -373,9 +373,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(repeatBlock);
                 this.SharedState.SetCurrentBlock(repeatBlock);
-                this.SharedState.ScopeMgr.OpenScope();
                 this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
                 if (this.SharedState.CurrentBlock?.Terminator == null)
                 {
@@ -384,10 +384,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.SharedState.SetCurrentBlock(testBlock);
                 var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
+                this.SharedState.ScopeMgr.ApplyPendingReferences();
                 this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
-                // We need to make sure to properly invoke all calls to unreference, release, and remove access counts
+                // We need to make sure to properly invoke all calls to (un-)reference, release, and remove access counts
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope(false);
@@ -497,12 +498,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(testBlock);
                 this.SharedState.SetCurrentBlock(testBlock);
 
-                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-                // expression to perform an allocation that needs to get cleaned up, so...
-                this.SharedState.ScopeMgr.OpenScope();
                 var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
                 this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
                 this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);

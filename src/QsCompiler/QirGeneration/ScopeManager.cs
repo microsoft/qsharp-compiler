@@ -109,6 +109,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             /// <summary>
+            /// Returns true if the scope contains calls to reference values that have not been applied yet.
+            /// </summary>
+            public bool HasPendingReferences =>
+                this.pendingReferences.Any();
+
+            /// <summary>
             /// Executes all pending calls to increase reference counts.
             /// </summary>
             internal void ApplyPendingReferences()
@@ -157,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.requiredUnreferences.Exists(tracked => FilterByEquality(tracked, value));
 
             /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) => // [FIXME]
+            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
                 ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
 
             /// <summary>
@@ -168,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes) // [FIXME]
+            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes)
             {
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
@@ -187,6 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
+                // We need to apply the pending counts here to make sure they get applied even if nothing is unreferenced.
                 foreach (var scope in scopes)
                 {
                     scope.ApplyPendingReferences();
@@ -303,17 +310,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If the given function returns a function name for the given value,
-        /// applies the runtime function with that name to the given value, casting the value if necessary,
+        /// For each value for which the given function returns a function name,
+        /// applies the runtime function with that name to the value, casting the value if necessary.
         /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
         private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params (IValue, bool)[] values)
         {
-            void ProcessValue(string funcName, IValue value, bool recurIntoInnerItems)
+            foreach (var (value, recur) in values)
+            {
+                this.ModifyCounts(getFunctionName, change, value, recur);
+            }
+        }
+
+        /// <summary>
+        /// If the given function returns a function name for the given value,
+        /// applies the runtime function with that name to the given value, casting the value if necessary.
+        /// Recurs into contained items if the bool passed with the value is true.
+        /// </summary>
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, IValue value, bool recurIntoInnerItems)
+        {
+            void ProcessValue(string funcName, IValue value)
             {
                 if (value is PointerValue pointer)
                 {
-                    ProcessValue(funcName, pointer.LoadValue(), recurIntoInnerItems);
+                    ProcessValue(funcName, pointer.LoadValue());
                 }
                 else
                 {
@@ -326,7 +346,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             if (itemFuncName != null)
                             {
                                 var item = tuple.GetTupleElement(i);
-                                ProcessValue(itemFuncName, item, true);
+                                ProcessValue(itemFuncName, item);
                             }
                         }
                         arg = tuple.OpaquePointer;
@@ -336,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var itemFuncName = getFunctionName(array.LlvmElementType);
                         if (itemFuncName != null && recurIntoInnerItems)
                         {
-                            this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem, true));
+                            this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem));
                         }
                         arg = array.OpaquePointer;
                     }
@@ -359,21 +379,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            foreach (var value in values)
+            var func = getFunctionName(value.LlvmType);
+            if (func != null)
             {
-                var func = getFunctionName(value.Item1.LlvmType);
-                if (func != null)
+                if (change != this.plusOne)
                 {
-                    ProcessValue(func, value.Item1, value.Item2);
+                    this.scopes.Peek().ApplyPendingReferences();
                 }
+                ProcessValue(func, value);
             }
         }
 
         // public and internal methods
 
         /// <summary>
-        /// Opens a new scope and pushes it on top of the naming scope stack.
-        /// Opening a new scope automatically opens a new naming scope as well.
+        /// Opens a new scope and pushes it on top of the scope stack.
+        /// Adds all pending calls to increase reference counts to the current block.
         /// </summary>
         public void OpenScope()
         {
@@ -386,57 +407,73 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Closes the current scope by popping it off of the stack.
-        /// Closing the scope automatically also closes the current naming scope as well.
         /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
         /// </summary>
+        /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
-        {
-            var scope = this.scopes.Pop();
-            if (!isTerminated)
-            {
-                scope.ExecutePendingCalls();
-            }
-            else
-            {
-                 // [FIXME] validate that there are no pending references
-            }
-        }
-
-        /// <summary>
-        /// Closes the current scope by popping it off of the stack.
-        /// Closing the scope automatically also closes the current naming scope as well.
-        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
-        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
-        /// </summary>
-        public void CloseScope(IValue returned)
-        {
-            var scope = this.scopes.Pop();
-
-            if (!scope.WillBeUnreferenced(returned))
-            {
-                this.IncreaseReferenceCount(returned);
-            }
-
-            scope.ExecutePendingCalls(new List<IValue>() { returned });
-        }
-
-        /// <summary>
-        /// Exits the current scope by emitting the calls to unreference, release,
-        /// and/or decrease the access counts for values going out of scope,
-        /// decreasing access counts and invoking release functions if necessary.
-        /// Exiting the current scope does *not* close the scope.
-        /// </summary>
-        public void ExitScope(bool isTerminated)
         {
             var scope = this.scopes.Peek();
             if (!isTerminated)
             {
                 scope.ExecutePendingCalls();
             }
-            else
+            if (scope.HasPendingReferences)
             {
-                // [FIXME] validate that there are no pending references
+                throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
+            }
+            _ = this.scopes.Pop();
+        }
+
+        /// <summary>
+        /// Closes the current scope by popping it off of the stack.
+        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// </summary>
+        public void CloseScope(IValue returned, bool allowDelayReferencing = true)
+        {
+            var scope = this.scopes.Peek();
+            var skipUnreference = scope.WillBeUnreferenced(returned);
+
+            if (!allowDelayReferencing && !skipUnreference)
+            {
+                this.IncreaseReferenceCount(returned);
+            }
+
+            scope.ExecutePendingCalls(new List<IValue>() { returned });
+            _ = this.scopes.Pop();
+
+            if (allowDelayReferencing && !skipUnreference)
+            {
+                this.IncreaseReferenceCount(returned);
+            }
+        }
+
+        /// <summary>
+        /// Executes all pending calls to increase reference counts in the current scope.
+        /// </summary>
+        internal void ApplyPendingReferences() =>
+            this.scopes.Peek().ApplyPendingReferences();
+
+        /// <summary>
+        /// Exits the current scope by emitting the calls to unreference, release,
+        /// and/or decrease the access counts for values going out of scope,
+        /// decreasing access counts and invoking release functions if necessary.
+        /// Exiting the current scope does *not* close the scope.
+        /// All pending calls to increase reference counts for values need to be applied
+        /// using <see cref="ApplyPendingReferences"/> before exiting the scope.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
+        public void ExitScope(bool isTerminated)
+        {
+            var scope = this.scopes.Peek();
+            if (scope.HasPendingReferences)
+            {
+                throw new InvalidOperationException("cannot exit scope that has pending calls to increase reference counts");
+            }
+            if (!isTerminated)
+            {
+                scope.ExecutePendingCalls();
             }
         }
 
@@ -465,11 +502,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
-        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
-        {
-            this.scopes.Peek().ApplyPendingReferences();
-            this.ModifyCounts(this.ReferencesUpdateFunctionForType, change, (value, !shallow));
-        }
+        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false) =>
+            this.ModifyCounts(this.ReferencesUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
         /// Given a callable value, increases the reference count of its capture tuple by 1.
@@ -489,38 +523,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
         internal void IncreaseAccessCount(IValue value, bool shallow = false) =>
-            this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, (value, !shallow));
+            this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, bool shallow = false)
-        {
-            this.scopes.Peek().ApplyPendingReferences();
-            this.ModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, (value, !shallow));
-        }
+        internal void DecreaseAccessCount(IValue value, bool shallow = false) =>
+            this.ModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the access count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the access count</param>
         /// <param name="change">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false)
-        {
-            this.scopes.Peek().ApplyPendingReferences();
-            this.ModifyCounts(this.AccessUpdateFunctionForType, change, (value, !shallow));
-        }
+        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
+            this.ModifyCounts(this.AccessUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
         /// when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void RegisterValue(IValue value)
-        {
+        public void RegisterValue(IValue value) =>
             this.scopes.Peek().RegisterValue(value);
-        }
 
         /// <summary>
         /// Adds a value constructed as part of a qubit allocation to the current topmost scope.
