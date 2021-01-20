@@ -19,7 +19,7 @@ steps:
   displayName: 'Use .NET 5 SDK'
   inputs:
     packageType: sdk
-    version: '5.0.101'
+    version: '5.0.102'
 
 - task: UseDotNet@2
   displayName: 'Use .NET Core 3.1 runtime'
