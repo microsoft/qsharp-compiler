@@ -74,13 +74,7 @@ let private callableStatement =
 let private functionStatement = callableStatement @ [ Keyword "while" ]
 
 let private operationStatement =
-    callableStatement
-    @ [
-        Keyword "repeat"
-        Keyword "use"
-        Keyword "borrow"
-        Keyword "within"
-    ]
+    callableStatement @ [ Keyword "repeat"; Keyword "use"; Keyword "borrow"; Keyword "within" ]
 
 let private operationTopLevelStatement =
     operationStatement @ [ Keyword "body"; Keyword "adjoint"; Keyword "controlled" ]
