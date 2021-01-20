@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -157,7 +157,7 @@ seeAlso:
                 MakeFullName("GeneratorIndex"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                NonNullable<string>.New("GeneratorRepresentation.qs"),
+                new Source("GeneratorRepresentation.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 baseType,
                 typeItems,
@@ -176,7 +176,7 @@ seeAlso:
         {
             static ArgDeclType BuildArgument(string name, ResolvedType t)
             {
-                var validName = QsLocalSymbol.NewValidName(NonNullable<string>.New(name));
+                var validName = QsLocalSymbol.NewValidName(name);
                 var info = new InferredExpressionInformation(false, false);
                 return new ArgDeclType(validName, t, info, QsNullable<Position>.Null, Range.Zero);
             }
@@ -314,7 +314,7 @@ output:
             var doubleType = ResolvedType.New(QsType.Double);
             var oracleType = ResolvedType.New(QsType.NewUserDefinedType(new UserDefinedType(
                 CanonName,
-                NonNullable<string>.New("DiscreteOracle"),
+                "DiscreteOracle",
                 QsNullable<Range>.Null)));
             var noInfo = CallableInformation.NoInformation;
             var acFunctors = ResolvedCharacteristics.FromProperties(new[] { OpProperty.Adjointable, OpProperty.Controllable });
@@ -349,7 +349,7 @@ output:
                 MakeFullName("AdiabaticStateEnergyUnitary"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 new Modifiers(AccessModifier.DefaultAccess),
-                NonNullable<string>.New("Techniques.qs"),
+                new Source("Techniques.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 signature,
                 argTuple,

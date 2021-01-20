@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -63,8 +63,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// ignoring any attribute annotations unless ignorePrecedingAttributes is set to false.
         /// Documenting comments may be separated by an empty lines.
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
-        /// Throws an ArgumentException if the given position is not a valid position within the given file.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
             if (!file.ContainsPosition(pos))
@@ -170,8 +170,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given a collection of positioned items, returns the closest proceeding item for the given position.
-        /// Throws an ArgumentException if no item precedes the given position.
         /// </summary>
+        /// <exception cref="ArgumentException">No item precedes <paramref name="pos"/>.</exception>
         private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
         {
             var preceding = items.TakeWhile(tuple => tuple.Item1 < pos);
@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static List<(TItem, HeaderEntry<THeader>)> AddItems<TItem, THeader>(
             IEnumerable<(TItem, HeaderEntry<THeader>)> itemsToAdd,
-            Func<Position, Tuple<NonNullable<string>, Range>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> add,
+            Func<Position, Tuple<string, Range>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> add,
             string fileName,
             List<Diagnostic> diagnostics)
         {
@@ -205,16 +205,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the given compilation with the information about all globally declared types and callables in the given file.
-        /// Adds the generated diagnostics to the given list of diagnostics.
+        /// Updates <paramref name="compilation"/> with the information about all globally declared types and callables in <paramref name="file"/>.
+        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
         /// Returns a lookup for all callables that are to be included in the compilation,
         /// with either a list of the token indices that contain its specializations to be included in the compilation,
         /// or a list consisting of the token index of the callable declaration, if the declaration does not contain any specializations.
         /// Note: This routine assumes that all empty or invalid fragments have been excluded from compilation prior to calling this routine.
-        /// Throws an InvalidOperationException if the given file is not at least read-locked,
-        /// since the returned token indices will only be valid until the next write operation that affects the tokens in the file.
-        /// Throws an InvalidOperationException if the lock for the given compilation cannot be set because a dependent lock is the gating lock ("outermost lock").
         /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="file"/> is not at least read-locked, since the returned token indices will only be valid until the next write
+        /// operation that affects the tokens in the file.
+        /// </exception>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?)> UpdateGlobalSymbols(
             this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
@@ -245,7 +249,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var typesToCompile = AddItems(
                     file.GetTypeDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddType(file.FileName, new QsLocation(pos, name.Item2), name, decl.Item2, att, decl.Item1, doc),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
 
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?))>();
@@ -259,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var callablesToCompile = AddItems(
                     file.GetCallableDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddCallableDeclaration(file.FileName, new QsLocation(pos, name.Item2), name, Tuple.Create(decl.Item1, decl.Item3), att, decl.Item2, doc),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
 
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
@@ -321,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 foreach (var msg in messages)
                 {
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, position));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName, msg, position));
                 }
             }
 
@@ -334,7 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var msgRange = Parsing.HeaderDelimiters(1).Invoke(statement.Text);
                     var msg = QsCompilerDiagnostic.Error(ErrorCode.NotWithinSpecialization, Enumerable.Empty<string>(), msgRange);
-                    diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, statement.Range.Start));
+                    diagnostics.Add(Diagnostics.Generate(file.FileName, msg, statement.Range.Start));
                 }
             }
 
@@ -372,19 +376,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
-            void AddDiagnostics(NonNullable<string> source, IEnumerable<QsCompilerDiagnostic> msgs) =>
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source.Value, msg)));
+            void AddDiagnostics(string source, IEnumerable<QsCompilerDiagnostic> msgs) =>
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(source, msg)));
 
             if (fileName != null)
             {
-                var key = NonNullable<string>.New(fileName);
-                if (declDiagnostics.Contains(key))
+                if (declDiagnostics.Contains(fileName))
                 {
-                    AddDiagnostics(key, declDiagnostics[key]);
+                    AddDiagnostics(fileName, declDiagnostics[fileName]);
                 }
-                if (cycleDiagnostics.Contains(key))
+                if (cycleDiagnostics.Contains(fileName))
                 {
-                    AddDiagnostics(key, cycleDiagnostics[key]);
+                    AddDiagnostics(fileName, cycleDiagnostics[fileName]);
                 }
             }
             else
@@ -403,8 +406,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Updates the symbol information in the given compilation unit with all (validly placed) open directives in the given file,
         /// and adds the generated diagnostics for the given file *only* to the given list of diagnostics.
-        /// Throws an InvalidOperationException if the lock for the given compilation cannot be set because a dependent lock is the gating lock ("outermost lock").
         /// </summary>
+        /// <exception cref="InvalidOperationException">The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").</exception>
         internal static void ImportGlobalSymbols(this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
             // While in principle the file does not need to be externally locked for this routine to evaluate correctly,
@@ -418,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
                     (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
-                    file.FileName.Value,
+                    file.FileName,
                     diagnostics);
             }
             finally
@@ -430,9 +433,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Builds a FragmentTree containting the given grouping of token indices for a certain parent.
         /// Assumes that all given token indices are associated with the given file.
-        /// Throws an InvalidOperationException if the given file is not at least read-locked,
-        /// since token indices are only ever valid until the next write operation to the file they are associated with.
         /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="file"/> is not at least read-locked, since token indices are only ever valid until the next write operation to the file they are associated with.
+        /// </exception>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> GetDeclarationTrees(
             this FileContentManager file,
             ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?)> content)
@@ -460,8 +464,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return (item.Key, item.Value.Item1, nodes);
             });
             return specRoots.ToImmutableDictionary(
-                spec => spec.Item1,
-                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Item1.Namespace, spec.Item1.Name, spec.Item3)));
+                spec => spec.Key,
+                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Key.Namespace, spec.Key.Name, spec.nodes)));
         }
 
         /// <summary>
@@ -501,7 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var messages = diagnostics.ToLookup(d => d.Source);
                 foreach (var file in files)
                 {
-                    file.ReplaceHeaderDiagnostics(messages[file.FileName.Value]);
+                    file.ReplaceHeaderDiagnostics(messages[file.FileName]);
                 }
 
                 // return the declaration content of all files and callables
@@ -527,16 +531,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope.
         /// </summary>
         private static QsScope BuildScope(
-            IReadOnlyList<FragmentTree.TreeNode> nodeContent,
+            IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
             List<Diagnostic> diagnostics,
-            ImmutableHashSet<QsFunctor>? requiredFunctorSupport = null)
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
         {
             var inheritedSymbols = context.Symbols.CurrentDeclarations;
-            context.Symbols.BeginScope(requiredFunctorSupport);
-            var statements = BuildStatements(nodeContent.GetEnumerator(), context, diagnostics);
+            context.Symbols.BeginScope(requiredFunctors);
+            var statements = BuildStatements(nodes, context, diagnostics);
             context.Symbols.EndScope();
             return new QsScope(statements, inheritedSymbols);
+        }
+
+        /// <summary>
+        /// If the current node is not followed by an opening bracket, builds a scope that implicitly starts with the
+        /// statement after the current node, and continues until the end of the current scope. Otherwise, builds a
+        /// scope using the current node's children.
+        /// </summary>
+        /// <seealso cref="BuildScope"/>
+        private static QsScope BuildImplicitScope(
+            IEnumerator<FragmentTree.TreeNode> nodes,
+            ScopeContext context,
+            List<Diagnostic> diagnostics,
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
+        {
+            var children = nodes.Current.Fragment.FollowedBy == '{'
+                ? nodes.Current.Children.GetEnumerator()
+                : nodes;
+
+            return BuildScope(children, context, diagnostics, requiredFunctors);
         }
 
         /// <summary>
@@ -553,7 +576,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var statementPos = node.Fragment.Range.Start;
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, messages) = build(location, context);
-            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile.Value, msg, statementPos)));
+            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile, msg, statementPos)));
             return statement;
         }
 
@@ -568,8 +591,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildUsingStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -590,8 +613,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewAllocateScope(nodes.Current.Fragment.Comments, relPos, ctx, allocate.Item1, allocate.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = allocationScope(body);
+                statement = allocationScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -611,8 +633,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildBorrowStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -633,8 +655,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewBorrowScope(nodes.Current.Fragment.Comments, relPos, ctx, borrow.Item1, borrow.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = borrowingScope(body);
+                statement = borrowingScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -654,9 +675,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope,
-        /// or if the repeat header is not followed by a until-success clause.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="context"/> does not currently contain an open scope, or the repeat header is not followed by a until-success clause.
+        /// </exception>
         private static bool TryBuildRepeatStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -722,8 +744,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildForStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -744,7 +766,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, symbols) => Statements.NewForStatement(nodes.Current.Fragment.Comments, relPos, symbols, forStatement.Item1, forStatement.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = forLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -765,8 +787,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildWhileStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -787,7 +809,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewWhileStatement(nodes.Current.Fragment.Comments, relPos, ctx, whileStatement.Item),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = whileLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -808,8 +830,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildIfStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -832,7 +854,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
                     context.WithinIfCondition,
                     diagnostics);
-                var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
+                var ifBlock = buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics));
 
                 // elif blocks
                 proceed = nodes.MoveNext();
@@ -844,7 +866,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
                         context.WithinIfCondition,
                         diagnostics);
-                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
+                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics)));
                     proceed = nodes.MoveNext();
                 }
 
@@ -852,7 +874,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = QsNullable<QsPositionedBlock>.Null;
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
-                    var scope = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var scope = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var elseLocation = new QsLocation(nodes.Current.RelativePosition, nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
@@ -877,8 +899,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildConjugationStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -899,16 +921,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
                 // independent on what functor specializations need to be auto-generated for the containing operation.
                 var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
-                var outerTranformation = BuildScope(nodes.Current.Children, context, diagnostics, requiredFunctorSupport);
+                var outerTranformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics, requiredFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
-                    var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var innerTransformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
                     diagnostics.AddRange(built.Item2.Select(diagnostic => Diagnostics.Generate(
-                        context.Symbols.SourceFile.Value, diagnostic, nodes.Current.RootPosition)));
+                        context.Symbols.SourceFile, diagnostic, nodes.Current.RootPosition)));
 
                     statement = built.Item1;
                     proceed = nodes.MoveNext();
@@ -934,8 +956,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildLetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -973,8 +995,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildMutableStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1012,8 +1034,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildSetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1051,8 +1073,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildFailStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1090,8 +1112,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildReturnStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1129,8 +1151,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. it is set to true if either the iterator has not been moved (no statement built),
         /// or if the last MoveNext() returned true, and is otherwise set to false.
         /// This routine will fail if accessing the current iterator item fails.
-        /// Throws an ArgumentException if the given scope context does not currently contain an open scope.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
         private static bool TryBuildExpressionStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1161,10 +1183,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given a sequence of tree nodes, builds the corrsponding array of Q# statements (ignoring invalid fragments)
         /// using and updating the given scope context and adding the generated diagnostics to the given list of diagnostics,
         /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
-        /// Throws an ArgumentException if this is not the case,
-        /// or if the given scope context does not currently contain an open scope.
-        /// or if any of the fragments contained in the given nodes is null.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Any statement is missing a header or a required continuation, or <paramref name="context"/> does not currently contain an open scope,
+        /// or any of the fragments in <paramref name="nodes"/> is null.
+        /// </exception>
         private static ImmutableArray<QsStatement> BuildStatements(
             IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext context, List<Diagnostic> diagnostics)
         {
@@ -1256,7 +1279,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root,
-            NonNullable<string> sourceFile,
+            string sourceFile,
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             ScopeContext context,
@@ -1278,10 +1301,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var msgs = context.Symbols.TryAddVariableDeclartion(decl).Item2;
                 var position = specPos + decl.Position.Item;
-                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile.Value, msg, position)));
+                diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile, msg, position)));
             }
 
-            var implementation = BuildScope(root.Children, context, diagnostics);
+            var implementation = BuildScope(root.Children.GetEnumerator(), context, diagnostics);
             context.Symbols.EndScope();
 
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
@@ -1289,16 +1312,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(
-                returnDiagnostics
-                    .Concat(capabilityDiagnostics)
-                    .Select(msg => Diagnostics.Generate(sourceFile.Value, msg, rootPosition)));
-            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            diagnostics.AddRange(returnDiagnostics
+                .Concat(capabilityDiagnostics)
+                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, rootPosition)));
+            if (!context.ReturnType.Resolution.IsUnitType && !context.ReturnType.Resolution.IsInvalidType && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
-                diagnostics.Add(Diagnostics.Generate(sourceFile.Value, missingReturn, specPos));
+                diagnostics.Add(Diagnostics.Generate(sourceFile, missingReturn, specPos));
             }
+
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
 
@@ -1369,9 +1392,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given root is a callable declaration, a default body specialization with its children as the implementation is returned -
         /// provided the children are exclusively valid statements. Fails with the corresponding exception otherwise.
         /// Adds the generated diagnostics to the given list of diagnostics.
-        /// Throws an ArgumentException if the given root is neither a specialization declaration, nor a callable declaration,
-        /// or if the callable the specialization belongs to does not support that specialization according to the given NamespaceManager.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or the callable the specialization
+        /// belongs to does not support that specialization according to the given <see cref="NamespaceManager"/>.
+        /// </exception>
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
             FragmentTree specsRoot,
             ResolvedSignature parentSignature,
@@ -1399,7 +1424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     spec.Kind,
                     spec.Parent,
                     spec.Attributes,
-                    spec.SourceFile,
+                    spec.Source,
                     QsNullable<QsLocation>.Null,
                     spec.TypeArguments,
                     SyntaxGenerator.WithoutRangeInfo(signature),
@@ -1429,7 +1454,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
-                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
+                        diagnostics.Add(Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, msg, specPos));
                     }
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
@@ -1440,7 +1465,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compilation.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
-                        root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
+                        root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
@@ -1615,14 +1640,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.Source.AssemblyOrCodeFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
                         var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                         QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, offset));
+                            .Select(msg => Diagnostics.Generate(info.Source.AssemblyOrCodeFile, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
@@ -1632,7 +1657,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         parent,
                         info.Attributes,
                         info.Modifiers,
-                        info.SourceFile,
+                        info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
                         info.ArgumentTuple,
@@ -1646,7 +1671,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl.Key,
                     decl.Value.Attributes,
                     decl.Value.Modifiers,
-                    decl.Value.SourceFile,
+                    decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,
                     decl.Value.TypeItems,
@@ -1679,7 +1704,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (callableDeclarations.TryGetValue(parent, out var info))
                 {
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile.Value, diag, offset));
+                    diagnostics.Add(Diagnostics.Generate(info.Source.AssemblyOrCodeFile, diag, offset));
                 }
             }
         }
@@ -1701,9 +1726,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// for which the returned set of local variables are valid!
         /// The given relative position is expected to be relative to the beginning of the specialization declaration -
         /// or rather to be consistent with the position information saved for statements.
-        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
-        /// or if the given relative position is not a valid position.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
+        /// </exception>
         private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
             this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
         {
@@ -1780,9 +1806,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Whether the given relative position is indeed within a statement that declares local variables is not verified.
         /// The given relative position is expected to be relative to the beginning of the specialization declaration -
         /// or rather to be consistent with the position information saved for statements.
-        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
-        /// or if the given relative position is not a valid position.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
+        /// </exception>
         internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
 
@@ -1795,9 +1822,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or rather to be consistent with the position information saved for statements.
         /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
-        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
-        /// or if the given relative position is not a valid position.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
+        /// </exception>
         internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
 
@@ -1807,9 +1835,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The given relative position is expected to be relative to the beginning of the specialization declaration -
         /// or rather to be consistent with the position information saved for statements.
         /// If the given position lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
-        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
-        /// or if the given relative position is not a valid position.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or relativePosition is not a valid position.
+        /// </exception>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;
 
@@ -1836,7 +1865,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (oldHeader, oldImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var contentTokens = file.UpdateGlobalSymbols(compilation, diagnostics);
                 file.ImportGlobalSymbols(compilation, diagnostics);
-                ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName.Value);
+                ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName);
                 var (newHeader, newImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var (sameHeader, sameImports) = (oldHeader == newHeader, oldImports == newImports);
                 file.ReplaceHeaderDiagnostics(diagnostics);
@@ -1878,7 +1907,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var numCycleDiagnosticsChange = file.CurrentSemanticDiagnostics().Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution))
                 - diagnostics.Count(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
 
-            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName.Value))
+            if (numCycleDiagnosticsChange != 0 || diagnostics.Any(x => x.Source != file.FileName))
             {
                 file.TriggerGlobalTypeChecking();
             }

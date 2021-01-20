@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using CommandLine;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -32,21 +31,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "trim",
             Required = false,
             Default = DefaultOptions.TrimLevel,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
         public int TrimLevel { get; set; }
 
         [Option(
             "load",
             Required = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
         public IEnumerable<string>? Plugins { get; set; }
 
         [Option(
             "target-specific-decompositions",
             Required = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
         public IEnumerable<string>? TargetSpecificDecompositions { get; set; }
 
@@ -54,21 +53,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "load-test-names",
             Required = false,
             Default = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
         public bool ExposeReferencesViaTestNames { get; set; }
 
         [Option(
             "assembly-properties",
             Required = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
             "runtime",
             Required = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
@@ -78,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "build-exe",
             Required = false,
             Default = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Specifies whether to build a Q# command line application.")]
         public bool MakeExecutable { get; set; }
 
@@ -111,9 +110,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         }
 
         // Note: items in one set are mutually exclusive with items from other sets
-        protected const string CODE_MODE = "codeMode";
-        protected const string SNIPPET_MODE = "snippetMode";
-        protected const string RESPONSE_FILES = "responseFiles";
+        protected const string CodeMode = "codeMode";
+        protected const string SnippetMode = "snippetMode";
+        protected const string ResponseFiles = "responseFiles";
 
         [Option(
             'v',
@@ -134,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             'i',
             "input",
             Required = true,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Q# code or name of the Q# file to compile.")]
         public IEnumerable<string>? Input { get; set; }
 
@@ -142,7 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             's',
             "snippet",
             Required = true,
-            SetName = SNIPPET_MODE,
+            SetName = SnippetMode,
             HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
         public string? CodeSnippet { get; set; }
 
@@ -151,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "within-function",
             Required = false,
             Default = false,
-            SetName = SNIPPET_MODE,
+            SetName = SnippetMode,
             HelpText = "Specifies whether a given Q# snipped occurs within a function")]
         public bool WithinFunction { get; set; }
 
@@ -174,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         [Option(
             "package-load-fallback-folders",
             Required = false,
-            SetName = CODE_MODE,
+            SetName = CodeMode,
             HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
         public IEnumerable<string>? PackageLoadFallbackFolders { get; set; }
 
@@ -253,35 +252,29 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// text document identifier used to identify the code snippet in diagnostic mode
         /// </summary>
-        private static readonly Uri SNIPPET_FILE_URI = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
+        private static readonly Uri SnippetFileUri = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
 
-        private static NonNullable<string> SNIPPET_FILE_ID
-        {
-            get
-            {
-                QsCompilerError.Verify(
-                    CompilationUnitManager.TryGetFileId(SNIPPET_FILE_URI, out NonNullable<string> id),
-                    "invalid code snippet id");
-                return id;
-            }
-        }
+        private static string SnippetFileId =>
+            QsCompilerError.RaiseOnFailure(
+                () => CompilationUnitManager.GetFileId(SnippetFileUri),
+                "invalid code snippet id");
 
         /// <summary>
         /// name of the namespace within which code snippets are compiled
         /// </summary>
-        private const string SNIPPET_NAMESPACE = "CODE_SNIPPET_NS";
+        private const string SnippetNamespace = "CODE_SNIPPET_NS";
 
         /// <summary>
         /// name of the callable within which code snippets are compiled
         /// </summary>
-        private const string SNIPPET_CALLABLE = "CODE_SNIPPET_CALLABLE";
+        private const string SnippetCallable = "CODE_SNIPPET_CALLABLE";
 
         /// <summary>
         /// wraps the given content into a namespace and callable that maps Unit to Unit
         /// </summary>
         public static string AsSnippet(string content, bool inFunction = false) =>
-            $"{Declarations.Namespace} {SNIPPET_NAMESPACE} {{ \n " +
-            $"{(inFunction ? Declarations.Function : Declarations.Operation)} {SNIPPET_CALLABLE} () : {Types.Unit} {{ \n" +
+            $"{Declarations.Namespace} {SnippetNamespace} {{ \n " +
+            $"{(inFunction ? Declarations.Function : Declarations.Operation)} {SnippetCallable} () : {Types.Unit} {{ \n" +
             $"{content} \n" + // no indentation such that position info is accurate
             $"}} \n" +
             $"}}";
@@ -289,8 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Helper function that returns true if the given file id is consistent with the one for a code snippet.
         /// </summary>
-        public static bool IsCodeSnippet(NonNullable<string> fileId) =>
-            fileId.Value == SNIPPET_FILE_ID.Value;
+        public static bool IsCodeSnippet(string fileId) => fileId == SnippetFileId;
 
         /// <summary>
         /// Returns a function that given a routine for loading files from disk,
@@ -308,7 +300,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
             else if (this.CodeSnippet != null && !input.Any())
             {
-                return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
+                return new Dictionary<Uri, string> { { SnippetFileUri, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary();
             }
 
             if (!input.Any())

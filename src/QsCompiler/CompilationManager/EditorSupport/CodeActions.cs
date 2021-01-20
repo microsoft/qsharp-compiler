@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -34,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new WorkspaceEdit
             {
                 DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits } },
-                Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, edits } }
+                Changes = new Dictionary<string, TextEdit[]> { { file.FileName, edits } }
             };
         }
 
@@ -47,14 +46,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         ///
         /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> IdNamespaceSuggestions(
+        private static IEnumerable<string> IdNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? idName)
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
             idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
             return idName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName))
-                : ImmutableArray<NonNullable<string>>.Empty;
+                ? compilation.GlobalSymbols.NamespacesContainingCallable(idName)
+                : ImmutableArray<string>.Empty;
         }
 
         /// <summary>
@@ -66,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         ///
         /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
-        private static IEnumerable<NonNullable<string>> TypeNamespaceSuggestions(
+        private static IEnumerable<string> TypeNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
             var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
@@ -74,8 +73,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
             return typeName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName))
-                : ImmutableArray<NonNullable<string>>.Empty;
+                ? compilation.GlobalSymbols.NamespacesContainingType(typeName)
+                : ImmutableArray<string>.Empty;
         }
 
         /// <summary>
@@ -87,7 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             IEnumerable<string> AlternateNames(string name) =>
                 from callable in compilation.GlobalSymbols.AccessibleCallables()
-                let otherName = callable.QualifiedName.Name.Value
+                let otherName = callable.QualifiedName.Name
                 where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
                 select otherName;
 
@@ -104,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             IEnumerable<string> AlternateNames(string name) =>
                 from type in compilation.GlobalSymbols.AccessibleTypes()
-                let otherName = type.QualifiedName.Name.Value
+                let otherName = type.QualifiedName.Name
                 where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
                 select otherName;
 
@@ -146,7 +145,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
         /// Returns an empty enumerable if suitable edits could not be determined.
         /// </summary>
-        private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<NonNullable<string>> namespaces)
+        private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<string> namespaces)
         {
             // determine the first fragment in the containing namespace
             var nsElements = file?.NamespaceDeclarationTokens()
@@ -175,9 +174,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{(string.IsNullOrWhiteSpace(indentationAfterOpenDir) ? indentationAfterOpenDir : "    ")}";
 
             // construct a suitable edit
-            return namespaces.Distinct().Where(ns => !openDirs.Contains(ns.Value, null)).Select(suggestedNS => // filter all namespaces that are already open
+            return namespaces.Distinct().Where(ns => !openDirs.Contains(ns, null)).Select(suggestedNS => // filter all namespaces that are already open
             {
-                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
+                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS}";
                 return new TextEdit
                 {
                     Range = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() },
@@ -205,16 +204,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
 
-            (string, WorkspaceEdit)? SuggestedNameQualification(NonNullable<string> suggestedNS, string? id, Position pos)
+            (string, WorkspaceEdit)? SuggestedNameQualification(string suggestedNS, string? id, Position pos)
             {
                 var edit = new TextEdit
                 {
                     Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() },
-                    NewText = $"{suggestedNS.Value}."
+                    NewText = $"{suggestedNS}."
                 };
                 return id is null
                     ? null as (string, WorkspaceEdit)?
-                    : ($"{suggestedNS.Value}.{id}", file.GetWorkspaceEdit(edit));
+                    : ($"{suggestedNS}.{id}", file.GetWorkspaceEdit(edit));
             }
 
             var suggestedIdQualifications = ambiguousCallables
@@ -428,7 +427,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // .. to and identifier ..
                 callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier &&
                 // .. "Length" called with ..
-                identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == BuiltIn.Length.FullName.Name.Value &&
+                identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item == BuiltIn.Length.FullName.Name &&
                 // .. a valid argument tuple
                 callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)
             {
@@ -462,7 +461,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var indexRange = compilation.GlobalSymbols.TryGetCallable(
                 BuiltIn.IndexRange.FullName,
-                NonNullable<string>.New(nsName),
+                nsName,
                 file.FileName);
             if (!indexRange.IsFound)
             {
@@ -479,7 +478,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     yield return new TextEdit
                     {
                         Range = new Lsp.Range { Start = iterExprRange.Start.ToLsp(), End = argTupleRange.Start.ToLsp() },
-                        NewText = BuiltIn.IndexRange.FullName.Name.Value
+                        NewText = BuiltIn.IndexRange.FullName.Name
                     };
                     yield return new TextEdit
                     {

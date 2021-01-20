@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -36,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The value of the string literal is set to the empty string if the given content is null.
         /// </summary>
         public static TypedExpression StringArgument(string content) =>
-            SyntaxGenerator.StringLiteral(NonNullable<string>.New(content ?? ""), ImmutableArray<TypedExpression>.Empty);
+            SyntaxGenerator.StringLiteral(content, ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
         /// Builds an attribute argument with the given string valued tuple items.

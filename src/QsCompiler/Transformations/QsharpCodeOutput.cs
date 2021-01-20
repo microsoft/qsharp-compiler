@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -29,18 +29,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     public class TransformationContext
     {
         public string? CurrentNamespace;
-        public ImmutableHashSet<NonNullable<string>> OpenedNamespaces;
-        public ImmutableDictionary<NonNullable<string>, NonNullable<string>> NamespaceShortNames; // mapping namespace names to their short names
-        public ImmutableHashSet<NonNullable<string>> SymbolsInCurrentNamespace;
-        public ImmutableHashSet<NonNullable<string>> AmbiguousNames;
+        public ImmutableHashSet<string> OpenedNamespaces;
+        public ImmutableDictionary<string, string> NamespaceShortNames; // mapping namespace names to their short names
+        public ImmutableHashSet<string> SymbolsInCurrentNamespace;
+        public ImmutableHashSet<string> AmbiguousNames;
 
         public TransformationContext()
         {
             this.CurrentNamespace = null;
-            this.OpenedNamespaces = ImmutableHashSet<NonNullable<string>>.Empty;
-            this.NamespaceShortNames = ImmutableDictionary<NonNullable<string>, NonNullable<string>>.Empty;
-            this.SymbolsInCurrentNamespace = ImmutableHashSet<NonNullable<string>>.Empty;
-            this.AmbiguousNames = ImmutableHashSet<NonNullable<string>>.Empty;
+            this.OpenedNamespaces = ImmutableHashSet<string>.Empty;
+            this.NamespaceShortNames = ImmutableDictionary<string, string>.Empty;
+            this.SymbolsInCurrentNamespace = ImmutableHashSet<string>.Empty;
+            this.AmbiguousNames = ImmutableHashSet<string>.Empty;
         }
     }
 
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public static string DeclarationSignature(QsCallable c, Func<ResolvedType, string?> typeTransformation, Action? onInvalidName = null)
         {
             var argTuple = ArgumentTuple(c.ArgumentTuple, typeTransformation, onInvalidName);
-            return $"{c.FullName.Name.Value}{NamespaceTransformation.TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
+            return $"{c.FullName.Name}{NamespaceTransformation.TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
         }
 
         /// <summary>
@@ -179,19 +179,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// -> IMPORTANT: The given namespace is expected to contain *all* elements in that namespace for the *entire* compilation unit!
         /// </summary>
         public static bool Apply(
-            out List<ImmutableDictionary<NonNullable<string>, string>> generatedCode,
+            out List<ImmutableDictionary<string, string>> generatedCode,
             IEnumerable<QsNamespace> namespaces,
-            params (NonNullable<string>, ImmutableDictionary<NonNullable<string>, ImmutableArray<(NonNullable<string>, string?)>>)[] openDirectives)
+            params (string, ImmutableDictionary<string, ImmutableArray<(string, string?)>>)[] openDirectives)
         {
-            generatedCode = new List<ImmutableDictionary<NonNullable<string>, string>>();
+            generatedCode = new List<ImmutableDictionary<string, string>>();
             var symbolsInNS = namespaces.ToImmutableDictionary(ns => ns.Name, ns => ns.Elements
-                .SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name.Value)
-                .Select(name => NonNullable<string>.New(name)).ToImmutableHashSet());
+                .SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name)
+                .ToImmutableHashSet());
 
             var success = true;
             foreach (var (sourceFile, imports) in openDirectives)
             {
-                var nsInFile = new Dictionary<NonNullable<string>, string>();
+                var nsInFile = new Dictionary<string, string>();
                 foreach (var ns in namespaces)
                 {
                     var tree = FilterBySourceFile.Apply(ns, sourceFile);
@@ -210,10 +210,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     var openedNS = imports[ns.Name].Where(o => o.Item2 == null).Select(o => o.Item1).ToImmutableHashSet();
                     var nsShortNames = imports[ns.Name]
                         .SelectNotNull(o => o.Item2?.Apply(item2 => (o.Item1, item2)))
-                        .ToImmutableDictionary(o => o.Item1, o => NonNullable<string>.New(o.Item2));
+                        .ToImmutableDictionary(o => o.Item1, o => o.item2);
                     var context = new TransformationContext
                     {
-                        CurrentNamespace = ns.Name.Value,
+                        CurrentNamespace = ns.Name,
                         OpenedNamespaces = openedNS,
                         NamespaceShortNames = nsShortNames,
                         SymbolsInCurrentNamespace = symbolsInNS[ns.Name],
@@ -433,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
-                this.Output = $"'{tp.TypeName.Value}";
+                this.Output = $"'{tp.TypeName}";
                 return QsTypeKind.NewTypeParameter(tp);
             }
 
@@ -447,12 +447,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
-                var isInCurrentNamespace = udt.Namespace.Value == this.SharedState.Context.CurrentNamespace;
+                var isInCurrentNamespace = udt.Namespace == this.SharedState.Context.CurrentNamespace;
                 var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(udt.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
                 var hasShortName = this.SharedState.Context.NamespaceShortNames.TryGetValue(udt.Namespace, out var shortName);
                 this.Output = isInCurrentNamespace || (isInOpenNamespace && !this.SharedState.Context.AmbiguousNames.Contains(udt.Name))
-                    ? udt.Name.Value
-                    : $"{(hasShortName ? shortName.Value : udt.Namespace.Value)}.{udt.Name.Value}";
+                    ? udt.Name
+                    : $"{(hasShortName ? shortName : udt.Namespace)}.{udt.Name}";
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
@@ -871,10 +871,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnStringLiteral(NonNullable<string> s, ImmutableArray<TypedExpression> exs)
+            public override QsExpressionKind OnStringLiteral(string s, ImmutableArray<TypedExpression> exs)
             {
                 string InterpolatedArg(int index) => $"{{{this.Recur(int.MinValue, exs[index])}}}";
-                this.Output = exs.Length == 0 ? $"\"{s.Value}\"" : $"$\"{ReplaceInterpolatedArgs(s.Value, InterpolatedArg)}\"";
+                this.Output = exs.Length == 0 ? $"\"{s}\"" : $"$\"{ReplaceInterpolatedArgs(s, InterpolatedArg)}\"";
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewStringLiteral(s, exs);
             }
@@ -940,7 +940,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 if (sym is Identifier.LocalVariable loc)
                 {
-                    this.Output = loc.Item.Value;
+                    this.Output = loc.Item;
                 }
                 else if (sym.IsInvalidIdentifier)
                 {
@@ -949,12 +949,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
                 else if (sym is Identifier.GlobalCallable global)
                 {
-                    var isInCurrentNamespace = global.Item.Namespace.Value == this.SharedState.Context.CurrentNamespace;
+                    var isInCurrentNamespace = global.Item.Namespace == this.SharedState.Context.CurrentNamespace;
                     var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(global.Item.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(global.Item.Name);
                     var hasShortName = this.SharedState.Context.NamespaceShortNames.TryGetValue(global.Item.Namespace, out var shortName);
                     this.Output = isInCurrentNamespace || (isInOpenNamespace && !this.SharedState.Context.AmbiguousNames.Contains(global.Item.Name))
-                        ? global.Item.Name.Value
-                        : $"{(hasShortName ? shortName.Value : global.Item.Namespace.Value)}.{global.Item.Name.Value}";
+                        ? global.Item.Name
+                        : $"{(hasShortName ? shortName : global.Item.Namespace)}.{global.Item.Name}";
                 }
                 else
                 {
@@ -1052,7 +1052,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
                 else if (sym is SymbolTuple.VariableName name)
                 {
-                    return name.Item.Value;
+                    return name.Item;
                 }
                 else if (sym is SymbolTuple.VariableNameTuple tuple)
                 {
@@ -1352,7 +1352,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 if (sym is QsLocalSymbol.ValidName n)
                 {
-                    return n.Item.Value;
+                    return n.Item;
                 }
                 else if (sym.IsInvalidName)
                 {
@@ -1620,7 +1620,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     if (item is QsTypeItem.Named named)
                     {
-                        return (named.Item.VariableName.Value, named.Item.Type);
+                        return (named.Item.VariableName, named.Item.Type);
                     }
                     else if (item is QsTypeItem.Anonymous type)
                     {
@@ -1632,7 +1632,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     }
                 }
                 var udtTuple = ArgumentTuple(t.TypeItems, GetItemNameAndType, this.typeToQs);
-                this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
+                this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name} = {udtTuple}");
                 return t;
             }
 
@@ -1655,15 +1655,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
-                if (this.SharedState.Context.CurrentNamespace != ns.Name.Value)
+                if (this.SharedState.Context.CurrentNamespace != ns.Name)
                 {
                     this.SharedState.Context =
-                        new TransformationContext { CurrentNamespace = ns.Name.Value };
+                        new TransformationContext { CurrentNamespace = ns.Name };
                     this.SharedState.NamespaceDocumentation = null;
                 }
 
                 this.AddDocumentation(this.SharedState.NamespaceDocumentation);
-                this.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
+                this.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name}");
                 this.AddBlock(() =>
                 {
                     var context = this.SharedState.Context;
@@ -1674,11 +1674,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     }
                     foreach (var nsName in explicitImports.OrderBy(name => name))
                     {
-                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}");
+                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName}");
                     }
                     foreach (var kv in context.NamespaceShortNames.OrderBy(pair => pair.Key))
                     {
-                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key.Value} {Keywords.importedAs.id} {kv.Value.Value}");
+                        this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key} {Keywords.importedAs.id} {kv.Value}");
                     }
                     if (explicitImports.Any() || context.NamespaceShortNames.Any())
                     {

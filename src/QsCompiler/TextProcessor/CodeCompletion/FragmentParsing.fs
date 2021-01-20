@@ -23,8 +23,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitive
 
 
 /// Parses a declaration modifier list.
-let private modifiers =
-    expectedKeyword qsInternal
+let private modifiers = expectedKeyword qsInternal
 
 /// Parses a callable signature.
 let private callableSignature =
@@ -36,43 +35,45 @@ let private callableSignature =
     name ?>> (typeParamList <|> (optional eot >>% [])) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
-let private functionDeclaration =
-    optR modifiers @>> expectedKeyword fctDeclHeader ?>> callableSignature
+let private functionDeclaration = optR modifiers @>> expectedKeyword fctDeclHeader ?>> callableSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
     optR modifiers @>> expectedKeyword opDeclHeader ?>> callableSignature ?>> characteristicsAnnotation
 
 /// Parses a user-defined type declaration.
-let private udtDeclaration = 
+let private udtDeclaration =
     let name = expectedId Declaration (term symbol)
-    let rec udt = parse {
-        let namedItem = name ?>> expected colon ?>> qsType
-        return! qsType <|>@ tuple1 (namedItem <|>@ udt)
-    }
+
+    let rec udt =
+        parse {
+            let namedItem = name ?>> expected colon ?>> qsType
+            return! qsType <|>@ tuple1 (namedItem <|>@ udt)
+        }
+
     optR modifiers @>> expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
 /// Parses an open directive.
 let private openDirective =
-    expectedKeyword importDirectiveHeader ?>>
-    expectedQualifiedSymbol Namespace ?>>
-    expectedKeyword importedAs ?>>
-    expectedQualifiedSymbol Declaration
+    expectedKeyword importDirectiveHeader
+    ?>> expectedQualifiedSymbol Namespace
+    ?>> expectedKeyword importedAs
+    ?>> expectedQualifiedSymbol Declaration
 
 /// Parses fragments that are valid at the top level of a namespace.
 let private namespaceTopLevel =
-    pcollect [
-        functionDeclaration
-        operationDeclaration
-        udtDeclaration
-        openDirective
-    ] .>> eotEof
+    pcollect [ functionDeclaration
+               operationDeclaration
+               udtDeclaration
+               openDirective ]
+    .>> eotEof
 
 /// Parses a symbol tuple containing identifiers of the given kind.
-let rec private symbolTuple kind = parse {
-    let declaration = expectedId kind (term symbol)
-    return! declaration <|> tuple1 (declaration <|> symbolTuple kind)
-}
+let rec private symbolTuple kind =
+    parse {
+        let declaration = expectedId kind (term symbol)
+        return! declaration <|> tuple1 (declaration <|> symbolTuple kind)
+    }
 
 /// Parses a let statement.
 let private letStatement =
@@ -85,41 +86,40 @@ let private mutableStatement =
 /// Parses a set statement.
 let private setStatement =
     let infixOp =
-        operatorLike "=" <|>
-        pcollect [
-            expectedKeyword andOperator
-            expectedKeyword orOperator
-        ]
+        operatorLike "="
+        <|> pcollect [ expectedKeyword andOperator
+                       expectedKeyword orOperator ]
+
     let assignment =
-        symbolTuple MutableVariable ?>> (opt infixOp |>> Option.defaultValue []) ?>> expected equal ?>> expression
+        symbolTuple MutableVariable
+        ?>> (opt infixOp |>> Option.defaultValue [])
+        ?>> expected equal
+        ?>> expression
+
     let copyAndUpdate =
-        expectedId MutableVariable (term symbol) ?>>
-        expected (operator qsCopyAndUpdateOp.op "") ?>>
-        expected equal ?>>
-        (expression <|>@ expectedId NamedItem (term symbol)) ?>>
-        expected (operator qsCopyAndUpdateOp.cont "") ?>>
-        expression
+        expectedId MutableVariable (term symbol)
+        ?>> expected (operator qsCopyAndUpdateOp.op "")
+        ?>> expected equal
+        ?>> (expression <|>@ expectedId NamedItem (term symbol))
+        ?>> expected (operator qsCopyAndUpdateOp.cont "")
+        ?>> expression
+
     expectedKeyword qsValueUpdate ?>> (attempt assignment <|> copyAndUpdate)
 
 /// Parses a return statement.
-let private returnStatement =
-    expectedKeyword qsReturn ?>> expression
+let private returnStatement = expectedKeyword qsReturn ?>> expression
 
 /// Parses a fail statement.
-let private failStatement =
-    expectedKeyword qsFail ?>> expression
+let private failStatement = expectedKeyword qsFail ?>> expression
 
 /// Parses an if clause.
-let private ifClause =
-    expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
+let private ifClause = expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses an elif clause.
-let private elifClause =
-    expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
+let private elifClause = expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses an else clause.
-let private elseClause =
-    expectedKeyword qsElse
+let private elseClause = expectedKeyword qsElse
 
 /// Parses a for-block intro.
 let private forHeader =
@@ -127,112 +127,97 @@ let private forHeader =
     expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses a while-block intro.
-let private whileHeader =
-    expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
+let private whileHeader = expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
 
 /// Parses a repeat-until-success block intro.
-let private repeatHeader =
-    expectedKeyword qsRepeat
+let private repeatHeader = expectedKeyword qsRepeat
 
 /// Parses a repeat-until-success block outro.
 let private untilFixup =
-    expectedKeyword qsUntil ?>> expectedBrackets (lTuple, rTuple) expression ?>> expectedKeyword qsRUSfixup
+    expectedKeyword qsUntil
+    ?>> expectedBrackets (lTuple, rTuple) expression
+    ?>> expectedKeyword qsRUSfixup
 
 /// Parses a within block intro.
-let private withinHeader =
-    expectedKeyword qsWithin
+let private withinHeader = expectedKeyword qsWithin
 
 /// Parses an apply block intro.
-let private applyHeader =
-    expectedKeyword qsApply
+let private applyHeader = expectedKeyword qsApply
 
 /// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
-let rec private qubitInitializerTuple = parse {
-    let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
-    return! item <|> (tuple1 item <|> qubitInitializerTuple)
-}
+let rec private qubitInitializerTuple =
+    parse {
+        let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
+        return! item <|> (tuple1 item <|> qubitInitializerTuple)
+    }
 
 /// Parses a using-block intro.
 let private usingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-    expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
+
+    expectedKeyword qsUse <|>@ hide (expectedKeyword qsUsing)
+    ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses a borrowing-block intro.
 let private borrowingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-    expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
+
+    expectedKeyword qsBorrow <|>@ hide (expectedKeyword qsBorrowing)
+    ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses an operation specialization declaration.
 let private specializationDeclaration =
     let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
-    let generator = 
-        pcollect [
-            expectedKeyword autoFunctorGenDirective
-            expectedKeyword selfFunctorGenDirective
-            expectedKeyword invertFunctorGenDirective
-            expectedKeyword distributeFunctorGenDirective
-            argumentTuple
-        ]
-    pcollect [
-        expectedKeyword ctrlDeclHeader ?>> (expectedKeyword adjDeclHeader ?>> generator <|>@ generator)
-        expectedKeyword adjDeclHeader ?>> (expectedKeyword ctrlDeclHeader ?>> generator <|>@ generator)
-        expectedKeyword bodyDeclHeader ?>> generator
-    ]
+
+    let generator =
+        pcollect [ expectedKeyword autoFunctorGenDirective
+                   expectedKeyword selfFunctorGenDirective
+                   expectedKeyword invertFunctorGenDirective
+                   expectedKeyword distributeFunctorGenDirective
+                   argumentTuple ]
+
+    pcollect [ expectedKeyword ctrlDeclHeader ?>> (expectedKeyword adjDeclHeader ?>> generator <|>@ generator)
+               expectedKeyword adjDeclHeader ?>> (expectedKeyword ctrlDeclHeader ?>> generator <|>@ generator)
+               expectedKeyword bodyDeclHeader ?>> generator ]
 
 /// Parses statements that are valid in both functions and operations.
 let private callableStatement =
-    pcollect [
-        letStatement
-        mutableStatement
-        setStatement
-        returnStatement
-        failStatement
-        ifClause
-        forHeader
-        expression
-    ] .>> eotEof
+    pcollect [ letStatement
+               mutableStatement
+               setStatement
+               returnStatement
+               failStatement
+               ifClause
+               forHeader
+               expression ]
+    .>> eotEof
 
 /// Parses a statement in a function.
-let private functionStatement =
-    whileHeader .>> eotEof <|>@ callableStatement
+let private functionStatement = whileHeader .>> eotEof <|>@ callableStatement
 
 /// Parses a statement in a function that follows an if or elif clause in the same scope.
-let private functionStatementFollowingIf =
-    pcollect [
-        elifClause
-        elseClause
-    ] .>> eotEof <|>@ functionStatement
+let private functionStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ functionStatement
 
 /// Parses a statement in an operation.
 let private operationStatement =
-    pcollect [
-        repeatHeader
-        withinHeader
-        usingHeader
-        borrowingHeader
-    ] .>> eotEof <|>@ callableStatement
+    pcollect [ repeatHeader
+               withinHeader
+               usingHeader
+               borrowingHeader ]
+    .>> eotEof
+    <|>@ callableStatement
 
 /// Parses a statement in an operation that follows an if or elif clause in the same scope.
-let private operationStatementFollowingIf =
-    pcollect [
-        elifClause
-        elseClause
-    ] .>> eotEof <|>@ operationStatement
+let private operationStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation.
-let private operationTopLevel =
-    specializationDeclaration .>> eotEof <|>@ operationStatement
+let private operationTopLevel = specializationDeclaration .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
-let private operationTopLevelFollowingIf =
-    pcollect [
-        elifClause
-        elseClause
-    ] .>> eotEof <|>@ operationTopLevel
+let private operationTopLevelFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationTopLevel
 
 /// Parses a namespace declaration.
-let private namespaceDeclaration =
-    expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
+let private namespaceDeclaration = expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
 
 /// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
 /// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid
@@ -242,15 +227,20 @@ let GetCompletionKinds scope previous text =
         match (scope, previous) with
         | (TopLevel, _) -> namespaceDeclaration
         | (NamespaceTopLevel, _) -> namespaceTopLevel
-        | (Function, Value (IfClause _)) | (Function, Value (ElifClause _)) -> functionStatementFollowingIf
+        | (Function, Value (IfClause _))
+        | (Function, Value (ElifClause _)) -> functionStatementFollowingIf
         | (Function, _) -> functionStatement
         | (OperationTopLevel, Value (IfClause _))
         | (OperationTopLevel, Value (ElifClause _)) -> operationTopLevelFollowingIf
-        | (OperationTopLevel, Value RepeatIntro) | (Operation, Value RepeatIntro) -> untilFixup .>> eotEof
-        | (OperationTopLevel, Value WithinBlockIntro) | (Operation, Value WithinBlockIntro) -> applyHeader .>> eotEof
+        | (OperationTopLevel, Value RepeatIntro)
+        | (Operation, Value RepeatIntro) -> untilFixup .>> eotEof
+        | (OperationTopLevel, Value WithinBlockIntro)
+        | (Operation, Value WithinBlockIntro) -> applyHeader .>> eotEof
         | (OperationTopLevel, _) -> operationTopLevel
-        | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
+        | (Operation, Value (IfClause _))
+        | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
         | (Operation, _) -> operationStatement
+
     match runParserOnString parser [] "" (text + "\u0004") with
-    | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
+    | ParserResult.Success (result, _, _) -> Success(Set.ofList result)
     | ParserResult.Failure (detail, _, _) -> Failure detail

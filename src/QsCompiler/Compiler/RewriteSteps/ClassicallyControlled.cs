@@ -1,10 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
@@ -77,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             throw new System.NotImplementedException();
         }
 
-        private bool CheckForRequired(QsCompilation compilation, NonNullable<string> namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
+        private bool CheckForRequired(QsCompilation compilation, string namespaceName, ImmutableHashSet<QsQualifiedName> requiredBuiltIns)
         {
             var builtInNs = compilation.Namespaces
                 .FirstOrDefault(ns => ns.Name.Equals(namespaceName));

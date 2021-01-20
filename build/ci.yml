@@ -2,7 +2,7 @@ name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
 
 variables:
   Build.Major: 0
-  Build.Minor: 12
+  Build.Minor: 14
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
@@ -17,6 +17,14 @@ pr:
 - feature/*
 - features/*
 - release/*
+
+schedules:
+- cron: "0 9 * * Sat"
+  displayName: 'Build for Component Governance'
+  branches:
+    include:
+    - main
+  always: true
 
 jobs:
 - job: "QsCompiler"
