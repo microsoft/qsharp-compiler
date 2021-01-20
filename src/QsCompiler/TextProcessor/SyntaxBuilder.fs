@@ -140,7 +140,7 @@ let private contentDefinedBrackets core (lbracket, rbracket) (lbracketErr, rbrac
 /// Parses the given core parser with de-facto optional tuple brackets around it.
 /// However, raises the corresponding error if the left and/or right bracket are missing.
 /// Returns the parsed value, as well as a tuple with the start and end position of the (potentially tuple-wrapped) core parser.
-/// Fails without consuming input it the parsing fails.
+/// Fails without consuming input if the parsing fails.
 let internal optTupleBrackets core =
     contentDefinedBrackets core (lTuple, rTuple) (ErrorCode.MissingLTupleBracket, ErrorCode.MissingRTupleBracket)
     |> term
@@ -167,26 +167,46 @@ let private bracketDefinedContent core (lbracket, rbracket) =
 /// Starting with a left tuple bracket, extracts the matching right tuple bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal tupleBrackets core =
-    ((lTuple, rTuple) |> bracketDefinedContent core) |> term
+    (lTuple, rTuple) |> bracketDefinedContent core |> term
+
+/// <summary>
+/// Parses <paramref name="core"/> with optional tuple brackets around it. If tuple brackets are present, requires that
+/// <paramref name="after"/> succeeds without consuming input, then raises a deprecation warning.
+/// </summary>
+/// <param name="core">A parser to run with or without tuple brackets around it.</param>
+/// <param name="after">
+/// A parser used to detect when tuple brackets are present. It should succeed without consuming input after the right
+/// tuple bracket is parsed.
+/// </param>
+/// <returns>The parsed value and its range.</returns>
+/// <remarks>Fails without consuming input if parsing fails.</remarks>
+let internal deprecatedTupleBrackets core after =
+    let warning (value, range) =
+        QsCompilerDiagnostic.NewWarning WarningCode.DeprecatedTupleBrackets range |> pushDiagnostic
+        >>% (value, range)
+
+    attempt (tupleBrackets core .>> after) >>= warning <|> term core
+
 /// Starting with a left array bracket, extracts the matching right array bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal arrayBrackets core =
-    ((lArray, rArray) |> bracketDefinedContent core) |> term
+    (lArray, rArray) |> bracketDefinedContent core |> term
+
 /// Starting with a left angle bracket, extracts the matching right angle bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal angleBrackets core =
-    ((lAngle, rAngle) |> bracketDefinedContent core) |> term
+    (lAngle, rAngle) |> bracketDefinedContent core |> term
+
 /// Starting with a left curly bracket, extracts the matching right curly bracket and then applies the given core parser to the middle part.
 /// Fails without consuming input it the parsing fails.
 let internal curlyBrackets core =
-    ((lCurly, rCurly) |> bracketDefinedContent core) |> term
+    (lCurly, rCurly) |> bracketDefinedContent core |> term
 
 /// Parses a string with or without interpolation. Returns the parsed string.
 /// Parses the interpolation arguments with the given parser.
 /// Fails without consuming input if neither a string with or without interpolation can be successfully parsed.
 /// IMPORTANT: Parses *precicely* the string literal and does *not* handle whitespace!
 let internal getStringContent interpolArg =
-    let notPrecededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
     let delimiter = pstring "\""
 
     let interpolatedString =
