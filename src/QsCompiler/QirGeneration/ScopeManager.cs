@@ -73,11 +73,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.variables.TryGetValue(varName, out value);
 
             /// <summary>
+            /// Removes the given value from the list of registered values such that it will no longer be
+            /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
+            /// Any release function that has been specified when adding the value will still execute.
+            /// </summary>
+            internal bool TryRemoveValue(IValue value)
+            {
+                var index = this.trackedValues.FindIndex(v => v.Value == value.Value);
+                if (index < 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    this.trackedValues.RemoveAt(index);
+                    return true;
+                }
+            }
+
+            /// <summary>
             /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
             /// unless it is explicitly excluded.
             /// </summary>
             internal bool WillBeUnreferenced(IValue value) =>
                 this.trackedValues.Exists(tracked => tracked.Value == value.Value);
+
+            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
+            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
+                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
 
             /// <summary>
             /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
@@ -87,9 +110,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
             /// </param>
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
-                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
-
             internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes)
             {
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
@@ -160,6 +180,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (Types.IsArray(t))
                 {
                     return RuntimeLibrary.ArrayUpdateAccessCount;
+                }
+                else if (Types.IsCallable(t))
+                {
+                    return RuntimeLibrary.CallableUpdateAccessCount;
                 }
             }
             return null;
@@ -239,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is ArrayValue array)
                 {
-                    var itemFuncName = getFunctionName(array.ElementType);
+                    var itemFuncName = getFunctionName(array.LlvmElementType);
                     if (itemFuncName != null && !shallow)
                     {
                         this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
@@ -248,7 +272,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (value is CallableValue callable && !shallow)
                 {
-                    var itemFuncId = funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
+                    var itemFuncId =
+                        funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
+                        funcName == RuntimeLibrary.CallableUpdateAccessCount ? 1 :
                         throw new NotSupportedException("unknown function for capture tuple memory management");
                     this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
                     return callable.Value;
@@ -440,6 +466,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.IncreaseAccessCount(value);
             this.scopes.Peek().AddVariable(name, value);
         }
+
+        /// <summary>
+        /// Removes the given value from the list of registered values such that it will no longer be
+        /// unreferenced when exiting or closing the scope.
+        /// Any release function that has been specified when registering the value will still execute.
+        /// </summary>
+        internal bool TryRemoveValueFromCurrentScope(IValue value) =>
+            this.scopes.Peek().TryRemoveValue(value);
 
         /// <summary>
         /// Gets the value of a named variable.

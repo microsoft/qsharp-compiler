@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             public bool IsCached =>
                 this.cache.Item2 != null &&
-                (this.store == null || !this.sharedState.IsWithinLoop) &&
+                (this.store == null || !this.sharedState.IsWithinLoop || this.cache.Item1 == this.sharedState.CurrentBranch) &&
                 this.sharedState.IsOpenBranch(this.cache.Item1);
 
             /// <summary>
@@ -227,6 +227,8 @@ namespace Microsoft.Quantum.QIR.Emission
             ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(this.customType))
             : ResolvedType.New(QsResolvedTypeKind.NewTupleType(ImmutableArray.CreateRange(this.ElementTypes)));
 
+        public QsQualifiedName? TypeName => this.customType?.GetFullName();
+
         internal readonly ImmutableArray<ResolvedType> ElementTypes;
         public readonly IStructType StructType;
 
@@ -237,15 +239,17 @@ namespace Microsoft.Quantum.QIR.Emission
             this.typedPointer.Load();
 
         /// <summary>
-        /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are the necessary casts. When needed, the instructions are emitted using the current builder.
+        /// Creates a new tuple value representing a Q# value of user defined type.
+        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed,
+        /// the instructions are emitted using the current builder.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
+        internal TupleValue(UserDefinedType? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
+            this.customType = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
@@ -254,8 +258,20 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
+        /// Creates a new tuple value. The casts to get the opaque and typed pointer
+        /// respectively are executed lazily. When needed, the instructions are emitted using the current builder.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="elementTypes">The Q# types of the tuple items</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
+            : this(null, elementTypes, context, registerWithScopeManager)
+        {
+        }
+
+        /// <summary>
         /// Creates a new tuple value representing a Q# value of user defined type from the given tuple pointer.
-        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed, the
+        /// The casts to get the opaque and typed pointer respectively are executed lazily. When needed,
         /// instructions are emitted using the current builder.
         /// </summary>
         /// <param name="type">Optionally the user defined type tha that the tuple represents</param>
@@ -378,10 +394,10 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         private readonly GenerationContext sharedState;
-        private readonly ResolvedType qsElementType;
         private readonly IValue.Cached<Value> length;
+        internal readonly ResolvedType QSharpElementType;
 
-        public readonly ITypeRef ElementType;
+        public readonly ITypeRef LlvmElementType;
         public readonly uint? Count;
         public readonly Value OpaquePointer;
 
@@ -390,7 +406,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public ITypeRef LlvmType => this.sharedState.Types.Array;
 
         public ResolvedType QSharpType =>
-            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.qsElementType));
+            ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
 
         public Value Length => this.length.Load();
 
@@ -404,8 +420,8 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
-            this.qsElementType = elementType;
-            this.ElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.QSharpElementType = elementType;
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.Count = count;
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
             this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
@@ -421,8 +437,8 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
         {
             this.sharedState = context;
-            this.qsElementType = elementType;
-            this.ElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.QSharpElementType = elementType;
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = this.CreateLengthCache(length);
             this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
         }
@@ -437,8 +453,8 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
-            this.qsElementType = elementType;
-            this.ElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.QSharpElementType = elementType;
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.OpaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
             this.length = length == null
                 ? new IValue.Cached<Value>(context, this.GetLength)
@@ -458,7 +474,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var elementSize = this.sharedState.ComputeSizeForType(this.ElementType, this.sharedState.Context.Int32Type);
+            var elementSize = this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type);
             var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
             if (registerWithScopeManager)
             {
@@ -477,8 +493,8 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
             var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
-            var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.ElementType.CreatePointerType());
-            return new PointerValue(typedElementPointer, this.qsElementType, this.sharedState);
+            var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
+            return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
         }
 
         /// <summary>

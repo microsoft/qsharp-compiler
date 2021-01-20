@@ -437,12 +437,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.IncreaseReferenceCount(pointer, shallow: true);
                 this.SharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow: true);
 
-                QirExpressionKindTransformation.CopyAndUpdate(this.SharedState, ex.Item1, ex.Item2, ex.Item3, updateItemAccessCount: true);
+                // Since the old value will no longer be accessible and hence no longer in use unless there
+                // is another handle pointing to it, we can reduce the reference count for the old value by 1
+                // and if we can omit the corresponding unreferencing at the end of the current scope.
+                // This is straightforward if the old value is unreferenced at the end of the current scope.
+                // If the old value on the other hand originates in a parent scope, then we cannot easily pull
+                // the unreferencing into the current scope, since the current scope may or may not execute.
+
+                var unreferenceOldValue = this.SharedState.ScopeMgr.TryRemoveValueFromCurrentScope(pointer);
+                QirExpressionKindTransformation.CopyAndUpdate(
+                    this.SharedState,
+                    (pointer.LoadValue(), ex.Item2, ex.Item3),
+                    updateItemAccessCount: true,
+                    unreferenceOriginal: unreferenceOldValue);
                 var value = this.SharedState.ValueStack.Pop();
-                pointer.StoreValue(value);
 
                 this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
-                this.SharedState.ScopeMgr.DecreaseReferenceCount(value, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow: true);
+                pointer.StoreValue(value);
             }
             else
             {
