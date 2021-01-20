@@ -79,14 +79,15 @@ function Build-VS() {
                 Try {
                     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
                         $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-                    }  else {
+                    } else {
                         $args = @();
                     }
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         @args `
                         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
-                        /property:InformationalVersion=$Env:SEMVER_VERSION
+                        /property:InformationalVersion=$Env:SEMVER_VERSION `
+                        /property:TreatWarningsAsErrors=true
 
                     if ($LastExitCode -ne 0) {
                         throw

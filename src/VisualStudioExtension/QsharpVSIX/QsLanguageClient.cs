@@ -67,7 +67,9 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         // events required by ILanguageClient
 
         public event AsyncEventHandler<EventArgs> StartAsync;
+#pragma warning disable 67
         public event AsyncEventHandler<EventArgs> StopAsync;
+#pragma warning restore 67
 
         // methods required by ILanguageClient
 
