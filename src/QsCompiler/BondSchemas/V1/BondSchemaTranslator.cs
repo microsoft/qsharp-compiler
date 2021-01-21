@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
                 _ => throw new ArgumentException($"Unsupported QsGeneratorDirective {qsGeneratorDirective}")
             };
 
-        private static QsQualifiedName ToBondSchema(this SyntaxTree.QsQualifiedName qsQualifiedName) =>
+        internal static QsQualifiedName ToBondSchema(this SyntaxTree.QsQualifiedName qsQualifiedName) =>
             new QsQualifiedName
             {
                 Namespace = qsQualifiedName.Namespace,
@@ -273,7 +273,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
                 Documentation = qsNamespace.Documentation.ToQsSourceFileDocumentationList()
             };
 
-        private static QsNamespaceElement ToBondSchema(this SyntaxTree.QsNamespaceElement qsNamespaceElement)
+        internal static QsNamespaceElement ToBondSchema(this SyntaxTree.QsNamespaceElement qsNamespaceElement)
         {
             QsCallable? bondQsCallable = null;
             QsCustomType? bondQsCustomType = null;
