@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -13,7 +13,8 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class TypeRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public TypeRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null) : base(onDiagnostic, onException)
+        public TypeRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
+            : base(onDiagnostic, onException)
         {
         }
 

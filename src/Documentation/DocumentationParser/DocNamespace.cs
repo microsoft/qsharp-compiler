@@ -1,12 +1,10 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
@@ -35,10 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsVisible(NonNullable<string> source, AccessModifier access, NonNullable<string> qualifiedName)
+            bool IsVisible(string source, AccessModifier access, string name)
             {
-                var name = qualifiedName.Value;
-                var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source.Value);
+                var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source);
                 return includeInDocs && access.IsDefaultAccess && !(name.StartsWith("_") || name.EndsWith("_")
                         || name.EndsWith("Impl", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplA", StringComparison.InvariantCultureIgnoreCase)
@@ -46,7 +43,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         || name.EndsWith("ImplCA", StringComparison.InvariantCultureIgnoreCase));
             }
 
-            this.name = ns.Name.Value;
+            this.name = ns.Name;
             this.uid = this.name.ToLowerInvariant();
 
             this.summary = "";
@@ -66,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsVisible(callable.SourceFile, callable.Modifiers.Access, callable.FullName.Name) &&
+                    if (IsVisible(callable.Source.AssemblyOrCodeFile, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         this.items.Add(new DocCallable(this.name, callable));
@@ -75,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsVisible(udt.SourceFile, udt.Modifiers.Access, udt.FullName.Name))
+                    if (IsVisible(udt.Source.AssemblyOrCodeFile, udt.Modifiers.Access, udt.FullName.Name))
                     {
                         this.items.Add(new DocUdt(this.name, udt));
                     }

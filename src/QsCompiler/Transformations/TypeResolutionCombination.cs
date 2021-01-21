@@ -5,20 +5,17 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-
-#nullable enable
 
 namespace Microsoft.Quantum.QsCompiler
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     // Type Parameters are frequently referenced by the callable of the type parameter followed by the name of the specific type parameter.
-    using TypeParameterName = Tuple<QsQualifiedName, NonNullable<string>>;
-    using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterName = Tuple<QsQualifiedName, string>;
+    using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, string>, ResolvedType>;
 
     /// <summary>
     /// Combines a series of type parameter resolution dictionaries, IndependentResolutionDictionaries,
@@ -100,7 +97,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// type parameter resolutions are relevant to the given expression's type parameter resolutions
         /// are considered.
         /// </summary>
-        public TypeResolutionCombination(TypedExpression expression) : this(GetTypeParameterResolutions.Apply(expression))
+        public TypeResolutionCombination(TypedExpression expression)
+            : this(GetTypeParameterResolutions.Apply(expression))
         {
         }
 
@@ -267,7 +265,8 @@ namespace Microsoft.Quantum.QsCompiler
                 public HashSet<TypeParameterName> TypeParams = new HashSet<TypeParameterName>();
             }
 
-            private GetTypeParameters() : base(new TransformationState(), TransformationOptions.NoRebuild)
+            private GetTypeParameters()
+                : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
             }
 
@@ -373,7 +372,8 @@ namespace Microsoft.Quantum.QsCompiler
                 public bool InCallLike = false;
             }
 
-            private GetTypeParameterResolutions() : base(new TransformationState(), TransformationOptions.NoRebuild)
+            private GetTypeParameterResolutions()
+                : base(new TransformationState(), TransformationOptions.NoRebuild)
             {
             }
 

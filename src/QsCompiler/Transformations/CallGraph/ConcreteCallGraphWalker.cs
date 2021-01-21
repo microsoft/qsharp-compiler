@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ConcreteGraphBuilder = CallGraphBuilder<ConcreteCallGraphNode, ConcreteCallGraphEdge>;
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using Range = DataTypes.Range;
-    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
 
     internal static partial class BuildCallGraph
     {
@@ -39,8 +39,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             /// </summary>
             public static void PopulateConcreteGraph(ConcreteGraphBuilder graph, QsCompilation compilation)
             {
+                var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var walker = new BuildGraph(graph);
-                var entryPointNodes = compilation.EntryPoints.Select(name => new ConcreteCallGraphNode(name, QsSpecializationKind.QsBody, TypeParameterResolutions.Empty));
+                var entryPointNodes = compilation.EntryPoints.SelectMany(name =>
+                    GetSpecializationKinds(globals, name).Select(kind =>
+                        new ConcreteCallGraphNode(name, kind, TypeParameterResolutions.Empty)));
                 foreach (var entryPoint in entryPointNodes)
                 {
                     // Make sure all the entry points are added to the graph
@@ -48,7 +51,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     walker.SharedState.RequestStack.Push(entryPoint);
                 }
 
-                var globals = compilation.Namespaces.GlobalCallableResolutions();
                 while (walker.SharedState.RequestStack.TryPop(out var currentRequest))
                 {
                     // If there is a call to an unknown callable, throw exception
@@ -154,7 +156,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
             {
-                public BuildGraph(ConcreteGraphBuilder graph) : base(new TransformationState(graph))
+                public BuildGraph(ConcreteGraphBuilder graph)
+                    : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
                     this.Statements = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
@@ -173,7 +176,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
                 private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
-                internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
+                internal TransformationState(ConcreteGraphBuilder graph)
+                    : base(graph)
                 {
                 }
 
@@ -253,19 +257,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         throw new ArgumentException("AddEdge requires CurrentNode to be non-null.");
                     }
 
+                    // Add an edge to the specific specialization kind referenced
                     var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
                     var edge = new ConcreteCallGraphEdge(referenceRange);
                     this.Graph.AddDependency(this.CurrentNode, called, edge);
-                    if (!this.RequestStack.Contains(called) && !this.ResolvedNodeSet.Contains(called))
+
+                    // Add all the specializations of the referenced callable to the graph
+                    var newNodes = this.GetSpecializationKinds(identifier)
+                        .Select(specKind => new ConcreteCallGraphNode(identifier, specKind, typeRes));
+                    foreach (var node in newNodes)
                     {
-                        this.RequestStack.Push(called);
+                        if (!this.RequestStack.Contains(node) && !this.ResolvedNodeSet.Contains(node))
+                        {
+                            this.Graph.AddNode(node);
+                            this.RequestStack.Push(node);
+                        }
                     }
                 }
             }
 
             private class NamespaceWalker : NamespaceTransformation<TransformationState>
             {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 
@@ -302,7 +316,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 

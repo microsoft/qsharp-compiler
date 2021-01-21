@@ -21,14 +21,14 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
     internal class Display
     {
         private readonly QsCompilation Compilation;
-        private readonly ImmutableHashSet<NonNullable<string>> SourceFiles;
-        private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<(NonNullable<string>, string)>> Imports;
+        private readonly ImmutableHashSet<string> SourceFiles;
+        private readonly ImmutableDictionary<string, ImmutableArray<(string, string)>> Imports;
 
         internal Display(QsCompilation compilation)
         {
             this.Compilation = compilation;
             this.SourceFiles = GetSourceFiles.Apply(compilation.Namespaces);
-            this.Imports = compilation.Namespaces.ToImmutableDictionary(ns => ns.Name, _ => ImmutableArray<(NonNullable<string>, string)>.Empty);
+            this.Imports = compilation.Namespaces.ToImmutableDictionary(ns => ns.Name, _ => ImmutableArray<(string, string)>.Empty);
         }
 
         /// <summary>
@@ -41,13 +41,13 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         public void Show(string sourceFile = null)
         {
             var filesToShow = sourceFile == null
-                ? this.SourceFiles.Where(f => f.Value.EndsWith(".qs")).OrderBy(f => f).Select(f => (f, this.Imports)).ToArray()
-                : new[] { (NonNullable<string>.New(sourceFile), this.Imports) };
+                ? this.SourceFiles.Where(f => f.EndsWith(".qs")).OrderBy(f => f).Select(f => (f, this.Imports)).ToArray()
+                : new[] { (sourceFile, this.Imports) };
 
-            SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, this.Compilation.Namespaces, filesToShow);
+            SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<string, string>> generated, this.Compilation.Namespaces, filesToShow);
             var code = generated.SelectMany((namespaces, sourceIndex) =>
                 namespaces.Values
-                .Prepend($"// Compiled Q# code from file \"{filesToShow[sourceIndex].Item1.Value}\":")
+                .Prepend($"// Compiled Q# code from file \"{filesToShow[sourceIndex].Item1}\":")
                 .Select(nsCode => $"{nsCode}{Environment.NewLine}"));
 
             try

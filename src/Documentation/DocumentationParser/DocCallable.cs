@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocCallable(string ns, QsCallable callableObj)
             : base(
                   ns,
-                  callableObj.FullName.Name.Value,
+                  callableObj.FullName.Name,
                   callableObj.Kind.IsFunction ? Utils.FunctionKind : Utils.OperationKind,
                   callableObj.Documentation,
                   callableObj.Attributes)
@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 foreach (var declaration in SyntaxGenerator.ExtractItems(this.callable.ArgumentTuple))
                 {
                     var argNode = new YamlMappingNode();
-                    var argName = ((QsLocalSymbol.ValidName)declaration.VariableName).Item.Value;
+                    var argName = ((QsLocalSymbol.ValidName)declaration.VariableName).Item;
                     argNode.AddStringMapping(Utils.NameKey, argName);
                     if (this.comments.Input.TryGetValue(argName, out string summary))
                     {

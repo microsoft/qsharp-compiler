@@ -12,7 +12,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using Range = DataTypes.Range;
-    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
 
     /// <summary>
     /// Edge type for Call Graphs.

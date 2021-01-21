@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
+    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
     /// Scope transformation that replaces each operation call within a given scope
@@ -49,14 +49,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         // static methods for convenience
 
-        private static readonly NonNullable<string> ControlQubitsName =
-            NonNullable<string>.New(InternalUse.ControlQubitsName);
+        private static readonly string ControlQubitsName = InternalUse.ControlQubitsName;
 
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
 
-        private static readonly LocalVariableDeclaration<NonNullable<string>> ControlQubitsDeclaration =
-            new LocalVariableDeclaration<NonNullable<string>>(
+        private static readonly LocalVariableDeclaration<string> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<string>(
                 ControlQubitsName,
                 ControlQubits.ResolvedType,
                 ControlQubits.InferredInformation,
@@ -116,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 
@@ -276,8 +275,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// unless these calls occur within the outer block of a conjugation. Outer transformations of conjugations are left unchanged.
     /// Note that the transformed scope is only guaranteed to be valid if operation calls only occur within expression statements!
     /// Otherwise the transformation will succeed, but the generated scope is not necessarily valid.
-    /// Throws an InvalidOperationException if the scope to transform contains while-loops.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The scope to transform contains while-loops.</exception>
     internal class ReverseOrderOfOperationCalls
     : SelectByAllContainedExpressions
     {
@@ -306,7 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.OnStatement(statement);
-                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
+                    if (this.subSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         topStatements.Add(statement);
                     }
@@ -324,8 +323,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         /// Helper class to reverse the order of all operation calls
         /// unless these calls occur within the outer block of a conjugation.
         /// Outer transformations of conjugations are left unchanged.
-        /// Throws an InvalidOperationException upon while-loops.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Encountered a while-loop.</exception>
         private class ReverseLoops
         : IgnoreOuterBlockInConjugations<TransformationState>
         {

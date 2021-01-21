@@ -75,8 +75,7 @@ namespace Microsoft.Quantum.Documentation
                 : null,
                 this.AssemblyConstants.TryGetValue("DocsPackageId", out var packageName)
                 ? packageName
-                : null
-            );
+                : null);
 
             docProcessor.OnDiagnostic += diagnostic =>
             {

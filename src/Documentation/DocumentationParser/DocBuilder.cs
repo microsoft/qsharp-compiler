@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -27,16 +27,15 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="rootPath">The root directory in which documentation files should be generated</param>
         /// <param name="tree">The compiled namespaces to generate documentation for</param>
         /// <param name="sources">If specified, documentation is only generated for the specified source files.</param>
-        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<NonNullable<string>>? sources = null)
+        public DocBuilder(string rootPath, IEnumerable<QsNamespace> tree, IEnumerable<string>? sources = null)
         {
             if (string.IsNullOrWhiteSpace(rootPath))
             {
-                throw new ArgumentException(nameof(rootPath), "Root path must be provided and may not be empty");
+                throw new ArgumentException("Root path must be provided and may not be empty", nameof(rootPath));
             }
             this.rootDocPath = rootPath;
-            var sourceFiles = sources?.Select(nns => nns.Value);
             // Sort namespaces in alphabetical order for the TOC
-            this.namespaces = tree.Select(qns => new DocNamespace(qns, sourceFiles)).Where(ns => ns.IsNotEmpty).OrderBy(ns => ns.Name).ToList();
+            this.namespaces = tree.Select(qns => new DocNamespace(qns, sources)).Where(ns => ns.IsNotEmpty).OrderBy(ns => ns.Name).ToList();
         }
 
         /// <summary>
@@ -86,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         public static bool Run(
             string rootPath,
             IEnumerable<QsNamespace> tree,
-            IEnumerable<NonNullable<string>>? sources = null,
+            IEnumerable<string>? sources = null,
             Action<Exception>? onException = null)
         {
             try

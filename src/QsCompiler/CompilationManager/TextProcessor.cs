@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -37,8 +37,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Compares the saved fragment ending of the given fragment against the expected continuation and
         /// adds the corresponding error to the returned diagnostics if they don't match.
-        /// Throws an ArgumentException if the code fragment kind of the given fragment is unspecified (i.e. null).
         /// </summary>
+        /// <exception cref="ArgumentException">The code fragment kind of <paramref name="fragment"/> is unspecified (i.e. null).</exception>
         private static IEnumerable<Diagnostic> CheckFragmentDelimiters(this CodeFragment fragment, string filename)
         {
             if (fragment.Kind == null)
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("missing specification of the fragment kind");
             }
             var code = fragment.Kind.InvalidEnding;
-            if (Diagnostics.ExpectedEnding(code) != fragment.FollowedBy)
+            if (!Diagnostics.ExpectedEndings(code).Contains(fragment.FollowedBy))
             {
                 yield return Errors.InvalidFragmentEnding(filename, code, fragment.Range.End);
             }
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var fragment = new CodeFragment(
                         snippet.Indentation,
                         fragmentRange,
-                        output.Text.Value,
+                        output.Text,
                         outputIndex == outputs.Length - 1 ? snippet.FollowedBy : CodeFragment.MissingDelimiter,
                         output.Kind);
                     processedFragments.Add(fragment);
@@ -192,8 +192,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the Position after the last character in the file (including comments).
-        /// Throws an ArgumentException is file does not have any content.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="file"/> does not have any content.</exception>
         public static Position End(this FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -206,8 +206,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the Position right after where the last relevant (i.e. non-comment) code in the file ends,
         /// or the position (0,0) if no such line exists.
-        /// Throws an ArgumentException if file does not contain any lines.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="file"/> does not contain any lines.</exception>
         private static Position LastInFile(FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -227,9 +227,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the position right after where the fragment containing the given position ends.
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// Updates the given position to point to the first character in the fragment that contains code.
-        /// Throws an ArgumentException if the given position is not smaller than the position after the last piece of code in the file (given by LastInFile).
-        /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in <paramref name="file"/> (given by <see cref="LastInFile"/>).</exception>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             if (!file.ContainsPosition(current))
@@ -282,8 +282,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the position right after where the fragment before the one containing the given position ends.
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// If there is no such fragment, returns the position (0,0).
-        /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {
             if (!file.ContainsPosition(current))
@@ -357,8 +357,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Given the start line of a change, and how many lines have been updated from there,
         /// computes the position where the syntax check will start and end.
-        /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not a valid range within the current file content.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not a valid range within <paramref name="file"/>.</exception>
         internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (start < 0 || start >= file.NrLines())
@@ -401,8 +401,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var reprocess = QsCompilerError.RaiseOnFailure(() => file.FragmentsToProcess(changedLines).ToList(), "processing the edited lines failed");
-                var diagnostics = reprocess.CheckForEmptyFragments(file.FileName.Value)
-                    .Concat(ParseCode(ref reprocess, file.FileName.Value)).ToList();
+                var diagnostics = reprocess.CheckForEmptyFragments(file.FileName)
+                    .Concat(ParseCode(ref reprocess, file.FileName)).ToList();
 
                 QsCompilerError.RaiseOnFailure(() => file.TokensUpdate(reprocess), "the computed token update failed");
                 QsCompilerError.RaiseOnFailure(() => file.AddSyntaxDiagnostics(diagnostics), "updating the SyntaxDiagnostics failed");

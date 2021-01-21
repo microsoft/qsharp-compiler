@@ -4,28 +4,19 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using YamlDotNet.Serialization;
-using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
-using ResolvedTypeKind = Microsoft.Quantum.QsCompiler.SyntaxTokens.QsTypeKind<
-    Microsoft.Quantum.QsCompiler.SyntaxTree.ResolvedType,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.UserDefinedType,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.QsTypeParameter,
-    Microsoft.Quantum.QsCompiler.SyntaxTree.CallableInformation
->;
-
-#nullable enable
 
 namespace Microsoft.Quantum.Documentation
 {
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     // The next several types allow for adding attributes to
     // callables and UDTs with a single API, so that the extension
     // methods in this file can be written once for both kinds of
@@ -94,10 +85,7 @@ namespace Microsoft.Quantum.Documentation
             TypedExpression input) =>
                 builder.AddAttribute(
                     AttributeUtils.BuildAttribute(
-                        new QsQualifiedName(
-                            NonNullable<string>.New(@namespace),
-                            NonNullable<string>.New(name)),
-                        input));
+                        new QsQualifiedName(@namespace, name), input));
 
         private static IAttributeBuilder<T> WithDocumentationAttribute<T>(
             this IAttributeBuilder<T> builder,
@@ -109,9 +97,7 @@ namespace Microsoft.Quantum.Documentation
                     input);
 
         private static TypedExpression AsLiteralExpression(this string literal) =>
-            SyntaxGenerator.StringLiteral(
-                NonNullable<string>.New(literal),
-                ImmutableArray<TypedExpression>.Empty);
+            SyntaxGenerator.StringLiteral(literal, ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
         ///      Given an attribute builder, either returns it unmodified,
@@ -201,6 +187,16 @@ namespace Microsoft.Quantum.Documentation
             ? document
             : document.WithSection(name, contents);
 
+        internal static string WithSectionForEach(this string document, string name, IEnumerable<string> sections)
+        {
+            var accumulatedDocument = document;
+            foreach (var section in sections)
+            {
+                accumulatedDocument = document.WithSection(name, section);
+            }
+            return accumulatedDocument;
+        }
+
         internal static string WithSection(this string document, string name, string contents) =>
             $"{document}\n\n## {name}\n\n{contents}";
 
@@ -259,7 +255,7 @@ namespace Microsoft.Quantum.Documentation
                         QsTypeItem.Named { Item: var named } =>
                             new List<(string, ResolvedType)>
                             {
-                                (named.VariableName.Value, named.Type)
+                                (named.VariableName, named.Type)
                             },
                         _ => throw new ArgumentException($"Type item {item} is neither anonymous nor named.", nameof(typeItems)),
                     },
@@ -278,7 +274,7 @@ namespace Microsoft.Quantum.Documentation
                         (
                             item.Item.VariableName switch
                             {
-                                QsLocalSymbol.ValidName name => name.Item.Value,
+                                QsLocalSymbol.ValidName name => name.Item,
                                 _ => "__invalid__",
                             },
                             item.Item.Type)
@@ -298,7 +294,7 @@ namespace Microsoft.Quantum.Documentation
                     ",", tuple.Item.Select(ToMarkdownLink)) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),
                 ResolvedTypeKind.TypeParameter typeParam =>
-                    $"'{typeParam.Item.TypeName.Value}",
+                    $"'{typeParam.Item.TypeName}",
                 _ => type.Resolution.Tag switch
                     {
                         ResolvedTypeKind.Tags.BigInt => "[BigInt](xref:microsoft.quantum.lang-ref.bigint)",
@@ -316,7 +312,7 @@ namespace Microsoft.Quantum.Documentation
             };
 
         internal static string ToMarkdownLink(this UserDefinedType type) =>
-            $"[{type.Name.Value}](xref:{type.Namespace.Value}.{type.Name.Value})";
+            $"[{type.Name}](xref:{type.Namespace}.{type.Name})";
 
         internal static bool IsInCompilationUnit(this QsNamespaceElement element) =>
             element switch
@@ -326,18 +322,16 @@ namespace Microsoft.Quantum.Documentation
                 _ => false,
             };
 
-        internal static bool IsInCompilationUnit(this QsCallable callable) =>
-            callable.SourceFile.Value.EndsWith(".qs");
+        internal static bool IsInCompilationUnit(this QsCallable callable) => !callable.Source.IsReference;
 
-        internal static bool IsInCompilationUnit(this QsCustomType type) =>
-            type.SourceFile.Value.EndsWith(".qs");
+        internal static bool IsInCompilationUnit(this QsCustomType type) => !type.Source.IsReference;
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(
                 fullName: type.FullName,
                 attributes: type.Attributes,
                 modifiers: type.Modifiers,
-                sourceFile: type.SourceFile,
+                source: type.Source,
                 location: type.Location,
                 type: type.Type,
                 typeItems: type.TypeItems,

@@ -1,9 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Quantum.QsCompiler;
@@ -17,7 +20,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         // language server tools -
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
-        public static T TryJTokenAs<T>(JToken arg) where T : class =>
+        public static T TryJTokenAs<T>(JToken arg)
+            where T : class =>
             QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(), "could not cast given JToken");
 
         private static ShowMessageParams? AsMessageParams(string text, MessageType severity) =>
@@ -31,6 +35,21 @@ namespace Microsoft.Quantum.QsLanguageServer
             var message = AsMessageParams(text, severity);
             QsCompilerError.Verify(server != null && message != null, "cannot show message - given server or text was null");
             _ = server.NotifyClientAsync(Methods.WindowShowMessageName, message);
+        }
+
+        /// <summary>
+        /// Shows a dialog window with options (actions) to the user, and returns the selected option (action).
+        /// </summary>
+        internal static async Task<MessageActionItem> ShowDialogInWindowAsync(this QsLanguageServer server, string text, MessageType severity, MessageActionItem[] actionItems)
+        {
+            var message =
+                new ShowMessageRequestParams()
+                {
+                    Message = text,
+                    MessageType = severity,
+                    Actions = actionItems
+                };
+            return await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
         }
 
         /// <summary>
@@ -121,6 +140,28 @@ namespace Microsoft.Quantum.QsLanguageServer
                         $"MSBuild warning in {args.File}({args.LineNumber},{args.ColumnNumber}): {args.Message}",
                         MessageType.Warning);
             }
+        }
+    }
+
+    internal static class DotNetSdkHelper
+    {
+        private static readonly Regex DotNet31Regex = new Regex(@"^3\.1\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
+
+        public static bool? IsDotNet31Installed()
+        {
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "--list-sdks",
+                RedirectStandardOutput = true,
+            });
+            if (process?.WaitForExit(3000) != true || process.ExitCode != 0)
+            {
+                return null;
+            }
+
+            var sdks = process.StandardOutput.ReadToEnd();
+            return DotNet31Regex.IsMatch(sdks);
         }
     }
 }

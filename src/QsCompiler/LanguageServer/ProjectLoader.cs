@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -97,8 +97,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Chooses the first target framework is no comparison is given.
         /// Logs a suitable error is no target framework can be determined.
         /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
-        /// Throws an ArgumentException if the given project file is null or does not exist.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="projectFile"/> is null or does not exist.</exception>
         internal IDictionary<string, string> DesignTimeBuildProperties(
             string projectFile,
             out Dictionary<string, string?> metadata,
@@ -173,9 +173,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// Loads the project corresponding to the given project file with the given properties,
         /// applies the given query to it, and unloads it. Returns the result of the query.
-        /// Throws an ArgumentException if the given project file is null or does not exist.
         /// NOTE: unloads the GlobalProjectCollection to force a cache clearing.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="projectFile"/> is null or does not exist.</exception>
         private static T LoadAndApply<T>(string projectFile, IDictionary<string, string> properties, Func<Project, T> query)
         {
             if (!File.Exists(projectFile))

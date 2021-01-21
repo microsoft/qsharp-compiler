@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -225,12 +225,12 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             else if (resolution.IsUserDefinedType)
             {
                 var udtName = ((QsTypeKind.UserDefinedType)resolution).Item;
-                map.AddStringMapping("uid", (udtName.Namespace.Value + "." + udtName.Name.Value).ToLowerInvariant());
+                map.AddStringMapping("uid", (udtName.Namespace + "." + udtName.Name).ToLowerInvariant());
             }
             else if (resolution.IsTypeParameter)
             {
                 var typeParam = ((QsTypeKind.TypeParameter)resolution).Item;
-                map.AddStringMapping("uid", "'" + typeParam.TypeName.Value);
+                map.AddStringMapping("uid", "'" + typeParam.TypeName);
                 map.AddStringMapping("isLocal", "true");
             }
             else if (resolution.IsOperation)
@@ -287,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         builder.Append('(');
                     }
                     // Assumes that the symbol will never be invalid
-                    builder.Append(((QsLocalSymbol.ValidName)item.VariableName).Item.Value);
+                    builder.Append(((QsLocalSymbol.ValidName)item.VariableName).Item);
                     builder.Append(" : ");
                     builder.Append(ResolvedTypeToString(item.Type));
                     if (topLevel)
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         {
             var sb = new StringBuilder();
             sb.Append(callable.Kind == QsCallableKind.Function ? "function " : "operation ");
-            sb.Append(callable.FullName.Name.Value);
+            sb.Append(callable.FullName.Name);
             sb.Append(" ");
             sb.Append(CallableToArguments(callable));
             sb.Append(" : ");
@@ -349,7 +349,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             // TODO: Include modifiers.
             var sb = new StringBuilder();
             sb.Append("newtype ");
-            sb.Append(customType.FullName.Name.Value);
+            sb.Append(customType.FullName.Name);
             sb.Append(" = ");
             sb.Append(ResolvedTypeToString(customType.Type));
             sb.Append(";");
@@ -406,7 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// If the file is not a YAML map, then its contents are blindly overwritten.
         /// </summary>
         /// <param name="map">The YAML mapping node to merge into the data in the file.</param>
-        /// <param name="fileName">The full path name of the file to read and rewrite.</param>
+        /// <param name="fileBaseName">The full path name of the file to read and rewrite.</param>
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -17,10 +17,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
+    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
-    /// Static class to accumulate all type parameter independent subclasses used by LiftContent<T>.
+    /// Static class to accumulate all type parameter independent subclasses used by <see cref="LiftContent{T}"/>.
     /// </summary>
     public static class LiftContent
     {
@@ -59,8 +59,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // if we absorb the corresponding logic into LiftBody.
             public bool IsValidScope = true;
             internal bool ContainsParamRef = false;
-            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
-                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams =
+                ImmutableArray<LocalVariableDeclaration<string>>.Empty;
 
             internal CallableDetails? CurrentCallable = null;
 
@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         kind,
                         callableName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
-                        callable.Callable.SourceFile,
+                        callable.Callable.Source,
                         QsNullable<QsLocation>.Null,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         signature,
@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
                     new Modifiers(AccessModifier.Internal),
-                    callable.Callable.SourceFile,
+                    callable.Callable.Source,
                     QsNullable<QsLocation>.Null,
                     signature,
                     parameters,
@@ -335,7 +335,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
         {
-            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedOp(parameters, oldName, newName);
 
@@ -345,11 +345,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public class TransformationState
             {
                 public bool IsRecursiveIdentifier = false;
-                public readonly ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> Parameters;
+                public readonly ImmutableArray<LocalVariableDeclaration<string>> Parameters;
                 public readonly QsQualifiedName OldName;
                 public readonly QsQualifiedName NewName;
 
-                public TransformationState(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
                     this.Parameters = parameters;
                     this.OldName = oldName;
@@ -357,7 +357,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
             }
 
-            private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -367,11 +367,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
-                public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+                public override ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
                     return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.OnType(kvp.Value));
@@ -404,7 +405,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -427,7 +429,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent)
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
                 }
 
@@ -463,7 +466,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     public class LiftContent<T> : SyntaxTreeTransformation<T>
         where T : LiftContent.TransformationState
     {
-        protected LiftContent(T state) : base(state)
+        protected LiftContent(T state)
+            : base(state)
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
@@ -474,7 +478,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         protected class NamespaceTransformation : NamespaceTransformation<T>
         {
-            public NamespaceTransformation(SyntaxTreeTransformation<T> parent) : base(parent)
+            public NamespaceTransformation(SyntaxTreeTransformation<T> parent)
+                : base(parent)
             {
             }
 
@@ -537,7 +542,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         protected class StatementKindTransformation : StatementKindTransformation<T>
         {
-            public StatementKindTransformation(SyntaxTreeTransformation<T> parent) : base(parent)
+            public StatementKindTransformation(SyntaxTreeTransformation<T> parent)
+                : base(parent)
             {
             }
 
@@ -586,7 +592,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         protected class ExpressionTransformation : ExpressionTransformation<T>
         {
-            public ExpressionTransformation(SyntaxTreeTransformation<T> parent) : base(parent)
+            public ExpressionTransformation(SyntaxTreeTransformation<T> parent)
+                : base(parent)
             {
             }
 
@@ -607,7 +614,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         protected class ExpressionKindTransformation : ExpressionKindTransformation<T>
         {
-            public ExpressionKindTransformation(SyntaxTreeTransformation<T> parent) : base(parent)
+            public ExpressionKindTransformation(SyntaxTreeTransformation<T> parent)
+                : base(parent)
             {
             }
 

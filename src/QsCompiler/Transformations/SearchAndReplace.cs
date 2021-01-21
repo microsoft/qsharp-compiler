@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     {
         public class Location : IEquatable<Location>
         {
-            public readonly NonNullable<string> SourceFile;
+            public readonly string SourceFile;
 
             /// <summary>
             /// contains the offset of the root node relative to which the statement location is given
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// </summary>
             public readonly Range SymbolRange;
 
-            public Location(NonNullable<string> source, Position declOffset, QsLocation stmLoc, Range range)
+            public Location(string source, Position declOffset, QsLocation stmLoc, Range range)
             {
                 this.SourceFile = source;
                 this.DeclarationOffset = declOffset;
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             /// <inheritdoc/>
             public bool Equals(Location? other) =>
-                this.SourceFile.Value == other?.SourceFile.Value
+                this.SourceFile == other?.SourceFile
                 && this.DeclarationOffset == other?.DeclarationOffset
                 && this.RelativeStatementLocation.Offset == other?.RelativeStatementLocation.Offset
                 && this.RelativeStatementLocation.Range == other?.RelativeStatementLocation.Range
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 {
                     hash = (hash * multiplier) + this.SymbolRange.GetHashCode();
                 }
-                return this.SourceFile.Value == null ? hash : (hash * multiplier) + this.SourceFile.Value.GetHashCode();
+                return this.SourceFile == null ? hash : (hash * multiplier) + this.SourceFile.GetHashCode();
             }
         }
 
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// </summary>
         public class TransformationState
         {
-            public Tuple<NonNullable<string>, QsLocation>? DeclarationLocation { get; internal set; }
+            public Tuple<string, QsLocation>? DeclarationLocation { get; internal set; }
 
             public ImmutableHashSet<Location> Locations { get; private set; }
 
@@ -107,15 +107,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
             /// </summary>
             private readonly QsLocation? defaultOffset = null;
-            private readonly IImmutableSet<NonNullable<string>>? relevantSourceFiles = null;
+            private readonly IImmutableSet<string>? relevantSourceFiles = null;
 
-            internal bool IsRelevant(NonNullable<string> source) =>
+            internal bool IsRelevant(string source) =>
                 this.relevantSourceFiles?.Contains(source) ?? true;
 
             internal TransformationState(
                 Func<Identifier, bool> trackId,
                 QsLocation? defaultOffset = null,
-                IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
+                IImmutableSet<string>? limitToSourceFiles = null)
             {
                 this.TrackIdentifier = trackId;
                 this.relevantSourceFiles = limitToSourceFiles;
@@ -123,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.defaultOffset = defaultOffset;
             }
 
-            private NonNullable<string> currentSourceFile = NonNullable<string>.New("");
+            private string currentSourceFile = "";
             private Position? rootOffset = null;
             internal QsLocation? CurrentLocation = null;
             internal readonly Func<Identifier, bool> TrackIdentifier;
@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 }
             }
 
-            public NonNullable<string> Source
+            public string Source
             {
                 internal get => this.currentSourceFile;
                 set
@@ -179,12 +179,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             this.Namespaces = new NamespaceTransformation(this);
         }
 
-        public IdentifierReferences(NonNullable<string> idName, QsLocation? defaultOffset, IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
-        : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
+        public IdentifierReferences(string idName, QsLocation? defaultOffset, IImmutableSet<string>? limitToSourceFiles = null)
+        : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item == idName, defaultOffset, limitToSourceFiles))
         {
         }
 
-        public IdentifierReferences(QsQualifiedName idName, QsLocation? defaultOffset, IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
+        public IdentifierReferences(QsQualifiedName idName, QsLocation? defaultOffset, IImmutableSet<string>? limitToSourceFiles = null)
         : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
         }
@@ -192,9 +192,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // static methods for convenience
 
         public static ImmutableHashSet<Location> Find(
-            NonNullable<string> idName,
+            string idName,
             QsScope scope,
-            NonNullable<string> sourceFile,
+            string sourceFile,
             Position rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
@@ -208,8 +208,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             QsQualifiedName idName,
             QsNamespace ns,
             QsLocation defaultOffset,
-            out Tuple<NonNullable<string>, QsLocation>? declarationLocation,
-            IImmutableSet<NonNullable<string>>? limitToSourceFiles = null)
+            out Tuple<string, QsLocation>? declarationLocation,
+            IImmutableSet<string>? limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
             finder.Namespaces.OnNamespace(ns);
@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
-                var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQsharp.Default.ToCode(resT) ?? ""));
+                var id = Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(resT) ?? "");
                 this.SharedState.LogIdentifierLocation(id, tp.Range);
                 return resT.Resolution;
             }
@@ -268,26 +268,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
-                if (!this.SharedState.IsRelevant(t.SourceFile) || t.Location.IsNull)
+                if (!this.SharedState.IsRelevant(t.Source.AssemblyOrCodeFile) || t.Location.IsNull)
                 {
                     return t;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(t.Source.AssemblyOrCodeFile, t.Location.Item);
                 }
                 return base.OnTypeDeclaration(t);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
-                if (!this.SharedState.IsRelevant(c.SourceFile) || c.Location.IsNull)
+                if (!this.SharedState.IsRelevant(c.Source.AssemblyOrCodeFile) || c.Location.IsNull)
                 {
                     return c;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(c.Source.AssemblyOrCodeFile, c.Location.Item);
                 }
                 return base.OnCallableDeclaration(c);
             }
@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationDeclaration(spec) : spec;
+                this.SharedState.IsRelevant(spec.Source.AssemblyOrCodeFile) ? base.OnSpecializationDeclaration(spec) : spec;
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
@@ -314,9 +314,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 return loc;
             }
 
-            public override NonNullable<string> OnSourceFile(NonNullable<string> source)
+            public override Source OnSource(Source source)
             {
-                this.SharedState.Source = source;
+                this.SharedState.Source = source.AssemblyOrCodeFile;
                 return source;
             }
         }
@@ -341,19 +341,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             internal QsLocation? StatementLocation = null;
             internal Func<TypedExpression, TypedExpression> UpdatedExpression;
 
-            private readonly List<(NonNullable<string>, QsLocation?)> updatedLocals = new List<(NonNullable<string>, QsLocation?)>();
-            private readonly List<(NonNullable<string>, QsLocation?)> usedLocals = new List<(NonNullable<string>, QsLocation?)>();
+            private readonly List<(string, QsLocation?)> updatedLocals = new List<(string, QsLocation?)>();
+            private readonly List<(string, QsLocation?)> usedLocals = new List<(string, QsLocation?)>();
 
             internal TransformationState() =>
                 this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).OnTypedExpression;
 
-            public ILookup<NonNullable<string>, QsLocation?> ReassignedVariables =>
+            public ILookup<string, QsLocation?> ReassignedVariables =>
                 this.updatedLocals.ToLookup(var => var.Item1, var => var.Item2);
 
-            public ILookup<NonNullable<string>, QsLocation?> UsedLocalVariables =>
+            public ILookup<string, QsLocation?> UsedLocalVariables =>
                 this.usedLocals.ToLookup(var => var.Item1, var => var.Item2);
 
-            private Action<TypedExpression> Add(List<(NonNullable<string>, QsLocation?)> accumulate) => (TypedExpression ex) =>
+            private Action<TypedExpression> Add(List<(string, QsLocation?)> accumulate) => (TypedExpression ex) =>
             {
                 if (ex.Expression is QsExpressionKind.Identifier id &&
                     id.Item1 is Identifier.LocalVariable var)
@@ -453,7 +453,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="number">The number to use along with the label to decorate the qualified name.</param>
         /// <returns>The decorated qualified name.</returns>
         public QsQualifiedName Decorate(QsQualifiedName name, int number) =>
-            new QsQualifiedName(name.Namespace, NonNullable<string>.New(this.Decorate(name.Name.Value, number)));
+            new QsQualifiedName(name.Namespace, this.Decorate(name.Name, number));
 
         /// <summary>
         /// Reverses decoration previously done to the name using the same label as this name decorator.
@@ -483,10 +483,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             private int variableNr = 0;
-            private readonly Dictionary<NonNullable<string>, NonNullable<string>> uniqueNames =
-                new Dictionary<NonNullable<string>, NonNullable<string>>();
+            private readonly Dictionary<string, string> uniqueNames = new Dictionary<string, string>();
 
-            internal bool TryGetUniqueName(NonNullable<string> name, out NonNullable<string> unique) =>
+            internal bool TryGetUniqueName(string name, out string unique) =>
                 this.uniqueNames.TryGetValue(name, out unique);
 
             internal QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
@@ -497,9 +496,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// <summary>
             /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists.
             /// </summary>
-            internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
+            internal string GenerateUniqueName(string varName)
             {
-                var unique = NonNullable<string>.New(Decorator.Decorate(varName.Value, this.variableNr++));
+                var unique = Decorator.Decorate(varName, this.variableNr++);
                 this.uniqueNames[varName] = unique;
                 return unique;
             }
@@ -519,10 +518,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
             new QsQualifiedName(
                 original.Namespace,
-                NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
+                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
 
-        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName) =>
-            NonNullable<string>.New(Decorator.Undecorate(uniqueName.Value) ?? uniqueName.Value);
+        public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
 
         // helper classes
 
@@ -534,7 +532,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
             }
 
-            public override NonNullable<string> OnVariableName(NonNullable<string> name) =>
+            public override string OnVariableName(string name) =>
                 this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
         }
 
@@ -628,7 +626,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 qualifiedName: this.state.GetNewName(callable.QualifiedName),
                 attributes: callable.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
                 modifiers: callable.Modifiers,
-                sourceFile: callable.SourceFile,
+                source: callable.Source,
                 position: callable.Position,
                 symbolRange: callable.SymbolRange,
                 argumentTuple: this.Namespaces.OnArgumentTuple(callable.ArgumentTuple),
@@ -655,7 +653,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 information: specialization.Information,
                 parent: this.state.GetNewName(specialization.Parent),
                 attributes: specialization.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                sourceFile: specialization.SourceFile,
+                source: specialization.Source,
                 position: specialization.Position,
                 headerRange: specialization.HeaderRange,
                 documentation: this.Namespaces.OnDocumentation(specialization.Documentation));
@@ -672,7 +670,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 qualifiedName: this.state.GetNewName(type.QualifiedName),
                 attributes: type.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
                 modifiers: type.Modifiers,
-                sourceFile: type.SourceFile,
+                source: type.Source,
                 position: type.Position,
                 symbolRange: type.SymbolRange,
                 type: this.Types.OnType(type.Type),
@@ -686,7 +684,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public TypeTransformation(RenameReferences parent) : base(parent) =>
+            public TypeTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
@@ -700,7 +699,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public ExpressionKindTransformation(RenameReferences parent) : base(parent) =>
+            public ExpressionKindTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
@@ -717,7 +717,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public NamespaceTransformation(RenameReferences parent) : base(parent) =>
+            public NamespaceTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
