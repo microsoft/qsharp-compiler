@@ -6,14 +6,14 @@ entry:
   %res = alloca { double, %String* }*
   store { double, %String* }* %1, { double, %String* }** %res
   %2 = bitcast { double, %String* }* %1 to %Tuple*
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %2, i64 1)
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 -1)
   %3 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %4 = bitcast %Tuple* %3 to { double, %String* }*
   %5 = getelementptr { double, %String* }, { double, %String* }* %4, i64 0, i32 1
   %6 = load %String*, %String** %5
   store %String* %name, %String** %5
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %3, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i64 1)
   store { double, %String* }* %4, { double, %String* }** %res
   %energy = alloca double
   store double 0.000000e+00, double* %energy
@@ -50,7 +50,7 @@ exit__1:                                          ; preds = %header__1
   %17 = load %String*, %String** %16
   call void @__quantum__rt__string_update_reference_count(%String* %17, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 1)
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %3, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i64 -1)
   %18 = load %String*, %String** %5
   call void @__quantum__rt__string_update_reference_count(%String* %18, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)

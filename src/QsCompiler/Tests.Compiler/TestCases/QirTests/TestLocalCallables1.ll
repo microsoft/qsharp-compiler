@@ -17,7 +17,7 @@ body__1:                                          ; preds = %header__1
   %6 = bitcast i8* %5 to %Callable**
   %7 = load %Callable*, %Callable** %6
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %7, i64 1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %7, i64 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %7, i64 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -25,7 +25,7 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_access_count(%Array* %arr, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 1)
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %10 = bitcast i8* %9 to %Callable**
   %11 = load %Callable*, %Callable** %10
@@ -53,7 +53,7 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__callable_invoke(%Callable* %24, %Tuple* null, %Tuple* null)
   %fct = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %fct, i64 1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %fct, i64 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %fct, i64 1)
   %25 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %27 = bitcast %Tuple* %26 to { %String* }*
@@ -87,7 +87,7 @@ body__2:                                          ; preds = %header__2
   %42 = bitcast i8* %41 to %Callable**
   %43 = load %Callable*, %Callable** %42
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %43, i64 -1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %43, i64 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %43, i64 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -95,9 +95,9 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_update_access_count(%Array* %arr, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %fct, i64 -1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %fct, i64 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %fct, i64 -1)
   br label %header__3
 
 header__3:                                        ; preds = %exiting__3, %exit__2

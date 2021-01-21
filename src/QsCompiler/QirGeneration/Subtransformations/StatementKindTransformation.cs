@@ -388,7 +388,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
-                // We need to make sure to properly invoke all calls to (un-)reference, release, and remove access counts
+                // We need to make sure to properly invoke all calls to (un-)reference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope(false);
@@ -422,20 +422,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 && symbols is SymbolTuple.VariableName symName
                 && symName.Item == varName.Item)
             {
-                // For copy-and-reassign statements we want to make sure that the access count is reduced
+                // For copy-and-reassign statements we want to make sure that the alias count is reduced
                 // before evaluating the copy-and-update expression, such that in the case where the variable
                 // that is reassigned is the only handle that has access to the original value, the copy is
                 // omitted. However, we need to make sure that the value is not released when decreasing the
-                // access count; we hence temporarily increase the reference count to avoid that.
-                // We can omit that access and reference count manipulation for inner items, since besides the
+                // alias count; we hence temporarily increase the reference count to avoid that.
+                // We can omit that alias and reference count manipulation for inner items, since besides the
                 // items that are updated, all counts will remain the same and while also doing the same for
                 // inner items could avoid copies in rare edge cases it is not worth the increased cost for
                 // the majority of cases. For the items that are updated, we need to make sure that the access
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
-                // takes care of that when updateItemAccessCount is set to true.
+                // takes care of that when updateItemAliasCount is set to true.
 
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                this.SharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
 
                 // Since the old value will no longer be accessible and hence no longer in use unless there
                 // is another handle pointing to it, we can reduce the reference count for the old value by 1
@@ -448,11 +448,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
                     (pointer.LoadValue(), ex.Item2, ex.Item3),
-                    updateItemAccessCount: true,
+                    updateItemAliasCount: true,
                     unreferenceOriginal: unreferenceOldValue);
                 var value = this.SharedState.ValueStack.Pop();
 
-                this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
+                this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);
                 pointer.StoreValue(value);
             }
             else
@@ -460,8 +460,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void RebindVariable(string varName, IValue value)
                 {
                     var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
-                    this.SharedState.ScopeMgr.IncreaseAccessCount(value);
-                    this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    this.SharedState.ScopeMgr.IncreaseAliasCount(value);
+                    this.SharedState.ScopeMgr.DecreaseAliasCount(pointer);
                     pointer.StoreValue(value);
                 }
 

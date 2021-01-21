@@ -1,6 +1,6 @@
 define void @Microsoft__Quantum__Testing__QIR__TestAccessCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
 entry:
-  call void @__quantum__rt__array_update_access_count(%Array* %__controlQubits__, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
   %1 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 0
   %coefficients = load %Array*, %Array** %1
   %2 = call i64 @__quantum__rt__array_get_size_1d(%Array* %coefficients)
@@ -17,7 +17,7 @@ body__1:                                          ; preds = %header__1
   %7 = bitcast i8* %6 to { double, double }**
   %8 = load { double, double }*, { double, double }** %7
   %9 = bitcast { double, double }* %8 to %Tuple*
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %9, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -25,14 +25,14 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_access_count(%Array* %coefficients, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 1)
   %11 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 1
   %qubits = load { %Array* }*, { %Array* }** %11
   %12 = getelementptr { %Array* }, { %Array* }* %qubits, i64 0, i32 0
   %13 = load %Array*, %Array** %12
-  call void @__quantum__rt__array_update_access_count(%Array* %13, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
   %14 = bitcast { %Array* }* %qubits to %Tuple*
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %14, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
   %15 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %Array*, { %Array* }* }* getelementptr ({ double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* null, i32 1) to i64))
   %16 = bitcast %Tuple* %15 to { double, %Array*, { %Array* }* }*
   %17 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 0
@@ -66,7 +66,7 @@ exit__2:                                          ; preds = %header__2
   call void @__quantum__rt__array_update_reference_count(%Array* %coefficients, i64 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i64 1)
-  call void @__quantum__rt__array_update_access_count(%Array* %__controlQubits__, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 -1)
   %28 = sub i64 %2, 1
   br label %header__3
 
@@ -80,7 +80,7 @@ body__3:                                          ; preds = %header__3
   %32 = bitcast i8* %31 to { double, double }**
   %33 = load { double, double }*, { double, double }** %32
   %34 = bitcast { double, double }* %33 to %Tuple*
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %34, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %34, i64 -1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -88,9 +88,9 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_update_access_count(%Array* %coefficients, i64 -1)
-  call void @__quantum__rt__array_update_access_count(%Array* %13, i64 -1)
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %14, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 -1)
   %36 = sub i64 %2, 1
   br label %header__4
 

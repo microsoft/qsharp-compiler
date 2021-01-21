@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QIR
 
         // tuple functions
         public const string TupleCreate = "tuple_create";
-        public const string TupleUpdateAccessCount = "tuple_update_access_count";
+        public const string TupleUpdateAliasCount = "tuple_update_alias_count";
         public const string TupleUpdateReferenceCount = "tuple_update_reference_count";
         public const string TupleCopy = "tuple_copy";
 
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QIR
         // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
-        public const string ArrayUpdateAccessCount = "array_update_access_count";
+        public const string ArrayUpdateAliasCount = "array_update_alias_count";
         public const string ArrayUpdateReferenceCount = "array_update_reference_count";
         public const string ArrayCopy = "array_copy";
         public const string ArrayConcatenate = "array_concatenate";
@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QIR
         public const string CallableCopy = "callable_copy";
         public const string CallableMakeAdjoint = "callable_make_adjoint";
         public const string CallableMakeControlled = "callable_make_controlled";
-        public const string CallableUpdateAccessCount = "callable_update_access_count";
+        public const string CallableUpdateAliasCount = "callable_update_alias_count";
         public const string CallableUpdateReferenceCount = "callable_update_reference_count";
         public const string CallableMemoryManagement = "callable_memory_management";
 

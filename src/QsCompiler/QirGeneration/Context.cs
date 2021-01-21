@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // tuple library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAccessCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAliasCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateReferenceCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Types.Tuple, this.Types.Tuple, this.Context.BoolType);
 
@@ -366,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAccessCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAliasCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAccessCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Types.Int);
 
@@ -1182,14 +1182,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If a constant array with the IrFunctions for managing access and reference counts
+        /// If a constant array with the IrFunctions for managing alias and reference counts
         /// for the given capture tuple already exists, returns the corresponding global variable.
         /// If no such array exists, creates a constant array and instantiates the necessary functions,
         /// queues the generation of their implementations, and returns the created global constant.
         /// The generation of the implementations is queued such that the current context is not modified
         /// beyond adding the corresponding constant and functions declarations.
         /// The table contains the function for updating the reference count as the first item,
-        /// and a null pointer for the function to update the access count as the second item.
+        /// and a null pointer for the function to update the alias count as the second item.
         /// If the given capture is null, returns a null pointer of suitable type.
         /// </summary>
         internal Constant GetOrCreateCallableMemoryManagementTable(TupleValue? capture)
@@ -1209,7 +1209,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var funcs = new Constant[2];
             var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
             funcs[0] = func;
-            func = this.Module.CreateFunction($"{name}__AccessCount", this.Types.CaptureCountFunction);
+            func = this.Module.CreateFunction($"{name}__AliasCount", this.Types.CaptureCountFunction);
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
@@ -1345,7 +1345,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var functions = new List<(string, Action<IValue, IValue>)>
                 {
                     ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AccessCount", (change, capture) => this.ScopeMgr.UpdateAccessCount(change, capture))
+                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture))
                 };
 
                 foreach (var (funcName, updateCounts) in functions)

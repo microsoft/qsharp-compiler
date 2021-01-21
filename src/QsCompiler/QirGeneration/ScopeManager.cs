@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
-    /// This class is used to track the validity of variables and values, to track access and reference counts,
+    /// This class is used to track the validity of variables and values, to track alias and reference counts,
     /// and to release and unreference values when they go out of scope.
     /// <para>
     /// There are two primary ways to leave a scope: close it and continue in the parent scope, or exit the current
@@ -96,14 +96,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.variables.Add(varName, value);
                 if (value is PointerValue)
                 {
-                    this.parent.IncreaseAccessCount(value);
+                    this.parent.IncreaseAliasCount(value);
                 }
                 else
                 {
                     // Since the value is necessarily created in the current or a parent scope,
                     // it won't go out of scope before the variable does.
                     // There is hence no need to increase the reference count to the value for the original binding.
-                    this.parent.ModifyCounts(this.parent.AccessUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
+                    this.parent.ModifyCounts(this.parent.AliasUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
                 }
             }
 
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), applyReferences, this);
 
             /// <summary>
-            /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
+            /// Generates the necessary calls to unreference the tracked values, decrease the alias count for registered variables,
             /// and invokes the specified release functions for values if necessary.
             /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
             /// </summary>
@@ -227,8 +227,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
-                var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new List<(IValue, bool)>(pendingAccessCounts.Where(v => v.Value is PointerValue));
+                var pendingAliasCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
+                var pendingUnreferences = new List<(IValue, bool)>(pendingAliasCounts.Where(v => v.Value is PointerValue));
                 foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
                 {
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => ValueEquals(value, omitted));
@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
-                parent.ModifyCounts(parent.AccessUpdateFunctionForType, parent.minusOne, pendingAccessCounts);
+                parent.ModifyCounts(parent.AliasUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
                 parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
             }
         }
@@ -296,25 +296,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Gets the name of the runtime function to update the access count for a given LLVM type.
+        /// Gets the name of the runtime function to update the alias count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to update the access count for this type</returns>
-        private string? AccessUpdateFunctionForType(ITypeRef t)
+        /// <returns>The name of the function to update the alias count for this type</returns>
+        private string? AliasUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleUpdateAccessCount;
+                    return RuntimeLibrary.TupleUpdateAliasCount;
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayUpdateAccessCount;
+                    return RuntimeLibrary.ArrayUpdateAliasCount;
                 }
                 else if (Types.IsCallable(t))
                 {
-                    return RuntimeLibrary.CallableUpdateAccessCount;
+                    return RuntimeLibrary.CallableUpdateAliasCount;
                 }
             }
             return null;
@@ -358,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Each callable table contains a pointer to an array of function pointers to modify access and reference
+        /// Each callable table contains a pointer to an array of function pointers to modify alias and reference
         /// counts of the capture tuple.
         /// Given a callable value, invokes the function at the given index in the memory management table of the callable
         /// by calling the runtime function CallableMemoryManagement with the function index and the value by which to
@@ -425,7 +425,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         var itemFuncId =
                             funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
-                            funcName == RuntimeLibrary.CallableUpdateAccessCount ? 1 :
+                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? 1 :
                             throw new NotSupportedException("unknown function for capture tuple memory management");
                         this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
                         arg = callable.Value;
@@ -475,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Closes the current scope by popping it off of the stack.
-        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
         /// </summary>
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
@@ -495,7 +495,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Closes the current scope by popping it off of the stack.
-        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
         /// </summary>
         public void CloseScope(IValue returned, bool allowDelayReferencing = true)
@@ -529,7 +529,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Exits the current scope by emitting the calls to unreference, release,
-        /// and/or decrease the access counts for values going out of scope, and invoking release functions if necessary.
+        /// and/or decrease the alias counts for values going out of scope, and invoking release functions if necessary.
         /// Exiting the current scope does *not* close the scope.
         /// All pending calls to increase reference counts for values need to be applied
         /// using <see cref="ApplyPendingReferences"/> before exiting the scope.
@@ -581,33 +581,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
 
         /// <summary>
-        /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
+        /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(IValue value, bool shallow = false)
+        internal void IncreaseAliasCount(IValue value, bool shallow = false)
         {
             this.IncreaseReferenceCount(value, shallow);
-            this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, value, !shallow);
+            this.ModifyCounts(this.AliasUpdateFunctionForType, this.plusOne, value, !shallow);
         }
 
         /// <summary>
-        /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
+        /// Adds a call to a runtime library function to decrease the alias count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, bool shallow = false)
+        internal void DecreaseAliasCount(IValue value, bool shallow = false)
         {
             this.DecreaseReferenceCount(value, shallow);
-            this.ModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, value, !shallow);
+            this.ModifyCounts(this.AliasUpdateFunctionForType, this.minusOne, value, !shallow);
         }
 
         /// <summary>
-        /// Adds a call to a runtime library function to change the access count for the given value.
-        /// Modifies *only* the access count and not the reference count.
+        /// Adds a call to a runtime library function to change the alias count for the given value.
+        /// Modifies *only* the alias count and not the reference count.
         /// </summary>
-        /// <param name="value">The value for which to change the access count</param>
-        /// <param name="change">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
-            this.ModifyCounts(this.AccessUpdateFunctionForType, change, value, !shallow);
+        /// <param name="value">The value for which to change the alias count</param>
+        /// <param name="change">The amount by which to change the alias count given as i64</param>
+        internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
+            this.ModifyCounts(this.AliasUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
@@ -670,7 +670,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
-        /// decreasing access counts and invoking release functions if necessary.
+        /// decreasing alias counts and invoking release functions if necessary.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
         /// The calls are generated in using the current builder.
         /// Exiting the current function does *not* close the scopes.

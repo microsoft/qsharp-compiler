@@ -207,8 +207,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Evaluates the copy-and-update expression defined by the given left-hand side, the item access and the right-hand side
         /// within the given context.
-        /// If updateItemAccessCount is set to true, decreases the access count of the items that are updated by 1 and
-        /// increases the access count for the new items.
+        /// If updateItemAliasCount is set to true, decreases the alias count of the items that are updated by 1 and
+        /// increases the alias count for the new items.
         /// If unreferenceOriginal original is set to true, then the original value is effectively unreferenced by omitting to
         /// to increase the reference counts for items that are not updated, and decreasing the reference counts for items that
         /// are replaced.
@@ -216,31 +216,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="sharedState">The context within which to evaluate the expression</param>
         /// <param name="copyAndUpdate">
         /// Tuple containing the original value which should be copied and updated,
-        /// an access expression indicating the item(s) to update,
+        /// an alias expression indicating the item(s) to update,
         /// and the new value(s) for the item(s) to update.
         /// </param>
         internal static ResolvedExpression CopyAndUpdate(
             GenerationContext sharedState,
             (IValue, TypedExpression, TypedExpression) copyAndUpdate,
-            bool updateItemAccessCount = false,
+            bool updateItemAliasCount = false,
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
             void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
             {
-                if (updateItemAccessCount)
+                if (updateItemAliasCount)
                 {
-                    sharedState.ScopeMgr.IncreaseAccessCount(value, shallow);
-                    sharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow);
+                    sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
                 pointer.StoreValue(value);
             }
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
+                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
                 // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = sharedState.Context.CreateConstant(false);
                 var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
@@ -304,9 +304,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 TupleValue GetTupleCopy(TupleValue original)
                 {
-                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
+                    // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                    // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
                     var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
@@ -596,7 +596,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
-            // We don't keep track of access counts for callables and hence instead
+            // We don't keep track of alias counts for callables and hence instead
             // take care here to not make unnecessary copies. We have to be pessimistic, however,
             // and make a copy for anything that would require further evaluation of the expression,
             // such as e.g. if ex is a conditional expression.
@@ -632,7 +632,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (!modifyInPlace)
             {
-                // Since we track access counts for callables there is no need to force the copy.
+                // Since we track alias counts for callables there is no need to force the copy.
                 // While making a copy ensures that the callable is created with reference count 1,
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
@@ -708,7 +708,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
-                // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
+                // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
@@ -742,11 +742,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Array slice creates a new array if the current access count is larger than zero.
-                // The created array is instantiated with reference count 1 and access count 0.
-                // If the current access count is zero, then the array may be modified in place.
+                // Array slice creates a new array if the current alias count is larger than zero.
+                // The created array is instantiated with reference count 1 and alias count 0.
+                // If the current alias count is zero, then the array may be modified in place.
                 // In this case, its reference count is increased by 1.
-                // Since we keep track of access counts for arrays, there is no need to force the copy.
+                // Since we keep track of alias counts for arrays, there is no need to force the copy.
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
