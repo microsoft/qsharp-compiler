@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// contains a list of Properties from the project that we want to track e.g. for telemetry.
         /// </summary>
         private static readonly IEnumerable<string> PropertiesToTrack =
-            new string[] { "QsharpLangVersion" };
+            new string[] { "QSharpLangVersion" };
 
         /// <summary>
         /// Returns true if the package with the given name should be tracked.
@@ -111,12 +111,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             (string?, Dictionary<string, string?>) FrameworkAndMetadata(Project project)
             {
                 string? GetVersion(ProjectItem item) => item.DirectMetadata
-                    .FirstOrDefault(data => data.Name.Equals("Version", StringComparison.InvariantCultureIgnoreCase))?.EvaluatedValue;
+                    .FirstOrDefault(data => data.Name.Equals("Version", StringComparison.OrdinalIgnoreCase))?.EvaluatedValue;
                 var packageRefs = project.Items.Where(item =>
                     item.ItemType == "PackageReference" && GeneratePackageInfo(item.EvaluatedInclude))
                     .Select(item => (item.EvaluatedInclude, GetVersion(item)));
                 var trackedProperties = project.Properties.Where(p =>
-                    p?.Name != null && PropertiesToTrack.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))
+                    p?.Name != null && PropertiesToTrack.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
                     .Select(p => (p.Name.ToLowerInvariant(), p.EvaluatedValue));
 
                 var projInfo = new Dictionary<string, string?>();
@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.Log($"Failed to resolve assembly references for project '{projectFile}'.", MessageType.Error);
                 }
-                return instance.Targets.ContainsKey("QsharpCompile") ? instance : null;
+                return instance.Targets.ContainsKey("QSharpCompile") ? instance : null;
             });
         }
 

@@ -16,8 +16,8 @@
       <UpToDateCheckInput Include="@(Content)" />
     </ItemGroup>
   </Target>
-  
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
+
+  <Target Name="QSharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
     <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
       <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />

@@ -12,7 +12,7 @@
     <!-- Q# sdk version -->
     <QuantumSdkVersion>#NUGET_VERSION#</QuantumSdkVersion>
     <!-- Q# language version -->
-    <QsharpLangVersion>#MAJOR_VERSION#.#MINOR_VERSION#</QsharpLangVersion>
+    <QSharpLangVersion>#MAJOR_VERSION#.#MINOR_VERSION#</QSharpLangVersion>
     <!-- C# language version for the Driver (if applicable)-->
     <LangVersion>latest</LangVersion>
     <!-- cpu platform target -->
@@ -30,10 +30,10 @@
   <!-- unverified configurable properties -->
   <PropertyGroup>
     <QscVerbosity>Normal</QscVerbosity>
-    <CsharpGeneration>true</CsharpGeneration> <!-- at some point we may want to make False the default -->
-    <IncludeQsharpCorePackages>true</IncludeQsharpCorePackages>
+    <CSharpGeneration>true</CSharpGeneration> <!-- at some point we may want to make False the default -->
+    <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages>
     <IncludeProviderPackages>true</IncludeProviderPackages>
-    <QsharpDocsGeneration>false</QsharpDocsGeneration>
+    <QSharpDocsGeneration>false</QSharpDocsGeneration>
     <ExposeReferencesViaTestNames>false</ExposeReferencesViaTestNames> <!-- IMPORTANT: If the name of this property is changed, the property name in the language server needs to be adapted! -->
     <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe>
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe>

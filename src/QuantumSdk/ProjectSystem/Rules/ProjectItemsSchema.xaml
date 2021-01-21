@@ -1,13 +1,13 @@
 ﻿<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <ContentType
-      Name="QsharpSourceFile" 
-      DisplayName="Q# source file" 
-      ItemType="QsharpCompile">
+      Name="QSharpSourceFile"
+      DisplayName="Q# source file"
+      ItemType="QSharpCompile">
   </ContentType>
 
-  <ItemType Name="QsharpCompile" DisplayName="Q# compiler"/>
-  <FileExtension Name=".qs" ContentType="QsharpSourceFile" />
-  
+  <ItemType Name="QSharpCompile" DisplayName="Q# compiler"/>
+  <FileExtension Name=".qs" ContentType="QSharpSourceFile" />
+
 </ProjectSchemaDefinitions>
 
