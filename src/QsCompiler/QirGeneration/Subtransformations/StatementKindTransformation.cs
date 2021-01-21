@@ -435,7 +435,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // takes care of that when updateItemAccessCount is set to true.
 
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(pointer, shallow: true);
                 this.SharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow: true);
 
                 // Since the old value will no longer be accessible and hence no longer in use unless there
@@ -454,7 +453,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var value = this.SharedState.ValueStack.Pop();
 
                 this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
-                this.SharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow: true);
                 pointer.StoreValue(value);
             }
             else

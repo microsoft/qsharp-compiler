@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new List<(IValue, bool)>();
+                var pendingUnreferences = new List<(IValue, bool)>(pendingAccessCounts);
                 foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
                 {
                     var omitted = omitUnreferencing.FirstOrDefault(omitted => ValueEquals(value, omitted));
@@ -430,10 +430,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var func = getFunctionName(value.LlvmType);
             if (func != null)
             {
-                if (change != this.plusOne)
-                {
-                    this.scopes.Peek().ApplyPendingReferences();
-                }
                 ProcessValue(func, value);
             }
         }
@@ -520,8 +516,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Exits the current scope by emitting the calls to unreference, release,
-        /// and/or decrease the access counts for values going out of scope,
-        /// decreasing access counts and invoking release functions if necessary.
+        /// and/or decrease the access counts for values going out of scope, and invoking release functions if necessary.
         /// Exiting the current scope does *not* close the scope.
         /// All pending calls to increase reference counts for values need to be applied
         /// using <see cref="ApplyPendingReferences"/> before exiting the scope.
@@ -565,8 +560,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
-        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false) =>
+        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
+        {
+            this.scopes.Peek().ApplyPendingReferences();
             this.ModifyCounts(this.ReferencesUpdateFunctionForType, change, value, !shallow);
+        }
 
         /// <summary>
         /// Given a callable value, increases the reference count of its capture tuple by 1.
@@ -576,32 +574,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
 
         /// <summary>
-        /// Returns true if access counts are tracked for values of the given LLVM type.
-        /// </summary>
-        internal bool RequiresAccessCount(ITypeRef t) =>
-            this.AccessUpdateFunctionForType(t) != null;
-
-        /// <summary>
         /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(IValue value, bool shallow = false) =>
+        internal void IncreaseAccessCount(IValue value, bool shallow = false)
+        {
+            this.IncreaseReferenceCount(value, shallow);
             this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, value, !shallow);
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, bool shallow = false) =>
+        internal void DecreaseAccessCount(IValue value, bool shallow = false)
+        {
+            this.DecreaseReferenceCount(value, shallow);
             this.ModifyCounts(this.AccessUpdateFunctionForType, this.minusOne, value, !shallow);
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to change the access count for the given value.
         /// </summary>
         /// <param name="value">The value for which to change the access count</param>
         /// <param name="change">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
+        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false)
+        {
+            this.UpdateReferenceCount(change, value, shallow);
             this.ModifyCounts(this.AccessUpdateFunctionForType, change, value, !shallow);
+        }
 
         /// <summary>
         /// Queues a call to a suitable runtime library function that unreferences the value
@@ -633,6 +634,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void RegisterVariable(string name, IValue value)
         {
             value.RegisterName(this.sharedState.InlinedName(name));
+            // Since the value is necessarily created in the current or a parent scope,
+            // it won't go out of scope before the variable does.
+            // There is hence no need to increase the reference count to the value for the original binding.
+            //this.ModifyCounts(this.AccessUpdateFunctionForType, this.plusOne, value, recurIntoInnerItems: true);
             this.IncreaseAccessCount(value);
             this.scopes.Peek().RegisterVariable(name, value);
         }

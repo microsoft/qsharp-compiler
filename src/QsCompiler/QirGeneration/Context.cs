@@ -1344,8 +1344,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var functions = new List<(string, Action<IValue, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (arg, capture) => this.ScopeMgr.UpdateReferenceCount(arg, capture)),
-                    ($"{table.Name}__AccessCount", (arg, capture) => this.ScopeMgr.UpdateAccessCount(arg, capture))
+                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{table.Name}__AccessCount", (change, capture) => this.ScopeMgr.UpdateAccessCount(change, capture))
                 };
 
                 foreach (var (funcName, updateCounts) in functions)
@@ -1355,8 +1355,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
                         {
                             var capture = GetArgumentTuple(type, parameters[0]);
-                            var argument = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
-                            this.ScopeMgr.UpdateReferenceCount(argument, capture);
+                            var countChange = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
+                            updateCounts(countChange, capture);
                         });
                     }
                     else
