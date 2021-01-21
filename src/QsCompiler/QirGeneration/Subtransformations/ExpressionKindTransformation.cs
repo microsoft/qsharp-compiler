@@ -226,12 +226,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value)
+            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
             {
                 if (updateItemAccessCount)
                 {
-                    sharedState.ScopeMgr.IncreaseAccessCount(value);
-                    sharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    sharedState.ScopeMgr.IncreaseAccessCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow);
                 }
                 pointer.StoreValue(value);
             }
@@ -302,15 +302,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalValue)
             {
-                // Returns the shallow copy as tuple and pushes the given original into the copied tuples stack.
-                var copiedTuples = new Stack<TupleValue>();
                 TupleValue GetTupleCopy(TupleValue original)
                 {
-                    // If unreferenceOriginal is set to true, we need to make sure to explicitly unreference all tuples
-                    // for which we create a copy. We also need to make sure that we only decrease the reference count
-                    // for the tuples after we have evaluated the copy-and-update for them, and hence push them into a stack.
-                    copiedTuples.Push(original);
-
                     // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
                     // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
@@ -334,54 +327,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     && id.Item1 is Identifier.LocalVariable name
                     && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
-                    TupleValue innerTuple = value;
+                    var copies = new Stack<TupleValue>();
+                    copies.Push(value);
+
                     for (int depth = 0; depth < location.Count; depth++)
                     {
-                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                        // reference counts always need to be modified recursively. However, while the reference count for
-                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
-                        // to increase the reference count of the contained items due to lacking type information.
-                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
-                        // manually (recursively) increase the reference counts for all items.
-                        var itemPointers = innerTuple.GetTupleElementPointers();
-                        var itemIndex = location[depth];
-                        for (var i = 0; i < itemPointers.Length && !unreferenceOriginal; ++i)
-                        {
-                            // We avoid increasing the reference count here for all items but the copied tuples if
-                            // unreferenceOriginal is set to true, effectively decreasing their reference count by 1.
-                            // The copied tuples themselves need to be unreferenced after evaluating the copy-and-update.
-                            if (i != itemIndex)
-                            {
-                                sharedState.ScopeMgr.IncreaseReferenceCount(itemPointers[i]);
-                            }
-                        }
-
+                        var itemPointer = copies.Peek().GetTupleElementPointer(location[depth]);
                         if (depth == location.Count - 1)
                         {
-                            var newItemValue = sharedState.BuildSubitem(updated);
-                            if (unreferenceOriginal)
-                            {
-                                sharedState.ScopeMgr.DecreaseReferenceCount(itemPointers[itemIndex]);
-                            }
-                            StoreElement(itemPointers[itemIndex], newItemValue);
+                            var newItemValue = sharedState.EvaluateSubexpression(updated);
+                            StoreElement(itemPointer, newItemValue);
                         }
                         else
                         {
                             // We load the original item at that location (which is an inner tuple),
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
-                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
-                            innerTuple = GetTupleCopy(originalItem);
-                            StoreElement(itemPointers[itemIndex], innerTuple);
+                            var originalItem = (TupleValue)itemPointer.LoadValue();
+                            copies.Push(GetTupleCopy(originalItem));
+                            StoreElement(itemPointer, copies.Peek(), shallow: true);
                         }
                     }
 
-                    while (unreferenceOriginal && copiedTuples.TryPop(out var copiedTuple))
+                    // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                    // reference counts always need to be modified recursively. However, while the reference count for
+                    // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                    // to increase the reference count of the contained items due to lacking type information.
+                    // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                    // manually (recursively) increase the reference counts for all items.
+                    sharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    while (copies.TryPop(out var copy))
                     {
-                        // We explicitly unreference all copied tuples here. We don't need to recur into items since the
-                        // reference count for all items that have not been copied is effectively already reduced by 1
-                        // by not having increased it to reflect their use in the copy.
-                        sharedState.ScopeMgr.DecreaseReferenceCount(copiedTuple, shallow: true);
+                        sharedState.ScopeMgr.DecreaseReferenceCount(copy, shallow: true);
+                    }
+
+                    // We need to be careful to not unreference the old value before we have properly populated and
+                    // referenced all items in the new value.
+                    if (unreferenceOriginal)
+                    {
+                        sharedState.ScopeMgr.DecreaseReferenceCount(originalValue);
                     }
                     return value;
                 }
