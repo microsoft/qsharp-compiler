@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.Documentation
 {
-
     /// <summary>
     ///     Writes API documentation files as Markdown to a given output
     ///     directory, using parsed API documentation comments.
@@ -80,9 +79,7 @@ namespace Microsoft.Quantum.Documentation
                 $"writing output to {filename}",
                 async () => await File.WriteAllTextAsync(
                     Path.Join(this.OutputPath, filename.ToLowerInvariant()),
-                    contents
-                )
-            );
+                    contents));
         }
 
         /// <summary>
@@ -109,7 +106,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
                 {
-                    Severity = CodeAnalysis.DiagnosticSeverity.Info,
+                    Severity = DiagnosticSeverity.Info,
                     Message = $"Writing documentation output to: {outputPath}...",
                     Range = null,
                     Source = null,
@@ -117,10 +114,11 @@ namespace Microsoft.Quantum.Documentation
                 });
                 if (!Directory.Exists(outputPath))
                 {
-                    this.TryWithExceptionsAsDiagnostics(
-                        "creating directory",
-                        async () => Directory.CreateDirectory(outputPath)
-                    ).Wait();
+                    this
+                        .TryWithExceptionsAsDiagnostics(
+                            "creating directory",
+                            () => Task.FromResult(Directory.CreateDirectory(outputPath)))
+                        .Wait();
                 }
             }
 
@@ -141,7 +139,7 @@ namespace Microsoft.Quantum.Documentation
         /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         public async Task WriteOutput(QsNamespace ns, DocComment docComment)
         {
-            var name = ns.Name.Value;
+            var name = ns.Name;
             var uid = name;
             var title = $"{name} namespace";
             var header = new Dictionary<string, object>
@@ -152,7 +150,7 @@ namespace Microsoft.Quantum.Documentation
 
                 // docs.ms metadata
                 ["ms.date"] = DateTime.Today.ToString(),
-                ["ms.topic"] = "article",
+                ["ms.topic"] = "managed-reference",
 
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
@@ -166,18 +164,15 @@ namespace Microsoft.Quantum.Documentation
 
 "
                 .MaybeWithSection("Description", docComment.Description)
+                .WithSectionForEach("Example", docComment.Examples)
                 .MaybeWithSection(
                     "See Also",
                     string.Join("\n", docComment.SeeAlso.Select(
-                        seeAlso => AsSeeAlsoLink(seeAlso)
-                    ))
-                )
+                        seeAlso => AsSeeAlsoLink(seeAlso))))
                 .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
-            await this.WriteAllTextAsync(
-                $"{name}.md", document
-            );
+            await this.WriteAllTextAsync($"{name}.md", document);
         }
 
         /// <summary>
@@ -195,7 +190,7 @@ namespace Microsoft.Quantum.Documentation
             var namedItemDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
 
             // Make a new Markdown document for the type declaration.
-            var title = $"{type.FullName.Name.Value} user defined type";
+            var title = $"{type.FullName.Name} user defined type";
             var header = new Dictionary<string, object>
             {
                 // DocFX metadata
@@ -208,14 +203,14 @@ namespace Microsoft.Quantum.Documentation
 
                 // Q# metadata
                 ["qsharp.kind"] = "udt",
-                ["qsharp.namespace"] = type.FullName.Namespace.Value,
-                ["qsharp.name"] = type.FullName.Name.Value,
+                ["qsharp.namespace"] = type.FullName.Namespace,
+                ["qsharp.name"] = type.FullName.Name,
                 ["qsharp.summary"] = docComment.Summary,
             };
             var document = $@"
 # {title}
 
-Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value})
+Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
 {this.packageLink}
 
 {docComment.Summary}
@@ -236,25 +231,21 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
                             ? comment
                             : string.Empty;
                         return $"### {itemName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}";
-                    }
-                ))
-            )
+                    })))
             .MaybeWithSection("Description", docComment.Description)
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => AsSeeAlsoLink(seeAlso, type.FullName.Namespace.Value)
-                ))
-            )
+                    seeAlso => AsSeeAlsoLink(seeAlso, type.FullName.Namespace))))
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
             await this.WriteAllTextAsync(
-                $"{type.FullName.Namespace.Value}.{type.FullName.Name.Value}.md",
-                document
-            );
+                $"{type.FullName.Namespace}.{type.FullName.Name}.md",
+                document);
         }
 
         /// <summary>
@@ -277,7 +268,7 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
                 QsCallableKind.Tags.TypeConstructor => "type constructor",
                 _ => "<unknown>",
             };
-            var title = $@"{callable.FullName.Name.Value} {kind}";
+            var title = $@"{callable.FullName.Name} {kind}";
             var header = new Dictionary<string, object>
             {
                 // DocFX metadata
@@ -290,28 +281,27 @@ Namespace: [{type.FullName.Namespace.Value}](xref:{type.FullName.Namespace.Value
 
                 // Q# metadata
                 ["qsharp.kind"] = kind,
-                ["qsharp.namespace"] = callable.FullName.Namespace.Value,
-                ["qsharp.name"] = callable.FullName.Name.Value,
+                ["qsharp.namespace"] = callable.FullName.Namespace,
+                ["qsharp.name"] = callable.FullName.Name,
                 ["qsharp.summary"] = docComment.Summary,
+            };
+            var keyword = callable.Kind.Tag switch
+            {
+                QsCallableKind.Tags.Function => "function ",
+                QsCallableKind.Tags.Operation => "operation ",
+                QsCallableKind.Tags.TypeConstructor => "newtype ",
+                _ => ""
             };
             var document = $@"
 # {title}
 
-Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespace.Value})
+Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
 {this.packageLink}
 
 {docComment.Summary}
 
 ```{this.LanguageMode}
-{
-    callable.Kind.Tag switch
-    {
-        QsCallableKind.Tags.Function => "function ",
-        QsCallableKind.Tags.Operation => "operation ",
-        QsCallableKind.Tags.TypeConstructor => "newtype ",
-        _ => ""
-    }
-}{callable.ToSyntax()}
+{keyword}{callable.ToSyntax()}
 ```
 "
             .MaybeWithSection("Description", docComment.Description)
@@ -325,40 +315,31 @@ Namespace: [{callable.FullName.Namespace.Value}](xref:{callable.FullName.Namespa
                             ? inputComment
                             : string.Empty;
                         return $"### {inputName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}\n\n";
-                    }
-                ))
-            )
+                    })))
             .WithSection($"Output : {callable.Signature.ReturnType.ToMarkdownLink()}", docComment.Output)
             .MaybeWithSection(
                 "Type Parameters",
                 string.Join("\n", callable.Signature.TypeParameters.Select(
                     typeParam =>
                         typeParam is QsLocalSymbol.ValidName name
-                        ? $@"### '{name.Item.Value}{"\n\n"}{(
-                            docComment.TypeParameters.TryGetValue($"'{name.Item.Value}", out var comment)
+                        ? $@"### '{name.Item}{"\n\n"}{(
+                            docComment.TypeParameters.TryGetValue($"'{name.Item}", out var comment)
                             ? comment
-                            : string.Empty
-                          )}"
-                        : string.Empty
-                ))
-            )
+                            : string.Empty)}"
+                        : string.Empty)))
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(
                 "See Also",
                 string.Join("\n", docComment.SeeAlso.Select(
-                    seeAlso => AsSeeAlsoLink(seeAlso, callable.FullName.Namespace.Value)
-                ))
-            )
+                    seeAlso => AsSeeAlsoLink(seeAlso, callable.FullName.Namespace))))
             .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
             await this.WriteAllTextAsync(
-                $"{callable.FullName.Namespace.Value}.{callable.FullName.Name.Value}.md",
-                document
-            );
+                $"{callable.FullName.Namespace}.{callable.FullName.Name}.md",
+                document);
         }
-
     }
-
 }

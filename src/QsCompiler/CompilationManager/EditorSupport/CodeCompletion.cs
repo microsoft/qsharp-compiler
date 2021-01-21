@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -42,12 +42,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// The qualified name of the completion item.
         /// </summary>
-        public QsQualifiedName? QualifiedName
-        {
-            get => this.@namespace == null || this.name == null
+        public QsQualifiedName? QualifiedName =>
+            this.@namespace == null || this.name == null
                 ? null
-                : new QsQualifiedName(NonNullable<string>.New(this.@namespace), NonNullable<string>.New(this.name));
-        }
+                : new QsQualifiedName(this.@namespace, this.name);
 
         /// <summary>
         /// The source file the completion item is declared in.
@@ -59,8 +57,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             TextDocumentIdentifier? textDocument = null, QsQualifiedName? qualifiedName = null, string? sourceFile = null)
         {
             this.TextDocument = textDocument;
-            this.@namespace = qualifiedName?.Namespace.Value;
-            this.name = qualifiedName?.Name.Value;
+            this.@namespace = qualifiedName?.Namespace;
+            this.name = qualifiedName?.Name;
             this.SourceFile = sourceFile;
         }
     }
@@ -279,9 +277,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .TryGetLocalDeclarations(file, position, out _, includeDeclaredAtPosition: false)
                 .Variables
                 .Where(variable => !mutableOnly || variable.InferredInformation.IsMutable)
-                .Select(variable => new CompletionItem()
+                .Select(variable => new CompletionItem
                 {
-                    Label = variable.VariableName.Value,
+                    Label = variable.VariableName,
                     Kind = CompletionItemKind.Variable
                 });
 
@@ -303,16 +301,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 compilation.GlobalSymbols.AccessibleCallables()
                 .Where(callable =>
                     IsAccessibleAsUnqualifiedName(callable.QualifiedName, currentNamespace, openNamespaces))
-                .Select(callable => new CompletionItem()
+                .Select(callable => new CompletionItem
                 {
-                    Label = callable.QualifiedName.Name.Value,
+                    Label = callable.QualifiedName.Name,
                     Kind =
                         callable.Kind.IsTypeConstructor ? CompletionItemKind.Constructor : CompletionItemKind.Function,
-                    Detail = callable.QualifiedName.Namespace.Value,
+                    Detail = callable.QualifiedName.Namespace,
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: callable.QualifiedName,
-                        sourceFile: callable.SourceFile.Value)
+                        sourceFile: callable.Source.AssemblyOrCodeFile)
                 });
         }
 
@@ -333,15 +331,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return
                 compilation.GlobalSymbols.AccessibleTypes()
                 .Where(type => IsAccessibleAsUnqualifiedName(type.QualifiedName, currentNamespace, openNamespaces))
-                .Select(type => new CompletionItem()
+                .Select(type => new CompletionItem
                 {
-                    Label = type.QualifiedName.Name.Value,
+                    Label = type.QualifiedName.Name,
                     Kind = CompletionItemKind.Struct,
-                    Detail = type.QualifiedName.Namespace.Value,
+                    Detail = type.QualifiedName.Namespace,
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: type.QualifiedName,
-                        sourceFile: type.SourceFile.Value)
+                        sourceFile: type.Source.AssemblyOrCodeFile)
                 });
         }
 
@@ -358,9 +356,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return compilation.GlobalSymbols.AccessibleTypes()
                 .SelectMany(type => ExtractItems(type.TypeItems))
                 .Where(item => item.IsNamed)
-                .Select(item => new CompletionItem()
+                .Select(item => new CompletionItem
                 {
-                    Label = ((QsTypeItem.Named)item).Item.VariableName.Value,
+                    Label = ((QsTypeItem.Named)item).Item.VariableName,
                     Kind = CompletionItemKind.Field
                 });
         }
@@ -381,8 +379,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             return
                 compilation.GlobalSymbols.NamespaceNames()
-                .Where(name => name.Value.StartsWith(prefix))
-                .Select(name => NextNamespacePart(name.Value, prefix.Length))
+                .Where(name => name.StartsWith(prefix))
+                .Select(name => NextNamespacePart(name, prefix.Length))
                 .Distinct()
                 .Select(name => new CompletionItem()
                 {
@@ -407,21 +405,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 prefix += ".";
             }
             var ns = file.TryGetNamespaceAt(position);
-            if (ns == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(ns)))
+            if (ns == null || !compilation.GlobalSymbols.NamespaceExists(ns))
             {
                 return Array.Empty<CompletionItem>();
             }
             return compilation
-                .GetOpenDirectives(NonNullable<string>.New(ns))[file.FileName]
+                .GetOpenDirectives(ns)[file.FileName]
                 .SelectNotNull(open => open.Item2?.Apply(alias => (open.Item1, alias)))
-                .Where(open => open.Item2.StartsWith(prefix))
-                .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
-                .Select(open => new CompletionItem()
+                .Where(open => open.alias.StartsWith(prefix))
+                .GroupBy(open => NextNamespacePart(open.alias, prefix.Length))
+                .Select(open => new CompletionItem
                 {
                     Label = open.Key,
                     Kind = CompletionItemKind.Module,
-                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
-                        ? open.Single().Item1.Value
+                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().alias
+                        ? open.Single().Item1
                         : prefix + open.Key
                 });
         }
@@ -446,7 +444,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 case CompletionItemKind.Function:
                 case CompletionItemKind.Constructor:
                     var result = compilation.GlobalSymbols.TryGetCallable(
-                        data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile));
+                        data.QualifiedName, data.QualifiedName.Namespace, data.SourceFile);
                     if (!(result is ResolutionResult<CallableDeclarationHeader>.Found callable))
                     {
                         return null;
@@ -457,7 +455,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 case CompletionItemKind.Struct:
                     var type =
                         compilation.GlobalSymbols.TryGetType(
-                            data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile))
+                            data.QualifiedName, data.QualifiedName.Namespace, data.SourceFile)
                         as ResolutionResult<TypeDeclarationHeader>.Found;
                     return type?.Item.Documentation.PrintSummary(useMarkdown).Trim();
                 default:
@@ -473,14 +471,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file, CompilationUnit compilation, Position position)
         {
             var @namespace = file.TryGetNamespaceAt(position);
-            if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
+            if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(@namespace))
             {
                 return Array.Empty<string>();
             }
             return compilation
-                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                .GetOpenDirectives(@namespace)[file.FileName]
                 .Where(open => open.Item2 == null) // Only include open directives without an alias.
-                .Select(open => open.Item1.Value)
+                .Select(open => open.Item1)
                 .Concat(new[] { @namespace });
         }
 
@@ -534,12 +532,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file, CompilationUnit compilation, Position position, string alias)
         {
             var nsName = file.TryGetNamespaceAt(position);
-            if (nsName == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(nsName)))
+            if (nsName == null || !compilation.GlobalSymbols.NamespaceExists(nsName))
             {
                 return alias;
             }
-            return compilation.GlobalSymbols.TryResolveNamespaceAlias(
-                NonNullable<string>.New(alias), NonNullable<string>.New(nsName), file.FileName) ?? alias;
+            return compilation.GlobalSymbols.TryResolveNamespaceAlias(alias, nsName, file.FileName) ?? alias;
         }
 
         /// <summary>
@@ -636,7 +633,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsQualifiedName qualifiedName,
             string? currentNamespace,
             IEnumerable<string> openNamespaces) =>
-            openNamespaces.Contains(qualifiedName.Namespace.Value) &&
-            (!qualifiedName.Name.Value.StartsWith("_") || qualifiedName.Namespace.Value == currentNamespace);
+            openNamespaces.Contains(qualifiedName.Namespace) &&
+            (!qualifiedName.Name.StartsWith("_") || qualifiedName.Namespace == currentNamespace);
     }
 }

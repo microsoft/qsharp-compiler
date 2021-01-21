@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
                 (Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
                 var name =
-                    sym is Identifier.LocalVariable var ? var.Item.Value :
+                    sym is Identifier.LocalVariable var ? var.Item :
                     sym is Identifier.GlobalCallable global ? global.Item.ToString() :
                     null;
 

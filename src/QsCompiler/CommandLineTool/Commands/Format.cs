@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
@@ -45,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 'o',
                 "output",
                 Required = true,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the formatted files will be generated.")]
             public string OutputFolder { get; set; }
 #nullable restore annotations
@@ -70,9 +69,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Generates formatted Q# code based on the part of the syntax tree that corresponds to each file in the given compilation.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
-        private static IEnumerable<string> GenerateQsCode(Compilation compilation, NonNullable<string> file, ILogger logger)
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
+        private static IEnumerable<string> GenerateQsCode(Compilation compilation, string file, ILogger logger)
         {
             if (Options.IsCodeSnippet(file))
             {
@@ -83,10 +82,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 var imports = compilation.SyntaxTree.Values
                     .ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, compilation.SyntaxTree.Values, (file, imports));
+                var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<string, string>> generated, compilation.SyntaxTree.Values, (file, imports));
                 if (!success)
                 {
-                    logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file.Value);
+                    logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file);
                 }
 
                 return generated.Single().Select(entry =>
@@ -115,7 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Creates a file containing the generated code in the given output folder otherwise.
         /// Returns true if the generation succeeded, and false if an exception was thrown.
         /// </summary>
-        private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string? outputFolder, ILogger logger)
+        private static bool GenerateFormattedQsFile(Compilation compilation, string fileName, string? outputFolder, ILogger logger)
         {
             var code = Enumerable.Empty<string>();
             try
@@ -124,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
             catch (Exception ex)
             {
-                logger?.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>(), fileName.Value);
+                logger?.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>(), fileName);
                 logger?.Log(ex);
                 return false;
             }
@@ -157,14 +156,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // no rewrite steps, no generation
             var loaded =
                 new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
-            if (ReturnCode.Status(loaded) == ReturnCode.UNRESOLVED_FILES)
+            if (ReturnCode.Status(loaded) == ReturnCode.UnresolvedFiles)
             {
-                return ReturnCode.UNRESOLVED_FILES; // ignore compilation errors
+                return ReturnCode.UnresolvedFiles; // ignore compilation errors
             }
             else if (loaded.VerifiedCompilation is null)
             {
                 logger.Log(ErrorCode.QsGenerationFailed, Enumerable.Empty<string>());
-                return ReturnCode.CODE_GENERATION_ERRORS;
+                return ReturnCode.CodeGenerationErrors;
             }
 
             // TODO: a lot of the formatting logic defined here and also in the routines above
@@ -183,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
                 logger.Verbosity = verbosity;
             }
-            return success ? ReturnCode.SUCCESS : ReturnCode.CODE_GENERATION_ERRORS;
+            return success ? ReturnCode.Success : ReturnCode.CodeGenerationErrors;
         }
     }
 }

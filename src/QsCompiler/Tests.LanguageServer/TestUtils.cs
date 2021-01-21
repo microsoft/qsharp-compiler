@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             new ExecuteCommandParams { Command = command, Arguments = args };
 
         // does not modify range
-        internal static int GetRangeLength(VisualStudio.LanguageServer.Protocol.Range range, IReadOnlyList<string> content)
+        internal static int GetRangeLength(Range range, IReadOnlyList<string> content)
         {
             Assert.IsTrue(IsValidRange(range));
             if (range.Start.Line == range.End.Line)

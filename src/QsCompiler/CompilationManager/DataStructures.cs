@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -411,8 +411,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Builds the TreeNode consisting of the given fragment and children.
             /// RelativeToRoot is set to the position of the fragment start relative to the given parent start position.
-            /// Throws an ArgumentException if the given parent start position is larger than the fragment start position.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
                 if (fragment.Range.Start < parentStart)
@@ -426,12 +426,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
         }
 
-        public readonly NonNullable<string> Source;
-        public readonly NonNullable<string> Namespace;
-        public readonly NonNullable<string> Callable;
+        public readonly string Source;
+        public readonly string Namespace;
+        public readonly string Callable;
         public readonly IReadOnlyList<TreeNode>? Specializations;
 
-        public FragmentTree(NonNullable<string> source, NonNullable<string> ns, NonNullable<string> callable, IEnumerable<TreeNode>? specs)
+        public FragmentTree(string source, string ns, string callable, IEnumerable<TreeNode>? specs)
         {
             this.Source = source;
             this.Namespace = ns;
@@ -447,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal Position Position { get; }
 
-        internal readonly NonNullable<string> SymbolName;
-        internal readonly Tuple<NonNullable<string>, Range> PositionedSymbol;
+        internal readonly string SymbolName;
+        internal readonly Tuple<string, Range> PositionedSymbol;
 
         internal readonly T Declaration;
         internal readonly ImmutableArray<AttributeAnnotation> Attributes;
@@ -458,7 +458,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
             Position offset,
-            (NonNullable<string>, Range) sym,
+            (string, Range) sym,
             T decl,
             ImmutableArray<AttributeAnnotation> attributes,
             ImmutableArray<string> doc,
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         {
             this.Position = offset;
             this.SymbolName = sym.Item1;
-            this.PositionedSymbol = new Tuple<NonNullable<string>, Range>(sym.Item1, sym.Item2);
+            this.PositionedSymbol = new Tuple<string, Range>(sym.Item1, sym.Item2);
             this.Declaration = decl;
             this.Attributes = attributes;
             this.Documentation = doc;
@@ -479,9 +479,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the symbol of the extracted declaration is not an unqualified symbol,
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the keepInvalid parameter has been set to a string value.
         /// If the keepInvalid parameter has been set to a (non-null) string, uses that string as the SymbolName for the returned HeaderEntry instance.
-        /// Throws an ArgumentException if this verification fails as well.
-        /// Throws an ArgumentException if the extracted declaration is Null.
         /// </summary>
+        /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified or invalid symbol.</exception>
+        /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
             CodeFragment.TokenIndex tIndex,
@@ -505,7 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var symRange = sym.Range.IsNull ? Range.Zero : sym.Range.Item;
             return symName == null
                 ? (HeaderEntry<T>?)null
-                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragment.Range.Start, (symName, symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 
@@ -534,8 +534,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Invalidates (i.e. removes) all elements in the range [start, start + count), and
         /// updates all elements that are larger than or equal to start + count with the given lineNrChange.
-        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
+        /// </exception>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             this.namespaceDeclarations.InvalidateOrUpdate(start, count, lineNrChange);
@@ -633,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to SortedSet<int>
+    /// threadsafe wrapper to <see cref="SortedSet{T}"/> whose generic type argument is <see cref="int"/>.
     /// </summary>
     public class ManagedSortedSet // *don't* dispose of the sync root!
     {
@@ -697,8 +699,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Removes all elements in the range [start, start + count) from the set, and
         /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange.
         /// Returns the number of removed elements.
-        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             if (start < 0)
@@ -734,7 +736,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to HashSet<T>
+    /// threadsafe wrapper to <see cref="HashSet{T}"/>
     /// </summary>
     public class ManagedHashSet<T> // *don't* dispose of the sync root!
     {
@@ -793,7 +795,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// threadsafe wrapper to List<T>
+    /// threadsafe wrapper to <see cref="List{T}"/>
     /// </summary>
     public class ManagedList<T> // *don't* dispose of the sync root!
     {

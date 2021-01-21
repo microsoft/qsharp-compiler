@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\QsCompiler\Compiler\Compiler.csproj" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
   </ItemGroup>
   
   <ItemGroup>
@@ -32,9 +31,5 @@
       <Pack>true</Pack>
       <PackagePath>build\Microsoft.Quantum.DocumentationGenerator.props</PackagePath>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 </Project>

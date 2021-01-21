@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -10,9 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -24,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly string OutputPath;
         public readonly RuntimeCapability RuntimeCapability;
         public readonly bool IsExecutable;
-        public readonly NonNullable<string> ProcessorArchitecture;
+        public readonly string ProcessorArchitecture;
         public readonly bool ExposeReferencesViaTestNames;
 
         public ProjectProperties(
@@ -32,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
-            NonNullable<string> processorArchitecture,
+            string processorArchitecture,
             bool loadTestNames)
         {
             this.Version = version ?? "";
@@ -62,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 outputPath,
                 capability,
                 false,
-                NonNullable<string>.New("Unspecified"),
+                "Unspecified",
                 false,
                 Enumerable.Empty<string>(),
                 Enumerable.Empty<string>(),
@@ -73,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
-            NonNullable<string> processorArchitecture,
+            string processorArchitecture,
             bool loadTestNames,
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,
@@ -260,7 +258,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     this.log(
                         $"The Q# language server functionality is partially disabled for project {this.ProjectFile.LocalPath}. " +
-                        $"The full functionality will be available after updating the project to Q# version 0.3 or higher.", MessageType.Warning);
+                        $"The full functionality will be available after updating the project to Q# version 0.3 or higher.",
+                        MessageType.Warning);
                 }
                 this.LoadReferencedAssembliesAsync(this.specifiedReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadProjectReferencesAsync(projectOutputPaths, this.specifiedProjectReferences.Select(uri => uri.LocalPath), skipVerification: true);
@@ -344,8 +343,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given project reference is not referenced by this project.
-            /// Throws an ArgumentException if the given Uri is not an absolute uri to a file.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="projectReference"/> is not an absolute file URI.</exception>
             private void ReloadProjectReference(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
             {
                 if (!this.specifiedProjectReferences.Contains(projectReference) || !this.isLoaded)
@@ -364,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 QsCompilerError.Verify(
                     !loaded.Declarations.Any() ||
-                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == projRefId.Value),
+                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key == projRefId),
                     $"loaded references upon loading {projectReference.LocalPath}: {string.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.loadedProjectReferences = this.loadedProjectReferences.Remove(projRefId).CombineWith(loaded);
                 var importedDeclarations = this.loadedReferences.CombineWith(
@@ -406,8 +405,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// and updates the reloaded reference in the CompilationUnitManager.
             /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
             /// Does nothing if the given assembly is not referenced by this project.
-            /// Throws an ArgumentException if the given Uri is not an absolute uri to a file.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="reference"/> is not an absolute file URI.</exception>
             private void ReloadReferencedAssembly(Uri reference)
             {
                 if (!this.specifiedReferences.Contains(reference) || !this.isLoaded)
@@ -425,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 QsCompilerError.Verify(
                     !loaded.Declarations.Any() ||
-                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == refId.Value),
+                    (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key == refId),
                     $"loaded references upon loading {reference.LocalPath}: {string.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.loadedReferences = this.loadedReferences.Remove(refId).CombineWith(loaded);
                 var importedDeclarations = this.loadedReferences.CombineWith(
@@ -1149,7 +1148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public static string MessageSource(Uri uri) =>
             uri.IsAbsoluteUri && uri.IsFile
-                ? CompilationUnitManager.GetFileId(uri).Value
+                ? CompilationUnitManager.GetFileId(uri)
                 : uri.AbsolutePath;
 
         /// <summary>
@@ -1249,7 +1248,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onException);
             return found
                 .SelectNotNull(file => GetFileContent(file)?.Apply(content => (file, content)))
-                .ToImmutableDictionary(source => source.Item1, source => source.Item2);
+                .ToImmutableDictionary(source => source.file, source => source.content);
         }
 
         /// <summary>
@@ -1295,14 +1294,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        private static Task<References.Headers?> LoadReferencedDllAsync(
+            Uri asm,
+            bool ignoreDllResources,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
+        {
+            return Task.Run(() => LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException));
+        }
+
         /// <summary>
         /// Returns the file id used for the file with the given uri.
         /// Raises a QsCompilerError if the id could not be determined.
         /// </summary>
-        private static NonNullable<string> GetFileId(Uri uri) =>
-            NonNullable<string>.New(QsCompilerError.RaiseOnFailure<string>(
-                () => CompilationUnitManager.TryGetFileId(uri, out var id) ? id.Value : throw new InvalidOperationException(),
-                "could not determine id for valid uri"));
+        private static string GetFileId(Uri uri) =>
+            QsCompilerError.RaiseOnFailure(
+                () => CompilationUnitManager.GetFileId(uri),
+                "could not determine id for valid uri");
 
         /// <summary>
         /// Uses FilterFiles to filter the given project files, and generates the corresponding errors and warnings.
@@ -1313,7 +1321,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
         /// </summary>
-        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadProjectReferences(
+        public static ImmutableDictionary<string, References.Headers> LoadProjectReferences(
             IEnumerable<string> refProjectFiles,
             Func<Uri, Uri?> getOutputPath,
             Action<Diagnostic>? onDiagnostic = null,
@@ -1348,7 +1356,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var projectDlls = existingProjectFiles // maps the *dll path* back to the corresponding project file!
                 .SelectNotNull(projFile => TryGetOutputPath(projFile)?.Apply(output => (projFile, output)))
-                .ToImmutableDictionary(p => p.Item2, p => p.Item1); // FIXME: take care of different projects having the same output path...
+                .ToImmutableDictionary(p => p.output, p => p.projFile); // FIXME: take care of different projects having the same output path...
             var (existingProjectDlls, missingDlls) = projectDlls.Keys.Partition(f => File.Exists(f.LocalPath));
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
             {
@@ -1357,17 +1365,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return existingProjectDlls
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.Item1]), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.file]), asm => asm.headers);
         }
 
         /// <summary>
-        /// Uses FilterFiles to filter the given references binary files, and generates the corresponding errors and warnings.
-        /// Ignores any binary files that contain mscorlib.dll or a similar variant in their name.
+        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// Generates a suitable error message for each binary file that could not be loaded.
         /// Calls the given onDiagnostic action on all generated diagnostics.
-        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// </summary>
-        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadReferencedAssemblies(
+        public static ImmutableDictionary<string, References.Headers> LoadReferencedAssemblies(
             IEnumerable<string> references,
             Action<Diagnostic>? onDiagnostic = null,
             Action<Exception>? onException = null,
@@ -1376,6 +1382,55 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             References.Headers? LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException);
 
+            var assembliesToLoad = GetAssembliesToLoad(references, onDiagnostic, onException);
+            return assembliesToLoad
+                .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
+                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+        }
+
+        /// <summary>
+        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains which are loaded in parallel.
+        /// Generates a suitable error message for each binary file that could not be loaded.
+        /// Calls the given onDiagnostic action on all generated diagnostics.
+        /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        public static ImmutableDictionary<string, References.Headers> LoadReferencedAssembliesInParallel(
+            IEnumerable<string> references,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null,
+            bool ignoreDllResources = false)
+        {
+            var assembliesToLoad = GetAssembliesToLoad(references, onDiagnostic, onException);
+            var assemblyLoadingTaskTuples = new List<(Uri Assembly, Task<References.Headers?> Task)>();
+            foreach (var assembly in assembliesToLoad.ToList())
+            {
+                var loadingTask = LoadReferencedDllAsync(assembly, ignoreDllResources, onDiagnostic, onException);
+                assemblyLoadingTaskTuples.Add((assembly, loadingTask));
+            }
+
+            var loadingTasks = assemblyLoadingTaskTuples.Aggregate(
+                new List<Task<References.Headers?>>(assemblyLoadingTaskTuples.Count),
+                (tasksList, tuple) =>
+                {
+                    tasksList.Add(tuple.Item2);
+                    return tasksList;
+                });
+
+            Task.WaitAll(loadingTasks.ToArray());
+            return assemblyLoadingTaskTuples
+                .SelectNotNull(tuple => tuple.Task.Result?.Apply(headers => (tuple.Assembly, headers)))
+                .ToImmutableDictionary(assemblyHeaderTuple => GetFileId(assemblyHeaderTuple.Item1), assemblyHeaderTuple => assemblyHeaderTuple.Item2);
+        }
+
+        /// <summary>
+        /// Uses FilterFiles to filter the given references binary files, and generates the corresponding errors and warnings.
+        /// Ignores any binary files that contain mscorlib.dll or a similar variant in their name.
+        /// </summary>
+        private static IEnumerable<Uri> GetAssembliesToLoad(
+            IEnumerable<string> references,
+            Action<Diagnostic>? onDiagnostic = null,
+            Action<Exception>? onException = null)
+        {
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
             var assembliesToLoad = FilterFiles(
@@ -1388,9 +1443,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onDiagnostic,
                 onException);
 
-            return assembliesToLoad
-                .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+            return assembliesToLoad;
         }
     }
 }

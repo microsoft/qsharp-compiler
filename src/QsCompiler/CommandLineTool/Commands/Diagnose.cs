@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.FileContentInMemory,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: $"{Environment.NewLine}{string.Concat(inMemory)}");
             }
         }
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 logger.Log(
                     InformationCode.BuiltTokenization,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: serialization.ToArray());
             }
         }
@@ -141,8 +141,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static void PrintSyntaxTree(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             evaluatedTree ??= compilation.SyntaxTree.Values;
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 void PrintTree(string serialization) => logger.Log(
                     InformationCode.BuiltSyntaxTree,
                     Enumerable.Empty<string>(),
-                    stripWrapping ? null : file.Value,
+                    stripWrapping ? null : file,
                     messageParam: new string[] { "", serialization });
 
                 if (!stripWrapping)
@@ -175,8 +175,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         private static void PrintGeneratedQs(IEnumerable<QsNamespace>? evaluatedTree, Compilation compilation, ILogger logger)
         {
             evaluatedTree ??= compilation.SyntaxTree.Values;
@@ -192,9 +192,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 else
                 {
                     var imports = evaluatedTree.ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                    SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
+                    SyntaxTreeToQsharp.Apply(out var generated, evaluatedTree, (file, imports));
                     var code = new string[] { "" }.Concat(generated.Single().Values.Select(nsCode => $"{nsCode}{Environment.NewLine}"));
-                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file.Value, messageParam: code.ToArray());
+                    logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file, messageParam: code.ToArray());
                 }
             }
         }
@@ -203,8 +203,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         /// <summary>
         /// Strips the namespace and callable declaration that is consistent with the wrapping defined by WrapSnippet.
-        /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// </summary>
+        /// <exception cref="ArgumentException">This is not possible because the given syntax tree is inconsistent with that wrapping.</exception>
         public static IEnumerable<QsStatement> StripSnippetWrapping(IEnumerable<QsNamespace> syntaxTree)
         {
             var incorrectWrapperException = new ArgumentException("syntax tree does not reflect the expected wrapper");

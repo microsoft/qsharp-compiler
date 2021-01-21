@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a copy of this diagnostic with the given offset added to the line numbers.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if the new diagnostic has negative line numbers.
+        /// The new diagnostic has negative line numbers.
         /// </exception>
         public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {

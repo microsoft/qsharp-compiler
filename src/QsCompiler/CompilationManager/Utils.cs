@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -100,10 +100,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             content == null ? null : string.Join("", content); // *DO NOT MODIFY* how lines are joined - the compiler functionality depends on it!
 
         /// <summary>
-        /// Given a string, replaces the range [starChar, endChar) with the given string to insert.
+        /// Given a string, replaces the range [<paramref name="startChar"/>, <paramref name="endChar"/>) with <paramref name="insert"/>.
         /// Returns null if the given text is null.
-        /// Throws an ArgumentOutOfRangeException if the given start and end points do not denote a valid range within the string.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="startChar"/> and <paramref name="endChar"/> do not denote a valid range within <paramref name="lineText"/>.</exception>
         [return: NotNullIfNotNull("lineText")]
         internal static string? GetChangedText(string? lineText, int startChar, int endChar, string insert)
         {
@@ -126,8 +126,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Return a string with the new content of the (entire) lines in the range [start, end] where start and end are
         /// the start and end line of the given change.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the range is invalid.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown if the range is not contained in the file.</exception>
+        /// <exception cref="ArgumentException">The range is invalid.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The range is not contained in <paramref name="file"/>.</exception>
         internal static string GetTextChangedLines(FileContentManager file, TextDocumentContentChangeEvent change)
         {
             if (!file.ContainsRange(change.Range.ToQSharp()))
@@ -161,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts the language server protocol position into a Q# compiler position.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="position"/> is invalid.</exception>
+        /// <exception cref="ArgumentException"><paramref name="position"/> is invalid.</exception>
         public static Position ToQSharp(this Lsp.Position position) =>
             Position.Create(position.Line, position.Character);
 
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts the language server protocol range into a Q# compiler range.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="range"/> is invalid.</exception>
+        /// <exception cref="ArgumentException"><paramref name="range"/> is invalid.</exception>
         public static Range ToQSharp(this Lsp.Range range) =>
             Range.Create(range.Start.ToQSharp(), range.End.ToQSharp());
 

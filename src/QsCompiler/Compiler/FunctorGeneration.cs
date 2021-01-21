@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -24,14 +24,14 @@ namespace Microsoft.Quantum.QsCompiler
             ? SyntaxGenerator.WithControlQubits(
                 arg,
                 QsNullable<Position>.Null,
-                QsLocalSymbol.NewValidName(NonNullable<string>.New(InternalUse.ControlQubitsName)),
+                QsLocalSymbol.NewValidName(InternalUse.ControlQubitsName),
                 QsNullable<Range>.Null)
             : null;
 
         /// <summary>
         /// Given a sequence of specializations, returns the implementation of the given kind, or null if no such specialization exists.
-        /// Throws an ArgumentException if more than one specialization of that kind exist.
         /// </summary>
+        /// <exception cref="ArgumentException">More than one specialization exists for <paramref name="kind"/>.</exception>
         private static QsSpecialization? GetSpecialization(this IEnumerable<QsSpecialization> specs, QsSpecializationKind kind)
         {
             specs = specs.Where(spec => spec.Kind == kind);
@@ -55,9 +55,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// If an implementation for the body of the given callable is provided,
         /// returns the provided implementation as well as its argument tuple as value.
         /// Returns null if the body specialization is intrinsic or external, or if the given callable is null.
-        /// Throws an ArgumentException if more than one body specialization exists,
-        /// or if the callable is not intrinsic or external and but implementation for the body is not provided.
         /// </summary>
+        /// <exception cref="ArgumentException">
+        /// More than one body specialization exists, or <paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided.
+        /// </exception>
         private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? BodyImplementation(this QsCallable callable)
         {
             if (callable == null || callable.Kind.IsTypeConstructor)
@@ -85,9 +86,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// Only valid functor generator directives are evaluated, anything else remains unmodified.
         /// The directives 'invert' and 'self' are considered to be valid functor generator directives.
         /// Assumes that operation calls may only ever occur within expression statements.
-        /// Throws an ArgumentException if more than one body or adjoint specialization exists.
-        /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided.</exception>
+        /// <exception cref="ArgumentException">More than one body or adjoint specialization exists.</exception>
         private static QsCallable BuildAdjoint(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
@@ -118,9 +119,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// or set to the original specialization if the specialization was not requested to be auto-generated.
         /// Only valid functor generator directives are evaluated, anything else remains unmodified.
         /// The directive 'distributed' is the only directive considered to be valid.
-        /// Throws an ArgumentException if more than one body or controlled specialization exists.
-        /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided.</exception>
+        /// <exception cref="ArgumentException">More than one body or controlled specialization exists.</exception>
         private static QsCallable BuildControlled(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
@@ -151,10 +152,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// The directives 'invert', 'self', and 'distributed' are considered to be valid functor generator directives.
         /// Assumes that if the controlled adjoint version is to be generated based on the controlled version,
         /// operation calls may only ever occur within expression statements.
-        /// Throws an ArgumentException if more than one body, adjoint or controlled specialization (depending on the generator directive) exists.
-        /// Throws an ArgumentException if the callable is not intrinsic or external and the implementation for the body is not provided,
-        /// or if the implementation for the adjoint or controlled specialization (depending on the generator directive) is not provided.
         /// </summary>
+        /// <exception cref="ArgumentException">More than one body, adjoint or controlled specialization (depending on the generator directive) exists.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided, or the implementation for the adjoint
+        /// or controlled specialization (depending on the generator directive) is not provided.
+        /// </exception>
         private static QsCallable BuildControlledAdjoint(this QsCallable callable)
         {
             var bodyDecl = BodyImplementation(callable);
