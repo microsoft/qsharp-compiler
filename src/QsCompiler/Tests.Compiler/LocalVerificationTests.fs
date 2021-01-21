@@ -544,6 +544,67 @@ type LocalVerificationTests() =
         this.Expect "NoParensBorrow" []
 
 
+    [<Fact(Skip = "The Correct Behavior for these Tests has Not Been Implemented")>]
+    member this.``String Parsing``() =
+        this.Expect "StringParsingTest1" []
+        this.Expect "StringParsingTest2" []
+        this.Expect "StringParsingTest3" []
+        this.Expect "StringParsingTest4" []
+        this.Expect "StringParsingTest5" []
+        this.Expect "StringParsingTest6" []
+        this.Expect "StringParsingTest7" []
+
+        this.Expect "MultiLineStringTest1" []
+        this.Expect "MultiLineStringTest2" []
+        this.Expect "MultiLineStringTest3" []
+        this.Expect "MultiLineStringTest4" []
+        this.Expect "MultiLineStringTest5" []
+        this.Expect "MultiLineStringTest6" []
+        this.Expect "MultiLineStringTest7" []
+        this.Expect "MultiLineStringTest8" []
+        this.Expect "MultiLineStringTest9" [ Error ErrorCode.ExcessContinuation ]
+
+        this.Expect "StringInterpolationTest1" []
+        this.Expect "StringInterpolationTest2" []
+
+        this.Expect "StringInterpolationSimpleStringTest1" []
+        this.Expect "StringInterpolationSimpleStringTest2" []
+        this.Expect "StringInterpolationSimpleStringTest3" []
+        this.Expect "StringInterpolationSimpleStringTest4" []
+
+        this.Expect "StringInterpolationQuoteTest1" []
+        this.Expect "StringInterpolationQuoteTest2" []
+        this.Expect "StringInterpolationQuoteTest3" []
+        this.Expect "StringInterpolationQuoteTest4" []
+
+        this.Expect "StringInterpolationSemicolonTest1" []
+        this.Expect "StringInterpolationSemicolonTest2" []
+        this.Expect "StringInterpolationSemicolonTest3" []
+        this.Expect "StringInterpolationSemicolonTest4" []
+
+        this.Expect "StringInterpolationDollarSignTest1" []
+        this.Expect "StringInterpolationDollarSignTest2" []
+        this.Expect "StringInterpolationDollarSignTest3" []
+        this.Expect "StringInterpolationDollarSignTest4" []
+        this.Expect "StringInterpolationDollarSignTest5" []
+        this.Expect "StringInterpolationDollarSignTest6" []
+
+        this.Expect "StringInterpolationWithCommentTest1" []
+        this.Expect "StringInterpolationWithCommentTest2" []
+        this.Expect "StringInterpolationWithCommentTest3" []
+        this.Expect "StringInterpolationWithCommentTest4" []
+        this.Expect "StringInterpolationWithCommentTest5" []
+        this.Expect "StringInterpolationWithCommentTest6" []
+        this.Expect "StringInterpolationWithCommentTest7" []
+        this.Expect "StringInterpolationWithCommentTest8" []
+
+
+    [<Fact(Skip = "These Tests Need Proper Error Handling")>]
+    member this.``Nested Interpolation Strings``() =
+        this.Expect "StringNestedInterpolationTest1" []
+        this.Expect "StringNestedInterpolationTest2" []
+        this.Expect "StringNestedInterpolationTest3" []
+
     [<Fact>]
     member this.``String Parsing``() =
         this.Expect "StringParsingTest1" []
