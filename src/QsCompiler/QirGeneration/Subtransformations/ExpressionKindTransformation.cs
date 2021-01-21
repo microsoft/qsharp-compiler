@@ -247,43 +247,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
                 sharedState.ScopeMgr.RegisterValue(array);
 
-                // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                // reference counts always need to be modified recursively. However, while the reference count for
-                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
-                // to increase the reference count of the contained items due to lacking type information.
-                // In the same way that we increase the reference count when we populate an array, we hence need to
-                // manually (recursively) increase the reference counts for all items.
-                if (sharedState.ScopeMgr.RequiresReferenceCount(array.LlvmElementType) && !unreferenceOriginal)
-                {
-                    // While we avoid increasing the reference count here for items if unreferenceOriginal is set to true,
-                    // we decrease the reference count for the original array itself at the end of the evaluation since
-                    // we need the array to stay alive for the evaluation.
-                    sharedState.ScopeMgr.IncreaseReferenceCount(array);
-                    sharedState.ScopeMgr.DecreaseReferenceCount(array, shallow: true);
-                }
-
-                // The getNewItemForIndex function is expected to increase the reference count of the item by 1.
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
                     var elementPtr = array.GetArrayElementPointer(index);
-                    var newElement = getNewItemForIndex(index);
+                    if (unreferenceOriginal)
+                    {
+                        sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
+                    }
 
-                    // Remark: Avoiding to increase and then decrease the reference count for the original item
-                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
-                    // whether that would be much better.
-                    sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
+                    var newElement = getNewItemForIndex(index);
                     StoreElement(elementPtr, newElement);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
-                    IValue newItemValue = sharedState.BuildSubitem(updated);
+                    // do not increase the ref count here - we will increase the ref count of all new items at the end
+                    IValue newItemValue = sharedState.EvaluateSubexpression(updated);
                     var index = sharedState.EvaluateSubexpression(accEx);
                     UpdateElement(_ => newItemValue, index.Value);
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
-                    var newItemValue = (ArrayValue)sharedState.BuildSubitem(updated);
+                    // do not increase the ref count here - we will increase the ref count of all new items at the end
+                    var newItemValue = (ArrayValue)sharedState.EvaluateSubexpression(updated);
                     var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
                     sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
                     sharedState.ScopeMgr.DecreaseReferenceCount(newItemValue, shallow: true); // the items get unreferenced with the value of the copy-and-update expression
@@ -293,10 +279,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("invalid item name in named item access");
                 }
 
-                if (unreferenceOriginal)
+                // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                // reference counts always need to be modified recursively. However, while the reference count for
+                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
+                // to increase the reference count of the contained items due to lacking type information.
+                // In the same way that we increase the reference count when we populate an array, we hence need to
+                // manually (recursively) increase the reference counts for all items.
+                if (!unreferenceOriginal)
                 {
-                    // We have already effectively decreased the reference count for the array items above by not increasing it
-                    // to reflect their use in the copy. What's left to do is to unreference the array itself.
+                    sharedState.ScopeMgr.IncreaseReferenceCount(array);
+                    sharedState.ScopeMgr.DecreaseReferenceCount(array, shallow: true);
+                }
+                else
+                {
+                    // We effectively decrease the reference count for the unmodified array items by not increasing it
+                    // to reflect their use in the copy, and we have manually decreased the reference count for the updated item(s).
+                    // What's left to do is to unreference the original array itself.
                     sharedState.ScopeMgr.DecreaseReferenceCount(originalArray, shallow: true);
                 }
                 return array;
