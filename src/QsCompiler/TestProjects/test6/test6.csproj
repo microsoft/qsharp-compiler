@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <QsharpCompile Include="..\test7\Operation.qs">
+    <QSharpCompile Include="..\test7\Operation.qs">
       <Link>Operation.qs</Link>
-    </QsharpCompile>
+    </QSharpCompile>
   </ItemGroup>
 </Project>

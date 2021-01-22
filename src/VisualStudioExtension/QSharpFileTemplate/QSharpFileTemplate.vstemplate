@@ -10,6 +10,6 @@
     <DefaultName>Operation.qs</DefaultName>
   </TemplateData>
   <TemplateContent>
-    <ProjectItem ItemType="QsharpCompile" TargetFileName="$fileinputname$.qs" ReplaceParameters="true">Operation.qs</ProjectItem>
+    <ProjectItem ItemType="QSharpCompile" TargetFileName="$fileinputname$.qs" ReplaceParameters="true">Operation.qs</ProjectItem>
   </TemplateContent>
 </VSTemplate>

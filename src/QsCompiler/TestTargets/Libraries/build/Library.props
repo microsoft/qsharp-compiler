@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PlatformTarget>x64</PlatformTarget>
-    <QsharpLangVersion>0.11</QsharpLangVersion>
+    <QSharpLangVersion>0.11</QSharpLangVersion>
   </PropertyGroup>
 </Project>

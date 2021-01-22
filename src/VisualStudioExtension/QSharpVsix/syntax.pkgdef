@@ -1,5 +1,5 @@
 ﻿[$RootKey$\TextMate\Repositories]
-"Qsharp"="$PackageFolder$\Grammars"
+"QSharp"="$PackageFolder$\Grammars"
 
 [$RootKey$\InstalledProducts\MicrosoftQuantumDevelopmentKit]
 @="Microsoft Quantum Development Kit"
