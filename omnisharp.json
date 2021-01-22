@@ -5,5 +5,9 @@
     "RoslynExtensionsOptions": {
         "enableAnalyzersSupport": true,
         "enableDecompilationSupport": true
+    },
+    "script": {
+      "enableScriptNuGetReferences": true,
+      "defaultTargetFramework": "netcoreapp3.1"
     }
 }
