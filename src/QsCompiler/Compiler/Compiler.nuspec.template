@@ -19,6 +19,11 @@
     <tags>Quantum Q# Qsharp </tags>
   </metadata>
   <files>
+    <file src="..\QirGeneration\bin\$Configuration$\**\Ubiquity.NET.Llvm.dll" target="lib" />
+    <file src="..\QirGeneration\bin\$Configuration$\**\Ubiquity.NET.Llvm.Interop.dll" target="lib" />
+    <file src="..\QirGeneration\Llvm.NET\runtimes\linux-x64\native\*" target="runtimes\linux-x64\native" />
+    <file src="..\QirGeneration\Llvm.NET\runtimes\osx-x64\native\*" target="runtimes\osx-x64\native" />
+    <file src="..\QirGeneration\Llvm.NET\runtimes\win-x64\native\*" target="runtimes\win-x64\native" />
     <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
   </files>
 </package>
