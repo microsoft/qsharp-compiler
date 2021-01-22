@@ -1411,9 +1411,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // End the current block by branching into the header of the loop
                 BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
 
-                // We need to open the scope before creating the header block, since
-                // a) it is possible for the condition to perform an allocation that needs to get cleaned up, and
-                // b) we need to make sure that all pending reference count increases are executed before entering the loop.
+                // We need to open a scope before starting the for-loop by creating the header block, since
+                // it is possible for the condition to perform an allocation that needs to get cleaned up.
                 this.ScopeMgr.OpenScope();
                 this.CurrentBuilder.Branch(headerBlock);
 

@@ -91,19 +91,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // public and internal methods
 
+            /// <summary>
+            /// Registers the given variable name with the scope.
+            /// Increases the alias and reference count for the value if necessary,
+            /// and ensures that both are decreased again when the variable goes out of scope.
+            /// The registered variable is mutable if the passed value is a pointer value.
+            /// </summary>
             public void RegisterVariable(string varName, IValue value)
             {
                 this.variables.Add(varName, value);
                 if (value is PointerValue)
                 {
+                    // Since the value is necessarily created in the current or a parent scope,
+                    // it won't go out of scope before the variable does.
+                    // There is hence no need to increase the reference count if the variable is never rebound.
                     this.parent.IncreaseAliasCount(value);
                 }
                 else
                 {
-                    // Since the value is necessarily created in the current or a parent scope,
-                    // it won't go out of scope before the variable does.
-                    // There is hence no need to increase the reference count to the value for the original binding.
-                    this.parent.ModifyCounts(this.parent.AliasUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
+                    // If the variable can be rebound, we increase the initial alias count such that the alias
+                    // count is always decreased for mutable variable when they go out of scope, independent on
+                    // what value they are bound to.
+                    this.parent.ModifyCounts(this.parent.AliasCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
                 }
             }
 
@@ -121,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((LoadValue(value), releaseFunction));
                 }
-                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
                 {
                     this.requiredUnreferences.Add((LoadValue(value), true));
                 }
@@ -133,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </summary>
             internal void ReferenceValue(IValue value, bool recurIntoInnerItems)
             {
-                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
                 {
                     this.pendingReferences.Add((LoadValue(value), recurIntoInnerItems));
                 }
@@ -152,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var pending = this.pendingReferences.ToArray();
                 this.pendingReferences.Clear();
-                this.parent.ModifyCounts(this.parent.ReferencesUpdateFunctionForType, this.parent.plusOne, pending);
+                this.parent.ModifyCounts(this.parent.ReferenceCountUpdateFunctionForType, this.parent.plusOne, pending);
             }
 
             /// <summary>
@@ -181,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </summary>
             internal void UnreferenceValue(IValue value, bool recurIntoInnerItems)
             {
-                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
                 {
                     this.requiredUnreferences.Add((LoadValue(value), recurIntoInnerItems));
                 }
@@ -202,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal bool WillBeUnreferenced(IValue value) =>
                 this.requiredUnreferences.Exists(tracked => ValueEquals(tracked, value));
 
-            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
+            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, bool, Scope[])" />
             internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null, bool applyReferences = true) =>
                 ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), applyReferences, this);
 
@@ -210,6 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// Generates the necessary calls to unreference the tracked values, decrease the alias count for registered variables,
             /// and invokes the specified release functions for values if necessary.
             /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
+            /// Applies pending calls to increase reference counts *only* if <paramref name="applyReferences"/> is set to true.
             /// </summary>
             /// <param name="omitUnreferencing">
             /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
@@ -250,9 +260,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     Debug.Assert(removedFromRefs && removedFromUnrefs);
                 }
 
-                parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
-                parent.ModifyCounts(parent.AliasUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
-                parent.ModifyCounts(parent.ReferencesUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
+                parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
+                parent.ModifyCounts(parent.AliasCountUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
+                parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
             }
         }
 
@@ -291,7 +301,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the function to update the alias count for this type</returns>
-        private string? AliasUpdateFunctionForType(ITypeRef t)
+        private string? AliasCountUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
@@ -316,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the function to update the reference count for this type</returns>
-        private string? ReferencesUpdateFunctionForType(ITypeRef t)
+        private string? ReferenceCountUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
@@ -473,6 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Closes the current scope by popping it off of the stack.
         /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// Delays applying pending calls to increase reference counts if no values are unreferenced unless allowDelayReferencing is set to false.
         /// </summary>
         public void CloseScope(IValue returned, bool allowDelayReferencing = true)
         {
@@ -526,6 +537,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
+        /// The reference count is increased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
         public void IncreaseReferenceCount(IValue value, bool shallow = false) =>
@@ -533,6 +545,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
+        /// The reference count is decreased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
@@ -540,13 +553,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
+        /// The count is changed recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
         internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
         {
             this.scopes.Peek().ApplyPendingReferences();
-            this.ModifyCounts(this.ReferencesUpdateFunctionForType, change, value, !shallow);
+            this.ModifyCounts(this.ReferenceCountUpdateFunctionForType, change, value, !shallow);
         }
 
         /// <summary>
@@ -558,36 +572,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
+        /// Adds a call to increase the reference count for the value to the list of pending calls.
+        /// Both counts are increased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
         internal void IncreaseAliasCount(IValue value, bool shallow = false)
         {
             this.IncreaseReferenceCount(value, shallow);
-            this.ModifyCounts(this.AliasUpdateFunctionForType, this.plusOne, value, !shallow);
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, this.plusOne, value, !shallow);
         }
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the alias count for the given value if necessary.
+        /// Adds a call to decrease the reference count for the value to the list of pending calls.
+        /// Both counts are decreased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
         internal void DecreaseAliasCount(IValue value, bool shallow = false)
         {
             this.DecreaseReferenceCount(value, shallow);
-            this.ModifyCounts(this.AliasUpdateFunctionForType, this.minusOne, value, !shallow);
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, this.minusOne, value, !shallow);
         }
 
         /// <summary>
         /// Adds a call to a runtime library function to change the alias count for the given value.
+        /// The alias count is changed recursively for subitems unless shallow is set to true.
         /// Modifies *only* the alias count and not the reference count.
         /// </summary>
         /// <param name="value">The value for which to change the alias count</param>
         /// <param name="change">The amount by which to change the alias count given as i64</param>
         internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
-            this.ModifyCounts(this.AliasUpdateFunctionForType, change, value, !shallow);
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
-        /// Queues a call to a suitable runtime library function that unreferences the value
-        /// when the scope is closed or exited.
+        /// Registers the given value with the current scope, such that a call to a suitable runtime library function
+        /// that unreferences the value is executed when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
         public void RegisterValue(IValue value) =>
@@ -609,6 +628,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Registers a variable name as an alias for an LLVM value.
+        /// Increases the alias and reference count for the value if necessary,
+        /// and ensures that both are decreased again when the variable goes out of scope.
+        /// The registered variable is mutable if the passed value is a pointer value.
         /// </summary>
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
@@ -629,7 +651,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Gets the value of a named variable.
         /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterVariable(string, Value, bool)"/>.
+        /// <see cref="RegisterVariable(string, IValue)"/>.
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
         internal IValue GetVariable(string name)
@@ -645,10 +667,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
+        /// Exits the current function by applying all pending calls to change reference counts for values in all open scopes,
         /// decreasing alias counts and invoking release functions if necessary.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
-        /// The calls are generated in using the current builder.
+        /// The calls are generated using the current builder.
         /// Exiting the current function does *not* close the scopes.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
