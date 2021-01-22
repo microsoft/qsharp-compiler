@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadNonQsharpProjects()
+        public void LoadNonQSharpProjects()
         {
             var invalidProjects = new string[]
             {
@@ -126,7 +126,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadOutdatedQsharpProject()
+        public void LoadOutdatedQSharpProject()
         {
             var (projectFile, context) = this.Context("test9");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpCoreLibraries()
+        public void LoadQSharpCoreLibraries()
         {
             var (projectFile, context) = this.Context("test3");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpFrameworkLibrary()
+        public void LoadQSharpFrameworkLibrary()
         {
             var (projectFile, context) = this.Context("test7");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -208,7 +208,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpConsoleApps()
+        public void LoadQSharpConsoleApps()
         {
             var (projectFile, context) = this.Context("test4");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -259,7 +259,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpUnitTest()
+        public void LoadQSharpUnitTest()
         {
             var (projectFile, context) = this.Context("test5");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -283,7 +283,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpMultiFrameworkLibrary()
+        public void LoadQSharpMultiFrameworkLibrary()
         {
             var (projectFile, context) = this.Context("test6");
             var projDir = Path.GetDirectoryName(projectFile) ?? "";
@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpTemporaryProject()
+        public void LoadQSharpTemporaryProject()
         {
             var sourceFile = Path.GetFullPath(SourceFileName("test14", "Operation14.qs"));
             var projectUri = CompilationContext.CreateTemporaryProject(new Uri(sourceFile), "0.12.20072031");

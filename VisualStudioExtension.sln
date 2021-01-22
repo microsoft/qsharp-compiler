@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpFileTemplate", "src\VisualStudioExtension\QsharpFileTemplate\QsharpFileTemplate.csproj", "{5FDE4059-4A30-449C-82BA-483FDD3CD685}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpFileTemplate", "src\VisualStudioExtension\QSharpFileTemplate\QSharpFileTemplate.csproj", "{5FDE4059-4A30-449C-82BA-483FDD3CD685}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpVSIX", "src\VisualStudioExtension\QsharpVSIX\QsharpVSIX.csproj", "{35D0960B-E2EF-4FE6-B37B-613432C19C93}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpVsix", "src\VisualStudioExtension\QSharpVsix\QSharpVsix.csproj", "{35D0960B-E2EF-4FE6-B37B-613432C19C93}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpAppTemplate", "src\VisualStudioExtension\QsharpAppTemplate\QsharpAppTemplate.csproj", "{F28C2462-3025-4628-B67E-DFDE9CB7DE52}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpAppTemplate", "src\VisualStudioExtension\QSharpAppTemplate\QSharpAppTemplate.csproj", "{F28C2462-3025-4628-B67E-DFDE9CB7DE52}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpTestTemplate", "src\VisualStudioExtension\QsharpTestTemplate\QsharpTestTemplate.csproj", "{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpTestTemplate", "src\VisualStudioExtension\QSharpTestTemplate\QSharpTestTemplate.csproj", "{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLibTemplate", "src\VisualStudioExtension\QsharpLibTemplate\QsharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpLibTemplate", "src\VisualStudioExtension\QSharpLibTemplate\QSharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

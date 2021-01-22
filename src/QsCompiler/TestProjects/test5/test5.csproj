@@ -6,9 +6,9 @@
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  
+
   <ItemGroup>
-    <QsharpCompile Remove="Operation5.qs" />
+    <QSharpCompile Remove="Operation5.qs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,7 +7,6 @@
 module Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 
 open System.Collections.Immutable
-open System.Linq
 open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -92,10 +91,9 @@ let private expectedNamespaceName continuation =
     expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
 /// Parses the condition e.g. for if, elif and until clauses.
-/// Uses optTupleBrackets to raise the corresponding missing bracket errors if the condition is not within tuple brackets.
 /// Uses expectedExpr to raise suitable errors for a missing or invalid expression.
 let private expectedCondition continuation =
-    optTupleBrackets (expectedExpr (rTuple <|> (continuation >>% ""))) |>> fst
+    expectedExpr (rTuple <|> (continuation >>% ""))
 
 /// Parses for a binding to a symbol tuple or a single symbol when
 /// given a parser for the right hand side of the binding as well as the connector parser that connects the symbols with the right hand side.
@@ -161,7 +159,8 @@ let private allocationScope =
             invalidInitializer
             isTupleContinuation
 
-    optTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) |>> fst
+    deprecatedTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) eof
+    |>> fst
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
 let private modifiers =
@@ -556,14 +555,14 @@ let private forHeader =
     let loopVariableBinding =
         expectedExpr rTuple |> symbolBinding qsRangeIter.parse ErrorCode.ExpectingIteratorItemAssignment
 
-    let forBody = optTupleBrackets loopVariableBinding |>> fst
+    let forBody = deprecatedTupleBrackets loopVariableBinding eof |>> fst
     buildFragment qsFor.parse forBody invalid (fun _ -> ForLoopIntro) eof
 
 
 /// Uses buildFragment to parse a Q# while-statement intro (while-statement without the body) as QsFragment.
 let private whileHeader =
     let invalid = WhileLoopIntro unknownExpr
-    let whileBody = optTupleBrackets (expectedExpr isTupleContinuation) |>> fst
+    let whileBody = expectedExpr isTupleContinuation
     buildFragment qsWhile.parse whileBody invalid (fun _ -> WhileLoopIntro) eof
 
 
@@ -586,15 +585,24 @@ let private withinHeader = buildFragment qsWithin.parse (preturn "") WithinBlock
 let private applyHeader = buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
 
 
+/// Parses a Q# qubit binding keyword or an equivalent deprecated keyword. If the deprecated keyword is parsed, a
+/// deprecation warning is emitted.
+let private qubitBindingKeyword keyword deprecated =
+    let pushWarning =
+        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedQubitBindingKeyword, [ deprecated.id; keyword.id ])
+        >> pushDiagnostic
+
+    keyword.parse >>% () <|> (deprecated.parse >>= pushWarning)
+
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.
 let private usingHeader =
     let invalid = UsingBlockIntro(invalidSymbol, invalidInitializer)
-    buildFragment qsUsing.parse allocationScope invalid (fun _ -> UsingBlockIntro) eof
+    buildFragment (qubitBindingKeyword qsUse qsUsing) allocationScope invalid (fun _ -> UsingBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# borrowing block intro as QsFragment.
 let private borrowingHeader =
     let invalid = BorrowingBlockIntro(invalidSymbol, invalidInitializer)
-    buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
+    buildFragment (qubitBindingKeyword qsBorrow qsBorrowing) allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
 /// Always builds an invalid fragment after parsing the given fragment header.
 let private buildInvalidFragment header =
@@ -617,7 +625,9 @@ let private fragments =
         (qsUntil, untilSuccess)
         (qsWithin, withinHeader)
         (qsApply, applyHeader)
+        (qsUse, usingHeader)
         (qsUsing, usingHeader)
+        (qsBorrow, borrowingHeader)
         (qsBorrowing, borrowingHeader)
         (namespaceDeclHeader, namespaceDeclaration)
         (typeDeclHeader, udtDeclaration)

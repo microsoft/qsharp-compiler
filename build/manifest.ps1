@@ -22,7 +22,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
     # is enabled.
     $VsixAssemblies = @(
         ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\net5.0\Microsoft.Quantum.QsLanguageServer.dll",
-        ".\src\VisualStudioExtension\QsharpVSIX\bin\$Env:BUILD_CONFIGURATION\Microsoft.Quantum.VisualStudio.Extension.dll"
+        ".\src\VisualStudioExtension\QSharpVsix\bin\$Env:BUILD_CONFIGURATION\Microsoft.Quantum.VisualStudio.Extension.dll"
     );
 }
 else {

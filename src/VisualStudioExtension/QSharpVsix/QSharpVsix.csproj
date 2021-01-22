@@ -69,7 +69,7 @@
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="..\..\VSCodeExtension\syntaxes\qsharp.tmLanguage.json">
-      <Link>Grammars\Qsharp\qsharp.tmLanguage.json</Link>
+      <Link>Grammars\QSharp\qsharp.tmLanguage.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
@@ -82,30 +82,30 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\QsharpAppTemplate\QsharpAppTemplate.csproj">
+    <ProjectReference Include="..\QSharpAppTemplate\QSharpAppTemplate.csproj">
       <Project>{F28C2462-3025-4628-B67E-DFDE9CB7DE52}</Project>
-      <Name>QsharpAppTemplate</Name>
+      <Name>QSharpAppTemplate</Name>
       <VSIXSubPath>ProjectTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
     </ProjectReference>
-    <ProjectReference Include="..\QsharpFileTemplate\QsharpFileTemplate.csproj">
+    <ProjectReference Include="..\QSharpFileTemplate\QSharpFileTemplate.csproj">
       <Project>{5FDE4059-4A30-449C-82BA-483FDD3CD685}</Project>
-      <Name>QsharpFileTemplate</Name>
+      <Name>QSharpFileTemplate</Name>
       <VSIXSubPath>ItemTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
     </ProjectReference>
-    <ProjectReference Include="..\QsharpLibTemplate\QsharpLibTemplate.csproj">
+    <ProjectReference Include="..\QSharpLibTemplate\QSharpLibTemplate.csproj">
       <Project>{9EF3C982-D6B4-47BE-A0FE-660F91738881}</Project>
-      <Name>QsharpLibTemplate</Name>
+      <Name>QSharpLibTemplate</Name>
       <VSIXSubPath>ProjectTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
     </ProjectReference>
-    <ProjectReference Include="..\QsharpTestTemplate\QsharpTestTemplate.csproj">
+    <ProjectReference Include="..\QSharpTestTemplate\QSharpTestTemplate.csproj">
       <Project>{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}</Project>
-      <Name>QsharpTestTemplate</Name>
+      <Name>QSharpTestTemplate</Name>
       <VSIXSubPath>ProjectTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
