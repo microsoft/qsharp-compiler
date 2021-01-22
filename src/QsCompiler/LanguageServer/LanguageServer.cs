@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -124,44 +123,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task NotifyClientAsync(string method, object args) =>
             this.rpc.NotifyWithParameterObjectAsync(method, args);  // no need to wait for completion
 
-        internal Task<T> InvokeAsync<T>(string method, object args) =>
-            this.rpc.InvokeWithParameterObjectAsync<T>(method, args);
-
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
-
-        internal async void CheckDotNetSdkVersion()
-        {
-            var isDotNet31Installed = DotNetSdkHelper.IsDotNet31Installed();
-            if (isDotNet31Installed == null)
-            {
-                this.LogToWindow("Unable to detect .NET SDK versions", MessageType.Error);
-            }
-            else
-            {
-                if (isDotNet31Installed != true)
-                {
-                    const string dotnet31Url = "https://dotnet.microsoft.com/download/dotnet-core/3.1";
-                    this.LogToWindow($".NET Core SDK 3.1 not found. Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly ({dotnet31Url}).", MessageType.Error);
-                    var downloadAction = new MessageActionItem { Title = "Download" };
-                    var cancelAction = new MessageActionItem { Title = "No, thanks" };
-                    var selectedAction = await this.ShowDialogInWindowAsync(
-                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET Core SDK 3.1 and restart Visual Studio.",
-                        MessageType.Error,
-                        new[] { downloadAction, cancelAction });
-                    if (selectedAction != null
-                        && selectedAction.Title == downloadAction.Title)
-                    {
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = dotnet31Url,
-                            UseShellExecute = true,
-                            CreateNoWindow = true,
-                        });
-                    }
-                }
-            }
-        }
 
         /// <summary>
         /// does not actually do anything unless the corresponding flag is defined upon compilation
