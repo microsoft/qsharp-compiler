@@ -59,15 +59,15 @@ then0__1:                                         ; preds = %fixup__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %18, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  %21 = load %String*, %String** %5
+  %21 = load %String*, %String** %12
   call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
+  %22 = load %String*, %String** %5
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %6, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  %22 = load %String*, %String** %12
-  call void @__quantum__rt__string_update_reference_count(%String* %22, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i64 -1)
   call void @__quantum__rt__fail(%String* %15)
   unreachable
@@ -87,15 +87,15 @@ continue__1:                                      ; preds = %fixup__1
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %25, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  %30 = load %String*, %String** %5
+  %30 = load %String*, %String** %12
   call void @__quantum__rt__string_update_reference_count(%String* %30, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
+  %31 = load %String*, %String** %5
+  call void @__quantum__rt__string_update_reference_count(%String* %31, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %6, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  %31 = load %String*, %String** %12
-  call void @__quantum__rt__string_update_reference_count(%String* %31, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %24, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %28, i64 -1)
@@ -109,13 +109,13 @@ rend__1:                                          ; preds = %until__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %13, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %6, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %13, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i64 -1)
   %32 = load i64, i64* %n
   ret i64 %32

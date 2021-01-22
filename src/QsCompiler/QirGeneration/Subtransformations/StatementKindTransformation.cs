@@ -425,9 +425,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // For copy-and-reassign statements we want to make sure that the alias count is reduced
                 // before evaluating the copy-and-update expression, such that in the case where the variable
                 // that is reassigned is the only handle that has access to the original value, the copy is
-                // omitted. However, we need to make sure that the value is not released when decreasing the
-                // alias count; we hence temporarily increase the reference count to avoid that.
-                // We can omit that alias and reference count manipulation for inner items, since besides the
+                // omitted. We can omit that alias count manipulation for inner items, since besides the
                 // items that are updated, all counts will remain the same and while also doing the same for
                 // inner items could avoid copies in rare edge cases it is not worth the increased cost for
                 // the majority of cases. For the items that are updated, we need to make sure that the access
@@ -437,19 +435,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
                 this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
 
-                // Since the old value will no longer be accessible and hence no longer in use unless there
-                // is another handle pointing to it, we can reduce the reference count for the old value by 1
-                // and if we can omit the corresponding unreferencing at the end of the current scope.
-                // This is straightforward if the old value is unreferenced at the end of the current scope.
-                // If the old value on the other hand originates in a parent scope, then we cannot easily pull
-                // the unreferencing into the current scope, since the current scope may or may not execute.
-
-                var unreferenceOldValue = this.SharedState.ScopeMgr.TryRemoveValueFromCurrentScope(pointer);
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
                     (pointer.LoadValue(), ex.Item2, ex.Item3),
-                    updateItemAliasCount: true,
-                    unreferenceOriginal: unreferenceOldValue);
+                    updateItemAliasCount: true);
                 var value = this.SharedState.ValueStack.Pop();
 
                 this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);

@@ -129,33 +129,32 @@ exiting__4:                                       ; preds = %body__4
 exit__4:                                          ; preds = %header__4
   call void @__quantum__rt__array_update_reference_count(%Array* %y, i64 1)
   call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
-  %48 = call i64 @__quantum__rt__array_get_size_1d(%Array* %0)
+  call void @__quantum__rt__array_update_alias_count(%Array* %y, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %4, i64 -1)
+  %48 = call i64 @__quantum__rt__array_get_size_1d(%Array* %39)
   %49 = sub i64 %48, 1
   br label %header__5
 
 header__5:                                        ; preds = %exiting__5, %exit__4
-  %50 = phi i64 [ 0, %exit__4 ], [ %55, %exiting__5 ]
+  %50 = phi i64 [ 0, %exit__4 ], [ %56, %exiting__5 ]
   %51 = icmp sle i64 %50, %49
   br i1 %51, label %body__5, label %exit__5
 
 body__5:                                          ; preds = %header__5
-  %52 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %50)
-  %53 = bitcast i8* %52 to %String**
-  %54 = load %String*, %String** %53
-  call void @__quantum__rt__string_update_reference_count(%String* %54, i64 1)
+  %52 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %39, i64 %50)
+  %53 = bitcast i8* %52 to { i64, i64 }**
+  %54 = load { i64, i64 }*, { i64, i64 }** %53
+  %55 = bitcast { i64, i64 }* %54 to %Tuple*
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %55, i64 -1)
   br label %exiting__5
 
 exiting__5:                                       ; preds = %body__5
-  %55 = add i64 %50, 1
+  %56 = add i64 %50, 1
   br label %header__5
 
 exit__5:                                          ; preds = %header__5
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %4, i64 1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %y, i64 -1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %4, i64 -1)
-  %56 = call i64 @__quantum__rt__array_get_size_1d(%Array* %39)
-  %57 = sub i64 %56, 1
+  call void @__quantum__rt__array_update_alias_count(%Array* %39, i64 -1)
+  %57 = sub i64 %48, 1
   br label %header__6
 
 header__6:                                        ; preds = %exiting__6, %exit__5
@@ -168,7 +167,7 @@ body__6:                                          ; preds = %header__6
   %61 = bitcast i8* %60 to { i64, i64 }**
   %62 = load { i64, i64 }*, { i64, i64 }** %61
   %63 = bitcast { i64, i64 }* %62 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %63, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %63, i64 -1)
   br label %exiting__6
 
 exiting__6:                                       ; preds = %body__6
@@ -176,56 +175,10 @@ exiting__6:                                       ; preds = %body__6
   br label %header__6
 
 exit__6:                                          ; preds = %header__6
-  call void @__quantum__rt__array_update_alias_count(%Array* %39, i64 -1)
-  %65 = call i64 @__quantum__rt__array_get_size_1d(%Array* %4)
-  %66 = sub i64 %65, 1
-  br label %header__7
-
-header__7:                                        ; preds = %exiting__7, %exit__6
-  %67 = phi i64 [ 0, %exit__6 ], [ %72, %exiting__7 ]
-  %68 = icmp sle i64 %67, %66
-  br i1 %68, label %body__7, label %exit__7
-
-body__7:                                          ; preds = %header__7
-  %69 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %4, i64 %67)
-  %70 = bitcast i8* %69 to %String**
-  %71 = load %String*, %String** %70
-  call void @__quantum__rt__string_update_reference_count(%String* %71, i64 -1)
-  br label %exiting__7
-
-exiting__7:                                       ; preds = %body__7
-  %72 = add i64 %67, 1
-  br label %header__7
-
-exit__7:                                          ; preds = %header__7
-  call void @__quantum__rt__array_update_reference_count(%Array* %4, i64 -1)
-  %73 = sub i64 %56, 1
-  br label %header__8
-
-header__8:                                        ; preds = %exiting__8, %exit__7
-  %74 = phi i64 [ 0, %exit__7 ], [ %80, %exiting__8 ]
-  %75 = icmp sle i64 %74, %73
-  br i1 %75, label %body__8, label %exit__8
-
-body__8:                                          ; preds = %header__8
-  %76 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %39, i64 %74)
-  %77 = bitcast i8* %76 to { i64, i64 }**
-  %78 = load { i64, i64 }*, { i64, i64 }** %77
-  %79 = bitcast { i64, i64 }* %78 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %79, i64 -1)
-  br label %exiting__8
-
-exiting__8:                                       ; preds = %body__8
-  %80 = add i64 %74, 1
-  br label %header__8
-
-exit__8:                                          ; preds = %header__8
   call void @__quantum__rt__array_update_reference_count(%Array* %39, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %y, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %3, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %8, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %8, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
   ret %Array* %4
 }
