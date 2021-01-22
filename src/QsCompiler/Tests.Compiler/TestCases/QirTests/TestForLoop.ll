@@ -17,75 +17,57 @@ entry:
   store { double, %String* }* %4, { double, %String* }** %res
   %energy = alloca double
   store double 0.000000e+00, double* %energy
-  %7 = getelementptr { double, %String* }, { double, %String* }* %1, i64 0, i32 1
-  %8 = load %String*, %String** %7
-  call void @__quantum__rt__string_update_reference_count(%String* %8, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
-  %9 = load %String*, %String** %5
-  call void @__quantum__rt__string_update_reference_count(%String* %9, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 1)
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry
-  %i = phi i64 [ 0, %entry ], [ %11, %exiting__1 ]
-  %10 = icmp sle i64 %i, 10
-  br i1 %10, label %body__1, label %exit__1
+  %i = phi i64 [ 0, %entry ], [ %8, %exiting__1 ]
+  %7 = icmp sle i64 %i, 10
+  br i1 %7, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
   br label %preheader__1
 
 exiting__1:                                       ; preds = %exit__2
-  %11 = add i64 %i, 1
+  %8 = add i64 %i, 1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  %12 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %3, i1 false)
-  %13 = bitcast %Tuple* %12 to { double, %String* }*
-  %14 = getelementptr { double, %String* }, { double, %String* }* %13, i64 0, i32 0
-  %15 = load double, double* %energy
-  store double %15, double* %14
-  %16 = getelementptr { double, %String* }, { double, %String* }* %13, i64 0, i32 1
-  %17 = load %String*, %String** %16
-  call void @__quantum__rt__string_update_reference_count(%String* %17, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 1)
+  %9 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %3, i1 false)
+  %10 = bitcast %Tuple* %9 to { double, %String* }*
+  %11 = getelementptr { double, %String* }, { double, %String* }* %10, i64 0, i32 0
+  %12 = load double, double* %energy
+  store double %12, double* %11
+  %13 = getelementptr { double, %String* }, { double, %String* }* %10, i64 0, i32 1
+  %14 = load %String*, %String** %13
+  call void @__quantum__rt__string_update_reference_count(%String* %14, i64 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i64 -1)
-  %18 = load %String*, %String** %5
-  call void @__quantum__rt__string_update_reference_count(%String* %18, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %18, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %6, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  %19 = getelementptr { double, %String* }, { double, %String* }* %1, i64 0, i32 1
-  %20 = load %String*, %String** %19
-  call void @__quantum__rt__string_update_reference_count(%String* %20, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
-  ret { double, %String* }* %13
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
+  ret { double, %String* }* %10
 
 preheader__1:                                     ; preds = %body__1
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %preheader__1
-  %j = phi i64 [ 5, %preheader__1 ], [ %26, %exiting__2 ]
-  %21 = icmp sle i64 %j, 0
-  %22 = icmp sge i64 %j, 0
-  %23 = select i1 false, i1 %21, i1 %22
-  br i1 %23, label %body__2, label %exit__2
+  %j = phi i64 [ 5, %preheader__1 ], [ %20, %exiting__2 ]
+  %15 = icmp sle i64 %j, 0
+  %16 = icmp sge i64 %j, 0
+  %17 = select i1 false, i1 %15, i1 %16
+  br i1 %17, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %24 = load double, double* %energy
-  %25 = fadd double %24, 5.000000e-01
-  store double %25, double* %energy
+  %18 = load double, double* %energy
+  %19 = fadd double %18, 5.000000e-01
+  store double %19, double* %energy
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
-  %26 = add i64 %j, -1
+  %20 = add i64 %j, -1
   br label %header__2
 
 exit__2:                                          ; preds = %header__2

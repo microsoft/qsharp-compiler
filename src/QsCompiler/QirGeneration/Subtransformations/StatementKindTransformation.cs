@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// assuming that the scope doesn't end with a return statement</param>
         private void ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
-            this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: false);
+            this.SharedState.ScopeMgr.OpenScope();
             this.SharedState.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
             var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 AllocateAndAssign(binding.Lhs, binding.Rhs);
             }
 
-            this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: true);
+            this.SharedState.ScopeMgr.OpenScope();
             ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
@@ -373,7 +373,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
-                this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: false);
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(repeatBlock);
                 this.SharedState.SetCurrentBlock(repeatBlock);
                 this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
@@ -496,7 +496,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
-                this.SharedState.ScopeMgr.OpenScope(migratePendingReferences: false);
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(testBlock);
                 this.SharedState.SetCurrentBlock(testBlock);
 

@@ -238,15 +238,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                // We need to apply the pending counts here to make sure they get applied even if nothing is unreferenced.
-                foreach (var scope in scopes.Skip(1))
-                {
-                    if (scope.HasPendingReferences)
-                    {
-                        throw new InvalidOperationException("pending references in outer scopes");
-                    }
-                }
-
                 // Not the most efficient version, but it will do for now.
                 var pendingReferences = applyReferences ? scopes.First().ClearPendingReferences() : new List<(IValue, bool)>();
                 var lookup1 = pendingReferences.ToLookup(x => (x.Item1.Value, x.Item2));
@@ -451,26 +442,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Opens a new scope and pushes it on top of the scope stack.
-        /// If migratePendingReferences is set to false,
-        /// adds all pending calls to increase reference counts to the current block.
-        /// If it is set to true, then the pending calls are not applied but instead
-        /// removed from the current scope and added to the new scope.
         /// </summary>
-        public void OpenScope(bool migratePendingReferences)
+        public void OpenScope()
         {
-            var newScope = new Scope(this);
-            if (this.scopes.TryPeek(out var current))
-            {
-                if (migratePendingReferences)
-                {
-                    current.MigratePendingReferences(newScope);
-                }
-                else
-                {
-                    current.ApplyPendingReferences();
-                }
-            }
-            this.scopes.Push(newScope);
+            this.scopes.Push(new Scope(this));
         }
 
         /// <summary>
@@ -486,6 +461,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 scope.ExecutePendingCalls();
             }
+
             if (scope.HasPendingReferences)
             {
                 throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
@@ -676,8 +652,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exiting the current function does *not* close the scopes.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
+        /// <exception cref="InvalidOperationException">The current function is inlined.</exception>
         public void ExitFunction(IValue returned)
         {
+            if (this.sharedState.IsInlined)
+            {
+                throw new InvalidOperationException("cannot exit inlined function");
+            }
+
             // To avoid increasing the reference count for the returned value and all contained items
             // followed by immediately decreasing it again, we check whether we can avoid that.
             // There are a couple of pitfalls to watch out for when doing this:
