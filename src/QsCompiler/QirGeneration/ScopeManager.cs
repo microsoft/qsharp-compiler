@@ -100,19 +100,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public void RegisterVariable(string varName, IValue value)
             {
                 this.variables.Add(varName, value);
+
+                // Since the value is necessarily created in the current or a parent scope,
+                // it won't go out of scope before the variable does.
+                // There is hence no need to increase the reference count if the variable is never rebound.
+                this.parent.ModifyCounts(this.parent.AliasCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
                 if (value is PointerValue)
                 {
-                    // Since the value is necessarily created in the current or a parent scope,
-                    // it won't go out of scope before the variable does.
-                    // There is hence no need to increase the reference count if the variable is never rebound.
-                    this.parent.IncreaseAliasCount(value);
-                }
-                else
-                {
-                    // If the variable can be rebound, we increase the initial alias count such that the alias
-                    // count is always decreased for mutable variable when they go out of scope, independent on
-                    // what value they are bound to.
-                    this.parent.ModifyCounts(this.parent.AliasCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
+                    // If the variable can be rebound, however, then updating an item via a copy-and-reassign statement
+                    // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
+                    // pending reference count increases of this scope are applied.
+                    // We hence need to make sure to increase the reference count immediately when binding to a mutable variable.
+                    this.parent.ModifyCounts(this.parent.ReferenceCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
                 }
             }
 

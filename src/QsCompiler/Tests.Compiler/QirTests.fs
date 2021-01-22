@@ -74,7 +74,7 @@ let ``QIR caching of values`` () =
 
 [<Fact>]
 let ``QIR array update`` () =
-    qirTest false "TestArrayUpdate"
+    qirMultiTest false "TestArrayUpdate" ["TestArrayUpdate1"; "TestArrayUpdate2"; "TestArrayUpdate3"]
     
 [<Fact>]
 let ``QIR tuple deconstructing`` () =
