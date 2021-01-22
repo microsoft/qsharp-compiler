@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private static IEnumerable<string> GetItemsByType(ProjectInstance project, string itemType) =>
             project.Items
-                .Where(item => item.ItemType == itemType && item.EvaluatedInclude != null)
+                .Where(item => item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) && item.EvaluatedInclude != null)
                 .Select(item => Path.Combine(project.Directory, item.EvaluatedInclude));
 
         /// <summary>
@@ -130,14 +130,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 ? result.ToCapability()
                 : RuntimeCapability.FullComputation;
 
-            var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
+            var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
-            var version = projectInstance.GetPropertyValue("QsharpLangVersion");
-            var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
-            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
+            var version = projectInstance.GetPropertyValue("QSharpLangVersion");
+            var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
+            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
 
             var telemetryMeas = new Dictionary<string, int>();
