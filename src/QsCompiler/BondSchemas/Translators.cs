@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using CurrentBondQsCompilation = V1.QsCompilation;
+    using BondQsCompilation = V2.QsCompilation;
 
     internal static class Translators
     {
@@ -13,8 +13,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             switch (bondCompilation)
             {
-                case V1.QsCompilation bondCompilationV01:
-                    return V1.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV01);
+                case V1.QsCompilation bondCompilationV1:
+                    return V1.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV1);
+
+                case BondQsCompilation bondCompilationV2:
+                    return V2.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV2);
 
                 default:
                     // TODO: Use a more meaningful message.
@@ -22,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        public static CurrentBondQsCompilation FromSyntaxTreeToBondSchema(SyntaxTree.QsCompilation qsCompilation) =>
-            V1.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+        public static BondQsCompilation FromSyntaxTreeToBondSchema(SyntaxTree.QsCompilation qsCompilation) =>
+            V2.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
     }
 }

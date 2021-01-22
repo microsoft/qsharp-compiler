@@ -26,8 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
             {
                 Name = qsNamespace.Name,
                 Elements = qsNamespace.Elements.Select(e => e.ToBondSchema()).ToList(),
-                // TODO: Implement.
-                //Documentation = qsNamespace.Documentation.ToQsSourceFileDocumentationList()
+                // TODO: Implement Documentation.
             };
     }
 }

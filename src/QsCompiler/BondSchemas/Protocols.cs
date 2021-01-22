@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bond;
@@ -11,7 +13,7 @@ using Bond.Protocols;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using BondQsCompilation = V1.QsCompilation;
+    using BondQsCompilation = V2.QsCompilation;
     using SimpleBinaryDeserializer = Deserializer<SimpleBinaryReader<InputBuffer>>;
     using SimpleBinarySerializer = Serializer<SimpleBinaryWriter<OutputBuffer>>;
 
@@ -20,7 +22,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// </summary>
     public static class Protocols
     {
-
         // TODO: Document.
         public enum Option
         {
@@ -31,8 +32,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// Provides thread-safe access to the members and methods of this class.
         /// </summary>
         private static readonly object BondSharedDataStructuresLock = new object();
-        private static Task<SimpleBinaryDeserializer>? simpleBinaryDeserializerInitialization = null;
-        private static Task<SimpleBinarySerializer>? simpleBinarySerializerInitialization = null;
+        private static readonly IDictionary<Type, Task<SimpleBinaryDeserializer>?> DeserializerInitializations =
+            new Dictionary<Type, Task<SimpleBinaryDeserializer>?>()
+            {
+                { typeof(V1.QsCompilation), null },
+                { typeof(BondQsCompilation), null }
+            };
+
+        private static Task<SimpleBinarySerializer>? serializerInitialization = null;
 
         /// <summary>
         /// Deserializes a Q# compilation object from its Bond simple binary representation.
@@ -42,16 +49,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         // TODO: Extend to receive options.
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray,
-            Type bondType,
+            Type bondSchemaType,
             Option[]? options = null)
         {
-            BondQsCompilation? bondCompilation = null;
+            object? bondCompilation = null;
             var inputBuffer = new InputBuffer(byteArray);
             var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
             lock (BondSharedDataStructuresLock)
             {
-                var deserializer = GetSimpleBinaryDeserializer();
-                bondCompilation = deserializer.Deserialize<BondQsCompilation>(reader);
+                //var deserializer = GetSimpleBinaryDeserializer(bondSchemaType);
+                //bondCompilation = deserializer.Deserialize<V1.QsCompilation>(reader);
+                bondCompilation = DeserializeBondSchemaFromSimpleBinary(reader, bondSchemaType);
+                Console.WriteLine($"Deserialized: {bondSchemaType}");
             }
 
             return Translators.FromBondSchemaToSyntaxTree(bondCompilation);
@@ -65,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                _ = TryInitializeDeserializer();
+                TryInitializeDeserializers();
                 _ = TryInitializeSerializer();
             }
         }
@@ -78,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         {
             lock (BondSharedDataStructuresLock)
             {
-                _ = TryInitializeDeserializer();
+                TryInitializeDeserializers();
             }
         }
 
@@ -118,32 +127,29 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             stream.Position = 0;
         }
 
-        private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer()
+        private static object DeserializeBondSchemaFromSimpleBinary(
+            SimpleBinaryReader<InputBuffer> reader,
+            Type bondSchemaType)
         {
-            VerifyLockAcquired(BondSharedDataStructuresLock);
-            if (simpleBinaryDeserializerInitialization == null)
+            var deserializer = GetSimpleBinaryDeserializer(bondSchemaType);
+            if (bondSchemaType == typeof(V1.QsCompilation))
             {
-                simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                return deserializer.Deserialize<V1.QsCompilation>(reader);
+            }
+            else if (bondSchemaType == typeof(BondQsCompilation))
+            {
+                return deserializer.Deserialize<BondQsCompilation>(reader);
             }
 
-            simpleBinaryDeserializerInitialization.Wait();
-            return simpleBinaryDeserializerInitialization.Result;
+            // TODO: Use specific message.
+            throw new ArgumentException();
         }
 
-        private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer(Type type)
+        private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer(Type bondSchemaType)
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            Task<SimpleBinaryDeserializer> deserializerInitialization;
-            if (type == typeof(BondQsCompilation))
-            {
-                deserializerInitialization = TryInitializeDeserializer();
-            }
-            else
-            {
-                // TODO: Add a meaningful message.
-                throw new ArgumentException();
-            }
-
+            Console.WriteLine($"GetSimpleBinaryDeserializer: {bondSchemaType}");
+            var deserializerInitialization = TryInitializeDeserializer(bondSchemaType);
             deserializerInitialization.Wait();
             return deserializerInitialization.Result;
         }
@@ -151,24 +157,23 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SimpleBinarySerializer GetSimpleBinarySerializer()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            if (simpleBinarySerializerInitialization == null)
+            if (serializerInitialization == null)
             {
-                simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                serializerInitialization = QueueSimpleBinarySerializerInitialization();
             }
 
-            simpleBinarySerializerInitialization.Wait();
-            return simpleBinarySerializerInitialization.Result;
+            serializerInitialization.Wait();
+            return serializerInitialization.Result;
         }
 
-        private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
+        private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization(Type deserializerType)
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            // TODO: Maybe use this method to initialize everything by iterating through a dictionary.
 
             // inlineNested is false in order to decrease the time needed to initialize the deserializer.
             // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
             return Task.Run(() => new SimpleBinaryDeserializer(
-                type: typeof(BondQsCompilation),
+                type: deserializerType,
                 factory: (Factory?)null,
                 inlineNested: false));
         }
@@ -179,26 +184,41 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             return Task.Run(() => new SimpleBinarySerializer(typeof(BondQsCompilation)));
         }
 
-        private static Task<SimpleBinaryDeserializer> TryInitializeDeserializer()
+        private static Task<SimpleBinaryDeserializer> TryInitializeDeserializer(Type bondSchemaType)
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            if (simpleBinaryDeserializerInitialization == null)
+            if (!DeserializerInitializations.TryGetValue(bondSchemaType, out var deserializerInitialization))
             {
-                simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                // TODO: Use the correct message.
+                throw new ArgumentException();
             }
 
-            return simpleBinaryDeserializerInitialization;
+            if (deserializerInitialization == null)
+            {
+                deserializerInitialization = QueueSimpleBinaryDeserializerInitialization(bondSchemaType);
+                DeserializerInitializations[bondSchemaType] = deserializerInitialization;
+            }
+
+            return deserializerInitialization;
+        }
+
+        private static void TryInitializeDeserializers()
+        {
+            foreach (var bondSchemaType in DeserializerInitializations.Keys.ToList())
+            {
+                _ = TryInitializeDeserializer(bondSchemaType);
+            }
         }
 
         private static Task<SimpleBinarySerializer> TryInitializeSerializer()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            if (simpleBinarySerializerInitialization == null)
+            if (serializerInitialization == null)
             {
-                simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                serializerInitialization = QueueSimpleBinarySerializerInitialization();
             }
 
-            return simpleBinarySerializerInitialization;
+            return serializerInitialization;
         }
 
         private static void VerifyLockAcquired(object lockObject)

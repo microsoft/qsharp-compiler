@@ -323,7 +323,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
                 offset: bondQsLocation.Offset.ToCompilerObject(),
                 range: bondQsLocation.Range.ToCompilerObject());
 
-        private static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
+        public static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
             new SyntaxTree.QsNamespace(
                 name: bondQsNamespace.Name,
                 elements: bondQsNamespace.Elements.Select(e => e.ToCompilerObject()).ToImmutableArray(),
@@ -331,7 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
                     p => p.FileName,
                     p => p.DocumentationItems.ToImmutableArray()));
 
-        private static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
+        public static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond QsNamespaceElement '{fieldName}' field is null when Kind is '{bondQsNamespaceElement.Kind}'";
@@ -366,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
                     QsNullable<SyntaxTree.QsLocation>.Null,
                 comments: bondQsPositionedBlock.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
+        public static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
             new SyntaxTree.QsQualifiedName(
                 @namespace: bondQsQualifiedName.Namespace,
                 name: bondQsQualifiedName.Name);
