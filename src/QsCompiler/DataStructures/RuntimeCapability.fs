@@ -1,11 +1,14 @@
-﻿namespace Microsoft.Quantum.QsCompiler
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#nowarn "44" // RuntimeCapabilities is deprecated.
+
+namespace Microsoft.Quantum.QsCompiler
 
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open System
 open System.Runtime.CompilerServices
-
-#nowarn "44"
 
 /// The runtime capabilities supported by a quantum processor.
 [<NoComparison>]

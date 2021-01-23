@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#pragma warning disable 618 // DocComment.Example and DocCallable.WriteToFile are obsolete.
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,8 +14,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
-
-#pragma warning disable 618
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {

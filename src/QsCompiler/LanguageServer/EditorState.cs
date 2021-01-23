@@ -126,7 +126,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-#pragma warning disable 618
+#pragma warning disable 618 // RuntimeCapabilities and ToCapability are obsolete.
             var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
                 ? result.ToCapability()
 #pragma warning restore 618

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#pragma warning disable 618 // DocNamespace.WriteToStream is obsolete.
+
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -11,8 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Xunit;
 using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
-
-#pragma warning disable 618
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {

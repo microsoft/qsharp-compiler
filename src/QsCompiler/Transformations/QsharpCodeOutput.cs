@@ -1102,7 +1102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var symbols = this.SymbolTuple(stm.Binding.Lhs);
                 var initializers = this.InitializerTuple(stm.Binding.Rhs);
                 var header =
-#pragma warning disable 618
+#pragma warning disable 618 // qsBorrowing and qsUsing are obsolete.
                     stm.Kind.IsBorrow ? Keywords.qsBorrowing.id
                     : stm.Kind.IsAllocate ? Keywords.qsUsing.id
 #pragma warning restore 618

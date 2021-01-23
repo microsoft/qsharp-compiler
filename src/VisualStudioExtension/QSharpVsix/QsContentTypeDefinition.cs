@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 {
     public static class QsContentDefinition
     {
-#pragma warning disable 649
+#pragma warning disable 649 // QsContentTypeDefinition and QsFileExtensionDefinition are never assigned to.
         [Export]
         [Name("Q#")]
         [BaseDefinition(CodeRemoteContentDefinition.CodeRemoteContentTypeName)]

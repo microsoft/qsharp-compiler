@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isBondV1ResourcePresent = true;
             }
-#pragma warning disable 618
+#pragma warning disable 618 // ResourceName is obsolete.
             else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
 #pragma warning restore 618
             {
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
             else if (isNewtonSoftResourcePresent)
             {
-#pragma warning disable 618
+#pragma warning disable 618 // LoadSyntaxTree is obsolete.
                 return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
 #pragma warning restore 618
             }
