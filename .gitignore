@@ -229,7 +229,7 @@ ClientBin/
 *.publishsettings
 orleans.codegen.cs
 
-# Including strong name files can present a security risk 
+# Including strong name files can present a security risk
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
 #*.snk
 
@@ -325,7 +325,7 @@ __pycache__/
 # OpenCover UI analysis results
 OpenCover/
 
-# Azure Stream Analytics local run output 
+# Azure Stream Analytics local run output
 ASALocalRun/
 
 # MSBuild Binary and Structured Log
@@ -334,7 +334,7 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
-# MFractors (Xamarin productivity tool) working folder 
+# MFractors (Xamarin productivity tool) working folder
 .mfractor/
 /src/QsCompiler/TestTargets/Simulation/Example/generated
 /src/ProjectTemplates/.vscode
@@ -347,6 +347,6 @@ src/QuantumSdk/DefaultItems/DefaultItems.props
 src/ProjectTemplates/Quantum.App1/.template.config/template.json
 src/ProjectTemplates/Quantum.Library1/.template.config/template.json
 src/ProjectTemplates/Quantum.Test1/.template.config/template.json
-/src/VisualStudioExtension/QsharpAppTemplate/AppProjectTemplate.xml
-/src/VisualStudioExtension/QsharpLibTemplate/LibProjectTemplate.xml
-/src/VisualStudioExtension/QsharpTestTemplate/TestProjectTemplate.xml
+/src/VisualStudioExtension/QSharpAppTemplate/AppProjectTemplate.xml
+/src/VisualStudioExtension/QSharpLibTemplate/LibProjectTemplate.xml
+/src/VisualStudioExtension/QSharpTestTemplate/TestProjectTemplate.xml
