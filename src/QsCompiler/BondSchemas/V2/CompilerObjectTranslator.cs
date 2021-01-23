@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
                 namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                 entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
 
-        public static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
+        internal static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
             new SyntaxTree.QsNamespace(
                 name: bondQsNamespace.Name,
                 elements: bondQsNamespace.Elements.Select(e => e.ToCompilerObject()).ToImmutableArray(),

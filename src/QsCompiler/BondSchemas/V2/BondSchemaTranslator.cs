@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
                 EntryPoints = qsCompilation.EntryPoints.Select(e => e.ToBondSchema()).ToList()
             };
 
-        public static QsNamespace ToBondSchema(this SyntaxTree.QsNamespace qsNamespace) =>
+        internal static QsNamespace ToBondSchema(this SyntaxTree.QsNamespace qsNamespace) =>
             new QsNamespace
             {
                 Name = qsNamespace.Name,
