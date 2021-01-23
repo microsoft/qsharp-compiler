@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#nowarn "44" // CompilationLoader.Configuration.RewriteSteps is deprecated.
-
 namespace Microsoft.Quantum.QsCompiler.Testing
+
+#nowarn "44" // CompilationLoader.Configuration.RewriteSteps is deprecated.
 
 open Microsoft.Quantum.QsCompiler
 open Xunit

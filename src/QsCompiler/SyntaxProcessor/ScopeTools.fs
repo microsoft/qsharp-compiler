@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-#nowarn "44" // ScopeContext.IsInIfCondition is deprecated.
-
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
+
+#nowarn "44" // ScopeContext.IsInIfCondition is deprecated.
 
 open System
 open System.Collections.Generic
