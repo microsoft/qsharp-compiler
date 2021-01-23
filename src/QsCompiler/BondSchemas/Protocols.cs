@@ -13,7 +13,7 @@ using Bond.Protocols;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using BondQsCompilation = V2.QsCompilation;
+    using BondQsCompilation = V1.QsCompilation;
     using SimpleBinaryDeserializer = Deserializer<SimpleBinaryReader<InputBuffer>>;
     using SimpleBinarySerializer = Serializer<SimpleBinaryWriter<OutputBuffer>>;
 
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new Dictionary<Type, Task<SimpleBinaryDeserializer>?>()
             {
                 { typeof(V1.QsCompilation), null },
-                { typeof(BondQsCompilation), null }
+                { typeof(V2.QsCompilation), null }
             };
 
         private static Task<SimpleBinarySerializer>? serializerInitialization = null;

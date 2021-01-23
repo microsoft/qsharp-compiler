@@ -285,6 +285,7 @@ module DotnetCoreDll =
     let ResourceName = "__qsharp_data__.bson"
 
     let ResourceNameQsDataBondV1 = "__qsharp_data_bond_v1__.bson"
+    let ResourceNameQsDataBondV2 = "__qsharp_data_bond_v2__.bson"
     // Should always provide the name of the resource currently used by the compiler to attach the syntax tree to a DLL.
     let SyntaxTreeResourceName = ResourceNameQsDataBondV1
     let MetadataNamespace = "__qsharp__"

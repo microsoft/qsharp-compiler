@@ -29,11 +29,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// TODO: Document.
         /// </summary>
-        private static IDictionary<string, Type?> syntaxTreeResourceBondType =
+        private static IDictionary<string, Type?> syntaxTreeResources =
             new Dictionary<string, Type?>()
             {
                 { DotnetCoreDll.ResourceName, null },
-                { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) }
+                { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) },
+                { DotnetCoreDll.ResourceNameQsDataBondV2, typeof(BondSchemas.V2.QsCompilation) }
             };
 
         /// <summary>
@@ -123,6 +124,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 // TODO: This should be always call the latest version of the Bond schemas.
+                // TODO: Call the new version of LoadSyntaxTree leveraging ResourceName.
                 compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.V1.QsCompilation));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
@@ -271,6 +273,50 @@ namespace Microsoft.Quantum.QsCompiler
             return false;
         }
 
+        private static bool FromResource2(
+            PEReader assemblyFile,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
+        {
+            compilation = null;
+            var metadataReader = assemblyFile.GetMetadataReader();
+            string? resourceName = null;
+            ManifestResource resource = default;
+            foreach (var item in syntaxTreeResources)
+            {
+                if (metadataReader.Resources().TryGetValue(item.Key, out resource))
+                {
+                    resourceName = item.Key;
+                }
+            }
+
+            // The offset of resources is relative to the resources directory.
+            // It is possible that there is no offset given because a valid dll allows for extenal resources.
+            // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
+            var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
+            if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
+                (resourceName == null) ||
+                !resource.Implementation.IsNil)
+            {
+                return false;
+            }
+
+            // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
+            // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
+            // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
+            var absResourceOffset = (int)resource.Offset + directoryOffset;
+
+            // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
+            var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
+            var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+
+            // Use the correct method depending on the resource.
+            return LoadSyntaxTree(resourceData, resourceName, out compilation, new BondSchemas.Protocols.Option[] { }, onDeserializationException);
+        }
+
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
 
         /// <summary>
@@ -331,7 +377,7 @@ namespace Microsoft.Quantum.QsCompiler
         private static (string ResourceName, ManifestResource Resource)? GetSyntaxTreeResourceTuple(MetadataReader metadataReader)
         {
             ManifestResource resource;
-            foreach (var resourceName in syntaxTreeResourceBondType.Keys)
+            foreach (var resourceName in syntaxTreeResources.Keys)
             {
                 if (metadataReader.Resources().TryGetValue(resourceName, out resource))
                 {

@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using BondQsCompilation = V2.QsCompilation;
+    using BondQsCompilation = V1.QsCompilation;
 
     internal static class Translators
     {
@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 case V1.QsCompilation bondCompilationV1:
                     return V1.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV1, options);
 
-                case BondQsCompilation bondCompilationV2:
+                case V2.QsCompilation bondCompilationV2:
                     return V2.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV2, options);
 
                 default:
@@ -28,6 +28,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         public static BondQsCompilation FromSyntaxTreeToBondSchema(SyntaxTree.QsCompilation qsCompilation) =>
-            V2.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+            V1.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
     }
 }
