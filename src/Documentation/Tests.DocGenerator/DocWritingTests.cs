@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
             var ns = new QsNamespace(CanonName, elements.ToImmutableArray(), emptyLookup);
             var docNs = new DocNamespace(ns);
             var stream = new MemoryStream();
-#pragma warning disable 618 // DocNamespace.WriteToStream is obsolete.
+#pragma warning disable 618 // WriteToStream is obsolete.
             docNs.WriteToStream(stream, null);
 #pragma warning restore 618
 
