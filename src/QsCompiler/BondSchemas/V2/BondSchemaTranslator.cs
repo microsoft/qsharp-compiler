@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Bond;
 using Microsoft.Quantum.QsCompiler.BondSchemas.V1;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
@@ -26,7 +29,28 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
             {
                 Name = qsNamespace.Name,
                 Elements = qsNamespace.Elements.Select(e => e.ToBondSchema()).ToList(),
-                // TODO: Implement Documentation.
+                Documentation = qsNamespace.Documentation.ToQsSourceFileDocumentationList()
             };
+
+        internal static LinkedList<IBonded<QsSourceFileDocumentation>> ToQsSourceFileDocumentationList(
+            this ILookup<string, ImmutableArray<string>> qsDocumentation)
+        {
+            var documentationList = new LinkedList<IBonded<QsSourceFileDocumentation>>();
+            foreach (var qsSourceFileDocumentation in qsDocumentation)
+            {
+                foreach (var items in qsSourceFileDocumentation)
+                {
+                    var qsDocumentationItem = new QsSourceFileDocumentation
+                    {
+                        FileName = qsSourceFileDocumentation.Key,
+                        DocumentationItems = items.ToList()
+                    };
+
+                    documentationList.AddLast(new Bonded<QsSourceFileDocumentation>(qsDocumentationItem));
+                }
+            }
+
+            return documentationList;
+        }
     }
 }

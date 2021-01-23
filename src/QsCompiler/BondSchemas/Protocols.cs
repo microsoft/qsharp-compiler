@@ -46,7 +46,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
         /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
-        // TODO: Extend to receive options.
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray,
             Type bondSchemaType,
@@ -57,13 +56,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
             lock (BondSharedDataStructuresLock)
             {
-                //var deserializer = GetSimpleBinaryDeserializer(bondSchemaType);
-                //bondCompilation = deserializer.Deserialize<V1.QsCompilation>(reader);
                 bondCompilation = DeserializeBondSchemaFromSimpleBinary(reader, bondSchemaType);
-                Console.WriteLine($"Deserialized: {bondSchemaType}");
             }
 
-            return Translators.FromBondSchemaToSyntaxTree(bondCompilation);
+            return Translators.FromBondSchemaToSyntaxTree(bondCompilation, options);
         }
 
         /// <summary>
@@ -148,7 +144,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer(Type bondSchemaType)
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            Console.WriteLine($"GetSimpleBinaryDeserializer: {bondSchemaType}");
             var deserializerInitialization = TryInitializeDeserializer(bondSchemaType);
             deserializerInitialization.Wait();
             return deserializerInitialization.Result;

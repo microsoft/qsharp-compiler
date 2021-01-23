@@ -9,15 +9,17 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
     internal static class Translators
     {
-        public static SyntaxTree.QsCompilation FromBondSchemaToSyntaxTree<TBond>(TBond bondCompilation)
+        public static SyntaxTree.QsCompilation FromBondSchemaToSyntaxTree<TBond>(
+            TBond bondCompilation,
+            Protocols.Option[]? options = null)
         {
             switch (bondCompilation)
             {
                 case V1.QsCompilation bondCompilationV1:
-                    return V1.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV1);
+                    return V1.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV1, options);
 
                 case BondQsCompilation bondCompilationV2:
-                    return V2.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV2);
+                    return V2.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV2, options);
 
                 default:
                     // TODO: Use a more meaningful message.

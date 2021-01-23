@@ -18,10 +18,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
         /// <summary>
         /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
         /// </summary>
-        public static SyntaxTree.QsCompilation CreateQsCompilation(QsCompilation bondCompilation) =>
-            new SyntaxTree.QsCompilation(
-                namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
-                entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
+        public static SyntaxTree.QsCompilation CreateQsCompilation(
+            QsCompilation bondCompilation,
+            Protocols.Option[]? options = null) =>
+                new SyntaxTree.QsCompilation(
+                    namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
+                    entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
 
         internal static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
             new BigInteger(blob);

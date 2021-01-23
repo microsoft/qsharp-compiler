@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler
             new Dictionary<string, Type?>()
             {
                 { DotnetCoreDll.ResourceName, null },
-                //{ DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.v01.QsCompilation) }
+                { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) }
             };
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
-                // TODO: This should be a call to the extended LoadSyntaxTree API.
+                // TODO: This should be always call the latest version of the Bond schemas.
                 compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.V1.QsCompilation));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
@@ -149,8 +149,11 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(
+                    byteArray,
+                    typeof(BondSchemas.V1.QsCompilation),
+                    options);
 
-                // TODO: Call into the Protocols API.
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
@@ -255,6 +258,7 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
+            // TODO: Refactor this to call the new LoadSyntaxTree method.
             if (isBondV1ResourcePresent)
             {
                 return LoadSyntaxTree(resourceData, out compilation, onDeserializationException);
