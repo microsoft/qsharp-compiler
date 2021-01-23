@@ -1385,7 +1385,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var assembliesToLoad = GetAssembliesToLoad(references, onDiagnostic, onException);
             return assembliesToLoad
                 .SelectNotNull(file => LoadReferencedDll(file)?.Apply(headers => (file, headers)))
-                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(asm.file), asm => asm.headers);
         }
 
         /// <summary>
@@ -1412,14 +1412,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 new List<Task<References.Headers?>>(assemblyLoadingTaskTuples.Count),
                 (tasksList, tuple) =>
                 {
-                    tasksList.Add(tuple.Item2);
+                    tasksList.Add(tuple.Task);
                     return tasksList;
                 });
 
             Task.WaitAll(loadingTasks.ToArray());
             return assemblyLoadingTaskTuples
                 .SelectNotNull(tuple => tuple.Task.Result?.Apply(headers => (tuple.Assembly, headers)))
-                .ToImmutableDictionary(assemblyHeaderTuple => GetFileId(assemblyHeaderTuple.Item1), assemblyHeaderTuple => assemblyHeaderTuple.Item2);
+                .ToImmutableDictionary(assemblyHeaderTuple => GetFileId(assemblyHeaderTuple.Assembly), assemblyHeaderTuple => assemblyHeaderTuple.headers);
         }
 
         /// <summary>

@@ -67,7 +67,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
             Assert.Equal(comments[13], dc.Input["paulies"]);
             Assert.Equal(comments[16], dc.Output);
             Assert.Empty(dc.TypeParameters);
+#pragma warning disable 618 // Example is obsolete.
             Assert.Equal("", dc.Example);
+#pragma warning restore 618
             var remarks = string.Join("\r", comments.AsSpan(19, 12).ToArray());
             Assert.Equal(remarks, dc.Remarks);
         }
@@ -166,7 +168,9 @@ seeAlso:
             var udt = new DocUdt("Microsoft.Quantum.Canon", generatorIndexType);
 
             var stream = new StringWriter();
+#pragma warning disable 618 // WriteToFile is obsolete.
             udt.WriteToFile(stream);
+#pragma warning restore 618
             var s = stream.ToString();
             Assert.Equal(expected, s);
         }
@@ -359,7 +363,9 @@ output:
             var callable = new DocCallable("Microsoft.Quantum.Canon", qsCallable);
 
             var stream = new StringWriter();
+#pragma warning disable 618 // WriteToFile is obsolete.
             callable.WriteToFile(stream);
+#pragma warning restore 618
             var s = stream.ToString();
             Assert.Equal(expected, s);
         }

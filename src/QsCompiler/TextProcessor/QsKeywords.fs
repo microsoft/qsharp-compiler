@@ -4,6 +4,8 @@
 /// The purpose of this module is to aggregate all keywords used throughout Qs such that they only need to adapted here when changed
 module Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 
+#nowarn "44" // Statements.Using and Statements.Borrowing are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -11,7 +13,6 @@ open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
-
 
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself.

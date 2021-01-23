@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -6,18 +6,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-
 namespace Microsoft.Quantum.Sdk.Tools
 {
     public static partial class BuildConfiguration
     {
         /// <summary>
-        /// Generates a suitable configuration file for the Q# compiler based on the given options. 
-        /// Encountered exceptions are logged to the console, and indicated by the returned status. 
+        /// Generates a suitable configuration file for the Q# compiler based on the given options.
+        /// Encountered exceptions are logged to the console, and indicated by the returned status.
         /// </summary>
         public static ReturnCode Generate(Options options)
         {
-            if (options == null) return ReturnCode.MISSING_ARGUMENTS;
+            if (options == null)
+            {
+                return ReturnCode.MISSING_ARGUMENTS;
+            }
+
             var verbose =
                 "detailed".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
                 "d".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
@@ -28,7 +31,7 @@ namespace Microsoft.Quantum.Sdk.Tools
             {
                 var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
                 var path = pieces.First().Trim();
-                return (path, Int32.TryParse(pieces.Skip(1).SingleOrDefault(), out var priority) ? priority : 0);
+                return (path, int.TryParse(pieces.Skip(1).SingleOrDefault(), out var priority) ? priority : 0);
             }
 
             var qscReferences = options.QscReferences?.ToArray() ?? new string[0];
@@ -45,7 +48,11 @@ namespace Microsoft.Quantum.Sdk.Tools
                 var errMsg = $"Could not parse the given Qsc references. " +
                     $"Expecting a string of the form \"(pathToDll, priority)\" for each qsc reference.";
                 Console.WriteLine(errMsg);
-                if (verbose) Console.WriteLine(ex);
+                if (verbose)
+                {
+                    Console.WriteLine(ex);
+                }
+
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
@@ -55,8 +62,8 @@ namespace Microsoft.Quantum.Sdk.Tools
         }
 
         /// <summary>
-        /// Work in progress: 
-        /// The signature and output of this method will change in the future. 
+        /// Work in progress:
+        /// The signature and output of this method will change in the future.
         /// </summary>
         private static bool WriteConfigFile(string? configFile, string[] qscReferences, bool verbose = false)
         {
@@ -69,7 +76,11 @@ namespace Microsoft.Quantum.Sdk.Tools
             {
                 var turnOnVerboseMsg = verbose ? "" : "Increase verbosity for detailed error logging.";
                 Console.WriteLine($"Failed to generate config file. {turnOnVerboseMsg}");
-                if (verbose) Console.WriteLine(ex);
+                if (verbose)
+                {
+                    Console.WriteLine(ex);
+                }
+
                 return false;
             }
         }
