@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.IO;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
@@ -32,6 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Writes the full representation of this UDT to a text stream.
         /// </summary>
         /// <param name="text">The text stream to output to</param>
+        [Obsolete("Writing YAML documentation is no longer supported.")]
         internal override void WriteToFile(TextWriter text)
         {
             var rootNode = new YamlMappingNode();

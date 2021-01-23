@@ -852,7 +852,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var buildClause = BuildStatement(
                     nodes.Current,
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
+#pragma warning disable 612 // WithinIfCondition is obsolete.
                     context.WithinIfCondition,
+#pragma warning restore 612
                     diagnostics);
                 var ifBlock = buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics));
 
@@ -864,7 +866,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     buildClause = BuildStatement(
                         nodes.Current,
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
+#pragma warning disable 612 // WithinIfCondition is obsolete.
                         context.WithinIfCondition,
+#pragma warning restore 612
                         diagnostics);
                     elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics)));
                     proceed = nodes.MoveNext();

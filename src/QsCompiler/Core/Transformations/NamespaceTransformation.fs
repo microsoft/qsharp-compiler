@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // OnSourceFile is deprecated.
+
 open System
 open System.Collections.Immutable
 open System.Linq
