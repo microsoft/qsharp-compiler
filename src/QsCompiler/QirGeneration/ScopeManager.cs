@@ -571,13 +571,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
-        /// Adds a call to increase the reference count for the value to the list of pending calls.
+        /// Adds a call to increase the reference count for the value. Both calls are executed immediately
+        /// opposed to only at the end of the scope.
         /// Both counts are increased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
         internal void IncreaseAliasCount(IValue value, bool shallow = false)
         {
-            this.IncreaseReferenceCount(value, shallow);
+            this.ModifyCounts(this.ReferenceCountUpdateFunctionForType, this.plusOne, value, !shallow);
             this.ModifyCounts(this.AliasCountUpdateFunctionForType, this.plusOne, value, !shallow);
         }
 

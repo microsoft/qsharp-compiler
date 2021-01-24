@@ -1548,6 +1548,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
         {
             var startValue = this.Context.CreateConstant(0L);
+            if (array.Length == startValue)
+            {
+                return;
+            }
+
             var increment = this.Context.CreateConstant(1L);
             var endValue = this.CurrentBuilder.Sub(array.Length, increment);
 

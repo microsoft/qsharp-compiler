@@ -24,8 +24,10 @@ repeat__1:                                        ; preds = %continue__1, %entry
   %5 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %6 = bitcast %Tuple* %5 to { double, %String* }*
   %7 = getelementptr { double, %String* }, { double, %String* }* %6, i64 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
   %8 = load %String*, %String** %7
   store %String* %name, %String** %7
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 1)
   store { double, %String* }* %6, { double, %String* }** %res
   %9 = load i64, i64* %n
@@ -38,8 +40,6 @@ until__1:                                         ; preds = %repeat__1
   %12 = load %Result*, %Result** @ResultZero
   %13 = call i1 @__quantum__rt__result_equal(%Result* %11, %Result* %12)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   br i1 %13, label %rend__1, label %fixup__1
 
@@ -80,8 +80,10 @@ continue__1:                                      ; preds = %fixup__1
   %26 = bitcast %Tuple* %25 to { double, %String* }*
   %27 = getelementptr { double, %String* }, { double, %String* }* %26, i64 0, i32 1
   %28 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  call void @__quantum__rt__string_update_reference_count(%String* %28, i64 1)
   %29 = load %String*, %String** %27
   store %String* %28, %String** %27
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %25, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %25, i64 1)
   store { double, %String* }* %26, { double, %String* }** %res
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %25, i64 -1)
@@ -100,7 +102,9 @@ continue__1:                                      ; preds = %fixup__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %24, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %28, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %25, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %28, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %29, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %25, i64 -1)
   br label %repeat__1
 
 rend__1:                                          ; preds = %until__1

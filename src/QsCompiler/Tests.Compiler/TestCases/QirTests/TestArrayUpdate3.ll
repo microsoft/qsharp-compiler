@@ -30,8 +30,10 @@ exit__1:                                          ; preds = %header__1
   %8 = call %Array* @__quantum__rt__array_copy(%Array* %y, i1 false)
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %8, i64 0)
   %10 = bitcast i8* %9 to %String**
+  call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
   %11 = load %String*, %String** %10
   store %String* %b, %String** %10
+  call void @__quantum__rt__array_update_reference_count(%Array* %8, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %8, i64 1)
   store %Array* %8, %Array** %x
   call void @__quantum__rt__array_update_alias_count(%Array* %8, i64 -1)
@@ -39,8 +41,10 @@ exit__1:                                          ; preds = %header__1
   %13 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i32 0, i32 0))
   %14 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 1)
   %15 = bitcast i8* %14 to %String**
+  call void @__quantum__rt__string_update_reference_count(%String* %13, i64 1)
   %16 = load %String*, %String** %15
   store %String* %13, %String** %15
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %12, i64 1)
   store %Array* %12, %Array** %x
   %17 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
@@ -132,15 +136,19 @@ body__5:                                          ; preds = %header__5
   store i64 %48, i64* %47
   %49 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %43, i64 %i)
   %50 = bitcast i8* %49 to { i64, i64 }**
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %44, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %44, i64 1)
   %51 = load { i64, i64 }*, { i64, i64 }** %50
   %52 = bitcast { i64, i64 }* %51 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %52, i64 -1)
   store { i64, i64 }* %45, { i64, i64 }** %50
+  call void @__quantum__rt__array_update_reference_count(%Array* %43, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %43, i64 1)
   store %Array* %43, %Array** %arr
   call void @__quantum__rt__array_update_reference_count(%Array* %42, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %44, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %52, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %43, i64 -1)
   br label %exiting__5
 
 exiting__5:                                       ; preds = %body__5
@@ -149,7 +157,6 @@ exiting__5:                                       ; preds = %body__5
 
 exit__5:                                          ; preds = %header__5
   %54 = load %Array*, %Array** %arr
-  call void @__quantum__rt__string_update_reference_count(%String* %b, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i64 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %12, i64 -1)
   %55 = call i64 @__quantum__rt__array_get_size_1d(%Array* %54)
@@ -200,7 +207,10 @@ exit__7:                                          ; preds = %header__7
   call void @__quantum__rt__array_update_reference_count(%Array* %y, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %11, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %8, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %8, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %13, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %16, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
   br label %header__8
 
 header__8:                                        ; preds = %exiting__8, %exit__7
