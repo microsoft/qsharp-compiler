@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         }
 
         /// <summary>
-        /// Gets the parent of <paramref name="task"/>.
+        /// Gets the parent of <paramref name="task" />.
         /// </summary>
         /// <exception cref="ArgumentException">When the parent is not defined.</exception>
         private static Task? GetTaskParent(Task task)

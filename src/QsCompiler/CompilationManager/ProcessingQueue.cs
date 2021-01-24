@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // non-concurrent routines - i.e. routines that are forced to execute in order
 
         /// <summary>
-        /// Enqueues <paramref name="processing"/> for exclusive (serialized) execution.
+        /// Enqueues <paramref name="processing" /> for exclusive (serialized) execution.
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
@@ -69,11 +69,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Executes <paramref name="processing"/> synchronously, with no exclusive actions running.
+        /// Executes <paramref name="processing" /> synchronously, with no exclusive actions running.
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
-        /// NOTE: may deadlock if <paramref name="processing"/> calls this processing queue.
+        /// NOTE: may deadlock if <paramref name="processing" /> calls this processing queue.
         /// </remarks>
         public void QueueForExecution(Action processing) =>
             this.QueueForExecution(
@@ -85,16 +85,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 out _);
 
         /// <summary>
-        /// Executes <paramref name="execute"/> synchronously without any exclusive tasks running,
-        /// returning its result via <paramref name="result"/>.
+        /// Executes <paramref name="execute" /> synchronously without any exclusive tasks running,
+        /// returning its result via <paramref name="result" />.
         /// </summary>
-        /// <remarks>
-        /// Uses the set exception logger to log any exception that occurs during execution.
-        /// NOTE: may deadlock if <paramref name="execute"/> calls this processing queue.
-        /// </remarks>
         /// <returns>
         /// True if the execution succeeded without throwing an exception, and false otherwise.
         /// </returns>
+        /// <remarks>
+        /// Uses the set exception logger to log any exception that occurs during execution.
+        /// NOTE: may deadlock if <paramref name="execute" /> calls this processing queue.
+        /// </remarks>
         public bool QueueForExecution<T>(Func<T> execute, [MaybeNull] out T result)
         {
             T res = default(T);
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // concurrent routines - i.e. routines that may execute at any time in between exclusive tasks
 
         /// <summary>
-        /// Enqueues <paramref name="processing"/> for concurrent (background) execution.
+        /// Enqueues <paramref name="processing" /> for concurrent (background) execution.
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
@@ -133,11 +133,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Executes <paramref name="processing"/> synchronously and concurrently (background).
+        /// Executes <paramref name="processing" /> synchronously and concurrently (background).
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
-        /// NOTE: may deadlock if <paramref name="processing"/> calls this processing queue.
+        /// NOTE: may deadlock if <paramref name="processing" /> calls this processing queue.
         /// </remarks>
         public void ConcurrentExecution(Action processing) =>
             this.ConcurrentExecution(
@@ -149,15 +149,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 out _);
 
         /// <summary>
-        /// Executes <paramref name="execute"/> synchronously and concurrently, returning its result via <paramref name="result"/>.
+        /// Executes <paramref name="execute" /> synchronously and concurrently, returning its result via <paramref name="result" />.
         /// </summary>
-        /// <remarks>
-        /// Uses the set exception logger to log any exception that occurs during execution.
-        /// NOTE: may deadlock if <paramref name="execute"/> calls this processing queue.
-        /// </remarks>
         /// <returns>
         /// True if the execution succeeded without throwing an exception, and false otherwise.
         /// </returns>
+        /// <remarks>
+        /// Uses the set exception logger to log any exception that occurs during execution.
+        /// NOTE: may deadlock if <paramref name="execute" /> calls this processing queue.
+        /// </remarks>
         public bool ConcurrentExecution<T>(Func<T> execute, [MaybeNull] out T result)
         {
             T res = default(T);

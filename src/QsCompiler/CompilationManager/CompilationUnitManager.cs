@@ -22,20 +22,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// Compilation unit manager.
     /// </summary>
     /// <remarks>
-    /// This class intentionally does not give access to any <see cref="FileContentManager"/> that it manages,
-    /// since it is responsible for coordinating access to (any routine of) the <see cref="FileContentManager"/>.
+    /// This class intentionally does not give access to any <see cref="FileContentManager" /> that it manages,
+    /// since it is responsible for coordinating access to (any routine of) the <see cref="FileContentManager" />.
     /// </remarks>
     public class CompilationUnitManager : IDisposable
     {
         internal readonly bool EnableVerification;
 
         /// <summary>
-        /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId"/> for the file uri and the values are the content of each file.
+        /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId" /> for the file uri and the values are the content of each file.
         /// </summary>
         private readonly ConcurrentDictionary<string, FileContentManager> fileContentManagers;
 
         /// <summary>
-        /// Contains the <see cref="CompilationUnit"/> to which all files managed in this class instance belong to.
+        /// Contains the <see cref="CompilationUnit" /> to which all files managed in this class instance belong to.
         /// </summary>
         private readonly CompilationUnit compilationUnit;
 
@@ -66,8 +66,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         protected readonly ProcessingQueue Processing;
 
         /// <summary>
-        /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
-        /// If an <see cref="Action"/> for publishing diagnostics is given and is not null,
+        /// Initializes a <see cref="CompilationUnitManager" /> instance for a project with the given properties.
+        /// If an <see cref="Action" /> for publishing diagnostics is given and is not null,
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
         public CompilationUnitManager(
@@ -94,12 +94,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// synchronously runs a global type checking (unless verifications are disabled), and then executes
         /// the given function, returning its result.
         /// </summary>
-        /// <remarks>
-        /// Sets <see cref="waitfortypecheck"/> to null, indicating that a global type checking is queued and not yet started.
-        /// </remarks>
         /// <returns>
-        /// The result of <paramref name="execute"/>, or null if <paramref name="execute"/> is null.
+        /// The result of <paramref name="execute" />, or null if <paramref name="execute" /> is null.
         /// </returns>
+        /// <remarks>
+        /// Sets <see cref="waitfortypecheck" /> to null, indicating that a global type checking is queued and not yet started.
+        /// </remarks>
         public T? FlushAndExecute<T>(Func<T?>? execute = null)
             where T : class
         {
@@ -130,10 +130,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Cancels any ongoing type checking, waits for all queued tasks to finish,
-        /// and then disposes disposable content initialized within this <see cref="CompilationUnitManager"/> (in particular disposes the <see cref="Compilation"/>).
+        /// and then disposes disposable content initialized within this <see cref="CompilationUnitManager" /> (in particular disposes the <see cref="Compilation" />).
         /// </summary>
         /// <remarks>
-        /// Any <see cref="FileContentManager"/> managed by this compilation is *not* disposed,
+        /// Any <see cref="FileContentManager" /> managed by this compilation is *not* disposed,
         /// to allow potentially sharing file content managers between different compilation units.
         /// </remarks>
         public void Dispose()
@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri" /> is not an absolute file URI.</exception>
         public static string GetFileId(Uri uri)
         {
             if (!uri.IsAbsoluteUri || !uri.IsFile)
@@ -186,10 +186,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given <paramref name="fileId"/> assigned by the compilation unit manager, returns the URI based on which the ID was constructed via <paramref name="uri"/>.
+        /// Given <paramref name="fileId" /> assigned by the compilation unit manager, returns the URI based on which the ID was constructed via <paramref name="uri" />.
         /// </summary>
         /// <returns>
-        /// False if <paramref name="fileId"/> is not compatible with an id generated by the compilation unit manager.
+        /// False if <paramref name="fileId" /> is not compatible with an id generated by the compilation unit manager.
         /// </returns>
         public static bool TryGetUri(string fileId, out Uri uri) =>
             Uri.TryCreate(Uri.UnescapeDataString(fileId), UriKind.Absolute, out uri);
@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Unsubscribes from all events that <see cref="SubscribeToFileManagerEvents"/> subscribes to for <paramref name="file"/>.
+        /// Unsubscribes from all events that <see cref="SubscribeToFileManagerEvents" /> subscribes to for <paramref name="file" />.
         /// </summary>
         private void UnsubscribeFromFileManagerEvents(FileContentManager file)
         {
@@ -221,12 +221,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Initializes a <see cref="FileContentManager"/> for document <paramref name="uri"/> with <paramref name="fileContent"/>.
+        /// Initializes a <see cref="FileContentManager" /> for document <paramref name="uri" /> with <paramref name="fileContent" />.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri" /> is not an absolute file URI.</exception>
         /// <remarks>
-        /// If <paramref name="publishingDiagnostics"/> is provided, publishes the diagnostics generated upon processing <paramref name="fileContent"/>.
+        /// If <paramref name="publishingDiagnostics" /> is provided, publishes the diagnostics generated upon processing <paramref name="fileContent" />.
         /// </remarks>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
         public static FileContentManager InitializeFileManager(
             Uri uri,
             string fileContent,
@@ -247,12 +247,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Initializes a <see cref="FileContentManager"/> for each entry in <paramref name="files"/> and their contents.
+        /// Initializes a <see cref="FileContentManager" /> for each entry in <paramref name="files" /> and their contents.
         /// </summary>
+        /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files" /> is not an absolute file URI.</exception>
         /// <remarks>
-        /// If <paramref name="publishDiagnostics"/> is provided, publishes the diagnostics generated upon content processing.
+        /// If <paramref name="publishDiagnostics" /> is provided, publishes the diagnostics generated upon content processing.
         /// </remarks>
-        /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files"/> is not an absolute file URI.</exception>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -270,12 +270,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds <paramref name="file"/> to this compilation unit, adapting the diagnostics for all remaining files as needed.
+        /// Adds <paramref name="file" /> to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// </summary>
         /// <remarks>
         /// If a file with the same URI is already listed as a source file,
-        /// replaces the current <see cref="FileContentManager"/> for that file with <paramref name="file"/>.
-        /// If <paramref name="updatedContent"/> is specified and not null, it's used to replace the tracked content in the file manager.
+        /// replaces the current <see cref="FileContentManager" /> for that file with <paramref name="file" />.
+        /// If <paramref name="updatedContent" /> is specified and not null, it's used to replace the tracked content in the file manager.
         /// </remarks>
         public Task AddOrUpdateSourceFileAsync(FileContentManager file, string? updatedContent = null) =>
             this.Processing.QueueForExecutionAsync(() =>
@@ -296,12 +296,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Adds <paramref name="files"/> to this compilation unit, adapting the diagnostics for all remaining files as needed.
+        /// Adds <paramref name="files" /> to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// </summary>
         /// <remarks>
         /// If a file with the same URI is already listed as a source file,
-        /// replaces the current <see cref="FileContentManager"/> for that file with the new one and initializes its content to the given one.
-        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true, even if no files have been added.
+        /// replaces the current <see cref="FileContentManager" /> for that file with the new one and initializes its content to the given one.
+        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification" /> is set to true, even if no files have been added.
         /// </remarks>
         public Task AddOrUpdateSourceFilesAsync(ImmutableHashSet<FileContentManager> files, bool suppressVerification = false) =>
             this.Processing.QueueForExecutionAsync(() =>
@@ -357,13 +357,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Called in order to process any queued changes in the file identified by <paramref name="uri"/> and
+        /// Called in order to process any queued changes in the file identified by <paramref name="uri" /> and
         /// - if verifications are enabled - trigger a semantic check.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri" /> is null or not an absolute file URI.</exception>
         /// <remarks>
-        /// Does not do anything if <paramref name="uri"/> does not identify a source file of this compilation.
+        /// Does not do anything if <paramref name="uri" /> does not identify a source file of this compilation.
         /// </remarks>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
         private Task TriggerFileUpdateAsync(Uri uri)
         {
             var docKey = GetFileId(uri);
@@ -393,13 +393,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Removes the file identified by <paramref name="uri"/> from the list of source files for this compilation unit,
-        /// publishes empty Diagnostics for that file unless <paramref name="publishEmptyDiagnostics"/> is set to false,
+        /// Removes the file identified by <paramref name="uri" /> from the list of source files for this compilation unit,
+        /// publishes empty Diagnostics for that file unless <paramref name="publishEmptyDiagnostics" /> is set to false,
         /// and adapts all remaining diagnostics as needed.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is null or not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri" /> is null or not an absolute file URI.</exception>
         /// <remarks>
-        /// Does nothing if <paramref name="uri"/> does not identify a source file of this compilation unit.
+        /// Does nothing if <paramref name="uri" /> does not identify a source file of this compilation unit.
         /// </remarks>
         public Task TryRemoveSourceFileAsync(Uri uri, bool publishEmptyDiagnostics = true)
         {
@@ -426,15 +426,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Removes <paramref name="files"/> from the list of source files for this compilation unit,
-        /// publishes empty Diagnostics for the removed files unless <paramref name="publishEmptyDiagnostics"/> is set to false,
+        /// Removes <paramref name="files" /> from the list of source files for this compilation unit,
+        /// publishes empty Diagnostics for the removed files unless <paramref name="publishEmptyDiagnostics" /> is set to false,
         /// and adapts all remaining diagnostics as needed.
         /// </summary>
-        /// <exception cref="ArgumentException">A URI in <paramref name="files"/> is not an absolute file URI.</exception>
+        /// <exception cref="ArgumentException">A URI in <paramref name="files" /> is not an absolute file URI.</exception>
         /// <remarks>
         /// <!-- TODO: Check this comment. Won't this remove up to the not-listed file? -->
         /// Does nothing if a file with the given Uri is not listed as source file.
-        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true, even if no files have been removed.
+        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification" /> is set to true, even if no files have been removed.
         /// </remarks>
         public Task TryRemoveSourceFilesAsync(IEnumerable<Uri> files, bool suppressVerification = false, bool publishEmptyDiagnostics = true)
         {
@@ -473,8 +473,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the content from all referenced assemblies with <paramref name="references"/>.
-        /// Updates all diagnostics accordingly, unless <paramref name="suppressVerification"/> has been set to true.
+        /// Replaces the content from all referenced assemblies with <paramref name="references" />.
+        /// Updates all diagnostics accordingly, unless <paramref name="suppressVerification" /> has been set to true.
         /// </summary>
         internal Task UpdateReferencesAsync(References references, bool suppressVerification = false)
         {
@@ -489,7 +489,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the content from all referenced assemblies with <paramref name="references"/>, and updates all diagnostics accordingly.
+        /// Replaces the content from all referenced assemblies with <paramref name="references" />, and updates all diagnostics accordingly.
         /// </summary>
         public Task UpdateReferencesAsync(References references) =>
             this.UpdateReferencesAsync(references, false);
@@ -498,8 +498,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If a global type checking is already queued, but hasn't started executing yet, does nothing and returns a completed task.
-        /// If a global type checking is in progress, cancels that process via <see cref="waitForTypeChecking"/>,
-        /// then queues <see cref="SpawnGlobalTypeCheckingAsync"/> for exectution into the task queue, and sets <see cref="waitForTypeChecking"/> to null,
+        /// If a global type checking is in progress, cancels that process via <see cref="waitForTypeChecking" />,
+        /// then queues <see cref="SpawnGlobalTypeCheckingAsync" /> for exectution into the task queue, and sets <see cref="waitForTypeChecking" /> to null,
         /// indicating that a type global type checking is queued and has not started executing yet.
         /// </summary>
         private Task QueueGlobalTypeCheckingAsync()
@@ -517,7 +517,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// <!-- TODO: help -->
-        /// Updates all global symbols for all files in the compilation using a separate <see cref="CompilationUnit"/> instance.
+        /// Updates all global symbols for all files in the compilation using a separate <see cref="CompilationUnit" /> instance.
         /// Copies the symbol information over to the Compilation property,
         /// updates the HeaderDiagnostics and clears the SemanticDiagnostics in all files, and publishes the updated diagnostics.
         /// Sets WaitForTypeCheck to a new CancellationTokenSource,
@@ -525,7 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with a cancellation token from the new cancellation source.
         /// </summary>
         /// <remarks>
-        /// If <paramref name="runSynchronously"/> is set to true, then the task is run synchronously ignoring any cancellations and the completed task is returned.
+        /// If <paramref name="runSynchronously" /> is set to true, then the task is run synchronously ignoring any cancellations and the completed task is returned.
         /// </remarks>
         private Task SpawnGlobalTypeCheckingAsync(bool runSynchronously = false)
         {
@@ -591,13 +591,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Runs a type checking on <paramref name="content"/> using <paramref name="compilation"/>, with <paramref name="cancellationToken"/>.
+        /// Runs a type checking on <paramref name="content" /> using <paramref name="compilation" />, with <paramref name="cancellationToken" />.
         /// </summary>
         /// <remarks>
         /// Once the type checking is done, locks all processing, and updates the Compilation property with the built content
         /// for all files that have not been modified while the type checking was running. Updates and publishes the semantic diagnostics for those files.
         /// For each file that has been modified while the type checking was running,
-        /// queues a task calling <see cref="TypeCheckFile"/> on that file with <paramref name="cancellationToken"/>.
+        /// queues a task calling <see cref="TypeCheckFile" /> on that file with <paramref name="cancellationToken" />.
         /// </remarks>
         private void RunGlobalTypeChecking(CompilationUnit compilation, ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> content, CancellationToken cancellationToken)
         {
@@ -660,7 +660,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If <paramref name="cancellationToken"/> is not cancelled, and <paramref name="fileId"/> is listed as a source file,
+        /// If <paramref name="cancellationToken" /> is not cancelled, and <paramref name="fileId" /> is listed as a source file,
         /// updates and resolves all global symbols for that file, and runs a type checking on the obtained content using the Compilation property.
         /// </summary>
         /// <remarks>
@@ -732,7 +732,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <param name="suppressExceptionLogging">
         /// Whether to suppress logging of exceptions from the query.
-        /// <para/>
+        /// <para />
         /// NOTE: In debug mode, exceptions are always logged even if this parameter is true.
         /// </param>
         internal T? FileQuery<T>(
@@ -775,15 +775,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Get all current diagnostics. 
         /// </summary>
+        /// <returns>
+        /// If <paramref name="textDocument" /> is specified, an array with a single item containing all current diagnostics for the given file.
+        /// If <paramref name="textDocument" /> is not specified, then the diagnostics for all source files are returned.
+        /// If <paramref name="textDocument" /> is not listed as a source file, null.
+        /// </returns>
         /// <remarks>
         /// This method waits for all currently running or queued tasks to finish
-        /// before accumulating the diagnostics by calling <see cref="FlushAndExecute"/>.
+        /// before accumulating the diagnostics by calling <see cref="FlushAndExecute" />.
         /// </remarks>
-        /// <returns>
-        /// If <paramref name="textDocument"/> is specified, an array with a single item containing all current diagnostics for the given file.
-        /// If <paramref name="textDocument"/> is not specified, then the diagnostics for all source files are returned.
-        /// If <paramref name="textDocument"/> is not listed as a source file, null.
-        /// </returns>
         public PublishDiagnosticParams[]? GetDiagnostics(TextDocumentIdentifier? textDocument = null) =>
             this.FlushAndExecute(() =>
                 textDocument != null
@@ -795,7 +795,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the requested information by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the requested information by calling <see cref="FlushAndExecute" />.
         /// </remarks>
         public IEnumerable<Uri>? GetSourceFiles() =>
             this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id)).ToImmutableArray().AsEnumerable());
@@ -803,13 +803,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Gets the current file content (text representation) in memory.
         /// </summary>
+        /// <returns>
+        /// The current file content in memory, or null if <paramref name="textDocument" /> is not listed as a source file.
+        /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling <see cref="FlushAndExecute"/>.
+        /// before getting the file content by calling <see cref="FlushAndExecute" />.
         /// </remarks>
-        /// <returns>
-        /// The current file content in memory, or null if <paramref name="textDocument"/> is not listed as a source file.
-        /// </returns>
         public string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
                 this.FileQuery(textDocument, (file, _) => file.GetLines(0, file.NrLines()).Select(line => line.Text).ToArray()));
@@ -818,13 +818,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Gets the current tokenization of the file content in memory.
         /// Each returned array item contains the array of tokens on the line with the corresponding index.
         /// </summary>
+        /// <returns>
+        /// The current tokenization of the file content in memory, or null if <paramref name="textDocument" /> is not listed as a source file.
+        /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling <see cref="FlushAndExecute"/>.
+        /// before getting the file content by calling <see cref="FlushAndExecute" />.
         /// </remarks>
-        /// <returns>
-        /// The current tokenization of the file content in memory, or null if <paramref name="textDocument"/> is not listed as a source file.
-        /// </returns>
         public QsFragmentKind?[][]? GetTokenization(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
                 this.FileQuery(textDocument, (file, _) => file.GetTokenizedLines(0, file.NrLines()).Select(line => line.Select(frag => frag.Kind).ToArray()).ToArray()));
@@ -834,17 +834,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the syntax tree by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the syntax tree by calling <see cref="FlushAndExecute" />.
         /// </remarks>
         public IEnumerable<QsNamespace>? GetSyntaxTree() =>
             this.FlushAndExecute(() => this.compilationUnit.Build().Namespaces.AsEnumerable());
 
         /// <summary>
-        /// Returns a <see cref="Compilation"/> containing all information about the current state of the compilation.
+        /// Returns a <see cref="Compilation" /> containing all information about the current state of the compilation.
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the <see cref="Compilation"/> by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the <see cref="Compilation" /> by calling <see cref="FlushAndExecute" />.
         /// </remarks>
         public Compilation? Build() => this.FlushAndExecute(() =>
         {
@@ -949,10 +949,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics;
 
             /// <summary>
-            /// Maps a <paramref name="file"/> ID assigned by the Q# compiler to all diagnostics generated during compilation.
+            /// Maps a <paramref name="file" /> ID assigned by the Q# compiler to all diagnostics generated during compilation.
             /// </summary>
             /// <returns>
-            /// Returns the generated diagnostics, or an empty sequence if no file with <paramref name="file"/> ID has been included in the compilation.
+            /// Returns the generated diagnostics, or an empty sequence if no file with <paramref name="file" /> ID has been included in the compilation.
             /// </returns>
             public IEnumerable<Diagnostic> Diagnostics(string file) =>
                 this.SourceFiles.Contains(file) ?
@@ -978,7 +978,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Get namespace comments.
             /// </summary>
             /// <returns>
-            /// If file <paramref name="sourceFile"/> exists in the compilation, and if there is exactly one (partial) namespace <paramref name="nsName"/>,
+            /// If file <paramref name="sourceFile" /> exists in the compilation, and if there is exactly one (partial) namespace <paramref name="nsName" />,
             /// the (non-documenting) comments associated with that namespace declaration.
             /// Otherwise, a set of empty comments.
             /// </returns>
@@ -993,11 +993,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Given ID <paramref name="sourceFile"/> and namespace <paramref name="nsName"/>,
+            /// Given ID <paramref name="sourceFile" /> and namespace <paramref name="nsName" />,
             /// returns the names and corresponding short form (if any) of all opened namespaces for the (part of the) namespace in that file.
             /// </summary>
             /// <returns>
-            /// The names and corresponding short forms of the opened namespaces, or an empty sequence if <paramref name="sourceFile"/> and/or <paramref name="nsName"/> do not exist in the compilation.
+            /// The names and corresponding short forms of the opened namespaces, or an empty sequence if <paramref name="sourceFile" /> and/or <paramref name="nsName" /> do not exist in the compilation.
             /// </returns>
             public IEnumerable<(string, string?)> OpenDirectives(string sourceFile, string nsName) =>
                 this.openDirectivesForEachFile.TryGetValue(nsName, out var lookUp)
@@ -1005,14 +1005,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : Enumerable.Empty<(string, string?)>();
 
             /// <summary>
-            /// Returns all the names of all callable and types defined in namespace <paramref name="nsName"/>.
+            /// Returns all the names of all callable and types defined in namespace <paramref name="nsName" />.
             /// </summary>
+            /// <returns>
+            /// The names defined in namespace <paramref name="nsName" />, or an empty sequence if <paramref name="nsName" /> does not exist in the compilation.
+            /// </returns>
             /// <remarks>
             /// The returned names are unique and do not contain duplications e.g. for types and the corresponding constructor.
             /// </remarks>
-            /// <returns>
-            /// The names defined in namespace <paramref name="nsName"/>, or an empty sequence if <paramref name="nsName"/> does not exist in the compilation.
-            /// </returns>
             public IEnumerable<string> SymbolsDefinedInNamespace(string nsName) =>
                 this.SyntaxTree.TryGetValue(nsName, out var ns)
                     ? ns.Elements.SelectNotNull(element => (element as QsNamespaceElement.QsCallable)?.Item.FullName.Name)

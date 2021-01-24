@@ -26,13 +26,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class TypeChecking
     {
         /// <summary>
-        /// Builds the corresponding <see cref="HeaderEntry"/> objects for <paramref name="tokens"/>,
+        /// Builds the corresponding <see cref="HeaderEntry" /> objects for <paramref name="tokens" />,
         /// throwing the corresponding exceptions if the building fails.
         /// </summary>
         /// <param name="tokens">A collection of the token indices that contain the header item.</param>
         /// <param name="getDeclaration">A function that extracts the declaration.</param>
         /// <returns>
-        /// All <see cref="HeaderEntry"/> objects for which the extracted name of the declaration is valid.
+        /// All <see cref="HeaderEntry" /> objects for which the extracted name of the declaration is valid.
         /// </returns>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(
                 this FileContentManager file,
@@ -62,10 +62,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Extracts all documenting comments in <paramref name="file"/> preceding the fragment at <paramref name="pos"/>,
-        /// ignoring any attribute annotations unless <paramref name="ignorePrecedingAttributes"/> is set to false.
+        /// Extracts all documenting comments in <paramref name="file" /> preceding the fragment at <paramref name="pos" />,
+        /// ignoring any attribute annotations unless <paramref name="ignorePrecedingAttributes" /> is set to false.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="pos" /> is not a valid position within <paramref name="file" />.</exception>
         /// <remarks>
         /// Documenting comments may be separated by an empty lines.
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the header items corresponding to all namespaces declared in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all namespaces declared in <paramref name="file" />, or null if <paramref name="file" /> is null.
         /// </summary>
         /// <remarks>
         /// For namespaces with an invalid namespace name, the symbol name in the header item will be set to an UnknownNamespace.
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             file.GetHeaderItems(file.NamespaceDeclarationTokens(), frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
 
         /// <summary>
-        /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file" />, or null if <paramref name="file" /> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string?, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(
@@ -132,28 +132,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 null);
 
         /// <summary>
-        /// Returns the header items corresponding to all type declarations with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all type declarations with a valid name in <paramref name="file" />, or null if <paramref name="file" /> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<Modifiers, QsTuple<Tuple<QsSymbol, QsType>>>>)> GetTypeDeclarationHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(file.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
-        /// Returns the header items corresponding to all callable declarations with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all callable declarations with a valid name in <paramref name="file" />, or null if <paramref name="file" /> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>>)> GetCallableDeclarationHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(file.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
         /// Defines a function that extracts the specialization declaration
-        /// for <paramref name="fragment"/> that contains a specialization that can be used to build a <see cref="HeaderEntry"/> for the specialization.
+        /// for <paramref name="fragment" /> that contains a specialization that can be used to build a <see cref="HeaderEntry" /> for the specialization.
         /// </summary>
+        /// <param name="parent">The <see cref="HeaderEntry" /> of the parent.</param>
         /// <remarks>
-        /// The symbol saved in that <see cref="HeaderEntry"/> then is the name of the specialized callable,
+        /// The symbol saved in that <see cref="HeaderEntry" /> then is the name of the specialized callable,
         /// and its declaration contains the specialization kind as well as the range info for the specialization intro.
-        /// </para>
-        /// The function returns null if the <see cref="CodeFragment.Kind"/> of <paramref name="fragment"/> is null.
+        /// <para />
+        /// The function returns null if the <see cref="CodeFragment.Kind" /> of <paramref name="fragment" /> is null.
         /// </remarks>
-        /// <param name="parent">The <see cref="HeaderEntry"/> of the parent.</param>
         /// <!-- TODO: help -->
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Range)>> SpecializationDeclaration(
             HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>> parent, CodeFragment fragment)
@@ -181,10 +181,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the closest proceeding item for <paramref name="pos"/> in <paramref name="items"/>.
+        /// Returns the closest proceeding item for <paramref name="pos" /> in <paramref name="items" />.
         /// </summary>
-        /// <exception cref="ArgumentException">No item precedes <paramref name="pos"/>.</exception>
         /// <param name="items">A collection of positioned items.</param>
+        /// <exception cref="ArgumentException">No item precedes <paramref name="pos" />.</exception>
         private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
         {
             var preceding = items.TakeWhile(tuple => tuple.Item1 < pos);

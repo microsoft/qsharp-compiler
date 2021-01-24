@@ -35,10 +35,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Compares the saved fragment ending of <paramref name="fragment"/> against the expected continuation and
+        /// Compares the saved fragment ending of <paramref name="fragment" /> against the expected continuation and
         /// adds the corresponding error to the returned diagnostics if they don't match.
         /// </summary>
-        /// <exception cref="ArgumentException">The code fragment kind of <paramref name="fragment"/> is unspecified (i.e. null).</exception>
+        /// <exception cref="ArgumentException">The code fragment kind of <paramref name="fragment" /> is unspecified (i.e. null).</exception>
         private static IEnumerable<Diagnostic> CheckFragmentDelimiters(this CodeFragment fragment, string filename)
         {
             if (fragment.Kind == null)
@@ -53,10 +53,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Calls the Q# parser on each fragment, splitting one fragment into several if necessary (i.e. modifies <paramref name="fragments"/>!).
+        /// Calls the Q# parser on each fragment, splitting one fragment into several if necessary (i.e. modifies <paramref name="fragments" />!).
         /// </summary>
         /// <remarks>
-        /// Fragments for which the code only consists of whitespace are left unchanged (i.e. the <see cref="CodeFragment.Kind"/> remains set to null).
+        /// Fragments for which the code only consists of whitespace are left unchanged (i.e. the <see cref="CodeFragment.Kind" /> remains set to null).
         /// Adds a suitable error to the returned diagnostics for each fragment that cannot be processed.
         /// </remarks>
         private static IEnumerable<Diagnostic> ParseCode(ref List<CodeFragment> fragments, string filename)
@@ -111,11 +111,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // private utils related to extracting file content
 
         /// <summary>
-        /// Checks that <paramref name="range"/> is a valid range in <paramref name="file"/>, and returns the text in <paramref name="range"/> in concatenated form
+        /// Checks that <paramref name="range" /> is a valid range in <paramref name="file" />, and returns the text in <paramref name="range" /> in concatenated form
         /// stripping (only) end of line comments (and not removing excess brackets).
         /// </summary>
         /// <remarks>
-        /// The <see cref="Range.End"/> position of <paramref name="range"/> is *not* part of the returned string.
+        /// The <see cref="Range.End" /> position of <paramref name="range" /> is *not* part of the returned string.
         /// </remarks>
         private static string GetCodeSnippet(this FileContentManager file, Range range)
         {
@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             code => code.IndexOfAny(CodeFragment.DelimitingChars.ToArray());
 
         /// <summary>
-        /// Finds the position of the statement end closest to the end of <paramref name="line"/>,
+        /// Finds the position of the statement end closest to the end of <paramref name="line" />,
         /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementEnd(this CodeLine line)
@@ -167,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Finds the position of the statement start closest to the beginning of <paramref name="line"/>,
+        /// Finds the position of the statement start closest to the beginning of <paramref name="line" />,
         /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementStart(this CodeLine line)
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Finds the position of the statement end closest to the end of <paramref name="line"/> fragment defined by <paramref name="start"/> and <paramref name="count"/>,
+        /// Finds the position of the statement end closest to the end of <paramref name="line" /> fragment defined by <paramref name="start" /> and <paramref name="count" />,
         /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementEnd(this CodeLine line, int start, int count)
@@ -185,7 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Finds the position of the statement start closest to the beginning of <paramref name="line"/> fragment after <paramref name="start"/>,
+        /// Finds the position of the statement start closest to the beginning of <paramref name="line" /> fragment after <paramref name="start" />,
         /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementStart(this CodeLine line, int start)
@@ -194,9 +194,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="Position"/> after the last character in <paramref name="file"/> (including comments).
+        /// Returns the <see cref="Position" /> after the last character in <paramref name="file" /> (including comments).
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="file"/> does not have any content.</exception>
+        /// <exception cref="ArgumentException"><paramref name="file" /> does not have any content.</exception>
         public static Position End(this FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -207,10 +207,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="Position"/> right after where the last relevant (i.e. non-comment) code in <paramref name="file"/> ends,
-        /// or <see cref="Position.Zero"/> if no such line exists.
+        /// Returns the <see cref="Position" /> right after where the last relevant (i.e. non-comment) code in <paramref name="file" /> ends,
+        /// or <see cref="Position.Zero" /> if no such line exists.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="file"/> does not contain any lines.</exception>
+        /// <exception cref="ArgumentException"><paramref name="file" /> does not contain any lines.</exception>
         private static Position LastInFile(FileContentManager file)
         {
             if (file.NrLines() == 0)
@@ -227,15 +227,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="Position"/> right after where the fragment containing <paramref name="current"/> ends.
+        /// Returns the <see cref="Position" /> right after where the fragment containing <paramref name="current" /> ends.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="current" /> is not within <paramref name="file" />.</exception>
+        /// <exception cref="ArgumentException"><paramref name="current" /> is not smaller than the position after the last piece of code in <paramref name="file" /> (given by <see cref="LastInFile" />).</exception>
         /// <remarks>
-        /// Updates <paramref name="current"/> to point to the first character in the fragment that contains code.
-        /// </para>
+        /// Updates <paramref name="current" /> to point to the first character in the fragment that contains code.
+        /// <para />
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// </remarks>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not smaller than the position after the last piece of code in <paramref name="file"/> (given by <see cref="LastInFile"/>).</exception>
         internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             if (!file.ContainsPosition(current))
@@ -285,13 +285,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="Position"/> right after where the fragment before the one containing <paramref name="current"/> ends.
+        /// Returns the <see cref="Position" /> right after where the fragment before the one containing <paramref name="current" /> ends.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="current" /> is not within <paramref name="file" />.</exception>
         /// <remarks>
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
-        /// If there is no such fragment, returns <see cref="Position.Zero"/>.
+        /// If there is no such fragment, returns <see cref="Position.Zero" />.
         /// </remarks>
-        /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {
             if (!file.ContainsPosition(current))
@@ -308,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Extracts the code fragments based on the current file content that needs to be re-processed due to content changes on <paramref name="changesLines"/>.
+        /// Extracts the code fragments based on the current file content that needs to be re-processed due to content changes on <paramref name="changesLines" />.
         /// </summary>
         /// <remarks>
         /// Ignores any whitespace or comments at the beginning of the file (whether they have changed or not).
@@ -367,9 +367,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Computes the position where the syntax check will start and end.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not a valid range within <paramref name="file"/>.</exception>
         /// <param name="start">The starting line of a change.</param>
-        /// <param name="count">How many lines have been updated starting from <paramref name="start"/>.</param>
+        /// <param name="count">How many lines have been updated starting from <paramref name="start" />.</param>
+        /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start" />, <paramref name="start" /> + <paramref name="count" />) is not a valid range within <paramref name="file" />.</exception>
         internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (start < 0 || start >= file.NrLines())
