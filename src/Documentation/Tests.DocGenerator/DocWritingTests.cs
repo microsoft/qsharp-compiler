@@ -25,9 +25,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
         [Fact]
         public void ExcludeInaccessible()
         {
-            var elements =
-                new[] { Visibility.Public, Visibility.Internal }
-                .SelectMany(access =>
+            var elements = new[] { Visibility.Public, Visibility.Internal }
+                .SelectMany(visibility =>
                 {
                     var source = new Source("Tests.qs", QsNullable<string>.Null);
                     var unit = ResolvedType.New(QsType.UnitType);
@@ -40,9 +39,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                     var argumentTuple = QsTuple<ArgDeclType>.NewQsTuple(ImmutableArray.Create<QsTuple<ArgDeclType>>());
                     var callable = new QsCallable(
                         kind: QsCallableKind.Operation,
-                        fullName: MakeFullName(access + "Operation"),
+                        fullName: MakeFullName(visibility + "Operation"),
                         attributes: ImmutableArray<QsDeclarationAttribute>.Empty,
-                        access,
+                        visibility,
                         source: source,
                         location: ZeroLocation,
                         signature: signature,
@@ -54,9 +53,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                     var typeItems = QsTuple<QsTypeItem>.NewQsTuple(
                         ImmutableArray.Create(QsTuple<QsTypeItem>.NewQsTupleItem(QsTypeItem.NewAnonymous(unit))));
                     var type = new QsCustomType(
-                        fullName: MakeFullName(access + "Type"),
+                        fullName: MakeFullName(visibility + "Type"),
                         attributes: ImmutableArray<QsDeclarationAttribute>.Empty,
-                        access,
+                        visibility,
                         source: source,
                         location: ZeroLocation,
                         type: unit,

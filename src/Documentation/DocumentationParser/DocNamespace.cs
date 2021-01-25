@@ -33,10 +33,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsVisible(string source, Visibility access, string name)
+            bool IsVisible(string source, Visibility visibility, string name)
             {
                 var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source);
-                return includeInDocs && access.IsPublic && !(name.StartsWith("_") || name.EndsWith("_")
+                return includeInDocs && visibility.IsPublic && !(name.StartsWith("_") || name.EndsWith("_")
                         || name.EndsWith("Impl", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplA", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplC", StringComparison.InvariantCultureIgnoreCase)
