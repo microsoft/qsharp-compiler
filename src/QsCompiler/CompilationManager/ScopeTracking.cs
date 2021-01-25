@@ -327,7 +327,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Where(pos => start <= pos && pos < start + count)
                 .Select(pos => pos - start);
 
-            // line indentation and comment position is irrelevant here
+            // line indentation and comment position are irrelevant here
             var truncatedLine = new CodeLine(
                 truncatedText,
                 CodeLine.StringContext.NoOpenString,
