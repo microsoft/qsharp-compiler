@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Serialization
 
+#nowarn "44" // AccessModifier and Modifiers are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -279,7 +281,7 @@ type private QsCallableConverter() =
             Kind = schema.Kind
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Visibility = AccessModifier.toVisibility schema.Modifiers.Access
+            Visibility = schema.Modifiers.Access |> AccessModifier.toVisibility Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Signature = schema.Signature
@@ -344,7 +346,7 @@ type private QsCustomTypeConverter() =
         {
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Visibility = AccessModifier.toVisibility schema.Modifiers.Access
+            Visibility = schema.Modifiers.Access |> AccessModifier.toVisibility Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Type = schema.Type

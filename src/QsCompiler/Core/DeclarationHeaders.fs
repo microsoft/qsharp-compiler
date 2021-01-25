@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+#nowarn "44" // AccessModifier and Modifiers are deprecated.
+
 open System
 open System.Collections.Immutable
 open System.IO
@@ -181,7 +183,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Visibility = AccessModifier.toVisibility header.Modifiers.Access
+            Visibility = header.Modifiers.Access |> AccessModifier.toVisibility Public
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
@@ -301,7 +303,7 @@ type CallableDeclarationHeader =
             Kind = header.Kind
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Visibility = AccessModifier.toVisibility header.Modifiers.Access
+            Visibility = header.Modifiers.Access |> AccessModifier.toVisibility Public
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
