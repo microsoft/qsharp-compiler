@@ -1391,20 +1391,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
             var headerName = this.GenerateUniqueName("header");
-            var headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
+            BasicBlock headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
 
             // Contains the body of the loop, which has its own naming scope.
             var bodyName = this.GenerateUniqueName("body");
-            var bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
+            BasicBlock bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
 
             // Increments the loop variable and then branches into the header block
             // which determines whether to enter the next iteration.
             var exitingName = this.GenerateUniqueName("exiting");
-            var exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
+            BasicBlock exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
 
             // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
             var exitName = this.GenerateUniqueName("exit");
-            var exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
+            BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
 
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
