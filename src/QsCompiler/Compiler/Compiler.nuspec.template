@@ -16,7 +16,7 @@
     <icon>images\qdk-nuget-icon.png</icon>
 
     <copyright>$copyright$</copyright>
-    <tags>Quantum Q# Qsharp </tags>
+    <tags>Quantum Q# QSharp</tags>
   </metadata>
   <files>
     <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />

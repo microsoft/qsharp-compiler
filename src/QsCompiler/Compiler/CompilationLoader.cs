@@ -809,9 +809,9 @@ namespace Microsoft.Quantum.QsCompiler
         private Status ExecuteRewriteStep(LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation? transformed)
         {
             string? GetDiagnosticsCode(DiagnosticSeverity severity) =>
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
                 null;
 
             void LogDiagnostics(ref Status status)

@@ -33,4 +33,9 @@
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="global.language-server.json" Link="global.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

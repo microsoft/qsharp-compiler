@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System.Reflection;
@@ -12,7 +12,7 @@ using System.Reflection;
 internal static class SigningConstants
 {
 #if SIGNED
-    public const string PUBLIC_KEY = ", PublicKey=" +
+    public const string PublicKey = ", PublicKey=" +
         "002400000c800000140100000602000000240000525341310008000001000100613399aff18ef1" +
         "a2c2514a273a42d9042b72321f1757102df9ebada69923e2738406c21e5b801552ab8d200a65a2" +
         "35e001ac9adc25f2d811eb09496a4c6a59d4619589c69f5baf0c4179a47311d92555cd006acc8b" +
@@ -22,6 +22,6 @@ internal static class SigningConstants
         "02d5efcdeae953658d3452561b5f36c542efdbdd9f888538d374cef106acf7d93a4445c3c73cd9" +
         "11f0571aaf3d54da12b11ddec375b3";
 #else
-    public const string PUBLIC_KEY = "";
+    public const string PublicKey = "";
 #endif
 }

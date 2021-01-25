@@ -83,6 +83,11 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         public static int Main(string[] args)
         {
+            // We need to set the current directory to the same directory of
+            // the LanguageServer executable so that it will pick the global.json file
+            // and force the MSBuildLocator to use .NET Core SDK 3.1
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+
             var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info
             var options = parser.ParseArguments<Options>(args);
             return options.MapResult(
@@ -120,8 +125,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
             catch (Exception ex)
             {
+                // Don't exit here, since exiting without establishing a connection will result in a cryptic failure of the extension.
+                // Instead, we proceed to create a server instance and establish the connection.
+                // Any errors can then be properly processed via the standard server-client communication as needed.
                 Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
-                return LogAndExit(ReturnCode.MSBUILD_UNINITIALIZED, options.LogFile, ex.ToString());
+                Log(ex, options.LogFile);
             }
 
             QsLanguageServer server;
@@ -140,6 +148,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Log("Listening...", options.LogFile);
             try
             {
+                server.CheckDotNetSdkVersion();
                 server.WaitForShutdown();
             }
             catch (Exception ex)

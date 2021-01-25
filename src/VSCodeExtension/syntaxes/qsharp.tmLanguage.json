@@ -44,7 +44,7 @@
       "patterns": [
         {
           "name": "keyword.control.qsharp",
-          "match": "\\b(using|borrowing|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
+          "match": "\\b(use|using|borrow|borrowing|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
         },
         {
           "name": "keyword.other.qsharp",

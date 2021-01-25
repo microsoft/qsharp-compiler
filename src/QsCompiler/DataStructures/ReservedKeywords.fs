@@ -119,8 +119,17 @@ module Statements =
     let Apply = "apply"
 
     /// keyword for a Q# allocation statement
-    let Using = "using"
+    let Use = "use"
+
     /// keyword for a Q# allocation statement
+    [<Obsolete "This keyword will be replaced by Use.">]
+    let Using = "using"
+
+    /// keyword for a Q# allocation statement
+    let Borrow = "borrow"
+
+    /// keyword for a Q# allocation statement
+    [<Obsolete "This keyword will be replaced by Borrow.">]
     let Borrowing = "borrowing"
 
 

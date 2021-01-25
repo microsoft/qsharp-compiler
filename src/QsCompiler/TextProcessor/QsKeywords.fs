@@ -4,13 +4,15 @@
 /// The purpose of this module is to aggregate all keywords used throughout Qs such that they only need to adapted here when changed
 module Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 
+#nowarn "44" // Statements.Using and Statements.Borrowing are deprecated.
+
+open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
-
 
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself.
@@ -157,8 +159,17 @@ let qsWithin = addFragmentHeader Statements.Within
 let qsApply = addFragmentHeader Statements.Apply
 
 /// keyword for a Q# allocation statement (QsFragmentHeader)
-let qsUsing = addFragmentHeader Statements.Using
+let qsUse = addFragmentHeader Statements.Use
+
 /// keyword for a Q# allocation statement (QsFragmentHeader)
+[<Obsolete "This keyword will be replaced by qsUse.">]
+let qsUsing = addFragmentHeader Statements.Using
+
+/// keyword for a Q# allocation statement (QsFragmentHeader)
+let qsBorrow = addFragmentHeader Statements.Borrow
+
+/// keyword for a Q# allocation statement (QsFragmentHeader)
+[<Obsolete "This keyword will be replaced by qsBorrow.">]
 let qsBorrowing = addFragmentHeader Statements.Borrowing
 
 // expression related keywords

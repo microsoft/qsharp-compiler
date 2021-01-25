@@ -226,43 +226,43 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     // variable declarations 
 
     operation VariableDeclaration1 () : Unit {
-        using (q = Qubit()) {}
+        use q = Qubit() {}
     }
 
     operation VariableDeclaration2 () : Unit {
-        using (q = (Qubit())) {}
+        use q = (Qubit()) {}
     }
 
     operation VariableDeclaration3 () : Unit {
-        using ((q) = Qubit()) {}
+        use (q) = Qubit() {}
     }
 
     operation VariableDeclaration4 () : Unit {
-        using ((q) = (Qubit())) {}
+        use (q) = (Qubit()) {}
     }
 
     operation VariableDeclaration5 () : Unit {
-        using ((q1, q2) = (Qubit(), Qubit())) {}
+        use (q1, q2) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration6 () : Unit {
-        using ((q1, (q2)) = (Qubit(), Qubit())) {}
+        use (q1, (q2)) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration7 () : Unit {
-        using ((qs) = (Qubit(), Qubit())) {}
+        use (qs) = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration8 () : Unit {
-        using (qs = (Qubit(), Qubit())) {}
+        use qs = (Qubit(), Qubit()) {}
     }
 
     operation VariableDeclaration9 () : Unit {
-        using ((q1, q2) = (Qubit())) {}
+        use (q1, q2) = (Qubit()) {}
     }
 
     operation VariableDeclaration10 () : Unit {
-        using ((q1, q2, q3) = (Qubit(), (Qubit(), Qubit()))) {}
+        use (q1, q2, q3) = (Qubit(), (Qubit(), Qubit())) {}
     }
 
     operation VariableDeclaration11<'T>(cnt: Int, arg : 'T) : Unit {
@@ -335,6 +335,76 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         set arr w/= 0 .. 1 <- [VariableDeclaration21, VariableDeclaration17<Double>];
         let foo = arr w/ 0 <- VariableDeclaration21;
         return VariableDeclaration21(cnt, arg);
+    }
+
+    operation VariableDeclaration22() : Unit {
+        use q = Qubit();
+    }
+
+    operation VariableDeclaration23() : Unit {
+        use q = Qubit();
+        Operation(q);
+    }
+
+    operation VariableDeclaration24() : Unit {
+        use q = Qubit();
+        Operation(foo);
+    }
+
+    operation VariableDeclaration25() : Result {
+        use q = Qubit();
+        Operation(q);
+        return M(q);
+    }
+
+    operation VariableDeclaration26() : Result {
+        if (true) {
+            use q = Qubit();
+            Operation(q);
+            return M(q);
+        } else {
+            return Zero;
+        }
+    }
+
+    operation VariableDeclaration27() : Bool {
+        use q = Qubit();
+        Operation(q);
+        if M(q) == One {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    operation VariableDeclaration28() : Unit {
+        use q = Qubit()
+    }
+
+    operation VariableDeclaration29() : Unit {
+        if (true) {
+            use q = Qubit();
+            Operation(q);
+        }
+        Operation(q);
+    }
+
+    operation VariableDeclaration30() : Result {
+        borrow q = Qubit();
+        Operation(q);
+        return M(q);
+    }
+
+    operation VariableDeclaration31() : Unit {
+        borrow q = Qubit()
+    }
+
+    operation VariableDeclaration32() : Unit {
+        if (true) {
+            borrow q = Qubit();
+            Operation(q);
+        }
+        Operation(q);
     }
 
 
@@ -599,7 +669,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
 
         mutable res = new (Int,Int,Int)[0];
-        for ((i1, i2) in arg2::Name) {
+        for (i1, i2) in arg2::Name {
             set res += [(i1, i2, arg1::Name[Length(res)])];
         }
         return res;
@@ -607,7 +677,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function ItemAccess8 (arg : ArrayType8) : (Double, Double)[] {
         mutable ((_, res), i) = (arg!, 0);
-        for ((fst, snd) in res) {
+        for (fst, snd) in res {
             set res w/= i <- (fst + arg :: Const, snd);
             set i += 1;
         }
@@ -616,7 +686,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function ItemAccess9 (arg : ArrayType9) : (Int, Int)[] {
         mutable ((res, _), i) = (arg!, 0);
-        for ((fst, snd) in res) {
+        for (fst, snd) in res {
             set res w/= i <- (fst + arg :: Phase, snd);
             set i += 1;
         }
@@ -720,7 +790,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function ItemUpdate9 () : Unit {
         mutable arr = new ArrayType10[5];
-        for (i in 0..4) {
+        for i in 0..4 {
             mutable item = arr[i] w/ Phase <- new Int[10];
             set item w/= Const <- new Double[10];
             set arr w/= i <- item;
@@ -729,7 +799,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function ItemUpdate10 () : Unit {
         mutable arr = new ArrayType10[5];
-        for (i in 0..4) {
+        for i in 0..4 {
             mutable item = arr[i] w/ Phase <- new Int[10];
             set item::Phase w/= 0 <- 1;
         }
@@ -737,14 +807,14 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function ItemUpdate11 () : Unit {
         mutable arr = new ArrayType10[5];
-        for (i in 0..4) {
+        for i in 0..4 {
             set arr[i] w/= Phase <- new Int[10];
         }
     }
 
     function ItemUpdate12 () : Unit {
         mutable arr = new ArrayType10[5];
-        for (i in 0..4) {
+        for i in 0..4 {
             mutable item = arr[i] w/ Phase <- 1;
             set item w/= Const <- 10.;
             set arr w/= i <- item;
@@ -916,7 +986,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation ValidConjugation8 (cond : Bool) : Unit {
         mutable foo = 1;
         within {
-            for (i in 1 .. 10) {
+            for i in 1 .. 10 {
                 GenericAdjointable(i, (i, foo));
             } 
         }
@@ -1007,7 +1077,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation8 (cond : Bool) : Unit {
         mutable foo = 1;
         within {
-            for (i in 1 .. 10) {
+            for i in 1 .. 10 {
                 GenericAdjointable(i, (i, foo));
             } 
         }
@@ -1388,4 +1458,99 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     @ Test("Some Namespace.Target")
     function InvalidTestAttribute22 () : Unit { }
+
+
+    // Parentheses in statements
+
+    function ParensIf() : Unit {
+        if (1 != 2) { }
+    }
+
+    function NoParensIf() : Unit {
+        if 1 != 2 { }
+    }
+
+    function ParensElif() : Unit {
+        if (2 == 2) {
+        } elif (1 != 2) {
+        }
+    }
+
+    function NoParensElif() : Unit {
+        if 2 == 2 {
+        } elif 1 != 2 {
+        }
+    }
+
+    function ParensFor() : Unit {
+        for (x in [1, 2, 3]) { }
+    }
+
+    function NoParensFor() : Unit {
+        for x in [1, 2, 3] { }
+    }
+
+    function ParensWhile() : Unit {
+        while (1 == 2) { }
+    }
+
+    function NoParensWhile() : Unit {
+        while 1 == 2 { }
+    }
+
+    operation ParensUntil() : Unit {
+        repeat {
+        } until (1 != 2);
+    }
+
+    operation NoParensUntil() : Unit {
+        repeat {
+        } until 1 != 2;
+    }
+    
+    operation ParensUntilFixup() : Unit {
+        repeat {
+        } until (1 != 2) fixup {
+        }
+    }
+
+    operation NoParensUntilFixup() : Unit {
+        repeat {
+        } until 1 != 2 fixup {
+        }
+    }
+
+    operation ParensUse() : Unit {
+        use (q = Qubit()) { }
+    }
+
+    operation NoParensUse() : Unit {
+        use q = Qubit() { }
+    }
+
+    operation ParensBorrow() : Unit {
+        borrow (q = Qubit()) { }
+    }
+
+    operation NoParensBorrow() : Unit {
+        borrow q = Qubit() { }
+    }
+
+    // Deprecated qubit allocation keywords
+
+    operation DeprecatedUsingKeyword() : Unit {
+        using q = Qubit() { }
+    }
+
+    operation DeprecatedUsingKeywordParens() : Unit {
+        using (q = Qubit()) { }
+    }
+
+    operation DeprecatedBorrowingKeyword() : Unit {
+        borrowing q = Qubit() { }
+    }
+
+    operation DeprecatedBorrowingKeywordParens() : Unit {
+        borrowing (q = Qubit()) { }
+    }
 }
