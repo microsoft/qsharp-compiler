@@ -107,7 +107,15 @@ namespace Microsoft.Quantum.Documentation
                     // Concatenate everything into one documentation comment.
                     var comment = new DocComment(
                         ns.Documentation.SelectMany(group => group).SelectMany(comments => comments));
-                    this.writer?.WriteOutput(ns, comment)?.Wait();
+                    if (ns.Elements.Any(element => element switch
+                        {
+                            QsNamespaceElement.QsCallable { Item: var callable } => callable.Modifiers.Access.IsDefaultAccess,
+                            QsNamespaceElement.QsCustomType { Item: var type } => type.Modifiers.Access.IsDefaultAccess,
+                            _ => false
+                        }))
+                    {
+                        this.writer?.WriteOutput(ns, comment)?.Wait();
+                    }
                 }
 
                 return ns;
@@ -141,7 +149,10 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: type.Source.AssemblyOrCodeFile);
 
-                this.writer?.WriteOutput(type, docComment)?.Wait();
+                if (!type.Modifiers.Access.Equals(QsCompiler.SyntaxTokens.AccessModifier.Internal))
+                {
+                    this.writer?.WriteOutput(type, docComment)?.Wait();
+                }
 
                 return type
                     .AttributeBuilder()
@@ -195,7 +206,10 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: callable.Source.AssemblyOrCodeFile);
 
-                this.writer?.WriteOutput(callable, docComment)?.Wait();
+                if (!callable.Modifiers.Access.Equals(QsCompiler.SyntaxTokens.AccessModifier.Internal))
+                {
+                    this.writer?.WriteOutput(callable, docComment)?.Wait();
+                }
 
                 return callable
                     .AttributeBuilder()
