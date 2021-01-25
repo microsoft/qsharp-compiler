@@ -144,9 +144,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and the second one listing all sources in which it occurs.
         /// Returns null if the given sequence of elements is null.
         /// </summary>
-        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName Name, string Source, Visibility Access)> elements) =>
+        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(
+            IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> elements) =>
             elements
-                .Where(e => Namespace.IsDeclarationAccessible(false, e.Access))
+                .Where(e => Namespace.IsDeclarationAccessible(false, e.Visibility))
                 .GroupBy(e => e.Name)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source))))
@@ -1002,14 +1003,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
-                IGrouping<string, (QsQualifiedName Name, string Source, Visibility Access)> group) =>
+                IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> group) =>
                 group
-                .Where(item =>
-                    !Namespace.IsDeclarationAccessible(false, item.Access) &&
-                    (predicate?.Invoke(item.Source) ?? true))
-                .ToImmutableDictionary(
-                    item => item.Name,
-                    item => decorator.Decorate(item.Name, ids[item.Source]));
+                    .Where(item =>
+                        !Namespace.IsDeclarationAccessible(false, item.Visibility) &&
+                        (predicate?.Invoke(item.Source) ?? true))
+                    .ToImmutableDictionary(
+                        item => item.Name,
+                        item => decorator.Decorate(item.Name, ids[item.Source]));
 
             // rename all internal declarations and their usages
 
