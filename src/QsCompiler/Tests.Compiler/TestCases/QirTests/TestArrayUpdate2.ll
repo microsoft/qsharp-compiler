@@ -53,12 +53,16 @@ condContinue__1:                                  ; preds = %condFalse__1, %cond
   %13 = call %Array* @__quantum__rt__array_copy(%Array* %12, i1 false)
   %14 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %13, i64 %i)
   %15 = bitcast i8* %14 to %String**
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
   %16 = load %String*, %String** %15
   store %String* %str, %String** %15
+  call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
   store %Array* %13, %Array** %arr
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %16, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %condContinue__1

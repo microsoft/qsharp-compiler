@@ -13,15 +13,6 @@ entry:
   %8 = getelementptr { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i64 0, i32 0
   %9 = load %Callable*, %Callable** %8
   call void @__quantum__rt__callable_invoke(%Callable* %9, %Tuple* %3, %Tuple* %result-tuple)
-  %10 = bitcast { i64, double }* %2 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %10, i64 1)
-  %11 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %7, i64 0, i32 0
-  %12 = load %String*, %String** %11
-  call void @__quantum__rt__string_update_reference_count(%String* %12, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %arg-tuple, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %10, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %12, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %arg-tuple, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
   ret void
 }

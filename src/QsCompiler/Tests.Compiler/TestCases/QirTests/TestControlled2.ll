@@ -28,8 +28,6 @@ entry:
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %20, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %20)
   call void @__quantum__rt__callable_invoke(%Callable* %20, %Tuple* %13, %Tuple* %result-tuple)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %13, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %20, i64 -1)

@@ -15,8 +15,10 @@ entry:
   %5 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %6 = bitcast %Tuple* %5 to { double, %String* }*
   %7 = getelementptr { double, %String* }, { double, %String* }* %6, i64 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
   %8 = load %String*, %String** %7
   store %String* %name, %String** %7
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 1)
   store { double, %String* }* %6, { double, %String* }** %res
   %energy = alloca double
@@ -44,16 +46,16 @@ exit__1:                                          ; preds = %header__1
   %15 = getelementptr { double, %String* }, { double, %String* }* %12, i64 0, i32 1
   %16 = load %String*, %String** %15
   call void @__quantum__rt__string_update_reference_count(%String* %16, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %4, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %8, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %8, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i64 -1)
   ret { double, %String* }* %12
 
 preheader__1:                                     ; preds = %body__1
