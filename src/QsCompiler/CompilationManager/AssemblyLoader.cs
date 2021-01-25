@@ -27,9 +27,10 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given its <paramref name="url" />,
+        /// Loads the Q# data structures in a referenced assembly given <paramref name="asm" />,
         /// and returns the loaded content as <paramref name="headers" />.
         /// </summary>
+        /// <param name="asm">The uri of the referenced assembly.</param>
         /// <returns>
         /// False if some of the content could not be loaded successfully,
         /// possibly because the referenced assembly has been compiled with an older compiler version.
@@ -268,7 +269,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// This routine extracts the namespace and type name of <paramref name="attribute" />.
         /// </summary>
         /// <returns>
-        /// The tuple (namespace, name), or null if the constructor handle is not a <see cref="HandleKind.MethodDefinition" /> or a <see cref="HandleKind.MemberDefinition" />.
+        /// The tuple (namespace, name), or null if the constructor handle is not a <see cref="HandleKind.MethodDefinition" /> or a <see cref="HandleKind.MemberReference" />.
         /// </returns>
         /// <remarks>
         /// There are two possible handle kinds in use for the constructor of a custom attribute,

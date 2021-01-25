@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class SuggestedEdits
     {
         /// <summary>
-        /// Returns <paramref name="edits" /> for <paramref name="file" /> as a <paramref name="WorkspaceEdit" />.
+        /// Returns <paramref name="edits" /> for <paramref name="file" /> as a <see cref="WorkspaceEdit" />.
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
@@ -197,9 +197,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a sequence of suggestions on how errors for ambiguous types and callable in <paramref name="diagnostics" /> can be fixed.
         /// </summary>
-        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
         /// <param name="file">The file for which <paramref name="diagnostics" /> were generated.</param>
         /// <param name="compilation">The compilation corresponding to <paramref name="file" />.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
         /// <remarks>
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </remarks>
@@ -395,8 +395,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a sequence of suggestions for update-and-reassign statements based on <paramref name="diagnostics" />.
         /// </summary>
-        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
         /// <param name="file">The file for which <paramref name="diagnostics" /> were generated.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
         /// <remarks>
         /// Returns an empty enumerable if any of the given arguments is null.
         /// </remarks>

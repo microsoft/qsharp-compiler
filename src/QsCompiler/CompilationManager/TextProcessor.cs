@@ -308,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Extracts the code fragments based on the current file content that needs to be re-processed due to content changes on <paramref name="changesLines" />.
+        /// Extracts the code fragments based on the current file content that needs to be re-processed due to content changes on <paramref name="changedLines" />.
         /// </summary>
         /// <remarks>
         /// Ignores any whitespace or comments at the beginning of the file (whether they have changed or not).

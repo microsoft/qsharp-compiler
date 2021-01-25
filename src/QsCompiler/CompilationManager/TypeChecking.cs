@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -26,13 +27,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class TypeChecking
     {
         /// <summary>
-        /// Builds the corresponding <see cref="HeaderEntry" /> objects for <paramref name="tokens" />,
+        /// Builds the corresponding <see cref="HeaderEntry{T}" /> objects for <paramref name="tokens" />,
         /// throwing the corresponding exceptions if the building fails.
         /// </summary>
         /// <param name="tokens">A collection of the token indices that contain the header item.</param>
         /// <param name="getDeclaration">A function that extracts the declaration.</param>
         /// <returns>
-        /// All <see cref="HeaderEntry" /> objects for which the extracted name of the declaration is valid.
+        /// All <see cref="HeaderEntry{T}" /> objects for which the extracted name of the declaration is valid.
         /// </returns>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(
                 this FileContentManager file,
@@ -145,11 +146,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Defines a function that extracts the specialization declaration
-        /// for <paramref name="fragment" /> that contains a specialization that can be used to build a <see cref="HeaderEntry" /> for the specialization.
+        /// for <paramref name="fragment" /> that contains a specialization that can be used to build a <see cref="HeaderEntry{T}" /> for the specialization.
         /// </summary>
-        /// <param name="parent">The <see cref="HeaderEntry" /> of the parent.</param>
+        /// <param name="parent">The <see cref="HeaderEntry{T}" /> of the parent.</param>
         /// <remarks>
-        /// The symbol saved in that <see cref="HeaderEntry" /> then is the name of the specialized callable,
+        /// The symbol saved in that <see cref="HeaderEntry{T}" /> then is the name of the specialized callable,
         /// and its declaration contains the specialization kind as well as the range info for the specialization intro.
         /// <para />
         /// The function returns null if the <see cref="CodeFragment.Kind" /> of <paramref name="fragment" /> is null.
@@ -310,11 +311,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds all specializations defined within the declaration body of <paramref name="parent" /> to <paramref name="namespace" />.
+        /// Adds all specializations defined within the declaration body of <paramref name="parent" /> to <paramref name="ns" />.
         /// </summary>
-        /// <param name="parent">The header item for a callable declaration.</param>
-        /// <param name="Namespace">The namespace of the declaration.</param>
         /// <param name="file">The file of the declaration.</param>
+        /// <param name="ns">The namespace of the declaration.</param>
+        /// <param name="parent">The header item for a callable declaration.</param>
         /// <returns>
         /// If the given callable declaration contains specializations,
         /// a list of the token indices that contain the specializations to be included in the compilation.
@@ -505,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and modifies <paramref name="compilation" /> accordingly in the process.
         /// </summary>
         /// <remarks>
-        /// Updates and pushes all <see cref="HeaderDiagnostics" /> in <paramref name="files" />,
+        /// Updates and pushes all header diagnostics in <paramref name="files" />,
         /// and clears all semantic diagnostics without pushing them.
         /// </remarks>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> UpdateGlobalSymbolsFor(
@@ -627,8 +628,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding using-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The resulting build statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The resulting build statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, false otherwise.
         /// </returns>
@@ -675,8 +676,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding borrowing-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -723,8 +724,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding RUS-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -798,8 +799,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding for-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -847,8 +848,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding while-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -896,8 +897,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding if-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -975,8 +976,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding conjugation updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1038,8 +1039,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding let-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1083,8 +1084,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding mutable-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1128,8 +1129,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding set-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1173,8 +1174,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding fail-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1218,8 +1219,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding return-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1263,8 +1264,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// builds the corresponding expression-statement updating <paramref name="context" /> in the process,
         /// and moves <paramref name="nodes" /> to the next node.
         /// </summary>
-        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <param name="proceed">True if <paramref name="nodes" /> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
         /// <returns>
         /// True if the statement has been built, and false otherwise.
         /// </returns>
@@ -1725,7 +1726,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given access to a <see cref="NamespaceManager" /> containing all global declarations and their resolutions via <paramref name="compilation" />,
-        /// type checks each <paramref name="FragmentTree" /> from <paramref name="roots" /> until the process is cancelled via <paramref name="cancellationToken" />.
+        /// type checks each <see cref="FragmentTree" /> from <paramref name="roots" /> until the process is cancelled via <paramref name="cancellationToken" />.
         /// </summary>
         /// <returns>
         /// A list of all accumulated diagnostics, or null if the request has been cancelled.

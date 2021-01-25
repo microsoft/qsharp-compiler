@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The result of <paramref name="execute" />, or null if <paramref name="execute" /> is null.
         /// </returns>
         /// <remarks>
-        /// Sets <see cref="waitfortypecheck" /> to null, indicating that a global type checking is queued and not yet started.
+        /// Sets <see cref="waitForTypeCheck" /> to null, indicating that a global type checking is queued and not yet started.
         /// </remarks>
         public T? FlushAndExecute<T>(Func<T?>? execute = null)
             where T : class
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="uri" /> is not an absolute file URI.</exception>
         /// <remarks>
-        /// If <paramref name="publishingDiagnostics" /> is provided, publishes the diagnostics generated upon processing <paramref name="fileContent" />.
+        /// If <paramref name="publishDiagnostics" /> is provided, publishes the diagnostics generated upon processing <paramref name="fileContent" />.
         /// </remarks>
         public static FileContentManager InitializeFileManager(
             Uri uri,
@@ -498,8 +498,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If a global type checking is already queued, but hasn't started executing yet, does nothing and returns a completed task.
-        /// If a global type checking is in progress, cancels that process via <see cref="waitForTypeChecking" />,
-        /// then queues <see cref="SpawnGlobalTypeCheckingAsync" /> for exectution into the task queue, and sets <see cref="waitForTypeChecking" /> to null,
+        /// If a global type checking is in progress, cancels that process via <see cref="waitForTypeCheck" />,
+        /// then queues <see cref="SpawnGlobalTypeCheckingAsync" /> for exectution into the task queue, and sets <see cref="waitForTypeCheck" /> to null,
         /// indicating that a type global type checking is queued and has not started executing yet.
         /// </summary>
         private Task QueueGlobalTypeCheckingAsync()

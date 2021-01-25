@@ -580,7 +580,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all lines that have been modified since the last call to <see cref="DequeueChanges" />.
+        /// Returns all lines that have been modified since the last call to <see cref="DequeueContentChanges" />.
         /// </summary>
         /// <remarks>
         /// The changed lines are guaranteed to be returned in ascending order.
@@ -634,7 +634,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// (i.e. the ones after having applied Transformation) on that line.
         /// Applies <paramref name="modifiedTokens" /> to the tokens at <paramref name="lineNr" /> to obtain the list of tokens for which to mark all connections as edited.
         /// Then constructs and returns an <see cref="Action" /> as out parameter
-        /// that adds <paramref name="lineNr" /> as well as all lines containing connections to mark to <see cref="this.editedTokens" />.
+        /// that adds <paramref name="lineNr" /> as well as all lines containing connections to mark to <see cref="editedTokens" />.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineNr" /> is not a valid index for the current tokens.</exception>
         /// <exception cref="ArgumentException">Any of the values returned by <paramref name="updatedTokens" /> or <paramref name="modifiedTokens" /> is null.</exception>
@@ -1112,11 +1112,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Forces the processing of all currently queued changes,
+        /// Forces the processing of all currently queued changes.
         /// </summary>
         /// <remarks>
-        /// Does *NOT* call the constructor <see cref="onAutomaticUpdate" /> argument with the update.
+        /// Does *NOT* call <see cref="TimerTriggeredUpdateEvent"/> with the update.
         /// </remarks>
+        /// <!-- TODO: is this remarks change correct? -->
         internal void Flush()
         {
             this.timer.Stop();
@@ -1131,7 +1132,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
         /// <remarks>
         /// If <paramref name="filterBy" /> is null, returns the token indices for all tokens on the lines specified by <paramref name="getLineNumbers" />.
-        /// Returns an empty <see cref="List" /> if <paramref name="getLineNumbers" /> is null.
+        /// Returns an empty list if <paramref name="getLineNumbers" /> is null.
         /// </remarks>
         private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
@@ -1162,7 +1163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// The range of the returned fragments is the absolute range in the file.
         /// If <paramref name="filterBy" /> is null, returns all fragments on the lines specified by <paramref name="getLineNumbers" />.
-        /// Returns an empty <paramref name="List" /> if <paramref name="getLineNumbers" /> is null.
+        /// Returns an empty list if <paramref name="getLineNumbers" /> is null.
         /// </remarks>
         private List<CodeFragment> FilterFragments(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {

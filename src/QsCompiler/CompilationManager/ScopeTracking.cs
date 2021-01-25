@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Computes the index after applying <see cref="RelevantCode" />.
         /// </summary>
-        /// <param name="Given">An index computed before applying <see cref="RelevantCode" />.</param>
+        /// <param name="indexInFullText">An index computed before applying <see cref="RelevantCode" />.</param>
         /// <remarks>
         /// Returns -1 if <paramref name="indexInFullText" /> is negative, or is within a string or a comment, or denotes an excess bracket.
         /// </remarks>
@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the result of <paramref name="findIndex" /> applied to the text on <paramref name="line" /> when ignoring end of line comments, content within strings,
-        /// and - if <paramref name="ingoreExcessBrackets" /> is set - excessive closing brackets.
+        /// and - if <paramref name="ignoreExcessBrackets" /> is set - excessive closing brackets.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Start and count do not define a valid range in the text of <paramref name="line" />.</exception>
         /// <remarks>
@@ -501,7 +501,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // computing the objects needed to update the content in the editor state
 
         /// <summary>
-        /// Based on <paramref name="previousLine" />, initializes the new <see cref="CodeLines" /> for <paramref name="texts" /> 
+        /// Based on <paramref name="previousLine" />, initializes the new <see cref="CodeLine" /> instances for <paramref name="texts" />
         /// with suitable string delimiters and the correct end of line comment position,
         /// leaving the indentation at its default value and the excess brackets uncomputed.
         /// </summary>
@@ -527,8 +527,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Computes and sets the correct indentation level and excess bracket positions for each line in <paramref name="lines" />.
         /// </summary>
-        /// <param name="currentIndentation">The initial indentation of a sequence of <see cref="CodeLine" /> objects.</param>
         /// <param name="lines">A sequence of code lines with the correct string delimiters set.</param>
+        /// <param name="currentIndentation">The initial indentation of a sequence of <see cref="CodeLine" /> objects.</param>
         private static IEnumerable<CodeLine> SetIndentations(IEnumerable<CodeLine> lines, int currentIndentation)
         {
             foreach (var line in lines)
@@ -577,7 +577,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Computes the excess closing and scope error updates for <paramref name="replacements" /> at the position specified by <paramref name="start" /> and <paramref name="count" /> in <paramref name="file" />.
         /// </summary>
         /// <returns>
-        /// A sequence of <paramref name="CodeLine" /> objects for the remaining file, if the made replacements require updating the remaining file as well, and null otherwise.
+        /// A sequence of <see cref="CodeLine" /> objects for the remaining file, if the made replacements require updating the remaining file as well, and null otherwise.
         /// </returns>
         /// <exception cref="ArgumentException"><paramref name="replacements" /> does not at least contain one <see cref="CodeLine" />.</exception>
         /// <exception cref="ArgumentOutOfRangeException">

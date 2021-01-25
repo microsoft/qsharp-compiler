@@ -488,7 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // methods related to accessing and managing information about the compilation
 
         /// <summary>
-        /// Returns all currently compiled Q# callables as an <see cref="IReadOnlyDictionary" />.
+        /// Returns all currently compiled Q# callables as an <see cref="IReadOnlyDictionary{K,V}" />.
         /// </summary>
         /// <remarks>
         /// The wrapped dictionary may change!
@@ -507,7 +507,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all currently compiled Q# types as an <see cref="IReadOnlyDictionary" />.
+        /// Returns all currently compiled Q# types as an <see cref="IReadOnlyDictionary{K, V}" />.
         /// </summary>
         /// <remarks>
         /// The wrapped dictionary may change!

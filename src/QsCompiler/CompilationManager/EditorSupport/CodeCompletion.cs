@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the completion environment at <paramref name="position" /> in <paramref name="file" />, or 
         /// null if the environment cannot be determined.
         /// </summary>
-        /// <param name="Stores">The code fragment found at or before <paramref name="position" />.</param>
+        /// <param name="fragment">The code fragment found at or before <paramref name="position" />.</param>
         private static (CompletionScope?, QsFragmentKind?) GetCompletionEnvironment(
             FileContentManager file, Position position, out CodeFragment? fragment)
         {

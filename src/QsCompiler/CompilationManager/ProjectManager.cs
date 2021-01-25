@@ -716,7 +716,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// queries <paramref name="openInEditor" /> to determine which of those files are currently open in the editor.
         /// </summary>
         /// <remarks>
-        /// Removes all such files from the default manager and returns their <see cref="FileContentManagers" />.
+        /// Removes all such files from the default manager and returns their <see cref="FileContentManager" />.
         /// </remarks>
         private Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>> MigrateToProject(Func<Uri, FileContentManager?> openInEditor) =>
             (filesAddedToProject, projFile) =>
@@ -892,7 +892,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// For each tracked project reloads <paramref name="sourceFile" /> from disk and updates the project accordingly,
         /// if the modified file is a source file of that project and not open in the editor
-        /// (i.e. <see cref="openInEditor" /> is null or returns null for that file) at the time of execution.
+        /// (i.e. <paramref name="openInEditor" /> is null or returns null for that file) at the time of execution.
         /// </remarks>
         public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null) =>
             this.load.QueueForExecutionAsync(() =>
@@ -907,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the compilation unit manager for the project
-        /// if <paramref name="file" /> can be uniquely associated with a compilation unit, or <paramref name="DefaultManager" /> otherwise.
+        /// if <paramref name="file" /> can be uniquely associated with a compilation unit, or <see cref="defaultManager" /> otherwise.
         /// </summary>
         /// <remarks>
         /// Returns null if no <see cref="CompilationUnitManager" /> exists for the project, or if <paramref name="file" /> is null.
@@ -929,7 +929,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// executes <paramref name="executeTask" /> on the <see cref="CompilationUnitManager" /> of that project (if one exists), passing true as second argument.
         /// </summary>
         /// <remarks>
-        /// Executes <paramref name="executeTask" /> on the <see cref="DefaultManager" /> otherwise, passing false as second argument.
+        /// Executes <paramref name="executeTask" /> on the <see cref="defaultManager" /> otherwise, passing false as second argument.
         /// </remarks>
         public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask) =>
             this.load.QueueForExecutionAsync(() =>
@@ -1143,7 +1143,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// This method waits for all currently running or queued tasks to finish
-        /// before getting the project loading diagnostics by calling <see cref="FlushAndExecute" />.
+        /// before getting the project loading diagnostics.
         /// </remarks>
         public IEnumerable<Diagnostic>? GetProjectDiagnostics(Uri projectId)
         {
@@ -1181,7 +1181,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If <paramref name="file" /> is null, returns the diagnostics for all source files in the default manager.
         /// <para />
         /// This method waits for all currently running or queued tasks to finish
-        /// before accumulating the diagnostics by calling <see cref="FlushAndExecute" />.
+        /// before accumulating the diagnostics.
         /// </remarks>
         public PublishDiagnosticParams[]? GetDiagnostics(Uri? file)
         {
@@ -1214,7 +1214,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given file is null.
         /// <para />
         /// This method waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling <see cref="FlushAndExecute" />.
+        /// before getting the file content.
         /// </remarks>
         public string[]? FileContentInMemory(TextDocumentIdentifier textDocument)
         {
@@ -1242,9 +1242,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : uri.AbsolutePath;
 
         /// <summary>
-        /// For sequence of file names <paramref name="files" />, verifies that a file with the corresponding full path exists,
+        /// For all <paramref name="files" />, verifies that a file with the corresponding full path exists,
         /// and returns a sequence containing the absolute path for all files that do.
         /// </summary>
+        /// <param name="files">The sequence of file names.</param>
+        /// <param name="duplicateFileWarning">The <see cref="Diagnostic.Code"/> value to use for warning diagnostics generated for duplicate files.</param>
+        /// <param name="fileNotFoundDiagnostic">A function used to create diagnostics generated for missing files.</param>
         /// <param name="notFound">All file names from <paramref name="files" /> for which no such file exists.</param>
         /// <param name="duplicates">All duplicate file names from <paramref name="files" />.</param>
         /// <param name="invalidPaths">All file names from <paramref name="files" /> for which an exception was thrown while creating the full path uri.</param>
@@ -1307,6 +1310,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// For each valid source file, generates the corrsponding <see cref="TextDocumentIdentifier" /> and reads the file content from disk.
         /// </summary>
+        /// <param name="sourceFiles">The source files to load.</param>
         /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
         /// <returns>
         /// The uri and file content for each file that could be loaded.
@@ -1417,18 +1421,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 "could not determine id for valid uri");
 
         /// <summary>
-        /// For each existing project file, calls <see cref="GetOutputPath" /> on it to obtain the path to the built dll for the project.
+        /// For each existing project file, calls <paramref name="getOutputPath" /> on it to obtain the path to the built dll for the project.
         /// </summary>
-        /// <param name="onException">Called for any exception due to a failure of <see cref="GetOutputPath" />.</param>
+        /// <param name="getOutputPath">Called to obtain the path to the built dll for the project.</param>
         /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
+        /// <param name="onException">Called for any exception due to a failure of <paramref name="getOutputPath" />.</param>
         /// <returns>
         /// A dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
         /// </returns>
         /// <remarks>
         /// Uses FilterFiles to filter <paramref name="refProjectFiles" />, and generates the corresponding errors and warnings.
         /// <para />
-        /// For any exception due to a failure of <see cref="GetOutputPath" /> the <paramref name="onException" /> is invoked.
-        /// A failure of <see cref="GetOutputPath" /> consists of it throwing an exception, or returning a path that does exist but not correspond to a valid dll.
+        /// For any exception due to a failure of <paramref name="getOutputPath" /> the <paramref name="onException" /> is invoked.
+        /// A failure of <paramref name="getOutputPath" /> consists of it throwing an exception, or returning a path that does exist but not correspond to a valid dll.
         /// <para />
         /// If no file exists at the returned path, generates a suitable error message.
         /// </remarks>
@@ -1483,6 +1488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
         /// </summary>
+        /// <param name="references">The references to filter and load.</param>
         /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
         /// <remarks>
         /// Generates a suitable error message for each binary file that could not be loaded.

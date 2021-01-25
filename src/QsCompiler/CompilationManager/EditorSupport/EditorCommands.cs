@@ -22,9 +22,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         /// <summary>
         /// Returns an array of all namespace declarations, type declarations, and callable declarations in <paramref name="file" />.
-        /// <seealso cref="FileContentManager.NamespaceDeclarationsSymbolInfo" />
-        /// <seealso cref="FileContentManager.TypeDeclarationsSymbolInfo" />
-        /// <seealso cref="FileContentManager.CallableDeclarationsSymbolInfo" />
+        /// <seealso cref="SymbolInfo.NamespaceDeclarationsSymbolInfo" />
+        /// <seealso cref="SymbolInfo.TypeDeclarationsSymbolInfo" />
+        /// <seealso cref="SymbolInfo.CallableDeclarationsSymbolInfo" />
         /// </summary>
         /// <remarks>
         /// Returns null if <paramref name="file" /> is null.
@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns an array with all usages of the identifier at <paramref name="position" /> (if any)
-        /// as a <paramref name="DocumentHighlight" /> array.
+        /// as a <see cref="DocumentHighlight" /> array.
         /// </summary>
         /// <remarks>
         /// Returns null if some parameters are unspecified (null),

@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="startChar" /> and <paramref name="endChar" /> do not denote a valid range within <paramref name="lineText" />.</exception>
         /// <remarks>
-        /// Returns null if <paramref name="textLine" /> is null.
+        /// Returns null if <paramref name="lineText" /> is null.
         /// </remarks>
         [return: NotNullIfNotNull("lineText")]
         internal static string? GetChangedText(string? lineText, int startChar, int endChar, string insert)

@@ -167,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if <paramref name="file" /> or <paramref name="pos" /> is null, or if no preceding callable can be found (e.g. because the callable name is invalid).
         /// If a callable name but no specializations (preceding or otherwise) within that callable can be found,
         /// assumes that the correct specialization is an auto-inserted default body,
-        /// and returns <see cref="QsBody" /> as well as the start position of the callable declaration along with the callable name and its position.
+        /// and returns QsBody as well as the start position of the callable declaration along with the callable name and its position.
         /// If a callable name as well as existing specializations can be found, but no specialization precedes <paramref name="pos" />,
         /// returns null for the specialization kind as well as for its position.
         /// </remarks>
@@ -336,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an <see cref="IEnumerable" /> with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
+        /// Returns an <see cref="IEnumerable{T}" /> with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
         /// </summary>
         internal static IEnumerable<CodeFragment.TokenIndex> GetNonEmptyParents(this CodeFragment.TokenIndex tIndex)
         {
@@ -347,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an <see cref="IEnumerable" /> with the indices of all children of the token corresponding to <paramref name="tIndex" />.
+        /// Returns an <see cref="IEnumerable{T}" /> with the indices of all children of the token corresponding to <paramref name="tIndex" />.
         /// </summary>
         /// <remarks>
         /// If <paramref name="deep" /> is set to true (default value), then the returned children are all following tokens
@@ -498,7 +498,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external routines for context verification
 
         /// <summary>
-        /// Given <paramref name="changesLines" />, the lines that contain tokens that (possibly) have been modified,
+        /// Given <paramref name="changedLines" />, the lines that contain tokens that (possibly) have been modified,
         /// checks which callable declaration they can potentially belong to and returns the fully qualified name of those callables.
         /// </summary>
         internal static IEnumerable<(Range, QsQualifiedName)> CallablesWithContentModifications(this FileContentManager file, IEnumerable<int> changedLines)
