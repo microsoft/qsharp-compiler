@@ -625,7 +625,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 kind: callable.Kind,
                 qualifiedName: this.state.GetNewName(callable.QualifiedName),
                 attributes: callable.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: callable.Modifiers,
+                visibility: callable.Visibility,
                 source: callable.Source,
                 position: callable.Position,
                 symbolRange: callable.SymbolRange,
@@ -669,7 +669,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return new TypeDeclarationHeader(
                 qualifiedName: this.state.GetNewName(type.QualifiedName),
                 attributes: type.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: type.Modifiers,
+                visibility: type.Visibility,
                 source: type.Source,
                 position: type.Position,
                 symbolRange: type.SymbolRange,

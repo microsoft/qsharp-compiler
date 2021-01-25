@@ -164,9 +164,7 @@ let private allocationScope =
     |>> fst
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
-let private modifiers =
-    let accessModifier = (qsInternal.parse >>% Internal) <|>% DefaultAccess
-    accessModifier |>> fun access -> { Access = access }
+let private accessModifier = qsInternal.parse >>% Internal
 
 /// Parses a Q# operation or function signature.
 /// Expects type annotations for each symbol in the argument tuple, and raises Missing- or InvalidTypeAnnotation errors otherwise.
@@ -366,21 +364,61 @@ let private controlledAdjointDeclaration =
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 let private operationDeclaration =
-    let invalid = OperationDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
+    let invalid =
+        OperationDeclaration
+            {
+                Name = invalidSymbol
+                Access = Null
+                Signature = CallableSignature.Invalid
+            }
 
-    buildFragment (modifiers .>> opDeclHeader.parse |> attempt) signature invalid (fun mods (symbol, signature) ->
-        OperationDeclaration(mods, symbol, signature)) eof
+    let valid access (symbol, signature) =
+        OperationDeclaration
+            {
+                Name = symbol
+                Access = QsNullable.ofOption access
+                Signature = signature
+            }
+
+    buildFragment (opt accessModifier .>> opDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 let private functionDeclaration =
-    let invalid = FunctionDeclaration({ Access = DefaultAccess }, invalidSymbol, CallableSignature.Invalid)
+    let invalid =
+        FunctionDeclaration
+            {
+                Name = invalidSymbol
+                Access = Null
+                Signature = CallableSignature.Invalid
+            }
 
-    buildFragment (modifiers .>> fctDeclHeader.parse |> attempt) signature invalid (fun mods (symbol, signature) ->
-        FunctionDeclaration(mods, symbol, signature)) eof
+    let valid access (symbol, signature) =
+        FunctionDeclaration
+            {
+                Name = symbol
+                Access = QsNullable.ofOption access
+                Signature = signature
+            }
+
+    buildFragment (opt accessModifier .>> fctDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 let private udtDeclaration =
-    let invalid = TypeDefinition({ Access = DefaultAccess }, invalidSymbol, invalidArgTupleItem)
+    let invalid =
+        TypeDefinition
+            {
+                Name = invalidSymbol
+                Access = Null
+                UnderlyingType = invalidArgTupleItem
+            }
+
+    let valid access (symbol, underlyingType) =
+        TypeDefinition
+            {
+                Name = symbol
+                Access = QsNullable.ofOption access
+                UnderlyingType = underlyingType
+            }
 
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t =
@@ -416,8 +454,7 @@ let private udtDeclaration =
 
     let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
 
-    buildFragment (modifiers .>> typeDeclHeader.parse |> attempt) declBody invalid (fun mods (symbol, underlyingType) ->
-        TypeDefinition(mods, symbol, underlyingType)) eof
+    buildFragment (opt accessModifier .>> typeDeclHeader.parse |> attempt) declBody invalid valid eof
 
 
 // statement parsing

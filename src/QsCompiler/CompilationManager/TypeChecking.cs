@@ -127,13 +127,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the HeaderItems corresponding to all type declarations with a valid name in the given file, or null if the given file is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<Modifiers, QsTuple<Tuple<QsSymbol, QsType>>>>)> GetTypeDeclarationHeaderItems(
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsNullable<Visibility>, QsTuple<Tuple<QsSymbol, QsType>>>>)> GetTypeDeclarationHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(file.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
         /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>>)> GetCallableDeclarationHeaderItems(
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, QsNullable<Visibility>, CallableSignature>>)> GetCallableDeclarationHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(file.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The function returns Null if the Kind of the given fragment is null.
         /// </summary>
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Range)>> SpecializationDeclaration(
-            HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>> parent, CodeFragment fragment)
+            HeaderEntry<Tuple<QsCallableKind, QsNullable<Visibility>, CallableSignature>> parent, CodeFragment fragment)
         {
             var specDecl = fragment.Kind?.DeclaredSpecialization();
             var @null = QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Range)>>.Null;
@@ -248,7 +248,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all type declarations
                 var typesToCompile = AddItems(
                     file.GetTypeDeclarationHeaderItems(),
-                    (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddType(file.FileName, new QsLocation(pos, name.Item2), name, decl.Item2, att, decl.Item1, doc),
+                    (pos, name, decl, att, doc) => ContainingParent(pos, namespaces)
+                        .TryAddType(file.FileName, new QsLocation(pos, name.Item2), name, decl.Item2, att, decl.Item1.ValueOr(Visibility.Public), doc),
                     file.FileName,
                     diagnostics);
 
@@ -262,7 +263,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all callable declarations
                 var callablesToCompile = AddItems(
                     file.GetCallableDeclarationHeaderItems(),
-                    (pos, name, decl, att, doc) => ContainingParent(pos, namespaces).TryAddCallableDeclaration(file.FileName, new QsLocation(pos, name.Item2), name, Tuple.Create(decl.Item1, decl.Item3), att, decl.Item2, doc),
+                    (pos, name, decl, att, doc) => ContainingParent(pos, namespaces)
+                        .TryAddCallableDeclaration(file.FileName, new QsLocation(pos, name.Item2), name, Tuple.Create(decl.Item1, decl.Item3), att, decl.Item2.ValueOr(Visibility.Public), doc),
                     file.FileName,
                     diagnostics);
 
@@ -302,7 +304,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static List<CodeFragment.TokenIndex> AddSpecializationsToNamespace(
             FileContentManager file,
             Namespace ns,
-            (CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>>) parent,
+            (CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, QsNullable<Visibility>, CallableSignature>>) parent,
             List<Diagnostic> diagnostics)
         {
             var contentToCompile = new List<CodeFragment.TokenIndex>();
@@ -1660,7 +1662,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         info.Kind,
                         parent,
                         info.Attributes,
-                        info.Modifiers,
+                        info.Visibility,
                         info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
@@ -1674,7 +1676,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var types = typeDeclarations.Select(decl => new QsCustomType(
                     decl.Key,
                     decl.Value.Attributes,
-                    decl.Value.Modifiers,
+                    decl.Value.Visibility,
                     decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,

@@ -140,7 +140,7 @@ type TypeDeclarationHeader =
     {
         QualifiedName: QsQualifiedName
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        Modifiers: Modifiers
+        Visibility: Visibility
         Source: Source
         Position: DeclarationHeader.Offset
         SymbolRange: DeclarationHeader.Range
@@ -165,7 +165,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = customType.FullName
             Attributes = customType.Attributes
-            Modifiers = customType.Modifiers
+            Visibility = customType.Visibility
             Source = customType.Source
             Position = customType.Location |> DeclarationHeader.CreateOffset
             SymbolRange = customType.Location |> DeclarationHeader.CreateRange
@@ -181,7 +181,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Modifiers = header.Modifiers
+            Visibility = AccessModifier.toVisibility header.Modifiers.Access
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
@@ -212,7 +212,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
-            Modifiers = this.Modifiers
+            Modifiers = { Access = AccessModifier.ofVisibility this.Visibility }
             SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange
@@ -258,7 +258,7 @@ type CallableDeclarationHeader =
         Kind: QsCallableKind
         QualifiedName: QsQualifiedName
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        Modifiers: Modifiers
+        Visibility: Visibility
         Source: Source
         Position: DeclarationHeader.Offset
         SymbolRange: DeclarationHeader.Range
@@ -284,7 +284,7 @@ type CallableDeclarationHeader =
             Kind = callable.Kind
             QualifiedName = callable.FullName
             Attributes = callable.Attributes
-            Modifiers = callable.Modifiers
+            Visibility = callable.Visibility
             Source = callable.Source
             Position = callable.Location |> DeclarationHeader.CreateOffset
             SymbolRange = callable.Location |> DeclarationHeader.CreateRange
@@ -301,7 +301,7 @@ type CallableDeclarationHeader =
             Kind = header.Kind
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Modifiers = header.Modifiers
+            Visibility = AccessModifier.toVisibility header.Modifiers.Access
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
@@ -344,7 +344,7 @@ type CallableDeclarationHeader =
             Kind = this.Kind
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
-            Modifiers = this.Modifiers
+            Modifiers = { Access = AccessModifier.ofVisibility this.Visibility }
             SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange

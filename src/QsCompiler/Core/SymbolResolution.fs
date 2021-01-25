@@ -42,7 +42,7 @@ type internal Resolution<'T, 'R> =
             Resolved: QsNullable<'R>
             DefinedAttributes: ImmutableArray<AttributeAnnotation>
             ResolvedAttributes: ImmutableArray<QsDeclarationAttribute>
-            Modifiers: Modifiers
+            Visibility: Visibility
             Documentation: ImmutableArray<string>
         }
 

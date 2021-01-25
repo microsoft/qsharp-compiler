@@ -168,14 +168,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         // Rewrite Implementations
 
-        private static AccessModifier GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
+        private static Visibility GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
             // If there is a reference to an unknown type, throw exception
             if (!userDefinedTypes.TryGetValue(typeName, out var type))
             {
                 throw new ArgumentException($"Couldn't find definition for user defined type: {typeName}");
             }
-            return type.Modifiers.Access;
+            return type.Visibility;
         }
 
         private class ReplaceTypeParamImplementations :
@@ -220,13 +220,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
                     var relaventAccessModifiers = this.SharedState.GetAccessModifiers.Apply(this.SharedState.TypeParams.Values)
-                        .Append(c.Modifiers.Access);
+                        .Append(c.Visibility);
 
                     c = new QsCallable(
                         c.Kind,
                         c.FullName,
                         c.Attributes,
-                        new Modifiers(GetAccessModifiers.GetLeastAccess(relaventAccessModifiers)),
+                        GetAccessModifiers.GetLeastAccess(relaventAccessModifiers),
                         c.Source,
                         c.Location,
                         c.Signature,
@@ -284,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         private class GetAccessModifiers : TypeTransformation<GetAccessModifiers.TransformationState>
         {
-            public IEnumerable<AccessModifier> Apply(IEnumerable<ResolvedType> types)
+            public IEnumerable<Visibility> Apply(IEnumerable<ResolvedType> types)
             {
                 this.SharedState.AccessModifiers.Clear();
                 foreach (var res in types)
@@ -294,24 +294,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 return this.SharedState.AccessModifiers.ToImmutableArray();
             }
 
-            public static AccessModifier GetLeastAccess(IEnumerable<AccessModifier> modifiers)
+            public static Visibility GetLeastAccess(IEnumerable<Visibility> modifiers)
             {
                 // ToDo: this needs to be made more robust if access modifiers are changed.
-                return modifiers.Any(ac => ac.IsInternal) ? AccessModifier.Internal : AccessModifier.DefaultAccess;
+                return modifiers.Any(ac => ac.IsInternal) ? Visibility.Internal : Visibility.Public;
             }
 
             internal class TransformationState
             {
-                public readonly HashSet<AccessModifier> AccessModifiers = new HashSet<AccessModifier>();
-                public readonly Func<QsQualifiedName, AccessModifier> GetAccessModifier;
+                public readonly HashSet<Visibility> AccessModifiers = new HashSet<Visibility>();
+                public readonly Func<QsQualifiedName, Visibility> GetAccessModifier;
 
-                public TransformationState(Func<QsQualifiedName, AccessModifier> getAccessModifier)
+                public TransformationState(Func<QsQualifiedName, Visibility> getAccessModifier)
                 {
                     this.GetAccessModifier = getAccessModifier;
                 }
             }
 
-            public GetAccessModifiers(Func<QsQualifiedName, AccessModifier> getAccessModifier)
+            public GetAccessModifiers(Func<QsQualifiedName, Visibility> getAccessModifier)
                 : base(new TransformationState(getAccessModifier), TransformationOptions.NoRebuild)
             {
             }

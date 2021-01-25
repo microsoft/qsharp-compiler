@@ -352,9 +352,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     var characteristics = fragment.Kind switch
                     {
-                        QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
-                        QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
-                        QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item3),
+                        QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item.Signature.Argument),
+                        QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item.Signature.Argument),
+                        QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item.UnderlyingType),
                         _ => Enumerable.Empty<Characteristics>()
                     };
                     return

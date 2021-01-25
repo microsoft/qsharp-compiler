@@ -223,9 +223,9 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.OperationDeclaration (_, n, signature) -> (n, signature) |> SymbolsInCallableDeclaration
-    | QsFragmentKind.FunctionDeclaration (_, n, signature) -> (n, signature) |> SymbolsInCallableDeclaration
-    | QsFragmentKind.TypeDefinition (_, sym, t) -> (sym, t) |> SymbolsInArgumentTuple
+    | QsFragmentKind.OperationDeclaration op -> (op.Name, op.Signature) |> SymbolsInCallableDeclaration
+    | QsFragmentKind.FunctionDeclaration func -> (func.Name, func.Signature) |> SymbolsInCallableDeclaration
+    | QsFragmentKind.TypeDefinition typ -> (typ.Name, typ.UnderlyingType) |> SymbolsInArgumentTuple
     | QsFragmentKind.DeclarationAttribute (sym, ex) ->
         [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
     | QsFragmentKind.NamespaceDeclaration sym -> sym |> SymbolDeclarations, ([], [], [])
@@ -331,9 +331,9 @@ let private namespaceDocumentation (docs: ILookup<_, ImmutableArray<_>>, markdow
     PrintSummary allDoc markdown
 
 /// Adds a string describing the modifiers in front of the string describing a kind of declaration.
-let private showModifiers kind modifiers =
-    match modifiers.Access with
-    | DefaultAccess -> kind
+let private showModifiers kind =
+    function
+    | Public -> kind
     | Internal -> "internal " + kind
 
 type private TName() =
@@ -370,7 +370,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
     let udtInfo udt =
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
-            let kind = showModifiers "user-defined type" decl.Modifiers |> toUpperFirst
+            let kind = showModifiers "user-defined type" decl.Visibility |> toUpperFirst
             let name = decl.QualifiedName.Name |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
             let info = sprintf "Underlying type: %s" (TypeName decl.Type)
@@ -449,7 +449,7 @@ let public PrintSignature (header: CallableDeclarationHeader) =
             (header.Source, Null)
             (header.QualifiedName,
              header.Attributes,
-             header.Modifiers,
+             header.Visibility,
              header.ArgumentTuple,
              header.Signature,
              ImmutableArray.Empty,
@@ -469,7 +469,7 @@ let public VariableInfo (symbolTable: NamespaceManager)
                         =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, _ ->
-        let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers |> toUpperFirst
+        let kind = showModifiers (printCallableKind decl.Kind) decl.Visibility |> toUpperFirst
         let nameAndSignature = PrintSignature decl |> withNewLine
         let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace
         let doc = PrintSummary decl.Documentation markdown
@@ -503,7 +503,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
         | false, _ ->
             match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
             | Some decl, _ ->
-                let kind = showModifiers "user-defined type" decl.Modifiers
+                let kind = showModifiers "user-defined type" decl.Visibility
                 let name = decl.QualifiedName.Name |> withNewLine
                 let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
                 let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
@@ -512,7 +512,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
             | None, _ ->
                 match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
                 | Some decl, _ ->
-                    let kind = showModifiers (printCallableKind decl.Kind) decl.Modifiers
+                    let kind = showModifiers (printCallableKind decl.Kind) decl.Visibility
                     let name = decl.QualifiedName.Name |> withNewLine
                     let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
                     let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine

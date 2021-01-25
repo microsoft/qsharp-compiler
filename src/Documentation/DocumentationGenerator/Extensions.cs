@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.Documentation
             new QsCustomType(
                 fullName: type.FullName,
                 attributes: type.Attributes,
-                modifiers: type.Modifiers,
+                visibility: type.Visibility,
                 source: type.Source,
                 location: type.Location,
                 type: type.Type,

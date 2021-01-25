@@ -225,6 +225,41 @@ type Modifiers =
         Access: AccessModifier
     }
 
+/// Defines where a global declaration may be accessed.
+type Visibility =
+    /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
+    /// declared.
+    | Internal
+
+    /// For callables and types, the default access modifier is public, which means the type or callable can be used
+    /// from anywhere. For specializations, the default access modifier is the same as the parent callable.
+    | Public
+
+module AccessModifier =
+    let toVisibility =
+        function
+        | DefaultAccess -> Public
+        | AccessModifier.Internal -> Internal
+
+    let ofVisibility =
+        function
+        | Public -> DefaultAccess
+        | Internal -> AccessModifier.Internal
+
+type CallableDeclaration =
+    {
+        Name: QsSymbol
+        Access: Visibility QsNullable
+        Signature: CallableSignature
+    }
+
+type TypeDefinition =
+    {
+        Name: QsSymbol
+        Access: Visibility QsNullable
+        UnderlyingType: QsTuple<QsSymbol * QsType>
+    }
+
 type QsFragmentKind =
     | ExpressionStatement of QsExpression
     | ReturnStatement of QsExpression
@@ -247,13 +282,14 @@ type QsFragmentKind =
     | AdjointDeclaration of QsSpecializationGenerator
     | ControlledDeclaration of QsSpecializationGenerator
     | ControlledAdjointDeclaration of QsSpecializationGenerator
-    | OperationDeclaration of Modifiers * QsSymbol * CallableSignature
-    | FunctionDeclaration of Modifiers * QsSymbol * CallableSignature
-    | TypeDefinition of Modifiers * QsSymbol * QsTuple<QsSymbol * QsType>
+    | OperationDeclaration of CallableDeclaration
+    | FunctionDeclaration of CallableDeclaration
+    | TypeDefinition of TypeDefinition
     | DeclarationAttribute of QsSymbol * QsExpression
     | OpenDirective of QsSymbol * QsNullable<QsSymbol>
     | NamespaceDeclaration of QsSymbol
     | InvalidFragment
+
     /// returns the error code for an invalid fragment of the given kind
     member this.ErrorCode =
         match this with

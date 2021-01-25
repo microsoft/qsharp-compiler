@@ -158,7 +158,7 @@ seeAlso:
             var generatorIndexType = new QsCustomType(
                 MakeFullName("GeneratorIndex"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
-                new Modifiers(AccessModifier.DefaultAccess),
+                Visibility.Public,
                 new Source("GeneratorRepresentation.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 baseType,
@@ -352,7 +352,7 @@ output:
                 QsCallableKind.Operation,
                 MakeFullName("AdiabaticStateEnergyUnitary"),
                 ImmutableArray<QsDeclarationAttribute>.Empty,
-                new Modifiers(AccessModifier.DefaultAccess),
+                Visibility.Public,
                 new Source("Techniques.qs", QsNullable<string>.Null),
                 ZeroLocation,
                 signature,

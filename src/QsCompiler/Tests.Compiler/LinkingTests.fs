@@ -212,9 +212,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Seq.item 0 x)
 
         Assert.True
-            ((match generated.Modifiers.Access with
-              | Internal -> true
-              | _ -> false),
+            (generated.Visibility = Internal,
              "Callables originally internal should remain internal.")
 
         let generated =
@@ -224,9 +222,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Seq.item 0 x)
 
         Assert.True
-            ((match generated.Modifiers.Access with
-              | Internal -> true
-              | _ -> false),
+            (generated.Visibility = Internal,
              "Callables originally internal should remain internal.")
 
         let generated =
@@ -236,9 +232,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Seq.item 0 x)
 
         Assert.True
-            ((match generated.Modifiers.Access with
-              | Internal -> true
-              | _ -> false),
+            (generated.Visibility = Internal,
              "Callables with internal arguments should be internal.")
 
         let generated =
@@ -248,9 +242,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Seq.item 0 x)
 
         Assert.True
-            ((match generated.Modifiers.Access with
-              | DefaultAccess -> true
-              | _ -> false),
+            (generated.Visibility = Public,
              "Callables originally public should remain public if all arguments are public.")
 
 
@@ -705,11 +697,11 @@ type LinkingTests(output: ITestOutputHelper) =
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl: QsCustomType) =
-                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Modifiers.Access)
+                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Visibility)
                 tDecl
 
             let onCallableDecl (cDecl: QsCallable) =
-                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Modifiers.Access)
+                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Visibility)
                 cDecl
 
             let onSpecDecl (sDecl: QsSpecialization) =
